@@ -1213,24 +1213,40 @@ function plainCoachText(value) {
 }
 
 function MatchCoachBrief({ match, onReview, hasReview = false }) {
-  const snapshot = matchCoachSnapshot(match);
+  const publication = buildGamePublicationSnapshot({ match });
+  const snapshot = publication.coach;
   const matchId = match?.id || "";
-  return <section className="games-analysis-section games-coach-brief" aria-label="L’essentiel de la partie">
-    <div className="games-brief-heading">
-      <h4 className="games-section-heading">L’essentiel de la partie</h4>
-      <Badge tone={snapshot.mainSignal.toneName}>{snapshot.mainSignal.label}</Badge>
+  const signalLabel = { Économie: "Écart d’or final", Dégâts: "Écart de dégâts aux champions", Vision: "Écart de score de vision" }[snapshot.mainSignal.label];
+  const hasSignal = ["gold", "damage", "vision"].some((key) => Number.isFinite(publication.facts[key].diff));
+  return <section className="games-analysis-section games-coach-brief" aria-label="Bilan de la partie">
+    {hasSignal ? <>
+      <dl className="games-brief-signal">
+        <dt>{signalLabel}</dt>
+        <dd data-tone={snapshot.mainSignal.toneName}>{snapshot.mainSignal.value}</dd>
+      </dl>
+      <p className="games-brief-comparison">Notre équipe − adversaires</p>
+      <p className="games-brief-summary">Un écart final ne suffit pas à expliquer le résultat.</p>
+    </> : <>
+      <h4 className="games-section-heading">Statistiques incomplètes</h4>
+      <p className="games-brief-summary">{plainCoachText(snapshot.summary)}</p>
+    </>}
+    <div className="games-brief-review">
+      <h4>À vérifier en débrief</h4>
+      <p>{plainCoachText(snapshot.correct)}</p>
+      <Button type="button" icon={hasReview ? FileText : Plus} onClick={onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`))} disabled={!matchId}>{hasReview ? "Ouvrir le débrief" : "Préparer le débrief"}</Button>
     </div>
-    <p className="games-brief-verdict">{plainCoachText(snapshot.title)}</p>
-    <p className="games-brief-summary">{plainCoachText(snapshot.summary)}</p>
-    <dl className="games-brief-points">
-      {[["À garder", snapshot.keep, "keep"], ["À vérifier", snapshot.correct, "check"], ["Prochaine action", snapshot.action, "next"]].map(([label, value, toneName]) => <div key={label} className={`games-brief-point games-brief-point-${toneName}`}>
+  </section>;
+}
+
+function CoachDebriefPrompts({ match }) {
+  const snapshot = matchCoachSnapshot(match);
+  return <section className="games-analysis-section">
+    <h4 className="games-section-heading">Autres pistes pour le débrief</h4>
+    <dl className="games-brief-prompts">
+      {[["À garder", snapshot.keep], ["Prochaine action", snapshot.action]].map(([label, value]) => <div key={label}>
         <dt>{label}</dt><dd>{plainCoachText(value)}</dd>
       </div>)}
     </dl>
-    <div className="games-brief-followup">
-      <div><p>Le débrief d’équipe (review) rassemble tes notes et les décisions pour la prochaine session.</p></div>
-      <Button type="button" icon={hasReview ? FileText : Plus} onClick={onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`))} disabled={!matchId}>{hasReview ? "Ouvrir le débrief" : "Préparer le débrief"}</Button>
-    </div>
   </section>;
 }
 
@@ -1273,25 +1289,31 @@ function MatchDataPanel({ match, teamName, onReview, hasReview = false }) {
   const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="Éliminations / morts / assistances" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} éliminations adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Notre équipe moins l’adversaire" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Or de notre équipe moins l’adversaire" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score de vision : notre équipe moins l’adversaire" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div>;
   return <Surface className="nxt5-match-panel mt-5">
     <div className="games-match-context">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="games-match-title">
+        <h3 tabIndex={-1}>{matchDisplayName(match)}</h3>
         <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Résultat non renseigné"}</Badge>
+      </div>
+      <div className="games-match-meta">
         <span>{match.duration ? `Durée : ${match.duration}` : "Durée non renseignée"}</span>
         <span>{side === "blue" ? "Notre équipe : côté bleu" : side === "red" ? "Notre équipe : côté rouge" : "Côté non renseigné"}</span>
       </div>
-      <h3 tabIndex={-1}>{matchDisplayName(match)}</h3>
-      {(match.game_id || match.patch) && <p>{[match.game_id && `Identifiant : ${match.game_id}`, match.patch && `Version du jeu : ${match.patch}`].filter(Boolean).join(" · ")}</p>}
     </div>
     <MatchCoachBrief match={match} onReview={onReview} hasReview={hasReview} />
-    <section className="games-explore" aria-label="Explorer la partie">
-      <h4 className="games-section-heading">Explorer la partie</h4>
-      <p>Ouvre le détail utile à ta question.</p>
+    <section className="games-explore" aria-label="Détails de la partie">
+      <h4 className="games-section-heading">Détails de la partie</h4>
       <div key={match.id}>
         <GameAnalysisDisclosure title="Statistiques et comparaison 5 contre 5" description="Or, dégâts, vision, joueurs, équipements et objectifs.">
           {metrics}
           <MatchVersusOverview match={match} teamName={teamName} />
           <CoachSupportingMetrics match={match} />
+          {(match.game_id || match.patch) && <section className="games-analysis-section games-match-info">
+            <h4 className="games-section-heading">Informations de la partie</h4>
+            {match.game_id && <p>Identifiant : {match.game_id}</p>}
+            {match.patch && <p>Version du jeu : {match.patch}</p>}
+          </section>}
         </GameAnalysisDisclosure>
         <GameAnalysisDisclosure title="Points à approfondir" description="Contributions par rôle, contexte des morts et composition de champions (draft).">
+          <CoachDebriefPrompts match={match} />
           <GameSummaryPanel match={match} />
           <GameMetricSignals match={match} />
           <RoleDiffPanel match={match} />
