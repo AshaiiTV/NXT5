@@ -33,7 +33,7 @@ const out = await p.evaluate(() => {
     ['colonne des titres', T.tools + 0.25, T.end - 0.1, [G.tools.col.left, G.tools.col.top, G.tools.col.left + 686, G.tools.col.top + 260, G.tools.col.z], true],
     ['pile de cartes', T.tools + 0.1, T.end - 0.1, 'stack'],
     ['logo final', T.end + 0.2, D, art(G.L9)],
-    ['lignes finales', T.end + 1.4, D, [960 - 532, G.end.line1Top, 960 + 532, G.end.line2Top + 50, 0], true],
+    ['ligne finale', T.end + 1.4, D, [960 - 532, G.end.line1Top, 960 + 532, G.end.line1Top + 58, 0], true],
   ];
   const S = G.tools.stack, r = S.rotY * Math.PI / 180;
   const stackPts = c => [[0, 0], [S.w, 0], [0, S.h], [S.w, S.h]].map(([u, v]) => NX.cam.project(S.left + u * Math.cos(r), S.top + v, S.z - u * Math.sin(r), c));

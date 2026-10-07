@@ -60,7 +60,7 @@
     tools: { col: { left: 190, top: 360, z: 40 },
              stack: { left: 975, top: 300, w: 830, h: 540, z: -60, rotY: 10, rotX: 2, origin: '0 0',
                       slots: [[0, 0, 0], [0, -46, -150], [0, -92, -300]], fog: [0, 0.42, 0.84] } },
-    end: { buttonTop: 600, line1Top: 770, line2Top: 850 },
+    end: { buttonTop: 600, line1Top: 770 },
   };
   /* Fronts de lumière (rayon vertical en px écran) : l'écriture du logo à 4,8 s et le retour à 27,6 s.
    * L'onde de l'accroche part à 4,18 s (bible : 4,20) pour rester sous 1 600 px/s (pointe 1 498 au lieu de 1 653). */

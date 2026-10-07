@@ -32,9 +32,11 @@
   const HIT = NX.T.end;                                            // 27,6 (v7 : 28,8)
   const FLY = [HIT - 0.8, HIT], Y0 = -850, Z0 = -4000;             // retour (26,8–27,6) : (959,1 ; −850 ; −4000) → posé
   const FRONT_OFF = HIT + 0.65;                                    // 28,25 : la bande est passée sous tout le logo
-  /* Carillons (bible §2.5, NX.beats.chimes) : bouton, ligne 1, ligne 2, reflet du logo, reflet du bouton, puis la
-   * cloche de l'étoile douce. v7.1 : 28,2 / 28,5 / 28,8 / 29,1 / 29,4 et 30,6. */
-  const [CH_CTA, CH_L1, CH_L2, CH_GLINT, CH_CTA_GLINT, BELL] = NX.beats.chimes;
+  /* Carillons (bible §2.5, NX.beats.chimes) : bouton, ligne, (troisième note), reflet du logo, reflet du bouton, puis
+   * la cloche de l'étoile douce. v7.1 : 28,2 / 28,5 / 28,8 / 29,1 / 29,4 et 30,6. Le 7 octobre, la ligne « Accès
+   * actuellement gratuit » est retirée à la demande du propriétaire ; la troisième note reste pour l'arpège et sonne
+   * pendant la montée de la fin de la ligne (« League of Legends »). */
+  const [CH_CTA, CH_L1, , CH_GLINT, CH_CTA_GLINT, BELL] = NX.beats.chimes;
   /* Échange des traits sous l'éclair (repli §5.3 en forme, ouvert à l'impact plutôt qu'à HIT − 0,02 : rien ne change
    * avant HIT). Posés sur la même plaque, les deux PNG ne diffèrent qu'au bord des traits (contrôle §6.9 : moyenne 0,8/255,
    * maximum 5/255 hors de la frange de 2 px) ; sur cette frange, jusqu'à 215/255 (deux PNG rastérisés à deux échelles,
@@ -78,7 +80,6 @@
   .fin-cta i{position:absolute;top:0;bottom:0;left:0;width:46%;opacity:0;mix-blend-mode:plus-lighter;background:linear-gradient(105deg,transparent 18%,rgba(255,255,255,.16) 50%,transparent 82%)}
   .fin-line{position:absolute;left:0;right:0;text-align:center;white-space:nowrap}
   .fin-l1{top:${G.end.line1Top}px;font-weight:700;font-size:48px;letter-spacing:-.01em;color:var(--text)}
-  .fin-l2{top:${G.end.line2Top}px;font-weight:600;font-size:40px;color:var(--text2)}
   `);
 
   /** Masque à plusieurs couches (même convention que le kit). ops : opérateur de chaque couche avec celles qui sont
@@ -165,8 +166,7 @@
       this.ctaw = NX.el(`<div class="fin-ctaw"><span class="fin-cta">nxt5.org<i></i></span></div>`, root);
       this.cta = this.ctaw.firstElementChild; this.glint = this.cta.querySelector('i');
       this.l1 = NX.el(`<div class="fin-line fin-l1"><div class="tz-line">Pour les équipes et coachs League of Legends</div></div>`, root);
-      this.l2 = NX.el(`<div class="fin-line fin-l2"><div class="tz-line">Accès actuellement gratuit</div></div>`, root);
-      this.w1 = NX.type.prepare(this.l1).words; this.w2 = NX.type.prepare(this.l2).words;
+      this.w1 = NX.type.prepare(this.l1).words;
     },
     layout() {
       // Centre du bouton en monde, pour la lumière du canvas (mesuré une fois les polices chargées).
@@ -389,15 +389,13 @@
       this.glint.style.opacity = gOn ? 1 : 0;
       this.glint.style.display = gOn ? '' : 'none';
       this.glint.style.transform = `translateX(${NX.lerp(-105, 222, gOn ? pg : 0).toFixed(2)}%)`;
-      // Carillons 2 et 3 : les deux lignes montent à travers leur masque.
+      // Carillon 2 : la ligne monte à travers son masque.
       NX.type.rise(this.w1, t, CH_L1, 0.04, 0.6);
-      NX.type.rise(this.w2, t, CH_L2, 0.04, 0.6);
-      // Une ligne dont aucun mot n'est encore entré, et le bouton tant qu'il est fermé, sont retirés du rendu : chaque
+      // La ligne tant qu'aucun de ses mots n'est entré, et le bouton tant qu'il est fermé, sont retirés du rendu : chaque
       // élément de la racine 3D a son propre calque, et un calque devenu vide n'était plus rastérisé. Rendu juste après
       // la carte complète (v7 : 31,0 puis 29,0), Chrome y affichait une tuile périmée prise au bouton (tache magenta).
       const shown = ws => ws.some(w => +w.style.opacity > 0);
       this.l1.style.display = shown(this.w1) ? '' : 'none';
-      this.l2.style.display = shown(this.w2) ? '' : 'none';
       this.ctaw.style.display = pc > 0 ? '' : 'none';
     },
   });

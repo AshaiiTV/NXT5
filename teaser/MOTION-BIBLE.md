@@ -45,6 +45,8 @@ Wherever a value is given here, it is the value to implement. "≈" marks a meas
 - §6.5 luminance continuity over 4.8–13.2 (≤ 4.5 between samples outside the hit windows, ≤ 9 inside), mean Y 7.0–9.5 ≥ 15, S5 guard 10.45–12.7 ≥ 17.1.
 - Determinism in two orders and after a long history; no page errors; brand rules (logos never rotated, recoloured or filtered).
 
+**End card (owner feedback on the v7.2 preview, 7 Oct):** « Retire la notion actuellement gratuite à la toute fin. » The line « Accès actuellement gratuit » is removed from S9; the button and « Pour les équipes et coachs League of Legends » keep their place (`NX.G.end.line2Top` is gone). Chime 3 is kept so the arpeggio stays whole: it now sounds under the end of line 1's rise (« League of Legends » rises 28.70–29.38).
+
 ---
 
 ## v7.1 amendment (6 Oct, owner feedback on the v7 preview): read this first
@@ -257,7 +259,7 @@ The film is one take. The camera never cuts, never shakes and never stops: at an
 | Tool bells | 21.6, 25.2 | A sheen sweep and a rim flare on the arriving card |
 | Light kicks | 10.8, 13.2, 15.6, 16.8 | 10.8 the link line draws; 13.2 the link pulses; 15.6 the direction beam draws; 16.8 the beam and glow pulse |
 | Drop kicks and snares | `NX.beats.dropKicks`, `NX.beats.dropSnares` | UI micro-events (badge, counters landing, discs, slots); rim gain ×(1 + 0.25·beatPulse(snares, 7)) |
-| Chimes | 29.4, 29.7, 30.0, 30.3, 30.6 and bell 31.8 | Button, line 1, line 2, lockup glint, button glint, final soft star |
+| Chimes | 29.4, 29.7, 30.0, 30.3, 30.6 and bell 31.8 | Button, line 1, (line 2 removed 7 Oct: the chime sounds under line 1), lockup glint, button glint, final soft star |
 | Hats | — | Nothing. Exception: the 26.1 accented hat lands the Wednesday slot. |
 | Risers and reverses | 3.6–4.8, 12.3–14.4, 15.6–18.0, 27.6–28.8 | Anticipation: rays swell, dust accelerates toward the light, cores grow |
 
@@ -954,7 +956,7 @@ Conventions:
 - Halo div (v6, top 320).
 - Lockup box `NX.G.L9` with `NX.logoLight` leaves.
 - Docking favicon `NX.G.dock`.
-- Button and two lines.
+- Button and line 1 (line 2 removed 7 Oct, see the v7.2 amendment).
 
 **Emblem return (28.00–28.80):**
 - The favicon's ring centre travels in world space from (959.1, −850, −4000) to (959.1, 246.0, 0) with GLIDE. On screen, size 97 → 295 px and peak 365 px/s.
@@ -973,7 +975,7 @@ Conventions:
 | 28.70–29.20 | Halo | Fades in |
 | 29.40 | Chime 1 | « nxt5.org » button: primary gradient `#22D3EE → #3B82F6 → #D946EF`, Inter 800, 56 px, `#020611`, padding 22/64, radius 2, top 600. `clip-path: inset(0 50% 0 50%)` → `inset(0)` over 0.45 s (ENTER), revealing the label from the centre. Bloom: fx glow r 260 at alpha 0.25·e^(−3τ). |
 | 29.70 + 0.04i | Chime 2 | « Pour les équipes et coachs League of Legends » (Inter 700, 48 px, `#F3F7FF`, top 770) rises through its mask (ENTER 0.6) |
-| 30.00 + 0.04i | Chime 3 | « Accès actuellement gratuit » (Inter 600, 40 px, `#BFCCDF`, top 850) rises |
+| 30.00 | Chime 3 | Removed 7 Oct (owner): no line 2. The chime sounds under the end of line 1's rise. |
 | 30.30–30.95 | Chime 4 | Lockup glint (`sweep` plus spill, star at the spear tip ≈ 30.55) |
 | 30.60–31.20 | Chime 5 | Button glint: an inner band, `overflow: hidden` on the button (a flat leaf), plus-lighter, peak alpha 0.16 |
 | 31.80 | Bell | Soft star on the spear tip (g 0.5, 0.4 s) |
@@ -985,8 +987,7 @@ Conventions:
 - Lockup: 28.97–33.6.
 - Button: 29.85–33.6 (v6 30.0).
 - Line 1: 30.20–33.6 (v6 30.4).
-- Line 2: 30.35–33.6 (v6 30.7).
-- S8 remains are gone before each line appears: the button area is clear at 29.04, line 1's at 29.175, line 2's at 29.23.
+- S8 remains are gone before each line appears: the button area is clear at 29.04, line 1's at 29.175.
 
 **Acceptance:**
 - **28.80:**
@@ -1214,7 +1215,7 @@ That is about 1.0–1.4× v6 per moment, roughly 1.15–1.25× for the whole fil
 | « Une même direction. » | 924 px |
 | Tool title lines | 683 / 347 / 507 / 405 / 563 / 686 px |
 | Kickers | 350–365 px |
-| End line 1 / line 2 | 1,064 / 519 px |
+| End line 1 | 1,064 px |
 | « nxt5.org » at 56 px | 242 px |
 | SUPPORT at .2em / .6em | 210 / 305 px |
 | Question at 44 px | 2 lines |

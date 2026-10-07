@@ -4,11 +4,12 @@ Teaser vidéo de NXT5, rendu image par image dans Chromium. Tout le film est une
 
 ## Version 7.2 (7 octobre 2026)
 
-Retour sur l’aperçu de la v7.1 : le logo apparaissait deux fois de suite (le logo complet, puis un emblème qui renaissait après les rôles). La v7.2 en fait un seul logo continu, de 4,8 à 13,2 s. La durée, la musique, les outils et la fin sont inchangés. Les décisions sont consignées en tête de `MOTION-BIBLE.md` (amendement v7.2) et dans son tableau des écarts.
+Retour sur l’aperçu de la v7.1 : le logo apparaissait deux fois de suite (le logo complet, puis un emblème qui renaissait après les rôles). La v7.2 en fait un seul logo continu, de 4,8 à 13,2 s. La durée, la musique et les outils sont inchangés ; la carte finale perd seulement la mention de gratuité. Les décisions sont consignées en tête de `MOTION-BIBLE.md` (amendement v7.2) et dans son tableau des écarts.
 
 - **Un seul logo.** La lumière écrit le logo une seule fois. Le mot NXT5, la devise et le fond du logo repartent dans la lumière ; l’emblème reste en place et passe à l’emblème seul par un fondu de 0,15 s, au pixel près.
 - **Les rôles naissent de l’emblème.** Les cinq rôles naissent autour de lui, de sa lumière, un par croche. Ils se dissolvent ensuite en particules qui rejoignent chacune son secteur ; l’emblème se charge de leur lumière et grandit jusqu’à l’impact de 9,6 s.
 - **« Une même direction. »** s’écrit sous ce même emblème, puis la flèche monte jusqu’au drop de 13,2 s, comme dans la v7.1.
+- **Carte finale.** La mention « Accès actuellement gratuit » est retirée (retour sur l’aperçu de la v7.2). Il reste le logo, le bouton nxt5.org et « Pour les équipes et coachs League of Legends ».
 
 | Temps (s) | Scène | À l’écran |
 |---|---|---|
@@ -17,7 +18,7 @@ Retour sur l’aperçu de la v7.1 : le logo apparaissait deux fois de suite (le 
 | 7,2 → 9,6 | `equipe`, `direction` | Les cinq rôles naissent autour de l’emblème, puis s’y fondent ; il grandit jusqu’à l’impact |
 | 9,6 → 13,2 | `direction` | « Une même direction. », le faisceau, la flèche monte |
 | 13,2 → 27,6 | `outils` | Quatre cartes de verre : Analyser, Débriefer, Drafter, Planifier |
-| 27,6 → 32,4 | `fin` | L’emblème revient se poser, la lumière réécrit NXT5, carte finale |
+| 27,6 → 32,4 | `fin` | L’emblème revient se poser, la lumière réécrit NXT5, carte finale : nxt5.org et « Pour les équipes et coachs League of Legends » |
 
 Le trajet commun de l’emblème entre les trois scènes (`NX.M72`, défini dans `scenes/logo.js`) est décrit dans `ENGINE.md`.
 
