@@ -62,10 +62,10 @@ NX.scene({
     for (const h of T.hits) if (t >= h) flash += (h === T.tools ? 0.3 : h === T.end ? 0.5 : h === T.hookEnd ? 0.9 : 1) * Math.exp(-4 * (t - h));
     // Éclat mesuré pour rester dans la règle de continuité (|ΔY| ≤ 9 sur la fenêtre d'un impact).
     B.rays += 0.65 * flash; B.intensity += 0.14 * flash; B.flash = 0.02 * flash;
-    // S2 → S3 : la lumière recueille le logo. Quand il disparaît (7,13–7,17), les rayons prennent sa lumière
-    // puis se calment jusqu'à 7,8 ; sans ce relais, la luminance chutait de 4,7 en une image.
-    const take = sm(7.11, 7.17, t) * (1 - sm(7.17, 7.8, t));
-    B.rays += 0.7 * take; B.intensity += 0.14 * take;
+    // S2 → S3 (v7.2) : l'emblème du logo reste. La lumière que le front reprend au mot-symbole (6,78–7,17) est relayée en
+    // phase par les scènes : cœur de l'emblème (logo.js) et anneau de scène des rôles (equipe.js, 6,96–7,10). L'ancien
+    // relais du ciel (7,11–7,8, réglé pour la disparition du logo entier) arrivait après les lettres et faisait un éclat
+    // hors impact : il est retiré (revue M, out/v72/M/lead-patch/).
     // Rôles (7,2–9,6) : le ciel reste éclairé pendant la transition, puis rend la main au faisceau de « direction ».
     const lift = sm(6.6, 7.4, t) * (1 - sm(T.emblem - 0.4, T.emblem + 0.6, t));
     B.rays += 0.45 * lift; B.nebula += 0.24 * lift; B.intensity += 0.08 * lift;

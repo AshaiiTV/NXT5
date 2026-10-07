@@ -19,12 +19,15 @@ const out = await p.evaluate(() => {
   // Boîtes de contenu (monde) et leurs fenêtres d'affichage.
   // v7.1 : fenêtres lues sur NX.T (rôles en transition, quatre outils).
   const T = NX.T, D = NX.DURATION, P = G.pent, sq = G.roles.tile * P.scale / 2;
-  const pentBox = (() => { const xs = [], ys = []; P.deg.forEach(a => { const r = a * Math.PI / 180; xs.push(P.c[0] + P.r * Math.cos(r)); ys.push(P.c[1] + P.r * Math.sin(r)); });  // y vers le bas, Mid en haut (equipe.js)
+  // v7.2 : pentagone r = 262 autour du centre optique de l'emblème (NX.M72.C0 + S0·NX.M72.OPT), y vers le bas, Mid en haut.
+  const PC = [NX.M72.C0[0] + NX.M72.S0 * NX.M72.OPT[0], NX.M72.C0[1] + NX.M72.S0 * NX.M72.OPT[1]], PR = 262;
+  const pentBox = (() => { const xs = [], ys = []; P.deg.forEach(a => { const r = a * Math.PI / 180; xs.push(PC[0] + PR * Math.cos(r)); ys.push(PC[1] + PR * Math.sin(r)); });
     return [Math.min(...xs) - sq, Math.min(...ys) - sq, Math.max(...xs) + sq, Math.max(...ys) + sq, 0]; })();
   const boxes = [
     ['question', 0, T.hookEnd, [960 - 664, 350, 960 + 664, 662, 0], true],   // trois lignes, haut monde 350 (accroche.js)
     ['logo S2', 5.0, 6.9, art(G.L2)],
-    ['rôles (pentagone)', T.roles, T.emblem - 0.3, pentBox],
+    ['rôles (pentagone v7.2)', T.roles - 0.12, T.fuse + 0.4, pentBox],
+    ['emblème (fondu → 9,6)', NX.M72.DISSOLVE[0], T.emblem, 'm72'],
     ['emblème S5', T.emblem, T.tools - 0.6, [G.E5.left, G.E5.top, G.E5.left + G.E5.size, G.E5.top + G.E5.size, 0]],
     ['« Une même direction. »', T.emblem + 0.6, T.tools - 0.3, [960 - 462, 700, 960 + 462, 805, 0], true],
     ['colonne des titres', T.tools + 0.25, T.end - 0.1, [G.tools.col.left, G.tools.col.top, G.tools.col.left + 686, G.tools.col.top + 260, G.tools.col.z], true],
@@ -35,10 +38,11 @@ const out = await p.evaluate(() => {
   const S = G.tools.stack, r = S.rotY * Math.PI / 180;
   const stackPts = c => [[0, 0], [S.w, 0], [0, S.h], [S.w, S.h]].map(([u, v]) => NX.cam.project(S.left + u * Math.cos(r), S.top + v, S.z - u * Math.sin(r), c));
   for (const [name, a, z, box, isText] of boxes) {
-    const [x0, y0, x1, y1, Z] = box === 'stack' ? [S.left, S.top, S.left + S.w, S.top + S.h, S.z] : box;
+    const [x0, y0, x1, y1, Z] = box === 'stack' ? [S.left, S.top, S.left + S.w, S.top + S.h, S.z] : box === 'm72' ? [0, 0, 0, 0, 0] : box;
     let worst = Infinity, wt = a, minS = Infinity;
     for (let t = a; t <= z + 1e-6; t += 0.05) {
-      const c = NX.cam.at(t), pts = box === 'stack' ? stackPts(c) : [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([X, Y]) => NX.cam.project(X, Y, Z, c));
+      const c = NX.cam.at(t), m = NX.M72.pose(t), F = NX.G.FAV, E0 = [m.cx - F.ringC[0] * m.s, m.cy - F.ringC[1] * m.s];
+      const pts = box === 'stack' ? stackPts(c) : box === 'm72' ? [[0, 0], [512, 0], [0, 512], [512, 512]].map(([u, v]) => NX.cam.project(E0[0] + u * m.s, E0[1] + v * m.s, m.z, c)) : [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([X, Y]) => NX.cam.project(X, Y, Z, c));
       for (const q of pts) {
         const m = Math.min(q.x - 154, 1920 - 154 - q.x, q.y - 86, 1080 - 86 - q.y);
         if (m < worst) { worst = m; wt = t; }

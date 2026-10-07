@@ -1,7 +1,15 @@
-/* S5 Direction (bible v7 §4 S5 et amendement v7.1 : tous les temps −4,8 s), fenêtre 9,45–13,3 s, z 1,2 :
- * « Une même direction. ». Chaque instant est écrit par rapport à NX.T (frise ci-dessous) : la naissance et la tenue
- * suivent l'emblème (T.emblem, 9,6), la condensation, la montée et la sortie suivent le drop (T.tools, 13,2).
- * 9,48–9,62 : l'emblème (PNG) apparaît sous les particules d'equipe.js ; 9,6 : impact sobre au centre de l'anneau.
+/* S5 Direction (bible v7 §4 S5, amendements v7.1 et v7.2), fenêtre 7,0–13,3 s, z 1,2 : l'emblème du moment continu
+ * du logo, puis « Une même direction. ». Chaque instant est écrit par rapport à NX.T (frise ci-dessous) : l'emblème et
+ * la tenue suivent T.emblem (9,6), la condensation, la montée et la sortie suivent le drop (T.tools, 13,2).
+ * v7.2 : l'emblème n'est plus créé à 9,6. Il est l'emblème même du logo de S2 : quand il ne reste du logo que les
+ * traits de son emblème (logo.js), cet emblème (le favicon, à la même place et à la même échelle : × 1,1425 en
+ * (335,5 ; 48,5) px du logo, plan du logo) arrive par-dessus en un fondu enchaîné de 0,15 s (NX.M72.DISSOLVE, 7,10–7,25,
+ * revue M ; 2 px devant le plan du logo, projection inchangée). Il suit ensuite le trajet de NX.M72 : immobile pendant
+ * la naissance des rôles autour de lui (equipe.js ; sur chaque cloche, le secteur tourné vers la place du rôle
+ * s'éclaire), il grandit en SINE (8,6–9,6) jusqu'à la géométrie E5 pendant que leurs particules y entrent ; chaque
+ * secteur se charge de leur lumière (feuille des secteurs ≤ 0,22, plafond de marque 0,30), les secteurs du bas d'abord,
+ * la lance en dernier, de plus en plus vite jusqu'à l'impact de 9,6 qui la relâche : cœur, une traînée, l'onde de choc
+ * (ciel).
  * 9,75 : le titre monte. 9,8–12,6 : l'emblème respire (−10 px, ×1,025). 10,8 : un faisceau part de la pointe de la
  * lance vers la source (tracé 10,8–11,7), il pulse sur 12,0. 11,35–12,05 : un seul reflet passe sur le chrome.
  * 12,60–12,95 : l'emblème se condense en sa flèche : le masque horizontal doux se referme sur l'axe et efface l'anneau
@@ -17,7 +25,8 @@
  * dans tout ordre de rendu (bible §6.8).
  * Fonction pure de t : masque de la flèche, copie de l'emblème, instant de l'étoile et toile annexe sont préparés une fois.
  * Vérification (bible §6.8, §6.10) : NX.dirDebug = { leavesOff } coupe toute lumière ajoutée sur l'emblème,
- * { noHalo } retire le halo, { noMask } désactive le masque de condensation. */
+ * { noSec } la feuille des secteurs, { noHalo } retire le halo, { noMask } désactive le masque de condensation ;
+ * NX.logoDebug = { fav } / { lock } : contrôle §6.9 inversé du fondu enchaîné (voir logo.js). */
 (function () {
   const SRC = '../public/assets/nxt5-loader-favicon.png';
   const G5 = NX.G.E5, FV = NX.G.FAV, BOX = G5.size, K = BOX / FV.W;   // 460 px monde pour 512 px d'image
@@ -31,13 +40,29 @@
   const CX = G5.left + OX, CY = G5.top + OY;     // C = (960 ; 441,7), centre de l'anneau en monde
   const TIPV = FV.spearTip[1] * K;               // pointe de la lance : y 46,7 dans la boîte (monde 246,7)
   const HALO = 900;                              // halo : disque radial de 900 px centré sur C
+  // Coin de la boîte posé au px entier : Chrome cale la position de mise en page d'un calque composé sur le px entier
+  // avant d'appliquer sa transformation (mesuré : 732,25 → 0,23 px à gauche de la géométrie voulue) ; la fraction
+  // passe dans le translate3d, exact. Sans cela l'emblème seul était décalé de 0,3 px par rapport à celui du logo.
+  const BL = Math.floor(G5.left), BT = Math.floor(G5.top), FXL = G5.left - BL, FXT = G5.top - BT;
 
   /* Frise (bible §4 S5, amendement v7.1). Les valeurs en commentaire sont celles de la frise v7.1 (v7 − 4,8 s). */
   const at = (a, d) => Math.round((a + d) * 1e6) / 1e6;   // instant relatif à un repère de NX.T, sans résidu flottant
-  const HIT = NX.T.emblem;                       // 9,6 : naissance de l'emblème
+  const HIT = NX.T.emblem;                       // 9,6 : impact (l'emblème, déjà là, est résolu à la géométrie E5)
   const DROP = NX.T.tools;                       // 13,2 : drop, la lumière redescend sur la première carte
-  const WIN = [at(HIT, -0.15), at(DROP, 0.10)];  // fenêtre de la scène 9,45–13,3
-  const BIRTH = [at(HIT, -0.12), at(HIT, 0.02)]; // 9,48–9,62 : opacité de l'emblème sous les particules
+  const M72 = NX.M72;                            // trajet de l'emblème du moment continu (logo.js)
+  const [DIS0, DIS1] = M72.DISSOLVE;            // 7,10 → 7,25 : fondu enchaîné de l'emblème du logo vers cet emblème
+  const WIN = [at(DIS0, -0.10), at(DROP, 0.10)]; // fenêtre de la scène 7,0–13,3
+  /* Lumière par secteur (revue M) : une feuille plus-lighter de plus, masquée par les traits clairs, dont le fond est un
+   * dégradé conique autour du centre de l'anneau qui donne à chacun des cinq secteurs des rôles sa propre lumière
+   * (fondus de ± SEC_F° entre secteurs, lumière froide). Deux usages, jamais en même temps :
+   * - cloches des rôles (7,2–8,4) : sur la cloche de chaque rôle, le secteur tourné vers sa place s'éclaire (BELL_A, forme
+   *   du flash de cloche) : chaque joueur naît de la lumière de l'emblème ;
+   * - charge (9,20–9,6) : chaque secteur reçoit la lumière de ses particules à mesure qu'elles s'y fondent (part absorbée
+   *   NX.M72.absorbed, tables d'equipe.js), sous une enveloppe qui accélère jusqu'à l'impact (inQuad) : les secteurs du bas
+   *   d'abord, la lance (Mid) en dernier, complète sur 9,6. L'impact (0,30·e^(−6τ), feuille lum du kit) prend alors le
+   *   relais : jamais plus de 0,30 (plafond de marque). */
+  const CHARGE = [at(HIT, -0.40), HIT], CHARGE_A = 0.22, BELL_A = 0.12, SEC_F = 8, SPIN = 20;
+  const PENT_DEG = NX.G.pent.deg, BELLS = NX.beats.bells.slice(0, 5);
   const HALO_IN = [at(HIT, 0.02), at(HIT, 0.60)];    // 9,62–10,2 : le halo s'épanouit pendant que l'éclair retombe (SINE)
   const TITLE_IN = at(HIT, 0.15), TITLE_STEP = 0.12, TITLE_DUR = 0.8;   // 9,75 / 9,87 / 9,99 (ENTER) : complet 10,79
   // Sortie 12,80 / 12,85 / 12,90, EXIT 0,30 (écart de la bible : v7 17,62 / 17,67 / 17,72, EXIT 0,32, sorti à 18,04,
@@ -85,22 +110,46 @@
   const HALO_STOPS = Array.from({ length: 11 }, (_, i) => { const u = i / 10; return [u, HALO_PEAK * (1 - u * u * (3 - 2 * u))]; });
 
   NX.css(`
-  .dir-box{position:absolute;left:${G5.left}px;top:${G5.top}px;width:${BOX * SS}px;height:${BOX * SS}px;transform-origin:0 0;isolation:isolate;opacity:0}
+  .dir-box{position:absolute;left:${BL}px;top:${BT}px;width:${BOX * SS}px;height:${BOX * SS}px;transform-origin:0 0;isolation:isolate;opacity:0}
   .dir-img{position:absolute;inset:0;width:100%;height:100%;transform:translateZ(2px)}
+  .dir-sec{position:absolute;inset:0;mix-blend-mode:plus-lighter;transform:translateZ(3.6px);display:none}
   .dir-title{top:700px;transform:translateZ(${ZT}px)}
   `);
 
-  /** Pose de l'emblème : respiration (−10 px, ×1,025, SINE) puis montée de 260 px (LIFT) ; échelle autour de C.
-   *  dyB : la seule respiration (point de départ de la tête du faisceau pendant son tracé), dy : avec la montée. */
+  /** Pose de l'emblème : trajet NX.M72 (de l'emblème du logo à E5, 7,18–9,6 ; échelle relative à E5, décalage du centre
+   *  de l'anneau, plan), puis respiration (−10 px, ×1,025, SINE) et montée de 260 px (LIFT) ; échelle autour de C.
+   *  dyB : sans la montée (point de départ de la tête du faisceau pendant son tracé), dy : avec la montée.
+   *  zb : translateZ de la boîte dans la racine (plan du logo −0,5 à SWAP, plan 2,6 de la v7.1 dès 9,6). */
   const dirPose = t => {
-    const br = SINE(seg(t, BREATH[0], BREATH[1])), up = E.lift(seg(t, RISE[0], RISE[1]));
-    return { s: 1 + 0.025 * br, dyB: -10 * br, dy: -10 * br - 260 * up };
+    const m = M72.pose(t), br = SINE(seg(t, BREATH[0], BREATH[1])), up = E.lift(seg(t, RISE[0], RISE[1]));
+    const dyB = m.cy - CY - 10 * br;
+    return { s: m.s / M72.S1 * (1 + 0.025 * br), dx: m.cx - CX, dyB, dy: dyB - 260 * up, zb: m.z - ZR };
   };
   /** Point (u, v) de la boîte en px monde (1×) → point écran ; rise = false : sans la montée. */
-  const dirProj = (P, u, v, rise = true) => NX.cam.project(CX + (u - OX) * P.s, CY + (v - OY) * P.s + (rise ? P.dy : P.dyB), ZR + ZB);
+  const dirProj = (P, u, v, rise = true) => NX.cam.project(CX + P.dx + (u - OX) * P.s, CY + (v - OY) * P.s + (rise ? P.dy : P.dyB), ZR + P.zb);
   /** Centre de la bande de reflet (gradient 105°, 34 % de large, translateX −110 % → 300 %) à mi-hauteur, en u. */
   const sweepAt = p => (NX.lerp(-110, 300, p) / 100) * 0.34 + 0.17;
   const sheenInv = y => { let a = 0, b = 1; for (let i = 0; i < 40; i++) { const m = (a + b) / 2; if (E.sheen(m) < y) a = m; else b = m; } return (a + b) / 2; };
+
+  /** Flash de cloche du rôle i (même forme qu'equipe.js) : inQuad sur 0,12 s jusqu'à sa cloche, puis e^(−6τ). */
+  const dirBell = (i, t) => { const T = BELLS[i]; return t < T - 0.12 ? 0 : t < T ? E.inQuad(seg(t, T - 0.12, T)) : Math.exp(-6 * (t - T)); };
+  /** Fond de la feuille par secteur : dégradé conique (0° en haut, sens horaire) autour du centre de l'anneau, chaque
+   *  secteur des rôles (centré sur l'angle du pentagone + spin, ± 36°) à sa propre intensité a[k], fondus de ± SEC_F°.
+   *  Angles écran (y vers le bas, 0° à droite) → angles CSS : + 90°. */
+  const SEC_C = [OX * SS, OY * SS];                   // centre de l'anneau dans la boîte 2×
+  // Les cinq secteurs se suivent tous les 72° : dans l'ordre des angles, Top 126, Jungle 198, Mid 270, ADC 342, Support 54.
+  const SEC_ORDER = PENT_DEG.map((d, k) => [((d % 360) + 360) % 360, k]).sort((x, y) => x[0] - y[0]).map(p => p[1]);
+  function dirSecBg(a, spin) {
+    // Le dégradé part du milieu du premier secteur : la couture du tour complet tombe dans une zone uniforme.
+    const k0 = SEC_ORDER[0], from = PENT_DEG[k0] + spin + 90, col = k => `rgba(200,240,255,${NX.clamp(a[k]).toFixed(4)})`;
+    const stops = [`${col(k0)} 0deg`];
+    SEC_ORDER.forEach((k, i) => {
+      const n = SEC_ORDER[(i + 1) % 5], b = 36 + 72 * i;
+      stops.push(`${col(k)} ${b - SEC_F}deg`, `${col(n)} ${b + SEC_F}deg`);
+    });
+    stops.push(`${col(k0)} 360deg`);
+    return `conic-gradient(from ${(((from % 360) + 360) % 360).toFixed(2)}deg at ${SEC_C[0].toFixed(2)}px ${SEC_C[1].toFixed(2)}px,${stops.join(',')})`;
+  }
 
   /** Masque à plusieurs couches (même convention que le kit) : intersection par défaut, union avec 'add'. */
   function dirMask(el, layers, op = 'intersect') {
@@ -214,6 +263,7 @@
       this.box = NX.el('<div class="dir-box"></div>', root);
       this.L = NX.logoLight(this.box, SRC);
       this.L.band.style.background = SWEEP_BAND;
+      this.sec = NX.el('<div class="dir-sec"></div>', this.box);   // lumière par secteur (cloches, charge)
       this.title = NX.el(`<div class="tz-center dir-title"><div class="tz-title"><span class="tz-line">Une même <span class="nx-spec">direction.</span></span></div></div>`, root);
       this.words = NX.type.prepare(this.title).words;
       this.spec = this.title.querySelector('.nx-spec');
@@ -224,6 +274,7 @@
     },
     async prepare() {
       await this.L.prepare();
+      if (this.L.url) dirMask(this.sec, [this.L.url]);             // traits clairs du favicon (masque du kit)
       this.cv = dirCanvas(this.L.img);
       this.spear = dirSpearMask(this.L.img);
       // Étoile du reflet : instant où la ligne claire (penchée de 15°) croise la pointe de la lance (ancre u .494, v .102).
@@ -234,17 +285,31 @@
       const t = S.t, fx = NX.fx.ctx, bk = NX.fxBack.ctx, tau = t - HIT, dbg = NX.dirDebug || {};
       const P = dirPose(t);
 
-      /* ---------------- Emblème : naissance, respiration, condensation, montée ---------------- */
-      const out = 1 - sm(FADE[0], FADE[1], t), vis = sm(BIRTH[0], BIRTH[1], t) * out;
+      /* ---------------- Emblème : fondu enchaîné (7,10–7,25), croissance, charge, respiration, condensation, montée ----
+       * Revue M : il arrive par-dessus l'emblème du logo (logo.js), dont il a les pixels (§6.9), en SINE sur 0,15 s, 2 px
+       * devant son plan (projection inchangée, voir plus bas) ; le logo est retiré à la fin du fondu.
+       * { fav } (NX.logoDebug, contrôle §6.9 inversé) : l'emblème seul, opaque, dès DIS0 − 0,1, le logo retiré ;
+       * { lock } : l'emblème du logo seul jusqu'à DIS1. */
+      const out = 1 - sm(FADE[0], FADE[1], t), lg = NX.logoDebug || {};
+      const arrive = lg.lock ? (t >= DIS1 ? 1 : 0) : lg.fav && t >= DIS0 - 0.1 ? 1 : M72.dissolve(t);
+      const vis = arrive * out;
       const cond = E.glide(seg(t, COND[0], COND[1]));
       const box = this.box;
       if (vis <= 0.001) box.style.display = 'none';
       else {
         box.style.display = '';
-        box.style.opacity = vis.toFixed(4);
-        // Boîte 2× réduite de moitié, l'échelle de respiration autour de C : le centre de l'anneau reste en (CX, CY + dy).
-        const k = P.s / SS, tx = OX * (1 - P.s), ty = OY * (1 - P.s) + P.dy;
-        box.style.transform = `translate3d(${tx.toFixed(3)}px,${ty.toFixed(3)}px,${ZB}px) scale(${k.toFixed(5)})`;
+        box.style.opacity = vis >= 1 ? '1' : vis.toFixed(4);   // la règle .dir-box pose opacity:0
+        // Boîte 2× réduite de moitié, l'échelle autour du centre de l'anneau (CX + dx, CY + dy), sur le plan zb.
+        // Revue M : pendant le fondu enchaîné et jusqu'à la croissance, la boîte est relevée de M72.LIFT px vers la caméra
+        // (jamais coplanaire avec l'emblème du logo) et ramenée par une homothétie centrée au pied de l'œil sur ce plan
+        // (comme fin.js) : sa projection reste exactement celle du trajet NX.M72. Le relevé s'annule avec la croissance.
+        let k = P.s / SS, tx = FXL + OX * (1 - P.s) + P.dx, ty = FXT + OY * (1 - P.s) + P.dy, zb = P.zb;
+        const lift = M72.LIFT * (1 - M72.grow(t)), cam = NX.camState;
+        if (lift > 0 && cam) {
+          const ex = 960 + cam.x, ey = 540 + cam.y, pz = NX.cam.D - cam.z, Zw = ZR + P.zb, ke = (pz - Zw - lift) / (pz - Zw);
+          tx = ex + (BL + tx - ex) * ke - BL; ty = ey + (BT + ty - ey) * ke - BT; k *= ke; zb += lift;
+        }
+        box.style.transform = `translate3d(${tx.toFixed(3)}px,${ty.toFixed(3)}px,${zb.toFixed(3)}px) scale(${k.toFixed(5)})`;
         // Condensation (bible) : la bande horizontale douce se referme sur l'axe à pleine force et efface l'anneau et
         // les ailes de l'extérieur vers l'intérieur ; elle est unie au masque de la flèche, qui n'est donc jamais coupée.
         // Ce qu'elle laisse autour de la flèche (ailes, bouts de l'anneau) s'éteint 12,70–12,80 (DIM), puis la flèche seule.
@@ -262,8 +327,27 @@
         // flèche 0 → 0,5 (12,65–13,00), et le reflet unique de la tenue (SHEEN 11,35–12,05, plafond 0,30). La feuille
         // n'est éteinte que sous 1/255 (τ ≈ 0,72) : marche invisible. Avec la rastérisation logicielle des outils, une
         // feuille allumée n'adoucit plus l'emblème (mesuré : écart ≤ 1 niveau, la lumière elle-même).
+        // v7.2 (revue M) : avant l'impact, la lumière ajoutée passe par la feuille des secteurs (cloches, charge, voir
+        // CHARGE) ; l'impact (0,30, au-dessus de la charge 0,22) la relaie sur tout l'emblème.
         const hitLum = tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0;
         const lumRaw = hitLum + 0.5 * sm(SPEAR_LUM[0], SPEAR_LUM[1], t), lum = lumRaw > 0.004 ? lumRaw : 0;
+        // Feuille des secteurs : cloches des rôles (secteur tourné vers chaque place) puis charge (secteurs des particules,
+        // tournés de SPIN), sous une enveloppe qui accélère jusqu'à l'impact. Éteinte (display:none) quand elle est nulle.
+        const sec = [0, 0, 0, 0, 0];
+        let spin = 0, secMax = 0;
+        if (!dbg.leavesOff && !dbg.noSec && tau < 0) {
+          if (t < CHARGE[0]) for (let i = 0; i < 5; i++) sec[i] = BELL_A * dirBell(i, t);
+          else {
+            spin = SPIN;
+            const env = 0.35 + 0.65 * E.inQuad(seg(t, CHARGE[0], CHARGE[1])), F = M72.absorbed;
+            for (let i = 0; i < 5; i++) sec[i] = CHARGE_A * env * (F ? F(i, t) : SINE(seg(t, CHARGE[0], CHARGE[1])));
+          }
+          secMax = Math.max(...sec);
+        }
+        if (secMax > 0.002) {
+          this.sec.style.display = 'block';               // la règle .dir-sec pose display:none
+          this.sec.style.background = dirSecBg(sec, spin);
+        } else this.sec.style.display = 'none';
         const gp = seg(t, GLINT[0], GLINT[1]), sweepP = gp > 0 && gp < 1 ? E.sheen(gp) : -1;
         if (dbg.leavesOff) this.L.frame({ front: null, written: true });
         else this.L.frame({ front: null, written: true, lum, sweepP, sweepA: SWEEP_A });
@@ -272,7 +356,7 @@
       /* ---------------- Halo : monte avec l'emblème, +20 % sur 10,8 et 12,0, se resserre sur la flèche ---------------- */
       const hA = SINE(seg(t, HALO_IN[0], HALO_IN[1])) * (1 + 0.2 * NX.beatPulse(t, KICKS, 2.5)) / 1.2 * out;
       if (hA > 0.002 && !dbg.noHalo) {
-        const q = NX.cam.project(CX, CY + P.dy, ZR + ZH), r = HALO / 2 * q.s * P.s;
+        const q = NX.cam.project(CX + P.dx, CY + P.dy, ZR + ZH), r = HALO / 2 * q.s * P.s;
         bk.save(); bk.globalCompositeOperation = 'lighter'; bk.globalAlpha = Math.min(1, hA);
         bk.setTransform(r * (1 - 0.6 * cond), 0, 0, r * (1 - 0.1 * cond), q.x, q.y);
         bk.fillStyle = this.haloGrad; bk.fillRect(-1, -1, 2, 2);
