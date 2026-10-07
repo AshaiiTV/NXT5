@@ -51,6 +51,22 @@
 .nxt5-planning-help { margin-top: .75rem; border-top: 1px solid var(--nxt5-border); color: var(--nxt5-text-secondary); }
 .nxt5-planning-help summary { padding-block: .75rem; min-height: 44px; cursor: pointer; font-size: var(--nxt5-font-ui); font-weight: 600; line-height: 1.5; }
 .nxt5-planning-help p { max-width: 65ch; margin-bottom: .75rem; font-size: var(--nxt5-font-body); line-height: 1.7; }
+.nxt5-planning-notes-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.nxt5-planning-notes-content { display: grid; gap: 1.5rem; margin-top: 1rem; }
+.nxt5-planning-notes-list { min-width: 0; margin: 0; padding: 0; list-style: none; }
+.nxt5-planning-notes-list > li { padding-block: .75rem; border-bottom: 1px solid var(--nxt5-border); }
+.nxt5-planning-notes-list > li:first-child { padding-top: 0; }
+.nxt5-planning-notes-list > li:last-child { padding-bottom: 0; border-bottom: 0; }
+.nxt5-planning-note-author { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; color: var(--nxt5-text); font-size: var(--nxt5-font-ui); font-weight: 600; overflow-wrap: anywhere; }
+.nxt5-planning-note-author > span:first-child { flex-shrink: 0; }
+.nxt5-planning-note-role { color: var(--nxt5-muted); font-size: var(--nxt5-font-small); font-weight: 400; }
+.nxt5-planning-note-text { margin-top: .375rem; max-width: var(--nxt5-reading-width); color: var(--nxt5-text); font-size: var(--nxt5-font-body); line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+.nxt5-planning-notes-empty { color: var(--nxt5-muted); font-size: var(--nxt5-font-body); line-height: 1.7; }
+.nxt5-planning-note-editor { min-width: 0; }
+@media (min-width: 1024px) {
+  .nxt5-planning-notes-editable { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .nxt5-planning-note-editor { padding-left: 1.5rem; border-left: 1px solid var(--nxt5-border); }
+}
 .nxt5-planning-legend { margin-bottom: .75rem; }
 .nxt5-planning-legend > span { display: inline-flex; align-items: center; gap: .5rem; font-size: var(--nxt5-font-small); }
 @media (max-width: 640px) {

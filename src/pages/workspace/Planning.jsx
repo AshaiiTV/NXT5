@@ -34,7 +34,7 @@ function formatPlanningDate(date) {
   return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 }
 
-function Planning({ data, selectedTeamId, planningStore, currentMember, user }) {
+function Planning({ data, selectedTeamId, planningStore, currentMember, user, refreshAll }) {
   const gameplayPlayers = useMemo(() => sortPlayersByRole((data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role))), [data.players, selectedTeamId]);
   const roleSlots = useMemo(() => planningRoleSlots(gameplayPlayers), [gameplayPlayers]);
   const representedRoles = roleSlots.filter(({ player }) => player).length;
@@ -83,6 +83,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
   const linkedPlayer = linkedGameplayPlayer || (staffPlanningPlayer && (canManagePlanningStaff || linkedStaffProfile) ? staffPlanningPlayer : null) || (currentMember ? { teamOnly: true } : null);
   const [eventMenu, setEventMenu] = useState(null);
   const [editingEvents, setEditingEvents] = useState(false);
+  const [refreshingNotes, setRefreshingNotes] = useState(false);
   const eventMenuRef = useRef(null);
   const eventTriggerRef = useRef(null);
 
@@ -98,6 +99,22 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
   const canEditEvents = Boolean(eventStorePlayer && (canEditSelected || canManagePlanningStaff));
   const planningDraft = usePlanningDraft(planningStore, { teamId: selectedTeamId, playerId: eventStorePlayer?.id, weekStart: selectedWeek.start }, eventStoreAvailability);
   const { slots: draftSlots, events: slotEvents, notes, status: saveStatus, saving, setSlots: setDraftSlots, setEvents: setSlotEvents, setNotes } = planningDraft;
+  const teamNotes = players.flatMap((player) => {
+    const row = availability.find((item) => String(item.player_id) === String(player.id));
+    const text = String(row?.notes || "").trim();
+    return text ? [{ player, text, sharedStaff: String(player.id) === staffPlanningPlayerId }] : [];
+  });
+
+  async function refreshTeamNotes() {
+    if (!refreshAll || refreshingNotes) return;
+    setRefreshingNotes(true);
+    try {
+      // Confirm pending edits before loading the team's latest saved notes.
+      if (await planningStore.flush()) await refreshAll();
+    } finally {
+      setRefreshingNotes(false);
+    }
+  }
 
   useEffect(() => {
     setEventMenu(null);
@@ -359,6 +376,35 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
         
 
         <div className="space-y-5">
+          <Surface>
+            <section aria-labelledby="planning-team-notes-title">
+              <div className="nxt5-planning-notes-heading">
+                <div>
+                  <h3 id="planning-team-notes-title" className="text-xl font-black text-white">Précisions de l’équipe</h3>
+                  <p className="mt-1 text-xs text-slate-400">Notes enregistrées · {selectedWeek.range}</p>
+                </div>
+                {refreshAll && <Button type="button" variant="ghost" icon={RefreshCw} onClick={refreshTeamNotes} disabled={refreshingNotes}>{refreshingNotes ? "Actualisation…" : "Actualiser les précisions"}</Button>}
+              </div>
+              <div className={cx("nxt5-planning-notes-content", canEditSelected && "nxt5-planning-notes-editable")}>
+                {teamNotes.length ? <ul className="nxt5-planning-notes-list">
+                  {teamNotes.map(({ player, text, sharedStaff }) => <li key={player.id}>
+                    <div className="nxt5-planning-note-author">
+                      <span aria-hidden="true">{isStaffRole(player.role) ? <BookOpen className="h-5 w-5 text-fuchsia-200" /> : <RoleIcon role={player.role} className="h-5 w-5" />}</span>
+                      <span>{sharedStaff ? "Encadrement" : player.name || "Joueur"}</span>
+                      <span className="nxt5-planning-note-role">{sharedStaff ? "Note partagée du staff" : roleLabel(player.role)}</span>
+                    </div>
+                    <p className="nxt5-planning-note-text">{text}</p>
+                  </li>)}
+                </ul> : <p className="nxt5-planning-notes-empty">Aucune précision partagée pour cette semaine.</p>}
+                {canEditSelected && <div className="nxt5-planning-note-editor">
+                  <label htmlFor="planning-note" className="nxt5-field-label">{selectedIsStaff ? "Précisions de l’encadrement" : "Précisions sur tes disponibilités"}</label>
+                  <textarea id="planning-note" value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected} maxLength={500} aria-describedby="planning-note-help" rows={3} placeholder="Ex. : disponible après 20 h, retard possible le jeudi…" className="nxt5-input-shell nxt5-control mt-2 w-full resize-y rounded-[10px] border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35" />
+                  <p id="planning-note-help" className="mt-2 text-xs text-slate-400">Ces précisions sont visibles par toute l’équipe une fois enregistrées, pour la semaine affichée. 500 caractères maximum.</p>
+                  <div className="nxt5-planning-save mt-3"><Badge tone={saveStatusMeta.tone}>{saveStatusMeta.label}</Badge>{saveStatus === "error" && <Button type="button" variant="ghost" icon={RefreshCw} onClick={planningDraft.save} disabled={saving}>Réessayer l’enregistrement</Button>}</div>
+                </div>}
+              </div>
+            </section>
+          </Surface>
           <Surface className="p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
@@ -391,10 +437,6 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
               <div className="nxt5-planning-legend">{bestCells[0]?.count > 0 && <Badge tone="cyan">Présences maximum : {bestCells[0].count}/{planningUnitTotal}</Badge>}<Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} créneaux avec {representedRoles} joueurs</Badge>{staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} créneaux avec encadrement</Badge>}</div>
             </details>
             <PlanningAvailabilityGrid rows={planningGridRows} weekDays={weekDays} canEditSelected={canEditSelected} canEditEvents={canEditEvents} editingEvents={editingEvents} draftSlots={draftSlots} onDay={setDaySlots} onTime={setTimeForWeek} onToggle={toggleSlot} onEvent={openPlanningEventMenu} frameTone={frameTone} />
-            <div className="mt-5">
-              <label htmlFor="planning-note" className="nxt5-field-label">Précisions sur tes disponibilités</label>
-              <textarea id="planning-note" value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected} rows={2} placeholder="Ex. : disponible après 20 h, retard possible le jeudi…" className="nxt5-input-shell nxt5-control mt-2 w-full resize-y rounded-[10px] border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35 disabled:cursor-not-allowed disabled:opacity-60" />
-            </div>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm leading-6 text-slate-400">Les modifications s’enregistrent automatiquement pour la semaine affichée.</p>
             </div>
