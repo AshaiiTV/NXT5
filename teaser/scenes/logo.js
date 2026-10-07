@@ -1,10 +1,12 @@
-/* S2 Logo (bible v7 §4 S2), 4,0–7,2 s : le logo complet, le même qu'en carte finale, n'entre que par la lumière.
- * Dès 4,0 s une silhouette de lumière froide (feuille forge, sur tout le logo) luit derrière la question ; le front
- * elliptique NX.FRONT.hook l'écrit ensuite de la pointe de la lance jusqu'à la devise (fondu 70 px), une bande blanche
- * court sur le chrome au bord du front et libère 240 étincelles. Impact sobre sur 4,8 s, halo qui respire,
- * un seul reflet diagonal (5,95–6,65) avec son halo de lumière et deux étoiles, puis le logo est pris dans
+/* S2 Logo (bible v7 §4 S2, inchangé en v7.1 sauf la caméra), 4,0–7,2 s : le logo complet, le même qu'en carte finale,
+ * n'entre que par la lumière. Dès 4,0 s une silhouette de lumière froide (feuille forge, sur tout le logo) luit derrière
+ * la question ; le front elliptique NX.FRONT.hook l'écrit ensuite de la pointe de la lance jusqu'à la devise (fondu
+ * 70 px), une bande blanche court sur le chrome au bord du front et libère 240 étincelles. Impact sobre sur 4,8 s, halo
+ * qui respire, un seul reflet diagonal (5,95–6,65) avec son halo de lumière et deux étoiles, puis le logo est pris dans
  * la lumière (LIFT 6,65–7,15) : il blanchit, son chrome redevient la silhouette de lumière froide du début, et cette
- * lumière se resserre dans la lumière de son cœur pendant que les cinq lumières des rôles s'allument (equipe.js).
+ * lumière se resserre dans la lumière de son cœur (7,085–7,15, pic 7,13, éteinte à 7,18). Le ciel prend alors sa
+ * lumière (relais 7,11–7,17, ciel.js) et les cinq rôles en naissent dès 7,2 (equipe.js) : rien de cette scène ne reste
+ * à 7,2. v7.1 : la caméra ne dérive plus à gauche, la sortie est centrée (x 0, lacet 0,2 → 0 à 7,2).
  * Le logo n'est jamais tourné ni filtré : masques, profondeur, échelle uniforme et feuilles de lumière seulement. */
 (function () {
   const SRC = '../public/assets/nxt5-logo.png';

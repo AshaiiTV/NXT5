@@ -1,12 +1,16 @@
-/* S3 Rôles et S4 Équipe et fusion (bible v7 : §4 S3, §4 S4, §3.9).
- * 7,2–9,6 : cinq tuiles de verre naissent dans leur lumière, une par cloche, face caméra sur le temps.
- * 9,6–14,4 : « Toute ton équipe. », la ligne de lumière relie l'équipe, les tuiles se rassemblent en
- * pentagone puis se dissolvent en ~5 000 particules qui composent l'emblème : cinq deviennent un.
- * Interfaces : lumières d'attente dès 6,80 et tuile Top visible dès 6,95 (logo) ; « direction » possède le PNG
- * de l'emblème (14,28–14,42) et NX.hit(14,4) ; « ciel » possède l'onde de choc et la poussière.
- * Cette scène ne dessine jamais le PNG : elle possède les particules jusqu'à 14,75 et leurs braises jusqu'à 16,5
- * (post 1,7 s : seul le canvas des braises reste actif après 14,8, aucun élément DOM).
- * Fonction pure de t : échantillons, appariement et tirages sont bâtis une fois dans prepare(). */
+/* S3′ Rôles, une transition (bible v7.1, amendement « S3′ » ; fusion §3.9), 7,2–9,6 s.
+ * Le logo s'est résorbé dans le cœur de son anneau (7,09–7,15, logo.js) et le ciel a pris sa lumière. Les cinq rôles
+ * en naissent, un par croche (NX.beats.bells : Top 7,2, Jungle 7,5, Mid 7,8, ADC 8,1, Support 8,4), directement à leur
+ * place sur le pentagone de l'emblème (NX.G.pent, échelle 0,62) : la petite tuile de verre de la v7, avec l'icône et
+ * la couleur du rôle, se lève dans sa lumière et un faisceau de cloche descend de la source. Un cœur de lumière reste
+ * au centre du cercle. Dès le cinquième rôle, la fusion : les cinq se penchent vers le cœur, se dissolvent en
+ * particules de leur couleur qui rejoignent leur secteur de l'emblème (l'anneau d'abord), un émail pointilliste se lit,
+ * et « direction » résout le PNG sur l'impact de 9,6. Cinq deviennent un. Ni titre, ni étiquettes, ni ligne de lien.
+ * Interfaces : « direction » possède le PNG de l'emblème (fondu 9,48–9,62) et NX.hit(9,6) ; « ciel » possède l'onde
+ * de choc, la poussière et le relais de lumière 7,11–7,8. Cette scène ne dessine jamais le PNG : elle possède ses
+ * particules (éclatement jusqu'à 9,95, braises jusqu'à 11,7 comme l'écart accepté de la v7 ; aucun élément DOM
+ * après 8,9).
+ * Fonction pure de t : échantillons, appariement, sources et tirages sont bâtis une fois dans prepare(). */
 (function () {
   const ROLES = [
     { label: 'Top', color: '#67E8F9', svg: '<path opacity=".45" fill-rule="evenodd" d="M21,14H14v7h7V14Zm5-3V26L11.014,26l-4,4H30V7.016Z"/><polygon points="4 4 4.003 28.045 9 23 9 9 23 9 28.045 4.003 4 4"/>' },
@@ -16,76 +20,79 @@
     { label: 'Support', color: '#E879F9', svg: '<path fill-rule="evenodd" d="M26,13c3.535,0,8-4,8-4H23l-3,3,2,7,5-2-3-4h2ZM22,5L20.827,3H13.062L12,5l5,6Zm-5,9-1-1L13,28l4,3,4-3L18,13ZM11,9H0s4.465,4,8,4h2L7,17l5,2,2-7Z"/>' },
   ];
   const FAV = '../public/assets/nxt5-loader-favicon.png';
-  const G = NX.G, ROW = G.roles, PENT = G.pent, E5 = G.E5, FV = G.FAV;
+  const G = NX.G, PENT = G.pent, E5 = G.E5, FV = G.FAV;
   const [CX, CY] = PENT.c;                               // centre de l'emblème S5 (960, 441,7)
   const RAD = Math.PI / 180, TAU = Math.PI * 2, D = NX.cam.D;
-  const HALF = ROW.tile / 2;                             // 108 : demi-tuile
-  const ICON = ROW.icon;                                 // 132 : icône
+  const SIZE = G.roles.tile, HALF = SIZE / 2;            // tuile de verre de la v7 (216 px), posée à l'échelle 0,62
+  const SC = PENT.scale;                                 // 0,62 : 134 px dans le monde
+  const ICON = G.roles.icon;                             // 132 : icône (82 px à l'échelle du pentagone)
   const ZR = 1 * 0.5;                                    // décalage en z de la racine (z de scène × 0,5 px, moteur)
   const ZICON = 1 + 14;                                  // .gl-content translateZ(1px) + icône translateZ(14px)
   const ZRIM = 2;                                        // liseré translateZ(2px)
-  const BELL = i => NX.T.roles + i * NX.BEAT;            // Tᵢ = 7,2 + 0,6 i
-  const REL = [13.45, 13.40, 13.35, 13.40, 13.45];       // libération : Mid, puis Jungle et ADC, puis Top et Support
-  const HEAD = [12.2, 11.5, 10.8, 11.5, 12.2];           // la tête de la ligne atteint le centre de la tuile
-  const GATHER = [12.5, 13.55];                          // rassemblement en pentagone (SINE), échelle 1 → 0,62
-  /* Rassemblement par axe, toujours SINE dans la fenêtre 12,50–13,55 (mêmes extrémités, même échelle) :
-   * sur un trajet droit commun, Top et Support passaient sur Jungle et ADC (jusqu'à 62 px de recouvrement,
-   * 12,93–13,13 : deux paires empilées au lieu de cinq tuiles qui glissent en cercle). Top et Support descendent
-   * d'abord (y 12,50–13,10) puis glissent sous Jungle et ADC (x 12,55–13,55) ; Jungle et ADC rentrent d'abord vers
-   * le centre (x 12,50–13,10) pour leur laisser la place. Aucun recouvrement : écart minimal ≈ 12 px entre plaques
-   * (6,3 px entre leurs boîtes écran à 13,01, inclinaison résiduelle comprise) ; pointe 782 px/s mesurée sur les plaques
-   * (bible ≈ 787) ; bord bas le plus bas 709 px écran à 13,08, sous lequel commence la boîte des mots du titre (718 px).
-   * Mid suit la courbe commune. */
-  const GX = [[12.55, 13.55], [12.5, 13.1], GATHER, [12.5, 13.1], [12.55, 13.55]];
-  const GY = [[12.5, 13.1], GATHER, GATHER, GATHER, [12.5, 13.1]];
+
+  /* Frise (amendement v7.1). Tout est relatif à NX.T : rôles, fusion et impact. */
+  const HIT = NX.T.emblem;                               // 9,6 : naissance de l'emblème (PNG de « direction »)
+  const FUSE = NX.T.fuse;                                // 8,4 : cinquième rôle posé, la fusion commence
+  const BELL = NX.beats.bells.slice(0, 5);               // 7,2 / 7,5 / 7,8 / 8,1 / 8,4 : un rôle par croche
+  // L'équipe au complet : sur la cinquième cloche, les cinq s'allument ensemble (lumière +40 %, liseré +0,3) et se
+  // rapprochent de 12 px du cœur (SINE, fini avant la première dissolution : les particules partent d'une tuile
+  // immobile), puis se dissolvent dans l'ordre de leur naissance (0,04 s d'écart, + 0,08 s de dispersion par
+  // particule) : le cercle se referme.
+  const LEAN = [FUSE - 0.10, FUSE + 0.10], LEAN_PX = 12;
+  const REL = BELL.map((b, i) => FUSE + 0.10 + 0.04 * i);   // 8,50 / 8,54 / 8,58 / 8,62 / 8,66
+  // Apparition de chaque tuile (bible §4 S3 : Tᵢ − 0,25 → Tᵢ − 0,05). Top naît dans la lumière où le logo se résorbe :
+  // sa place, au milieu de l'ancien mot-symbole, n'est libérée par le masque d'absorption de logo.js qu'à 7,14 ;
+  // apparue plus tôt, sa plaque sombre se posait sur le logo blanchi (7,05–7,13).
+  const APPEAR = BELL.map((T, i) => (i === 0 ? [7.125, T] : [T - 0.25, T - 0.05]));
+  // Verrouillage (mêmes écarts à l'impact que la v7) : anneau 9,20–9,26, le reste 9,28–9,38 ; émail pointilliste
+  // 9,32–9,56 ; cœur de la fusion 9,0–9,6 ; éclatement 9,60–9,95 ; braises éteintes 11,1–11,7.
+  const LOCK_RING = HIT - 0.40, LOCK_REST = HIT - 0.32;
+  const POINT = [HIT - 0.28, HIT - 0.04], CORE = [HIT - 0.6, HIT];
+  const BURST_OUT = [HIT + 0.2, HIT + 0.35], EMBER_OUT = [HIT + 1.5, HIT + 2.1];
+  // Lumière de scène : bassin (ellipse douce autour du pentagone) et cœur (au centre C), de la résorption du logo
+  // jusqu'au halo de « direction » qui s'épanouit après l'impact.
+  const STAGE_IN = [7.04, 7.26], STAGE_OUT = [HIT - 0.08, HIT + 0.32];
+  const POOL_R = 980, POOL_SY = 0.62, POOL_A = 0.15, POOL_RGB = [120, 170, 255];
+  const HEART_R = 340, HEART_A = 0.20, HEART_RGB = [175, 220, 255];
+
   const E = NX.ease, seg = NX.seg, sm = NX.smooth, clamp = NX.clamp;
-  const SINE = E.sine, GLIDE = E.glide, ENTER = E.enter, IOC = E.inOutCubic;
+  const SINE = E.sine, GLIDE = E.glide, IOC = E.inOutCubic;
   const SPRING = p => E.spring(p, 1.0, 6.2);
   const hex = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
   const RGB = ROLES.map(r => hex(r.color));
-  const X0 = ROLES.map((r, i) => ROW.x(i));
-  // Sommets du pentagone (repère écran, y vers le bas) et départ du rassemblement après l'anticipation (6 px vers C).
+  const BEAMRGB = RGB.map(c => c.map(v => (v + 255) >> 1));
+  // Sommets du pentagone (repère écran, y vers le bas : Mid en haut, Top en bas à gauche, Support en bas à droite)
+  // et direction de chaque place vers le cœur C.
   const PX = PENT.deg.map(a => CX + PENT.r * Math.cos(a * RAD)), PY = PENT.deg.map(a => CY + PENT.r * Math.sin(a * RAD));
-  const DIR = X0.map(x => { const dx = CX - x, dy = CY - ROW.y, l = Math.hypot(dx, dy); return [dx / l, dy / l]; });
-  const SX = X0.map((x, i) => x + 6 * DIR[i][0]), SY = X0.map((x, i) => ROW.y + 6 * DIR[i][1]);
-  const LEAN = X0.map(x => Math.sign(CX - x));          // penche vers C : +1 à gauche, −1 à droite, 0 pour Mid
+  const DIR = PX.map((x, i) => { const dx = CX - x, dy = CY - PY[i], l = Math.hypot(dx, dy); return [dx / l, dy / l]; });
 
   NX.css(`
   .eq-tile{transform-origin:50% 100%}
   .eq-ic{position:absolute;left:${HALF - ICON / 2}px;top:${HALF - ICON / 2}px;width:${ICON}px;height:${ICON}px;transform:translateZ(14px)}
   .eq-hot{padding:1.5px;opacity:0;transform:translateZ(2.5px);mix-blend-mode:plus-lighter;background:linear-gradient(var(--rim,180deg),rgba(186,240,255,.75),rgba(129,140,248,.22) 30%,rgba(154,182,218,.10) 65%,rgba(232,121,249,.30));-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
-  .eq-lab{position:absolute;top:${ROW.labelTop}px;width:400px;text-align:center;font-weight:700;font-size:34px;line-height:1.2;text-transform:uppercase;color:var(--text2);white-space:nowrap;transform-origin:200px ${ROW.y + HALF - ROW.labelTop}px}
   `);
 
-  /** Progression du rassemblement de la tuile i : x, y (par axe) et échelle s, chacune SINE. */
-  const gather = (i, t) => ({ x: SINE(seg(t, GX[i][0], GX[i][1])), y: SINE(seg(t, GY[i][0], GY[i][1])), s: SINE(seg(t, GATHER[0], GATHER[1])) });
-
   /** Pose monde de la tuile i : centre de sa place (x, y), montée depuis la profondeur (dy, z), échelle s,
-   *  rotateX th (lever sur ressort), inclinaison lean (anticipation), en degrés. */
+   *  rotateX th (lever sur ressort, face caméra exactement sur sa cloche), rapprochement an ∈ [0, 1]. */
   function pose(i, t) {
-    const T = BELL(i);
+    const T = BELL[i];
     const m = GLIDE(seg(t, T - 0.30, T + 0.20));
     const u = seg(t, T - 0.225, T + 0.675);
-    const amp = 4 * SINE(seg(t, 9.6, 10.0)) * (1 - SINE(seg(t, 11.9, 12.3)));
-    const br = amp > 0 ? amp * Math.sin(TAU * (t - 9.6) / 2.4 - 0.6 * i) : 0;
-    const an = SINE(seg(t, 12.3, 12.5));
-    const g = gather(i, t);
-    const sx = X0[i] + 6 * an * DIR[i][0], sy = ROW.y + br + 6 * an * DIR[i][1];
+    const an = SINE(seg(t, LEAN[0], LEAN[1]));
     return {
-      x: sx + (PX[i] - sx) * g.x, y: sy + (PY[i] - sy) * g.y,
-      dy: 18 * (1 - m), z: -120 * (1 - m), s: 1 - (1 - PENT.scale) * g.s,
+      x: PX[i] + LEAN_PX * an * DIR[i][0], y: PY[i] + LEAN_PX * an * DIR[i][1],
+      dy: 18 * SC * (1 - m), z: -120 * (1 - m), s: SC,
       th: u >= 1 ? 0 : 55 * (1 - SPRING(u)), an,
-      lean: 4 * an * LEAN[i] * (1 - SINE(seg(t, 12.8, 13.3))),
     };
   }
-  /** Centre réel de la tuile (avec lever et inclinaison), point monde. Pivot = bas-centre de la tuile. */
-  function centre(P) {
-    const c = Math.cos(P.th * RAD), l = P.lean * RAD;
-    const py = P.y + P.dy + HALF * P.s;                  // pivot
-    return [P.x + HALF * P.s * c * Math.sin(l), py - HALF * P.s * c * Math.cos(l), P.z - HALF * Math.sin(P.th * RAD)];
+  /** Point local (lx, ly, lz) de la tuile (px de la tuile de 216, origine au centre) → point monde, pour la pose P.
+   *  Même calcul que le CSS : translate3d · rotateX · scale autour du pivot bas-centre (scale n'agit pas sur z). */
+  function tilePoint(P, lx, ly, lz) {
+    const c = Math.cos(P.th * RAD), sn = Math.sin(P.th * RAD), yy = P.s * (ly - HALF);
+    return [P.x + P.s * lx, P.y + P.dy + HALF * P.s + yy * c - lz * sn, P.z + yy * sn + lz * c];
   }
   /** Faisceau de cloche à extrémité douce : NX.lk.beam tracé sur la toile annexe, puis fondu sur sa fin
-   *  (le bout plat dépassait à côté des tuiles extérieures, faisceau oblique), puis ajouté en lumière. */
+   *  (le bout plat dépassait à côté des tuiles, faisceau oblique), puis ajouté en lumière. */
   function eqBeam(dst, o, x0, y0, x1, y1, w0, w1, a, rgb, fade) {
     const len = Math.hypot(x1 - x0, y1 - y0), nx = -(y1 - y0) / len, ny = (x1 - x0) / len, h0 = w0 / 2, h1 = w1 / 2;
     const xs = [x0 + nx * h0, x0 - nx * h0, x1 + nx * h1, x1 - nx * h1], ys = [y0 + ny * h0, y0 - ny * h0, y1 + ny * h1, y1 - ny * h1];
@@ -104,7 +111,7 @@
     dst.restore();
   }
   /** Flash de cloche : monte en inQuad sur 0,12 s jusqu'à Tᵢ, puis e^(−6τ). */
-  const bellFlash = (i, t) => { const T = BELL(i); return t < T - 0.12 ? 0 : t < T ? E.inQuad(seg(t, T - 0.12, T)) : Math.exp(-6 * (t - T)); };
+  const bellFlash = (i, t) => { const T = BELL[i]; return t < T - 0.12 ? 0 : t < T ? E.inQuad(seg(t, T - 0.12, T)) : Math.exp(-6 * (t - T)); };
 
   /** Point du pourtour arrondi (rayon 16) de la tuile, au milieu du liseré ; f ∈ [0,1) → [lx, ly] en px de tuile. */
   function rimPoint(f) {
@@ -125,35 +132,29 @@
     for (let k = 0; k < n; k++) { const u = k / n, f = w[k]; NX.px.dot(xa + (xb - xa) * u, ya + (yb - ya) * u, r * f, g * f, b * f); }
   }
 
-  /* Couches de la ligne de lien : halo doux (0,22 au cœur, ≈ 0,13 au bord des 14 px, fondu jusqu'à 22 px)
-   * au lieu d'une bande plate à bords durs, puis cœur 2,5 px à 0,85. */
-  const LINK_LAYERS = [[22, 0.05], [14, 0.08], [8, 0.09], [2.5, 0.85]];
-  const LINK_COL = RGB.map(([r, g, b]) => `rgb(${r},${g},${b})`);
-
   NX.scene({
-    id: 'equipe', start: 6.7, end: 14.8, post: 1.7, z: 1,
+    id: 'equipe', start: 7.0, end: HIT, post: EMBER_OUT[1] - HIT, z: 1,
     build(root) {
       this.fav = NX.image(FAV);                          // échantillonné seulement : jamais affiché ici
       this.tiles = ROLES.map((r, i) => {
-        const g = NX.glass(`<svg class="eq-ic" viewBox="0 0 34 34" aria-hidden="true"><defs><linearGradient id="eq-ig${i}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="34"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".38" stop-color="${r.color}"/><stop offset="1" stop-color="${r.color}" stop-opacity=".85"/></linearGradient></defs><g fill="url(#eq-ig${i})">${r.svg}</g></svg>`, { w: ROW.tile, h: ROW.tile, color: r.color + '30' });
+        const g = NX.glass(`<svg class="eq-ic" viewBox="0 0 34 34" aria-hidden="true"><defs><linearGradient id="eq-ig${i}" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="34"><stop offset="0" stop-color="#fff" stop-opacity=".9"/><stop offset=".38" stop-color="${r.color}"/><stop offset="1" stop-color="${r.color}" stop-opacity=".85"/></linearGradient></defs><g fill="url(#eq-ig${i})">${r.svg}</g></svg>`, { w: SIZE, h: SIZE, color: r.color + '30' });
         g.el.classList.add('eq-tile');
-        g.el.style.left = `${X0[i] - HALF}px`; g.el.style.top = `${ROW.y - HALF}px`;
+        g.el.style.left = `${(PX[i] - HALF).toFixed(2)}px`; g.el.style.top = `${(PY[i] - HALF).toFixed(2)}px`;
+        g.fog.style.display = 'none';                    // jamais de brouillard sur ces tuiles
         const hot = NX.el('<div class="eq-hot"></div>', g.el);  // liseré additionnel : flashs au-delà de l'opacité 1
         root.appendChild(g.el);
-        const lab = NX.el(`<div class="eq-lab" style="left:${X0[i] - 200}px">${r.label}</div>`, root);
-        return { g, hot, icon: g.content.querySelector('.eq-ic'), lab };
+        return { g, hot, icon: g.content.querySelector('.eq-ic') };
       });
-      this.title = NX.el(`<div class="tz-center" style="top:700px"><div class="tz-title"><span class="tz-line">Toute ton <span class="nx-spec">équipe.</span></span></div></div>`, root);
-      this.words = NX.type.prepare(this.title).words;
-      this.spec = this.title.querySelector('.nx-spec');
-      // Toile annexe de la ligne de lien (tracé opaque, puis ajout en lumière).
+      // Toile annexe des faisceaux de cloche (tracé opaque, fondu, puis ajout en lumière).
       const oc = document.createElement('canvas'); oc.width = NX.W; oc.height = NX.H;
       this.oc = oc.getContext('2d');
       this.P = [];
     },
 
     /* Fusion (§3.9) : cibles dans l'emblème S5, secteurs par rôle, sources dans l'icône et le liseré, appariement
-     * par angle autour de C. Tout dépend des images et de graines fixes. */
+     * par angle autour de C. Les tuiles ne bougent plus pendant les vols : la source de chaque particule est le point
+     * de sa tuile à l'instant où elle s'en détache (pose exacte, lever et rapprochement compris), calculée ici une fois.
+     * Tout dépend des images, de la frise et de graines fixes. */
     prepare() {
       const img = this.fav;
       if (!img.naturalWidth) { console.warn('equipe : emblème non décodé'); return; }
@@ -171,22 +172,23 @@
         for (const p of NX.sampleSvg(r.svg, nIcon, 100 + k)) src.push({ lx: (p.u - 0.5) * ICON, ly: (p.v - 0.5) * ICON, lz: ZICON });
         const rr = NX.rng(300 + k);
         while (src.length < n) { const [lx, ly] = rimPoint(rr()); src.push({ lx, ly, lz: ZRIM }); }
-        for (const v of src) v.a = rel(Math.atan2(PY[k] + PENT.scale * v.ly - CY, PX[k] + PENT.scale * v.lx - CX));
+        for (const v of src) v.a = rel(Math.atan2(PY[k] + SC * v.ly - CY, PX[k] + SC * v.lx - CX));
         src.sort((a, b) => a.a - b.a);
         mine.forEach((e, j) => {
           const v = src[j], h = R(), h2 = R(), zA = -60 + 220 * R(), ph = R() * TAU, bv = 100 + 300 * R(), ember = R() < 0.08;
           const dl = Math.hypot(e.x - CX, e.y - CY) || 1;
           P.push({ k, lx: v.lx, ly: v.ly, lz: v.lz, tx: e.x, ty: e.y, re: e.re, pe: e.pe, ux: (e.x - CX) / dl, uy: (e.y - CY) / dl,
-            te: REL[k] + 0.08 * h, ta: e.ring ? 14.00 + 0.06 * h2 : 14.08 + 0.10 * h2, ring: e.ring, zA, ph, bv, ember,
+            te: REL[k] + 0.08 * h, ta: e.ring ? LOCK_RING + 0.06 * h2 : LOCK_REST + 0.10 * h2, ring: e.ring, zA, ph, bv, ember,
             r0: RGB[k][0], g0: RGB[k][1], b0: RGB[k][2], r1: e.rgb[0], g1: e.rgb[1], b1: e.rgb[2] });
         });
       });
+      for (const q of P) this.source(q);
       this.P = P;
       // Garde-fou de vitesse (§2.6) : vitesse écran de pointe de chaque vol, mesurée avec la vraie caméra sur une grille
-      // fixe de 1/240 s. Les rares particules (liseré, fenêtre courte) au-delà de 1 150 px/s reçoivent la fenêtre la plus
-      // longue permise par la bible (te = rel, ta au plus tard) : même trajet, pointe ≈ −25 %.
-      const dt = 1 / 240, cams = [];
-      for (let t = 13.35; t <= 14.19; t += dt) cams.push([t, NX.cam.at(t)]);
+      // fixe de 1/240 s. Les rares particules au-delà de 1 150 px/s reçoivent la fenêtre la plus longue permise
+      // (départ au plus tôt, verrouillage au plus tard) : même trajet, pointe plus basse.
+      const dt = 1 / 240, cams = [], t0 = REL[0], t1 = LOCK_REST + 0.11;
+      for (let i = 0, t = t0; t <= t1; i++, t = t0 + i * dt) cams.push([t, NX.cam.at(t)]);
       const peak = q => {
         let mx = 0, px = null, py = 0;
         for (const [t, c] of cams) {
@@ -197,151 +199,103 @@
         }
         return mx;
       };
-      for (const q of P) if (peak(q) > 1150) { q.te = REL[q.k]; q.ta = q.ring ? 14.06 : 14.18; }
+      let slow = 0;
+      for (const q of P) if (peak(q) > 1150) { q.te = REL[q.k]; q.ta = q.ring ? LOCK_RING + 0.06 : LOCK_REST + 0.10; this.source(q); slow++; }
+      this.slowed = slow;
+    },
+
+    /** Source d'une particule : son point sur la tuile à l'instant te (coordonnées polaires autour de C, angle à
+     *  parcourir jusqu'à la cible, profondeur de départ). */
+    source(q) {
+      const w = tilePoint(pose(q.k, q.te), q.lx, q.ly, q.lz), sx = w[0] - CX, sy = w[1] - CY;
+      q.rs = Math.hypot(sx, sy); q.ps = Math.atan2(sy, sx); q.dp = wrap(q.pe - q.ps); q.sz = w[2];
+    },
+
+    /** Coins et centre (points monde) de la tuile i au temps t : pour les sondes de vitesse et d'alignement. */
+    tileCorners(i, t) {
+      const P = pose(i, t), h = HALF;
+      return [[-h, -h], [h, -h], [h, h], [-h, h], [0, 0]].map(([lx, ly]) => tilePoint(P, lx, ly, 0));
     },
 
     /** Position monde [x, y, z] d'une particule au temps t, ou null si elle n'existe pas (aussi pour la sonde de vitesse). */
     world(q, t) {
       if (t < q.te) return null;
-      if (t >= NX.T.emblem) {                             // éclatement depuis la cible, braises qui montent
-        const tau = t - NX.T.emblem, f = (1 - Math.exp(-3 * tau)) / 3;
+      if (t >= HIT) {                                    // éclatement depuis la cible, braises qui montent
+        const tau = t - HIT, f = (1 - Math.exp(-3 * tau)) / 3;
         return [q.tx + q.ux * q.bv * f, q.ty + q.uy * q.bv * f - (q.ember ? 50 * tau : 0), 0];
       }
       if (t >= q.ta) return [q.tx, q.ty, 0];
-      // Vol : la source suit sa tuile jusqu'à la fin du rassemblement (pas d'écart entre l'icône qui s'efface et ses particules).
-      const k = q.k, g = gather(k, Math.min(t, GATHER[1])), s = 1 - (1 - PENT.scale) * g.s;
-      const sx = SX[k] + (PX[k] - SX[k]) * g.x + s * q.lx - CX, sy = SY[k] + (PY[k] - SY[k]) * g.y + s * q.ly - CY;
-      const rs = Math.hypot(sx, sy), ps = Math.atan2(sy, sx), dp = Math.atan2(Math.sin(q.pe - ps), Math.cos(q.pe - ps));
       const u = (t - q.te) / (q.ta - q.te), er = IOC(u), ea = SINE(u);
-      const r = rs + (q.re - rs) * er, a = ps + dp * ea;
-      return [CX + r * Math.cos(a), CY + r * Math.sin(a), q.lz * (1 - er) + q.zA * Math.sin(Math.PI * u)];
+      const r = q.rs + (q.re - q.rs) * er, a = q.ps + q.dp * ea;
+      return [CX + r * Math.cos(a), CY + r * Math.sin(a), q.sz * (1 - er) + q.zA * Math.sin(Math.PI * u)];
     },
 
     render(S) {
       const t = S.t, c = NX.camState, bctx = NX.fxBack.ctx, fctx = NX.fx.ctx;
       const pj = (X, Y, Z = 0) => NX.cam.project(X, Y, Z + ZR, c);
-      const dom = t < 14.8;
 
-      /* ---------------- S3 : lumière de scène, lumières d'attente, faisceaux de cloche ---------------- */
-      if (t < 13.4) {
-        const on = sm(6.80, 7.10, t) * (1 - sm(12.5, 13.4, t));   // « on » de la bible avec d = 0 (centre de la rangée)
-        if (on > 0.002) {
-          const q = pj(960, ROW.y);
-          bctx.save(); bctx.translate(q.x, q.y); bctx.scale(1, 0.36);
-          NX.lk.glow(0, 0, 1050 * q.s, [120, 170, 255], 0.14 * on, bctx);
-          bctx.restore();
-        }
+      /* ---------------- Lumière de scène (fxBack, derrière les tuiles) ----------------
+       * Le cœur prend le relais de la lumière où le logo s'est résorbé (7,13) : les rôles naissent autour de lui.
+       * Un bassin doux éclaire le cercle ; pendant la fusion, bassin et cœur se resserrent vers le centre, puis
+       * rendent la main au halo et à l'impact de « direction » (9,6). */
+      const on = sm(STAGE_IN[0], STAGE_IN[1], t) * (1 - sm(STAGE_OUT[0], STAGE_OUT[1], t));
+      if (on > 0.002) {
+        // Le cœur grandit avec l'équipe : chaque rôle qui arrive lui ajoute un peu de lumière (0,7 → 1).
+        let team = 0; for (let i = 0; i < 5; i++) team += sm(APPEAR[i][0], APPEAR[i][1] + 0.15, t);
+        const gq = SINE(seg(t, REL[0], HIT)), q = pj(CX, CY), heart = HEART_A * (0.7 + 0.06 * team);
+        bctx.save(); bctx.translate(q.x, q.y); bctx.scale(1, POOL_SY);
+        const pr = 1 - 0.25 * gq;                        // le bassin se resserre (rayon × 0,75) en gardant son énergie
+        NX.lk.glow(0, 0, POOL_R * pr * q.s, POOL_RGB, POOL_A / (pr * pr) * on, bctx);
+        bctx.restore();
+        NX.lk.glow(q.x, q.y, (HEART_R - 60 * gq) * q.s, HEART_RGB, (heart + 0.10 * gq) * on, bctx);
       }
+
+      /* ---------------- Tuiles, lumière de leur place, faisceaux de cloche ---------------- */
       const src = NX.light.src(t), yaw = c.yaw;
-      const CEN = [];                                    // centres réels des tuiles (monde), pour la ligne de lien
       this.tiles.forEach((T, i) => {
-        const P = pose(i, t), Ti = BELL(i), cen = centre(P);
-        CEN.push(cen);
-        const flash = bellFlash(i, t);
-        // Lumière d'attente : orbe douce sur la place, suit le rassemblement, s'éteint 13,45–13,75.
-        const d = Math.abs(i - 2), onL = sm(6.80 + 0.08 * d, 7.10 + 0.08 * d, t) * (1 - sm(13.45, 13.75, t));
+        const Ti = BELL[i], P = pose(i, t), flash = bellFlash(i, t);
+        // Lumière de sa place : orbe douce qui s'allume avec sa tuile (Tᵢ − 0,30 → Tᵢ − 0,05 ; Top avec le logo
+        // résorbé) et s'éteint pendant la dissolution.
+        const onL = sm(APPEAR[i][0] - 0.05, APPEAR[i][1], t) * (1 - sm(REL[i], REL[i] + 0.35, t));
         if (onL > 0.002) {
           const q = pj(P.x, P.y);
-          NX.lk.glow(q.x, q.y, 210 * q.s, RGB[i], (0.22 + 0.24 * flash) * (1 + 0.4 * P.an) * onL, bctx);
+          NX.lk.glow(q.x, q.y, 200 * q.s, RGB[i], (0.24 + 0.24 * flash) * (1 + 0.4 * P.an) * onL, bctx);
         }
-        // Faisceau de cloche : de la source au centre de la tuile + 60·s, derrière la tuile ; fin fondue sous la tuile.
+        // Faisceau de cloche : de la source au centre de la tuile + 37·s, derrière la tuile ; fin fondue sous la tuile.
         if (flash > 0.006) {
-          const q = pj(cen[0], cen[1], cen[2]);
-          eqBeam(bctx, this.oc, src.x, src.y, q.x, q.y + 60 * q.s, 8, 300 * q.s, 0.45 * flash, RGB[i].map(v => (v + 255) >> 1), 170 * q.s);
+          const w = tilePoint(P, 0, 0, 0), q = pj(w[0], w[1], w[2]);
+          eqBeam(bctx, this.oc, src.x, src.y, q.x, q.y + 37 * q.s, 8, 186 * q.s, 0.45 * flash, BEAMRGB[i], 105 * q.s);
         }
         // Tuile de verre.
-        const a = dom ? sm(Ti - 0.25, Ti - 0.05, t) * (1 - sm(REL[i], REL[i] + 0.20, t)) : 0;
+        const a = sm(APPEAR[i][0], APPEAR[i][1], t) * (1 - sm(REL[i], REL[i] + 0.20, t));
         const el = T.g.el;
-        if (a <= 0) { el.style.display = 'none'; T.lab.style.display = 'none'; return; }
+        if (a <= 0) { el.style.display = 'none'; return; }
         el.style.display = '';
-        const X = P.x - X0[i], Y = P.y + P.dy - ROW.y - HALF * (1 - P.s);
-        const tf = `translate3d(${X.toFixed(2)}px,${Y.toFixed(2)}px,${P.z.toFixed(2)}px) scale(${P.s.toFixed(4)})`;
-        el.style.transform = `${tf} rotateZ(${P.lean.toFixed(3)}deg) rotateX(${P.th.toFixed(3)}deg)`;
+        const X = P.x - PX[i], Y = P.y - PY[i] + P.dy - HALF * (1 - P.s);
+        el.style.transform = `translate3d(${X.toFixed(2)}px,${Y.toFixed(2)}px,${P.z.toFixed(2)}px) rotateX(${P.th.toFixed(3)}deg) scale(${P.s.toFixed(4)})`;
         NX.glassFade(T.g, a);
         T.g.content.style.opacity = '';                  // .gl-content est preserve-3d : on fond la feuille icône, jamais le conteneur
         T.icon.style.opacity = a;
-        const link = t >= HEAD[i] ? 0.8 * Math.exp(-6 * (t - HEAD[i])) : 0, kick = 0.5 * NX.beatPulse(t, [13.2], 6);
         NX.glassLight(T.g, { pos: -0.43 * yaw, lit: 1, rimAngle: 180 + 6 * yaw, rimGain: 1, glow: (0.6 + 0.4 * flash) * (1 + 0.4 * P.an) });
-        T.hot.style.setProperty('--rim', `${(180 + 6 * yaw).toFixed(1)}deg`);
-        T.hot.style.opacity = clamp(0.6 * flash + link + kick) * a;
-        // Étiquette : suit la tuile (même pivot, translation et échelle) mais reste horizontale pendant l'inclinaison ;
-        // interlettrage .6 → .2em.
-        const le = ENTER(seg(t, Ti + 0.12, Ti + 0.70)), lo = le * (1 - sm(12.55, 12.80, t));
-        if (lo <= 0.001) { T.lab.style.display = 'none'; return; }
-        T.lab.style.display = '';
-        const ls = `${NX.lerp(0.6, 0.2, le).toFixed(4)}em`;
-        T.lab.style.letterSpacing = ls; T.lab.style.textIndent = ls;
-        T.lab.style.opacity = lo;
-        T.lab.style.transform = tf;
+        const hot = clamp(0.6 * flash + 0.3 * P.an) * a;
+        if (hot > 0.002) {
+          T.hot.style.display = '';
+          T.hot.style.setProperty('--rim', `${(180 + 6 * yaw).toFixed(1)}deg`);
+          T.hot.style.opacity = hot.toFixed(4);
+        } else T.hot.style.display = 'none';
       });
 
-      /* ---------------- S4 : ligne de lien (fxback, derrière les tuiles) ---------------- */
-      const draw = SINE(seg(t, 10.8, 12.2)), relax = SINE(seg(t, 13.5, 14.0));
-      const la = sm(10.8, 10.95, t) * (1 - sm(14.0, 14.2, t)) * (1 + 0.3 * NX.beatPulse(t, [13.2], 6));
-      if (la > 0.002 && draw > 0) this.link(bctx, pj, CEN, draw, relax, la);
-
-      /* ---------------- Titre « Toute ton équipe. » ---------------- */
-      if (t >= 9.6 && t < 14.35) {
-        this.title.style.display = '';
-        NX.type.rise(this.words, t, 9.70, 0.14, 0.8);
-        NX.type.sink(this.words, t, 13.90, 0.05, 0.30);
-        NX.type.sheen(this.spec, t, 10.5, 11.3, 0.35);
-      } else this.title.style.display = 'none';
-
       /* ---------------- Fusion : particules (fx, devant le DOM) ---------------- */
-      if (t >= 13.35 && t < 16.5 && this.P.length) this.particles(t, c, fctx);
+      if (t >= REL[0] && t < EMBER_OUT[1] && this.P.length) this.particles(t, c, fctx);
 
       /* ---------------- Cœur de la fusion (fx) ---------------- */
-      if (t >= 13.8 && t < NX.T.emblem) {
-        const g = E.inQuad(seg(t, 13.8, 14.4)), q = pj(CX, CY);
-        NX.lk.glow(q.x, q.y, (40 + 130 * g) * q.s, [200, 245, 255], (0.12 + 0.33 * g) * sm(13.8, 13.9, t), fctx);
+      if (t >= CORE[0] && t < CORE[1]) {
+        const g = E.inQuad(seg(t, CORE[0], CORE[1])), q = pj(CX, CY);
+        NX.lk.glow(q.x, q.y, (40 + 130 * g) * q.s, [200, 245, 255], (0.12 + 0.33 * g) * sm(CORE[0], CORE[0] + 0.1, t), fctx);
       }
     },
 
-    /** Ligne de lumière : polyligne par les centres des tuiles dans l'ordre des rôles, tracée depuis Mid vers
-     *  l'extérieur, puis détendue en arc centré sur C (rayon 200 → 158,1, angles 148° → 392°, ouvert en bas).
-     *  Chaque tronçon a son dégradé entre deux couleurs de rôle ; tracée opaque sur une toile annexe
-     *  (aucune surbrillance aux jointures), puis ajoutée en lumière couche par couche. */
-    link(bctx, pj, CEN, draw, relax, la) {
-      const rArc = 200 + (158.1 - 200) * relax;
-      const at = u => {
-        const j = Math.min(3, Math.floor(u * 4)), f = u * 4 - j, A = CEN[j], B = CEN[j + 1];
-        let x = A[0] + (B[0] - A[0]) * f, y = A[1] + (B[1] - A[1]) * f, z = A[2] + (B[2] - A[2]) * f;
-        if (relax > 0) { const ang = (148 + 244 * u) * RAD; x += (CX + rArc * Math.cos(ang) - x) * relax; y += (CY + rArc * Math.sin(ang) - y) * relax; z -= z * relax; }
-        return pj(x, y, z);
-      };
-      const ua = 0.5 - draw / 2, ub = 0.5 + draw / 2, segs = [];
-      let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-      for (let j = 0; j < 4; j++) {
-        const lo = Math.max(j / 4, ua), hi = Math.min((j + 1) / 4, ub);
-        if (hi <= lo) continue;
-        const n = relax > 0 ? Math.max(2, Math.ceil(24 * (hi - lo) * 4)) : 1, pts = [];
-        for (let k = 0; k <= n; k++) { const q = at(lo + (hi - lo) * k / n); pts.push(q); if (q.x < x0) x0 = q.x; if (q.x > x1) x1 = q.x; if (q.y < y0) y0 = q.y; if (q.y > y1) y1 = q.y; }
-        segs.push({ pts, g0: at(j / 4), g1: at((j + 1) / 4 - 1e-6), c0: LINK_COL[j], c1: LINK_COL[j + 1] });
-      }
-      if (!segs.length) return;
-      const m = 12, bx = Math.max(0, Math.floor(x0 - m)), by = Math.max(0, Math.floor(y0 - m));
-      const bw = Math.min(NX.W, Math.ceil(x1 + m)) - bx, bh = Math.min(NX.H, Math.ceil(y1 + m)) - by;
-      if (bw <= 0 || bh <= 0) return;
-      const o = this.oc;
-      o.lineCap = 'round'; o.lineJoin = 'round';
-      for (const [w, a] of LINK_LAYERS) {
-        o.clearRect(bx, by, bw, bh);
-        o.lineWidth = w;
-        for (const s of segs) {
-          const gr = o.createLinearGradient(s.g0.x, s.g0.y, s.g1.x, s.g1.y);
-          gr.addColorStop(0, s.c0); gr.addColorStop(1, s.c1);
-          o.strokeStyle = gr; o.beginPath();
-          s.pts.forEach((q, k) => (k ? o.lineTo(q.x, q.y) : o.moveTo(q.x, q.y)));
-          o.stroke();
-        }
-        bctx.save(); bctx.globalCompositeOperation = 'lighter'; bctx.globalAlpha = clamp(a * la);
-        bctx.drawImage(o.canvas, bx, by, bw, bh, bx, by, bw, bh);
-        bctx.restore();
-      }
-    },
-
-    /** Vol des particules (§3.9), émail pointilliste, éclatement à 14,4 et braises. Tampon additif NX.px. */
+    /** Vol des particules (§3.9), émail pointilliste, éclatement à 9,6 et braises. Tampon additif NX.px. */
     particles(t, c, ctx) {
       const cyw = Math.cos(c.yaw * RAD), syw = Math.sin(c.yaw * RAD), cp = Math.cos(c.pitch * RAD), sp = Math.sin(c.pitch * RAD);
       const cr = Math.cos(c.roll * RAD), sr = Math.sin(c.roll * RAD);
@@ -352,8 +306,8 @@
         const s = D / Math.max(1, -z3);
         qx = 960 + (x2 * cr - y2 * sr) * s; qy = 540 + (x2 * sr + y2 * cr) * s;
       };
-      const H = NX.T.emblem, tau = t - H, lit = 1 + 0.35 * sm(14.12, 14.36, t);
-      const burstOut = 1 - sm(14.6, 14.75, t), emberOut = 1 - sm(15.9, 16.5, t);
+      const tau = t - HIT, lit = 1 + 0.35 * sm(POINT[0], POINT[1], t);
+      const burstOut = 1 - sm(BURST_OUT[0], BURST_OUT[1], t), emberOut = 1 - sm(EMBER_OUT[0], EMBER_OUT[1], t);
       const fb = tau >= 0 ? (1 - Math.exp(-3 * tau)) / 3 : 0;   // déplacement d'éclatement (px) par px/s de vitesse initiale
       NX.px.begin();
       for (const q of this.P) {
@@ -364,7 +318,7 @@
           // Sur l'image de l'impact le PNG de « direction » est seul, complet et net ; l'éclatement naît des traits.
           a = (q.ember ? Math.exp(-1.2 * tau) * emberOut : 1.4 * Math.exp(-6 * tau) * burstOut) * sm(1.5, 6, q.bv * fb);
         } else if (t >= q.ta) {
-          // Verrouillage : la traînée du vol (2 des 3,67 unités d'énergie du point) ne disparaît plus d'un coup ; elle est
+          // Verrouillage : la traînée du vol (2 des 3,67 unités d'énergie du point) ne disparaît pas d'un coup ; elle est
           // rendue au point et s'éteint en e^(−4τ), sous l'étincelle de la bible (0,8·e^(−12τ)) : l'émail pointilliste
           // garde son éclat jusqu'à la montée ×1,35 au lieu de s'assombrir pendant la montée vers l'impact.
           const dl = t - q.ta;

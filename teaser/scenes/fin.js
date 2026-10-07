@@ -1,12 +1,14 @@
-/* Fin (S9, bible §4) — fenêtre 27,95–33,6, z 3.
- * 28,0–28,8 : l'emblème ressort de la lumière, descend l'axe et se pose sur celui du logo final.
+/* Fin (S9, bible §4 et amendement v7.1) — fenêtre HIT − 0,85 → NX.DURATION (26,75–32,4), z 3.
+ * Tous les temps sont relatifs à l'impact HIT = NX.T.end (27,6 en v7.1 ; 28,8 en v7) et aux carillons
+ * NX.beats.chimes (eux-mêmes posés sur NX.T.end) : un recalage de la frise déplace toute la scène.
+ * HIT − 0,8 → HIT (26,8–27,6) : l'emblème ressort de la lumière, descend l'axe et se pose sur celui du logo final.
  *   Dans le même passage, le front NX.FRONT.end (avance 0) écrit le logo final, comme en S2. Les traits de l'emblème
  *   du logo (lignes de l'emblème, et sous la ligne de coupe l'empreinte de l'emblème qui se pose) restent derrière la
- *   porte jusqu'à 28,80 : l'emblème qui vole les tient. Sa plaque sombre, écrite par le même front, apparaît avec la
- *   pose (28,64–28,80) : elle est complète à l'impact, jamais en une image.
+ *   porte jusqu'à HIT : l'emblème qui vole les tient. Sa plaque sombre, écrite par le même front, apparaît avec la
+ *   pose (HIT − 0,16 → HIT) : elle est complète à l'impact, jamais en une image.
  *   Les outils (S8) sont brûlés par « outils » avec 100 px d'avance. C'est le bouclage du moment 1.
- * 28,8 : impact. L'échange des traits emblème → logo se fait sous l'éclair (repli de la bible §5.3, voir plus bas).
- * 29,4–31,8 : la carte finale arrive sur les carillons. La caméra se pose à 33,6.
+ * HIT : impact. L'échange des traits emblème → logo se fait sous l'éclair (repli de la bible §5.3, voir plus bas).
+ * Carillons (HIT + 0,6 → HIT + 3,0, soit 28,2–30,6) : la carte finale arrive. La caméra se pose à NX.DURATION (32,4).
  * Fonction pure de t : porte, empreinte, étincelles, instants d'émission et instant de l'étoile du reflet sont calculés
  * une fois dans prepare(). Les logos ne sont jamais tournés en 3D ni filtrés : masques, profondeur et feuilles de lumière.
  * Vérification (bible §6.9, §6.10), drapeaux NX.finDebug :
@@ -15,7 +17,7 @@
  *   { leavesOff } toute lumière ajoutée coupée ;
  *   { plateOff }  la plaque sombre des lignes de l'emblème et de l'empreinte n'est jamais écrite : rendu de
  *                 référence pour mesurer l'arrivée de la plaque image par image.
- * Sans drapeau, l'image de 28,80 − 1/180 est le rendu « emblème seul » du contrôle (traits fermés jusqu'à 28,80). */
+ * Sans drapeau, l'image de HIT − 1/180 est le rendu « emblème seul » du contrôle (traits fermés jusqu'à HIT). */
 (function () {
   const SRC_LOGO = '../public/assets/nxt5-logo.png', SRC_FAV = '../public/assets/nxt5-loader-favicon.png';
   const G = NX.G, L9 = G.L9, DK = G.dock, FAV = G.FAV, LOGO = G.LOGO;
@@ -24,11 +26,14 @@
   const RING = [DK.left + FAV.ringC[0] * KF, DK.top + FAV.ringC[1] * KF]; // anneau posé : (959,09 ; 245,94)
   const YCUT = L9.top + LOGO.rows.wordmark[0] * K9;                // 287,54 : haut de la bande du mot-symbole
   const CUT9 = YCUT - L9.top;                                      // la même ligne dans le repère du logo (217,54)
-  const HIT = NX.T.end;                                            // 28,8
-  const FLY = [28.0, HIT], Y0 = -850, Z0 = -4000;                  // retour : (959,1 ; −850 ; −4000) → posé
-  const FRONT_OFF = 29.45;                                         // au-delà, la bande est passée sous tout le logo
-  /* Échange des traits sous l'éclair (repli §5.3 en forme, ouvert à l'impact plutôt qu'à 28,78 : rien ne change avant
-   * 28,80). Posés sur la même plaque, les deux PNG ne diffèrent qu'au bord des traits (contrôle §6.9 : moyenne 0,8/255,
+  const HIT = NX.T.end;                                            // 27,6 (v7 : 28,8)
+  const FLY = [HIT - 0.8, HIT], Y0 = -850, Z0 = -4000;             // retour (26,8–27,6) : (959,1 ; −850 ; −4000) → posé
+  const FRONT_OFF = HIT + 0.65;                                    // 28,25 : la bande est passée sous tout le logo
+  /* Carillons (bible §2.5, NX.beats.chimes) : bouton, ligne 1, ligne 2, reflet du logo, reflet du bouton, puis la
+   * cloche de l'étoile douce. v7.1 : 28,2 / 28,5 / 28,8 / 29,1 / 29,4 et 30,6. */
+  const [CH_CTA, CH_L1, CH_L2, CH_GLINT, CH_CTA_GLINT, BELL] = NX.beats.chimes;
+  /* Échange des traits sous l'éclair (repli §5.3 en forme, ouvert à l'impact plutôt qu'à HIT − 0,02 : rien ne change
+   * avant HIT). Posés sur la même plaque, les deux PNG ne diffèrent qu'au bord des traits (contrôle §6.9 : moyenne 0,8/255,
    * maximum 5/255 hors de la frange de 2 px) ; sur cette frange, jusqu'à 215/255 (deux PNG rastérisés à deux échelles,
    * rails prolongés depuis les pointes des arcs). Plutôt qu'une coupe franche, les traits du logo s'ouvrent derrière
    * l'emblème opaque, puis l'emblème s'efface sur eux en deux images : aucun bord ne saute, aucun creux vers le fond. */
@@ -45,8 +50,9 @@
   const STROKE = [0.25, 0.5];
   /* La plaque des lignes de l'emblème et de l'empreinte est écrite par le front et apparaît avec la pose (SINE) : ses
    * contours sombres, peints autour des traits au repos, ne doublent pas l'emblème quand il est encore à 8–20 px de sa
-   * place (28,60–28,67) ; complète à l'impact. 0,16 s : au plus ~4 de luma par image dans l'anneau autour de l'emblème. */
-  const PLATE_IN = [28.64, HIT];
+   * place (HIT − 0,20 → HIT − 0,13) ; complète à l'impact. 0,16 s : au plus ~4 de luma par image dans l'anneau
+   * autour de l'emblème. */
+  const PLATE_IN = [HIT - 0.16, HIT];
   const RAMP = 10;                                                 // demi-largeur (px monde) du fondu de la ligne de coupe
   const HALO = { left: 310, top: -130, w: 1300, h: 900, z: -4 };   // halo v6 (centre 960 ; 320), un peu en retrait
   // Plafond de marque (bible §2.3) : au plus 0,30 de lumière ajoutée sur le chrome. Le cœur du reflet vaut 0,95,
@@ -55,8 +61,9 @@
   // Reflet du logo final : la bande de S2 (cœur spéculaire net, épaules douces), pour que les deux logos se répondent.
   const SWEEP_BAND = 'linear-gradient(105deg,transparent 0%,rgba(150,215,255,.10) 28%,rgba(185,232,255,.38) 43%,rgba(255,255,255,.95) 48.5%,rgba(255,255,255,.95) 51.5%,rgba(205,192,255,.38) 57%,rgba(196,181,253,.10) 72%,transparent 100%)';
   // Les deux boîtes de logo sont écrites à 2× puis réduites de moitié (échelle uniforme) : sous la caméra tournée,
-  // Chrome rastérise un calque 3D à l'échelle locale 1 puis le rééchantillonne, ce qui rendait le logo flou jusqu'à
-  // 30,0 (énergie de détail 396 contre 2010 une fois la caméra frontale). À 2×, 1742 : net pendant tout le retour.
+  // Chrome rastérise un calque 3D à l'échelle locale 1 puis le rééchantillonne, ce qui rendait le logo flou jusqu'au
+  // retour de la caméra en face (HIT + 1,2 ; énergie de détail 396 contre 2010 une fois frontale). À 2×, 1742 : net
+  // pendant tout le retour.
   const SS = 2;
   const E = NX.ease, seg = NX.seg, sm = NX.smooth;
 
@@ -138,7 +145,7 @@
   const finStarG = (t, tc, a, b) => E.sine(seg(t, tc - a, tc)) * (1 - E.sine(seg(t, tc, tc + b)));
 
   NX.scene({
-    id: 'fin', start: 27.95, end: NX.DURATION, post: 0.4, z: 3,
+    id: 'fin', start: HIT - 0.85, end: NX.DURATION, post: 0.4, z: 3,
     build(root) {
       this.halo = NX.el(`<div class="fin-halo"></div>`, root);
       // Logo final : boîte plate NX.G.L9 (écrite à 2×, réduite de moitié) avec les feuilles de lumière du kit.
@@ -210,7 +217,7 @@
       this.sparks = pts.map((p, k) => {
         const r = NX.rng(28800 + k), X = L9.left + p.u * L9.w, Y = L9.top + p.v * H9;
         return {
-          X, Y, te: NX.light.when(NX.FRONT.end, X, Y, this.rz, { t0: 28.3, t1: 30.0 }),
+          X, Y, te: NX.light.when(NX.FRONT.end, X, Y, this.rz, { t0: HIT - 0.5, t1: HIT + 1.2 }),
           life: 0.8 + 0.7 * r(), rise: 40 + 80 * r(), s: 1.5 + 1.5 * r(), n: 11.3 + 7.1 * k,
           col: `rgb(${p.rgb.map(v => Math.min(255, Math.round(v * 0.7 + 77))).join(',')})`,
         };
@@ -224,22 +231,22 @@
       const [su, sv] = LOGO.stars.spear, lean = (0.5 - sv) * H9 * Math.tan(15 * Math.PI / 180) / L9.w;
       const pX = (su - lean - 0.17) / 0.34, pTarget = (pX + 1.10) / 4.10;
       let lo = 0, hi = 1; for (let i = 0; i < 40; i++) { const mid = (lo + hi) / 2; if (E.sheen(mid) < pTarget) lo = mid; else hi = mid; }
-      this.starT = 30.30 + 0.65 * lo;
+      this.starT = CH_GLINT + 0.65 * lo;
     },
     render(S) {
       const t = S.t, rz = this.rz || 0, dbg = NX.finDebug || {}, fx = NX.fx.ctx;
       const tau = t - HIT, R = NX.FRONT.end(t), frontOn = t < FRONT_OFF, lightsOn = !dbg.leavesOff;
-      // Échange (première sous-image ≥ 28,80) : les traits du logo s'ouvrent en 0,03 s, puis l'emblème s'efface en 0,05 s.
+      // Échange (première sous-image ≥ HIT) : les traits du logo s'ouvrent en 0,03 s, puis l'emblème s'efface en 0,05 s.
       const open = dbg.dock ? 1 : sm(SWAP_GATE[0], SWAP_GATE[1], t) * (t >= HIT ? 1 : 0);
       const hitLum = lightsOn && tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0;   // surexposition de l'impact (≤ 0,30)
-      // Emblème : son chrome apparaît en smooth(28,00 ; 28,20) ; sa lumière (feuille lum, traits clairs, ≤ 0,30) naît
+      // Emblème : son chrome apparaît en smooth(HIT − 0,80 ; HIT − 0,60) ; sa lumière (feuille lum, traits clairs, ≤ 0,30) naît
       // avec le cœur et s'éteint en 0,3 s : il sort de la source comme un dessin de lumière qui prend matière.
       const favImg = sm(FLY[0], FLY[0] + 0.2, t), favBox = dbg.dock ? 0 : 1 - sm(SWAP_FAV[0], SWAP_FAV[1], t);
-      const birthLum = lightsOn ? BIRTH_LUM * sm(27.98, 28.06, t) * (1 - E.sine(seg(t, 28.06, 28.36))) : 0;
+      const birthLum = lightsOn ? BIRTH_LUM * sm(HIT - 0.82, HIT - 0.74, t) * (1 - E.sine(seg(t, HIT - 0.74, HIT - 0.44))) : 0;
       const favLum = Math.max(birthLum, hitLum);
       const favOn = favBox > 0 && (favImg > 0 || favLum > 0.002) && t < SWAP_FAV[1];
 
-      // ---- Retour de l'emblème (28,00–28,80), puis effacement sous l'éclair (28,81–28,86) ----
+      // ---- Retour de l'emblème (HIT − 0,80 → HIT), puis effacement sous l'éclair (HIT + 0,01 → HIT + 0,06) ----
       // Jamais masqué : sous la ligne de coupe, le logo ne montre aucun trait clair dans son empreinte avant l'échange.
       if (favOn) {
         const P = finFavPose(finFlight(t), rz);
@@ -254,12 +261,12 @@
       } else this.fav.style.display = 'none';
       // Lumière du cœur de l'emblème (#fxback, derrière le DOM : jamais de voile sur le logo ni sur ce qui reste
       // de S8). Il naît d'une source : un cœur chaud et serré dans l'anneau, un halo large et très léger teinté
-      // comme les rayons ; pic vers 28,06, éteint à 28,40. À l'approche, le cœur se recharge (montée 28,42–28,80,
-      // bible §2.5 « cores grow ») et passe la main à l'impact de 28,8, qui l'éteint en quelques images.
+      // comme les rayons ; pic vers HIT − 0,74, éteint à HIT − 0,40. À l'approche, le cœur se recharge (montée
+      // HIT − 0,38 → HIT, bible §2.5 « cores grow ») et passe la main à l'impact, qui l'éteint en quelques images.
       if (lightsOn && t < HIT + 0.6) {
         const f = finFlight(Math.min(t, HIT)), p = NX.cam.project(RING[0], f.Y, rz + f.Z), size = DK.size * p.s;
-        const born = sm(27.97, 28.06, t) * (1 - E.sine(seg(t, 28.08, 28.40)));
-        const charge = 0.22 * E.inQuad(seg(t, 28.42, HIT)) * (tau < 0 ? 1 : Math.exp(-8 * tau));
+        const born = sm(HIT - 0.83, HIT - 0.74, t) * (1 - E.sine(seg(t, HIT - 0.72, HIT - 0.40)));
+        const charge = 0.22 * E.inQuad(seg(t, HIT - 0.38, HIT)) * (tau < 0 ? 1 : Math.exp(-8 * tau));
         if (born > 0.003) {
           NX.lk.glow(p.x, p.y, 1.6 * size, [165, 243, 252], 0.10 * born, NX.fxBack.ctx);
           NX.lk.glow(p.x, p.y, 0.6 * size, [225, 248, 255], 0.35 * born, NX.fxBack.ctx);
@@ -272,8 +279,8 @@
       const L = this.L, Lc = frontOn ? finLocal(L9.left, L9.top, rz, R, t) : null;
       this.box.style.display = dbg.noLockup ? 'none' : '';
       const written = Lc ? finWrite(Lc) : null;
-      // Porte : avant 28,80, g ∪ (plaque ∩ pPlate) — la plaque arrive avec la pose, les traits de l'emblème sont retenus ;
-      // à partir de 28,80, l'image cuite 1 − (1 − g)·st, les traits s'ouvrant en 0,03 s par une couche uniforme ajoutée ;
+      // Porte : avant HIT, g ∪ (plaque ∩ pPlate) — la plaque arrive avec la pose, les traits de l'emblème sont retenus ;
+      // à partir de HIT, l'image cuite 1 − (1 − g)·st, les traits s'ouvrant en 0,03 s par une couche uniforme ajoutée ;
       // entièrement ouverte, elle disparaît. { plateOff } : la plaque n'est jamais écrite.
       const pPlate = dbg.dock ? 1 : E.sine(seg(t, PLATE_IN[0], PLATE_IN[1]));
       let gate, gOps = ['add'];
@@ -295,14 +302,14 @@
       L.lum.style.opacity = lum.toFixed(4);
       L.lum.style.display = lum ? '' : 'none';
       finMask(L.lum, lum && written ? [L.url, written] : [L.url]);
-      // Reflet unique de la tenue (carillon 4, 30,30–30,95, SHEEN).
-      const gp = seg(t, 30.30, 30.95), sweepP = lightsOn ? E.sheen(gp) : -1, sweepOn = sweepP > 0 && sweepP < 1;
+      // Reflet unique de la tenue (carillon 4, CH_GLINT → + 0,65, SHEEN ; 29,10–29,75).
+      const gp = seg(t, CH_GLINT, CH_GLINT + 0.65), sweepP = lightsOn ? E.sheen(gp) : -1, sweepOn = sweepP > 0 && sweepP < 1;
       L.sweep.style.opacity = sweepOn ? SWEEP_A.toFixed(4) : 0;
       L.sweep.style.display = sweepOn ? '' : 'none';
       L.band.style.transform = `translateX(${NX.lerp(-110, 300, sweepOn ? sweepP : 0).toFixed(2)}%)`;
 
-      // ---- Halo (28,70–29,20), écrit lui aussi par la lumière : jamais de voile sur ce qui reste de S8 ----
-      this.halo.style.opacity = (sm(28.70, 29.20, t) * (0.6 + 0.4 * (tau >= 0 ? Math.exp(-3 * tau) : 1))).toFixed(4);
+      // ---- Halo (HIT − 0,10 → HIT + 0,40), écrit lui aussi par la lumière : jamais de voile sur ce qui reste de S8 ----
+      this.halo.style.opacity = (sm(HIT - 0.10, HIT + 0.40, t) * (0.6 + 0.4 * (tau >= 0 ? Math.exp(-3 * tau) : 1))).toFixed(4);
       if (frontOn) NX.light.write(this.halo, NX.light.local(HALO.left, HALO.top, rz + HALO.z, R, t), { feather: 200 });
       else NX.light.clear(this.halo);
 
@@ -311,7 +318,7 @@
         // Impact : cœur et une traînée, au centre de l'anneau posé.
         if (tau >= 0 && tau < 1.5) { const c = NX.cam.project(RING[0], RING[1], rz); NX.hit(t, HIT, c.x, c.y, { flare: 0.55, core: 420, coreA: 0.40 }); }
         // Étincelles du mot-symbole (même physique que S2).
-        if (this.sparks && t > 28.3 && t < 31.6) {
+        if (this.sparks && t > HIT - 0.5 && t < HIT + 2.8) {
           fx.save(); fx.globalCompositeOperation = 'lighter';
           for (const q of this.sparks) {
             const age = t - q.te; if (age < 0 || age > q.life) continue;
@@ -324,7 +331,7 @@
           }
           fx.restore();
         }
-        // Reflet du logo (30,30–30,95) : débord doux qui suit la bande (entrée et sortie adoucies, pas de saut),
+        // Reflet du logo (carillon 4, 29,10–29,75) : débord doux qui suit la bande (entrée et sortie adoucies, pas de saut),
         // étoile sur la pointe de la lance.
         const spill = sweepOn ? 0.06 * sm(0, 0.12, gp) * (1 - sm(0.88, 1, gp)) : 0;
         if (spill > 0.002) {
@@ -337,30 +344,30 @@
         }
         const tip = () => NX.cam.project(L9.left + LOGO.stars.spear[0] * L9.w, L9.top + LOGO.stars.spear[1] * H9, rz);
         if (this.starT && Math.abs(t - this.starT) < 0.4) { const p = tip(); NX.lk.star(p.x, p.y, 0.7 * finStarG(t, this.starT, 0.05, 0.30), { size: 0.9 * p.s }); }
-        // Cloche de 31,8 : étoile douce sur la pointe (g 0,5, 0,4 s).
-        if (t > 31.7 && t < 32.3) { const p = tip(); NX.lk.star(p.x, p.y, 0.5 * finStarG(t, 31.86, 0.06, 0.34), { size: 0.8 * p.s }); }
+        // Cloche (BELL, 30,6) : étoile douce sur la pointe (g 0,5, 0,4 s).
+        if (t > BELL - 0.1 && t < BELL + 0.5) { const p = tip(); NX.lk.star(p.x, p.y, 0.5 * finStarG(t, BELL + 0.06, 0.06, 0.34), { size: 0.8 * p.s }); }
       }
 
       // ---- Carte finale ----
-      // Carillon 1 (29,40) : le bouton s'ouvre depuis le centre ; son éclat monte avec l'ouverture (attaque 0,06 s)
+      // Carillon 1 (CH_CTA, 28,2) : le bouton s'ouvre depuis le centre ; son éclat monte avec l'ouverture (attaque 0,06 s)
       // puis retombe en e^(−3τ).
-      const pc = E.enter(seg(t, 29.40, 29.85)), ins = 50 * (1 - pc);
+      const pc = E.enter(seg(t, CH_CTA, CH_CTA + 0.45)), ins = 50 * (1 - pc);
       this.cta.style.clipPath = pc >= 1 ? 'none' : `inset(0 ${ins.toFixed(3)}% 0 ${ins.toFixed(3)}%)`;
-      if (lightsOn && t >= 29.40 && t < 31.0 && this.ctaC) {
-        const tb = t - 29.40, p = NX.cam.project(this.ctaC[0], this.ctaC[1], rz);
+      if (lightsOn && t >= CH_CTA && t < CH_CTA + 1.6 && this.ctaC) {
+        const tb = t - CH_CTA, p = NX.cam.project(this.ctaC[0], this.ctaC[1], rz);
         NX.lk.glow(p.x, p.y, 260 * p.s, [165, 215, 255], 0.25 * Math.exp(-3 * tb) * sm(0, 0.06, tb));
       }
-      // Carillon 5 (30,60–31,20) : reflet intérieur du bouton.
-      const pg = E.sheen(seg(t, 30.60, 31.20)), gOn = lightsOn && pg > 0 && pg < 1;
+      // Carillon 5 (CH_CTA_GLINT → + 0,6 ; 29,40–30,00) : reflet intérieur du bouton.
+      const pg = E.sheen(seg(t, CH_CTA_GLINT, CH_CTA_GLINT + 0.6)), gOn = lightsOn && pg > 0 && pg < 1;
       this.glint.style.opacity = gOn ? 1 : 0;
       this.glint.style.display = gOn ? '' : 'none';
       this.glint.style.transform = `translateX(${NX.lerp(-105, 222, gOn ? pg : 0).toFixed(2)}%)`;
       // Carillons 2 et 3 : les deux lignes montent à travers leur masque.
-      NX.type.rise(this.w1, t, 29.70, 0.04, 0.6);
-      NX.type.rise(this.w2, t, 30.00, 0.04, 0.6);
+      NX.type.rise(this.w1, t, CH_L1, 0.04, 0.6);
+      NX.type.rise(this.w2, t, CH_L2, 0.04, 0.6);
       // Une ligne dont aucun mot n'est encore entré, et le bouton tant qu'il est fermé, sont retirés du rendu : chaque
       // élément de la racine 3D a son propre calque, et un calque devenu vide n'était plus rastérisé. Rendu juste après
-      // la carte complète (31,0 puis 29,0), Chrome y affichait une tuile périmée prise au bouton (tache magenta).
+      // la carte complète (v7 : 31,0 puis 29,0), Chrome y affichait une tuile périmée prise au bouton (tache magenta).
       const shown = ws => ws.some(w => +w.style.opacity > 0);
       this.l1.style.display = shown(this.w1) ? '' : 'none';
       this.l2.style.display = shown(this.w2) ? '' : 'none';

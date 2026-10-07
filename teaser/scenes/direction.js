@@ -1,15 +1,17 @@
-/* S5 Direction (bible v7 §4 S5), fenêtre 14,25–18,1 s, z 1,2 : « Une même direction. »
- * 14,28–14,42 : l'emblème (PNG) apparaît sous les particules d'equipe.js ; 14,4 : impact sobre au centre de l'anneau.
- * 14,55 : le titre monte. 14,6–17,4 : l'emblème respire (−10 px, ×1,025). 15,6 : un faisceau part de la pointe de la
- * lance vers la source (tracé 15,6–16,5), il pulse sur 16,8. 16,15–16,85 : un seul reflet passe sur le chrome.
- * 17,40–17,75 : l'emblème se condense en sa flèche : le masque horizontal doux se referme sur l'axe et efface l'anneau
- * et les ailes de l'extérieur vers l'intérieur ; ce qu'il laisse autour de la flèche s'éteint 17,50–17,60, si bien qu'à
- * 17,60 il ne reste que la flèche entière (pointe, ailerons, hampe, empennage), qui s'éclaire.
- * 17,50–17,98 : elle monte le long du faisceau, dont le pied la suit, et s'efface dans la lumière ; le titre sort par le
- * haut (17,60 / 17,65 / 17,70, EXIT 0,30 : le dernier mot disparaît exactement à 18,00, image du drop).
- * 18,0 : le faisceau s'éteint, la lumière redescend sur la première carte (outils.js).
+/* S5 Direction (bible v7 §4 S5 et amendement v7.1 : tous les temps −4,8 s), fenêtre 9,45–13,3 s, z 1,2 :
+ * « Une même direction. ». Chaque instant est écrit par rapport à NX.T (frise ci-dessous) : la naissance et la tenue
+ * suivent l'emblème (T.emblem, 9,6), la condensation, la montée et la sortie suivent le drop (T.tools, 13,2).
+ * 9,48–9,62 : l'emblème (PNG) apparaît sous les particules d'equipe.js ; 9,6 : impact sobre au centre de l'anneau.
+ * 9,75 : le titre monte. 9,8–12,6 : l'emblème respire (−10 px, ×1,025). 10,8 : un faisceau part de la pointe de la
+ * lance vers la source (tracé 10,8–11,7), il pulse sur 12,0. 11,35–12,05 : un seul reflet passe sur le chrome.
+ * 12,60–12,95 : l'emblème se condense en sa flèche : le masque horizontal doux se referme sur l'axe et efface l'anneau
+ * et les ailes de l'extérieur vers l'intérieur ; ce qu'il laisse autour de la flèche s'éteint 12,70–12,80, si bien qu'à
+ * 12,80 il ne reste que la flèche entière (pointe, ailerons, hampe, empennage), qui s'éclaire.
+ * 12,70–13,18 : elle monte le long du faisceau, dont le pied la suit, et s'efface dans la lumière ; le titre sort par le
+ * haut (12,80 / 12,85 / 12,90, EXIT 0,30 : le dernier mot disparaît exactement à 13,20, image du drop).
+ * 13,2 : le faisceau s'éteint, la lumière redescend sur la première carte (outils.js).
  * Interfaces : equipe.js possède les particules et ne dessine jamais le PNG ; cette scène possède l'emblème et
- * NX.hit(14,4) ; « ciel » possède l'onde de choc, le resserrement des rayons, la montée et la poussière.
+ * NX.hit(9,6) ; « ciel » possède l'onde de choc, le resserrement des rayons, la montée et la poussière.
  * Le logo n'est jamais tourné ni filtré : masques doux, translation, échelle uniforme, feuilles de lumière.
  * Fonction pure de t : masque de la flèche, instant de l'étoile et toile annexe sont préparés une fois.
  * Vérification (bible §6.8, §6.10) : NX.dirDebug = { leavesOff } coupe toute lumière ajoutée sur l'emblème,
@@ -28,32 +30,36 @@
   const TIPV = FV.spearTip[1] * K;               // pointe de la lance : y 46,7 dans la boîte (monde 246,7)
   const HALO = 900;                              // halo : disque radial de 900 px centré sur C
 
-  /* Frise (bible §4 S5). */
-  const HIT = NX.T.emblem;                       // 14,4 : naissance de l'emblème
-  const BIRTH = [14.28, 14.42];                  // opacité de l'emblème sous les particules
-  const HALO_IN = [14.42, 15.00];                // le halo s'épanouit pendant que l'éclair de l'impact retombe (SINE)
-  const TITLE_IN = 14.55, TITLE_STEP = 0.12, TITLE_DUR = 0.8;      // 14,55 / 14,67 / 14,79 (ENTER) : complet 15,59
-  // Sortie 17,60 / 17,65 / 17,70, EXIT 0,30 (écart de la bible : 17,62 / 17,67 / 17,72, EXIT 0,32, sorti à 18,04) :
-  // le dernier mot disparaît exactement à 18,00, l'image du drop où la carte 1 s'allume (18,00–18,10), donc jamais sur
-  // son contenu ; et il reste à l'écran (≈ 0,6 à 17,967) jusqu'à l'image qui précède le drop, sans image vide avant
-  // le temps fort. 0,30 s reste dans la plage des titres (§2.2). L'EXIT part si lentement que le titre est entier
-  // jusqu'à 17,70 : fenêtre de lecture 15,07–17,70 (2,63 s, v6 2,41 s).
-  const TITLE_OUT = 17.60, OUT_STEP = 0.05, OUT_DUR = 0.30;
-  const TITLE_GONE = +(TITLE_OUT + 2 * OUT_STEP + OUT_DUR).toFixed(3);  // 18,00 : dernier mot sorti
-  const BREATH = [14.60, 17.40];                 // respiration : y −10 px, échelle 1 → 1,025 (SINE)
-  const KICKS = NX.beats.lightKicks.slice();     // emblème + 2 et + 4 temps : halo +20 % (décroissance 2,5)
-  const SHEEN_T = [15.30, 16.10];                // reflet du mot « direction. »
-  const DRAW = [15.60, 16.50];                   // tracé du faisceau, de la pointe vers la source (SINE)
-  const GLINT = [16.15, 16.85];                  // reflet unique de la tenue (SHEEN)
-  const COND = [17.40, 17.75];                   // condensation en flèche (GLIDE) : la bande se referme à pleine force
-  // Ce que la bande laisse autour de la flèche s'éteint 17,50–17,60 (écart : la bande seule n'atteint les colonnes de
-  // la lance qu'à 17,75 et, à 17,60, trancherait encore les ailes en fragments et laisserait les bouts de l'anneau en
-  // petites marques près de la pointe). Le balayage convergent se lit 17,40–17,55 ; à 17,60 il ne reste que la flèche.
-  const DIM = [17.50, 17.60];
-  const SPEAR_LUM = [17.45, 17.80];              // lumière froide sur la flèche 0 → 0,5
-  const RISE = [17.50, 17.98];                   // montée de 260 px le long du faisceau (LIFT)
-  const FADE = [17.75, 17.98];                   // la flèche s'efface dans la lumière
-  const OFF = NX.T.tools;                        // 18,0 : faisceau éteint, relais au faisceau du drop
+  /* Frise (bible §4 S5, amendement v7.1). Les valeurs en commentaire sont celles de la frise v7.1 (v7 − 4,8 s). */
+  const at = (a, d) => Math.round((a + d) * 1e6) / 1e6;   // instant relatif à un repère de NX.T, sans résidu flottant
+  const HIT = NX.T.emblem;                       // 9,6 : naissance de l'emblème
+  const DROP = NX.T.tools;                       // 13,2 : drop, la lumière redescend sur la première carte
+  const WIN = [at(HIT, -0.15), at(DROP, 0.10)];  // fenêtre de la scène 9,45–13,3
+  const BIRTH = [at(HIT, -0.12), at(HIT, 0.02)]; // 9,48–9,62 : opacité de l'emblème sous les particules
+  const HALO_IN = [at(HIT, 0.02), at(HIT, 0.60)];    // 9,62–10,2 : le halo s'épanouit pendant que l'éclair retombe (SINE)
+  const TITLE_IN = at(HIT, 0.15), TITLE_STEP = 0.12, TITLE_DUR = 0.8;   // 9,75 / 9,87 / 9,99 (ENTER) : complet 10,79
+  // Sortie 12,80 / 12,85 / 12,90, EXIT 0,30 (écart de la bible : v7 17,62 / 17,67 / 17,72, EXIT 0,32, sorti à 18,04,
+  // soit 12,82 … 13,24 en v7.1) : le dernier mot disparaît exactement sur l'image du drop (13,20), où la carte 1
+  // s'allume, donc jamais sur son contenu ; et il reste à l'écran (≈ 0,6 à 13,167) jusqu'à l'image qui précède le drop,
+  // sans image vide avant le temps fort. 0,30 s reste dans la plage des titres (§2.2). L'EXIT part si lentement que le
+  // titre est entier jusqu'à 12,90 : fenêtre de lecture 10,27–12,90 (2,63 s, v6 2,41 s).
+  const TITLE_OUT = at(DROP, -0.40), OUT_STEP = 0.05, OUT_DUR = 0.30;
+  const TITLE_GONE = at(TITLE_OUT, 2 * OUT_STEP + OUT_DUR);        // 13,20 : dernier mot sorti
+  const BREATH = [at(HIT, 0.20), at(DROP, -0.60)];   // 9,8–12,6 : respiration, y −10 px, échelle 1 → 1,025 (SINE)
+  const KICKS = NX.beats.lightKicks.slice();     // 10,8 et 12,0 (emblème + 2 et + 4 temps) : halo +20 % (décroissance 2,5)
+  const SHEEN_T = [at(HIT, 0.90), at(HIT, 1.70)];    // 10,5–11,3 : reflet du mot « direction. »
+  const DRAW = [at(KICKS[0], 0), at(KICKS[0], 0.90)];   // 10,8–11,7 : tracé du faisceau sur le premier temps (SINE)
+  const GLINT = [at(HIT, 1.75), at(HIT, 2.45)];  // 11,35–12,05 : reflet unique de la tenue (SHEEN)
+  const COND = [at(DROP, -0.60), at(DROP, -0.25)];   // 12,6–12,95 : condensation en flèche (GLIDE), bande à pleine force
+  // Ce que la bande laisse autour de la flèche s'éteint 12,70–12,80 (écart : la bande seule n'atteint les colonnes de
+  // la lance qu'à 12,95 et, à 12,80, trancherait encore les ailes en fragments et laisserait les bouts de l'anneau en
+  // petites marques près de la pointe). Le balayage convergent se lit 12,60–12,75 ; à 12,80 il ne reste que la flèche.
+  const DIM = [at(DROP, -0.50), at(DROP, -0.40)];
+  const SPEAR_LUM = [at(DROP, -0.55), at(DROP, -0.20)];  // 12,65–13,0 : lumière froide sur la flèche 0 → 0,5
+  const RISE = [at(DROP, -0.50), at(DROP, -0.02)];   // 12,7–13,18 : montée de 260 px le long du faisceau (LIFT)
+  const FADE = [at(DROP, -0.25), at(DROP, -0.02)];   // 12,95–13,18 : la flèche s'efface dans la lumière
+  const SWELL = [at(DROP, -0.60), at(DROP, -0.05)];  // 12,6–13,15 : le faisceau se renforce (+0,4) vers le drop
+  const OFF = DROP;                              // 13,2 : faisceau éteint, relais au faisceau du drop
   const COLS = [44.5, 54.7];                     // colonnes de la lance (en % de la boîte), bords doux de 3 %
   const ART = [48 / 512, 457 / 512];            // étendue horizontale du dessin (boîte alpha du PNG, bible annexe B)
   // Plafond de marque (bible §2.3) : au plus 0,30 de lumière ajoutée ; le cœur du reflet vaut 0,95.
@@ -62,13 +68,13 @@
   const SWEEP_BAND = 'linear-gradient(105deg,transparent 0%,rgba(150,215,255,.10) 28%,rgba(185,232,255,.38) 43%,rgba(255,255,255,.95) 48.5%,rgba(255,255,255,.95) 51.5%,rgba(205,192,255,.38) 57%,rgba(196,181,253,.10) 72%,transparent 100%)';
   const BEAM_CORE = [200, 240, 255], BEAM_GLOW = [167, 200, 255];
   // Volume du faisceau (écart de la bible, qui ne donne que le cœur et le halo étroit) : colonne gaussienne de 180 px au
-  // plus, 0,22k au centre (≈ +15 de luminance sur l'axe à k = 0,5, ≈ +25 sur la pulsation de 16,8 : #fxback est posé
+  // plus, 0,22k au centre (≈ +15 de luminance sur l'axe à k = 0,5, ≈ +25 sur la pulsation de 12,0 : #fxback est posé
   // sur le ciel en source-over), qui prend toute sa force 60 px au-dessus de la pointe ; tête fondue sur 120 px.
   // Sans elle, le faisceau de la tenue n'est qu'un fil, presque invisible sur téléphone.
   const VOL_W = 180, VOL_A = 0.22, VOL_F0 = 60, HEAD_FADE = 120;
   const TAN15 = Math.tan(15 * Math.PI / 180);
   // Halo (bible : radial rgba(129,140,248,.35) → transparent, 900 px). Profil 1 − smoothstep, pic 0,42 = 0,35 × 1,2 :
-  // l'opacité de repos 1/1,2 donne 0,35, les temps 15,6 et 16,8 montent à +20 %. Ni pointe au centre, ni bord visible.
+  // l'opacité de repos 1/1,2 donne 0,35, les temps 10,8 et 12,0 montent à +20 %. Ni pointe au centre, ni bord visible.
   // Le halo est tracé sur #fxback (derrière tout le DOM, donc derrière l'emblème et le titre) et non par un div :
   // avec la rastérisation GPU, le dégradé d'un grand div dépendait des images rendues avant (±1 niveau selon l'ordre,
   // bible §6.8) ; sur la toile, il est retracé à chaque image (pixels identiques dans tout ordre), et il se resserre
@@ -183,7 +189,7 @@
   }
 
   NX.scene({
-    id: 'direction', start: 14.25, end: 18.1, z: 1.2,
+    id: 'direction', start: WIN[0], end: WIN[1], z: 1.2,
     build(root) {
       this.box = NX.el('<div class="dir-box"></div>', root);
       this.L = NX.logoLight(this.box, SRC);
@@ -220,19 +226,19 @@
         box.style.transform = `translate3d(${tx.toFixed(3)}px,${ty.toFixed(3)}px,${ZB}px) scale(${k.toFixed(5)})`;
         // Condensation (bible) : la bande horizontale douce se referme sur l'axe à pleine force et efface l'anneau et
         // les ailes de l'extérieur vers l'intérieur ; elle est unie au masque de la flèche, qui n'est donc jamais coupée.
-        // Ce qu'elle laisse autour de la flèche (ailes, bouts de l'anneau) s'éteint 17,50–17,60 (DIM), puis la flèche seule.
+        // Ce qu'elle laisse autour de la flèche (ailes, bouts de l'anneau) s'éteint 12,70–12,80 (DIM), puis la flèche seule.
         // Le masque n'est posé que lorsqu'il mord sur le dessin : avant, il ne changerait aucun pixel et ne ferait
         // qu'ajouter une passe de masque à chaque image de la tenue.
         const l = COLS[0] * cond, r = 100 - (100 - COLS[1]) * cond, a = this.spear ? 1 - sm(DIM[0], DIM[1], t) : 1;
         if (dbg.noMask || !(cond > 0 && (l > ART[0] * 100 || r < ART[1] * 100 || a < 1))) dirMask(box, []);
-        else if (a <= 0) dirMask(box, [this.spear]);   // dès 17,60 : la flèche seule
+        else if (a <= 0) dirMask(box, [this.spear]);   // dès 12,80 : la flèche seule
         else {
           const c = `rgba(0,0,0,${a.toFixed(4)})`;
           const band = `linear-gradient(to right,transparent ${(l - 3).toFixed(3)}%,${c} ${l.toFixed(3)}%,${c} ${r.toFixed(3)}%,transparent ${(r + 3).toFixed(3)}%)`;
           dirMask(box, [this.spear, band], 'add');
         }
         // Lumière ajoutée sur les traits clairs (bible) : l'éclair de l'impact 0,30·e^(−6τ), la lumière froide de la
-        // flèche 0 → 0,5 (17,45–17,80), et le reflet unique de la tenue (SHEEN 16,15–16,85, plafond 0,30). La feuille
+        // flèche 0 → 0,5 (12,65–13,00), et le reflet unique de la tenue (SHEEN 11,35–12,05, plafond 0,30). La feuille
         // n'est éteinte que sous 1/255 (τ ≈ 0,72) : marche invisible. Avec la rastérisation logicielle des outils, une
         // feuille allumée n'adoucit plus l'emblème (mesuré : écart ≤ 1 niveau, la lumière elle-même).
         const hitLum = tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0;
@@ -242,7 +248,7 @@
         else this.L.frame({ front: null, written: true, lum, sweepP, sweepA: SWEEP_A });
       }
 
-      /* ---------------- Halo : monte avec l'emblème, +20 % sur 15,6 et 16,8, se resserre sur la flèche ---------------- */
+      /* ---------------- Halo : monte avec l'emblème, +20 % sur 10,8 et 12,0, se resserre sur la flèche ---------------- */
       const hA = SINE(seg(t, HALO_IN[0], HALO_IN[1])) * (1 + 0.2 * NX.beatPulse(t, KICKS, 2.5)) / 1.2 * out;
       if (hA > 0.002 && !dbg.noHalo) {
         const q = NX.cam.project(CX, CY + P.dy, ZR + ZH), r = HALO / 2 * q.s * P.s;
@@ -260,7 +266,7 @@
         NX.type.sheen(this.spec, t, SHEEN_T[0], SHEEN_T[1], 0.35);
       } else this.title.style.display = 'none';
 
-      /* ---------------- Impact de 14,4 au centre de l'anneau : cœur et une traînée violette ---------------- */
+      /* ---------------- Impact de 9,6 au centre de l'anneau : cœur et une traînée violette ---------------- */
       if (tau >= 0 && tau < 1.5) {
         const q = dirProj(P, OX, OY);
         NX.hit(t, HIT, q.x, q.y, { core: 400, coreA: 0.40, flare: 0.6, tint: [167, 139, 250] });
@@ -269,15 +275,15 @@
       /* ---------------- Faisceau « direction » (#fxback, derrière l'emblème), de la pointe vers la source ---------------- */
       if (t >= DRAW[0] && t < OFF) {
         const d = SINE(seg(t, DRAW[0], DRAW[1]));
-        const k = (0.5 + 0.3 * NX.beatPulse(t, [KICKS[1]], 3) + 0.4 * sm(17.4, 17.95, t)) * (1 + 0.4 * sm(RISE[0], RISE[0] + 0.3, t));
+        const k = (0.5 + 0.3 * NX.beatPulse(t, [KICKS[1]], 3) + 0.4 * sm(SWELL[0], SWELL[1], t)) * (1 + 0.4 * sm(RISE[0], RISE[0] + 0.3, t));
         // La tête part de la pointe telle qu'elle respire (pas de montée pendant le tracé) et rejoint la source.
         // Pied 10 px sous la pointe (dans la lance), fondu sur 26 px : le faisceau sort de la pointe. Pendant la montée,
         // le pied suit la flèche : le faisceau se retire dans la source avec elle (prise dans la lumière), et c'est le
-        // faisceau du drop qui ramène la lumière à 18,00 au lieu d'un fil resté suspendu dans le vide.
+        // faisceau du drop qui ramène la lumière à 13,20 au lieu d'un fil resté suspendu dans le vide.
         const tip = dirProj(P, OX, TIPV, false), foot = dirProj(P, OX, TIPV + 10, true), s = NX.light.src(t);
         const hx = tip.x + (s.x - tip.x) * d, hy = tip.y + (s.y - tip.y) * d;
         // Volume : sa largeur suit la longueur tracée (jamais plus large que 0,8 × la longueur, 30 px au moins) et il
-        // monte avec le tracé : au coup de 15,6, aucune barre de lumière horizontale avant que la colonne n'existe.
+        // monte avec le tracé : au coup de 10,8, aucune barre de lumière horizontale avant que la colonne n'existe.
         const len = Math.hypot(hx - foot.x, hy - foot.y), vw = Math.min(VOL_W, Math.max(30, 0.8 * len));
         dirBeamPass(bk, this.oc, foot.x, foot.y, hx, hy, vw / 2, VOL_F0, HEAD_FADE, o => dirVolume(o, foot.x, foot.y, hx, hy, vw, VOL_A * k * sm(0.05, 0.35, d), BEAM_GLOW));
         dirBeamPass(bk, this.oc, foot.x, foot.y, hx, hy, 15, 26 * tip.s, HEAD_FADE, o => {
