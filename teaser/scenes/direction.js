@@ -12,8 +12,10 @@
  * 13,2 : le faisceau s'éteint, la lumière redescend sur la première carte (outils.js).
  * Interfaces : equipe.js possède les particules et ne dessine jamais le PNG ; cette scène possède l'emblème et
  * NX.hit(9,6) ; « ciel » possède l'onde de choc, le resserrement des rayons, la montée et la poussière.
- * Le logo n'est jamais tourné ni filtré : masques doux, translation, échelle uniforme, feuilles de lumière.
- * Fonction pure de t : masque de la flèche, instant de l'étoile et toile annexe sont préparés une fois.
+ * Le logo n'est jamais tourné ni filtré : masques doux, translation, échelle uniforme, feuilles de lumière. Il est
+ * affiché depuis une copie fixe du PNG sur une toile (pixels du PNG, même plan que l'<img> du kit) : rendu identique
+ * dans tout ordre de rendu (bible §6.8).
+ * Fonction pure de t : masque de la flèche, copie de l'emblème, instant de l'étoile et toile annexe sont préparés une fois.
  * Vérification (bible §6.8, §6.10) : NX.dirDebug = { leavesOff } coupe toute lumière ajoutée sur l'emblème,
  * { noHalo } retire le halo, { noMask } désactive le masque de condensation. */
 (function () {
@@ -84,6 +86,7 @@
 
   NX.css(`
   .dir-box{position:absolute;left:${G5.left}px;top:${G5.top}px;width:${BOX * SS}px;height:${BOX * SS}px;transform-origin:0 0;isolation:isolate;opacity:0}
+  .dir-img{position:absolute;inset:0;width:100%;height:100%;transform:translateZ(2px)}
   .dir-title{top:700px;transform:translateZ(${ZT}px)}
   `);
 
@@ -151,6 +154,23 @@
     return `url(${cv.toDataURL('image/png')})`;
   }
 
+  /** Emblème affiché depuis une toile : copie exacte du PNG à sa taille native (512 px), faite une fois et posée à la
+   *  place de l'<img> du kit (même plan translateZ(2px), même rang sous les feuilles de lumière, qui restent celles du
+   *  kit). L'<img> composée seule dépendait de l'histoire de rendu : après les rôles, 3 à 6 px de l'emblème changeaient
+   *  d'un niveau (tools/determinism.mjs échouait à 9,6, bible §6.8) ; et Chromium la rastérisait par moments à une
+   *  échelle réduite (traits 4 à 5 % plus mous vers 10,4–11,2 et 12,2–12,5, nets ailleurs : de petits sauts de netteté
+   *  pendant la tenue). La toile est une texture fixe : mêmes pixels dans tout ordre, la même netteté dans toute la
+   *  tenue. Aucun pixel du logo n'est redessiné ni recoloré (drawImage 1:1, sans filtre). Sans image décodée, l'<img>
+   *  reste affichée. */
+  function dirCanvas(img) {
+    if (!img.naturalWidth) return null;
+    const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+    cv.className = 'dir-img';
+    cv.getContext('2d').drawImage(img, 0, 0);
+    img.after(cv); img.style.display = 'none';
+    return cv;
+  }
+
   /** Une passe de faisceau : draw(o) trace la couche sur la toile annexe o (demi-largeur au plus half), qui est fondue à
    *  ses deux bouts (f0 px au pied, f1 px à la tête, rampes en smoothstep : ni arête ni barre coupée), puis ajoutée en
    *  lumière sur dst. La tête qui monte se lit ainsi comme de la lumière. */
@@ -204,6 +224,7 @@
     },
     async prepare() {
       await this.L.prepare();
+      this.cv = dirCanvas(this.L.img);
       this.spear = dirSpearMask(this.L.img);
       // Étoile du reflet : instant où la ligne claire (penchée de 15°) croise la pointe de la lance (ancre u .494, v .102).
       const [u, v] = FV.star, uc = u + (v - 0.5) * TAN15, p = ((uc - 0.17) / 0.34 * 100 + 110) / 410;

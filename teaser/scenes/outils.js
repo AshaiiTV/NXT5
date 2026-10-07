@@ -33,9 +33,11 @@
   const PAD = 44;                                // marge de la colonne : le masque de brûlure ne rogne pas la lueur des glyphes
   /* Micro-événements de la carte « Drafter » : les cinq choix tombent sur les coups de batterie de la mesure qui suit la
    * cloche de 20,4 (caisse claire 21,0 ; grosses caisses 21,6 et 21,9 ; caisse claire 22,2 ; premier temps 22,8), puis
-   * le badge de maîtrise saute juste après le cinquième. */
+   * le badge de maîtrise saute dans la foulée du cinquième, sur ce premier temps : 0,05 s après le coup, avec le palier
+   * du cinquième choix (même suite que les paliers). Ainsi, la composition complète est lisible jusqu'à la sortie des
+   * rangées (cloche − 0,50). */
   const PICK_T = [0.6, 1.2, 1.5, 1.8, 2.4].map(o => B[2] + o);
-  const BADGE_T = PICK_T[4] + 0.10;
+  const BADGE_T = PICK_T[4] + 0.05;
   /* Créneaux du planning : la v7 décalée de −1,2 s, sauf vendredi. Le décalage d'une demi-mesure posait vendredi
    * (v7 : grosse caisse 26,7) sur un charleston (25,5) ; il tombe sur la caisse claire suivante (25,8). */
   const SLOT_T = [0.6, 0.9, 1.2, 1.8].map(o => B[3] + o);  // Lun caisse claire, Mer charleston accentué, Jeu 1er temps, Ven caisse claire
@@ -212,6 +214,9 @@
   .ou-n1{color:#020611}
   .ou-glint{position:absolute;inset:-8px -14px;border-radius:12px;overflow:hidden;mix-blend-mode:plus-lighter}
   .ou-glint i{position:absolute;top:0;bottom:0;left:0;width:28%;background:linear-gradient(100deg,transparent,rgba(205,242,255,.16) 50%,transparent)}
+  /* Badge de la carte « Drafter » agrandi (bible : badge 22 px, tailles de la v6 ou plus) : c'est le point d'orgue de la
+   * carte et il doit se lire sur un téléphone (≈ 25,6 px à l'écran une fois posé). La ligne d'en-tête garde sa hauteur. */
+  .ou-in2 .ou-badge{font-size:26px;padding:7px 16px}
   .ou-dsub{display:flex;align-items:baseline;justify-content:space-between;white-space:nowrap}
   .ou-cnt{font-variant-numeric:tabular-nums}
   .ou-cn{display:inline-block;font-weight:700;color:var(--text);transform-origin:50% 60%}
@@ -246,7 +251,8 @@
   const tr3 = (y, z) => `translate3d(0px,${y.toFixed(2)}px,${z.toFixed(2)}px)`;
   /** Opacité d'un détail de carte. Pas de display:none ici (contrairement aux cartes, titres et calques entiers) : le
    *  badge qui réapparaissait ainsi au milieu de son ressort se rastérisait à 24/255 près selon les images rendues avant
-   *  (déterminisme, bible §6.8) ; à opacité seule, comme le badge « Victoire » et les créneaux, le rendu ne dépend que de t. */
+   *  (déterminisme, bible §6.8) ; à opacité seule, comme le badge « Victoire » et les créneaux, le rendu ne dépend que de t.
+   *  Exception mesurée : les noms des champions, retirés tant qu'ils sont transparents (voir la carte « Drafter »). */
   const ouFade = (el, a) => { el.style.opacity = a.toFixed(3); };
   /** Bande de la brûlure sur le verre (bible : NX.light.band) : un bord chauffé à blanc, étroit (r − 3 à r + 1,
    *  r = rayon + avance), dans un halo cyan qui mord le verre restant, et une traîne courte côté brûlé. La traîne de
@@ -494,10 +500,17 @@
           c2.picks.forEach((pk, i) => {
             const P = PICK_T[i];
             if (tf >= P - 1e-6) n++;
-            // Le champion tombe dans son créneau (même chute que les créneaux du planning, à plat dans sa rangée) ;
-            // son palier suit d'un souffle et se pose sur le ressort des badges.
-            const q = DROPIN(seg(t, P, P + 0.30));
-            ouFade(pk.ch, sine(seg(t, P, P + 0.10)));
+            // Le champion tombe dans son créneau (même chute que les créneaux du planning, à plat dans sa rangée),
+            // lancée 0,05 s avant le coup : sur l'image du temps fort, où le compteur passe à n/5, il est à mi-chute
+            // (opacité 0,5, q ≈ 0,73). Partie sur le coup, la chute laissait « n/5 champions » à côté d'un créneau
+            // encore vide sur cette image. Le compteur, le liseré, le halo, l'icône et le palier restent sur le coup ;
+            // le palier suit d'un souffle et se pose sur le ressort des badges.
+            // Tant qu'il est transparent (avant sa chute), le nom est retiré (display:none, règle d'ENGINE.md) : laissé à
+            // opacité 0, il faisait varier de 1/255 le rendu des rangées voisines selon les images rendues avant
+            // (déterminisme, bible §6.8). La mise en page ne bouge pas (le palier est calé à droite).
+            const P0 = P - 0.05, q = DROPIN(seg(t, P0, P0 + 0.30)), ca = sine(seg(t, P0, P0 + 0.10));
+            pk.ch.style.display = ca > 0 ? '' : 'none';
+            ouFade(pk.ch, ca);
             pk.ch.style.transform = `translateY(${(-16 * (1 - q)).toFixed(2)}px) scale(${(1 + 0.04 * (1 - q)).toFixed(4)})`;
             const P2 = P + 0.05, s = SPRING(seg(t, P2, P2 + 0.5));
             ouFade(pk.ti, sine(seg(t, P2, P2 + 0.08)));
