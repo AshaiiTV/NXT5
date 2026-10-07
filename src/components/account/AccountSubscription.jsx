@@ -48,7 +48,8 @@ export default function AccountSubscription({ compact = false }) {
   const isDiscovery = hasAttribution && subscription.planCode === "free";
 
   if (compact) {
-    if (loading) return <span role="status"><Badge tone="slate">Abonnement…</Badge></span>;
+    // Keep the known badge visible while focus/update events revalidate it.
+    if (loading && !subscription) return <span role="status"><Badge tone="slate">Abonnement…</Badge></span>;
     if (error || !presentation) return <button type="button" className="min-h-11 rounded-[2px]" onClick={() => setRefresh((value) => value + 1)} title="Réessayer de charger ton abonnement" aria-label="Abonnement indisponible. Réessayer"><Badge tone="slate">Indisponible</Badge></button>;
     const statusSuffix = subscription.status === "active" || subscription.status === "none" ? "" : ` · ${presentation.statusLabel}`;
     return <span aria-label={`Abonnement : ${presentation.label}${subscription.status === "none" ? "" : ` · ${presentation.statusLabel}`}`}><Badge tone={presentation.tone}>{presentation.label}{statusSuffix}</Badge></span>;

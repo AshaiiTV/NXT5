@@ -17,6 +17,11 @@ function nodeText(node) {
   return typeof node === "object" ? nodeText(node.children) : String(node);
 }
 const text = () => nodeText(renderer.toJSON());
+function deferred() {
+  let resolve, reject;
+  const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
+}
 async function render(compact = false) { await act(async () => { renderer = TestRenderer.create(<AccountSubscription compact={compact} />); }); }
 async function refresh() { await act(async () => renderer.root.findByType(Button).props.onClick()); }
 
@@ -109,6 +114,49 @@ describe("personal subscription summary", () => {
 });
 
 describe("compact player subscription badge", () => {
+  it("shows a loading state until the first subscription is available", async () => {
+    const request = deferred();
+    apiFetch.mockReturnValueOnce(request.promise);
+    await render(true);
+    expect(text()).toBe("Abonnement…");
+    expect(renderer.root.findAllByProps({ role: "status" })).toHaveLength(1);
+    await act(async () => request.resolve({ subscription }));
+    expect(text()).toBe("Pass Équipe");
+    expect(renderer.root.findAllByProps({ role: "status" })).toHaveLength(0);
+  });
+
+  it.each(["focus", SUBSCRIPTION_UPDATED_EVENT])("keeps the current badge visible while a %s refresh is pending, then applies the new status", async (eventType) => {
+    const browserWindow = new EventTarget();
+    vi.stubGlobal("window", browserWindow);
+    apiFetch.mockResolvedValueOnce({ subscription });
+    await render(true);
+    const request = deferred();
+    apiFetch.mockReturnValueOnce(request.promise);
+    await act(async () => browserWindow.dispatchEvent(new Event(eventType)));
+    expect(apiFetch).toHaveBeenCalledTimes(2);
+    expect(text()).toBe("Pass Équipe");
+    expect(renderer.root.findAllByProps({ role: "status" })).toHaveLength(0);
+    await act(async () => request.resolve({ subscription: { ...subscription, status: "expired", effectivePlanCode: null } }));
+    expect(text()).toBe("Pass Équipe · Expiré");
+  });
+
+  it("replaces a known badge with a retry if refresh fails, then recovers", async () => {
+    const browserWindow = new EventTarget();
+    vi.stubGlobal("window", browserWindow);
+    apiFetch.mockResolvedValueOnce({ subscription });
+    await render(true);
+    const request = deferred();
+    apiFetch.mockReturnValueOnce(request.promise);
+    await act(async () => browserWindow.dispatchEvent(new Event("focus")));
+    await act(async () => request.reject(new Error("Service indisponible")));
+    expect(text()).toBe("Indisponible");
+    expect(renderer.root.findByType("button").props["aria-label"]).toBe("Abonnement indisponible. Réessayer");
+    apiFetch.mockResolvedValueOnce({ subscription });
+    await act(async () => renderer.root.findByType("button").props.onClick());
+    expect(text()).toBe("Pass Équipe");
+    expect(apiFetch).toHaveBeenCalledTimes(3);
+  });
+
   it.each([
     [{ ...subscription, effectivePlanCode: null, status: "expired" }, "Pass Équipe · Expiré"],
     [{ ...subscription, effectivePlanCode: null, status: "revoked" }, "Pass Équipe · Retiré"],
