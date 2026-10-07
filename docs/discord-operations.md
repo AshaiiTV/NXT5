@@ -138,7 +138,7 @@ node node_modules/vitest/vitest.mjs run src/__tests__/discord-queue.test.ts src/
 node artifacts/discord-render/benchmark-runner.mjs artifacts/discord-render
 ```
 
-Le bundlage du script de benchmark résout ses imports TypeScript ; les bibliothèques natives restent chargées depuis les dépendances installées. Le résultat attendu est le dossier `artifacts/discord-render` et son fichier `benchmark.json`.
+Le bundlage du script de benchmark résout ses imports TypeScript ; les bibliothèques natives restent chargées depuis les dépendances installées. Le dossier local `artifacts/discord-render/` contient le script compilé, les PNG, les snapshots et les mesures `benchmark.json`. Ces sorties sont générées à chaque exécution et ignorées par Git. Le contrôle des bundles y écrit également `bundle-check.json`.
 
 La commande `npm run db:migrate` **modifie la base désignée par `DATABASE_URL`**. Dans ce dépôt, le contexte Netlify `production` l’exécute après `npm run verify`. Le registre vérifie le checksum de chaque migration : une migration déjà appliquée ne doit plus être modifiée ; les changements suivants nécessitent un nouveau fichier.
 
@@ -352,6 +352,16 @@ Une requête déjà reçue par Discord ne peut pas être rappelée par un change
 
 L’administration NXT5 présente la disponibilité du service, les connexions actives, la file, les blocages, les incertitudes et l’ancienneté du travail en attente. L’historique d’équipe limite son contenu à l’équipe autorisée.
 
+### Lire les statistiques du bot
+
+**Administration → Bot → Statistiques** (`/admin/bot-discord`) et `GET /.netlify/functions/admin-discord-analytics?days=7|30|90` sont réservés à l’administrateur de plateforme. Le rapport lit les données locales, sans appel Discord ni publication, sur des jours calendaires UTC ; la journée actuelle est partielle. La réponse n’est pas mise en cache et les agrégats sont lus dans un même instantané SQL.
+
+Une publication correspond à une destination partie × salon avec un envoi confirmé et un identifiant de message. Une mise à jour de cette destination compte comme un envoi supplémentaire, sans créer une deuxième publication ; un retrait n’efface pas sa diffusion historique. Le premier succès dans la période détermine son jour dans le graphique.
+
+Les tentatives `succeeded` et `withdrawn` sont confirmées ; `blocked` et `retry_wait` comptent comme échecs. Le taux de réussite est `confirmées / (confirmées + échecs)` : les envois en cours ou incertains et les tests de connexion en sont exclus. Une commande traitée a terminé son traitement, sans garantie de réception de la réponse dans Discord. Les suggestions de saisie ne sont pas des commandes.
+
+La conservation limite les commandes à sept jours et les tentatives à quatre-vingt-dix jours. Hors de la fenêtre des commandes, afficher « Non conservées » plutôt qu’un zéro ; sa première journée peut être partielle. Supprimer une équipe supprime son historique par cascade. Les installations du bot sans liaison ni activité connue de NXT5 ne sont pas recensées. Un salon partagé agrège les règles de plusieurs équipes ; il est activé si au moins une règle l’est.
+
 Requêtes de diagnostic en lecture seule, à exécuter dans l’environnement ciblé :
 
 ```sql
@@ -434,9 +444,9 @@ Les essais automatisés couvrent notamment :
 - Rejeu de commande et concurrence de liaison au même serveur.
 - Réveil sans attente de la réponse d’import et conservation du travail si le réveil échoue.
 
-Les suites ciblées vérifient aussi le retrait réessayable, le réemploi et le nettoyage des PNG, les permissions par équipe, le rejeu des commandes et la suppression d’une game pendant une création dont la confirmation se perd. La vérification complète du dépôt et les preuves de rendu sont consignées dans le bilan de livraison associé à cette version.
+Les suites ciblées vérifient aussi le retrait réessayable, le réemploi et le nettoyage des PNG, les permissions par équipe, le rejeu des commandes et la suppression d’une game pendant une création dont la confirmation se perd. Consigner les résultats de la vérification complète et les preuves de rendu dans la pull request de la version concernée.
 
-Le benchmark local utilise des données synthétiques, pas des données d’une équipe réelle. Le fichier [`artifacts/discord-render/benchmark.json`](../artifacts/discord-render/benchmark.json) contient le runtime, les dimensions, le poids, le temps et la mémoire mesurés. Il ne mesure pas le démarrage à froid de Netlify, la latence de Neon, le réseau Discord ni le coût du forfait.
+Le benchmark local utilise des données synthétiques, pas des données d’une équipe réelle. Le fichier généré `artifacts/discord-render/benchmark.json` contient le runtime, les dimensions, le poids, le temps et la mémoire mesurés. Il ne mesure pas le démarrage à froid de Netlify, la latence de Neon, le réseau Discord ni le coût du forfait.
 
 La V1 est prête à ouvrir après : contrôles du dépôt réussis, bundle serveur validé sur la cible, migration appliquée à l’environnement choisi, configuration du bot complète, liaison de l’équipe et du salon pilote, essais réels de la section 7 terminés, et responsabilité d’exploitation attribuée. Le code seul ne remplace pas ces preuves d’installation.
 

@@ -63,11 +63,11 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
       const result = await apiFetch("matches-manage", { method: "POST", body: JSON.stringify(body) });
       await refreshAll();
       if (action === "delete") {
-        pushToast({ type: "green", title: "Game supprimée", text: "Les autres pages ont été recalculées sans cette game." });
+        pushToast({ type: "green", title: "Partie supprimée", text: "Les autres pages ont été recalculées sans cette partie." });
         onDeleted?.(matchId);
       } else {
         const warnings = action === "side" ? (result.warnings || []).map((warning) => typeof warning === "string" ? warning : warning.message).filter(Boolean).join(" ") : "";
-        pushToast(action === "side" ? { type: warnings ? "yellow" : "green", title: "Côté de l’équipe corrigé", text: warnings || "Le résultat, les statistiques et les profils utilisent maintenant le bon côté." } : action === "roles" ? { type: "green", title: "Assignation corrigée", text: "Les profils, statistiques et lectures 5v5 utilisent les bons joueurs." } : { type: "green", title: "Game mise à jour", text: "Les statistiques et reviews utilisent le nouvel intitulé." });
+        pushToast(action === "side" ? { type: warnings ? "yellow" : "green", title: "Côté de l’équipe corrigé", text: warnings || "Le résultat, les statistiques et les profils utilisent maintenant le bon côté." } : action === "roles" ? { type: "green", title: "Assignation corrigée", text: "Les profils, statistiques et lectures 5v5 utilisent les bons joueurs." } : { type: "green", title: "Partie mise à jour", text: "Les statistiques et débriefs utilisent le nouvel intitulé." });
         onUpdated?.({ matchId, action, result });
       }
       setMode("");
@@ -78,9 +78,9 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
     }
   }
   if (!allowed) return null;
-  const title = mode === "update" ? "Modifier les informations" : mode === "roles" ? "Corriger les rôles et profils" : mode === "side" ? "Changer le côté de notre équipe" : mode === "delete" ? "Supprimer cette game ?" : "Options de la game";
+  const title = mode === "update" ? "Modifier les informations" : mode === "roles" ? "Corriger les rôles et profils" : mode === "side" ? "Changer le côté de notre équipe" : mode === "delete" ? "Supprimer cette partie ?" : "Options de la partie";
   return <>
-    <button ref={triggerRef} type="button" className="game-options-trigger" disabled={disabled || saving} aria-label="Options de la game" title="Options de la game" aria-haspopup="dialog" aria-expanded={Boolean(mode)} onClick={() => setMode("menu")}><Ellipsis aria-hidden="true" className="h-5 w-5" /></button>
+    <button ref={triggerRef} type="button" className="game-options-trigger" disabled={disabled || saving} aria-label="Options de la partie" title="Options de la partie" aria-haspopup="dialog" aria-expanded={Boolean(mode)} onClick={() => setMode("menu")}><Ellipsis aria-hidden="true" className="h-5 w-5" /></button>
     {mode && <GameOperationDialog key={mode} title={title} description={matchImportTitle(match)} onClose={close} busy={saving} dirty={dirty} returnFocusRef={triggerRef} compact={mode !== "roles" && mode !== "side"}>
       {mode === "menu" && <div className="game-operation-menu">
         <Button type="button" variant="ghost" icon={Pencil} onClick={() => openEditor("update")}>Modifier les informations</Button>
@@ -91,8 +91,8 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
       {(mode === "update" || mode === "roles") && <ImportHistoryEditor match={match} categories={categories} roster={roster} editing={mode === "update"} editForm={editForm} roleForm={roleForm} saving={saving} showHeading={false} onCancel={cancelEdit} onSave={() => save(mode)} onChange={setEditForm} onRoleChange={(id, role) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], role } }))} onPlayerChange={(id, playerId) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], playerId } }))} />}
       {mode === "side" && <GameSideEditor match={match} roster={roster} form={sideForm} onChange={setSideForm} saving={saving} onCancel={cancelEdit} onSave={() => save("side")} />}
       {mode === "delete" && <div>
-        <p className="text-sm leading-6 text-slate-300">Cette game sera retirée. Ses statistiques, les reviews automatiques et les groupes liés seront mis à jour.</p>
-        <div className="mt-6 flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" onClick={close} disabled={saving}>Annuler</Button><Button type="button" variant="danger" icon={saving ? Loader2 : Trash2} onClick={() => save("delete")} disabled={saving}>{saving ? "Suppression…" : "Supprimer la game"}</Button></div>
+        <p className="text-sm leading-6 text-slate-300">Cette partie sera retirée. Ses statistiques, les débriefs automatiques et les groupes liés seront mis à jour.</p>
+        <div className="mt-6 flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" onClick={close} disabled={saving}>Annuler</Button><Button type="button" variant="danger" icon={saving ? Loader2 : Trash2} onClick={() => save("delete")} disabled={saving}>{saving ? "Suppression…" : "Supprimer la partie"}</Button></div>
       </div>}
     </GameOperationDialog>}
   </>;
@@ -117,19 +117,19 @@ export function GameCategoryManager({ data, selectedTeamId, refreshAll, pushToas
       await refreshAll();
       setForm({ name: "", color: "cyan" });
       setCreatorOpen(false);
-      pushToast({ type: "green", title: "Catégorie créée", text: "Tu peux maintenant classer tes games dedans." });
+      pushToast({ type: "green", title: "Catégorie créée", text: "Tu peux maintenant y classer tes parties." });
     } catch (err) {
       pushToast({ type: "red", title: "Création impossible", text: err.message });
     } finally { setSaving(false); }
   }
   async function deleteCategory(category) {
     if (!allowed || saving || category.is_default) return;
-    if (!window.confirm(`Supprimer la catégorie "${category.name}" ? Les games resteront importées et conserveront leurs autres catégories.`)) return;
+    if (!window.confirm(`Supprimer la catégorie "${category.name}" ? Les parties resteront importées et conserveront leurs autres catégories.`)) return;
     setSaving(true);
     try {
       await apiFetch("match-categories-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, categoryId: category.id }) });
       await refreshAll();
-      pushToast({ type: "green", title: "Catégorie supprimée", text: "Les games associées ont été conservées." });
+      pushToast({ type: "green", title: "Catégorie supprimée", text: "Les parties associées ont été conservées." });
     } catch (err) {
       pushToast({ type: "red", title: "Suppression impossible", text: err.message });
     } finally { setSaving(false); }
@@ -137,7 +137,7 @@ export function GameCategoryManager({ data, selectedTeamId, refreshAll, pushToas
   if (!allowed) return null;
   return <>
     <span ref={triggerRef}><Button type="button" variant="ghost" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>Catégories</Button></span>
-    {open && <GameOperationDialog title="Catégories" description="Organise tes games par contexte : scrim, ligue, bootcamp…" compact onClose={close} busy={saving} returnFocusRef={{ current: triggerRef.current?.querySelector("button") }}>
+    {open && <GameOperationDialog title="Catégories" description="Organise tes parties par contexte : scrim, ligue, bootcamp…" compact onClose={close} busy={saving} returnFocusRef={{ current: triggerRef.current?.querySelector("button") }}>
       <section className="ih-categories" aria-label="Gestion des catégories">
         <header><Button type="button" variant="ghost" icon={creatorOpen ? X : Plus} disabled={saving} onClick={() => { setCreatorOpen((value) => !value); setForm({ name: "", color: "cyan" }); }}>{creatorOpen ? "Fermer la création" : "Ajouter une catégorie"}</Button></header>
         <ul className="ih-category-list">{categories.map((category) => <li key={category.id}><span>{category.name}</span>{category.is_default ? <span className="ih-category-default">Par défaut</span> : <button type="button" className="ig-icon-button" onClick={() => deleteCategory(category)} disabled={saving} aria-label={`Supprimer la catégorie ${category.name}`}><X aria-hidden="true" /></button>}</li>)}</ul>
@@ -265,10 +265,10 @@ export function GameSideEditor({ match, roster, form, onChange, saving, onCancel
           {!current && <option value="" disabled>Choisir un côté</option>}
           <option value="BLUE">Côté bleu</option><option value="RED">Côté rouge</option>
         </SelectInput>
-        <p id="game-side-help">Choisis le côté où jouent les champions de ton équipe, puis vérifie les profils associés. Le résultat et les statistiques seront recalculés. Les notes de review seront conservées.</p>
+        <p id="game-side-help">Choisis le côté où jouent les champions de ton équipe, puis vérifie les profils associés. Le résultat et les statistiques seront recalculés. Les notes de débrief seront conservées.</p>
       </div>
       {allySide && <>
-        <p className="game-side-status" role="status">{allySide === current ? `Côté actuel : ${sideLabel(current).toLowerCase()}. Choisis l’autre côté pour corriger cette game.` : `Après enregistrement : notre équipe sera du ${sideLabel(allySide).toLowerCase()}.`}</p>
+        <p className="game-side-status" role="status">{allySide === current ? `Côté actuel : ${sideLabel(current).toLowerCase()}. Choisis l’autre côté pour corriger cette partie.` : `Après enregistrement : notre équipe sera du ${sideLabel(allySide).toLowerCase()}.`}</p>
         {!rolesReady && <p className="game-side-notice">Les cinq postes de ce côté doivent être renseignés. Corrige-les dans « Corriger les rôles et profils » avant de changer de côté.</p>}
         <div className="ih-teams">{[["ALLY", allySide, allies], ["ENEMY", enemySide, gameSideParticipants(match, enemySide)]].map(([teamKey, side, rows]) => <section key={teamKey} className={`ih-team ih-team-${teamKey.toLowerCase()} game-side-team-${side.toLowerCase()}`} aria-label={teamKey === "ALLY" ? "Notre équipe après correction" : "Adversaires après correction"}>
           <h5>{teamKey === "ALLY" ? "Notre équipe" : "Adversaires"} · {sideLabel(side)}</h5>
@@ -291,10 +291,10 @@ export function GameSideEditor({ match, roster, form, onChange, saving, onCancel
 
 export function ImportHistoryEditor({ match, categories, roster, editing, editForm, saving, roleForm, onCancel, onSave, onChange, onRoleChange, onPlayerChange, showHeading = true }) {
   return <form className="ih-editor" onSubmit={(event) => { event.preventDefault(); if (!saving) onSave(); }}>
-    {showHeading && <header><h4>{editing ? "Modifier la game" : "Réassigner postes et profils"}</h4><p>{editing ? "Ajuste le nom et les catégories utilisés dans les stats et les reviews." : "Associe chaque champion au bon poste et au bon profil NXT5."}</p></header>}
+    {showHeading && <header><h4>{editing ? "Modifier la partie" : "Réassigner postes et profils"}</h4><p>{editing ? "Ajuste le nom et les catégories utilisés dans les statistiques et les débriefs." : "Associe chaque champion au bon poste et au bon profil NXT5."}</p></header>}
     <fieldset disabled={saving}>
       {editing ? <div className="ih-edit-fields">
-        <TextInput label="Nom de la game" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Game 1 vs BK, Finale LB…" required icon={FileText} />
+        <TextInput label="Nom de la partie" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Scrim Aurore · partie 1, finale…" required icon={FileText} />
         <CategoryMultiSelect categories={categories} selectedIds={editForm.categoryIds || []} onChange={(categoryIds) => onChange({ ...editForm, categoryIds })} />
       </div> : <div className="ih-teams">{["ALLY", "ENEMY"].map((teamKey) => <section key={teamKey} className={`ih-team ih-team-${teamKey.toLowerCase()}`}>
         <h5>{teamKey === "ALLY" ? "Notre équipe" : "Adversaires"}</h5>

@@ -214,8 +214,8 @@ async function loadHistory(n) {
 
 // Fixed workspace-relative artifact: never consumes DATABASE_URL or writes elsewhere.
 function writeResults(output) {
-  mkdirSync('docs/bench-history', { recursive: true });
-  writeFileSync('docs/bench-history/results-2026-10-06.json', JSON.stringify(output, null, 2) + '\n');
+  mkdirSync('artifacts/bench-history', { recursive: true });
+  writeFileSync('artifacts/bench-history/results.json', JSON.stringify(output, null, 2) + '\n');
 }
 
 function measureCpu(fn) {

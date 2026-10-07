@@ -15,5 +15,10 @@ vite-*.log
 responsive-audit-shots/
 importer-app/release/
 
+# Local audit logs, screenshots, exports and temporary verification fixtures.
+/tmp/
+/output/
+/artifacts/
+
 .DS_Store
 Thumbs.db
