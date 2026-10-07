@@ -50,11 +50,16 @@ NX.scene({
     B.pulse = groove * Math.exp(-7 * beatX);
     // S1 : montée avant la première écriture, relâchée après l'impact.
     B.rayStrength += 0.25 * E.inQuad(seg(t, 3.6, 4.75)) * (1 - E.outCubic(seg(t, 4.8, 5.4)));
+    // v7.1 : la question (trois lignes) brûle 4,45–4,8 ; les rayons prennent sa lumière pendant que la lumière écrit
+    // le logo, puis la rendent après l'impact (sans quoi la luminance perdait 5,8 entre deux échantillons avant l'impact).
+    const burn = E.sine(seg(t, 4.45, 4.78)) * (1 - E.sine(seg(t, 5.0, 5.8)));
+    B.rays += 0.25 * burn; B.intensity += 0.042 * burn;
     // Éclat des rayons sur les quatre temps forts (jamais de voile uniforme).
     let flash = 0;
     // Au drop, les rayons sont encore resserrés et renforcés : son éclat est réduit pour garder la même ampleur.
     // Au retour du logo, la carte brûle et le logo s'allume en même temps : l'éclat du ciel y est réduit de moitié.
-    for (const h of T.hits) if (t >= h) flash += (h === T.tools ? 0.3 : h === T.end ? 0.5 : 1) * Math.exp(-4 * (t - h));
+    // Au logo, l'embrasement qui précède l'impact (ci-dessous) multiplie déjà l'éclat : poids 0,9.
+    for (const h of T.hits) if (t >= h) flash += (h === T.tools ? 0.3 : h === T.end ? 0.5 : h === T.hookEnd ? 0.9 : 1) * Math.exp(-4 * (t - h));
     // Éclat mesuré pour rester dans la règle de continuité (|ΔY| ≤ 9 sur la fenêtre d'un impact).
     B.rays += 0.65 * flash; B.intensity += 0.14 * flash; B.flash = 0.02 * flash;
     // S2 → S3 : la lumière recueille le logo. Quand il disparaît (7,13–7,17), les rayons prennent sa lumière

@@ -1,13 +1,16 @@
 /* S2 Logo (bible v7 §4 S2, inchangé en v7.1 sauf la caméra), 4,0–7,2 s : le logo complet, le même qu'en carte finale,
  * n'entre que par la lumière. Dès 4,0 s une silhouette de lumière froide (feuille forge, sur tout le logo) luit derrière
  * la question ; le front elliptique NX.FRONT.hook l'écrit ensuite de la pointe de la lance jusqu'à la devise (fondu
- * 70 px), une bande blanche court sur le chrome au bord du front et libère 240 étincelles. Impact sobre sur 4,8 s, halo
+ * 70 px), une bande blanche court sur le chrome au bord du front et libère 240 étincelles. Pendant que la question brûle,
+ * la silhouette prend sa lumière (forge 0,30 → 0,42) et le halo fleurit avec l'emblème. Impact sobre sur 4,8 s, halo
  * qui respire, un seul reflet diagonal (5,95–6,65) avec son halo de lumière et deux étoiles, puis le logo est pris dans
  * la lumière (LIFT 6,65–7,15) : il blanchit, son chrome redevient la silhouette de lumière froide du début, et cette
- * lumière se resserre dans la lumière de son cœur (7,085–7,15, pic 7,13, éteinte à 7,18). Le ciel prend alors sa
- * lumière (relais 7,11–7,17, ciel.js) et les cinq rôles en naissent dès 7,2 (equipe.js) : rien de cette scène ne reste
- * à 7,2. v7.1 : la caméra ne dérive plus à gauche, la sortie est centrée (x 0, lacet 0,2 → 0 à 7,2).
- * Le logo n'est jamais tourné ni filtré : masques, profondeur, échelle uniforme et feuilles de lumière seulement. */
+ * lumière se resserre dans la lumière de son cœur sur trois images (7,04–7,15, pic 7,13, éteinte à 7,20). Le ciel prend
+ * alors sa lumière (relais 7,11–7,17, ciel.js) et les cinq rôles en naissent dès 7,2 (equipe.js) : rien de cette scène
+ * ne reste à 7,2. v7.1 : la caméra ne dérive plus à gauche, la sortie est centrée (x 0, lacet 0,2 → 0 à 7,2).
+ * Le logo n'est jamais tourné ni filtré : masques, profondeur, échelle uniforme et feuilles de lumière seulement.
+ * Le halo et la boîte reçoivent display:none quand ils ne montrent rien (règle ENGINE.md) ; les feuilles de lumière
+ * restent à opacité 0 hors de leurs fenêtres (voir render). */
 (function () {
   const SRC = '../public/assets/nxt5-logo.png';
   const G = NX.G.L2, LG = NX.G.LOGO, W = G.w, H = W * LG.H / LG.W, K = W / LG.W;
@@ -18,8 +21,14 @@
   // Sortie « prise dans la lumière » (bible §2.3, recede and brighten), tout éteint dans la fenêtre 6,90–7,15 :
   const TOLIGHT = [7.00, 7.10];          // le chrome (img) passe de 1 à 0 (smoothstep)…
   const FORGE_X = [6.97, 7.07, 0.85];    // … pendant que sa silhouette de lumière froide (forge) monte à 0,85 sous lui
-  const ABSORB = [7.085, 7.15];          // puis cette lumière se resserre dans le cœur de l'anneau (masque radial, inQuad)
-  const XPEAK = 7.13;                    // la lumière du cœur culmine pendant l'absorption ; éteinte à 7,18
+  // puis cette lumière se resserre dans le cœur de l'anneau (masque radial, SINE) : les images du film la suivent
+  // (7,1 la devise et les bords pâlissent, 7,133 un noyau de lumière, 7,167 la lumière du cœur) au lieu d'une seule.
+  const ABSORB = [7.04, 7.15], ABSORB_CORE = 55;   // ellipse opaque jusqu'à 55 % de son rayon : un bord de lumière net
+  const XPEAK = 7.13, XEND = 7.20;       // la lumière du cœur culmine pendant l'absorption et porte l'image 7,167 ; éteinte à 7,2
+  /* Pendant que la question brûle (4,44–4,81), la lumière qu'elle rendait passe au logo : la silhouette froide monte
+   * de 0,30 à 0,42 (SINE 4,55–4,78) et le halo fleurit avec l'écriture de l'emblème (moitié, SINE 4,42–4,78) avant de
+   * s'achever avec l'impact (SINE 4,78–5,10) ; il respire ensuite ×(0,7 + 0,3·e^(−3τ)). */
+  const FORGE_SWELL = [4.55, 4.78, 0.12], HALO_IN = [4.42, 4.78, 5.10], HALO_REST = 0.7;
   const SWEEP_A = 0.30 / 0.95;           // pic du reflet = 0,30 de lumière ajoutée sur le chrome (plafond de marque)
   const STARS = [{ uv: LG.stars.spear, g: 0.7, size: 0.75 }, { uv: LG.stars.five, g: 0.55, size: 0.6 }];
   const MW = Math.ceil(LG.W / 4), MH = Math.ceil(LG.H / 4);             // masque basse définition (cellules de 4 px)
@@ -126,19 +135,26 @@
       const chrome = out ? 0 : 1 - sm(TOLIGHT[0], TOLIGHT[1], t);
       // Écriture : front local dans la boîte ; silhouette forge 0 → 0,24 (inQuad, 4,0–4,5) puis → 0,30 (4,5–4,8) par une
       // approche exponentielle qui part avec la pente de fin de l'inQuad (0,96 /s) : une seule courbe, sans cassure ni
-      // segment linéaire. Elle est effacée par le front.
+      // segment linéaire ; s'y ajoute la lumière de la question qui brûle (+0,12, SINE 4,55–4,78). Elle est effacée
+      // par le front.
       // Sans masques (prepare() en échec), les feuilles de lumière resteraient des rectangles pleins : elles s'éteignent
       // et seul le chrome, écrit par le front, apparaît.
       const lit = this.maxUrl ? 1 : 0;
       const full = this.tFull ?? Infinity, writing = t >= 4.2 && t < full;
       const front = writing ? NX.light.local(G.left, G.top, ZL, NX.FRONT.hook(t), t) : null;
       const forge = lit * (t >= full ? (out ? 0 : FORGE_X[2] * sm(FORGE_X[0], FORGE_X[1], t))
-        : t < 4.5 ? 0.24 * E.inQuad(seg(t, 4.0, 4.5)) : 0.24 + 0.06 * (1 - Math.exp(-4.8 * seg(t, 4.5, 4.8))) / (1 - Math.exp(-4.8)));
+        : (t < 4.5 ? 0.24 * E.inQuad(seg(t, 4.0, 4.5)) : 0.24 + 0.06 * (1 - Math.exp(-4.8 * seg(t, 4.5, 4.8))) / (1 - Math.exp(-4.8)))
+          + FORGE_SWELL[2] * E.sine(seg(t, FORGE_SWELL[0], FORGE_SWELL[1])));
       const lumRaw = out ? 0 : lit * ((tau >= 0 ? 0.30 * Math.exp(-6 * tau) : 0) + 0.45 * sm(EXIT[0], 6.95, t));
       const lum = lumRaw < 0.002 ? 0 : lumRaw;                       // éteinte : son masque n'a plus d'effet
       const gp = seg(t, GLINT[0], GLINT[1]), sweepP = lit && gp > 0 && gp < 1 ? E.sheen(gp) : -1;
       this.L.frame({ front, written: t >= full, forge, hot: lit && t >= 4.3 && t < 5.4 ? 1 : 0, lum, sweepP, sweepA: SWEEP_A, lead: 0 });
       if (chrome < 1) this.L.img.style.opacity = chrome.toFixed(4);
+      // Boîte vidée après l'absorption : display:none (ENGINE.md). Les feuilles de lumière restent à opacité 0 hors de
+      // leurs fenêtres : les masquer elles aussi (hot et sweep surtout) rendait l'arrondi du chrome dépendant de
+      // l'historique de rendu pendant la tenue (±1 niveau sur une centaine de valeurs, mesuré), sans texture périmée
+      // observée de leur côté.
+      this.box.style.display = out ? 'none' : '';
       // Masques locaux, posés seulement quand la feuille est visible (une feuille à opacité 0 n'en dépend pas).
       if (this.maxUrl && forge > 0) {
         // forge : tout le logo ; pendant l'écriture, effacé là où le front a déjà écrit le chrome ; à la sortie, la
@@ -150,15 +166,18 @@
         // la sortie blanchit tout le logo.
         logoSetMask(this.L.lum, t >= EXIT[0] ? [this.maxUrl] : front ? [this.L.url, NX.light.mask(front, 'write', { feather: 70 })] : [this.L.url]);
       }
-      // Absorption : une ellipse douce centrée sur le cœur de l'anneau (opaque jusqu'à 35 % de son rayon) se resserre
-      // sur les trois feuilles visibles ; à son début elle couvre tout le logo, à 7,15 elle est nulle.
+      // Absorption : une ellipse centrée sur le cœur de l'anneau (opaque jusqu'à 55 % de son rayon, puis un bord doux)
+      // se resserre (SINE) sur les trois feuilles visibles ; à son début elle couvre tout le logo, à 7,15 elle est nulle.
       if (this.maxUrl && t > ABSORB[0] && !out) {
-        const k = 1 - E.inQuad(seg(t, ABSORB[0], ABSORB[1])), rx = Math.max(1, 1.7 * W * k), ry = Math.max(1, 1.36 * H * k);
-        const rg = `radial-gradient(ellipse ${rx.toFixed(1)}px ${ry.toFixed(1)}px at ${(RING[0] - G.left).toFixed(1)}px ${(RING[1] - G.top).toFixed(1)}px,#000 35%,transparent)`;
+        const k = 1 - E.sine(seg(t, ABSORB[0], ABSORB[1])), rx = Math.max(1, 1.7 * W * k), ry = Math.max(1, 1.36 * H * k);
+        const rg = `radial-gradient(ellipse ${rx.toFixed(1)}px ${ry.toFixed(1)}px at ${(RING[0] - G.left).toFixed(1)}px ${(RING[1] - G.top).toFixed(1)}px,#000 ${ABSORB_CORE}%,transparent)`;
         logoSetMask(this.L.img, [rg]); logoSetMask(this.L.forge, [this.maxUrl, rg]); logoSetMask(this.L.lum, [this.maxUrl, rg]);
       }
-      // Halo (dégradé de la v6) : entre 4,6–5,0 et respire après l'impact.
-      this.halo.style.opacity = (sm(4.6, 5.0, t) * (0.6 + 0.4 * (tau >= 0 ? Math.exp(-3 * tau) : 1)) * fade).toFixed(4);
+      // Halo (dégradé de la v6) : fleurit avec l'emblème, s'achève avec l'impact, puis respire (au repos 0,7).
+      const bloom = 0.5 * E.sine(seg(t, HALO_IN[0], HALO_IN[1])) + 0.5 * E.sine(seg(t, HALO_IN[1], HALO_IN[2]));
+      const haloA = bloom * (tau >= 0 ? HALO_REST + (1 - HALO_REST) * Math.exp(-3 * tau) : 1) * fade;
+      this.halo.style.opacity = haloA.toFixed(4);
+      this.halo.style.display = haloA < 0.002 ? 'none' : '';
       // Étincelles : carrés de lumière additifs, alpha (1 − u)², toutes éteintes à 6,5 s. Le canvas fx se pose sur le DOM
       // (source-over) : une étincelle pâle sur le chrome blanc y ferait une poussière grise. Sur un trait clair (m = masque
       // de luminance au point de la boîte) le carré monte donc vers le blanc et son halo doux s'efface (× (1 − 0,9 m)) :
@@ -195,11 +214,12 @@
         }
       }
       // Sortie : la lumière du cœur grandit, culmine à 7,13 pendant que la silhouette se resserre en elle (pendant de
-      // l'éclair de 4,8), puis se dissipe en s'élargissant ; éteinte à 7,18.
-      const xg = E.sine(seg(t, 6.72, XPEAK)) * (1 - E.sine(seg(t, XPEAK, 7.18)));
+      // l'éclair de 4,8), puis se dissipe en s'élargissant : l'image 7,167 la porte encore jusqu'au relais du ciel ;
+      // éteinte à 7,20, la fin de la scène.
+      const xg = E.sine(seg(t, 6.72, XPEAK)) * (1 - E.sine(seg(t, XPEAK, XEND)));
       if (xg > 0.002) {
         const pr = NX.cam.project(RING[0], RING[1] + dy, ZL + dz, c);
-        NX.lk.glow(pr.x, pr.y, (240 + 320 * E.sine(seg(t, 6.72, 7.18))) * pr.s, [200, 240, 255], 0.45 * xg);
+        NX.lk.glow(pr.x, pr.y, (240 + 320 * E.sine(seg(t, 6.72, XEND))) * pr.s, [200, 240, 255], 0.45 * xg);
       }
       if (this.stars && t > GLINT[0] && t < EXIT[0] + 0.3) for (const s of this.stars) {
         const g = s.g * (t < s.tc ? sm(s.tc - 0.07, s.tc, t) : Math.exp(-6 * (t - s.tc))) * fade;

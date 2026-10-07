@@ -11,6 +11,9 @@
  * Carillons (HIT + 0,6 → HIT + 3,0, soit 28,2–30,6) : la carte finale arrive. La caméra se pose à NX.DURATION (32,4).
  * Fonction pure de t : porte, empreinte, étincelles, instants d'émission et instant de l'étoile du reflet sont calculés
  * une fois dans prepare(). Les logos ne sont jamais tournés en 3D ni filtrés : masques, profondeur et feuilles de lumière.
+ * Aucun élément vide ou entièrement transparent ne reste affiché sous la racine 3D (display:none, ENGINE.md) : halo avant
+ *   HIT − 0,10, logo final tant que sa porte ne laisse rien voir, bande blanche une fois passée, chrome de l'emblème avant
+ *   sa naissance.
  * Vérification (bible §6.9, §6.10), drapeaux NX.finDebug :
  *   { dock }      porte ouverte (traits de l'emblème du logo visibles) et emblème qui se pose masqué ;
  *   { noLockup }  logo final retiré ;
@@ -209,6 +212,23 @@
         this.gateUrl = url(gate); finMask(this.L.hot, [url(hot)]); this.gOnlyUrl = url(gim); this.plateUrl = url(pim); this.strokeUrl = url(sim);
         this.gAt = (u, v) => gOpen[Math.min(h - 1, Math.floor(v * h)) * w + Math.min(w - 1, Math.floor(u * w))];
       }
+      // Hygiène d'affichage (ENGINE.md, déterminisme) : un élément vide ou entièrement transparent sous la racine 3D est
+      // retiré du rendu (display:none), sinon Chrome peut en garder une texture périmée. Instants calculés une fois dans
+      // le repère local du logo final, exactement comme ses masques (NX.light.local au coin haut-gauche, ellipse K × 1) :
+      // avant boxOn, la porte ne laisse rien voir (part ouverte g nulle au-dessus de la bande du mot-symbole, plaque pas
+      // encore écrite) ; à partir de hotEnd, la bande blanche est entièrement passée sous la boîte. Marge de 0,02 s.
+      {
+        const K = NX.light.K, W = L9.w, rz = this.rz, DT = 0.0005;
+        const loc = t => { const c = NX.cam.at(t), o = NX.cam.project(L9.left, L9.top, rz, c), s = NX.light.src(t); return { cx: (s.x - o.x) / o.s, cy: (s.y - o.y) / o.s, r: NX.FRONT.end(t) / o.s }; };
+        // Distance elliptique (px locaux) du centre du front au point le plus proche des lignes y0 → y1, au coin le plus lointain.
+        const near = (L, y0, y1) => Math.hypot(Math.max(0, -L.cx, L.cx - W) / K, Math.max(0, y0 - L.cy, L.cy - y1));
+        const far = (L, y1) => Math.max(...[0, W].flatMap(x => [0, y1].map(y => Math.hypot((x - L.cx) / K, y - L.cy))));
+        const first = (ok, a, b) => { for (let i = 0; a + i * DT <= b; i++) if (ok(loc(a + i * DT))) return a + i * DT; return b; };
+        const reach = y0 => first(L => L.r + 12 >= near(L, y0, H9), FLY[0], HIT);  // bord extérieur de la bande (r + 12)
+        this.boxTop = reach(0) - 0.02;                                              // { dock } : porte ouverte
+        this.boxOn = Math.min(reach(YCUT - RAMP - L9.top), PLATE_IN[0]) - 0.02;
+        this.hotEnd = first(L => L.r - 170 >= far(L, H9), HIT - 0.5, FRONT_OFF) + 0.02;
+      }
       // 200 étincelles prises sur les pixels clairs du mot-symbole et du slogan (lignes ≥ 440), émises au passage du front,
       // là où il écrit vraiment le chrome (hors de l'empreinte de l'emblème posé, qui s'ouvre à l'échange).
       const v0 = LOGO.rows.wordmark[0] / LOGO.H;
@@ -244,7 +264,7 @@
       const favImg = sm(FLY[0], FLY[0] + 0.2, t), favBox = dbg.dock ? 0 : 1 - sm(SWAP_FAV[0], SWAP_FAV[1], t);
       const birthLum = lightsOn ? BIRTH_LUM * sm(HIT - 0.82, HIT - 0.74, t) * (1 - E.sine(seg(t, HIT - 0.74, HIT - 0.44))) : 0;
       const favLum = Math.max(birthLum, hitLum);
-      const favOn = favBox > 0 && (favImg > 0 || favLum > 0.002) && t < SWAP_FAV[1];
+      const favOn = favBox > 0.0005 && (favImg > 0.0005 || favLum > 0.002) && t < SWAP_FAV[1];
 
       // ---- Retour de l'emblème (HIT − 0,80 → HIT), puis effacement sous l'éclair (HIT + 0,01 → HIT + 0,06) ----
       // Jamais masqué : sous la ligne de coupe, le logo ne montre aucun trait clair dans son empreinte avant l'échange.
@@ -253,6 +273,8 @@
         this.fav.style.display = '';
         this.fav.style.transform = `translate3d(${P.x.toFixed(3)}px,${P.y.toFixed(3)}px,${P.z.toFixed(3)}px) scale(${(P.k / SS).toFixed(6)})`;
         this.fav.style.opacity = favBox.toFixed(4);
+        // Naissance : la lumière précède le chrome ; tant que le chrome est transparent, son calque est retiré du rendu.
+        this.FL.img.style.display = favImg > 0.0005 ? '' : 'none';
         this.FL.img.style.opacity = favImg.toFixed(4);
         // Lumière de naissance, puis surexposition de l'impact tant qu'il est visible (même loi que le logo).
         const fl = favLum > 0.002 ? favLum : 0;
@@ -277,7 +299,8 @@
       // ---- Logo final écrit par le front, derrière la porte ----
       // Feuilles du kit pilotées ici (et non par L.frame, dont les largeurs en px supposent une boîte à 1×).
       const L = this.L, Lc = frontOn ? finLocal(L9.left, L9.top, rz, R, t) : null;
-      this.box.style.display = dbg.noLockup ? 'none' : '';
+      // Retiré du rendu tant que la porte ne laisse rien voir (boxOn, porte ouverte de { dock } : boxTop ; voir prepare).
+      this.box.style.display = !dbg.noLockup && t >= (dbg.dock ? this.boxTop : this.boxOn) ? '' : 'none';
       const written = Lc ? finWrite(Lc) : null;
       // Porte : avant HIT, g ∪ (plaque ∩ pPlate) — la plaque arrive avec la pose, les traits de l'emblème sont retenus ;
       // à partir de HIT, l'image cuite 1 − (1 − g)·st, les traits s'ouvrant en 0,03 s par une couche uniforme ajoutée ;
@@ -290,8 +313,9 @@
       else gate = [this.gOnlyUrl];
       if (written) { gate = [written, ...gate]; gOps = ['intersect', ...gOps]; }
       finMask(L.img, gate, gOps);
-      // Bande blanche sur le chrome clair, au front d'écriture (masque fixe posé dans prepare).
-      const hotOn = lightsOn && !!Lc;
+      // Bande blanche sur le chrome clair, au front d'écriture (masque fixe posé dans prepare), jusqu'à ce qu'elle soit
+      // entièrement passée sous la boîte (hotEnd).
+      const hotOn = lightsOn && !!Lc && t < this.hotEnd;
       L.hot.style.opacity = hotOn ? 1 : 0;
       L.hot.style.display = hotOn ? '' : 'none';
       L.hot.style.background = hotOn ? finBand(Lc) : 'none';
@@ -309,8 +333,11 @@
       L.band.style.transform = `translateX(${NX.lerp(-110, 300, sweepOn ? sweepP : 0).toFixed(2)}%)`;
 
       // ---- Halo (HIT − 0,10 → HIT + 0,40), écrit lui aussi par la lumière : jamais de voile sur ce qui reste de S8 ----
-      this.halo.style.opacity = (sm(HIT - 0.10, HIT + 0.40, t) * (0.6 + 0.4 * (tau >= 0 ? Math.exp(-3 * tau) : 1))).toFixed(4);
-      if (frontOn) NX.light.write(this.halo, NX.light.local(HALO.left, HALO.top, rz + HALO.z, R, t), { feather: 200 });
+      // Transparent avant HIT − 0,10 : retiré du rendu, et son masque n'est écrit que lorsqu'il est affiché.
+      const haloA = sm(HIT - 0.10, HIT + 0.40, t) * (0.6 + 0.4 * (tau >= 0 ? Math.exp(-3 * tau) : 1)), haloOn = haloA > 0.0005;
+      this.halo.style.display = haloOn ? '' : 'none';
+      this.halo.style.opacity = haloA.toFixed(4);
+      if (haloOn && frontOn) NX.light.write(this.halo, NX.light.local(HALO.left, HALO.top, rz + HALO.z, R, t), { feather: 200 });
       else NX.light.clear(this.halo);
 
       // ---- Lumière du canvas (#fx) ----

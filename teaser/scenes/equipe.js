@@ -1,11 +1,13 @@
 /* S3′ Rôles, une transition (bible v7.1, amendement « S3′ » ; fusion §3.9), 7,2–9,6 s.
- * Le logo s'est résorbé dans le cœur de son anneau (7,09–7,15, logo.js) et le ciel a pris sa lumière. Les cinq rôles
- * en naissent, un par croche (NX.beats.bells : Top 7,2, Jungle 7,5, Mid 7,8, ADC 8,1, Support 8,4), directement à leur
- * place sur le pentagone de l'emblème (NX.G.pent, échelle 0,62) : la petite tuile de verre de la v7, avec l'icône et
- * la couleur du rôle, se lève dans sa lumière et un faisceau de cloche descend de la source. Un cœur de lumière reste
- * au centre du cercle. Dès le cinquième rôle, la fusion : les cinq se penchent vers le cœur, se dissolvent en
- * particules de leur couleur qui rejoignent leur secteur de l'emblème (l'anneau d'abord), un émail pointilliste se lit,
- * et « direction » résout le PNG sur l'impact de 9,6. Cinq deviennent un. Ni titre, ni étiquettes, ni ligne de lien.
+ * Le logo s'est résorbé dans le cœur de son anneau (au plus tard 7,15, logo.js) et le ciel a pris sa lumière. Les cinq
+ * rôles en naissent, un par croche (NX.beats.bells : Top 7,2, Jungle 7,5, Mid 7,8, ADC 8,1, Support 8,4), directement à
+ * leur place sur le pentagone de l'emblème (NX.G.pent, échelle 0,62) : la petite tuile de verre de la v7, avec l'icône
+ * et la couleur du rôle, se lève dans sa lumière et un faisceau de cloche descend de la source. Top naît d'abord en
+ * lumière, sous le logo qui se résorbe, puis devient verre ; la lumière absorbée reste au centre du cercle (éclat du
+ * cœur) et les places des rôles à venir attendent sous une orbe faible. Dès le cinquième rôle, la fusion : les cinq se
+ * penchent vers le cœur, se dissolvent en particules de leur couleur qui rejoignent leur secteur de l'emblème (l'anneau
+ * d'abord), un émail pointilliste se lit, et « direction » résout le PNG sur l'impact de 9,6 ; la lumière de scène passe
+ * au halo de « direction » en fondu enchaîné. Cinq deviennent un. Ni titre, ni étiquettes, ni ligne de lien.
  * Interfaces : « direction » possède le PNG de l'emblème (fondu 9,48–9,62) et NX.hit(9,6) ; « ciel » possède l'onde
  * de choc, la poussière et le relais de lumière 7,11–7,8. Cette scène ne dessine jamais le PNG : elle possède ses
  * particules (éclatement jusqu'à 9,95, braises jusqu'à 11,7 comme l'écart accepté de la v7 ; aucun élément DOM
@@ -31,27 +33,51 @@
   const ZRIM = 2;                                        // liseré translateZ(2px)
 
   /* Frise (amendement v7.1). Tout est relatif à NX.T : rôles, fusion et impact. */
+  const at = (a, d) => Math.round((a + d) * 1e6) / 1e6;  // instant relatif à un repère de NX.T, sans résidu flottant
+  const ROLES0 = NX.T.roles;                             // 7,2 : premier rôle (Top), sur la première croche
   const HIT = NX.T.emblem;                               // 9,6 : naissance de l'emblème (PNG de « direction »)
   const FUSE = NX.T.fuse;                                // 8,4 : cinquième rôle posé, la fusion commence
   const BELL = NX.beats.bells.slice(0, 5);               // 7,2 / 7,5 / 7,8 / 8,1 / 8,4 : un rôle par croche
+  // Relais avec « logo » (S2, logo.js) : le logo blanchi se résorbe dans le cœur de son anneau (ABSORB, masque radial
+  // qui se resserre, fini à 7,15 ; lumière du cœur au plus haut à 7,13 ; toutes ses feuilles à 0 à 7,15). La place de
+  // Top est sous l'ancien mot-symbole : ce masque ne la libère que vers 7,115 (ABSORB 7,04–7,15 en SINE ; 7,137 avec
+  // l'ancienne courbe 7,085–7,15). Avant, rien de sombre (plaque, icône, ombre) ne s'y pose : Top naît d'abord en
+  // lumière (liseré chaud additif et halo, 7,08–7,18), sa plaque et son icône viennent ensuite (SINE 7,14–7,32).
+  // Si logo.js allonge son absorption au-delà de 7,15, TOP_GLASS doit rester après le passage du masque sur Top.
+  const WIN0 = at(ROLES0, -0.20);                        // 7,0 : ouverture de la scène (rien n'est dessiné avant 7,04)
+  const STAGE_IN = [at(ROLES0, -0.16), at(ROLES0, 0.06)];   // 7,04–7,26 : la lumière de scène monte sous l'absorption
+  const TOP_LIGHT = [at(ROLES0, -0.12), at(ROLES0, -0.02)]; // 7,08–7,18 : Top en lumière (feuilles additives seules, SINE)
+  const TOP_GLASS = [at(ROLES0, -0.06), at(ROLES0, 0.12)];  // 7,14–7,32 : plaque et icône de Top (SINE)
+  const TOP_HOT = 0.9, TOP_HALO = 0.8;                   // liseré chaud et halo de verre de Top pendant sa naissance
+  // Éclat du cœur : la lumière absorbée se rassemble au centre C pendant que le logo se résorbe, y reste et passe la
+  // main au faisceau de Top (+0,25, SINE 7,06–7,14, au pic de la lumière du cœur du logo, puis e^(−6τ)). Avec
+  // l'absorption visible de logo.js (7,04–7,15), un éclat plus tardif (7,10–7,17) laissait l'image 7,133 creuse puis
+  // remontait de 2,3 de luminance en une image.
+  const FLARE = [at(ROLES0, -0.14), at(ROLES0, -0.06)], FLARE_A = 0.25;
+  // Places en attente (la grammaire v7 « cinq lumières marquent les places ») : une fois le logo parti, une orbe faible
+  // de la couleur de chaque rôle à venir (pic 0,09, soit 0,15 sous la lumière de sa tuile ; rayon 160·s ; 7,15–7,35),
+  // qui se fond dans la lumière de sa tuile quand celle-ci s'allume (Tᵢ − 0,30).
+  const WAIT = [at(ROLES0, -0.05), at(ROLES0, 0.15)], WAIT_A = 0.09, WAIT_R = 160;
   // L'équipe au complet : sur la cinquième cloche, les cinq s'allument ensemble (lumière +40 %, liseré +0,3) et se
   // rapprochent de 12 px du cœur (SINE, fini avant la première dissolution : les particules partent d'une tuile
   // immobile), puis se dissolvent dans l'ordre de leur naissance (0,04 s d'écart, + 0,08 s de dispersion par
   // particule) : le cercle se referme.
   const LEAN = [FUSE - 0.10, FUSE + 0.10], LEAN_PX = 12;
   const REL = BELL.map((b, i) => FUSE + 0.10 + 0.04 * i);   // 8,50 / 8,54 / 8,58 / 8,62 / 8,66
-  // Apparition de chaque tuile (bible §4 S3 : Tᵢ − 0,25 → Tᵢ − 0,05). Top naît dans la lumière où le logo se résorbe :
-  // sa place, au milieu de l'ancien mot-symbole, n'est libérée par le masque d'absorption de logo.js qu'à 7,14 ;
-  // apparue plus tôt, sa plaque sombre se posait sur le logo blanchi (7,05–7,13).
-  const APPEAR = BELL.map((T, i) => (i === 0 ? [7.125, T] : [T - 0.25, T - 0.05]));
+  // Apparition de la plaque de chaque tuile (bible §4 S3 : Tᵢ − 0,25 → Tᵢ − 0,05, smoothstep ; Top : TOP_GLASS, SINE)
+  // et lumière de sa place (Tᵢ − 0,30 → Tᵢ − 0,05 ; Top 7,075 → 7,2, derrière le logo qui se résorbe).
+  const APPEAR = BELL.map((T, i) => (i === 0 ? TOP_GLASS : [T - 0.25, T - 0.05]));
+  const LIGHT_IN = BELL.map((T, i) => (i === 0 ? [at(ROLES0, -0.125), ROLES0] : [T - 0.30, T - 0.05]));
   // Verrouillage (mêmes écarts à l'impact que la v7) : anneau 9,20–9,26, le reste 9,28–9,38 ; émail pointilliste
   // 9,32–9,56 ; cœur de la fusion 9,0–9,6 ; éclatement 9,60–9,95 ; braises éteintes 11,1–11,7.
   const LOCK_RING = HIT - 0.40, LOCK_REST = HIT - 0.32;
   const POINT = [HIT - 0.28, HIT - 0.04], CORE = [HIT - 0.6, HIT];
   const BURST_OUT = [HIT + 0.2, HIT + 0.35], EMBER_OUT = [HIT + 1.5, HIT + 2.1];
   // Lumière de scène : bassin (ellipse douce autour du pentagone) et cœur (au centre C), de la résorption du logo
-  // jusqu'au halo de « direction » qui s'épanouit après l'impact.
-  const STAGE_IN = [7.04, 7.26], STAGE_OUT = [HIT - 0.08, HIT + 0.32];
+  // jusqu'au halo de « direction » (SINE 9,62–10,2). Le cœur s'éteint sous l'émail (9,52–9,92) : rien de plus sous le
+  // PNG net ; le bassin s'éteint en fondu enchaîné avec ce halo (SINE 9,52–10,2) : l'impact passe la lumière au lieu
+  // de retomber dans un creux.
+  const HEART_OUT = [HIT - 0.08, HIT + 0.32], POOL_OUT = [HIT - 0.08, HIT + 0.60];
   const POOL_R = 980, POOL_SY = 0.62, POOL_A = 0.15, POOL_RGB = [120, 170, 255];
   const HEART_R = 340, HEART_A = 0.20, HEART_RGB = [175, 220, 255];
 
@@ -112,6 +138,15 @@
   }
   /** Flash de cloche : monte en inQuad sur 0,12 s jusqu'à Tᵢ, puis e^(−6τ). */
   const bellFlash = (i, t) => { const T = BELL[i]; return t < T - 0.12 ? 0 : t < T ? E.inQuad(seg(t, T - 0.12, T)) : Math.exp(-6 * (t - T)); };
+  /** Orbe d'attente : disque de lumière additif au profil en cloche a·(1 − u²)², u = d/r (plateau doux, aucun bord ;
+   *  à pic égal, deux fois plus de lumière à mi-rayon que NX.lk.glow, si bien qu'elle se lit encore sur un téléphone). */
+  const ORB_STOPS = [0, 0.2, 0.4, 0.6, 0.8, 1].map(u => [u, (1 - u * u) ** 2]);
+  function eqOrb(ctx, x, y, r, rgb, a) {
+    if (a <= 0.002 || r <= 0.5) return;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+    for (const [u, k] of ORB_STOPS) g.addColorStop(u, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${(a * k).toFixed(4)})`);
+    ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = g; ctx.fillRect(x - r, y - r, 2 * r, 2 * r); ctx.restore();
+  }
 
   /** Point du pourtour arrondi (rayon 16) de la tuile, au milieu du liseré ; f ∈ [0,1) → [lx, ly] en px de tuile. */
   function rimPoint(f) {
@@ -133,7 +168,7 @@
   }
 
   NX.scene({
-    id: 'equipe', start: 7.0, end: HIT, post: EMBER_OUT[1] - HIT, z: 1,
+    id: 'equipe', start: WIN0, end: HIT, post: EMBER_OUT[1] - HIT, z: 1,
     build(root) {
       this.fav = NX.image(FAV);                          // échantillonné seulement : jamais affiché ici
       this.tiles = ROLES.map((r, i) => {
@@ -235,49 +270,65 @@
       const pj = (X, Y, Z = 0) => NX.cam.project(X, Y, Z + ZR, c);
 
       /* ---------------- Lumière de scène (fxBack, derrière les tuiles) ----------------
-       * Le cœur prend le relais de la lumière où le logo s'est résorbé (7,13) : les rôles naissent autour de lui.
-       * Un bassin doux éclaire le cercle ; pendant la fusion, bassin et cœur se resserrent vers le centre, puis
+       * Le cœur prend le relais de la lumière où le logo s'est résorbé (éclat 7,06–7,14) : les rôles naissent autour
+       * de lui. Un bassin doux éclaire le cercle ; pendant la fusion, bassin et cœur se resserrent vers le centre, puis
        * rendent la main au halo et à l'impact de « direction » (9,6). */
-      const on = sm(STAGE_IN[0], STAGE_IN[1], t) * (1 - sm(STAGE_OUT[0], STAGE_OUT[1], t));
-      if (on > 0.002) {
+      const onIn = sm(STAGE_IN[0], STAGE_IN[1], t);
+      const onPool = onIn * (1 - SINE(seg(t, POOL_OUT[0], POOL_OUT[1])));
+      const onHeart = onIn * (1 - sm(HEART_OUT[0], HEART_OUT[1], t));
+      const flare = t < FLARE[0] ? 0 : FLARE_A * (t < FLARE[1] ? SINE(seg(t, FLARE[0], FLARE[1])) : Math.exp(-6 * (t - FLARE[1])));
+      if (onPool > 0.002 || onHeart > 0.002 || flare > 0.002) {
         // Le cœur grandit avec l'équipe : chaque rôle qui arrive lui ajoute un peu de lumière (0,7 → 1).
         let team = 0; for (let i = 0; i < 5; i++) team += sm(APPEAR[i][0], APPEAR[i][1] + 0.15, t);
         const gq = SINE(seg(t, REL[0], HIT)), q = pj(CX, CY), heart = HEART_A * (0.7 + 0.06 * team);
         bctx.save(); bctx.translate(q.x, q.y); bctx.scale(1, POOL_SY);
         const pr = 1 - 0.25 * gq;                        // le bassin se resserre (rayon × 0,75) en gardant son énergie
-        NX.lk.glow(0, 0, POOL_R * pr * q.s, POOL_RGB, POOL_A / (pr * pr) * on, bctx);
+        NX.lk.glow(0, 0, POOL_R * pr * q.s, POOL_RGB, POOL_A / (pr * pr) * onPool, bctx);
         bctx.restore();
-        NX.lk.glow(q.x, q.y, (HEART_R - 60 * gq) * q.s, HEART_RGB, (heart + 0.10 * gq) * on, bctx);
+        NX.lk.glow(q.x, q.y, (HEART_R - 60 * gq) * q.s, HEART_RGB, (heart + 0.10 * gq) * onHeart + flare, bctx);
       }
 
       /* ---------------- Tuiles, lumière de leur place, faisceaux de cloche ---------------- */
       const src = NX.light.src(t), yaw = c.yaw;
       this.tiles.forEach((T, i) => {
-        const Ti = BELL[i], P = pose(i, t), flash = bellFlash(i, t);
-        // Lumière de sa place : orbe douce qui s'allume avec sa tuile (Tᵢ − 0,30 → Tᵢ − 0,05 ; Top avec le logo
-        // résorbé) et s'éteint pendant la dissolution.
-        const onL = sm(APPEAR[i][0] - 0.05, APPEAR[i][1], t) * (1 - sm(REL[i], REL[i] + 0.35, t));
-        if (onL > 0.002) {
+        const P = pose(i, t), flash = bellFlash(i, t);
+        // Lumière de sa place : orbe douce qui s'allume avec sa tuile (Tᵢ − 0,30 → Tᵢ − 0,05 ; Top derrière le logo
+        // qui se résorbe) et s'éteint pendant la dissolution. Les rôles à venir attendent déjà sous une orbe faible
+        // (WAIT, 0,15 sous la lumière de leur tuile) qui grandit en elle : le pentagone s'annonce dès le départ du logo.
+        const gL = sm(LIGHT_IN[i][0], LIGHT_IN[i][1], t), out = 1 - sm(REL[i], REL[i] + 0.35, t);
+        const wait = i ? WAIT_A * sm(WAIT[0], WAIT[1], t) * (1 - gL) : 0, onL = (0.24 + 0.24 * flash) * (1 + 0.4 * P.an) * gL * out;
+        if (wait > 0.002 || onL > 0.002) {
           const q = pj(P.x, P.y);
-          NX.lk.glow(q.x, q.y, 200 * q.s, RGB[i], (0.24 + 0.24 * flash) * (1 + 0.4 * P.an) * onL, bctx);
+          eqOrb(bctx, q.x, q.y, WAIT_R * q.s, RGB[i], wait);
+          NX.lk.glow(q.x, q.y, 200 * q.s, RGB[i], onL, bctx);
         }
         // Faisceau de cloche : de la source au centre de la tuile + 37·s, derrière la tuile ; fin fondue sous la tuile.
         if (flash > 0.006) {
           const w = tilePoint(P, 0, 0, 0), q = pj(w[0], w[1], w[2]);
           eqBeam(bctx, this.oc, src.x, src.y, q.x, q.y + 37 * q.s, 8, 186 * q.s, 0.45 * flash, BEAMRGB[i], 105 * q.s);
         }
-        // Tuile de verre.
-        const a = sm(APPEAR[i][0], APPEAR[i][1], t) * (1 - sm(REL[i], REL[i] + 0.20, t));
+        // Tuile de verre. Top naît d'abord en lumière : seules ses feuilles additives (liseré chaud, halo de verre) se
+        // lèvent pendant que le logo se résorbe (TOP_LIGHT) ; sa plaque, son icône et son ombre viennent ensuite
+        // (TOP_GLASS, SINE) et reprennent la main sur cette lumière à mesure qu'elles s'opacifient.
+        const ap = i ? sm(APPEAR[i][0], APPEAR[i][1], t) : SINE(seg(t, TOP_GLASS[0], TOP_GLASS[1]));
+        const a = ap * (1 - sm(REL[i], REL[i] + 0.20, t));
+        const lt = i ? 0 : SINE(seg(t, TOP_LIGHT[0], TOP_LIGHT[1])) * (1 - ap);
         const el = T.g.el;
-        if (a <= 0) { el.style.display = 'none'; return; }
+        if (a <= 0 && lt <= 0.002) { el.style.display = 'none'; return; }
         el.style.display = '';
         const X = P.x - PX[i], Y = P.y - PY[i] + P.dy - HALF * (1 - P.s);
         el.style.transform = `translate3d(${X.toFixed(2)}px,${Y.toFixed(2)}px,${P.z.toFixed(2)}px) rotateX(${P.th.toFixed(3)}deg) scale(${P.s.toFixed(4)})`;
         NX.glassFade(T.g, a);
         T.g.content.style.opacity = '';                  // .gl-content est preserve-3d : on fond la feuille icône, jamais le conteneur
         T.icon.style.opacity = a;
-        NX.glassLight(T.g, { pos: -0.43 * yaw, lit: 1, rimAngle: 180 + 6 * yaw, rimGain: 1, glow: (0.6 + 0.4 * flash) * (1 + 0.4 * P.an) });
-        const hot = clamp(0.6 * flash + 0.3 * P.an) * a;
+        const glow = (0.6 + 0.4 * flash) * (1 + 0.4 * P.an);
+        NX.glassLight(T.g, { pos: -0.43 * yaw, lit: 1, rimAngle: 180 + 6 * yaw, rimGain: 1, glow });
+        if (lt > 0) T.g.glow.style.opacity = clamp(glow * a + TOP_HALO * lt);
+        if (!i) {                                        // Top en lumière : ses feuilles sombres, encore nulles, sont retirées
+          const d = a > 0 ? '' : 'none';                 // (règle ENGINE : aucune feuille transparente affichée)
+          for (const k of ['shadow', 'plate', 'content', 'sheen', 'rim']) T.g[k].style.display = d;
+        }
+        const hot = clamp((0.6 * flash + 0.3 * P.an) * a + TOP_HOT * lt);
         if (hot > 0.002) {
           T.hot.style.display = '';
           T.hot.style.setProperty('--rim', `${(180 + 6 * yaw).toFixed(1)}deg`);
