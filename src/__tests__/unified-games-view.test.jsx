@@ -203,14 +203,14 @@ describe("unified Games workspace", () => {
     expect(new URLSearchParams(window.location.search).get("match")).toBe(selectedId);
     const statistics = renderer.root.findByType(MatchDataPanel);
     expect(statistics.props.match.id).toBe(selectedId);
-    expect(text(statistics)).toContain("L’essentiel de la partie");
+    expect(text(statistics)).toContain("À vérifier en débrief");
     expect(text(statistics)).not.toContain("Vue 5v5");
     const detail = statistics.findAllByType("details").find((node) => text(node.findByType("summary")).startsWith("Statistiques et comparaison"));
     expect(detail.props.open).toBe(false);
     await act(async () => detail.props.onToggle({ currentTarget: { open: true } }));
     const statsText = text(statistics);
     const versusIndex = statsText.indexOf("Vue 5v5");
-    const coachIndex = statsText.indexOf("L’essentiel de la partie");
+    const coachIndex = statsText.indexOf("À vérifier en débrief");
     expect(coachIndex).toBeLessThan(versusIndex);
     for (const metric of ["Éliminations / morts / assistances", "Écart dégâts", "Écart or", "Écart vision"]) {
       expect(statsText.indexOf(metric)).toBeGreaterThan(coachIndex);
