@@ -999,8 +999,8 @@ function TrendsPage({ data, selectedTeamId }) {
         <TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} />
       </div>
       <div className="trends-scope"><p aria-live="polite"><strong>{matches.length} partie{matches.length > 1 ? "s" : ""} analysée{matches.length > 1 ? "s" : ""}</strong> sur {categoryMatches.length} · {activeTrendCategory?.name || "Tous les contextes"}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" /> Réinitialiser les filtres</button>}</div>
+      <p className="trends-results-context">{resultLabel(results)} · Taux de victoire : {winrateLabel(winrate)} sur {results.known} résultat{results.known > 1 ? "s" : ""} connu{results.known > 1 ? "s" : ""}.</p>
     </div>}
-    {trendPanel !== "comparison" && <p className="trends-sample-note">{resultLabel(results)} · Taux de victoire : {winrateLabel(winrate)} sur {results.known} résultat{results.known > 1 ? "s" : ""} connu{results.known > 1 ? "s" : ""}.</p>}
     {trendPanel !== "comparison" && matches.length < 5 && <p className="trends-sample-note"><AlertTriangle aria-hidden="true" /><span>Peu de parties : les répétitions restent à confirmer. Ces observations portent sur {matches.length} partie{matches.length > 1 ? "s" : ""}.</span></p>}
     {detailSection ? <DraftTrendDetails key={draftDetail} sectionId={draftDetail} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} /> : <>
     <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />

@@ -7,6 +7,10 @@
 .demo-match-metrics dt { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); line-height: 1.6; }
 .demo-match-metrics dd { margin-top: .5rem; color: var(--nxt5-text); font-size: 1.65rem; font-weight: 650; font-variant-numeric: tabular-nums; }
 .demo-match-metrics dd span { font-size: var(--nxt5-font-small); font-weight: 400; }
+.demo-match-primary dd { font-size: clamp(2rem, 4vw, 2.75rem); }
+.demo-match-details { margin-top: 1.5rem; }
+.demo-match-details .demo-match-metrics { margin-top: 0; padding-top: 0; border-top: 0; }
+.demo-review-action { margin-top: 1.25rem; }
 .demo-coach-question { margin-top: 1.25rem; padding-left: 1rem; border-left: 2px solid var(--nxt5-accent-2); }
 .demo-coach-question p { color: var(--nxt5-accent-2); font-size: var(--nxt5-font-ui); }
 .demo-coach-question strong { display: block; max-width: var(--nxt5-reading-width); margin-top: .5rem; font-size: var(--nxt5-font-body); font-weight: 500; line-height: 1.75; }
@@ -33,6 +37,7 @@
 .demo-review button { margin-top: 1.25rem; }
 .nxt5-demo-page .nxt5-entry-start > div { max-width: 48rem; }
 @media (max-width: 480px) {
+  .demo-review-action button { width: 100%; }
   .demo-player-list li { flex-wrap: wrap; }
   .demo-kda { width: 100%; padding-left: 2.55rem; margin-left: 0; text-align: left; }
   .demo-navigation { gap: .5rem; }

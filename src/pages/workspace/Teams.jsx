@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Clipboard, Loader2, Plus, Shield, Trophy, UserPl
 import { apiFetch } from "../../api/client.js";
 import { RIOT_SYNC_CLIENT_TIMEOUT_MS } from "../../../shared/riot-sync-policy.js";
 import { openAppPath } from "../../app/routing.js";
-import { Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
+import { Badge, Button, EmptyState, PageHeader, ReadingDetails, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
 import { cx, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
 import { multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus, rosterStatusMeta, ROSTER_STATUS_OPTIONS } from "../../utils/roster.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
@@ -507,7 +507,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       <Surface className="p-4 sm:p-5">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0"><h3 className="text-lg font-black text-white">Bot Discord</h3><p className="mt-1 text-sm leading-6 text-slate-300">Invitation, connexion du serveur, salons et historique des publications de ton équipe.</p></div>
-          <LinkButton href="/bot-discord" navigate={openAppPath} icon={ArrowRight} className="min-h-11 shrink-0">Configurer le bot Discord</LinkButton>
+          <LinkButton href="/bot-discord" navigate={openAppPath} variant="ghost" icon={ArrowRight} className="min-h-11 shrink-0">Configurer le bot Discord</LinkButton>
         </div>
       </Surface>
       <TeamDataHealthPanel team={selectedTeam} players={data.players || []} matches={data.matches || []} />
@@ -568,15 +568,17 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       {selectedTeam && !showSetup && <div className="space-y-5">
         <Surface glow>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="flex items-center gap-3"><h3 className="text-xl font-black text-white">Joueurs et encadrement</h3><Badge tone="purple">{selectedTeam.tag || "TEAM"}</Badge></div>
-            {roster.length > 0 && <div className="nxt5-roster-actions flex flex-wrap justify-end gap-2">
-              {mainTeamRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(mainTeamRoster, "Main Team")}>Copier OP.GG titulaires · {mainTeamRoster.length}</Button>}
-              {substituteRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(substituteRoster, "Subs")}>Copier OP.GG remplaçants · {substituteRoster.length}</Button>}
-              {canManageRoster && <LinkButton href="/gestion-equipe?section=roster" navigate={openAppPath} icon={UserPlus}>Ajouter un joueur</LinkButton>}
-            </div>}
+            <div className="flex min-w-0 flex-wrap items-center gap-3"><h3 className="text-xl font-black text-white">Joueurs et encadrement</h3><Badge tone="purple" className="shrink-0">{selectedTeam.tag || "TEAM"}</Badge></div>
+            {roster.length > 0 && canManageRoster && <LinkButton href="/gestion-equipe?section=roster" navigate={openAppPath} icon={UserPlus}>Ajouter un joueur</LinkButton>}
           </div>
 
           <PremiumRosterTable roster={roster} matches={data.matches || []} region={selectedTeam.region} currentUserId={user?.id} canManage={canManageRoster} />
+          {(mainTeamRoster.length > 0 || substituteRoster.length > 0) && <ReadingDetails title="Copier les liens OP.GG" className="team-roster-links">
+            <div className="nxt5-roster-actions flex flex-wrap gap-2">
+              {mainTeamRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(mainTeamRoster, "Main Team")}>Copier OP.GG titulaires · {mainTeamRoster.length}</Button>}
+              {substituteRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(substituteRoster, "Subs")}>Copier OP.GG remplaçants · {substituteRoster.length}</Button>}
+            </div>
+          </ReadingDetails>}
         </Surface>
       </div>}
     </div>
@@ -631,9 +633,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
   return <Surface className="team-management-panel">
     <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
       <div className="min-w-0">
-        <Badge tone="cyan">Gestion</Badge>
         <h3 className="team-management-name">{team.name}</h3>
-        <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Identité, invitations, profils liés et permissions. Tout est regroupé ici pour aller vite.</p>
       </div>
       <dl className="team-management-summary">
         <div><dt>Profils liés</dt><dd>{linkedCount}<span> / {roster.length}</span></dd></div>
@@ -645,7 +645,6 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
     <section ref={profileSectionRef} id="team-roster-setup" aria-labelledby="team-roster-setup-title" className="team-management-section team-roster-setup">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
         <div><h4 id="team-roster-setup-title" className="text-xl font-black text-white">Ajouter un joueur ou un membre du staff</h4><p className="mt-1 text-sm text-slate-300">Le profil représente une personne dans l’équipe. Son compte NXT5, utilisé pour se connecter, pourra être associé plus tard.</p></div>
-        <Badge tone="purple">Effectif</Badge>
       </div>
       {canManageRoster ? <form onSubmit={onCreatePlayer} className="team-profile-form" aria-labelledby="team-roster-setup-title">
         <TextInput label="Nom" value={playerForm.name} onChange={(name) => setPlayerForm({ ...playerForm, name })} placeholder="Nom du joueur ou staff" required />
@@ -666,34 +665,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
       </form>}
     </section>
 
-    <div className="team-management-basics">
-      <form onSubmit={onSaveTeam} className="team-identity-form">
-        <div className="team-identity-fields">
-          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/25 bg-black/30">
-            {edit.avatarDataUrl ? <img src={edit.avatarDataUrl} alt={team.name} className="h-full w-full object-cover" loading="lazy" decoding="async" style={{ transform: "scale(" + Number(edit.avatarZoom || 1) + ")", objectPosition: Number(edit.avatarX ?? 50) + "% " + Number(edit.avatarY ?? 50) + "%" }} /> : <div className="flex h-full w-full items-center justify-center"><ImageIcon className="h-9 w-9 text-slate-400" /></div>}
-          </div>
-          <div className="min-w-0 flex-1 space-y-3">
-            <TextInput disabled={!canEditIdentity || saving} label="Nom de l'équipe" value={edit.name} onChange={(name) => setEdit({ ...edit, name })} placeholder="Nom" required icon={Trophy} />
-            <TextInput disabled={!canEditIdentity || saving} label="Tag" value={edit.tag} onChange={(tag) => setEdit({ ...edit, tag })} placeholder="TAG" required icon={Shield} />
-          </div>
-        </div>
-        <details className="team-image-options">
-          <summary className="team-disclosure-label">Image de l’équipe</summary>
-          <label className="team-image-upload"><Upload className="h-4 w-4" /> Choisir une image<input type="file" accept="image/*" className="sr-only" onChange={(event) => onAvatarFile(event.target.files?.[0])} disabled={!canEditIdentity || saving} /></label>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
-            <label className="block"><span className="nxt5-field-label">Zoom</span><input type="range" min="1" max="2.5" step="0.05" value={edit.avatarZoom} onChange={(event) => setEdit({ ...edit, avatarZoom: event.target.value })} disabled={!canEditIdentity || saving} className="w-full" /></label>
-            <label className="block"><span className="nxt5-field-label">Horizontal</span><input type="range" min="0" max="100" value={edit.avatarX} onChange={(event) => setEdit({ ...edit, avatarX: event.target.value })} disabled={!canEditIdentity || saving} className="w-full" /></label>
-            <label className="block"><span className="nxt5-field-label">Vertical</span><input type="range" min="0" max="100" value={edit.avatarY} onChange={(event) => setEdit({ ...edit, avatarY: event.target.value })} disabled={!canEditIdentity || saving} className="w-full" /></label>
-          </div>
-        </details>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canEditIdentity}>Enregistrer</Button>
-          {canDeleteTeam && <Button type="button" variant="danger" icon={saving ? Loader2 : Trash2} onClick={onDeleteTeam} disabled={saving}>Supprimer</Button>}
-        </div>
-        {!canEditIdentity && <p className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-sm font-semibold text-amber-100">Ton statut actuel ne permet pas de modifier la gestion.</p>}
-      </form>
-
-      <div className="team-invitations">
+    <div className="team-management-section team-invitations">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
             <h4 className="text-xl font-black text-white">Invitations temporaires</h4>
@@ -711,7 +683,6 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
           }) : <p className="team-empty-row">Aucune invitation active.</p>}
           {activeCodes.length > 0 && canInvite && <Button type="button" variant="danger" onClick={onRevokeInvites} disabled={saving}>Révoquer les invitations</Button>}
         </div>
-      </div>
     </div>
 
     <div className="team-management-section">
@@ -750,6 +721,34 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
         </div>)}
       </div>
     </div>}
+
+    <ReadingDetails title="Identité de l’équipe" description="Nom, tag et image de l’équipe." className="team-identity-details">
+      <form onSubmit={onSaveTeam} className="team-identity-form">
+        <div className="team-identity-fields">
+          <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-cyan-300/25 bg-black/30">
+            {edit.avatarDataUrl ? <img src={edit.avatarDataUrl} alt={team.name} className="h-full w-full object-cover" loading="lazy" decoding="async" style={{ transform: "scale(" + Number(edit.avatarZoom || 1) + ")", objectPosition: Number(edit.avatarX ?? 50) + "% " + Number(edit.avatarY ?? 50) + "%" }} /> : <div className="flex h-full w-full items-center justify-center"><ImageIcon className="h-9 w-9 text-slate-400" /></div>}
+          </div>
+          <div className="min-w-0 flex-1 space-y-3">
+            <TextInput disabled={!canEditIdentity || saving} label="Nom de l'équipe" value={edit.name} onChange={(name) => setEdit({ ...edit, name })} placeholder="Nom" required icon={Trophy} />
+            <TextInput disabled={!canEditIdentity || saving} label="Tag" value={edit.tag} onChange={(tag) => setEdit({ ...edit, tag })} placeholder="TAG" required icon={Shield} />
+          </div>
+        </div>
+        <details className="team-image-options">
+          <summary className="team-disclosure-label">Image de l’équipe</summary>
+          <label className="team-image-upload"><Upload className="h-4 w-4" /> Choisir une image<input type="file" accept="image/*" className="sr-only" onChange={(event) => onAvatarFile(event.target.files?.[0])} disabled={!canEditIdentity || saving} /></label>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <label className="block"><span className="nxt5-field-label">Zoom</span><input type="range" min="1" max="2.5" step="0.05" value={edit.avatarZoom} onChange={(event) => setEdit({ ...edit, avatarZoom: event.target.value })} disabled={!canEditIdentity || saving} className="w-full" /></label>
+            <label className="block"><span className="nxt5-field-label">Horizontal</span><input type="range" min="0" max="100" value={edit.avatarX} onChange={(event) => setEdit({ ...edit, avatarX: event.target.value })} disabled={!canEditIdentity || saving} className="w-full" /></label>
+            <label className="block"><span className="nxt5-field-label">Vertical</span><input type="range" min="0" max="100" value={edit.avatarY} onChange={(event) => setEdit({ ...edit, avatarY: event.target.value })} disabled={!canEditIdentity || saving} className="w-full" /></label>
+          </div>
+        </details>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !canEditIdentity}>Enregistrer</Button>
+          {canDeleteTeam && <Button type="button" variant="danger" icon={saving ? Loader2 : Trash2} onClick={onDeleteTeam} disabled={saving}>Supprimer</Button>}
+        </div>
+        {!canEditIdentity && <p className="mt-4 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-sm font-semibold text-amber-100">Ton statut actuel ne permet pas de modifier la gestion.</p>}
+      </form>
+    </ReadingDetails>
   </Surface>;
 }
 
@@ -774,7 +773,7 @@ function playerImportedChampionStats(player, matches = []) {
 
 function ImportedChampionBadges({ player, matches = [] }) {
   const items = playerImportedChampionStats(player, matches).slice(0, 3);
-  if (!items.length) return <span className="text-xs font-semibold text-slate-300">Aucune game importee pour ce profil</span>;
+  if (!items.length) return <span className="text-xs font-semibold text-slate-300">Aucune partie importée pour ce profil</span>;
   return <div className="flex flex-wrap gap-2">{items.map((champion, index) => <ChampionCircle key={(champion.championId || champion.champion) + "-imported-" + index} champion={champion} index={index} />)}</div>;
 }
 

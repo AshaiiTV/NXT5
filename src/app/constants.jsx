@@ -48,8 +48,8 @@ export const DRAFT_VIEW_ROUTES = [
 
 export const PROFILE_VIEW_ROUTES = [
   { id: "overview", label: "Synthèse", path: "" },
-  { id: "champions", label: "Champions", path: "champions" },
-  { id: "pool", label: "Pool déclaré", path: "pool" },
+  { id: "champions", label: "Champions joués", path: "champions" },
+  { id: "pool", label: "Champion pool", path: "pool" },
   { id: "history", label: "Historique", path: "historique" },
   { id: "coaching", label: "Suivi", path: "coaching" },
   { id: "showcase", label: "Carte & Wrapped", path: "carte" },

@@ -23,7 +23,7 @@ export const EXPORT_TEMPLATES = Object.freeze([
     uses: ["Games analysées, victoires et KDA", "Moyennes par game et couverture des données", "CS à 10 et 20 minutes", "Résultats par champion"],
   },
   {
-    id: "pool", category: "site", title: "Pool de champions déclaré", source: "Mon profil · Champions déclarés / Draft · Champions des joueurs", format: "PNG",
+    id: "pool", category: "site", title: "Pool de champions déclaré", source: "Mon profil · Champion pool / Draft · Champions des joueurs", format: "PNG",
     description: "Les champions déclarés par le joueur ou le staff, regroupés par niveau de préparation.",
     uses: ["Picks de confiance", "Picks situationnels", "Picks en validation et en entraînement", "Games et taux de victoire disponibles"],
   },
