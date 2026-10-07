@@ -27,7 +27,7 @@
 | Package | Files | Shots |
 |---|---|---|
 | C | `scenes/accroche.js` | S1 hook (six lines, spectral run, burn by the hook front) |
-| M | `scenes/logo.js`, `scenes/equipe.js`, `scenes/direction.js` | the continuous logo moment: S2 writing, hold and exit, S3′ roles and fusion, S5 direction and spear (as in v7.2, one package because the emblem is one object) |
+| M | `scenes/logo.js`, `scenes/equipe.js`, `scenes/direction.js`, and the `NX.FRONT.unwrite` entry of `scenes/vertical.js` (read only by logo.js) | the continuous logo moment: S2 writing, hold and exit, S3′ roles and fusion, S5 direction and spear (as in v7.2, one package because the emblem is one object) |
 | F | `scenes/outils.js` | S6–S8 tools, drop, hand-overs, anticipation rims, the S8 burn |
 | G | `scenes/fin.js` | S9 return, dock, final lockup and end card |
 | Lead | everything else (engine, kit, shader, style, `vertical.js` with every `NX.FRONT` track, camera, ciel, tools, audio) | requests from packages go in their reports |
