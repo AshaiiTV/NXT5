@@ -2,6 +2,24 @@
 
 Teaser vidéo de NXT5, rendu image par image dans Chromium. Tout le film est une fonction pure du temps : HTML, CSS et un fond WebGL2 pour l’image, une musique synthétisée par Web Audio pour le son. Aucun fichier vidéo ou audio externe, donc aucune question de licence.
 
+## Version 7.1 (7 octobre 2026)
+
+Retours sur l’aperçu de la v7 : l’ouverture doit dire qu’il s’agit de League of Legends ; le passage des rôles, « super beau », manquait de sens et devient une simple transition ; la partie des outils, « top », reçoit un quatrième outil. Les décisions sont consignées en tête de `MOTION-BIBLE.md` (amendement v7.1) et dans son tableau des écarts.
+
+- **Accroche sur trois lignes.** « Envie d’analyser tes games / et de comprendre ton équipe / sur League of Legends ? », complète à 3,4 s et brûlée par la lumière avant l’impact du logo.
+- **Rôles en transition (7,2 → 9,6 s).** Les cinq rôles naissent de la lumière du logo, un par croche, autour du futur emblème, puis se dissolvent en particules qui forment l’emblème sur l’impact de 9,6 s. Plus de titre ni de ligne de liens.
+- **Quatre outils.** « 03 · DRAFTER » s’ajoute avant le planning : « Compose ta draft. » avec la composition de l’équipe de démo (Gnar, Vi, Ahri, Jinx, Braum), les statuts du produit (« Confiance », « Situationnel »), le compteur « 5/5 champions » et le badge « Très maîtrisée ».
+- **32,4 s au lieu de 33,6.** La musique, la caméra et le ciel suivent la nouvelle frise ; le ciel garde la phase et la teinte validées de la v7 pour chaque plan.
+
+| Temps (s) | Scène | À l’écran |
+|---|---|---|
+| 0 → 4,8 | `accroche` | La question monte sur trois lignes, puis la lumière la brûle en écrivant le logo |
+| 4,8 → 7,2 | `logo` | Logo complet, impact, reflet, puis le logo est emporté dans la lumière |
+| 7,2 → 9,6 | `equipe` | Les cinq rôles naissent en rafale et fusionnent en emblème |
+| 9,6 → 13,2 | `direction` | « Une même direction. », le faisceau, la flèche monte |
+| 13,2 → 27,6 | `outils` | Quatre cartes de verre : Analyser, Débriefer, Drafter, Planifier |
+| 27,6 → 32,4 | `fin` | L’emblème revient se poser, la lumière réécrit NXT5, carte finale |
+
 ## Version 7 (6 octobre 2026)
 
 Retour sur la v6 : le rythme et la lisibilité sont validés, mais la mise en mouvement devait atteindre le meilleur niveau possible. La v7 garde la durée (33,6 s), le tempo, la musique, les textes et les temps forts de la v6 (`NX.T`). Toute la mise en mouvement est refaite d’après une bible, `MOTION-BIBLE.md` : un panel de trois traitements, trois juges, puis des prototypes des cinq moments les plus risqués.
@@ -62,15 +80,15 @@ Règles de contenu toujours valables : jamais « Cinq rôles », jamais « sans 
 ```bash
 cd teaser
 npm install
-./tools/render.sh out/final/nxt5-teaser-v7.mp4      # 6 sous-images par image, environ 1 h sur 4 cœurs sans GPU
-./tools/encode.sh out/final/nxt5-teaser-v7.mp4 6    # réencode seul, si les images sont déjà rendues
-./tools/mobile.sh out/final/nxt5-teaser-v7.mp4 out/final/nxt5-teaser-v7-mobile.mp4
+./tools/render.sh out/final/nxt5-teaser-v7.1.mp4    # 6 sous-images par image, environ 1 h sur 4 cœurs sans GPU
+./tools/encode.sh out/final/nxt5-teaser-v7.1.mp4 6  # réencode seul, si les images sont déjà rendues
+./tools/mobile.sh out/final/nxt5-teaser-v7.1.mp4 out/final/nxt5-teaser-v7.1-mobile.mp4
 ```
 
-- Rendu par tranches, pour rester sous la durée maximale d’une commande : `node tools/capture.mjs audio --out out/final/soundtrack.wav`, puis `node tools/capture.mjs frames --fps 30 --sub 6 --workers 4 --from 0 --to 12 --out out/final/frames --resume 1` (et ainsi de suite jusqu’à 33,6), puis `./tools/encode.sh`. `--resume 1` saute les images déjà complètes.
+- Rendu par tranches, pour rester sous la durée maximale d’une commande : `node tools/capture.mjs audio --out out/final/soundtrack.wav`, puis `node tools/capture.mjs frames --fps 30 --sub 6 --workers 4 --from 0 --to 12 --out out/final/frames --resume 1` (et ainsi de suite jusqu’à 32,4), puis `./tools/encode.sh`. `--resume 1` saute les images déjà complètes.
 - Aperçu interactif : ouvrir `index.html` dans un navigateur (servi en local), avec lecture, son et navigation par scène.
-- Planche de contrôle : `node tools/capture.mjs sheet --from 0 --to 33 --n 42 --cols 6 --out out/sheet.png`.
-- Vérifications de la bible (§6) : `node tools/metrics.mjs VIDEO` (luminance et contours), `node tools/camcheck.mjs` (marges et vitesses de la caméra), `node tools/determinism.mjs` (même image quel que soit l’ordre de rendu), `node tools/bench.mjs` (coût de rendu), `tools/clip.sh DEBUT FIN sortie.mp4` (extrait avec flou de mouvement).
+- Planche de contrôle : `node tools/capture.mjs sheet --from 0 --to 32 --n 54 --cols 6 --out out/sheet.png`.
+- Vérifications de la bible (§6) : `node tools/metrics.mjs VIDEO` (luminance et contours ; `--v7` pour l’ancienne frise), `node tools/camcheck.mjs` (marges et vitesses de la caméra), `node tools/determinism.mjs` (même image quel que soit l’ordre de rendu), `node tools/bench.mjs` (coût de rendu), `tools/clip.sh DEBUT FIN sortie.mp4` (extrait avec flou de mouvement).
 - Chromium : variable `CHROME_PATH`, sinon détection automatique (conteneur cloud ou Playwright sur Mac). Les outils le lancent avec `--disable-gpu-rasterization`, pour que chaque image ne dépende pas des précédentes. `ffmpeg` est nécessaire pour l’encodage.
 - Le guide du moteur pour écrire une scène est dans `ENGINE.md`. Le dossier `out/` n’est pas versionné.
 
