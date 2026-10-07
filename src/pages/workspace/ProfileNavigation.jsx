@@ -3,8 +3,8 @@ import { SelectInput } from "../../components/ui/Core.jsx";
 
 export const PROFILE_SECTIONS = [
   { id: "overview", label: "Synthèse", description: "L’essentiel du joueur" },
-  { id: "champions", label: "Champions", description: "Résultats et adversaires" },
-  { id: "pool", label: "Champions déclarés", description: "Options préparées par l’équipe" },
+  { id: "champions", label: "Champions joués", description: "Résultats et adversaires" },
+  { id: "pool", label: "Champion pool", description: "Options préparées par l’équipe" },
   { id: "history", label: "Historique", description: "Retrouver une partie" },
   { id: "coaching", label: "Suivi", description: "Objectifs et notes" },
 ];

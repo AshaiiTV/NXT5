@@ -313,7 +313,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     steps: [
       "Vérifie que ton compte est lié au bon joueur dans Gestion de l’équipe.",
       "Commence par la synthèse pour repérer le point à travailler.",
-      "Ouvre Champions pour comparer les résultats et Champions déclarés pour retrouver les niveaux de maîtrise.",
+      "Ouvre Champions joués pour comparer les résultats et Champion pool pour retrouver les niveaux de maîtrise.",
       "Consulte l’historique et les parties liées pour vérifier une observation, puis le suivi pour les objectifs et les notes."
     ],
     suggestions: [
