@@ -756,7 +756,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
 function ChampionCircle({ champion, index }) {
   return <div className="nxt5-roster-champion">
     <div className="nxt5-roster-portrait"><ChampionPortrait champion={champion.champion} alt={champion.champion} /></div>
-    <div className="min-w-0"><p className="text-sm font-semibold text-white">{championDisplayName(champion.champion)}</p><p className="text-xs text-slate-400">{champion.games || 0} game{champion.games > 1 ? "s" : ""}</p></div>
+    <div className="min-w-0"><p className="text-sm font-semibold text-white">{championDisplayName(champion.champion)}</p><p className="text-xs text-slate-400">{champion.games || 0} partie{champion.games > 1 ? "s" : ""}</p></div>
   </div>;
 }
 
@@ -774,7 +774,7 @@ function playerImportedChampionStats(player, matches = []) {
 
 function ImportedChampionBadges({ player, matches = [] }) {
   const items = playerImportedChampionStats(player, matches).slice(0, 3);
-  if (!items.length) return <span className="text-xs font-semibold text-slate-300">Aucune game importee pour ce profil</span>;
+  if (!items.length) return <span className="text-xs font-semibold text-slate-300">Aucune partie importée pour ce profil</span>;
   return <div className="flex flex-wrap gap-2">{items.map((champion, index) => <ChampionCircle key={(champion.championId || champion.champion) + "-imported-" + index} champion={champion} index={index} />)}</div>;
 }
 

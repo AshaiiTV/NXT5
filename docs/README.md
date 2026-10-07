@@ -50,6 +50,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 
 | Date | Rapport |
 | --- | --- |
+| 2026-10-07 | [Maintenance du dépôt : textes, documentation et artefacts](maintenance-depot-2026-10-07.md) |
 | 2026-10-06 | [Affichage public : hydratation et performance mobile](performance-affichage-public-2026-10-06.md) |
 | 2026-10-06 | [Corrections SEO : chargement public, guides et métadonnées](corrections-seo-2026-10-06.md) |
 | 2026-10-06 | [Audit SEO de la production et mesures mobiles](audit-seo-2026-10-06.md) |
@@ -57,16 +58,18 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 | 2026-10-06 | [Audit général : sécurité, publication, performance et interface](audit-general-2026-10-06.md) |
 | 2026-10-06 | [Historique : correction de la pagination et mesures comparées](perf-historique-2026-10-06.md) |
 | 2026-10-06 | [Sécurité des entrées de compilation Tailwind](build-dependency-security-2026-10-06.md) |
-| 2026-09-06 | [Corrections complémentaires de l’audit](audit-followup-2026-09-06.md) |
-| 2026-09-08 | [Audit de cohérence visuelle](audit-da-2026-09-08.md) |
-| 2026-09-15 | [Livraison NXT5 → Discord](discord-delivery-2026-09-15.md) |
-| 2026-09-15 | [Discord : contrôle de l’interface](discord-qa-2026-09-15.md) |
-| 2026-09-21 | [Bot Discord : installation guidée et dashboard d’équipe](discord-dashboard-2026-09-21.md) |
-| 2026-09-22 | [Statistiques du bot Discord](bot-analytics-2026-09-22.md) |
-| 2026-09-23 | [Information sur le bot Discord](discord-policies-2026-09-23.md) |
-| 2026-09-23 | [Refonte de toutes les pages](design-all-pages-2026-09-23.md) |
-| 2026-09-23 | [Démarrage NXT5 : correction](onboarding-actions-2026-09-23.md) |
-| 2026-09-23 | [Vérification de sécurité](security-review-2026-09-23.md) |
+| 2026-09-30 | [Factorisation des doublons](factorisation-2026-09-30.md) |
+| 2026-09-30 | [Correctifs repris de feat/pricing-validation](pricing-validation-restes-2026-09-30.md) |
+| 2026-09-30 | [Importer 0.3.5 : Electron et actions GitHub](importer-0-3-5-2026-09-30.md) |
+| 2026-09-30 | [Passage à React 19](react-19-2026-09-30.md) |
+| 2026-09-29 | [Plafond journalier de l’assistant IA](assistant-plafond-2026-09-29.md) |
+| 2026-09-29 | [Cohérence des textes publics](coherence-textes-2026-09-29.md) |
+| 2026-09-29 | [Nettoyage du dépôt](nettoyage-depot-2026-09-29.md) |
+| 2026-09-29 | [Mesure du chargement de l’historique](perf-historique-2026-09-29.md) |
+| 2026-09-29 | [Audit croisé : backend, frontend et migrations](audit-croise-2026-09-29.md) |
+| 2026-09-29 | [Journaux serveur sécurisés](logs-securises-2026-09-29.md) |
+| 2026-09-29 | [Importer 0.3.4 : champions et détection du client](importer-champions-2026-09-29.md) |
+| 2026-09-28 | [Corrections de l’audit](audit-corrections-2026-09-28.md) |
 | 2026-09-24 | [Audit SEO et plan d’acquisition](audit-seo-2026-09-24.md) |
 | 2026-09-24 | [Clarté des autres pages](clarte-pages-restantes-2026-09-24.md) |
 | 2026-09-24 | [Bot Discord : refonte de lecture](discord-clarity-2026-09-24.md) |
@@ -75,14 +78,15 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 | 2026-09-24 | [Plan de clarté et de prise en main](plan-clarte-parcours-2026-09-24.md) |
 | 2026-09-24 | [Contrôle des accents colorés](subtle-gradients-2026-09-24.md) |
 | 2026-09-24 | [Vérification du parcours de prise en main](verification-clarte-parcours-2026-09-24.md) |
-| 2026-09-28 | [Corrections de l’audit](audit-corrections-2026-09-28.md) |
-| 2026-09-29 | [Plafond journalier de l’assistant IA](assistant-plafond-2026-09-29.md) |
-| 2026-09-29 | [Cohérence des textes publics](coherence-textes-2026-09-29.md) |
-| 2026-09-29 | [Nettoyage du dépôt](nettoyage-depot-2026-09-29.md) |
-| 2026-09-29 | [Mesure du chargement de l’historique](perf-historique-2026-09-29.md) |
-| 2026-09-30 | [Factorisation des doublons](factorisation-2026-09-30.md) |
-| 2026-09-30 | [Correctifs repris de feat/pricing-validation](pricing-validation-restes-2026-09-30.md) |
-| 2026-09-30 | [Importer 0.3.5 : Electron et actions GitHub](importer-0-3-5-2026-09-30.md) |
-| 2026-09-30 | [Passage à React 19](react-19-2026-09-30.md) |
+| 2026-09-23 | [Information sur le bot Discord](discord-policies-2026-09-23.md) |
+| 2026-09-23 | [Refonte de toutes les pages](design-all-pages-2026-09-23.md) |
+| 2026-09-23 | [Démarrage NXT5 : correction](onboarding-actions-2026-09-23.md) |
+| 2026-09-23 | [Vérification de sécurité](security-review-2026-09-23.md) |
+| 2026-09-22 | [Statistiques du bot Discord](bot-analytics-2026-09-22.md) |
+| 2026-09-21 | [Bot Discord : installation guidée et dashboard d’équipe](discord-dashboard-2026-09-21.md) |
+| 2026-09-15 | [Livraison NXT5 → Discord](discord-delivery-2026-09-15.md) |
+| 2026-09-15 | [Discord : contrôle de l’interface](discord-qa-2026-09-15.md) |
+| 2026-09-08 | [Audit de cohérence visuelle](audit-da-2026-09-08.md) |
+| 2026-09-06 | [Corrections complémentaires de l’audit](audit-followup-2026-09-06.md) |
 
 Ajouter chaque nouveau rapport daté à ce tableau dans la même pull request.

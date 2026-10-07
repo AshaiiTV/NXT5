@@ -1,6 +1,6 @@
 # Référencement et présentation publique de NXT5
 
-Ce chantier prépare une présentation plus précise pour les équipes et coachs League of Legends. L’[audit daté](audit-seo-2026-09-24.md) conserve les preuves de l’état initial et le plan d’acquisition. Une branche ou une prévisualisation ne change pas le domaine public ; la publication et les résultats Search Console doivent être vérifiés séparément.
+Ce guide décrit la présentation publique et les contrôles de référencement du dépôt. L’[audit du 24 septembre](audit-seo-2026-09-24.md) conserve l’état initial et le plan d’acquisition. L’[audit du 6 octobre](audit-seo-2026-10-06.md), ses [corrections](corrections-seo-2026-10-06.md) et le [travail sur l’affichage public](performance-affichage-public-2026-10-06.md) documentent les vérifications suivantes. Une branche ou une prévisualisation ne change pas le domaine public ; la publication et les résultats Search Console doivent être vérifiés séparément.
 
 ## Contenu et identité
 
@@ -14,7 +14,7 @@ node tools/generate-social-card.mjs
 
 ## Construction du HTML public
 
-`npm run build` exécute Vite puis `tools/prerender.mjs`. Les pages publiques déclarées dans `src/seo/metadata.js` (treize au 29 septembre 2026) sont produites depuis les mêmes composants React que l’application : accueil, fonctionnalités, démonstration, deux guides, contact, réseaux, soutien, mentions légales, confidentialité, cookies, conditions et règlement. Leur texte, leurs liens et leurs styles sont disponibles avant JavaScript. Aucune donnée de compte ou d’équipe n’est lue pour ce rendu.
+`npm run build` exécute Vite puis `tools/prerender.mjs`. Les treize pages publiques déclarées dans `src/seo/metadata.js` sont produites depuis les mêmes composants React que l’application : accueil, fonctionnalités, démonstration, deux guides, contact, réseaux, soutien, mentions légales, confidentialité, cookies, conditions et règlement. Leur texte, leurs liens et leurs styles sont disponibles avant JavaScript. Aucune donnée de compte ou d’équipe n’est lue pour ce rendu.
 
 Le navigateur hydrate ce contenu quand l’application publique est prête : les nœuds déjà affichés sont conservés au lieu d’être recréés. Le pré-rendu utilise `renderToString` avec le même arbre complet `App`/`AppRouter`, incluant les conteneurs initiaux du consentement et des notifications. L’attribut `data-prerender-path` fournit le chemin initial ; les paramètres de l’URL et le chemin demandé d’une 404 sont appliqués après hydratation. Les routes de travail privées et les shells vides gardent leur rendu client et l’écran de chargement partagé. Les pages publiques Réseaux et Soutien restent publiques pour les comptes connectés.
 

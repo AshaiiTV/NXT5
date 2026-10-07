@@ -72,7 +72,7 @@ async function render(props = settings()) {
       return node;
     }
     const node = { focus: vi.fn(), isConnected: true, querySelector: () => null };
-    if (element.props["aria-label"] === "Options de la game") optionsTrigger = node;
+    if (element.props["aria-label"] === "Options de la partie") optionsTrigger = node;
     return node;
   } }); });
   cleanups.push(() => act(() => renderer.unmount()));
@@ -114,14 +114,14 @@ function payload() {
   return { endpoint, method: options.method, body: JSON.parse(options.body) };
 }
 async function openAction(renderer, label) {
-  await click(renderer, "Options de la game");
+  await click(renderer, "Options de la partie");
   await click(renderer, label);
 }
 
 describe("discreet game options", () => {
   it("shows only the options icon until opened and closes with Escape without saving", async () => {
     const renderer = await render();
-    expect(button(renderer, "Options de la game")).toBeTruthy();
+    expect(button(renderer, "Options de la partie")).toBeTruthy();
     expect(button(renderer, "Modifier les informations")).toBeUndefined();
     expect(button(renderer, "Corriger les rôles et profils")).toBeUndefined();
     expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
@@ -141,7 +141,7 @@ describe("discreet game options", () => {
   it("protects open drafts from native back navigation and lets application navigation through", async () => {
     const renderer = await render();
     await openAction(renderer, "Modifier les informations");
-    await fill(renderer, "Nom de la game", "Brouillon à conserver");
+    await fill(renderer, "Nom de la partie", "Brouillon à conserver");
     const [eventName, protectDraft, capture] = window.addEventListener.mock.calls.at(-1);
     expect(eventName).toBe("popstate");
     expect(capture).toBe(true);
@@ -150,7 +150,7 @@ describe("discreet game options", () => {
     expect(native.stopImmediatePropagation).toHaveBeenCalledOnce();
     expect(window.history.pushState).toHaveBeenCalledWith({ from: "games" }, "", "https://nxt5.test/integration");
     expect(window.history.replaceState).not.toHaveBeenCalled();
-    expect(input(renderer, "Nom de la game").props.value).toBe("Brouillon à conserver");
+    expect(input(renderer, "Nom de la partie").props.value).toBe("Brouillon à conserver");
     const app = { isTrusted: false, stopImmediatePropagation: vi.fn() };
     protectDraft(app);
     expect(app.stopImmediatePropagation).not.toHaveBeenCalled();
@@ -164,17 +164,17 @@ describe("discreet game options", () => {
     const props = settings({ currentMember: { role }, user: { id: userId } });
     props.data.matches[0].created_by = creator;
     const renderer = await render(props);
-    expect(Boolean(button(renderer, "Options de la game"))).toBe(allowed);
+    expect(Boolean(button(renderer, "Options de la partie"))).toBe(allowed);
   });
 
   it("discards the previous team's open form when the team changes", async () => {
     const props = settings();
     const renderer = await render(props);
     await openAction(renderer, "Modifier les informations");
-    await fill(renderer, "Nom de la game", "Brouillon privé");
+    await fill(renderer, "Nom de la partie", "Brouillon privé");
     await act(async () => renderer.update(<Controls {...props} selectedTeamId="other-team" currentMember={{ role: "player" }} />));
     expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
-    expect(input(renderer, "Nom de la game")).toBeUndefined();
+    expect(input(renderer, "Nom de la partie")).toBeUndefined();
     expect(apiFetch).not.toHaveBeenCalled();
   });
 });
@@ -186,7 +186,7 @@ describe("game mutations from the options dialog", () => {
     apiFetch.mockImplementationOnce(() => new Promise((resolve) => { resolveSave = resolve; }));
     const renderer = await render(props);
     await openAction(renderer, "Modifier les informations");
-    await fill(renderer, "Nom de la game", "Finale vs Aurora");
+    await fill(renderer, "Nom de la partie", "Finale vs Aurora");
     const categoryPicker = renderer.root.findByType(CategoryMultiSelect);
     await act(async () => categoryPicker.findAllByType("button").find((node) => text(node) === "Ligue").props.onClick());
     await act(async () => { activate(button(renderer, "Enregistrer")); });
@@ -198,7 +198,7 @@ describe("game mutations from the options dialog", () => {
     expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
     expect(props.refreshAll).not.toHaveBeenCalled();
     await act(async () => resolveSave({}));
-    expect(input(renderer, "Nom de la game")).toBeUndefined();
+    expect(input(renderer, "Nom de la partie")).toBeUndefined();
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
     expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "green" }));
     expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
@@ -209,10 +209,10 @@ describe("game mutations from the options dialog", () => {
     apiFetch.mockRejectedValueOnce(new Error("Connexion interrompue"));
     const renderer = await render(props);
     await openAction(renderer, "Modifier les informations");
-    await fill(renderer, "Nom de la game", "Finale à conserver");
+    await fill(renderer, "Nom de la partie", "Finale à conserver");
     await act(async () => renderer.root.findByType(CategoryMultiSelect).props.onChange(["league"]));
     await click(renderer, "Enregistrer");
-    expect(input(renderer, "Nom de la game").props.value).toBe("Finale à conserver");
+    expect(input(renderer, "Nom de la partie").props.value).toBe("Finale à conserver");
     expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["league"]);
     expect(props.refreshAll).not.toHaveBeenCalled();
     expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "red", text: "Connexion interrompue" }));
@@ -220,13 +220,13 @@ describe("game mutations from the options dialog", () => {
     await click(renderer, "Enregistrer");
     expect(payload().body).toMatchObject({ label: "Finale à conserver", categoryIds: ["league"] });
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
-    expect(input(renderer, "Nom de la game")).toBeUndefined();
+    expect(input(renderer, "Nom de la partie")).toBeUndefined();
   });
 
   it("does not send a whitespace-only game name", async () => {
     const renderer = await render();
     await openAction(renderer, "Modifier les informations");
-    await fill(renderer, "Nom de la game", "   ");
+    await fill(renderer, "Nom de la partie", "   ");
     expect(button(renderer, "Enregistrer").props.disabled).toBe(true);
     await click(renderer, "Annuler");
     expect(apiFetch).not.toHaveBeenCalled();
@@ -272,7 +272,7 @@ describe("game mutations from the options dialog", () => {
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
     expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "green", title: "Assignation corrigée" }));
     expect(props.onUpdated).toHaveBeenCalledWith({ matchId: "team-game-1", action: "roles", result: {} });
-    expect(button(renderer, "Options de la game")).toBeTruthy();
+    expect(button(renderer, "Options de la partie")).toBeTruthy();
     expect(button(renderer, "Annuler")).toBeUndefined();
   });
 
@@ -291,7 +291,7 @@ describe("game mutations from the options dialog", () => {
     await click(renderer, "Enregistrer");
     expect(payload().body.roles["ally-adc-0"]).toEqual({ role: "SUP" });
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
-    expect(button(renderer, "Options de la game")).toBeTruthy();
+    expect(button(renderer, "Options de la partie")).toBeTruthy();
   });
 
   it("requires an explicit deletion confirmation and reports the removed game", async () => {
@@ -303,7 +303,7 @@ describe("game mutations from the options dialog", () => {
     await click(renderer, "Annuler");
     expect(apiFetch).not.toHaveBeenCalled();
     await openAction(renderer, "Supprimer");
-    await click(renderer, "Supprimer la game");
+    await click(renderer, "Supprimer la partie");
     expect(payload()).toEqual({ endpoint: "matches-manage", method: "POST", body: { action: "delete", teamId: "team", matchId: "team-game-1" } });
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
     expect(props.onDeleted).toHaveBeenCalledWith("team-game-1");
@@ -315,9 +315,9 @@ describe("game mutations from the options dialog", () => {
     const renderer = await render(props);
     apiFetch.mockRejectedValueOnce(new Error("Suppression refusée"));
     await openAction(renderer, "Supprimer");
-    await click(renderer, "Supprimer la game");
+    await click(renderer, "Supprimer la partie");
     expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
-    expect(button(renderer, "Supprimer la game").props.disabled).toBe(false);
+    expect(button(renderer, "Supprimer la partie").props.disabled).toBe(false);
     expect(props.refreshAll).not.toHaveBeenCalled();
     expect(props.onDeleted).not.toHaveBeenCalled();
     expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "red", text: "Suppression refusée" }));

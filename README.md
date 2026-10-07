@@ -21,8 +21,14 @@ La [documentation du dépôt](docs/README.md) regroupe les guides d’exploitati
 Prérequis : Node 24 (`>=24.15.0 <25`) et la [CLI Netlify](https://docs.netlify.com/cli/get-started/), utilisée par `npm run dev`.
 
 ```bash
-npm install
+npm ci
 cp .env.example .env
+```
+
+Renseigne dans `.env` la connexion d’une base de développement dédiée et un `SESSION_SECRET` aléatoire d’au moins 64 caractères. Les valeurs d’exemple doivent être remplacées. Initialise ensuite la base avant de lancer le site et ses fonctions :
+
+```bash
+node --env-file=.env tools/migrate.mjs
 npm run dev
 ```
 
@@ -54,21 +60,21 @@ Les contrôles TypeScript, tests, build et audit des dépendances doivent réuss
 
 ## Variables d’environnement Netlify
 
-Dans Netlify : Site configuration → Environment variables. La liste complète et commentée est dans [`.env.example`](.env.example). Les principales :
+Dans Netlify : Site configuration → Environment variables. Les variables communes et leurs exemples commentés sont dans [`.env.example`](.env.example), avec les guides propres aux intégrations dans [la documentation](docs/README.md). Les principales :
 
 ```txt
 DATABASE_URL=postgresql://...
 RIOT_API_KEY=RGAPI-...
 SESSION_SECRET=une_phrase_longue_random_64_caracteres_minimum
 APP_ENV=production
-RIOT_PROFILE_SYNC_MAX_MATCHES=300
+RIOT_PROFILE_SYNC_MAX_MATCHES=80
 PUBLIC_SITE_URL=https://nxt5.org
 RESEND_API_KEY=re_...
 RESET_EMAIL_FROM=NXT5 <noreply@ton-domaine.fr>
 ```
 
 `DATABASE_URL` vient de Neon et doit être disponible pour les fonctions. Pour les migrations, donne accès au contexte **production / Builds** à `MIGRATION_DATABASE_URL` (ou à `DATABASE_URL` en son absence). Ne partage pas les identifiants de production avec les Deploy Previews.
-`RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton « Analyser profils » recalcule les champions joués sur la saison courante.
+`RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton « Analyser profils » recalcule les champions joués sur la saison courante. Sa valeur par défaut et son plafond sont de 80 matchs ; une valeur supérieure est ramenée à ce plafond.
 `PUBLIC_SITE_URL` est facultative ; si elle est définie, elle doit valoir exactement `https://nxt5.org`, sinon le build échoue pour ne pas publier de mauvaise URL canonique.
 `RESEND_API_KEY` et `RESET_EMAIL_FROM` servent à envoyer les e-mails de mot de passe oublié. Le domaine utilisé dans `RESET_EMAIL_FROM` doit être validé dans Resend.
 
@@ -88,7 +94,7 @@ Le déploiement de production effectue aussi la [réécriture unique des reviews
 
 ## Présentation publique et référencement
 
-L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. L’[audit SEO du 24 septembre 2026](docs/audit-seo-2026-09-24.md) documente l’état initial et le plan de suivi de l’acquisition. Les [consignes de maintenance SEO](docs/seo.md) précisent le pré-rendu, les métadonnées et les vérifications avant publication.
+L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. La [démonstration](https://nxt5.org/demo) et les guides du [premier import](https://nxt5.org/guides/importer-premier-scrim) et du [premier débrief](https://nxt5.org/guides/preparer-debrief) sont accessibles sans compte. L’[audit SEO du 6 octobre 2026](docs/audit-seo-2026-10-06.md) et les [corrections associées](docs/corrections-seo-2026-10-06.md) complètent l’[état initial du 24 septembre](docs/audit-seo-2026-09-24.md). Les [consignes de maintenance SEO](docs/seo.md) précisent le pré-rendu, les métadonnées et les vérifications avant publication.
 
 ## Test rapide du suivi d’équipe
 
@@ -96,7 +102,8 @@ L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. L’[a
 2. Dans **Équipe**, crée ou rejoins une équipe.
 3. Ajoute un joueur avec son Riot ID exact, par exemple `Pseudo#EUW`.
 4. Exporte une partie de ce joueur avec NXT5 Importer, puis dans **Parties**, choisis **Importer une partie** et charge le fichier JSON.
-5. Ouvre la partie, puis consulte **Débriefs**, **Analyses** et **Draft**.
+5. Confirme le côté de l’équipe et les postes, puis associe les cinq joueurs alliés aux profils existants ou crée les profils manquants avant de valider l’import.
+6. Ouvre la partie, puis consulte **Débriefs**, **Analyses** et **Draft**.
 
 ## Application NXT5 Importer
 
@@ -119,6 +126,7 @@ Les mises à jour sont proposées pour l’architecture de l’appareil. Les lie
 
 ```sh
 cd importer-app
+# Utiliser pnpm 11.19.0, déclaré dans importer-app/package.json.
 pnpm install --frozen-lockfile
 pnpm test
 pnpm start
