@@ -1,21 +1,21 @@
 .demo-match-summary { min-width: 0; padding: clamp(1.2rem, 3vw, 2rem); }
 .demo-match-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .75rem; }
-.demo-match-heading > p { color: #c4b5fd; font-size: .875rem; }
+.demo-match-heading > p { color: var(--nxt5-accent-2); font-size: var(--nxt5-font-small); }
 .demo-match-summary h2, .demo-match-summary h3 { margin-top: 1.25rem; font-size: clamp(1.25rem, 2vw, 1.6rem); line-height: 1.4; font-weight: 650; }
-.demo-match-context { margin-top: .5rem; color: var(--nxt5-text-secondary); font-size: .875rem; line-height: 1.7; }
+.demo-match-context { margin-top: .5rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.7; }
 .demo-match-metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr)); gap: 1.25rem; margin-top: 1.5rem; padding-block: 1.25rem; border-block: 1px solid var(--nxt5-border); }
-.demo-match-metrics dt { color: var(--nxt5-text-secondary); font-size: .875rem; }
+.demo-match-metrics dt { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); line-height: 1.6; }
 .demo-match-metrics dd { margin-top: .5rem; color: var(--nxt5-text); font-size: 1.65rem; font-weight: 650; font-variant-numeric: tabular-nums; }
-.demo-match-metrics dd span { font-size: .875rem; font-weight: 400; }
+.demo-match-metrics dd span { font-size: var(--nxt5-font-small); font-weight: 400; }
 .demo-coach-question { margin-top: 1.25rem; padding-left: 1rem; border-left: 2px solid var(--nxt5-accent-2); }
-.demo-coach-question p { color: var(--nxt5-accent-2); font-size: .875rem; }
-.demo-coach-question strong { display: block; margin-top: .5rem; font-weight: 500; line-height: 1.75; }
-.demo-data-note { margin-top: 1.25rem; color: var(--nxt5-text-secondary); font-size: .875rem; line-height: 1.75; }
+.demo-coach-question p { color: var(--nxt5-accent-2); font-size: var(--nxt5-font-ui); }
+.demo-coach-question strong { display: block; max-width: var(--nxt5-reading-width); margin-top: .5rem; font-size: var(--nxt5-font-body); font-weight: 500; line-height: 1.75; }
+.demo-data-note { max-width: var(--nxt5-reading-width); margin-top: 1.25rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.75; }
 .demo-player-list { margin-top: 1.25rem; padding: 0; list-style: none; }
 .demo-player-list li { display: flex; align-items: center; gap: .8rem; padding-block: .8rem; border-bottom: 1px solid var(--nxt5-border); }
 .demo-player-list strong, .demo-player-list span span { display: block; }
-.demo-player-list strong { font-size: .875rem; font-weight: 550; }
-.demo-player-list span span { margin-top: .3rem; color: var(--nxt5-text-secondary); font-size: .875rem; }
+.demo-player-list strong { font-size: var(--nxt5-font-body); font-weight: 550; }
+.demo-player-list span span { margin-top: .3rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
 .demo-kda { margin-left: auto; text-align: right; }
 .demo-navigation { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: 1.5rem; }
 .demo-navigation button[aria-pressed="true"] { border-color: var(--nxt5-accent-2); background: var(--nxt5-spectrum-soft); }
@@ -25,11 +25,11 @@
 .demo-detail-actions { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; margin-bottom: 1rem; }
 .demo-review { padding: clamp(1.25rem, 4vw, 2rem); }
 .demo-review h2 { margin-top: .75rem; font-size: 1.75rem; line-height: 1.4; font-weight: 650; }
-.demo-review ol { padding: 0; list-style: none; counter-reset: demo-review; }
+.demo-review ol { max-width: var(--nxt5-reading-width); padding: 0; list-style: none; counter-reset: demo-review; }
 .demo-review li { counter-increment: demo-review; margin-top: 1.5rem; padding-block: 1rem; border-top: 1px solid var(--nxt5-border); }
 .demo-review h3 { font-size: 1.125rem; font-weight: 600; }
 .demo-review h3::before { content: counter(demo-review) ". "; color: var(--nxt5-accent-2); }
-.demo-review li p { max-width: 52rem; margin-top: .75rem; color: var(--nxt5-text-secondary); line-height: 1.8; }
+.demo-review li p { max-width: var(--nxt5-reading-width); margin-top: .75rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.8; overflow-wrap: anywhere; }
 .demo-review button { margin-top: 1.25rem; }
 .nxt5-demo-page .nxt5-entry-start > div { max-width: 48rem; }
 @media (max-width: 480px) {

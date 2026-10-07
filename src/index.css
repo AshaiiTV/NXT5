@@ -47,18 +47,26 @@
 
 :root {
   color-scheme: dark;
-  --nxt5-bg: #020611;
-  --nxt5-surface: #091322;
-  --nxt5-surface-raised: #0e1b2e;
-  --nxt5-surface-soft: rgba(154, 182, 218, 0.045);
-  --nxt5-border: rgba(154, 182, 218, 0.13);
-  --nxt5-border-strong: rgba(154, 182, 218, 0.25);
-  --nxt5-text: #f3f7ff;
-  --nxt5-text-secondary: #bfccdf;
-  --nxt5-muted: #97abc4;
+  --nxt5-bg: #111827;
+  --nxt5-surface: #1e293b;
+  --nxt5-surface-raised: #29384d;
+  --nxt5-field: #111b2d;
+  --nxt5-surface-soft: rgba(181, 200, 225, 0.065);
+  --nxt5-border: rgba(181, 200, 225, 0.22);
+  --nxt5-border-strong: rgba(181, 200, 225, 0.38);
+  --nxt5-text: #f1f5f9;
+  --nxt5-text-secondary: #cbd5e1;
+  --nxt5-muted: #afbfd3;
   --nxt5-accent: #67e8f9;
-  --nxt5-accent-2: #a78bfa;
+  --nxt5-accent-2: #c4b5fd;
   --nxt5-danger: #fda4af;
+  /* Action ink stays dark independently of the page background. */
+  --nxt5-on-accent: #020611;
+  --nxt5-font-body: 1rem;
+  --nxt5-font-ui: .9375rem;
+  --nxt5-font-small: .875rem;
+  --nxt5-font-micro: .75rem;
+  --nxt5-reading-width: 68ch;
   --nxt5-primary-gradient: linear-gradient(to right, #22d3ee, #3b82f6, #d946ef);
   /* Decorative accents; primary actions and semantic state colors stay distinct. */
   --nxt5-spectrum-stops: #67e8f9, #818cf8 38%, #a78bfa 65%, #e879f9;
@@ -83,7 +91,7 @@
 }
 
 html {
-  background: #020511;
+  background: var(--nxt5-bg);
   overflow-x: hidden;
 }
 
@@ -94,8 +102,8 @@ body {
   background: var(--nxt5-bg);
   color: var(--nxt5-text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: var(--nxt5-font-body);
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -260,7 +268,7 @@ textarea {
 .nxt5-cyber-button { border-radius: var(--nxt5-radius-button); }
 .nxt5-button-primary {
   background-image: var(--nxt5-primary-gradient);
-  color: var(--nxt5-bg);
+  color: var(--nxt5-on-accent);
 }
 .nxt5-input-shell,
 input.nxt5-control,
@@ -268,7 +276,7 @@ select.nxt5-control,
 textarea.nxt5-control {
   border-color: var(--nxt5-border-strong);
   border-radius: var(--nxt5-radius-control);
-  background: #050d1a;
+  background: var(--nxt5-field);
   color: var(--nxt5-text);
   box-shadow: none;
   transition: border-color 160ms, box-shadow 160ms;
@@ -600,9 +608,7 @@ svg {
   background: rgba(154, 182, 218, .5);
 }
 html.nxt5-low-gpu body {
-  background:
-    linear-gradient(135deg, rgba(8, 24, 45, 0.76), rgba(4, 8, 20, 0.94)),
-    #020511;
+  background: var(--nxt5-bg);
 }
 
 html.nxt5-low-gpu *,
@@ -614,9 +620,7 @@ html.nxt5-low-gpu *::after {
 }
 
 html.nxt5-low-gpu .nxt5-ambient-bg {
-  background:
-    linear-gradient(135deg, rgba(8, 27, 52, 0.9), rgba(3, 7, 18, 0.98)),
-    #020511 !important;
+  background: var(--nxt5-bg) !important;
 }
 
 html.nxt5-low-gpu .nxt5-ambient-bg > div {
@@ -645,9 +649,7 @@ html.nxt5-low-gpu :where([class*="shadow-"], .nxt5-premium-panel) {
 }
 
 html.nxt5-low-gpu .nxt5-premium-panel {
-  background:
-    linear-gradient(135deg, rgba(8, 17, 36, 0.94), rgba(4, 8, 20, 0.9) 54%, rgba(15, 10, 30, 0.82)),
-    rgba(2, 7, 18, 0.86) !important;
+  background: var(--nxt5-surface) !important;
 }
 
 html.nxt5-low-gpu .nxt5-premium-panel::before,
@@ -893,14 +895,13 @@ html.nxt5-low-gpu .nxt5-hud-lines::before {
 }
 
 /* Deliberate, accessible text tiers on the night surfaces. */
-.text-slate-300 { color: #c5d2e3; }
-.text-slate-400 { color: #aebed3; }
-.text-slate-500 { color: #96aac5; }
-.text-slate-600, .text-slate-650, .text-slate-700 { color: #91a7c3; }
+.text-slate-300 { color: var(--nxt5-text-secondary); }
+.text-slate-400, .text-slate-500 { color: var(--nxt5-muted); }
+.text-slate-600, .text-slate-650, .text-slate-700 { color: var(--nxt5-muted); }
 .placeholder\:text-slate-400::placeholder,
 .placeholder\:text-slate-500::placeholder,
 .placeholder\:text-slate-600::placeholder,
-.placeholder\:text-slate-650::placeholder { color: #8fa4c0; opacity: 1; }
+.placeholder\:text-slate-650::placeholder { color: var(--nxt5-muted); opacity: 1; }
 
 /* Responsive safeguards for legacy data grids; new layouts own their breakpoints. */
 @media (max-width: 1023px) {

@@ -155,7 +155,7 @@ function ChampionPortrait({ champion, row, alt, className = "h-full w-full objec
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [sources.join("|")]);
   const source = sources[sourceIndex];
-  if (!source) return <div className={cx("flex items-center justify-center bg-gradient-to-br from-cyan-400/18 via-blue-500/10 to-fuchsia-500/18 text-[0.6rem] font-black text-cyan-100", className)}>{String(alt || champion || row?.champion || "?").slice(0, 2).toUpperCase()}</div>;
+  if (!source) return <div className={cx("flex items-center justify-center bg-gradient-to-br from-cyan-400/18 via-blue-500/10 to-fuchsia-500/18 text-[length:var(--nxt5-font-micro)] font-black text-cyan-100", className)}>{String(alt || champion || row?.champion || "?").slice(0, 2).toUpperCase()}</div>;
   return <img src={source} alt={alt || champion || row?.champion || "Champion"} className={className} loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
@@ -470,7 +470,7 @@ function matchCategoryTone(category) {
 
 function CategoryFilter({ categories, selectedCategoryId, onSelect, label = "Catégories" }) {
   return <div className="flex min-w-0 flex-wrap items-center gap-2">
-    <span className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">{label}</span>
+    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{label}</span>
     <button type="button" onClick={() => onSelect("")} className={cx("rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", !selectedCategoryId ? "border-cyan-200/45 bg-cyan-400/14 text-cyan-50" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>Toutes</button>
     {(categories || []).map((category) => <button key={category.id} type="button" onClick={() => onSelect(String(category.id) === String(selectedCategoryId) ? "" : category.id)} className={cx("rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", String(category.id) === String(selectedCategoryId) ? tone(matchCategoryTone(category)) : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{category.name}</button>)}
   </div>;
@@ -732,8 +732,8 @@ function HudIcon({ src, sources, label, fallback, emptyText = "VIDE", toneName =
   return <div title={label} className={cx("relative aspect-square min-h-0 min-w-0 overflow-hidden rounded-xl border bg-black/35", active ? toneName === "pink" ? "border-fuchsia-200/25 shadow-[0_0_14px_rgba(217,70,239,.10)]" : "border-cyan-200/20 shadow-[0_0_14px_rgba(34,211,238,.10)]" : "border-white/8 opacity-45", className)}>
     {active ? <>
       <img src={source} alt={label} className="h-full w-full object-cover" loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />
-      <span className="hidden h-full w-full items-center justify-center px-1 text-center text-[0.54rem] font-black text-slate-300">{fallback}</span>
-    </> : <span className="flex h-full w-full items-center justify-center px-1 text-center text-[0.54rem] font-black text-slate-300">{emptyText}</span>}
+      <span className="hidden h-full w-full items-center justify-center px-1 text-center text-[length:var(--nxt5-font-micro)] font-black text-slate-300">{fallback}</span>
+    </> : <span className="flex h-full w-full items-center justify-center px-1 text-center text-[length:var(--nxt5-font-micro)] font-black text-slate-300">{emptyText}</span>}
   </div>;
 }
 

@@ -22,7 +22,7 @@
 
 .objectives-heading > p {
   color: var(--nxt5-text-secondary);
-  font-size: 13px;
+  font-size: var(--nxt5-font-body);
 }
 
 .objectives-team {
@@ -33,7 +33,7 @@
 
 .nxt5-objectives-content .objectives-eyebrow {
   color: var(--nxt5-text-secondary);
-  font-size: 13px;
+  font-size: var(--nxt5-font-small);
   font-weight: 700;
   line-height: 1.5;
   letter-spacing: normal;
@@ -66,7 +66,7 @@
 .objectives-reason {
   max-width: 62ch;
   color: var(--nxt5-text-secondary);
-  font-size: 14px;
+  font-size: var(--nxt5-font-body);
   line-height: 1.65;
 }
 
@@ -96,7 +96,7 @@
   gap: 4px 10px;
   margin-top: 14px;
   color: var(--nxt5-text-secondary);
-  font-size: 13px;
+  font-size: var(--nxt5-font-small);
   line-height: 1.5;
 }
 
@@ -109,7 +109,7 @@
 .objectives-checkpoint {
   margin-top: 6px;
   color: var(--nxt5-text-secondary);
-  font-size: 13px;
+  font-size: var(--nxt5-font-body);
   line-height: 1.6;
 }
 
@@ -127,7 +127,7 @@
   gap: 8px;
   border-radius: var(--nxt5-radius-button, 2px);
   color: #cffafe;
-  font-size: 13px;
+  font-size: var(--nxt5-font-ui);
   font-weight: 650;
   line-height: 1.5;
   text-align: left;
@@ -170,7 +170,7 @@
 }
 
 .objectives-role-name {
-  font-size: 14px;
+  font-size: var(--nxt5-font-small);
   font-weight: 700;
   line-height: 1.5;
 }
@@ -178,13 +178,13 @@
 .objectives-role-current {
   margin-top: 4px;
   color: var(--nxt5-text-secondary);
-  font-size: 13px;
+  font-size: var(--nxt5-font-small);
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
 }
 
 .objectives-role-instruction h5 {
-  font-size: 15px;
+  font-size: var(--nxt5-font-body);
   font-weight: 700;
   line-height: 1.4;
 }
@@ -193,14 +193,14 @@
   max-width: 68ch;
   margin-top: 6px;
   color: var(--nxt5-text-secondary);
-  font-size: 13px;
+  font-size: var(--nxt5-font-body);
   line-height: 1.6;
 }
 
 .objectives-role-target > p:last-child {
   margin-top: 6px;
   color: #cffafe;
-  font-size: 13px;
+  font-size: var(--nxt5-font-body);
   font-weight: 650;
   line-height: 1.6;
 }
@@ -248,6 +248,6 @@
 
 .objectives-role > div { min-width: 0; overflow-wrap: anywhere; }
 .objectives-link:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
-.objectives-empty { padding: 16px 0; color: var(--nxt5-text-secondary); font-size: 14px; line-height: 1.65; }
+.objectives-empty { padding: 16px 0; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.65; }
 
-.objectives-intro { max-width: 80ch; margin-top: 12px; color: var(--nxt5-text-secondary); font-size: 15px; line-height: 1.7; }
+.objectives-intro { max-width: 72ch; margin-top: 12px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.7; }

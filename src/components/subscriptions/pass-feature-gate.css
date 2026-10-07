@@ -60,7 +60,7 @@
   max-width: 480px;
   padding: 24px 16px;
   text-align: center;
-  background: radial-gradient(ellipse, rgba(5, 11, 24, .98) 20%, rgba(5, 11, 24, .84) 55%, transparent 75%);
+  background: radial-gradient(ellipse, var(--nxt5-surface) 20%, rgb(30 41 59 / .92) 55%, transparent 75%);
 }
 
 .pass-feature-preview-link {
@@ -72,7 +72,7 @@
   padding: 10px 16px;
   border: 1px solid rgba(207, 250, 254, .36);
   border-radius: var(--nxt5-radius-button);
-  font-size: 14px;
+  font-size: var(--nxt5-font-ui);
   font-weight: 600;
 }
 

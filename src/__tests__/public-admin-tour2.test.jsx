@@ -71,9 +71,9 @@ it("E7: daily chart dates stay on their UTC day west of UTC", () => {
   expect(html.match(/29 sept\. 2026/g)).toHaveLength(4); // Readout, button, both axis ends.
 });
 
-it("E8: guide mobile label is 14 px and keeps token colors and 16 px fields", () => {
+it("E8: guide mobile label follows the shared reading scale and keeps 16 px fields", () => {
   const css = readFileSync(new URL("../pages/guide.css", import.meta.url), "utf8");
-  expect(css).toMatch(/\.nxt5-guide-mobile-label \{ display: grid;[^}]*font-size: \.875rem/);
+  expect(css).toMatch(/\.nxt5-guide-mobile-label \{ display: grid;[^}]*font-size: var\(--nxt5-font-ui\)/);
   expect(css).toMatch(/\.nxt5-guide-mobile-label select \{[^}]*background: var\(--nxt5-bg\)[^}]*font-size: 1rem/);
 });
 
