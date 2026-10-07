@@ -15,6 +15,10 @@
 .profile-tabs strong { display: block; font-size: var(--nxt5-font-ui); font-weight: 700; }
 .profile-tabs span { display: block; margin-top: 4px; font-size: var(--nxt5-font-ui); line-height: 1.5; }
 .profile-mobile-navigation { display: none; }
+@container profile-page (max-width: 900px) {
+  .profile-tabs { display: none; }
+  .profile-mobile-navigation { display: block; }
+}
 .profile-content { display: flex; flex-direction: column; gap: 20px; min-width: 0; scroll-margin-top: 90px; }
 .profile-content > * { min-width: 0; }
 .nxt5-profile-page .profile-section-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; margin-bottom: 20px; }

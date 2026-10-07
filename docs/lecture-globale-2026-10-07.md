@@ -13,7 +13,7 @@ La charte canonique indiquée dans `AGENTS.md` reste la référence unique. Ce r
 | Accueil connecté | Audité et conservé : démarrage ou reprise, avec une action dominante. Les évolutions réalisées dans d’autres branches ne font pas partie de cette passe. |
 | Parties, groupes et import | Fiche récemment simplifiée conservée. Import déjà guidé : fichier, équipe, joueurs, confirmation. Gestion contextuelle, erreurs et progression conservées. |
 | Débriefs | Notes de l’équipe avant l’analyse automatique V3. Bibliothèque avec recherche et filtres à ouvrir ; retour du focus sur le débrief choisi. Édition directement accessible, duplication et suppression en complément. Résultats regroupés sans trois cartes supplémentaires. |
-| Profil — synthèse | Piste et prochaine action sur un axe vertical. Sources et indicateurs conservés. Champions, pool, historique et suivi gardent leurs parcours existants. |
+| Profil — synthèse | Piste et prochaine action sur un axe vertical. Sources et indicateurs conservés. Les rubriques sont renommées « Champions joués » et « Champion pool » dans les onglets, le sélecteur mobile, le fil d’Ariane et l’aide. Leurs parcours restent identiques. |
 | Analyses — synthèse | Piste, vérification des parties sources, puis objectifs. Introduction répétée supprimée ; bilan associé aux filtres. Évolution, comparaison, champions, objectifs et analyses de draft restent structurés par leur tâche. |
 | Draft — compositions | Choix des champions avant les compteurs et le lexique. Aide répétée dans les emplacements vides condensée. Pool et zones de dépôt conservés. |
 | Équipe et gestion | Joueurs, ajout, invitations et accès avant identité détaillée. Copies OP.GG dans un complément. Formulaire d’identité toujours monté. |
@@ -37,7 +37,9 @@ La charte canonique indiquée dans `AGENTS.md` reste la référence unique. Ce r
 
 ## Vérification
 
-Le contrôle complet `npm run verify` passe : TypeScript, 169 suites / 2 969 tests et compilation avec pré-rendu de 13 pages publiques. Les tests ajoutés couvrent les notes prioritaires et le texte historique, le filtre de bibliothèque après résultat vide, la démo et la conservation des compléments de fréquentation.
+Le contrôle complet final `npm run verify` passe après intégration de `main` au commit `113c2a7` : TypeScript, 175 suites / 3 046 tests et compilation avec pré-rendu de 13 pages publiques. L’audit des dépendances passe également. Les tests ajoutés couvrent les notes prioritaires et le texte historique, le filtre de bibliothèque après résultat vide, la démo et la conservation des compléments de fréquentation.
+
+L’intégration conserve les précisions d’équipe du planning, l’accueil adaptatif et Carte & Wrapped déjà livrés par les PR #127, #128 et #129. Le planning garde une seule grille alimentée par les lignes partagées de l’équipe, avec les précisions avant les aides. Le profil conserve ses six rubriques et ses adaptations mobiles.
 
 Vérifications dans un navigateur réel, sur des données fictives, avec les composants et le cadre de navigation du dépôt :
 

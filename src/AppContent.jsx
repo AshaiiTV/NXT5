@@ -329,7 +329,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
     if (active === "team-management") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
     if (active === "matches" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
-    if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} planningStore={planningStore} currentMember={currentMember} user={user} />;
+    if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} planningStore={planningStore} currentMember={currentMember} user={user} refreshAll={refreshAll} />;
     if (active === "draft") return <DraftWorkspace data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
@@ -343,7 +343,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   const nextStep = onboardingSteps.find(step => !step.done && !step.disabled);
   const showStartReturn = onboardingReady && !onboarding.dismissed && onboardingSteps.some(step => !step.done) && !isTeamSetup && ["teams", "team-management", "matches", "reports", "planning", "profile"].includes(active);
   const helpSection = { home: "getting-started", teams: "teams-and-roster", "team-management": "teams-and-roster", matches: setupParams.get("import") === "1" ? "imports-and-games" : "statistics", reports: "reviews", profile: "player-profile", planning: "planning", trends: "trends", draft: "champion-pool" }[active] || "getting-started";
-  const currentPage = active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} /> : page;
+  const currentPage = active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} loading={loading} apiError={apiError} /> : page;
   const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{currentPage}</PassFeatureGate> : currentPage;
   const assistantWidget = !workspaceLocked && <>
     {active !== "home" && data.teams.length > 0 && <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? "Fermer l'assistant NXT5" : "Ouvrir l'assistant NXT5"} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher", assistantOpen && "is-open")}>

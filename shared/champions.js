@@ -34,3 +34,18 @@ export function canonicalChampion(value) {
   const raw = String(value || "").trim();
   return CHAMPION_ASSET_ALIASES[championNameKey(raw)] || raw.replace(/[^A-Za-z0-9]/g, "");
 }
+
+/** Human-readable names shared by the interface and canvas exports. */
+export function championDisplayName(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  const names = {
+    AurelionSol: "Aurelion Sol", Chogath: "Cho'Gath", DrMundo: "Dr. Mundo",
+    JarvanIV: "Jarvan IV", Kaisa: "Kai'Sa", Khazix: "Kha'Zix", KogMaw: "Kog'Maw",
+    KSante: "K'Sante", Leblanc: "LeBlanc", LeeSin: "Lee Sin", MasterYi: "Master Yi",
+    MissFortune: "Miss Fortune", MonkeyKing: "Wukong", Nunu: "Nunu & Willump",
+    RekSai: "Rek'Sai", TahmKench: "Tahm Kench", TwistedFate: "Twisted Fate",
+    Velkoz: "Vel'Koz", XinZhao: "Xin Zhao",
+  };
+  return names[canonicalChampion(raw)] || raw.replace(/([a-z])([A-Z])/g, "$1 $2");
+}
