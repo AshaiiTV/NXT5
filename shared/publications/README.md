@@ -42,10 +42,11 @@ Le schéma v1 diffuse une game ; l’analyse reste `nxt5-game-2` et le template 
 ## Vérification reproductible
 
 ```sh
-node tools/benchmark-publication-render.mjs
+./node_modules/.bin/esbuild tools/benchmark-publication-render.mjs --bundle --platform=node --format=esm --packages=external --outfile=artifacts/discord-render/benchmark-runner.mjs
+node artifacts/discord-render/benchmark-runner.mjs artifacts/discord-render
 node node_modules/vitest/vitest.mjs run src/__tests__/publication-model.test.js src/__tests__/publication-render.test.ts src/__tests__/review-backfill-generator.test.jsx
 ```
 
-Le benchmark produit cinq exemples fictifs, tous factuels (dont un appel de compatibilité `includeHints:false`), snapshots JSON et mesures dans `artifacts/discord-render/`. Ne pas utiliser leurs identités ou leurs chiffres comme données réelles. Les tests PNG vérifient la signature, les dimensions, le déterminisme avec icônes simulées, l’égalité du rendu serveur avec la composition du navigateur et le budget effectif de 3 Mio des aperçus et publications. Ils couvrent les échecs et limites des icônes, ainsi que l’invalidation des anciens visuels en cache. Le jeu de tests vérifie aussi les corrections de côté/rôle, les valeurs nulles, les lignes incomplètes, la timeline manquante et l'absence de données privées non destinées à la publication. Le message natif résume résultat/score/durée, intègre le PNG et propose un seul accès à la game ; sans image, un champ restitue les chiffres collectifs disponibles.
+Le bundlage résout les imports TypeScript du script en conservant les bibliothèques natives installées. Le benchmark produit cinq exemples fictifs, tous factuels (dont un appel de compatibilité `includeHints:false`), snapshots JSON et mesures dans `artifacts/discord-render/`. Ces fichiers sont générés localement et ignorés par Git. Ne pas utiliser leurs identités ou leurs chiffres comme données réelles. Les tests PNG vérifient la signature, les dimensions, le déterminisme avec icônes simulées, l’égalité du rendu serveur avec la composition du navigateur et le budget effectif de 3 Mio des aperçus et publications. Ils couvrent les échecs et limites des icônes, ainsi que l’invalidation des anciens visuels en cache. Le jeu de tests vérifie aussi les corrections de côté/rôle, les valeurs nulles, les lignes incomplètes, la timeline manquante et l'absence de données privées non destinées à la publication. Le message natif résume résultat/score/durée, intègre le PNG et propose un seul accès à la game ; sans image, un champ restitue les chiffres collectifs disponibles.
 
 Documentation du moteur Canvas : https://github.com/Brooooooklyn/canvas#usage.

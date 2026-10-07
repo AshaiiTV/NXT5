@@ -18,7 +18,7 @@ importer-app/release/
 # Local audit logs, screenshots, exports and temporary verification fixtures.
 /tmp/
 /output/
-/artifacts/discord-render/benchmark-runner.mjs
+/artifacts/
 
 .DS_Store
 Thumbs.db

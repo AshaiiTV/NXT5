@@ -2,7 +2,7 @@
 
 Espace de travail des équipes et coachs League of Legends : analyse des parties, débriefs, préparation des champions et organisation des entraînements. Site public : [nxt5.org](https://nxt5.org).
 
-La [documentation du dépôt](docs/README.md) regroupe les guides d’exploitation et l’historique des travaux.
+La [documentation du dépôt](docs/README.md) regroupe les guides d’exploitation et de maintenance.
 
 ## Stack
 
@@ -94,7 +94,7 @@ Le déploiement de production effectue aussi la [réécriture unique des reviews
 
 ## Présentation publique et référencement
 
-L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. La [démonstration](https://nxt5.org/demo) et les guides du [premier import](https://nxt5.org/guides/importer-premier-scrim) et du [premier débrief](https://nxt5.org/guides/preparer-debrief) sont accessibles sans compte. L’[audit SEO du 6 octobre 2026](docs/audit-seo-2026-10-06.md) et les [corrections associées](docs/corrections-seo-2026-10-06.md) complètent l’[état initial du 24 septembre](docs/audit-seo-2026-09-24.md). Les [consignes de maintenance SEO](docs/seo.md) précisent le pré-rendu, les métadonnées et les vérifications avant publication.
+L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. La [démonstration](https://nxt5.org/demo) et les guides du [premier import](https://nxt5.org/guides/importer-premier-scrim) et du [premier débrief](https://nxt5.org/guides/preparer-debrief) sont accessibles sans compte. Les [consignes de maintenance SEO](docs/seo.md) précisent le pré-rendu, les métadonnées et les vérifications avant publication.
 
 ## Test rapide du suivi d’équipe
 

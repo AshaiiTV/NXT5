@@ -1,6 +1,6 @@
 # Politique de sécurité NXT5
 
-Mise à jour : 23 septembre 2026.
+Mise à jour : 7 octobre 2026.
 
 ## Périmètre et versions
 
@@ -48,6 +48,22 @@ Ces contrôles sont à réaliser et à documenter par le responsable du service.
 | Contact de sécurité | Vérifier que l’équipe reste joignable en privé depuis Contact. Réexaminer et renouveler `public/.well-known/security.txt` avant son expiration du 23 mars 2027, après chaque changement de contact ou de domaine. |
 
 Les procédures complémentaires sont décrites dans [les migrations](database/MIGRATIONS.md), [la mesure d’audience](docs/audience-api.md) et [l’exploitation Discord](docs/discord-operations.md).
+
+### Exception temporaire de dépendance de compilation
+
+La [politique d’audit](tools/audit-policy.mjs) accepte uniquement l’avis [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) de `braces`, et ses dépendances transitives affectées par ce seul avis, lorsque tous leurs chemins sont marqués `dev` dans le lockfile. L’exception expire le **5 novembre 2026 à 00:00 UTC**. Les autres avis de sévérité modérée ou supérieure et toute présence de cette chaîne dans les dépendances de production restent bloquants. Cette exception ne signifie pas que l’audit npm complet est sans alerte et ne doit pas être prolongée automatiquement.
+
+Dans le verrou inspecté, Tailwind 3.4.19 introduit `braces@3.0.3` dans les outils de développement et de compilation. [La configuration Tailwind](tailwind.config.js) limite `content` à cinq chemins littéraux sans accolades : `./index.html`, `./src/**/*.js`, `./src/**/*.jsx`, `./src/**/*.ts` et `./src/**/*.tsx`. Aucune donnée utilisateur, variable d’environnement ou réponse réseau ne doit construire ces motifs. Aucun handler serveur n’accepte de motif utilisateur dans cette chaîne. Cette limitation réduit l’exposition ; elle ne corrige pas le paquet concerné.
+
+Le [test de configuration](src/__tests__/tailwind-content-security.test.js) contrôle la syntaxe : une seule exportation d’objet, aucune propriété calculée ou propagation, un unique tableau `content` et exactement les cinq chaînes approuvées. Le [test de la politique d’audit](src/__tests__/audit-policy.test.js) couvre notamment l’échéance et le refus des dépendances de production. Avant l’expiration, mettre à jour la chaîne corrigée et retirer l’exception après vérification du lockfile et des audits. Si une migration Tailwind majeure est choisie, prévoir une recette visuelle selon la charte ; la compatibilité de configuration seule ne garantit pas un rendu identique.
+
+### Journaux serveur
+
+Dans `netlify/functions/**` et les modules serveur partagés, utiliser [logFailure](netlify/functions/_lib/safe-log.ts) pour les erreurs interceptées, avec un contexte fixe et des métadonnées explicitement choisies, non sensibles. Ne jamais journaliser l’erreur brute, son message, sa pile, une requête SQL, ses paramètres ou une réponse de fournisseur. Le filtre conserve uniquement des métadonnées bornées (`name`, `code`, statuts numériques) et rejette les objets imbriqués ; il ne peut pas reconnaître un secret dans une chaîne arbitraire fournie en complément. Les [tests du filtre](src/__tests__/safe-log.test.ts) et [des réponses HTTP](src/__tests__/http-response-security.test.ts) vérifient ces protections.
+
+### Rappels d’inactivité en attente
+
+Le [traitement des rappels](netlify/functions/inactivity-reminders.ts) réserve durablement l’envoi dans `inactivity_reminder_pending` avant l’appel au fournisseur. Un état `sending` après une réponse perdue exige un rapprochement manuel avec le fournisseur ; ne pas supprimer la réservation pour forcer un renvoi. `sent_pending` indique un envoi confirmé dont l’écriture finale reste à reprendre : le traitement suivant finalise son journal sans nouvel e-mail. L’ancienneté seule ne rend pas ces états réessayables. Les [tests serveur](src/__tests__/server-audit2.test.ts) couvrent les interruptions et les reprises.
 
 ## Réagir à un incident
 

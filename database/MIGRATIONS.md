@@ -20,3 +20,5 @@ Depuis le tour 3 du 29 septembre, le runner accepte aussi des migrations `.mjs` 
 - `20260929_timeline_cs_rule.mjs` recalcule uniquement les jalons CS des résumés dont les frames subsistent, par lots de 50 parties. Les autres éléments bruts et les archives restent inchangés. Sans frames, l’ancien résumé reste en place sans certification `csRule: 2`.
 
 Ces rattrapages verrouillent les tables concernées contre les écritures concurrentes pendant leur transaction. Mesurer la durée sur une copie de taille représentative avant le déploiement ; les tests PGlite ne constituent pas cette mesure. Aucun rattrapage distant n’est lancé par les tests.
+
+La migration `20261006_riot_sync.sql` doit être appliquée avant l’activation des protections de synchronisation Riot. Elle ajoute les verrous d’équipe persistants et l’état de fraîcheur des profils utilisés par les fonctions ; sa présence dans le dépôt ne prouve pas son application sur Neon. Vérifier son marqueur dans `app_schema_migrations` après le déploiement. Une recette doit utiliser une base isolée migrée, comme indiqué ci-dessus.

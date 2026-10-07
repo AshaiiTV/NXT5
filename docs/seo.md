@@ -1,6 +1,6 @@
 # Référencement et présentation publique de NXT5
 
-Ce guide décrit la présentation publique et les contrôles de référencement du dépôt. L’[audit du 24 septembre](audit-seo-2026-09-24.md) conserve l’état initial et le plan d’acquisition. L’[audit du 6 octobre](audit-seo-2026-10-06.md), ses [corrections](corrections-seo-2026-10-06.md) et le [travail sur l’affichage public](performance-affichage-public-2026-10-06.md) documentent les vérifications suivantes. Une branche ou une prévisualisation ne change pas le domaine public ; la publication et les résultats Search Console doivent être vérifiés séparément.
+Ce guide décrit la présentation publique et les contrôles de référencement du dépôt. Une branche ou une prévisualisation ne change pas le domaine public ; la publication et les résultats Search Console doivent être vérifiés séparément.
 
 ## Contenu et identité
 
@@ -58,17 +58,10 @@ Cette commande force `CONTEXT=deploy-preview`. Un build local ordinaire sans `CO
 
 La commande du dépôt reste `npm run verify` : TypeScript, tests et build. La construction vérifie automatiquement les artefacts finaux avec `tools/verify-seo.mjs` : contenu HTML, titres/descriptions distincts, canonical, JSON-LD, règles d’indexation, ressources présentes, image 1200 × 630, sitemap, robots et règles des routes privées/404. Les titres et descriptions sont extraits du `<head>` réellement émis, puis comparés aux valeurs attendues ; une balise absente, doublonnée ou incorrecte fait échouer le build, y compris dans les shells privés et 404. Les tests de mutation vérifient ce refus, sans se limiter au registre des métadonnées.
 
-Contrôler aussi dans le navigateur l’accueil et les fonctionnalités à 360, 390, 768, 1024 et 1440 px, les questions au clavier, les liens après navigation interne et les démarrages public/privé. Vérifier le HTML et les styles sans JavaScript. Les tests locaux ne certifient pas les Core Web Vitals réels.
+Contrôler aussi dans le navigateur l’accueil et les fonctionnalités à 360, 390, 768, 1024 et 1440 px, les questions au clavier, les liens après navigation interne et les démarrages public/privé. Vérifier le HTML et les styles sans JavaScript. En retardant le chargement du module de l’application, vérifier que les pages publiques restent affichées et que les routes privées présentent l’écran de chargement partagé. Les tests locaux ne certifient pas les Core Web Vitals réels.
 
-Après publication sur Netlify : vérifier les codes et types MIME de `/`, `/fonctionnalites`, `/robots.txt`, `/sitemap.xml`, d’une route privée et d’une URL absente ; préserver les redirections du domaine www et de HTTP vers HTTPS. Soumettre le sitemap dans la propriété Search Console autorisée, inspecter l’accueil et `/fonctionnalites`, puis suivre les impressions, clics et inscriptions selon le plan de l’audit. Aucun accès Search Console, aucune soumission ni amélioration de classement ne sont prétendus par ce chantier local.
+Après publication sur Netlify : vérifier les codes et types MIME de `/`, `/fonctionnalites`, `/robots.txt`, `/sitemap.xml`, d’une route privée et d’une URL absente ; préserver les redirections du domaine www et de HTTP vers HTTPS. Tester aussi la redirection 301 de `nxt5.netlify.app` avec un chemin et des paramètres, ainsi que le `noindex` des prévisualisations.
 
-## Vérification locale du 24 septembre 2026
+Dans la propriété Search Console autorisée, soumettre le sitemap, inspecter l’accueil et `/fonctionnalites`, puis relever l’indexation, la canonical retenue par Google, les requêtes, impressions et clics. Choisir les prochains sujets de guides à partir de ces requêtes et des demandes d’aide observées. Les contrôles locaux ne permettent pas de conclure sur ces résultats ni sur les liens entrants.
 
-- `npm run verify` réussi : TypeScript, 110 suites / 1 930 tests, build et contrôle des artefacts SEO.
-- `npm audit --audit-level=moderate` réussi : aucune vulnérabilité signalée au moment de la vérification.
-- Build de prévisualisation réel vérifié séparément : dix pages `noindex`, en-tête global, sitemap vide, canonical de production conservées.
-- Lecture HTTP sans exécution JavaScript : dix pages complètes, ressources CSS/images accessibles, graphes JSON-LD corrects et carte 1 200 × 630. Le serveur local émule les règles de Netlify ; ce n’est pas un déploiement.
-- Navigateur Chromium sur le build final avec sa CSP : accueil et fonctionnalités à 360, 390, 768, 1024 et 1440 px, sans débordement ni erreur de console. Captures de bureau et mobile inspectées ; FAQ au clavier avec focus visible ; métadonnées public → connexion → retour public sans doublons.
-- Téléchargement du module de l’application volontairement retardé : le contenu de Fonctionnalités, Réseaux et Soutien reste affiché ; `/equipes` présente le chargement partagé puis la connexion anonyme attendue. Les réponses d’authentification et de consentement sont simulées localement ; aucun compte réel n’est utilisé.
-
-Les performances Google, l’indexation réelle et le comportement après déploiement restent à mesurer sur le domaine public.
+Les mesures Lighthouse sont des mesures de laboratoire. Les comparer aux données de terrain CrUX/Core Web Vitals lorsqu’elles sont disponibles, notamment l’INP ; elles ne garantissent ni la performance réelle des visites ni le classement dans Google.
