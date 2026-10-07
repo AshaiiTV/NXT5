@@ -146,7 +146,7 @@
   NX.scene = def => { scenes.push(Object.assign({ pre: 0, post: 0, z: 0 }, def)); };
 
   /* ---------- Paramètres partagés par image (remis à zéro à chaque image) ---------- */
-  const BG_DEFAULT = { intensity: 1, nebula: 0.55, warp: 0.6, hue: 0, rays: 0, rayX: 0, rayY: 0.1, rayStrength: 1, grid: 0, gridSpeed: 0.6, gridHorizon: -0.08, tunnel: 0, tunnelSpeed: 1, stars: 0.25, zoom: 1, cx: 0, cy: 0, flash: 0, speed: 1, pulse: 0, waveX: 0, waveY: 0, waveR: 0, waveS: 0, rayFocus: 0, front: 0, frontR: 0 };
+  const BG_DEFAULT = { intensity: 1, nebula: 0.55, warp: 0.6, hue: 0, rays: 0, rayX: 0, rayY: 0.1, rayStrength: 1, grid: 0, gridSpeed: 0.6, gridHorizon: -0.08, tunnel: 0, tunnelSpeed: 1, stars: 0.25, zoom: 1, cx: 0, cy: 0, flash: 0, speed: 1, pulse: 0, waveX: 0, waveY: 0, waveR: 0, waveS: 0, rayFocus: 0, front: 0, frontR: 0, fall: 1.15, nebY: 0, foot: 0 };
   const POST_DEFAULT = { grain: 0.16, vignette: 0.85, chroma: 0, glitch: 0, flash: 0, flashColor: '#A5F3FC', exposure: 1, saturate: 1, blur: 0, letterbox: 0, fade: 0, shake: 0, shakeFreq: 18, leak: 0, leakX: 0.78, leakY: 0.22, leakHue: 0.5 };
   NX.bg = {}; NX.post = {};
   const mixer = obj => (params, w = 1) => { for (const k in params) { const v = params[k]; obj[k] = typeof v === 'number' && typeof obj[k] === 'number' ? obj[k] + (v - obj[k]) * w : (w >= 0.5 ? v : obj[k]); } };
@@ -214,15 +214,24 @@
   /** Après chargement des polices : dégradé continu sur les .nx-spec découpés, puis hook layout() des scènes. */
   NX.layout = () => {
     for (const s of scenes) s.root.style.display = 'block';
+    // Dégradé partagé par plusieurs .nx-spec de même data-spec-run (ordre du document) : un seul dégradé et un seul
+    // reflet (NX.type.sheen), comme si les mots tenaient sur une ligne (9:16 : « comprendre » / « ton équipe »).
+    const runs = {}, runOf = new Map();
+    for (const spec of document.querySelectorAll('.nx-spec[data-spec-run]')) (runs[spec.dataset.specRun] = runs[spec.dataset.specRun] || []).push(spec);
+    for (const list of Object.values(runs)) {
+      const ws = list.map(e => e.getBoundingClientRect().width), gap = 0.26 * parseFloat(getComputedStyle(list[0]).fontSize);
+      const W = ws.reduce((a, b) => a + b, 0) + gap * (list.length - 1);
+      let off = 0; list.forEach((e, i) => { runOf.set(e, { off, W }); off += ws[i] + gap; });
+    }
     for (const spec of document.querySelectorAll('.nx-spec')) {
       const parts = spec.querySelectorAll('.nx-char, .nx-word');
       if (!parts.length) continue;
-      const box = spec.getBoundingClientRect();
+      const box = spec.getBoundingClientRect(), run = runOf.get(spec), bw = run ? run.W : box.width, ox = run ? run.off : 0;
       for (const c of parts) {
         if (c.classList.contains('nx-word') && c.querySelector('.nx-char')) { c.style.background = 'none'; continue; }
         const r = c.getBoundingClientRect();
-        NX.set(c, { backgroundImage: 'var(--spectrum-text)', backgroundSize: `${box.width}px ${box.height}px`, backgroundPosition: `${box.left - r.left}px ${box.top - r.top}px`, webkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' });
-        Object.assign(c.dataset, { bw: box.width.toFixed(2), bh: box.height.toFixed(2), dx: (box.left - r.left).toFixed(2), dy: (box.top - r.top).toFixed(2) });
+        NX.set(c, { backgroundImage: 'var(--spectrum-text)', backgroundSize: `${bw}px ${box.height}px`, backgroundPosition: `${box.left - ox - r.left}px ${box.top - r.top}px`, webkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' });
+        Object.assign(c.dataset, { bw: bw.toFixed(2), bh: box.height.toFixed(2), dx: (box.left - ox - r.left).toFixed(2), dy: (box.top - r.top).toFixed(2) });
       }
       spec.style.background = 'none';
     }

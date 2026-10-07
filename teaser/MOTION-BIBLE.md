@@ -20,6 +20,10 @@ Wherever a value is given here, it is the value to implement. "≈" marks a meas
 
 ---
 
+## 9:16 version (7 Oct)
+
+The vertical version for TikTok, Reels and Shorts has its own bible: `MOTION-BIBLE-9x16.md`. Everything below stays the reference for the 16:9 film, which must remain byte-identical.
+
 ## v7.2 amendment (7 Oct, owner feedback on the v7.1 preview): read this first
 
 « On a deux fois le logo en deux slides (2 et 3), ça ne sert pas à grand-chose. Fusionne un peu les deux. » In v7.1 the full lockup is written at 4.8, is taken into the light at 7.15, and a new emblem is born again at 9.6 under « Une même direction. ». The owner sees the logo twice.

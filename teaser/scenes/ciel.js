@@ -8,15 +8,22 @@ NX.scene({
   prepare() {
     // Points d'impact en px écran, calculés une fois avec la caméra de leur instant (fonctions pures de t).
     const at = (t, X, Y, Z = 0) => { const p = NX.cam.project(X, Y, Z, NX.cam.at(t)); return { x: p.x, y: p.y }; };
-    const T = NX.T;
+    const T = NX.T, G = NX.G;
+    // Centres des souffles : valeurs mesurées en 16:9 (inchangées) ; en 9:16, lues sur la géométrie verticale NX.G
+    // (centre de l'anneau du logo S2 et du logo final, de l'emblème E5, coin de la pile de cartes).
+    const ring = L => [L.left + G.LOGO.ringC[0] * L.w / G.LOGO.W, L.top + G.LOGO.ringC[1] * L.w / G.LOGO.W];
+    const P = NX.V
+      ? { hook: ring(G.L2), emb: [G.E5.left + G.FAV.ringC[0] * G.E5.size / G.FAV.W, G.E5.top + G.FAV.ringC[1] * G.E5.size / G.FAV.W],
+          tools: [G.tools.stack.left, G.tools.stack.top, G.tools.stack.z], end: ring(G.L9) }
+      : { hook: [958.7, 452.1], emb: [960, 441.7], tools: [975, 300, -60], end: [959.1, 246.0] };
     this.gusts = [
-      { t0: T.hookEnd, ...at(T.hookEnd, 958.7, 452.1), amp: 30 },
-      { t0: T.emblem - 0.6, ...at(T.emblem - 0.6, 960, 441.7), amp: -20 },
-      { t0: T.emblem, ...at(T.emblem, 960, 441.7), amp: 30 },
-      { t0: T.tools, ...at(T.tools, 975, 300, -60), amp: 24 },
-      { t0: T.end, ...at(T.end, 959.1, 246.0), amp: 30 },
+      { t0: T.hookEnd, ...at(T.hookEnd, P.hook[0], P.hook[1]), amp: 30 },
+      { t0: T.emblem - 0.6, ...at(T.emblem - 0.6, P.emb[0], P.emb[1]), amp: -20 },
+      { t0: T.emblem, ...at(T.emblem, P.emb[0], P.emb[1]), amp: 30 },
+      { t0: T.tools, ...at(T.tools, P.tools[0], P.tools[1], P.tools[2]), amp: 24 },
+      { t0: T.end, ...at(T.end, P.end[0], P.end[1]), amp: 30 },
     ];
-    this.C = at(T.emblem, 960, 441.7);
+    this.C = at(T.emblem, P.emb[0], P.emb[1]);
     // Temps de dérive de la poussière intégré une fois (pas de 5 ms) : l'accélération des montées reste continue.
     const swell = t => Math.max(NX.env(t, 3.6, 3.8, 4.6, 4.8), NX.env(t, T.tools - 1.2, T.tools - 1.0, T.tools - 0.22, T.tools - 0.02),
       NX.env(t, T.end - 1.2, T.end - 1.0, T.end - 0.2, T.end));
@@ -40,6 +47,8 @@ NX.scene({
       hue: 0.12 + 0.55 * sm(0, 33.6, skyT), speed: t > 0 ? skyT / t : 1, intensity: 1,
       zoom: sky.zoom, cx: sky.cx, cy: sky.cy,
     }, 1);
+    // 9:16 : portée des rayons, nébuleuse relevée et pied assombri (NX.SKY, posé par vertical.js).
+    if (NX.V) { NX.bg.fall = NX.SKY.fall; NX.bg.nebY = NX.SKY.nebY; NX.bg.foot = NX.SKY.foot; }
     const B = NX.bg;
     // Groove de la v6 (approuvé) : le ciel respire au tempo pendant les outils. Phase du temps calculée sans résidu
     // flottant : 13,2 % 0,6 vaut 0,5999…, ce qui éteignait la pulsation sur l'image même du drop et sur 16,2, 17,4,
@@ -87,8 +96,10 @@ NX.scene({
     const hold = sm(T.end + 0.05, T.end + 0.2, t) * (1 - sm(T.end + 0.35, T.end + 0.9, t));
     B.rays += 0.5 * hold; B.intensity += 0.1 * hold;
     // Ondes de lumière dans les rayons, à la hauteur des fronts qui écrivent les logos.
-    if (t > 4.2 && t < 5.6) { B.front = NX.env(t, 4.2, 4.3, 5.3, 5.6); B.frontR = NX.FRONT.hook(t) / NX.U / sky.zoom; }
-    else if (t > T.end - 0.5 && t < T.end + 1.1) { B.front = NX.env(t, T.end - 0.5, T.end - 0.4, T.end + 0.8, T.end + 1.1); B.frontR = NX.FRONT.end(t) / NX.U / sky.zoom; }
+    // 9:16 : fenêtres des bandes lues sur NX.FRONT.hookEnv / endEnv (fronts plus longs, vertical.js).
+    const HE = NX.FRONT.hookEnv || [4.2, 4.3, 5.3, 5.6], EE = NX.FRONT.endEnv || [T.end - 0.5, T.end - 0.4, T.end + 0.8, T.end + 1.1];
+    if (t > HE[0] && t < HE[3]) { B.front = NX.env(t, HE[0], HE[1], HE[2], HE[3]); B.frontR = NX.FRONT.hook(t) / NX.U / sky.zoom; }
+    else if (t > EE[0] && t < EE[3]) { B.front = NX.env(t, EE[0], EE[1], EE[2], EE[3]); B.frontR = NX.FRONT.end(t) / NX.U / sky.zoom; }
     // L'unique onde de choc du film : naissance de l'emblème (réfraction de la nébuleuse et anneau de poussière).
     let wave = null;
     const tw = t - T.emblem;

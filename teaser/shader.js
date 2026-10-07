@@ -16,7 +16,7 @@
   uniform vec2 uRes; uniform float uTime;
   uniform float uIntensity,uNebula,uWarp,uHue,uRays,uRayStrength,uGrid,uGridSpeed,uGridHorizon,uTunnel,uTunnelSpeed,uStars,uZoom,uFlash,uPulse;
   uniform vec2 uRayPos,uCenter;
-  uniform vec4 uWave; uniform float uRayFocus, uFront, uFrontR;
+  uniform vec4 uWave; uniform float uRayFocus, uFront, uFrontR, uFall, uNebY, uFoot;
   out vec4 o;
   float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
   float hash1(float n){ return fract(sin(n*127.1)*43758.5453); }
@@ -38,12 +38,13 @@
     vec3 col=vec3(.008,.024,.067);
     // Nébuleuse / aurore
     if(uNebula>0.001){
-      vec2 p=q*1.35;
+      vec2 qn=q-vec2(0.,uNebY); // 9:16 : masse de la nébuleuse relevée (16:9 : uNebY = 0, q inchangé)
+      vec2 p=qn*1.35;
       vec2 w=vec2(fbm(p+vec2(0.,t*.06)), fbm(p+vec2(5.2,1.3)-t*.05));
       float n=fbm(p+uWarp*2.2*w+vec2(t*.03,-t*.02));
       float band=smoothstep(.42,.95,n);
       vec3 c=spectrum(tri(n*.9+w.x*.5+uHue*.5));
-      float fall=1.-smoothstep(.2,1.25,length(q*vec2(.8,1.)));
+      float fall=1.-smoothstep(.2,1.25,length(qn*vec2(.8,1.)));
       col+=c*band*band*.42*uNebula*fall;
       col+=vec3(.08,.06,.16)*smoothstep(.3,.8,n)*uNebula*.35*fall; // fond violet diffus
     }
@@ -54,7 +55,7 @@
       vec2 dir=d/max(r,1e-4);
       float s=fbm(dir*4.5+vec2(0.,t*.25))*.65+fbm(dir*12.+vec2(7.,-t*.4))*.35;
       s=pow(smoothstep(.35+.2*uRayFocus,.85,s),2.+3.*uRayFocus); // uRayFocus resserre les rayons en faisceau
-      float fallr=exp(-r*1.15);
+      float fallr=exp(-r*uFall); // portée des rayons (16:9 : 1,15)
       col+=spectrum(tri(.25+dir.x*.22+uHue*.5))*s*fallr*uRays*.75*uRayStrength;
       col+=vec3(.75,.85,1.)*exp(-r*r*22.)*uRays*.35*uRayStrength;
       // Front de lumière elliptique (demi-axe horizontal 2,5 fois le vertical) : une onde descend le long des rayons
@@ -92,13 +93,14 @@
       float tw=.55+.45*sin(t*(1.+h*3.)+h*40.);
       col+=spectrum(h)*smoothstep(.06,.0,d)*step(.86,h)*tw*uStars*1.4;
     }
+    if(uFoot>0.) col*=1.-uFoot*(1.-smoothstep(-.80,-.42,uv.y)); // 9:16 : pied assombri sous la bande des légendes
     col*=uIntensity*(1.+uPulse*.35);
     col+=vec3(.55,.75,1.)*uFlash;
     col+=(hash(gl_FragCoord.xy+fract(t)*91.)-.5)/255.*1.5; // tramage anti-banding
     o=vec4(col,1.);
   }`;
   let gl, prog, loc = {};
-  const names = ['uRes', 'uTime', 'uIntensity', 'uNebula', 'uWarp', 'uHue', 'uRays', 'uRayStrength', 'uGrid', 'uGridSpeed', 'uGridHorizon', 'uTunnel', 'uTunnelSpeed', 'uStars', 'uZoom', 'uFlash', 'uPulse', 'uRayPos', 'uCenter', 'uWave', 'uRayFocus', 'uFront', 'uFrontR'];
+  const names = ['uRes', 'uTime', 'uIntensity', 'uNebula', 'uWarp', 'uHue', 'uRays', 'uRayStrength', 'uGrid', 'uGridSpeed', 'uGridHorizon', 'uTunnel', 'uTunnelSpeed', 'uStars', 'uZoom', 'uFlash', 'uPulse', 'uRayPos', 'uCenter', 'uWave', 'uRayFocus', 'uFront', 'uFrontR', 'uFall', 'uNebY', 'uFoot'];
   function compile(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
   NX.shader = {
     init(canvas) {
@@ -126,6 +128,7 @@
       gl.uniform2f(loc.uRayPos, B.rayX, B.rayY); gl.uniform2f(loc.uCenter, B.cx, B.cy);
       gl.uniform4f(loc.uWave, B.waveX, B.waveY, B.waveR, B.waveS); gl.uniform1f(loc.uRayFocus, B.rayFocus);
       gl.uniform1f(loc.uFront, B.front); gl.uniform1f(loc.uFrontR, B.frontR);
+      gl.uniform1f(loc.uFall, B.fall); gl.uniform1f(loc.uNebY, B.nebY); gl.uniform1f(loc.uFoot, B.foot);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     },
   };

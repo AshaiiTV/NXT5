@@ -2,7 +2,11 @@
  *   node tools/camcheck.mjs
  * Marges : chaque boîte de contenu reste à ≥ 154 px des côtés et ≥ 86 px du haut et du bas dans sa fenêtre.
  * Échelle des titres ≥ 0,945 ; avancée ≤ 75 px/s (≤ 150 pendant la révélation du drop) ; panoramique et bascule ≤ 0,8 °/s
- * (orbite ≤ 1,6 °/s) ; dérive des sujets ≤ 60 px/s pendant les tenues ; vitesse nulle sur la dernière image. */
+ * (orbite ≤ 1,6 °/s) ; dérive des sujets ≤ 60 px/s pendant les tenues ; vitesse nulle sur la dernière image.
+ * Vertical (--format v ou NX_FORMAT=v) : les scènes déclarent leurs boîtes dans NX.CHECK et leurs tenues dans
+ * NX.CHECK_HOLDS ; chaque texte reste à ≥ 16 px à l'intérieur de la zone sûre des plateformes (x 100–940, y 250–1450 :
+ * barres du haut, légende et boutons de TikTok, Reels et Shorts) et au-dessus de y 1380 (légendes longues), chaque visuel
+ * clé dans x 60–980, y 200–1500 ; dans la bande des boutons (y 700–1500), bord droit ≤ 920 (texte) ou ≤ 930 (visuel). */
 import { chromium } from 'playwright-core';
 import { existsSync } from 'fs';
 import { dirname, resolve } from 'path';
@@ -24,7 +28,10 @@ const out = await p.evaluate(() => {
   const PC = [NX.M72.C0[0] + NX.M72.S0 * NX.M72.OPT[0], NX.M72.C0[1] + NX.M72.S0 * NX.M72.OPT[1]], PR = 262;
   const pentBox = (() => { const xs = [], ys = []; P.deg.forEach(a => { const r = a * Math.PI / 180; xs.push(PC[0] + PR * Math.cos(r)); ys.push(PC[1] + PR * Math.sin(r)); });
     return [Math.min(...xs) - sq, Math.min(...ys) - sq, Math.max(...xs) + sq, Math.max(...ys) + sq, 0]; })();
-  const boxes = [
+  // Vertical : boîtes déclarées par les scènes, { name, a, z, box: [x0, y0, x1, y1, Z] ou pts(t, c) → points écran, text }.
+  const VBOX = (NX.CHECK || []).map(c => [c.name, c.a, c.z, c.pts ? { pts: c.pts } : c.box, !!c.text]);
+  const TEXT_SAFE = [100, 250, 940, 1450], VIS_SAFE = [60, 200, 980, 1500];
+  const boxes = NX.V ? VBOX : [
     ['question', 0, T.hookEnd, [960 - 664, 350, 960 + 664, 662, 0], true],   // trois lignes, haut monde 350 (accroche.js)
     ['logo S2', 5.0, 6.9, art(G.L2)],
     ['rôles (pentagone v7.2)', T.roles - 0.12, T.fuse + 0.4, pentBox],
@@ -39,19 +46,26 @@ const out = await p.evaluate(() => {
   const S = G.tools.stack, r = S.rotY * Math.PI / 180;
   const stackPts = c => [[0, 0], [S.w, 0], [0, S.h], [S.w, S.h]].map(([u, v]) => NX.cam.project(S.left + u * Math.cos(r), S.top + v, S.z - u * Math.sin(r), c));
   for (const [name, a, z, box, isText] of boxes) {
-    const [x0, y0, x1, y1, Z] = box === 'stack' ? [S.left, S.top, S.left + S.w, S.top + S.h, S.z] : box === 'm72' ? [0, 0, 0, 0, 0] : box;
+    const fn = box && box.pts, [x0, y0, x1, y1, Z] = fn ? [0, 0, 0, 0, 0] : box === 'stack' ? [S.left, S.top, S.left + S.w, S.top + S.h, S.z] : box === 'm72' ? [0, 0, 0, 0, 0] : box;
+    const R = NX.V ? (isText ? TEXT_SAFE : VIS_SAFE) : null;
     let worst = Infinity, wt = a, minS = Infinity;
     for (let t = a; t <= z + 1e-6; t += 0.05) {
       const c = NX.cam.at(t), m = NX.M72.pose(t), F = NX.G.FAV, E0 = [m.cx - F.ringC[0] * m.s, m.cy - F.ringC[1] * m.s];
-      const pts = box === 'stack' ? stackPts(c) : box === 'm72' ? [[0, 0], [512, 0], [0, 512], [512, 512]].map(([u, v]) => NX.cam.project(E0[0] + u * m.s, E0[1] + v * m.s, m.z, c)) : [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([X, Y]) => NX.cam.project(X, Y, Z, c));
-      for (const q of pts) {
+      const pts = fn ? fn(t, c) : box === 'stack' ? stackPts(c) : box === 'm72' ? [[0, 0], [512, 0], [0, 512], [512, 512]].map(([u, v]) => NX.cam.project(E0[0] + u * m.s, E0[1] + v * m.s, m.z, c)) : [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].map(([X, Y]) => NX.cam.project(X, Y, Z, c));
+      if (R) {
+        // Boîte écran de l'élément ; règles des plateformes (MOTION-BIBLE-9x16.md §1.2).
+        const xs = pts.map(q => q.x), ys = pts.map(q => q.y), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+        const rail = y1 >= 700 && y0 <= 1500, right = isText ? (rail ? 920 : 940 - 16) : (rail ? 930 : 980);
+        const m = isText ? Math.min(x0 - 116, right - x1, y0 - 266, 1380 - y1) : Math.min(x0 - 60, right - x1, y0 - 200, 1500 - y1);
+        if (m < worst) { worst = m; wt = t; }
+      } else for (const q of pts) {
         const m = Math.min(q.x - 154, NX.W - 154 - q.x, q.y - 86, NX.H - 86 - q.y);
         if (m < worst) { worst = m; wt = t; }
       }
-      minS = Math.min(minS, NX.cam.project((x0 + x1) / 2, (y0 + y1) / 2, Z, c).s);
+      if (!fn) minS = Math.min(minS, NX.cam.project((x0 + x1) / 2, (y0 + y1) / 2, Z, c).s);
     }
-    info.push(`${name.padEnd(24)} marge minimale ${worst.toFixed(0)} px (à ${wt.toFixed(2)} s), échelle min ${minS.toFixed(3)}`);
-    if (worst < 0) fails.push(`${name} sort du cadre de sécurité de ${(-worst).toFixed(0)} px à ${wt.toFixed(2)} s`);
+    info.push(`${name.padEnd(24)} marge minimale ${worst.toFixed(0)} px (à ${wt.toFixed(2)} s)${minS < Infinity ? `, échelle min ${minS.toFixed(3)}` : ''}${R ? (isText ? ' [zone texte]' : ' [zone visuels]') : ''}`);
+    if (worst < 0) fails.push(`${name} sort ${R ? 'de la zone sûre des plateformes' : 'du cadre de sécurité'} de ${(-worst).toFixed(0)} px à ${wt.toFixed(2)} s`);
     if (isText && minS < 0.945) fails.push(`${name} : échelle ${minS.toFixed(3)} < 0,945`);
   }
   // Vitesses de la caméra.
@@ -71,13 +85,14 @@ const out = await p.evaluate(() => {
   info.push(`vitesse finale ${vEnd.toFixed(2)} px/s`);
   if (vEnd > 0.5) fails.push(`la caméra bouge encore à ${D} s (${vEnd.toFixed(2)} px/s)`);
   // Dérive des sujets pendant les tenues (centre de la boîte projeté).
-  const holds = [['question', 3.4, 4.4, 960, 503, 0], ['logo S2', 5.1, 6.6, 958.7, 452.1, 0], ['emblème S5', T.emblem + 0.2, T.tools - 0.7, 960, 441.7, 0], ['logo final', T.end + 0.7, D - 0.1, 959.1, 246, 0]];
+  const holds = NX.V ? (NX.CHECK_HOLDS || []) : [['question', 3.4, 4.4, 960, 503, 0], ['logo S2', 5.1, 6.6, 958.7, 452.1, 0], ['emblème S5', T.emblem + 0.2, T.tools - 0.7, 960, 441.7, 0], ['logo final', T.end + 0.7, D - 0.1, 959.1, 246, 0]];
   for (const [name, a, z, X, Y, Z] of holds) {
     let worst = 0, wt = a;
     for (let t = a; t < z; t += 0.02) { const p0 = NX.cam.project(X, Y, Z, NX.cam.at(t)), p1 = NX.cam.project(X, Y, Z, NX.cam.at(t + 0.02)); const v = Math.hypot(p1.x - p0.x, p1.y - p0.y) / 0.02; if (v > worst) { worst = v; wt = t; } }
     info.push(`${name.padEnd(24)} dérive maximale ${worst.toFixed(0)} px/s (à ${wt.toFixed(2)} s)`);
     if (worst > 60) fails.push(`${name} dérive à ${worst.toFixed(0)} px/s à ${wt.toFixed(2)} s`);
   }
+  if (NX.V && !VBOX.length) fails.push('aucune boîte déclarée dans NX.CHECK pour le format vertical');
   return { info, fails };
 });
 console.log(out.info.join('\n'));
