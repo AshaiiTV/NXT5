@@ -2,6 +2,25 @@
 
 Teaser vidéo de NXT5, rendu image par image dans Chromium. Tout le film est une fonction pure du temps : HTML, CSS et un fond WebGL2 pour l’image, une musique synthétisée par Web Audio pour le son. Aucun fichier vidéo ou audio externe, donc aucune question de licence.
 
+## Version 7.2 (7 octobre 2026)
+
+Retour sur l’aperçu de la v7.1 : le logo apparaissait deux fois de suite (le logo complet, puis un emblème qui renaissait après les rôles). La v7.2 en fait un seul logo continu, de 4,8 à 13,2 s. La durée, la musique, les outils et la fin sont inchangés. Les décisions sont consignées en tête de `MOTION-BIBLE.md` (amendement v7.2) et dans son tableau des écarts.
+
+- **Un seul logo.** La lumière écrit le logo une seule fois. Le mot NXT5, la devise et le fond du logo repartent dans la lumière ; l’emblème reste en place et passe à l’emblème seul par un fondu de 0,15 s, au pixel près.
+- **Les rôles naissent de l’emblème.** Les cinq rôles naissent autour de lui, de sa lumière, un par croche. Ils se dissolvent ensuite en particules qui rejoignent chacune son secteur ; l’emblème se charge de leur lumière et grandit jusqu’à l’impact de 9,6 s.
+- **« Une même direction. »** s’écrit sous ce même emblème, puis la flèche monte jusqu’au drop de 13,2 s, comme dans la v7.1.
+
+| Temps (s) | Scène | À l’écran |
+|---|---|---|
+| 0 → 4,8 | `accroche` | La question monte sur trois lignes, puis la lumière la brûle en écrivant le logo |
+| 4,8 → 7,2 | `logo` | Logo complet, impact, reflet ; le mot NXT5 et la devise repartent dans la lumière, l’emblème reste |
+| 7,2 → 9,6 | `equipe`, `direction` | Les cinq rôles naissent autour de l’emblème, puis s’y fondent ; il grandit jusqu’à l’impact |
+| 9,6 → 13,2 | `direction` | « Une même direction. », le faisceau, la flèche monte |
+| 13,2 → 27,6 | `outils` | Quatre cartes de verre : Analyser, Débriefer, Drafter, Planifier |
+| 27,6 → 32,4 | `fin` | L’emblème revient se poser, la lumière réécrit NXT5, carte finale |
+
+Le trajet commun de l’emblème entre les trois scènes (`NX.M72`, défini dans `scenes/logo.js`) est décrit dans `ENGINE.md`.
+
 ## Version 7.1 (7 octobre 2026)
 
 Retours sur l’aperçu de la v7 : l’ouverture doit dire qu’il s’agit de League of Legends ; le passage des rôles, « super beau », manquait de sens et devient une simple transition ; la partie des outils, « top », reçoit un quatrième outil. Les décisions sont consignées en tête de `MOTION-BIBLE.md` (amendement v7.1) et dans son tableau des écarts.
@@ -80,9 +99,9 @@ Règles de contenu toujours valables : jamais « Cinq rôles », jamais « sans 
 ```bash
 cd teaser
 npm install
-./tools/render.sh out/final/nxt5-teaser-v7.1.mp4    # 6 sous-images par image, environ 1 h sur 4 cœurs sans GPU
-./tools/encode.sh out/final/nxt5-teaser-v7.1.mp4 6  # réencode seul, si les images sont déjà rendues
-./tools/mobile.sh out/final/nxt5-teaser-v7.1.mp4 out/final/nxt5-teaser-v7.1-mobile.mp4
+./tools/render.sh out/final/nxt5-teaser-v7.2.mp4    # 6 sous-images par image, environ 1 h sur 4 cœurs sans GPU
+./tools/encode.sh out/final/nxt5-teaser-v7.2.mp4 6  # réencode seul, si les images sont déjà rendues
+./tools/mobile.sh out/final/nxt5-teaser-v7.2.mp4 out/final/nxt5-teaser-v7.2-mobile.mp4
 ```
 
 - Rendu par tranches, pour rester sous la durée maximale d’une commande : `node tools/capture.mjs audio --out out/final/soundtrack.wav`, puis `node tools/capture.mjs frames --fps 30 --sub 6 --workers 4 --from 0 --to 12 --out out/final/frames --resume 1` (et ainsi de suite jusqu’à 32,4), puis `./tools/encode.sh`. `--resume 1` saute les images déjà complètes.
