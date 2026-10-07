@@ -20,6 +20,33 @@ Wherever a value is given here, it is the value to implement. "≈" marks a meas
 
 ---
 
+## v7.2 amendment (7 Oct, owner feedback on the v7.1 preview): read this first
+
+« On a deux fois le logo en deux slides (2 et 3), ça ne sert pas à grand-chose. Fusionne un peu les deux. » In v7.1 the full lockup is written at 4.8, is taken into the light at 7.15, and a new emblem is born again at 9.6 under « Une même direction. ». The owner sees the logo twice.
+
+**Decision: one continuous logo moment, 4.8–13.2.** The logo is written once; its emblem stays the subject through the roles and « Une même direction. ». It is never taken away and reborn. `NX.T`, the duration (32.4), the music, the camera, the tools act and the end are unchanged (v7.1 amendment below still applies to everything else).
+
+| Time | Event |
+|---|---|
+| 4.20–5.05 | Unchanged: the light writes NXT5 and burns the question; hit at 4.8. |
+| 5.0–≈6.6 | Lockup hold, readable (≥ 1.5 s). |
+| ≈6.6–7.2 | The wordmark, the tagline and the lockup's dark plate are taken into the light (whitening and absorption, never a grey ghost), while the emblem's bright strokes stay crisp in place. As soon as only the strokes remain, they are swapped for the favicon emblem in one sub-frame, pixel-exact (reverse of the S9 dock; §6.9 measure on the emblem rows: mean < 2/255, max < 24/255 outside a 2 px fringe; `fin.js`'s baked stroke-mask method is the reference). |
+| swap → 9.6 | The emblem (favicon PNG) starts at the lockup's geometry (favicon ×1.1425 at (335.5, 48.5) in lockup px of `NX.G.L2`: ring centre (958.7, 452.1), world scale ≈ 0.729) and reaches the E5 geometry (ring centre (960, 441.7), scale ≈ 0.898) by the 9.6 hit, without pop, rotation or filter. |
+| 7.2–8.4 | The five roles are born around the emblem, from its light, one per eighth note (bells unchanged), as the v7.1 glass tiles. Their pentagon is centred on the emblem with a radius that keeps every tile clear of the emblem's ring at its current size (v7.1's r = 200 is too small once the emblem is there): tune it, keep the safe frame, report the value. |
+| 8.5–9.6 | They dissolve into particles of their colour that stream into their own sector of the emblem, which charges with their light (its light leaves rise within the brand cap). No pointillist birth from nothing: the particles land on an emblem that is already there. On the 9.6 hit the emblem resolves at E5 size with the existing hit (core flash, one streak, the one shockwave). |
+| 9.6–13.2 | Unchanged from v7.1: « Une même direction. », beam, glint, condensation into the spear, the spear rides the beam up, the drop at 13.2. |
+
+**Ownership for this change:** one package (M) owns `scenes/logo.js` (S2 exit and swap), `scenes/direction.js` (the emblem from the swap to 13.2) and `scenes/equipe.js` (the roles around the emblem and the fusion into it), because the moment is continuous. `ciel.js` stays with the lead: its relay « take » (7.11–7.8) was tuned for the whole lockup's light and will be retuned from the measured luminance.
+
+**Acceptance:**
+- No frame between 4.8 and 13.0 where the emblem jumps, doubles, pops, disappears or changes crispness; the swap is invisible at 1:1 and in motion.
+- The lockup reads complete for at least 1.5 s; the wordmark leaves as light.
+- The five roles read as five players joining the emblem, on a phone, in about 2.4 s; tiles never overlap the emblem's ring; particles p99.5 ≤ 900 px/s, max ≤ 1,400 px/s; objects ≤ 1,000 px/s.
+- §6.5 luminance continuity over 4.8–13.2 (≤ 4.5 between samples outside the hit windows, ≤ 9 inside), mean Y 7.0–9.5 ≥ 15, S5 guard 10.45–12.7 ≥ 17.1.
+- Determinism in two orders and after a long history; no page errors; brand rules (logos never rotated, recoloured or filtered).
+
+---
+
 ## v7.1 amendment (6 Oct, owner feedback on the v7 preview): read this first
 
 This section supersedes every time, copy and camera value of §2–§6 that it changes. Everything else in the bible still applies (motion language, easing, speed limits, brand rules, light rules, glass, type kit, determinism, verification method).
