@@ -706,7 +706,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
             const remaining = Math.max(0, Math.ceil((new Date(code.expires_at).getTime() - nowTick) / 1000));
             return <div key={code.id} className="team-invitation-code">
               <div className="flex items-center justify-between gap-3"><p className="min-w-0 break-all font-mono text-sm font-bold text-white">{code.code}</p><Badge tone={remaining > 900 ? "green" : remaining > 300 ? "yellow" : "red"}>{formatCountdown(remaining)}</Badge></div>
-              <p className="mt-1 break-words text-[13px] text-slate-300">Créé par {code.created_by_name || "staff"}</p>
+              <p className="mt-1 break-words text-xs text-slate-300">Créé par {code.created_by_name || "staff"}</p>
             </div>;
           }) : <p className="team-empty-row">Aucune invitation active.</p>}
           {activeCodes.length > 0 && canInvite && <Button type="button" variant="danger" onClick={onRevokeInvites} disabled={saving}>Révoquer les invitations</Button>}
@@ -727,7 +727,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
             <div className="min-w-0">
               <div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={player.role} staff={staff} className="max-w-[7rem] sm:max-w-[8.5rem]" /><Badge tone={player.user_id ? "green" : "orange"}>{player.user_id ? "Lié" : "Non-lié"}</Badge>{!staff && <label><span className="sr-only">Effectif de {player.name}</span><select value={playerRosterStatus(player)} onChange={(event) => onRosterStatusChange?.(player, event.target.value)} disabled={saving || !canManageRoster || player.role === "SUB"} title="Groupe d’effectif" className="nxt5-input-shell nxt5-control team-roster-select">{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label>}</div>
               <p className="mt-2 break-words text-lg font-semibold text-white">{linkedMember?.name || linkedMember?.account_name || player.name}</p>
-              <p className="break-words text-[13px] text-slate-300">{player.riot_id || (staff ? "Staff" : "Riot ID manquant")}</p>
+              <p className="break-words text-xs text-slate-300">{player.riot_id || (staff ? "Staff" : "Riot ID manquant")}</p>
             </div>
             <label className="block min-w-0"><span className="nxt5-field-label">Compte lié</span><select value={player.user_id || ""} onChange={(event) => onLink(player.id, event.target.value)} disabled={saving || !canManageRoster} className="nxt5-input-shell nxt5-control team-access-select"><option value="">Non-lié</option>{members.map((member) => { const blocked = isLinkedElsewhere(member, player); return <option key={member.user_id} value={member.user_id} disabled={blocked}>{linkedProfileLabel(member)}{blocked ? " · Déjà lié" : ""}</option>; })}</select></label>
             <label className="block min-w-0"><span className="nxt5-field-label">Accès</span><select value={linkedMember ? roleValue(linkedMember.role) : "player"} onChange={(event) => linkedMember && onRoleChange(linkedMember.user_id, event.target.value)} disabled={!linkedMember || saving || !canManageMembers || String(linkedMember?.role || "").toLowerCase() === "owner"} className="nxt5-input-shell nxt5-control team-access-select">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label>
@@ -817,7 +817,7 @@ function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserI
         })}
       </div><div className="nxt5-responsive-scroll hidden overflow-x-auto md:block">
         <table className={cx("w-full text-left text-sm", showActions ? "min-w-[1040px]" : "min-w-[860px]")}>
-          <thead className="sticky top-0 bg-white/[0.055] text-[13px] font-semibold text-slate-300"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">Champions les plus joués</th>{showActions && <th className="px-4 py-3 text-right">Actions</th>}</tr></thead>
+          <thead className="sticky top-0 bg-white/[0.055] text-xs font-semibold text-slate-300"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">Champions les plus joués</th>{showActions && <th className="px-4 py-3 text-right">Actions</th>}</tr></thead>
           <tbody className="divide-y divide-white/10">{items.map((item) => {
     const staff = isStaffRole(item.role);
     const hasOpgg = !staff && Boolean(String(item.opgg_url || "").trim() || opggUrlFromRiotId(item.riot_id, region));

@@ -239,7 +239,7 @@ function MetricCard({ icon: Icon, label, value, hint, tone: t = "purple", delay 
   return (
     <Surface delay={delay} className={cx("overflow-hidden", compact ? "min-h-0 p-3" : "min-h-[104px] p-3 sm:p-4")}>
       <div className={cx("flex items-start justify-between", compact ? "gap-3" : "gap-4")}>
-        <div className="min-w-0 flex-1"><div className="flex min-w-0 items-start justify-between gap-2"><p className="min-w-0 text-[13px] font-semibold text-slate-300">{label}</p><MetricSideMarker marker={sideMarker} /></div><p className={cx("break-words font-black text-white", compact ? "mt-1 text-xl sm:text-2xl" : "mt-1 text-2xl sm:text-3xl")}>{value ?? "-"}</p><p className={cx("font-semibold text-slate-300", compact ? "mt-1 text-xs leading-5" : "mt-1 text-xs leading-5")}>{hint ?? "En attente de données"}</p></div>
+        <div className="min-w-0 flex-1"><div className="flex min-w-0 items-start justify-between gap-2"><p className="min-w-0 text-xs font-semibold text-slate-300">{label}</p><MetricSideMarker marker={sideMarker} /></div><p className={cx("break-words font-black text-white", compact ? "mt-1 text-xl sm:text-2xl" : "mt-1 text-2xl sm:text-3xl")}>{value ?? "-"}</p><p className={cx("font-semibold text-slate-300", compact ? "mt-1 text-xs leading-5" : "mt-1 text-xs leading-5")}>{hint ?? "En attente de données"}</p></div>
         <div className={cx("shrink-0 rounded-xl border", compact ? "p-2" : "p-2.5", tone(t))}><Icon className={cx(compact ? "h-4 w-4" : "h-5 w-5")} /></div>
       </div>
     </Surface>
@@ -935,7 +935,7 @@ function GameSummaryPanel({ match }) {
     damageLeader ? `Plus gros impact dégâts sur cette partie: ${damageLeader.summoner_name || damageLeader.riot_id || roleLabel(damageLeader.role)} avec ${formatPoints(damageLeader.damage)} sur ${championDisplayName(damageLeader.champion)}.` : "Impact dégâts: données joueurs insuffisantes.",
     weakRole ? `Écart à revoir : ${roleLabel(weakRole.role)} (${formatGoldDiff(weakRole.goldDiff)} or face au rôle adverse, ${deaths.beforeObjectives.length} mort${deaths.beforeObjectives.length > 1 ? "s" : ""} avant objectif côté équipe).` : "Rôles à confirmer dans les données importées.",
   ];
-  return <div className="games-analysis-section games-summary"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">Repères à examiner</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="games-summary-point"><p className="text-[13px] font-semibold text-emerald-100">{["Moment clé", "Dégâts", "Écart par rôle"][index]}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{line}</p></div>)}</div></div>;
+  return <div className="games-analysis-section games-summary"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">Repères à examiner</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="games-summary-point"><p className="text-xs font-semibold text-emerald-100">{["Moment clé", "Dégâts", "Écart par rôle"][index]}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{line}</p></div>)}</div></div>;
 }
 
 function GameMetricSignals({ match }) {
@@ -1689,7 +1689,7 @@ function renderReportContent(content, rows) {
   return <div className="space-y-1.5">{String(content || "").split("\n").filter((line) => !blockedSections.some((pattern) => pattern.test(line))).map((line, index) => {
     const result = commandResult(line, rows);
     const trimmed = String(line || "").trim();
-    if (result) return <p key={index} className="min-h-[1.5rem] break-words whitespace-pre-wrap rounded-lg bg-cyan-300/[0.055] px-2.5 py-1 font-mono text-[0.76rem] font-bold leading-6 text-cyan-50 sm:text-[0.82rem]">{result}</p>;
+    if (result) return <p key={index} className="min-h-[1.5rem] break-words whitespace-pre-wrap rounded-lg bg-cyan-300/[0.055] px-2.5 py-1 font-mono text-sm font-bold leading-6 text-cyan-50">{result}</p>;
     if (trimmed === REPORT_REWRITE_MARKER || trimmed === "[NXT5_REPORT_V2]") return null;
     if (!trimmed) return <div key={index} className="h-2" />;
     if (/^#{1,3}\s+/.test(trimmed) || /^(VERDICT COACH|CAUSE RACINE|STANDARD ATTENDU|À GARDER|À CORRIGER|CHECKPOINTS? VOD|PLAN D'EXÉCUTION|VALIDATION|QUESTIONS? COACH|LECTURE PAR JOUEUR|NOTES STAFF(?: CONSERVÉES)?|REPÈRES)$/i.test(trimmed)) {
@@ -2178,12 +2178,12 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
 
       </div>
       {draftAvailable && !composerOpen && <p role="status" className="mt-4 text-sm text-slate-300">Un brouillon est conservé pour cette équipe pendant cette session. Reprends-le avant de fermer ou recharger l’onglet.</p>}
-      {composerOpen && <ModalDialog onClose={closeComposer} busy={saving} handleHistory aria-labelledby="review-composer-title" className="games-review-composer nxt5-enter-fast relative flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden border border-cyan-200/24 bg-[#050814]  sm:h-auto sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-[96rem] sm:rounded-[1.5rem]">
+      {composerOpen && <ModalDialog onClose={closeComposer} busy={saving} handleHistory aria-labelledby="review-composer-title" className="games-review-composer nxt5-enter-fast relative flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden border border-cyan-200/24 bg-[var(--nxt5-surface)]  sm:h-auto sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-[96rem] sm:rounded-[1.5rem]">
             <div className="hidden" />
             <form onSubmit={saveReport} className="flex min-h-0 flex-1 flex-col">
               <fieldset disabled={saving} className="flex min-h-0 flex-1 flex-col border-0 p-0">
               <legend className="sr-only">Contenu du débrief</legend>
-              <div className="shrink-0 border-b border-white/10 bg-[#050814]/96 px-4 py-4 backdrop-blur-xl sm:px-5">
+              <div className="shrink-0 border-b border-white/10 bg-[var(--nxt5-surface)] px-4 py-4 backdrop-blur-xl sm:px-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier le débrief" : "Nouveau débrief"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Préparer le débrief"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">Choisis les parties à revoir, puis note ce que l’équipe garde, corrige et travaille ensuite.</p></div>
                   <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} aria-expanded={lexiconOpen} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer} disabled={saving} autoFocus>{draftAvailable ? "Fermer et garder le brouillon" : "Fermer"}</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? "Enregistrer" : "Créer le débrief"}</Button></div>

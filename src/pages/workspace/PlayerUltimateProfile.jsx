@@ -693,7 +693,7 @@ function ProfileChampionPoolView({ championPool = [], championStats = [], select
 
 function ProfilePoolReadLine({ label, value, detail, toneName = "cyan" }) {
   return <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(70px,.35fr)] items-center gap-3 py-3">
-    <div className="min-w-0"><p className="text-[13px] font-semibold text-slate-400">{label}</p><p className="mt-1 truncate text-xs font-semibold text-slate-300">{detail}</p></div>
+    <div className="min-w-0"><p className="text-xs font-semibold text-slate-400">{label}</p><p className="mt-1 truncate text-xs font-semibold text-slate-300">{detail}</p></div>
     <p className={cx("truncate text-right text-sm font-black", toneName === "green" ? "text-emerald-100" : toneName === "yellow" ? "text-amber-100" : toneName === "red" ? "text-rose-100" : "text-cyan-100")}>{value}</p>
   </div>;
 }
@@ -951,7 +951,7 @@ function ProfileHudMetric({ icon: Icon, label, value, detail, tone: t = "cyan" }
   return <div className="min-w-0 border-l border-white/10 px-3 py-1 tabular-nums">
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
-        <p className="truncate text-[13px] font-semibold text-slate-300">{label}</p>
+        <p className="truncate text-xs font-semibold text-slate-300">{label}</p>
         <p className="mt-2 truncate text-2xl font-black text-white">{value}</p>
       </div>
       {Icon && <Icon className={cx("h-4 w-4 shrink-0", t === "green" ? "text-emerald-100" : t === "red" ? "text-rose-100" : t === "purple" ? "text-violet-100" : t === "orange" ? "text-fuchsia-100" : "text-cyan-100")} aria-hidden="true" />}

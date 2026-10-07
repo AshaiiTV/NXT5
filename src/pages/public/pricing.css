@@ -38,7 +38,7 @@
 
 .nxt5-pricing .pricing-plan-eyebrow {
   color: #a5f3fc;
-  font-size: .75rem;
+  font-size: var(--nxt5-font-micro);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: .1em;
@@ -58,9 +58,9 @@
   display: flex;
   gap: .625rem;
   align-items: flex-start;
-  color: #edf5ff;
-  font-size: .875rem;
-  line-height: 1.5;
+  color: var(--nxt5-text);
+  font-size: var(--nxt5-font-body);
+  line-height: 1.7;
 }
 
 .nxt5-pricing .pricing-details {
@@ -81,9 +81,9 @@
 
 .nxt5-pricing .pricing-faq-item summary {
   padding: 1.125rem 0;
-  font-size: .9375rem;
+  font-size: var(--nxt5-font-body);
   font-weight: 600;
-  line-height: 1.5;
+  line-height: 1.6;
   cursor: pointer;
 }
 
@@ -159,11 +159,11 @@
 }
 
 .nxt5-pricing .pricing-title { margin-top: 1rem; max-width: 28ch; font-size: clamp(1.75rem, 2.8vw, 2.75rem); line-height: 1.12; font-weight: 700; letter-spacing: -.03em; }
-.nxt5-pricing .pricing-intro-description { max-width: 68ch; margin-top: 1.25rem; color: var(--nxt5-text-secondary); font-size: 1rem; line-height: 1.75; }
+.nxt5-pricing .pricing-intro-description { max-width: var(--nxt5-reading-width); margin-top: 1.25rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.75; }
 .nxt5-pricing .pricing-plan-title { font-size: 1.5rem; font-weight: 650; margin-top: .5rem; }
 .nxt5-pricing .pricing-price { font-size: clamp(2.5rem, 4vw, 3rem); font-weight: 650; letter-spacing: -.04em; line-height: 1.15; font-variant-numeric: tabular-nums; margin-top: 1.5rem; }
 .nxt5-pricing .pricing-section-title { font-size: 1.5rem; font-weight: 650; letter-spacing: -.02em; margin-top: 1rem; line-height: 1.25; }
-.nxt5-pricing .pricing-form-heading { font-size: .875rem; font-weight: 600; padding-bottom: .75rem; margin-bottom: 1rem; border-bottom: 1px solid var(--nxt5-border); }
+.nxt5-pricing .pricing-form-heading { font-size: var(--nxt5-font-body); font-weight: 600; padding-bottom: .75rem; margin-bottom: 1rem; border-bottom: 1px solid var(--nxt5-border); }
 .nxt5-pricing .pricing-faq-item summary { min-height: 44px; }
 .nxt5-pricing .pricing-faq-item[open] > summary { color: #cffafe; }
 .nxt5-pricing .pricing-success { border-radius: var(--nxt5-radius-panel); }
@@ -171,7 +171,7 @@
   .nxt5-pricing .pricing-details { grid-template-columns: minmax(0, 1fr); }
   .nxt5-pricing .pricing-request { max-width: 52rem; width: 100%; }
   .nxt5-pricing .pricing-intro { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
-  .nxt5-pricing .pricing-launch-note { max-width: 68ch; }
+  .nxt5-pricing .pricing-launch-note { max-width: var(--nxt5-reading-width); }
 }
 @container pricing (max-width: 700px) {
   .nxt5-pricing .pricing-plans { grid-template-columns: minmax(0, 1fr); }

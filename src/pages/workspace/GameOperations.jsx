@@ -170,11 +170,11 @@ export function CategoryMultiSelect({ categories, selectedIds, onChange, label =
     onChange(ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]);
   };
   return <div>
-    <p className="mb-2 text-[13px] font-semibold text-slate-300">{label}</p>
+    <p className="mb-2 text-xs font-semibold text-slate-300">{label}</p>
     <div className="flex flex-wrap gap-2">
       {(categories || []).map((category) => {
         const active = ids.includes(String(category.id));
-        return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("inline-flex min-h-11 items-center gap-2 rounded-[2px] border px-3 py-2 text-[13px] font-semibold transition", active ? [tone(matchCategoryTone(category)), "ring-1 ring-white/35"] : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{active && <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}{category.name}</button>;
+        return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("inline-flex min-h-11 items-center gap-2 rounded-[2px] border px-3 py-2 text-xs font-semibold transition", active ? [tone(matchCategoryTone(category)), "ring-1 ring-white/35"] : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{active && <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}{category.name}</button>;
       })}
       {!categories?.length && <Badge tone="slate">Aucune catégorie</Badge>}
     </div>

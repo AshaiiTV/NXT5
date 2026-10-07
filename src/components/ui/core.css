@@ -8,6 +8,8 @@
   position: relative;
   border-radius: var(--nxt5-radius-button);
   font-weight: 650;
+  font-size: var(--nxt5-font-ui);
+  line-height: 1.5;
   text-decoration: none;
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
 }
@@ -15,12 +17,12 @@
 .nxt5-button-primary {
   background-image: var(--nxt5-primary-gradient);
   border-color: transparent;
-  color: var(--nxt5-bg);
+  color: var(--nxt5-on-accent);
   font-weight: 750;
 }
 .nxt5-button-primary:hover:not(:disabled) { border-color: #cffafe; }
 .nxt5-button-secondary {
-  background: rgba(148, 180, 221, .045);
+  background: var(--nxt5-surface-soft);
   border-color: var(--nxt5-border-strong);
   color: var(--nxt5-text-secondary);
 }
@@ -39,13 +41,13 @@
 .nxt5-field-label {
   display: block;
   margin-bottom: .5rem;
-  font-size: .875rem;
+  font-size: var(--nxt5-font-ui);
   font-weight: 600;
   line-height: 1.45;
   color: var(--nxt5-text-secondary);
 }
 .nxt5-field-control { min-width: 0; }
-.nxt5-field .nxt5-input-shell { min-height: 46px; font-weight: 400; }
+.nxt5-field .nxt5-input-shell { min-height: 48px; font-size: var(--nxt5-font-body); font-weight: 400; }
 .nxt5-field-control:has(> svg) > :is(input, textarea) { padding-left: 2.625rem; }
 .nxt5-field-control:has(> button) > input { padding-right: 3.25rem; }
 .nxt5-field-control select { padding-right: 2.5rem; }
@@ -55,7 +57,7 @@
   padding: .25rem;
   border: 1px solid var(--nxt5-border);
   border-radius: .5rem;
-  background: rgba(3, 9, 20, .5);
+  background: var(--nxt5-field);
   scrollbar-width: thin;
 }
 .nxt5-tab {
@@ -104,9 +106,9 @@
   pointer-events: none;
 }
 .nxt5-page-header > :first-child { flex: 1 1 20rem; }
-.nxt5-page-eyebrow { margin: 0 0 .5rem; font-size: .6875rem; font-weight: 700; line-height: 1.5; letter-spacing: .14em; text-transform: uppercase; color: var(--nxt5-accent); }
+.nxt5-page-eyebrow { margin: 0 0 .5rem; font-size: var(--nxt5-font-micro); font-weight: 700; line-height: 1.5; letter-spacing: .1em; text-transform: uppercase; color: var(--nxt5-accent); }
 .nxt5-page-title { margin: 0; max-width: 50rem; font-size: clamp(1.625rem, 2.3vw, 2.125rem); line-height: 1.15; font-weight: 800; letter-spacing: -.035em; color: var(--nxt5-text); text-wrap: balance; overflow-wrap: anywhere; }
-.nxt5-page-subtitle { margin: .625rem 0 0; max-width: 65ch; font-size: .9375rem; line-height: 1.7; font-weight: 400; color: var(--nxt5-text-secondary); }
+.nxt5-page-subtitle { margin: .625rem 0 0; max-width: var(--nxt5-reading-width); font-size: var(--nxt5-font-body); line-height: 1.7; font-weight: 400; color: var(--nxt5-text-secondary); }
 .nxt5-page-actions { display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: .5rem; max-width: 100%; }
 
 @media (max-width: 640px) {

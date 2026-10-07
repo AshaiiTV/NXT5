@@ -271,7 +271,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user }) 
   const frameTone = (slotEvent) => {
     if (slotEvent?.conflict) return "bg-slate-500/10 text-slate-100 ring-1 ring-inset ring-slate-300/30";
     if (slotEvent) return planningEventMeta(slotEvent.type).cell;
-    return "bg-[#050914] text-slate-500";
+    return "bg-[var(--nxt5-field)] text-slate-500";
   };
   const saveStatusMeta = saveStatus === "saving"
     ? { tone: "cyan", label: "Enregistrement…" }

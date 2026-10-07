@@ -222,8 +222,8 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
   return (
     <div className="pointer-events-none fixed inset-0 z-[90] isolate">
       <button type="button" aria-label="Fermer l'assistant" onClick={onClose} className="pointer-events-auto absolute inset-0 cursor-default bg-black/65 backdrop-blur-[3px] sm:hidden" />
-      <aside role="dialog" aria-modal="false" aria-labelledby="nxt5-assistant-title" className="nxt5-assistant-panel nxt5-enter-fast pointer-events-auto absolute inset-x-2 bottom-2 isolate flex h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-cyan-200/24 bg-[#030611]/98 text-white shadow-2xl sm:inset-x-auto sm:bottom-20 sm:right-4 sm:h-[min(42rem,calc(100dvh-6.5rem))] sm:w-[min(28rem,calc(100vw-2rem))] lg:right-6">
-        <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-cyan-100/12 bg-[#060a18] px-4 py-4 sm:px-5">
+      <aside role="dialog" aria-modal="false" aria-labelledby="nxt5-assistant-title" className="nxt5-assistant-panel nxt5-enter-fast pointer-events-auto absolute inset-x-2 bottom-2 isolate flex h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-cyan-200/24 bg-[var(--nxt5-surface)] text-white shadow-2xl sm:inset-x-auto sm:bottom-20 sm:right-4 sm:h-[min(42rem,calc(100dvh-6.5rem))] sm:w-[min(28rem,calc(100vw-2rem))] lg:right-6">
+        <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-cyan-100/12 bg-[var(--nxt5-surface-raised)] px-4 py-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/10 text-cyan-100"><MessageCircleQuestion className="h-5 w-5" /></span>
             <div className="min-w-0">
@@ -238,7 +238,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
           </div>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto bg-[#040817] px-4 py-5 sm:px-5" aria-live="polite" aria-busy={loading}>
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--nxt5-field)] px-4 py-5 sm:px-5" aria-live="polite" aria-busy={loading}>
           {!messages.length && !loading && (
             <div className="flex min-h-full flex-col justify-center py-6">
               <MessageCircleQuestion className="h-8 w-8 text-cyan-100" />
@@ -282,8 +282,8 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
           <div ref={endRef} />
         </div>
 
-        <form onSubmit={submit} className="shrink-0 border-t border-cyan-100/12 bg-[#030612] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:pt-4">
-          <div className="flex items-end gap-2 rounded-2xl border border-cyan-100/16 bg-[#070c1b] p-2 transition-within focus-within:border-cyan-200/45 focus-within:ring-4 focus-within:ring-cyan-300/10">
+        <form onSubmit={submit} className="shrink-0 border-t border-cyan-100/12 bg-[var(--nxt5-surface)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:pt-4">
+          <div className="flex items-end gap-2 rounded-2xl border border-cyan-100/16 bg-[var(--nxt5-field)] p-2 transition-within focus-within:border-cyan-200/45 focus-within:ring-4 focus-within:ring-cyan-300/10">
             <textarea ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit(event); } }} rows={2} maxLength={800} disabled={loading} aria-label="Question pour l'assistant NXT5" placeholder="Pose une question sur NXT5" className="max-h-36 min-h-[3rem] min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-semibold leading-5 text-white outline-none placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-60" />
             <button type="submit" disabled={loading || !draft.trim()} aria-label="Envoyer la question" title="Envoyer" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200/30 bg-cyan-400/15 text-cyan-50  transition hover:border-cyan-100/55 hover:bg-cyan-300/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70 disabled:cursor-not-allowed disabled:opacity-35">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
           </div>

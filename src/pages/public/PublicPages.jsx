@@ -101,7 +101,7 @@ export function LegalLinks({ navigate }) {
             {INFORMATION_GROUPS.map(({ href, label }) => (
               <PublicTextLink key={href} href={href} navigate={navigate}>{label}</PublicTextLink>
             ))}
-            <button type="button" onClick={openCookieSettings} aria-haspopup="dialog" className="inline-flex min-h-11 items-center text-left text-xs font-semibold text-[#edf5ff] hover:text-cyan-200 hover:underline hover:underline-offset-[5px] sm:text-[0.8125rem]">Gérer mes cookies</button>
+            <button type="button" onClick={openCookieSettings} aria-haspopup="dialog" className="inline-flex min-h-11 items-center text-left text-xs font-semibold text-slate-100 hover:text-cyan-200 hover:underline hover:underline-offset-[5px]">Gérer mes cookies</button>
           </nav>
         </div>
       </div>
