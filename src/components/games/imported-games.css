@@ -37,7 +37,7 @@
 .ig-results { scroll-margin-top: 24px; }
 .ig-column-labels { display: none; }
 .ig-list { list-style: none; padding: 0; margin: 0; }
-.ig-game { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 16px; width: 100%; padding: 18px 12px; border-top: 1px solid var(--nxt5-border); text-align: left; }
+.ig-game { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; width: 100%; padding: 18px 12px; border-top: 1px solid var(--nxt5-border); text-align: left; }
 .ig-game:hover { background: rgba(255,255,255,.035); }
 .ig-game:disabled { cursor: default; }
 .ig-game:disabled:hover { background: transparent; }
@@ -54,12 +54,14 @@
 .ig-game-identity > span { color: #c2d0e3; font-size: var(--nxt5-font-small); line-height: 1.5; }
 .ig-game-identity > .ig-game-categories { color: #d9d0f8; }
 .ig-composition { grid-column: 1; grid-row: 3; display: grid; align-content: start; gap: 7px; min-width: 0; }
+.ig-composition-enemy { grid-column: 2; }
+.ig-composition-label { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 600; }
 .ig-champions { display: flex; flex-wrap: wrap; gap: 4px; }
 .ig-champion { width: 26px; height: 26px; border-radius: 5px; flex-shrink: 0; object-fit: cover; }
 .ig-side, .ig-missing { color: #c2d0e3; font-size: var(--nxt5-font-small); line-height: 1.5; }
 .ig-side-blue { color: #bae6fd; }
 .ig-side-red { color: #fecdd3; }
-.ig-date { display: grid; align-content: start; gap: 4px; grid-column: 2; grid-row: 3; color: #e2eaf7; font-size: var(--nxt5-font-small); line-height: 1.5; font-variant-numeric: tabular-nums; }
+.ig-date { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; grid-column: 1 / -1; grid-row: 4; color: #e2eaf7; font-size: var(--nxt5-font-small); line-height: 1.5; font-variant-numeric: tabular-nums; }
 .ig-date > span:last-child { color: #c2d0e3; font-size: var(--nxt5-font-small); }
 .ig-review { display: inline-flex; align-items: center; gap: 6px; grid-column: 2; grid-row: 1; color: #e2d5b7; font-size: var(--nxt5-font-small); }
 .ig-review svg { width: 14px; height: 14px; flex-shrink: 0; }
@@ -112,11 +114,13 @@
   .ih-teams, .ih-edit-fields { grid-template-columns: minmax(0, 1fr); }
   .ih-category-create fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@container (min-width: 880px) {
-  .ig-column-labels, .ig-game { display: grid; grid-template-columns: 96px minmax(160px, 1fr) 156px 126px 96px 16px; gap: 18px; align-items: center; }
+@container (min-width: 1060px) {
+  .ig-column-labels, .ig-game { display: grid; grid-template-columns: 96px minmax(160px, 1fr) 156px 156px 126px 96px 16px; gap: 18px; align-items: center; }
   .ig-column-labels { padding: 10px 12px; border-top: 1px solid var(--nxt5-border-strong); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 600; }
   .ig-game { padding: 18px 12px; }
   .ig-game > span { grid-column: auto; grid-row: auto; }
+  .ig-composition-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  .ig-date { display: grid; align-content: start; }
   .ig-open { display: block; }
 }
 @container (max-width: 599px) {
@@ -128,12 +132,17 @@
   .ig-game { padding: 16px 8px; gap: 12px; }
   .ig-champion { width: 24px; height: 24px; }
   .ig-composition { max-width: 148px; }
-  .ig-date { text-align: right; }
   .ig-selection { padding: 14px; }
   .ig-pagination nav { justify-content: space-between; width: 100%; }
   .ih-role-fields { grid-template-columns: minmax(0, 1fr); }
   .ih-category-create fieldset { grid-template-columns: minmax(0, 1fr); }
   .import-history .ih-editor select, .import-history .ih-editor input { font-size: var(--nxt5-font-body); }
+}
+
+@container (max-width: 319px) {
+  .ig-composition { grid-column: 1 / -1; max-width: none; }
+  .ig-composition-enemy { grid-row: 4; }
+  .ig-date { grid-row: 5; }
 }
 
 /* Native selects need room for their selected value as well as the arrow. */
