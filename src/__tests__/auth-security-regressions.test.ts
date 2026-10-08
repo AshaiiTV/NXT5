@@ -1,4 +1,5 @@
 import { LEGAL_VERSION } from '../../shared/legal.js';
+import crypto from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import bcrypt from 'bcryptjs';
 import { PGlite } from '@electric-sql/pglite';
@@ -101,10 +102,11 @@ function verify(token = originalToken) {
 function resend() {
   return resendVerification(new Request('https://nxt5.test/resend', { method: 'POST' }), context);
 }
-function register(email: string) {
+function register(email: string, registrationContext = context) {
   return registerAccount(new Request('https://nxt5.test/register', {
+    headers: { 'content-type': 'application/json', origin: 'https://nxt5.test', 'user-agent': 'Mozilla/5.0 Chrome/120.0' },
     method: 'POST', body: JSON.stringify({ email, displayName: 'New account', password, acceptLegal: true, legalVersion: LEGAL_VERSION })
-  }), context);
+  }), registrationContext);
 }
 async function user() {
   return (await state.pg.query('select * from users where id = $1', [userId])).rows[0];
@@ -118,6 +120,9 @@ beforeAll(async () => {
   await state.pg.exec(schema);
   await state.pg.exec(readFileSync(new URL('../../database/migrations/20260906_runtime_schema.sql', import.meta.url), 'utf8'));
   await state.pg.exec(readFileSync(new URL('../../database/migrations/20260928_team_activation_milestones.sql', import.meta.url), 'utf8'));
+  await state.pg.exec(readFileSync(new URL('../../database/migrations/20260914_audience.sql', import.meta.url), 'utf8'));
+  await state.pg.exec('create table app_schema_migrations(migration_key text primary key)');
+  await state.pg.query("insert into app_schema_migrations(migration_key) values ('audience-20260914-v1') on conflict do nothing");
 }, 20_000);
 
 beforeEach(async () => {
@@ -128,7 +133,7 @@ beforeEach(async () => {
   state.emails.mockReset().mockResolvedValue(undefined);
   state.recipients = [];
   state.notification.mockReset().mockResolvedValue(undefined);
-  await state.pg.exec('truncate users cascade; truncate rate_limits');
+  await state.pg.exec('truncate users cascade; truncate rate_limits; truncate audience_consents cascade');
   for (const [id, email] of [[userId, 'original@example.test'], [otherUserId, 'other@example.test']]) {
     await state.pg.query(`insert into users(id, account_name, name, email, password_hash, email_verified, email_verify_token, email_verify_expires_at)
       values ($1, $2, 'Test account', $3, $4, false, $5, now() + interval '23 hours')`,
@@ -481,6 +486,87 @@ describe('distributed login throttling', () => {
 });
 
 describe('registration response privacy', () => {
+  async function trackedBrowser() {
+    const receipt = crypto.randomBytes(32).toString('base64url');
+    const session = crypto.randomBytes(32).toString('base64url');
+    const visitor = crypto.randomUUID();
+    const sessionId = crypto.randomUUID();
+    const pageId = crypto.randomUUID();
+    const cookies = new Map([
+      ['nxt5_audience_consent', receipt], ['nxt5_audience_visitor', visitor], ['nxt5_audience_session', session]
+    ]);
+    await state.pg.query(`insert into audience_consents(receipt_hash, analytics, version, visitor_id, expires_at)
+      values ($1, true, '2026-09-14', $2, now() + interval '1 day')`, [sha256(receipt), visitor]);
+    await state.pg.query(`insert into audience_sessions(id, token_hash, consent_hash, visitor_id, source, medium, campaign, device, browser, country)
+      values ($1, $2, $3, $4, 'youtube', 'paid_video', 'teaser_oct2026', 'desktop', 'Chrome', 'FR')`, [sessionId, sha256(session), sha256(receipt), visitor]);
+    await state.pg.query("insert into audience_pages(session_id, page_id, path) values ($1, $2, '/creer-un-compte')", [sessionId, pageId]);
+    return { cookies: { get: (name: string) => cookies.get(name), set: vi.fn() } } as any;
+  }
+
+  const signupEvents = async () => (await state.pg.query("select * from audience_events where name='signup'")).rows;
+
+  it('records a real email signup once without exposing account existence or linking analytics to the account', async () => {
+    const client = await trackedBrowser();
+    const email = 'measured-registration@example.test';
+    const created = await register(email, client);
+    const repeated = await register(email, client);
+    const existing = await register('original@example.test', client);
+    expect([created.status, repeated.status, existing.status]).toEqual([202, 202, 202]);
+    const accepted = await created.json();
+    expect(await repeated.json()).toEqual(accepted);
+    expect(await existing.json()).toEqual(accepted);
+    expect(await signupEvents()).toHaveLength(1);
+    expect(client.cookies.set).not.toHaveBeenCalled();
+    const account = (await state.pg.query('select id from users where email=$1', [email])).rows[0];
+    const audience = JSON.stringify((await state.pg.query('select * from audience_sessions')).rows) + JSON.stringify(await signupEvents());
+    expect(audience).not.toContain(email);
+    expect(audience).not.toContain(account.id);
+    expect(audience).toContain('teaser_oct2026');
+  });
+
+  it('does not count an accepted request when the recipient delivery limit prevents account creation', async () => {
+    const client = await trackedBrowser();
+    await assertVerificationEmailRateLimit(crypto.randomUUID(), 'limited-registration@example.test');
+    expect((await register('limited-registration@example.test', client)).status).toBe(202);
+    expect((await state.pg.query('select id from users where email=$1', ['limited-registration@example.test'])).rows).toHaveLength(0);
+    expect(await signupEvents()).toHaveLength(0);
+  });
+
+  it('does not count a concurrent duplicate insert hidden by the private registration response', async () => {
+    const client = await trackedBrowser();
+    const email = 'concurrent-registration@example.test';
+    state.beforeQuery = async (query) => {
+      if (!query.includes('insert into users')) return;
+      state.beforeQuery = null;
+      await state.pg.query("insert into users(account_name, name, email, password_hash) values ('concurrent-registration', 'Concurrent account', $1, 'hash')", [email]);
+    };
+    expect((await register(email, client)).status).toBe(202);
+    expect(await signupEvents()).toHaveLength(0);
+  });
+
+  it('keeps registration successful when audience collection fails', async () => {
+    const client = await trackedBrowser();
+    state.beforeQuery = async (query) => {
+      if (query.includes('audience_pages')) throw Object.assign(new Error('private tracking failure'), { code: '08006' });
+    };
+    const response = await register('tracking-unavailable@example.test', client);
+    expect(response.status).toBe(202);
+    expect(await response.text()).not.toContain('private tracking failure');
+    expect((await state.pg.query('select id from users where email=$1', ['tracking-unavailable@example.test'])).rows).toHaveLength(1);
+    expect(await signupEvents()).toHaveLength(0);
+    expect(client.cookies.set).not.toHaveBeenCalled();
+  });
+
+  it('runs consented measurement through the function background-task lifetime', async () => {
+    const client = await trackedBrowser();
+    const pending: Promise<unknown>[] = [];
+    client.waitUntil = vi.fn((task: Promise<unknown>) => pending.push(task));
+    expect((await register('background-registration@example.test', client)).status).toBe(202);
+    await Promise.all(pending);
+    expect(pending).toHaveLength(2);
+    expect(await signupEvents()).toHaveLength(1);
+  });
+
   it('returns the same accepted response without a cookie for new and existing accounts', async () => {
     const first = await register('new-private@example.test');
     const duplicate = await register('new-private@example.test');

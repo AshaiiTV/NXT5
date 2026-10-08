@@ -12,6 +12,7 @@ import dashboard from '../../netlify/functions/admin-audience';
 import cleanup, { config } from '../../netlify/functions/audience-cleanup';
 import { AUDIENCE_SCHEMA_VERSION, COOKIE, CONSENT_SECONDS, GOALS } from '../../netlify/functions/_lib/audience';
 import { audiencePeriod, loadAudienceReport } from '../../netlify/functions/_lib/audience-report';
+import { recordRegistrationSignup } from '../../netlify/functions/_lib/audience-registration';
 import { canonicalAudiencePath, sanitizeCampaignValue } from '../app/audience-paths.js';
 
 let db: PGlite;
@@ -267,6 +268,137 @@ describe('audience collection correctness', () => {
     const response = await collect(request('audience-events',event()),client.context);
     expect(response.status).toBe(429); expect(Number(response.headers.get('retry-after'))).toBeGreaterThan(0);
     expect(await rows('audience_pages')).toHaveLength(1);
+  });
+});
+
+describe('server-recorded registration audience goals', () => {
+  const registrationRequest = () => request('auth-register', {
+    email: 'private-registration@example.test', displayName: 'Private registration', password: 'private-registration-password'
+  });
+  async function measuredClient() {
+    const client = browser();
+    await accept(client);
+    await collect(request('audience-events', event({ path: '/demo', source: 'youtube', medium: 'paid_video', campaign: 'teaser_oct2026' })), client.context);
+    client.set.mockClear();
+    return client;
+  }
+
+  async function authenticate(client: ReturnType<typeof browser>) {
+    const userId = uid(); const rawAuth = crypto.randomBytes(48).toString('base64url');
+    await db.query('insert into users(id,account_name,name,password_hash) values($1,$2,$3,$4)', [userId, `registration-${userId}`, 'Private registration', 'hash']);
+    await db.query("insert into sessions(user_id,token_hash,expires_at) values($1,$2,now()+interval '1 day')", [userId, crypto.createHash('sha256').update(rawAuth).digest('hex')]);
+    client.jar.set('rb_session', rawAuth);
+    return userId;
+  }
+
+  it('attributes a deduplicated signup to the existing campaign without new pages, cookies or account identifiers', async () => {
+    const client = await measuredClient();
+    await db.exec("update audience_pages set last_seen_at=now()-interval '1 minute',viewed_at=now()-interval '1 minute'");
+    const signupPage = event({ path: '/creer-un-compte' });
+    await collect(request('audience-events', signupPage), client.context);
+    const userId = await authenticate(client);
+    const cookiesBefore = [...client.jar]; client.set.mockClear();
+    await expect(recordRegistrationSignup(registrationRequest(), client.context)).resolves.toBeUndefined();
+    await recordRegistrationSignup(registrationRequest(), client.context);
+    expect((await rows('audience_events')).filter(row => row.name === 'signup')).toHaveLength(1);
+    expect(client.set).not.toHaveBeenCalled();
+    await collect(request('audience-events', { ...signupPage, type: 'event', eventId: uid(), name: 'signup' }), client.context);
+    const goals = (await rows('audience_events')).filter(row => row.name === 'signup');
+    expect(goals).toHaveLength(1); expect(goals[0].page_id).toBe(signupPage.pageId);
+    expect(await rows('audience_sessions')).toHaveLength(1); expect(await rows('audience_pages')).toHaveLength(2);
+    const report = await loadAudienceReport({ days: 7, device: 'all', source: 'youtube' });
+    expect(report.totals).toMatchObject({ sessions: 1, pageviews: 2, conversions: 1, conversionRate: 100 });
+    expect(report.campaigns).toEqual([{ source: 'youtube', medium: 'paid_video', campaign: 'teaser_oct2026', sessions: 1, conversions: 1 }]);
+    expect(report.goals.find((goal: any) => goal.name === 'signup')).toMatchObject({ events: 1, sessions: 1, conversionRate: 100 });
+    expect([...client.jar]).toEqual(cookiesBefore);
+    const stored = JSON.stringify([await rows('audience_consents'), await rows('audience_sessions'), await rows('audience_pages'), await rows('audience_events'), report]);
+    expect(stored).not.toContain(userId);
+    expect(stored).not.toMatch(/private-registration|Private registration|user_id|account_id/);
+  });
+
+  it.each(['unknown', 'refused', 'optout'])('does not collect a signup for %s consent or create identifiers', async (choice) => {
+    const client = choice === 'optout' ? await measuredClient() : browser();
+    if (choice === 'refused') await consent(request('audience-consent', { analytics: false }), client.context);
+    if (choice === 'optout') client.jar.set(COOKIE.optout, '1');
+    const eventsBefore = await rows('audience_events');
+    const cookiesBefore = [...client.jar]; client.set.mockClear(); query.mockClear();
+    await expect(recordRegistrationSignup(registrationRequest(), client.context)).resolves.toBeUndefined();
+    expect(await rows('audience_events')).toEqual(eventsBefore);
+    expect([...client.jar]).toEqual(cookiesBefore); expect(client.set).not.toHaveBeenCalled();
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it.each(['revoked', 'expired', 'rejected'])('rechecks %s server consent even with intact audience cookies', async (state) => {
+    const client = await measuredClient();
+    if (state === 'revoked') await db.exec('update audience_consents set revoked_at=now()');
+    if (state === 'expired') await db.exec("update audience_consents set expires_at=now()-interval '1 second'");
+    if (state === 'rejected') await db.exec('update audience_consents set analytics=false');
+    const eventsBefore = await rows('audience_events');
+    await expect(recordRegistrationSignup(registrationRequest(), client.context)).resolves.toBeUndefined();
+    expect(await rows('audience_events')).toEqual(eventsBefore);
+    expect(client.set).not.toHaveBeenCalled();
+  });
+
+  it.each([COOKIE.receipt, COOKIE.visitor, COOKIE.session])('rejects a mismatched %s cookie without attributing another session', async (name) => {
+    const client = await measuredClient();
+    const other = browser('198.51.100.43'); await accept(other);
+    await collect(request('audience-events', event({ source: 'discord' })), other.context);
+    client.jar.set(name, other.jar.get(name)!);
+    const eventsBefore = await rows('audience_events');
+    await expect(recordRegistrationSignup(registrationRequest(), client.context)).resolves.toBeUndefined();
+    expect(await rows('audience_events')).toEqual(eventsBefore);
+    expect((await loadAudienceReport({ days: 7, device: 'all', source: 'all' })).totals.conversions).toBe(0);
+    expect(client.set).not.toHaveBeenCalled();
+  });
+
+  it.each(['expired', 'without a page'])('does not revive a session that is %s or fabricate a page', async (state) => {
+    const client = state === 'expired' ? await measuredClient() : browser();
+    if (state === 'expired') await db.exec("update audience_sessions set last_seen_at=now()-interval '31 minutes'");
+    else { await accept(client); client.set.mockClear(); }
+    const before = { sessions: await rows('audience_sessions'), pages: await rows('audience_pages'), events: await rows('audience_events') };
+    await expect(recordRegistrationSignup(registrationRequest(), client.context)).resolves.toBeUndefined();
+    expect({ sessions: await rows('audience_sessions'), pages: await rows('audience_pages'), events: await rows('audience_events') }).toEqual(before);
+    expect(client.set).not.toHaveBeenCalled();
+  });
+
+  it.each(['bot', 'administrator'])('excludes a %s even when its browser already has a measured page', async (kind) => {
+    const client = await measuredClient();
+    const userId = kind === 'administrator' ? await authenticate(client) : null;
+    if (userId) { vi.stubEnv('PLATFORM_ADMIN_USER_ID', userId); vi.stubEnv('PLATFORM_ADMIN_EMAIL', ''); }
+    try {
+      const signup = registrationRequest();
+      if (kind === 'bot') signup.headers.set('user-agent', 'Googlebot');
+      const eventsBefore = await rows('audience_events');
+      await expect(recordRegistrationSignup(signup, client.context)).resolves.toBeUndefined();
+      expect(await rows('audience_events')).toEqual(eventsBefore);
+      expect(client.set).not.toHaveBeenCalled();
+      if (userId) expect(JSON.stringify(await rows('audience_sessions'))).not.toContain(userId);
+    } finally { vi.unstubAllEnvs(); }
+  });
+
+  it('honors withdrawal after the page lookup and before the atomic collector', async () => {
+    const client = await measuredClient();
+    const eventsBefore = await rows('audience_events');
+    beforeCollection = async () => { await db.exec('update audience_consents set revoked_at=now()'); };
+    await expect(recordRegistrationSignup(registrationRequest(), client.context)).resolves.toBeUndefined();
+    expect(beforeCollection).toBeNull();
+    expect(await rows('audience_events')).toEqual(eventsBefore);
+    expect(client.set).not.toHaveBeenCalled();
+  });
+
+  it.each(['missing migration', 'collector failure'])('keeps %s non-blocking and excludes private error details from logs', async (failure) => {
+    const client = await measuredClient();
+    const privateUserId = uid();
+    if (failure === 'missing migration') await db.query('delete from app_schema_migrations where migration_key=$1', [AUDIENCE_SCHEMA_VERSION]);
+    else beforeCollection = async () => { throw Object.assign(new Error(`private-registration@example.test ${privateUserId}`), { code: 'XX000', detail: privateUserId, parameters: ['private-registration-password'] }); };
+    const eventsBefore = await rows('audience_events');
+    vi.mocked(console.error).mockClear();
+    await expect(recordRegistrationSignup(registrationRequest(), client.context)).resolves.toBeUndefined();
+    expect(await rows('audience_events')).toEqual(eventsBefore);
+    expect(client.set).not.toHaveBeenCalled();
+    expect(console.error).toHaveBeenCalledTimes(1);
+    const logs = JSON.stringify(vi.mocked(console.error).mock.calls);
+    expect(logs).not.toContain(privateUserId); expect(logs).not.toContain('private-registration');
   });
 });
 
