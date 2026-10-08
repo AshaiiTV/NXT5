@@ -20,6 +20,19 @@ function gameDuration(match) {
   return `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 }
 
+function GameComposition({ participants, teamKey, side, id }) {
+  const roleIndex = (row) => {
+    const index = ROSTER_ROLE_ORDER.indexOf(row.role);
+    return index < 0 ? ROSTER_ROLE_ORDER.length : index;
+  };
+  const rows = participants.filter((row) => row.team_key === teamKey).sort((a, b) => roleIndex(a) - roleIndex(b)).slice(0, 5);
+  return <span id={id} className={`ig-composition ig-composition-${teamKey.toLowerCase()}`}>
+    <span className="ig-composition-label">{teamKey === "ALLY" ? "Alliés" : "Ennemis"}</span>
+    <span className="ig-champions">{rows.length ? rows.map((row, index) => <ChampionPortrait key={row.id || index} row={row} champion={row.champion} alt={championDisplayName(row.champion)} className="ig-champion" />) : <span className="ig-missing">Composition indisponible</span>}</span>
+    <span className={`ig-side ${side ? `ig-side-${side}` : ""}`}>{side === "blue" ? "Côté bleu" : side === "red" ? "Côté rouge" : "Côté inconnu"}</span>
+  </span>;
+}
+
 export function ImportedGames({ matches = [], categories = [], selectedMatchId, selectedMatch, selectedReport, onSelectMatch, onCreateReview, onOpenReview, onViewStats, onResetScope, scopeName = "", history = false, dateTimeZone, headerActions, categoryManager, selectionActions, selectionDetails, selectionLocked = false, showSelection = true, showCategoryFilter = history, allowImportSort = history, title, description, emptyAction }) {
   const { dateFormat, timeFormat } = useMemo(() => ({
     dateFormat: new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: dateTimeZone }),
@@ -123,7 +136,7 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
       {selectedMatch && selectionDetails}
 
       <div ref={resultsRef} className="ig-results" tabIndex={-1} aria-label="Liste des parties" aria-busy={deferredQuery !== filters.query}>
-        <div className="ig-column-labels" aria-hidden="true"><span>Résultat</span><span>Partie</span><span>Composition alliée</span><span>{history ? "Import / durée" : "Date / durée"}</span><span>Débrief</span><span /></div>
+        <div className="ig-column-labels" aria-hidden="true"><span>Résultat</span><span>Partie</span><span>Composition alliée</span><span>Composition ennemie</span><span>{history ? "Import / durée" : "Date / durée"}</span><span>Débrief</span><span /></div>
         {visibleMatches.length ? <ul className="ig-list">{visibleMatches.map((match) => {
           const active = String(match.id) === String(selectedMatchId);
           const won = match.result === "Victoire";
@@ -132,12 +145,13 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
           const side = importedGameSide(match);
           const date = gameDate(match, history);
           const matchCategories = matchCategoryIds(match).map((id) => categories.find((category) => String(category.id) === id)?.name).filter(Boolean);
-          const allies = (match.participants || []).filter((row) => row.team_key === "ALLY").sort((a, b) => ROSTER_ROLE_ORDER.indexOf(a.role) - ROSTER_ROLE_ORDER.indexOf(b.role)).slice(0, 5);
+          const compositionId = `${titleId}-${match.id}-composition`;
           return <li key={match.id}>
-            <button type="button" className="ig-game" data-match-id={match.id} disabled={selectionLocked} aria-pressed={active} onClick={() => onSelectMatch(active ? "" : match.id)} aria-label={`${active ? "Désélectionner" : "Sélectionner"} ${matchDisplayName(match, "Partie")} · ${match.result || "Sans résultat"} · ${done ? "Débrief terminé" : "À revoir"} · ${match.game_id || "Partie"}`}>
+            <button type="button" className="ig-game" data-match-id={match.id} disabled={selectionLocked} aria-pressed={active} aria-describedby={`${compositionId}-ally ${compositionId}-enemy`} onClick={() => onSelectMatch(active ? "" : match.id)} aria-label={`${active ? "Désélectionner" : "Sélectionner"} ${matchDisplayName(match, "Partie")} · ${match.result || "Sans résultat"} · ${done ? "Débrief terminé" : "À revoir"} · ${match.game_id || "Partie"}`}>
               <span className={`ig-result ${won ? "ig-win" : lost ? "ig-loss" : ""}`}><span aria-hidden="true">{won ? "V" : lost ? "D" : "—"}</span>{won ? "Victoire" : lost ? "Défaite" : "Sans résultat"}</span>
               <span className="ig-game-identity"><strong>{matchDisplayName(match, "Partie")}</strong><span>{match.game_id || "Identifiant indisponible"}</span><span className="ig-game-categories">{matchCategories.length ? matchCategories.join(" · ") : "Non classée"}</span>{history && (match.created_by_name || match.created_by_account) && <span>Par {match.created_by_name || match.created_by_account}</span>}</span>
-              <span className="ig-composition"><span className="ig-champions">{allies.length ? allies.map((row, index) => <ChampionPortrait key={row.id || index} row={row} champion={row.champion} alt={championDisplayName(row.champion)} className="ig-champion" />) : <span className="ig-missing">Composition indisponible</span>}</span><span className={`ig-side ${side ? `ig-side-${side}` : ""}`}>{side === "blue" ? "Côté bleu" : side === "red" ? "Côté rouge" : "Côté inconnu"}</span></span>
+              <GameComposition participants={match.participants || []} teamKey="ALLY" side={side} id={`${compositionId}-ally`} />
+              <GameComposition participants={match.participants || []} teamKey="ENEMY" side={side === "blue" ? "red" : side === "red" ? "blue" : ""} id={`${compositionId}-enemy`} />
               <span className="ig-date">{date ? <time dateTime={date.toISOString()}>{dateFormat.format(date)}</time> : <span>Date inconnue</span>}<span>{date && <>{timeFormat.format(date)} · </>}{gameDuration(match)}</span></span>
               <span className={`ig-review ${done ? "ig-review-done" : ""}`}>{done ? <CheckCircle2 aria-hidden="true" /> : <Clock3 aria-hidden="true" />}{done ? "Terminé" : "À revoir"}</span>
               <span className="ig-open" aria-hidden="true">{active ? <Check /> : <ChevronRight />}</span>
