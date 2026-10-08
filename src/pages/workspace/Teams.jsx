@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, Clipboard, Loader2, Plus, Shield, Trophy, UserPlus, Users, X, Check, Image as ImageIcon, Pencil, Trash2, UserMinus, Upload, EyeOff, RefreshCw, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Clipboard, Loader2, Plus, Shield, Trophy, UserPlus, Users, X, Check, Image as ImageIcon, Pencil, Trash2, UserMinus, Upload } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { RIOT_SYNC_CLIENT_TIMEOUT_MS } from "../../../shared/riot-sync-policy.js";
 import { openAppPath } from "../../app/routing.js";
@@ -126,6 +126,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const gameplayRoster = roster.filter((player) => isGameplayRole(player.role));
   const mainTeamRoster = rosterPlayersByStatus(gameplayRoster, "MAIN");
   const substituteRoster = rosterPlayersByStatus(gameplayRoster, "SUB");
+  const activeRoster = [...mainTeamRoster, ...substituteRoster];
   const teamMembers = selectedTeam ?(data.teamMembers || []).filter((member) => member.team_id === selectedTeam.id) : [];
   const inviteCodes = selectedTeam ?(data.inviteCodes || []).filter((code) => code.team_id === selectedTeam.id) : [];
   const multiPlayers = useMemo(() => parseMultiOpgg(teamForm.multiOpgg), [teamForm.multiOpgg]);
@@ -296,9 +297,13 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       pushToast({ type: "red", title: "Multi OP.GG impossible", text: "Ajoute des Riot IDs au format Pseudo#TAG." });
       return;
     }
-    await navigator.clipboard.writeText(link);
-    const linkedCount = players.filter((player) => String(player.riot_id || "").includes("#")).length;
-    pushToast({ type: "green", title: `Multi OP.GG ${label} copié`, text: `${linkedCount} joueur${linkedCount > 1 ?"s" : ""} dans le lien.` });
+    try {
+      await navigator.clipboard.writeText(link);
+      const linkedCount = new URL(link).searchParams.get("summoners").split(",").length;
+      pushToast({ type: "green", title: `Multi OP.GG ${label} copié`, text: `${linkedCount} joueur${linkedCount > 1 ?"s" : ""} dans le lien.` });
+    } catch {
+      pushToast({ type: "red", title: "Copie impossible", text: "Le navigateur n’a pas autorisé la copie. Réessaie depuis le bouton." });
+    }
   }
 
   async function copyPlayerOpggLink(player) {
@@ -514,7 +519,8 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     </div> : <Surface glow><EmptyState icon={Users} title="Aucune équipe" text="Crée ou rejoins une équipe avant d’ouvrir la gestion." /></Surface>}
   </div>;
 
-  return <div ref={pageRef} className="nxt5-teams-page" data-entry={showSetup ? "true" : undefined}><PageHeader eyebrow={showSetup ? "Bienvenue dans NXT5" : "Équipe"} title={showSetup ? pendingCreation ? "Ton équipe est créée. On continue." : setupIntent === "create" ? "Créons ton espace d’équipe." : setupIntent === "join" ? "Retrouve ton équipe." : "Comment veux-tu commencer ?" : selectedTeam.name} subtitle={showSetup ? setupIntent === "choose" && !pendingCreation ? "Choisis ta situation. On te guide pour la suite." : undefined : "Retrouve les joueurs de ton équipe et ouvre leur profil pour consulter leurs champions et leurs statistiques."}>{hasTeams && <>
+  return <div ref={pageRef} className="nxt5-teams-page" data-entry={showSetup ? "true" : undefined}><PageHeader eyebrow={showSetup ? "Bienvenue dans NXT5" : "Équipe"} title={showSetup ? pendingCreation ? "Ton équipe est créée. On continue." : setupIntent === "create" ? "Créons ton espace d’équipe." : setupIntent === "join" ? "Retrouve ton équipe." : "Comment veux-tu commencer ?" : selectedTeam.name} subtitle={showSetup ? setupIntent === "choose" && !pendingCreation ? "Choisis ta situation. On te guide pour la suite." : undefined : [selectedTeam.tag, selectedTeam.region, `${activeRoster.length} joueur${activeRoster.length > 1 ? "s" : ""} actif${activeRoster.length > 1 ? "s" : ""}`].filter(Boolean).join(" · ")}>{hasTeams && <>
+      {!showSetup && <Button type="button" icon={Clipboard} disabled={!activeRoster.length} title={activeRoster.length ? "Copier le lien des titulaires et des remplaçants" : "Ajoute un titulaire ou un remplaçant pour copier le multi OP.GG"} onClick={() => copyMultiOpggLink(activeRoster, "de l’équipe")}>Copier le multi OP.GG</Button>}
       {canManageRoster && !showSetup && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>Gestion de l’équipe</LinkButton>}
       {showSetup && <Button type="button" variant="ghost" icon={X} disabled={saving} onClick={closeSetup}>Fermer les formulaires</Button>}
       {pendingCreation && !showSetup && <Button type="button" variant="ghost" onClick={() => { focusSetup.current = true; setTeamSetupOpen(true); }}>Reprendre l’import de joueurs</Button>}
@@ -565,20 +571,16 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
       </div>}
 
-      {selectedTeam && !showSetup && <div className="space-y-5">
-        <Surface glow>
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="flex min-w-0 flex-wrap items-center gap-3"><h3 className="text-xl font-black text-white">Joueurs et encadrement</h3><Badge tone="purple" className="shrink-0">{selectedTeam.tag || "TEAM"}</Badge></div>
-            {roster.length > 0 && canManageRoster && <LinkButton href="/gestion-equipe?section=roster" navigate={openAppPath} icon={UserPlus}>Ajouter un joueur</LinkButton>}
-          </div>
-
-          <PremiumRosterTable roster={roster} matches={data.matches || []} region={selectedTeam.region} currentUserId={user?.id} canManage={canManageRoster} />
-          {(mainTeamRoster.length > 0 || substituteRoster.length > 0) && <ReadingDetails title="Copier les liens OP.GG" className="team-roster-links">
-            <div className="nxt5-roster-actions flex flex-wrap gap-2">
-              {mainTeamRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(mainTeamRoster, "Main Team")}>Copier OP.GG titulaires · {mainTeamRoster.length}</Button>}
-              {substituteRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(substituteRoster, "Subs")}>Copier OP.GG remplaçants · {substituteRoster.length}</Button>}
+      {selectedTeam && !showSetup && <div>
+        <Surface className="team-roster-surface">
+          <PremiumRosterTable key={selectedTeam.id} roster={roster} matches={data.matches || []} currentUserId={user?.id} canManage={canManageRoster} />
+          {activeRoster.length > 0 && <details className="team-roster-options">
+            <summary>Liens OP.GG par groupe</summary>
+            <div className="team-roster-copy-actions">
+              {mainTeamRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(mainTeamRoster, "des titulaires")}>Copier OP.GG titulaires · {mainTeamRoster.length}</Button>}
+              {substituteRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(substituteRoster, "des remplaçants")}>Copier OP.GG remplaçants · {substituteRoster.length}</Button>}
             </div>
-          </ReadingDetails>}
+          </details>}
         </Surface>
       </div>}
     </div>
@@ -752,11 +754,11 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
   </Surface>;
 }
 
-function ChampionCircle({ champion, index }) {
-  return <div className="nxt5-roster-champion">
-    <div className="nxt5-roster-portrait"><ChampionPortrait champion={champion.champion} alt={champion.champion} /></div>
-    <div className="min-w-0"><p className="text-sm font-semibold text-white">{championDisplayName(champion.champion)}</p><p className="text-xs text-slate-400">{champion.games || 0} game{champion.games > 1 ? "s" : ""}</p></div>
-  </div>;
+function ChampionCircle({ champion }) {
+  const label = `${championDisplayName(champion.champion)} · ${champion.games} partie${champion.games > 1 ? "s" : ""}`;
+  return <span className="team-roster-champion" role="img" aria-label={label} title={label}>
+    <ChampionPortrait champion={champion.champion} alt={label} />
+  </span>;
 }
 
 function playerImportedChampionStats(player, matches = []) {
@@ -773,66 +775,64 @@ function playerImportedChampionStats(player, matches = []) {
 
 function ImportedChampionBadges({ player, matches = [] }) {
   const items = playerImportedChampionStats(player, matches).slice(0, 3);
-  if (!items.length) return <span className="text-xs font-semibold text-slate-300">Aucune partie importée pour ce profil</span>;
-  return <div className="flex flex-wrap gap-2">{items.map((champion, index) => <ChampionCircle key={(champion.championId || champion.champion) + "-imported-" + index} champion={champion} index={index} />)}</div>;
+  if (!items.length) return null;
+  return <span className="team-roster-champions"><span className="sr-only">Champions les plus joués : </span>{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}</span>;
 }
 
-function PremiumRosterTable({ roster, matches = [], region = "EUW", currentUserId = "", canManage = false, saving = false, syncingPlayerId = "", riotCooldownSeconds = 0, onCopyOpgg, onSyncPlayer, onEditPlayer, onDeletePlayer }) {
-  const openProfile = (player) => {
-    if (!isStaffRole(player.role)) openAppPath(`/mon-profil?player=${encodeURIComponent(player.id)}`);
-  };
-  if (!roster.length) return <div className="team-roster-empty">
-    <UserPlus aria-hidden="true" className="h-7 w-7 shrink-0 text-cyan-200" />
-    <div className="min-w-0"><h4 className="text-lg font-semibold text-white">{canManage ? "Ajoute ton premier joueur" : "Le roster est en préparation"}</h4>
-      <p className="mt-2 text-sm leading-6 text-slate-300">{canManage ? "Renseigne son nom, son Riot ID et son poste. Tu pourras ensuite ajouter les autres joueurs et ton staff." : "Un capitaine, coach ou manager doit ajouter les profils de l’équipe. Demande à ton staff d’ajouter les joueurs."}</p>
-    </div>
-    {canManage && <LinkButton href="/gestion-equipe?section=roster" navigate={openAppPath} icon={UserPlus}>Ajouter un joueur</LinkButton>}
-  </div>;
-  const sortRosterSection = (items) => [...items].sort((a, b) => rosterRoleIndex(a.role) - rosterRoleIndex(b.role) || String(a.name || "").localeCompare(String(b.name || "")));
-  const gameplayRoster = roster.filter((item) => !isStaffRole(item.role));
-  const mainRoster = sortRosterSection(gameplayRoster.filter((item) => playerRosterStatus(item) === "MAIN"));
-  const subRoster = sortRosterSection(gameplayRoster.filter((item) => playerRosterStatus(item) === "SUB"));
-  const inactiveRoster = sortRosterSection(gameplayRoster.filter((item) => playerRosterStatus(item) === "INACTIVE"));
+function PremiumRosterTable({ roster, matches = [], currentUserId = "", canManage = false }) {
+  const sortRoster = (items) => [...items].sort((a, b) => rosterRoleIndex(a.role) - rosterRoleIndex(b.role) || String(a.name || "").localeCompare(String(b.name || "")));
+  const players = roster.filter((item) => !isStaffRole(item.role));
+  const mainRoster = sortRoster(players.filter((item) => playerRosterStatus(item) === "MAIN"));
+  const subRoster = sortRoster(players.filter((item) => playerRosterStatus(item) === "SUB"));
+  const inactiveRoster = sortRoster(players.filter((item) => playerRosterStatus(item) === "INACTIVE"));
   const staffRoster = roster.filter((item) => isStaffRole(item.role));
-  const showActions = Boolean(onCopyOpgg || onSyncPlayer || onEditPlayer || onDeletePlayer);
-  const renderSection = (items, title, subtitle, Icon, emptyText) => (
-    <div className="min-w-0 overflow-hidden border-t border-white/10">
-      <div className="nxt5-roster-section-header flex flex-col gap-3 border-b border-white/10 py-4 md:flex-row md:items-center md:justify-between">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-400/10 text-cyan-100"><Icon className="h-5 w-5" /></div>
-          <div className="min-w-0">
-            <h3 className="truncate text-xl font-black text-white">{title}</h3>
-            <p className="mt-1 text-sm font-semibold text-slate-300">{subtitle}</p>
-          </div>
-        </div>
-        <Badge tone={items.length ? "cyan" : "slate"}>{items.length} profil{items.length > 1 ? "s" : ""}</Badge>
+  const hasActivePlayers = mainRoster.length + subRoster.length > 0;
+  const addPlayer = canManage && <LinkButton href="/gestion-equipe?section=roster" navigate={openAppPath} variant="ghost" icon={Plus}>Ajouter un joueur</LinkButton>;
+
+  function renderPlayers(items, title) {
+    return <ul className="team-roster-list" aria-label={title}>
+      {items.map((player) => {
+        const href = `/mon-profil?player=${encodeURIComponent(player.id)}`;
+        const isMe = Boolean(currentUserId && player.user_id && String(player.user_id) === String(currentUserId));
+        return <li key={player.id}>
+          <a href={href} className="team-roster-row" onClick={(event) => {
+            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            event.preventDefault();
+            openAppPath(href);
+          }}>
+            <span className="team-roster-role"><span aria-hidden="true"><RoleIcon role={player.role} className="h-5 w-5" /></span><span>{roleLabel(player.role)}</span></span>
+            <span className="team-roster-identity"><span className="team-roster-name"><span className="sr-only">Voir le profil de </span>{player.name}{isMe && <span className="team-roster-me">Toi</span>}</span><span className="team-roster-riot">{player.riot_id || "Riot ID à renseigner"}</span></span>
+            <ImportedChampionBadges player={player} matches={matches} />
+            <ArrowRight aria-hidden="true" className="team-roster-arrow" />
+          </a>
+        </li>;
+      })}
+    </ul>;
+  }
+
+  return <div className="team-roster">
+    {!hasActivePlayers && <div className="team-roster-empty">
+      <div><h3>{inactiveRoster.length ? "Aucun joueur actif" : canManage ? "Ajoute ton premier joueur" : "Le roster est en préparation"}</h3>
+        <p>{canManage ? inactiveRoster.length ? "Ajoute un joueur ou réactive un profil depuis la gestion de l’équipe." : "Un nom, un Riot ID et un poste suffisent pour commencer." : "Demande à ton staff d’ajouter les joueurs."}</p>
       </div>
-      {items.length ? <><div className="divide-y divide-white/10 md:hidden">
-        {items.map((item) => {
-          const staff = isStaffRole(item.role);
-          const hasOpgg = !staff && Boolean(String(item.opgg_url || "").trim() || opggUrlFromRiotId(item.riot_id, region));
-          const isLinkedToMe = String(item.user_id || "") === String(currentUserId || "");
-          return <div key={item.id} className="px-1 py-4 transition hover:bg-white/[0.025]"><button type="button" onClick={() => openProfile(item)} disabled={staff} className="flex w-full items-start justify-between gap-3 text-left disabled:cursor-default"><div className="flex min-w-0 items-start gap-3"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-4 w-4" /> : <Users className="h-4 w-4 text-violet-200" />}</div><div className="min-w-0"><div className="flex min-w-0 flex-wrap items-center gap-2"><RoleTag role={item.role} staff={staff} className="max-w-[7rem]" />{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div><p className="mt-2 break-words text-lg font-black text-white">{item.name}</p><p className="mt-1 break-words text-sm font-semibold text-slate-300">{staff ? "Non utilisé dans OP.GG" : item.riot_id || "Sans Riot ID"}</p></div></div>{!staff && <ArrowRight className="mt-2 h-5 w-5 shrink-0 text-cyan-100" />}</button><div className="mt-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</div>{showActions && <div className="mt-4 grid grid-cols-4 gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-11 items-center justify-center rounded-[2px] border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-11 items-center justify-center rounded-[2px] border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-11 items-center justify-center rounded-[2px] border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-11 items-center justify-center rounded-[2px] border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div>}</div>;
-        })}
-      </div><div className="nxt5-responsive-scroll hidden overflow-x-auto md:block">
-        <table className={cx("w-full text-left text-sm", showActions ? "min-w-[1040px]" : "min-w-[860px]")}>
-          <thead className="sticky top-0 bg-white/[0.055] text-xs font-semibold text-slate-300"><tr><th className="px-4 py-3">Rôle</th><th className="px-4 py-3">Joueur</th><th className="px-4 py-3">Riot ID</th><th className="px-4 py-3">Champions les plus joués</th>{showActions && <th className="px-4 py-3 text-right">Actions</th>}</tr></thead>
-          <tbody className="divide-y divide-white/10">{items.map((item) => {
-    const staff = isStaffRole(item.role);
-    const hasOpgg = !staff && Boolean(String(item.opgg_url || "").trim() || opggUrlFromRiotId(item.riot_id, region));
-    const isLinkedToMe = String(item.user_id || "") === String(currentUserId || "");
-    return <tr key={item.id} onClick={() => openProfile(item)} className={cx("bg-black/[0.12] text-slate-300 transition hover:bg-white/[0.04]", staff ? "cursor-default" : "cursor-pointer")}><td className="px-4 py-4"><div className="flex min-w-0 items-center gap-2">{!staff && <ArrowRight className="h-4 w-4 shrink-0 text-cyan-100" />}<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/25">{isGameplayRole(item.role) ? <RoleIcon role={item.role} className="h-5 w-5" /> : <Users className="h-4 w-4 text-violet-200" />}</div><RoleTag role={item.role} staff={staff} className="max-w-[7.5rem]" /></div></td><td className="px-4 py-4"><div className="flex min-w-0 flex-wrap items-center gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); openProfile(item); }} disabled={staff} className="min-h-11 min-w-0 break-words text-left font-black text-white underline-offset-4 hover:underline disabled:cursor-default disabled:no-underline">{item.name}</button>{isLinkedToMe && <Badge tone="orange">Mon profil</Badge>}{item.user_id && !isLinkedToMe && <Badge tone="green">Lié</Badge>}</div></td><td className="px-4 py-4 font-semibold text-slate-300">{staff ? "Non utilisé" : item.riot_id || "Sans Riot ID"}</td><td className="px-4 py-4">{staff ?<span className="text-xs font-semibold text-slate-300">Hors draft / OP.GG</span> : <ImportedChampionBadges player={item} matches={matches} />}</td>{showActions && <td className="px-4 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={(event) => { event.stopPropagation(); onCopyOpgg?.(item); }} disabled={!hasOpgg} title={staff ? "Pas d'OP.GG pour staff" : "Copier l'OP.GG"} className="inline-flex h-11 w-11 items-center justify-center rounded-[2px] border border-white/10 bg-white/[0.045] text-cyan-100 transition hover:border-cyan-300/35 hover:bg-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-35"><Clipboard className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onSyncPlayer?.(item); }} disabled={staff || !canManage || saving || syncingPlayerId === item.id || riotCooldownSeconds > 0} title={riotCooldownSeconds > 0 ? `Riot ${formatCountdown(riotCooldownSeconds)}` : "Analyser ce profil"} className="inline-flex h-11 w-11 items-center justify-center rounded-[2px] border border-emerald-300/20 bg-emerald-400/10 text-emerald-100 transition hover:bg-emerald-400/15 disabled:cursor-not-allowed disabled:opacity-35">{syncingPlayerId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}</button><button type="button" onClick={(event) => { event.stopPropagation(); onEditPlayer?.(item); }} disabled={!canManage || saving} title="Modifier le profil" className="inline-flex h-11 w-11 items-center justify-center rounded-[2px] border border-cyan-300/20 bg-cyan-400/10 text-cyan-100 transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-35"><Pencil className="h-4 w-4" /></button><button type="button" onClick={(event) => { event.stopPropagation(); onDeletePlayer?.(item.id, item.name); }} disabled={!canManage || saving} title="Supprimer le profil" className="inline-flex h-11 w-11 items-center justify-center rounded-[2px] border border-rose-300/20 bg-rose-500/10 text-rose-100 transition hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-35"><Trash2 className="h-4 w-4" /></button></div></td>}</tr>;
-          })}</tbody>
-        </table>
-      </div></> : <p className="py-4 text-sm font-semibold leading-6 text-slate-300">{emptyText}</p>}
-    </div>
-  );
-  return <div className="nxt5-roster mt-6 grid gap-5">
-    {renderSection(mainRoster, "Titulaires", "Les joueurs de la composition principale.", Users, "Aucun titulaire défini. Choisis Titulaire dans le champ Effectif depuis Gestion de l’équipe.")}
-    {renderSection(subRoster, "Remplaçants", "Les joueurs disponibles pour remplacer un titulaire.", UserPlus, "Aucun remplaçant défini. Choisis Remplaçant dans le champ Effectif depuis Gestion de l’équipe.")}
-    {inactiveRoster.length > 0 && renderSection(inactiveRoster, "Hors effectif actif", "Profils conservés en dehors des groupes de joueurs actifs.", EyeOff, "")}
-    {renderSection(staffRoster, "Encadrement", "Coachs, managers et autres membres du staff.", ShieldCheck, "Aucun membre staff ajouté pour le moment.")}
+      {addPlayer}
+    </div>}
+    {mainRoster.length > 0 && <section className="team-roster-section" aria-label="Titulaires">
+      <div className="team-roster-heading"><h3>Titulaires <span>{mainRoster.length}</span></h3>{addPlayer}</div>
+      {renderPlayers(mainRoster, "Titulaires")}
+    </section>}
+    {subRoster.length > 0 && <section className="team-roster-section" aria-label="Remplaçants">
+      <div className="team-roster-heading"><h3>Remplaçants <span>{subRoster.length}</span></h3>{!mainRoster.length && addPlayer}</div>
+      {renderPlayers(subRoster, "Remplaçants")}
+    </section>}
+    {staffRoster.length > 0 && <section className="team-roster-section" aria-label="Encadrement">
+      <div className="team-roster-heading"><h3>Encadrement <span>{staffRoster.length}</span></h3></div>
+      <ul className="team-roster-staff">{staffRoster.map((member) => <li key={member.id}><span>{member.name}</span><span>{roleLabel(member.role)}</span></li>)}</ul>
+    </section>}
+    {inactiveRoster.length > 0 && <details className="team-roster-options">
+      <summary>Hors effectif actif <span>{inactiveRoster.length}</span></summary>
+      {renderPlayers(inactiveRoster, "Hors effectif actif")}
+    </details>}
   </div>;
 }
-
 export { Teams, parseMultiOpgg, decodeLoose, opggUrlFromRiotId, TeamManagementPanel, PROFILE_ROLES, RoleTag, PremiumRosterTable, rosterRoleIndex, ImportedChampionBadges, ChampionCircle, playerImportedChampionStats };
