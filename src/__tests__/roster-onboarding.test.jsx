@@ -60,6 +60,150 @@ async function render(settings) {
 const content = (renderer) => JSON.stringify(renderer.toJSON());
 const field = (renderer, label, value) => act(() => renderer.root.findByProps({ label }).props.onChange(value));
 
+describe("team multi OP.GG copy", () => {
+  const copyAction = (renderer) => renderer.root.findAllByType(Button).find((button) => button.props.children === "Copier le multi OP.GG");
+
+  it("lets a player copy the selected team's active lineup with its region and valid Riot IDs", async () => {
+    const selectedTeam = { ...team, id: "selected-team", region: "NA" };
+    const settings = { ...props(), selectedTeamId: selectedTeam.id, currentMember: { role: "player" }, user: { id: "member" } };
+    settings.data.teams = [team, selectedTeam];
+    settings.data.players = [
+      player,
+      { ...player, id: "selected-main", team_id: selectedTeam.id, riot_id: "Éclair Bleu#NA1" },
+      { ...player, id: "selected-sub", team_id: selectedTeam.id, role: "SUB", roster_status: "SUB", riot_id: "Reserve#NA2" },
+      { ...player, id: "inactive", team_id: selectedTeam.id, roster_status: "INACTIVE", riot_id: "Inactive#NA1" },
+      { ...player, id: "coach", team_id: selectedTeam.id, role: "COACH", riot_id: "Coach#NA1" },
+      { ...player, id: "invalid", team_id: selectedTeam.id, riot_id: "#NA1" },
+    ];
+    const copy = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText: copy } });
+    const { renderer } = await render(settings);
+    expect(copyAction(renderer).props.disabled).toBe(false);
+    await act(async () => copyAction(renderer).props.onClick());
+    expect(copy).toHaveBeenCalledOnce();
+    const link = new URL(copy.mock.calls[0][0]);
+    expect(link.origin).toBe("https://www.op.gg");
+    expect(link.pathname).toBe("/lol/multisearch/na");
+    expect(link.searchParams.get("summoners")).toBe("Éclair Bleu#NA1,Reserve#NA2");
+    expect(settings.pushToast).toHaveBeenCalledWith({ type: "green", title: "Multi OP.GG de l’équipe copié", text: "2 joueurs dans le lien." });
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { label: "empty roster", players: [] },
+    { label: "inactive players and staff", players: [
+      { ...player, roster_status: "INACTIVE" },
+      { ...player, id: "coach", role: "COACH" },
+    ] },
+  ])("keeps the action visible but disabled for $label", async ({ players }) => {
+    const settings = props();
+    settings.data.players = players;
+    const { renderer } = await render(settings);
+    expect(copyAction(renderer)).toBeTruthy();
+    expect(copyAction(renderer).props.disabled).toBe(true);
+  });
+
+  it("explains missing valid Riot IDs without copying an empty link", async () => {
+    const settings = props();
+    settings.data.players = [{ ...player, riot_id: "Toplaner" }];
+    const copy = vi.fn();
+    vi.stubGlobal("navigator", { clipboard: { writeText: copy } });
+    const { renderer } = await render(settings);
+    await act(async () => copyAction(renderer).props.onClick());
+    expect(copy).not.toHaveBeenCalled();
+    expect(settings.pushToast).toHaveBeenCalledWith({ type: "red", title: "Multi OP.GG impossible", text: "Ajoute des Riot IDs au format Pseudo#TAG." });
+  });
+
+  it("reports clipboard refusal and allows retrying the copy", async () => {
+    const settings = props();
+    settings.data.players = [player];
+    const copy = vi.fn().mockRejectedValueOnce(new Error("Clipboard denied")).mockResolvedValueOnce(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText: copy } });
+    const { renderer } = await render(settings);
+    await act(async () => copyAction(renderer).props.onClick());
+    expect(settings.pushToast).toHaveBeenLastCalledWith({ type: "red", title: "Copie impossible", text: "Le navigateur n’a pas autorisé la copie. Réessaie depuis le bouton." });
+    await act(async () => copyAction(renderer).props.onClick());
+    expect(copy).toHaveBeenCalledTimes(2);
+    expect(settings.pushToast).toHaveBeenLastCalledWith({ type: "green", title: "Multi OP.GG de l’équipe copié", text: "1 joueur dans le lien." });
+  });
+});
+
+describe("readable team roster", () => {
+  const profileLinks = (node) => node.findAllByType("a").filter((link) => link.props.href?.startsWith("/mon-profil?player="));
+  const playerIds = (node) => profileLinks(node).map((link) => new URL(link.props.href, window.location).searchParams.get("player"));
+
+  it("shows each profile once in role order, retains inactive profiles in details and keeps staff non-interactive", async () => {
+    const settings = props();
+    settings.data.players = [
+      { ...player, id: "support", name: "Support", role: "SUP" },
+      { ...player, id: "reserve", name: "Reserve", role: "JGL", roster_status: "SUB" },
+      { ...player, id: "inactive", name: "Inactive", role: "ADC", roster_status: "INACTIVE" },
+      { ...player, id: "coach", name: "Coach", role: "COACH" },
+      { ...player, id: "mid", name: "Midlaner", role: "MID" },
+      player,
+    ];
+    const { renderer } = await render(settings);
+    expect(playerIds(renderer.root)).toEqual(["top", "mid", "support", "reserve", "inactive"]);
+    const rosterGroup = (label) => renderer.root.findAllByType("ul").find((list) => list.props["aria-label"] === label);
+    expect(playerIds(rosterGroup("Titulaires"))).toEqual(["top", "mid", "support"]);
+    expect(playerIds(rosterGroup("Remplaçants"))).toEqual(["reserve"]);
+    const inactive = renderer.root.findAllByType("details").find((details) => playerIds(details).includes("inactive"));
+    expect(inactive).toBeTruthy();
+    expect(inactive.props.open).not.toBe(true);
+    expect(playerIds(inactive)).toEqual(["inactive"]);
+    const staff = renderer.root.findAllByType("section").find((section) => section.props["aria-label"] === "Encadrement");
+    expect(staff.findAllByType("span").some((span) => span.children.includes("Coach"))).toBe(true);
+    expect(staff.findAllByType("a")).toHaveLength(0);
+    expect(staff.findAllByType("button")).toHaveLength(0);
+  });
+
+  it("marks only a profile linked to the current account and never treats missing user IDs as a match", async () => {
+    const settings = props();
+    settings.data.players = [player, { ...player, id: "mine", user_id: "captain" }, { ...player, id: "other", user_id: "teammate" }];
+    const { renderer, update } = await render(settings);
+    const markedLinks = () => profileLinks(renderer.root).filter((link) => link.findAllByType("span").some((span) => span.children.length === 1 && span.children[0] === "Toi"));
+    expect(markedLinks().map((link) => link.props.href)).toEqual(["/mon-profil?player=mine"]);
+    await update({ ...settings, user: { id: "" } });
+    expect(markedLinks()).toHaveLength(0);
+  });
+
+  it("keeps native modified-click navigation and opens the encoded profile on an ordinary click", async () => {
+    const settings = props();
+    settings.data.players = [{ ...player, id: "player/é #1" }];
+    const { renderer } = await render(settings);
+    const [link] = profileLinks(renderer.root);
+    expect(link.props.href).toBe("/mon-profil?player=player%2F%C3%A9%20%231");
+    for (const modifier of [{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { altKey: true }, { button: 1 }]) {
+      const preventDefault = vi.fn();
+      act(() => link.props.onClick({ button: 0, preventDefault, ...modifier }));
+      expect(preventDefault).not.toHaveBeenCalled();
+      expect(window.location.pathname).toBe("/equipes");
+    }
+    expect(window.dispatchEvent).not.toHaveBeenCalled();
+    const preventDefault = vi.fn();
+    act(() => link.props.onClick({ button: 0, preventDefault }));
+    expect(preventDefault).toHaveBeenCalledOnce();
+    expect(window.location.pathname).toBe("/mon-profil");
+    expect(window.location.searchParams.get("player")).toBe("player/é #1");
+    expect(window.dispatchEvent).toHaveBeenCalledOnce();
+  });
+
+  it("retains lineup-specific copy actions inside initially closed details", async () => {
+    const settings = props();
+    settings.data.players = [player, { ...player, id: "reserve", role: "SUB", riot_id: "Reserve#EUW", roster_status: "SUB" }];
+    const copy = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal("navigator", { clipboard: { writeText: copy } });
+    const { renderer } = await render(settings);
+    const details = renderer.root.findAllByType("details").find((node) => node.findAllByType("summary").some((summary) => summary.children.includes("Liens OP.GG par groupe")));
+    expect(details).toBeTruthy();
+    expect(details.props.open).not.toBe(true);
+    const actions = details.findAllByType(Button);
+    expect(actions).toHaveLength(2);
+    for (const action of actions) await act(async () => action.props.onClick());
+    expect(copy.mock.calls.map(([link]) => new URL(link).searchParams.get("summoners"))).toEqual(["Toplaner#EUW", "Reserve#EUW"]);
+  });
+});
+
 describe("first roster setup", () => {
   it("offers a working first-player link and hides empty copy actions", async () => {
     const { renderer } = await render(props());
@@ -283,7 +427,7 @@ it('R8-02 closes and reopens pending forms with focus, then abandons without del
   act(() => action('Abandonner l’import restant').props.onClick());
   expect(content(renderer)).not.toContain('Reprendre l’import de joueurs');
   expect(content(renderer)).not.toContain('Reprendre les joueurs manquants');
-  expect(content(renderer)).toContain('Joueurs et encadrement');
+  expect(content(renderer)).toContain('Ajoute ton premier joueur');
   expect(focusPage).toHaveBeenCalledTimes(2);
   expect(apiFetch).toHaveBeenCalledTimes(calls);
   await update(settings);
