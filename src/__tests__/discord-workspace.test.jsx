@@ -35,7 +35,8 @@ describe("Discord workspace access and navigation", () => {
     render(<Sidebar active="bot-discord" setActive={setActive} open={false} setOpen={setOpen} collapsed={false} setCollapsed={vi.fn()} roleLabel={(value) => value} />);
     const entry = renderer.root.findByProps({ "aria-label": "Bot Discord" });
     expect(entry.props["aria-current"]).toBe("page");
-    act(() => entry.props.onClick());
+    expect(entry.props.href).toBe("/bot-discord");
+    act(() => entry.props.onClick({ button: 0, currentTarget: { hasAttribute: () => false }, preventDefault: vi.fn() }));
     expect(setActive).toHaveBeenCalledWith("bot-discord");
     expect(setOpen).toHaveBeenCalledWith(false);
   });

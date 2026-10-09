@@ -402,6 +402,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
         setCollapsed={setSidebarCollapsed}
         user={user}
         currentMember={currentMember}
+        currentTeamId={selectedTeamId}
         linkedPlayer={linkedPlayer}
         onLogout={logout}
         roleLabel={roleLabel}
