@@ -6,7 +6,7 @@ import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, p
 import React, { useEffect, useState, useDeferredValue, useMemo, useRef } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput, ReadingDetails } from "../../components/ui/Core.jsx";
-import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft } from "lucide-react";
+import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft, Settings } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { trackAudienceEvent } from "../../app/audience-client.js";
 import { ImportGameFlow, GameActions, GameCategoryManager, GameOperationDialog, matchImportTitle, matchCategoriesForMatch, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor } from "./GameOperations.jsx";
@@ -1645,7 +1645,19 @@ function reportMatchIds(report) {
   return [];
 }
 
-function reportTitleFromMatchIds(matchIds = [], matches = [], fallback = "Review") {
+function reportTitleFromMatchIds(matchIds = [], matches = [], fallback = "Review", archives = []) {
+  const ids = new Set(matchIds);
+  if (ids.size > 1) {
+    // Groups and reviews currently share match IDs, not a persisted archive ID.
+    // Match the complete set so a partial selection never borrows a group name.
+    const groups = archives.filter((archive) => {
+      const groupIds = new Set(archiveMatchIds(archive));
+      return archive.name?.trim() && groupIds.size === ids.size && [...groupIds].every((id) => ids.has(id));
+    });
+    const group = groups.length === 1 ? groups[0] : groups.find((archive) => archive.name.trim() === fallback.trim())
+      || groups.find((archive) => `${archive.name.trim()} copie` === fallback.trim());
+    if (group) return group.name.trim();
+  }
   const linked = matches.filter((match) => matchIds.includes(match.id));
   if (linked.length === 1) return matchDisplayName(linked[0], fallback);
   if (linked.length > 1) {
@@ -1655,8 +1667,9 @@ function reportTitleFromMatchIds(matchIds = [], matches = [], fallback = "Review
   return fallback;
 }
 
-function reportDisplayName(report, matches = [], fallback = "Review") {
-  return reportTitleFromMatchIds(reportMatchIds(report), matches, report?.title || fallback);
+function reportDisplayName(report, matches = [], fallback = "Review", archives = []) {
+  const teamArchives = report?.team_id ? archives.filter((archive) => archive.team_id === report.team_id) : archives;
+  return reportTitleFromMatchIds(reportMatchIds(report), matches, report?.title || fallback, teamArchives);
 }
 
 function reportRows(matches, matchIds) {
@@ -1884,16 +1897,34 @@ function buildArchiveReportContent(name, matches) {
   ].join("\n");
 }
 
-function buildRetroactiveCoachContent(report, matches, staffNotes = stripGeneratedReportContent(report?.content)) {
+function buildRetroactiveCoachContent(report, matches, staffNotes = stripGeneratedReportContent(report?.content), archives = []) {
   const ids = [...new Set(reportMatchIds(report))];
   const linked = ids.map((id) => matches.find((match) => match.id === id)).filter(Boolean);
   // A partial block must never be presented or saved as the complete review.
   if (!ids.length || linked.length !== ids.length) return String(report?.content || "");
   const generated = linked.length === 1
     ? buildGameReviewContent(linked[0])
-    : buildArchiveReportContent(reportDisplayName(report, matches, "Review de groupe"), linked);
+    : buildArchiveReportContent(reportDisplayName(report, matches, "Review de groupe", archives), linked);
   const coachingBlock = generated.split(REPORT_REWRITE_MARKER)[0].trim();
   return `${coachingBlock}\n\n${REPORT_REWRITE_MARKER}\nNotes staff\n${staffNotes}`;
+}
+
+function ReviewActions({ canEdit, disabled, onDuplicate, onDelete }) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef(null);
+  function run(action) {
+    setOpen(false);
+    action();
+  }
+  return <>
+    <button ref={triggerRef} type="button" className="game-options-trigger" aria-label="Gérer ce débrief" title="Gérer ce débrief" aria-haspopup="dialog" aria-expanded={open} disabled={disabled} onClick={() => setOpen(true)}><Settings aria-hidden="true" className="h-5 w-5" /></button>
+    {open && <GameOperationDialog title="Gérer ce débrief" onClose={() => setOpen(false)} busy={disabled} returnFocusRef={triggerRef} compact>
+      <div className="game-operation-menu">
+        <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => run(onDuplicate)} disabled={disabled}>Dupliquer</Button>
+        {canEdit && <Button type="button" variant="danger" icon={Trash2} onClick={() => run(onDelete)} disabled={disabled}>Supprimer</Button>}
+      </div>
+    </GameOperationDialog>}
+  </>;
 }
 
 function Reports(props) {
@@ -1903,7 +1934,7 @@ function Reports(props) {
 function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
   const reports = (data.reports || []).filter((report) => report.team_id === selectedTeamId);
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
-  const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
+  const archives = useMemo(() => (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId), [data.matchArchives, selectedTeamId]);
   const urlParams = new URLSearchParams(window.location.search);
   const urlReportId = urlParams.get("report") || "";
   const urlMatchId = urlParams.get("match") || "";
@@ -1944,11 +1975,11 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   const matches = [...new Map([...baseMatches, ...(requestedMatch ? [requestedMatch] : []), ...reviewDetails.matches].map((match) => [match.id, match])).values()];
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
   const selectedContent = useMemo(() => selected && !composerOpen && reviewDetails.complete
-    ? buildRetroactiveCoachContent(selected, reviewDetails.matches)
-    : selected?.content || "", [selected, composerOpen, reviewDetails.complete, reviewDetails.matches]);
+    ? buildRetroactiveCoachContent(selected, reviewDetails.matches, undefined, archives)
+    : selected?.content || "", [selected, composerOpen, reviewDetails.complete, reviewDetails.matches, archives]);
   const formCoaching = useMemo(() => composerOpen && reviewDetails.complete
-    ? buildRetroactiveCoachContent({ title: form.title, content: "", match_ids: form.matchIds }, reviewDetails.matches, "")
-    : "", [composerOpen, form.title, form.matchIds, reviewDetails.complete, reviewDetails.matches]);
+    ? buildRetroactiveCoachContent({ title: form.title, content: "", match_ids: form.matchIds }, reviewDetails.matches, "", archives)
+    : "", [composerOpen, form.title, form.matchIds, reviewDetails.complete, reviewDetails.matches, archives]);
   const formContent = formCoaching + form.content;
   const formCanSave = Boolean(selectedTeamId && (form.content.trim() || form.matchIds.length) && form.matchIds.length <= 20 && reviewDetails.complete);
 
@@ -1956,7 +1987,7 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   const formRows = reportRows(matches, form.matchIds);
   const canEditSelected = selected && (canCaptainDelete || selected.created_by === user?.id);
   const selectedMatchForReport = selected ? matches.find((match) => reportMatchIds(selected).includes(match.id) && (!urlMatchId || match.id === urlMatchId)) || matches.find((match) => reportMatchIds(selected).includes(match.id)) : null;
-  const formDisplayTitle = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Débrief");
+  const formDisplayTitle = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Débrief", archives);
   const reviewMatches = form.matchIds.length ? matches.filter((match) => form.matchIds.includes(match.id)) : [];
   const selectedMatchIds = selected ? reportMatchIds(selected) : [];
   const selectedStatsMatchId = selectedMatchForReport?.id || selectedMatchIds[0] || "";
@@ -1968,7 +1999,7 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   const searchNeedle = deferredReportSearch.trim().toLowerCase();
   const filteredReports = scopedReports.filter((report) => {
     if (!searchNeedle) return true;
-    const title = reportDisplayName(report, matches).toLowerCase();
+    const title = reportDisplayName(report, matches, "Débrief", archives).toLowerCase();
     const author = String(report.author_name || "").toLowerCase();
     return title.includes(searchNeedle) || author.includes(searchNeedle) || String(report.content || "").toLowerCase().includes(searchNeedle);
   });
@@ -2038,14 +2069,14 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   }
 
   function editReport(report) {
-    const original = { id: report.id, title: reportDisplayName(report, matches), content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) };
+    const original = { id: report.id, title: reportDisplayName(report, matches, "Débrief", archives), content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) };
     if (!replaceDraft(original, original)) return;
     setComposerOpen(true);
     setLexiconOpen(false);
   }
 
   function duplicateReport(report) {
-    if (!replaceDraft({ id: null, title: `${reportDisplayName(report, matches)} copie`, content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) })) return;
+    if (!replaceDraft({ id: null, title: `${reportDisplayName(report, matches, "Débrief", archives)} copie`, content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) })) return;
     setComposerOpen(true);
     setLexiconOpen(false);
   }
@@ -2074,7 +2105,7 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
     if (saving || !formCanSave) return;
     setSaving(true);
     try {
-      const title = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Débrief");
+      const title = formDisplayTitle;
       const result = await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: form.id ? "update" : "create", teamId: selectedTeamId, reportId: form.id, title, content: formContent, matchIds: form.matchIds }) });
       if (result?.firstReview) void trackAudienceEvent("first_review");
       resetReportForm();
@@ -2172,7 +2203,7 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
               return <button key={report.id} type="button" aria-current={active ? "true" : undefined} onClick={() => selectReport(report)} className={cx("group/report relative grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-white/[0.075] px-4 py-3.5 text-left transition last:border-b-0 sm:px-5", active ? "bg-cyan-400/[0.08]" : "hover:bg-white/[0.045]")}>
                 <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full transition", active ? "bg-cyan-200 " : "bg-transparent group-hover/report:bg-cyan-200/35")} />
                 <span className="min-w-0">
-                  <span className={cx("block break-words text-sm font-black leading-5 transition", active ? "text-cyan-50" : "text-white group-hover/report:text-cyan-50")}>{reportDisplayName(report, matches)}</span>
+                  <span className={cx("block break-words text-sm font-black leading-5 transition", active ? "text-cyan-50" : "text-white group-hover/report:text-cyan-50")}>{reportDisplayName(report, matches, "Débrief", archives)}</span>
                   {report.discord_status === "draft" && <span className="mt-1 block text-xs font-semibold text-amber-200">Brouillon · staff uniquement</span>}
                   <span className="mt-1.5 block truncate text-xs font-semibold text-slate-400">{report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</span>
                 </span>
@@ -2192,12 +2223,13 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
               <div className="min-w-0">
                 {selected.discord_status === "draft" && <Badge tone="amber">Brouillon · staff uniquement</Badge>}
                 {selected.discord_status === "draft" && <p className="mt-2 text-sm leading-6 text-slate-300">Pour le partager, utilise /nxt review partager dans Discord et confirme le résumé ainsi que le salon.</p>}
-                <h3 ref={reportHeadingRef} tabIndex={-1} className={cx("games-review-title break-words font-bold text-white", selected.discord_status === "draft" && "mt-3")}>{reportDisplayName(selected, matches)}</h3>
+                <h3 ref={reportHeadingRef} tabIndex={-1} className={cx("games-review-title break-words font-bold text-white", selected.discord_status === "draft" && "mt-3")}>{reportDisplayName(selected, matches, "Débrief", archives)}</h3>
                 <p className="mt-2 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"}{selectedMatchIds.length > 0 && <> · {selectedMatchIds.length} partie{selectedMatchIds.length > 1 ? "s" : ""} liée{selectedMatchIds.length > 1 ? "s" : ""}</>}</p>
               </div>
               <div className="flex flex-wrap gap-2 lg:max-w-[26rem] lg:justify-end">
                 {selectedStatsMatchId && <Button variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/games?match=${encodeURIComponent(selectedStatsMatchId)}`)}>Voir la partie</Button>}
                 {canEditSelected && <Button icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}
+                <ReviewActions key={selected.id} canEdit={canEditSelected} disabled={saving} onDuplicate={() => duplicateReport(selected)} onDelete={() => deleteReport(selected)} />
               </div>
             </div>
             {selectedMatchIds.length > 0 && <p className="games-review-results">{selectedGamesComplete && selectedMatches.length ? `${selectedWins} V · ${selectedMatches.length - selectedWins} D · ${Math.round((selectedWins / selectedMatches.length) * 100)} % de victoires` : "Résultats indisponibles"}</p>}
@@ -2206,12 +2238,6 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
               <ReviewAnalysisStatus details={reviewDetails} />
               <ReportPreview content={selectedContent} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} />
             </div>
-            <ReadingDetails className="mt-6" title="Gérer ce débrief" description={canEditSelected ? "Dupliquer ou supprimer." : "Créer une copie."}>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="ghost" icon={RefreshCw} onClick={() => duplicateReport(selected)} disabled={saving}>Dupliquer</Button>
-                {canEditSelected && <Button variant="danger" icon={Trash2} onClick={() => deleteReport(selected)} disabled={saving}>Supprimer</Button>}
-              </div>
-            </ReadingDetails>
           </> : <EmptyState icon={FileText} title="Aucun débrief sélectionné" text="Choisis un débrief dans la bibliothèque ou prépare-en un nouveau." />}
         </Surface>
       </div>}

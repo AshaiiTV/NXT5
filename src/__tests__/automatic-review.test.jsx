@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { Button, ReadingDetails } from "../components/ui/Core.jsx";
 import { reviewDrafts } from "../utils/review-drafts.js";
-import { Reports, ReportPreview, buildRetroactiveCoachContent, buildGameReviewContent, stripGeneratedReportContent, REPORT_REWRITE_MARKER, matchPlayerCoachReads } from "../pages/workspace/GameWorkspace.jsx";
+import { Reports, ReportPreview, buildRetroactiveCoachContent, buildGameReviewContent, stripGeneratedReportContent, REPORT_REWRITE_MARKER, matchPlayerCoachReads, reportTitleFromMatchIds, reportDisplayName } from "../pages/workspace/GameWorkspace.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), apiUploadJson: vi.fn(), API_BASE: "/.netlify/functions" }));
 vi.mock("react-dom", () => ({ createPortal: (children) => children }));
@@ -33,6 +33,37 @@ async function mount({ reports = [], matches = [], matchArchives = [] } = {}) {
 }
 const button = (renderer, label) => renderer.root.findAllByType(Button).find((item) => item.props.children === label);
 const output = (renderer) => JSON.stringify(renderer.toJSON());
+
+describe("group review titles", () => {
+  const archive = { id: "block", team_id: "team", name: "Scrim du vendredi", match_ids: ["one", "two"] };
+  const report = { team_id: "team", title: "Game one + Game two", match_ids: ["two", "one"] };
+
+  it("uses the complete group identity before linked games have loaded, regardless of their order", () => {
+    for (const matches of [[], [game("one")], [game("one"), game("two")]]) {
+      expect(reportTitleFromMatchIds(report.match_ids, matches, report.title, [archive])).toBe(archive.name);
+    }
+  });
+
+  it("does not use a partial, larger or foreign team's group as the review title", () => {
+    for (const candidate of [
+      { ...archive, match_ids: ["one"] },
+      { ...archive, match_ids: ["one", "two", "three"] },
+      { ...archive, team_id: "other-team" },
+    ]) {
+      expect(reportDisplayName(report, [game("one"), game("two")], "Review", [candidate])).toBe(report.title);
+    }
+    expect(reportDisplayName({ ...report, match_ids: ["one"] }, [game("one")], "Review", [{ ...archive, match_ids: ["one"] }])).toBe("Game one");
+  });
+
+  it("uses a saved group name to disambiguate identical groups without choosing one arbitrarily", () => {
+    const other = { ...archive, id: "other", name: "Préparation tournoi", match_ids: ["two", "one"] };
+    const matches = [game("one"), game("two")];
+    expect(reportDisplayName({ ...report, title: other.name }, matches, "Review", [archive, other])).toBe(other.name);
+    expect(reportDisplayName({ ...report, title: `${other.name} copie` }, matches, "Review", [archive, other])).toBe(other.name);
+    expect(reportDisplayName(report, matches, "Review", [archive, other])).toBe(report.title);
+    expect(reportDisplayName(report, matches, "Review", [other, archive])).toBe(report.title);
+  });
+});
 
 describe("complete automatic coaching", () => {
   it("preserves unmarked historical content verbatim, including headings and whitespace", () => {
@@ -97,6 +128,31 @@ describe("complete automatic coaching", () => {
 });
 
 describe("automatic reviews in the workspace", () => {
+  it("finds an existing group review by its group name and preserves that title and staff notes on save", async () => {
+    apiFetch.mockImplementation(async (path, options) => path === "match-details"
+      ? { matches: JSON.parse(options.body).matchIds.map(game) }
+      : { report: { id: "group-review" } });
+    const name = "Scrim du vendredi";
+    const notes = "  Décision staff à conserver\nPréparer le dragon ensemble.  \n";
+    const renderer = await mount({
+      reports: [{ id: "group-review", team_id: "team", title: "Game one + Game two", content: notes, match_ids: ["two", "one"], created_by: "user" }],
+      matchArchives: [{ id: "block", team_id: "team", name, match_ids: ["one", "two"] }],
+    });
+    expect(renderer.root.findAllByType("h3").some((node) => node.children.join("") === name)).toBe(true);
+    act(() => renderer.root.findByProps({ placeholder: "Rechercher par partie ou auteur" }).props.onChange({ target: { value: name } }));
+    const selectedRow = renderer.root.findAllByType("button").find((node) => node.props["aria-current"] === "true");
+    expect(selectedRow).toBeTruthy();
+    expect(selectedRow.findAllByType("span").some((node) => node.children.join("") === name)).toBe(true);
+    await act(async () => button(renderer, "Éditer").props.onClick());
+    expect(renderer.root.findByType("textarea").props.value).toBe(notes);
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(false);
+    await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault: vi.fn() }));
+    const saved = JSON.parse(apiFetch.mock.calls.find(([path]) => path === "reports-manage")[1].body);
+    expect(saved).toMatchObject({ action: "update", reportId: "group-review", title: name, matchIds: ["two", "one"] });
+    expect(saved.content).toContain(`Groupe: ${name}`);
+    expect(stripGeneratedReportContent(saved.content)).toBe(notes);
+  });
+
   it("keeps the library open through an empty group filter and closes only on report selection", async () => {
     const renderer = await mount({ reports: [{ id: "saved", team_id: "team", title: "Décisions", content: "Notes", match_ids: [] }], matchArchives: [{ id: "empty", team_id: "team", name: "Sans débrief", match_ids: ["missing"] }] });
     const library = () => renderer.root.findAllByType(ReadingDetails).find((node) => node.props.title === "Choisir un débrief");
