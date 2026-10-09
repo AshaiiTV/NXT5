@@ -1,21 +1,22 @@
 import { resultSummary, resultLabel, winrateLabel } from "../../utils/statistics.js";
 import React, { useState } from "react";
-import { ArrowRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { RoleIcon } from "../brand/BrandAssets.jsx";
 import { Button, SelectInput, Surface, TextInput } from "../ui/Core.jsx";
 import { championDisplayName, ROSTER_ROLE_ORDER, tagLabel } from "../../pages/workspace/workspace-shared.jsx";
 import { roleLabel } from "../../pages/workspace/shell-shared.jsx";
 import { DRAFT_SCORE_TAGS, DraftMiniChampion, DraftScoreBoard, DraftTrendTable } from "./DraftTrends.jsx";
+import { DraftSignals } from "./ChampionAnalysis.jsx";
 import "./draft-trend-details.css";
 
 const PICK_SECTIONS = new Set(["pick-repere", "confort", "a-revoir", "roles"]);
 const SECTION_CRITERIA = {
-  "pick-repere": "Le champion repère est le plus joué parmi les champions rejoués avec succès : au moins 2 parties et 50% de victoires. Si aucun champion ne remplit ces critères, le champion le plus joué sert de repère. À nombre de parties égal, le taux de victoire départage les champions.",
-  confort: "Un champion rejoué avec succès associe un champion et un rôle, avec au moins 2 parties et 50% de victoires sur la période sélectionnée. Tous les champions qui remplissent ces critères sont affichés ici.",
+  "pick-repere": "Le champion repère est le plus joué parmi les champions rejoués avec succès : au moins 2 résultats connus et 50% de victoires. Si aucun champion ne remplit ces critères, le champion le plus joué sert de repère. À nombre de parties égal, le taux de victoire départage les champions.",
+  confort: "Un champion rejoué avec succès associe un champion et un rôle, avec au moins 2 résultats connus et 50% de victoires sur la période sélectionnée. Tous les champions qui remplissent ces critères sont affichés ici.",
   profil: "Le profil regroupe les marqueurs de style des champions joués. Un champion peut contribuer à plusieurs marqueurs, y compris dans une même famille. Le total compte les marqueurs et la moyenne les rapporte au nombre de drafts.",
   compositions: "Chaque draft est classée selon le marqueur de style le plus présent parmi ses champions. Une identité décrit les possibilités de la composition ; elle ne mesure pas la manière dont la partie a été jouée.",
   duos: "Un duo associe deux champions joués ensemble dans une même partie à une paire de rôles donnée. Trois paires sont suivies : Jungle + Mid, ADC + Support et Top + Jungle. Les autres associations de rôles ne sont pas comptabilisées.",
-  "a-revoir": "Les champions à revoir ont été joués au moins 2 fois avec moins de 50% de victoires sur la période. Les signaux de style sont des pistes de débrief : ouvre les parties sources pour examiner le contexte et les décisions de l’équipe.",
+  "a-revoir": "Cette liste élargie rassemble les champions avec au moins 2 résultats connus et moins de 50% de victoires sur la période. Ouvre les sources pour examiner le contexte et les décisions de l’équipe.",
   roles: "Chaque champion est compté séparément au rôle auquel il a été joué. Tous les champions sont disponibles ici, y compris ceux joués une seule fois. La recherche et le filtre de rôle permettent de comparer leur utilisation.",
 };
 
@@ -90,9 +91,8 @@ function DraftTrendDetails({ sectionId, model, onOpenSources, sourceGamesForMatc
 
       {sectionId === "a-revoir" && <section className="draft-detail-section">
         <h3>Signaux à vérifier</h3>
-        {active.identity?.gaps?.length ? <ul className="draft-warning-list">{active.identity.gaps.map((gap) => <li key={gap}>{gap}</li>)}</ul> : <p className="draft-description">Aucun signal de style particulier sur cette sélection.</p>}
-        <p className="draft-footnote">Les signaux d’initiation, de première ligne résistante (frontline) et de contrôle signalent l’absence de leurs marqueurs dans les champions du bloc. Les signaux de progression en fin de partie ou de rythme de jeu apparaissent à partir de trois marqueurs correspondants dans le bloc.</p>
-        {onOpenSources && <button type="button" className="draft-source-link" onClick={() => openSources({ ...active, matches: active.matchDrafts.map((entry) => entry.match) }, "Drafts à examiner", "Ensemble des drafts de la période pour remettre les signaux en contexte.")}>Examiner les parties du bloc <ArrowRight aria-hidden="true" /></button>}
+        <DraftSignals analysis={model.analysis} onSources={onOpenSources ? openSources : undefined} />
+        <p className="draft-footnote">Initiation, frontline et contrôle : absence des marqueurs correspondants dans une composition complète. Scaling et tempo : au moins trois marqueurs dans cette même composition.</p>
       </section>}
 
       {PICK_SECTIONS.has(sectionId) && <section className="draft-detail-section">

@@ -54,7 +54,7 @@ describe("draft detail data and entry links", () => {
     mount(<DraftTrendsModule model={buildDraftTrendModel(games())} detailHref={(id) => `/tendances/draft/${id}?contexte=scrim&periode=5`} onNavigateDetail={onNavigateDetail} />);
     const links = renderer.root.findAllByType("a").filter((node) => String(node.props["aria-label"] || "").startsWith("Voir le détail :"));
     expect(links).toHaveLength(7);
-    const disclosures = renderer.root.findAllByType("details");
+    const disclosures = renderer.root.findAllByType("details").filter((detail) => String(detail.props.className || "").split(" ").includes("draft-analysis-disclosure"));
     expect(disclosures).toHaveLength(2);
     expect(disclosures.every((detail) => !detail.props.open)).toBe(true);
     expect(new Set(links.map((link) => link.props.href)).size).toBe(7);

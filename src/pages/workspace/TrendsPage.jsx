@@ -219,6 +219,7 @@ function TrendsPage({ data, selectedTeamId }) {
   const [exportState, setExportState] = useState("");
   const categoryMatches = useMemo(() => sortTrendMatches(selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches), [baseMatches, selectedCategoryId]);
   const matches = useMemo(() => trendPeriod === "all" ? categoryMatches : categoryMatches.slice(0, Number(trendPeriod)), [categoryMatches, trendPeriod]);
+  const draftTrendModel = useMemo(() => trendPanel === "draft" ? buildDraftTrendModel(matches) : null, [matches, trendPanel]);
   useEffect(() => {
     setTrendSourceModal(null);
     setProfileContractsOpen(false);
@@ -229,6 +230,10 @@ function TrendsPage({ data, selectedTeamId }) {
     previousDetail.current = draftDetail;
     if (draftDetail === returningFrom) return;
     const target = draftDetail ? detailHeading.current : returningFrom ? document.getElementById(`draft-detail-${returningFrom}`) : null;
+    // Annex links live in disclosures; reveal the return target before focusing it.
+    for (let parent = target?.parentElement; parent; parent = parent.parentElement) {
+      if (parent.tagName === "DETAILS") parent.open = true;
+    }
     target?.focus({ preventScroll: true });
     target?.scrollIntoView({ block: draftDetail ? "start" : "center", behavior: "instant" });
   }, [draftDetail]);
@@ -980,7 +985,6 @@ function TrendsPage({ data, selectedTeamId }) {
     if (game.visionDiff < 0) return "Score de vision inférieur : revoir la préparation des objectifs et les entrées dans les zones sans vision.";
     return "Partie utile pour comparer les décisions, le moment des objectifs et la contribution des rôles.";
   };
-  const draftTrendModel = buildDraftTrendModel(matches);
   const staffAlerts = buildStaffAlerts(matches, (data.players || []).filter((player) => player.team_id === selectedTeamId));
   const showObjectives = () => {
     focusObjectives.current = true;
@@ -1009,7 +1013,7 @@ function TrendsPage({ data, selectedTeamId }) {
         {id === "coach" && <TrendsOverview objective={teamAiObjective} plan={primaryTeamModelCard} roles={roleSystemRows} briefs={coachBriefs} alerts={staffAlerts} onOpenSources={openTrendSources} onObjectives={showObjectives} />}
         {id === "evolution" && <TrendEvolution matches={matches} onOpenMatch={openSourceGame} />}
         {id === "comparison" && <Suspense fallback={<Surface><p className="mb-3 text-sm font-semibold text-slate-300" role="status">Chargement de la comparaison…</p><SkeletonRows /></Surface>}><BlockComparisonPanel matches={baseMatches} categories={matchCategories} /></Suspense>}
-        {id === "draft" && <DraftTrendsModule model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} detailHref={navigation.detailHref} onNavigateDetail={navigation.onNavigate} />}
+        {id === "draft" && <DraftTrendsModule key={selectedTeamId} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} detailHref={navigation.detailHref} onNavigateDetail={navigation.onNavigate} />}
         {id === "ai-objectives" && <Surface><ProgressionObjectives teamObjective={teamAiObjective} roleObjectives={roleAiObjectives} gamesCount={matches.length} onOpenSources={openTrendSources} onOpenContracts={() => setProfileContractsOpen(true)} /></Surface>}
       </>}
     </div>)}
