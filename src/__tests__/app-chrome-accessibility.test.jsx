@@ -13,10 +13,11 @@ afterEach(() => {
 });
 
 describe("workspace navigation links", () => {
-  function setup() {
+  function setup(currentTeamId) {
     const setActive = vi.fn(), setOpen = vi.fn();
-    act(() => { renderer = TestRenderer.create(<Sidebar active="matches" setActive={setActive} open={false} setOpen={setOpen} collapsed={false} setCollapsed={vi.fn()} roleLabel={(value) => value} isPlatformAdmin />); });
-    return { setActive, setOpen };
+    const render = (teamId) => <Sidebar active="matches" setActive={setActive} open={false} setOpen={setOpen} collapsed={false} setCollapsed={vi.fn()} roleLabel={(value) => value} currentTeamId={teamId} isPlatformAdmin />;
+    act(() => { renderer = TestRenderer.create(render(currentTeamId)); });
+    return { setActive, setOpen, selectTeam(teamId) { act(() => renderer.update(render(teamId))); } };
   }
   function click(overrides = {}) {
     return { button: 0, currentTarget: { target: "", hasAttribute: () => false }, preventDefault: vi.fn(), ...overrides };
@@ -56,6 +57,37 @@ describe("workspace navigation links", () => {
     }
     expect(app.setActive).not.toHaveBeenCalled();
     expect(app.setOpen).not.toHaveBeenCalled();
+  });
+
+  it("keeps the selected non-default team in copied links and new tabs, even when the current URL names another team", () => {
+    vi.stubGlobal("window", { location: new URL("https://nxt5.test/mon-profil?team=first-team&match=old-match") });
+    const app = setup("second-team");
+    const expectedPaths = { Parties: "/games", Planning: "/planning", "Mon profil": "/mon-profil", "Paramètres": "/parametres", Administration: "/admin" };
+    for (const [label, path] of Object.entries(expectedPaths)) {
+      const link = renderer.root.findByProps({ "aria-label": label });
+      expect(link.props.href).toBe(`${path}?team=second-team`);
+      for (const overrides of [{ ctrlKey: true }, { metaKey: true }, { button: 1 }]) {
+        const event = click(overrides);
+        act(() => link.props.onClick(event));
+        expect(event.preventDefault).not.toHaveBeenCalled();
+      }
+    }
+    expect(app.setActive).not.toHaveBeenCalled();
+    expect(app.setOpen).not.toHaveBeenCalled();
+
+    app.selectTeam("third-team");
+    expect(renderer.root.findByProps({ "aria-label": "Parties" }).props.href).toBe("/games?team=third-team");
+    expect(renderer.root.findByProps({ "aria-label": "Planning" }).props.href).toBe("/planning?team=third-team");
+    app.selectTeam(null);
+    expect(renderer.root.findByProps({ "aria-label": "Parties" }).props.href).toBe("/games");
+  });
+
+  it("encodes the team identifier without adding extra query parameters", () => {
+    setup("team & #?=");
+    const href = renderer.root.findByProps({ "aria-label": "Parties" }).props.href;
+    const url = new URL(href, "https://nxt5.test");
+    expect([...url.searchParams]).toEqual([["team", "team & #?="]]);
+    expect(url.hash).toBe("");
   });
 });
 

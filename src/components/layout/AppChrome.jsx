@@ -53,7 +53,7 @@ export function ApiBanner({ error, onRetry, retrying = false }) {
   </div>;
 }
 
-export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, user, onLogout, currentMember, linkedPlayer, roleLabel, isPlatformAdmin = false }) {
+export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollapsed, user, onLogout, currentMember, linkedPlayer, roleLabel, currentTeamId, isPlatformAdmin = false }) {
   const status = profileStatusLabel(currentMember);
   const navItems = NAV.filter((item) => PRIMARY_NAV_IDS.includes(item.id) && !item.hidden);
   const moreItems = NAV.filter((item) => MORE_NAV_IDS.includes(item.id) && !item.hidden);
@@ -107,11 +107,12 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
     setActive(pageId);
     setOpen(false);
   };
+  const pageHref = (pageId) => `${pathFromPage(pageId)}${currentTeamId ? `?${new URLSearchParams({ team: currentTeamId })}` : ""}`;
   const renderNavItem = (item, showHint = true) => {
     const Icon = item.icon;
     const selected = active === item.id;
     const hintId = item.hint && showHint ? `nxt5-nav-${item.id}-hint` : undefined;
-    return <a key={item.id} href={pathFromPage(item.id)} onClick={(event) => go(event, item.id)} aria-label={item.label} aria-describedby={hintId} aria-current={selected ? "page" : undefined} title={item.hint ? `${item.label} · ${item.hint}` : item.label} className={cx("nxt5-sidebar-link", selected && "is-active")}>
+    return <a key={item.id} href={pageHref(item.id)} onClick={(event) => go(event, item.id)} aria-label={item.label} aria-describedby={hintId} aria-current={selected ? "page" : undefined} title={item.hint ? `${item.label} · ${item.hint}` : item.label} className={cx("nxt5-sidebar-link", selected && "is-active")}>
       <Icon size={19} aria-hidden="true" /><span className="nxt5-sidebar-label nxt5-sidebar-link-copy"><span>{item.label}</span>{hintId && <span id={hintId} className="nxt5-sidebar-hint">{item.hint}</span>}</span>
     </a>;
   };
@@ -128,7 +129,7 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
         {!!moreItems.length && <details className="nxt5-sidebar-group nxt5-sidebar-more" open={MORE_NAV_IDS.includes(active) ? true : undefined}><summary title="Préparation et partage"><ChevronDown size={17} aria-hidden="true" /><span className="nxt5-sidebar-label">Préparation et partage</span></summary>{moreItems.map((item) => renderNavItem(item, false))}</details>}
       </nav>
       <div className="nxt5-sidebar-footer">
-        {isPlatformAdmin && <a href={pathFromPage("admin")} onClick={(event) => go(event, "admin")} aria-label="Administration" title="Administration" aria-current={["admin", "access-requests", "account-subscriptions"].includes(active) ? "page" : undefined} className={cx("nxt5-sidebar-link nxt5-sidebar-admin", ["admin", "access-requests", "account-subscriptions"].includes(active) && "is-active")}><ShieldCheck size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">Administration</span></a>}
+        {isPlatformAdmin && <a href={pageHref("admin")} onClick={(event) => go(event, "admin")} aria-label="Administration" title="Administration" aria-current={["admin", "access-requests", "account-subscriptions"].includes(active) ? "page" : undefined} className={cx("nxt5-sidebar-link nxt5-sidebar-admin", ["admin", "access-requests", "account-subscriptions"].includes(active) && "is-active")}><ShieldCheck size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">Administration</span></a>}
         <div className="nxt5-sidebar-account">
           <div className="nxt5-sidebar-account-identity"><span className="nxt5-sidebar-avatar"><RoleIcon role={profileRole} className="h-5 w-5" /></span><div className="nxt5-sidebar-label"><p title={user?.name || "Coach"}>{user?.name || "Coach"}</p><span title={linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}>{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</span></div></div>
           <div className="nxt5-sidebar-subscription nxt5-sidebar-label"><AccountSubscription key={user?.id} compact /></div>

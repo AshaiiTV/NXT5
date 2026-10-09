@@ -7,7 +7,7 @@ import { apiFetch } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import { AppLoadingProvider } from "../components/loading/AppLoadingProvider.jsx";
 import { useTeamData } from "../hooks/useTeamData.js";
-import { BeginnerCompass } from "../components/layout/AppChrome.jsx";
+import { BeginnerCompass, Sidebar } from "../components/layout/AppChrome.jsx";
 
 const simulation = vi.hoisted(() => ({ expired: false }));
 vi.mock("../app/pass-access.js", async (importOriginal) => {
@@ -73,6 +73,13 @@ const tools = [
 ];
 
 describe("workspace access before the subscription launch", () => {
+  it("passes the selected non-default team to sidebar links independently of the linked URL", async () => {
+    const teams = [{ id: "first-team" }, { id: "second-team" }, { id: "third-team" }];
+    await open("/games?team=first-team", { snapshot: { teams, selectedTeamId: "second-team" } });
+    expect(renderer.root.findByType(Sidebar).props.currentTeamId).toBe("second-team");
+    expect(window.location.search).toBe("?team=first-team");
+  });
+
   it("keeps the Discord onboarding accessible without a team and omits the generic guide", async () => {
     await open("/bot-discord", { noTeam: true });
     expect(renderer.root.findAllByProps({ "data-page": "discord" })).toHaveLength(1);
