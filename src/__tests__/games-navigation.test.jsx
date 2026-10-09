@@ -51,12 +51,13 @@ describe("unified Games navigation", () => {
     const setOpen = vi.fn();
     let renderer;
     act(() => { renderer = TestRenderer.create(<Sidebar active="reports" setActive={setActive} open={false} setOpen={setOpen} collapsed={false} setCollapsed={vi.fn()} roleLabel={(value) => value} />); });
-    const selected = renderer.root.findAllByType("button").filter((button) => button.props["aria-current"] === "page");
+    const selected = renderer.root.findAllByType("a").filter((link) => link.props["aria-current"] === "page");
     expect(selected).toHaveLength(1);
     expect(selected[0].props["aria-label"]).toBe("Débriefs");
     const parties = renderer.root.findByProps({ "aria-label": "Parties" });
     expect(parties.props.title).toBe("Parties · Importer et revoir une partie");
-    act(() => parties.props.onClick());
+    expect(parties.props.href).toBe("/games");
+    act(() => parties.props.onClick({ button: 0, currentTarget: { hasAttribute: () => false }, preventDefault: vi.fn() }));
     expect(setActive).toHaveBeenCalledWith("matches");
     expect(renderer.root.findAllByProps({ "aria-label": "Guide d’utilisation" })).toHaveLength(0);
     expect(setOpen).toHaveBeenLastCalledWith(false);

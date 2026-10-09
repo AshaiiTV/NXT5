@@ -1,7 +1,7 @@
 import React from "react";
 import { Activity, ArrowRight, AlertTriangle, BookOpen, CalendarDays, Check, ChevronDown, ChevronRight, FileText, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Upload, Users, X } from "lucide-react";
 import { MORE_NAV_IDS, NAV, PRIMARY_NAV_IDS } from "../../app/constants.jsx";
-import { draftViewFromPath, draftViewLabel, profileViewFromPath, profileViewLabel } from "../../app/routing.js";
+import { draftViewFromPath, draftViewLabel, pathFromPage, profileViewFromPath, profileViewLabel } from "../../app/routing.js";
 import { cx, profileStatusLabel } from "../../app/helpers.js";
 import { Nxt5Wordmark, ResponsiveImage, RoleIcon, TeamAvatar } from "../brand/BrandAssets.jsx";
 import { Button, Surface } from "../ui/Core.jsx";
@@ -100,14 +100,20 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
     };
   }, [open, isDesktop, setOpen]);
 
-  const go = (pageId) => { setActive(pageId); setOpen(false); };
+  const go = (event, pageId) => {
+    const link = event.currentTarget;
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || (link.target && link.target !== "_self") || link.hasAttribute("download")) return;
+    event.preventDefault();
+    setActive(pageId);
+    setOpen(false);
+  };
   const renderNavItem = (item, showHint = true) => {
     const Icon = item.icon;
     const selected = active === item.id;
     const hintId = item.hint && showHint ? `nxt5-nav-${item.id}-hint` : undefined;
-    return <button key={item.id} type="button" onClick={() => go(item.id)} aria-label={item.label} aria-describedby={hintId} aria-current={selected ? "page" : undefined} title={item.hint ? `${item.label} · ${item.hint}` : item.label} className={cx("nxt5-sidebar-link", selected && "is-active")}>
+    return <a key={item.id} href={pathFromPage(item.id)} onClick={(event) => go(event, item.id)} aria-label={item.label} aria-describedby={hintId} aria-current={selected ? "page" : undefined} title={item.hint ? `${item.label} · ${item.hint}` : item.label} className={cx("nxt5-sidebar-link", selected && "is-active")}>
       <Icon size={19} aria-hidden="true" /><span className="nxt5-sidebar-label nxt5-sidebar-link-copy"><span>{item.label}</span>{hintId && <span id={hintId} className="nxt5-sidebar-hint">{item.hint}</span>}</span>
-    </button>;
+    </a>;
   };
   return <>
     {open && <div onClick={() => setOpen(false)} className="nxt5-sidebar-scrim" aria-hidden="true" />}
@@ -122,7 +128,7 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
         {!!moreItems.length && <details className="nxt5-sidebar-group nxt5-sidebar-more" open={MORE_NAV_IDS.includes(active) ? true : undefined}><summary title="Préparation et partage"><ChevronDown size={17} aria-hidden="true" /><span className="nxt5-sidebar-label">Préparation et partage</span></summary>{moreItems.map((item) => renderNavItem(item, false))}</details>}
       </nav>
       <div className="nxt5-sidebar-footer">
-        {isPlatformAdmin && <button type="button" onClick={() => go("admin")} aria-label="Administration" title="Administration" aria-current={["admin", "access-requests", "account-subscriptions"].includes(active) ? "page" : undefined} className={cx("nxt5-sidebar-link nxt5-sidebar-admin", ["admin", "access-requests", "account-subscriptions"].includes(active) && "is-active")}><ShieldCheck size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">Administration</span></button>}
+        {isPlatformAdmin && <a href={pathFromPage("admin")} onClick={(event) => go(event, "admin")} aria-label="Administration" title="Administration" aria-current={["admin", "access-requests", "account-subscriptions"].includes(active) ? "page" : undefined} className={cx("nxt5-sidebar-link nxt5-sidebar-admin", ["admin", "access-requests", "account-subscriptions"].includes(active) && "is-active")}><ShieldCheck size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">Administration</span></a>}
         <div className="nxt5-sidebar-account">
           <div className="nxt5-sidebar-account-identity"><span className="nxt5-sidebar-avatar"><RoleIcon role={profileRole} className="h-5 w-5" /></span><div className="nxt5-sidebar-label"><p title={user?.name || "Coach"}>{user?.name || "Coach"}</p><span title={linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}>{linkedPlayer ? `${roleLabel(linkedPlayer.role)} · ${linkedPlayer.name}` : status}</span></div></div>
           <div className="nxt5-sidebar-subscription nxt5-sidebar-label"><AccountSubscription key={user?.id} compact /></div>
@@ -158,7 +164,9 @@ export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCr
       <div className="nxt5-topbar-breadcrumb"><h1>{nav.label}</h1>{detailLabel && <><ChevronRight size={14} aria-hidden="true" /><span>{detailLabel}</span></>}</div>
     </div>
     {isAdmin ? <span className="nxt5-topbar-admin"><ShieldCheck size={16} aria-hidden="true" />Administration</span> : <div className="nxt5-topbar-actions">
-      <div ref={teamPickerRef} className="nxt5-team-picker">
+      <div ref={teamPickerRef} className="nxt5-team-picker" onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setTeamMenuOpen(false);
+      }}>
         <button ref={teamTriggerRef} type="button" aria-expanded={teamMenuOpen} aria-controls="nxt5-team-picker-menu" aria-label={`Choisir une équipe : ${currentTeam?.name || "Aucune équipe"}`} title={currentTeam?.name || "Choisir une équipe"} onClick={() => setTeamMenuOpen((value) => !value)} className="nxt5-team-trigger">
           <span className="nxt5-team-trigger-avatar" aria-hidden="true"><TeamAvatar team={currentTeam} className="h-8 w-8" /></span><span>{currentTeam?.name || "Choisir une équipe"}</span><ChevronDown size={16} aria-hidden="true" />
         </button>

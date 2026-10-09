@@ -91,6 +91,38 @@ async function loadMatchArchives(teamIds) {
   }
 }
 
+async function loadTeamData(selectedTeamId: string, userId: string) {
+  const teamIds = [selectedTeamId];
+  // Categories must exist before their rows are read. The other bootstrap
+  // groups can run while this initialization and these team queries finish.
+  await seedDefaultMatchCategories(teamIds, userId);
+  return Promise.all([
+    sql`select * from players where team_id = ${selectedTeamId} order by created_at asc`,
+    sql`select team_members.*, users.account_name, users.name
+        from team_members join users on users.id = team_members.user_id
+        where team_members.team_id = ${selectedTeamId} order by team_members.created_at asc`,
+    sql`select * from champion_pool where team_id = ${selectedTeamId} order by games desc, winrate desc`,
+    sql`select * from improvements where team_id = ${selectedTeamId} order by rank asc, created_at desc limit 12`,
+    sql`select composition_types.*, users.name as created_by_name
+        from composition_types left join users on users.id = composition_types.created_by
+        where composition_types.team_id = ${selectedTeamId} order by composition_types.created_at desc limit 50`,
+    sql`select reports.*, users.name as author_name from reports left join users on users.id = reports.created_by
+        where reports.team_id = ${selectedTeamId}
+          and (coalesce(to_jsonb(reports)->>'discord_status','published') <> 'draft'
+            or exists(select 1 from teams t left join team_members tm on tm.team_id=t.id and tm.user_id=${userId}
+              where t.id=reports.team_id and (t.owner_id=${userId} or tm.role in ('owner','captain','coach','assistant','analyst','manager','board'))))
+        order by reports.created_at desc`,
+    loadMatchArchives(teamIds),
+    sql`select * from match_categories where team_id = ${selectedTeamId} order by is_default desc, name asc`,
+    loadInviteCodes(teamIds, userId), loadAvailability(teamIds), loadProfileCoachingNotes(teamIds),
+    sql`select player_goals.*, users.name as created_by_name from player_goals
+        left join users on users.id = player_goals.created_by where player_goals.team_id = ${selectedTeamId}
+        order by (player_goals.status = 'active') desc, player_goals.created_at desc`,
+    sql`select result, impact_score, duration, side, vision_score from matches where team_id = ${selectedTeamId}
+        order by created_at desc, id desc limit 10`
+  ]);
+}
+
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertMethod(request, 'GET');
@@ -116,38 +148,17 @@ export default async function handler(request: Request, context: Context): Promi
         inviteCodes: [], availability: [], profileCoachingNotes: [], playerGoals: [], botEvents: [], botGoals: [] });
     }
     const selectedTeamId = String(selectedTeam.id);
-    const teamIds = [selectedTeamId];
     await assertSchemaReady();
-    const page = await loadMatchPage(selectedTeamId, pageOptions);
-    if (url.searchParams.get('matchesOnly') === '1') return json({ selectedTeamId, ...page });
-    await seedDefaultMatchCategories(teamIds, user.id);
-    const [players, teamMembers, championPool, improvements, compositions, reports, matchArchives,
-      matchCategories, inviteCodes, availability, profileCoachingNotes, playerGoals, recentMatches] = await Promise.all([
-      sql`select * from players where team_id = ${selectedTeamId} order by created_at asc`,
-      sql`select team_members.*, users.account_name, users.name
-          from team_members join users on users.id = team_members.user_id
-          where team_members.team_id = ${selectedTeamId} order by team_members.created_at asc`,
-      sql`select * from champion_pool where team_id = ${selectedTeamId} order by games desc, winrate desc`,
-      sql`select * from improvements where team_id = ${selectedTeamId} order by rank asc, created_at desc limit 12`,
-      sql`select composition_types.*, users.name as created_by_name
-          from composition_types left join users on users.id = composition_types.created_by
-          where composition_types.team_id = ${selectedTeamId} order by composition_types.created_at desc limit 50`,
-      sql`select reports.*, users.name as author_name from reports left join users on users.id = reports.created_by
-          where reports.team_id = ${selectedTeamId}
-            and (coalesce(to_jsonb(reports)->>'discord_status','published') <> 'draft'
-              or exists(select 1 from teams t left join team_members tm on tm.team_id=t.id and tm.user_id=${user.id}
-                where t.id=reports.team_id and (t.owner_id=${user.id} or tm.role in ('owner','captain','coach','assistant','analyst','manager','board'))))
-          order by reports.created_at desc`,
-      loadMatchArchives(teamIds),
-      sql`select * from match_categories where team_id = ${selectedTeamId} order by is_default desc, name asc`,
-      loadInviteCodes(teamIds, user.id), loadAvailability(teamIds), loadProfileCoachingNotes(teamIds),
-      sql`select player_goals.*, users.name as created_by_name from player_goals
-          left join users on users.id = player_goals.created_by where player_goals.team_id = ${selectedTeamId}
-          order by (player_goals.status = 'active') desc, player_goals.created_at desc`,
-      sql`select result, impact_score, duration, side, vision_score from matches where team_id = ${selectedTeamId}
-          order by created_at desc, id desc limit 10`
+    if (url.searchParams.get('matchesOnly') === '1') {
+      const page = await loadMatchPage(selectedTeamId, pageOptions);
+      return json({ selectedTeamId, ...page });
+    }
+    const [page, botWorkflows, [players, teamMembers, championPool, improvements, compositions, reports, matchArchives,
+      matchCategories, inviteCodes, availability, profileCoachingNotes, playerGoals, recentMatches]] = await Promise.all([
+      loadMatchPage(selectedTeamId, pageOptions),
+      loadBotWorkflows(selectedTeamId, user.id),
+      loadTeamData(selectedTeamId, user.id),
     ]);
-    const botWorkflows = await loadBotWorkflows(selectedTeamId, user.id);
     return json({ dashboard: buildDashboard(recentMatches, improvements), selectedTeamId, ...page, ...botWorkflows,
       teams: teams.map(safeTeam), players, teamMembers, championPool, compositions, improvements, reports,
       matchArchives, matchCategories, inviteCodes, availability, profileCoachingNotes, playerGoals });
