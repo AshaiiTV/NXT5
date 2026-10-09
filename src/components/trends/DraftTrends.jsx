@@ -1,4 +1,4 @@
-import { resultSummary, resultLabel, winrateLabel, matchResult } from "../../utils/statistics.js";
+import { availableNumber, resultSummary, resultLabel, winrateLabel, matchResult } from "../../utils/statistics.js";
 import React from "react";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { RoleIcon } from "../brand/BrandAssets.jsx";
@@ -7,6 +7,8 @@ import { cx } from "../../app/helpers.js";
 import { championAssetId, championDisplayName, compositionIdentity, championStyleTags, tagLabel, ROSTER_ROLE_ORDER, normalizeProfileRole, ChampionPortrait } from "../../pages/workspace/workspace-shared.jsx";
 import { roleLabel } from "../../pages/workspace/shell-shared.jsx";
 import { analysisCopy } from "./analysis-copy.js";
+import { ChampionAnalysis, DraftSignals } from "./ChampionAnalysis.jsx";
+import { buildChampionAnalysis } from "../../utils/champion-analysis.js";
 import "./draft-trends.css";
 
 const DRAFT_SCORE_TAGS = [
@@ -80,12 +82,16 @@ function buildDraftTrendModel(matches) {
     }).filter((entry) => entry.rows.length);
     const picks = Array.from(rows.reduce((map, row) => {
       const key = `${championAssetId(row.champion)}|${row.role || "ROLE"}`;
-      const current = map.get(key) || { champion: row.champion, role: row.role || "ROLE", games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, damage: 0, vision: 0, gold: 0, matches: [] };
+      const current = map.get(key) || { champion: row.champion, role: row.role || "ROLE", games: 0, wins: 0, kills: 0, deaths: 0, assists: 0, kdaGames: 0, damage: 0, vision: 0, gold: 0, matches: [] };
       current.games += 1;
       current.wins += sideWins(row.match) ? 1 : 0;
-      current.kills += Number(row.kills || 0);
-      current.deaths += Number(row.deaths || 0);
-      current.assists += Number(row.assists || 0);
+      const kdaValues = [row.kills, row.deaths, row.assists].map(availableNumber);
+      if (kdaValues.every((value) => value !== null && value >= 0)) {
+        current.kills += kdaValues[0];
+        current.deaths += kdaValues[1];
+        current.assists += kdaValues[2];
+        current.kdaGames += 1;
+      }
       current.damage += Number(row.damage || 0);
       current.vision += Number(row.vision || 0);
       current.gold += Number(row.gold || 0);
@@ -95,7 +101,7 @@ function buildDraftTrendModel(matches) {
     }, new Map()).values()).map((pick) => ({
       ...pick,
       ...resultsFor(pick.matches),
-      kda: Number(((pick.kills + pick.assists) / Math.max(1, pick.deaths)).toFixed(2)),
+      kda: pick.kdaGames ? Number(((pick.kills + pick.assists) / Math.max(1, pick.deaths)).toFixed(2)) : null,
       avgDamage: Math.round(pick.damage / Math.max(1, pick.games)),
       avgVision: Math.round(pick.vision / Math.max(1, pick.games)),
       avgGold: Math.round(pick.gold / Math.max(1, pick.games)),
@@ -136,11 +142,12 @@ function buildDraftTrendModel(matches) {
     return { rows, matchDrafts, picks, rolePicks, archetypes, duos, allDuos, identity: latestIdentity, comfort, traps, ...resultsFor(matchDrafts.map((entry) => entry.match)) };
   };
   const ally = buildSide("ALLY");
+  const analysis = buildChampionAnalysis(ally);
   const warnings = [
-    ally.identity.gaps[0] && `Nos drafts : ${ally.identity.gaps[0].toLowerCase()}.`,
+    ...analysis.signals.slice(0, 3).map((signal) => `${signal.label} : ${signal.games}/${analysis.completeGames} compositions complètes.`),
     ally.traps[0] && `${championDisplayName(ally.traps[0].champion)} revient souvent avec ${winrateLabel(ally.traps[0].wr)} WR.`,
   ].filter(Boolean).slice(0, 4);
-  return { ally, warnings };
+  return { ally, analysis, warnings };
 }
 
 function DraftMiniChampion({ item, onSources, detailed = false, totalGames = 0 }) {
@@ -148,17 +155,18 @@ function DraftMiniChampion({ item, onSources, detailed = false, totalGames = 0 }
     <span className="draft-champion-portrait" aria-hidden="true"><ChampionPortrait champion={item.champion} alt="" /></span>
     <span className="draft-champion-copy">
       <strong>{championDisplayName(item.champion)}</strong>
-      <span>{roleLabel(item.role)} · {item.games} partie{item.games > 1 ? "s" : ""} · KDA {item.kda}</span>
+      <span>{roleLabel(item.role)} · {item.games} partie{item.games > 1 ? "s" : ""} · KDA {item.kda ?? "—"}</span>
+      {item.kdaGames < item.games && <span>KDA sur {item.kdaGames} partie{item.kdaGames > 1 ? "s" : ""} renseignée{item.kdaGames > 1 ? "s" : ""}</span>}
       {detailed && <span>{resultLabel(item)} · Fréquence : {totalGames ? `${Math.round((item.games / totalGames) * 100)}%` : "—"}</span>}
       {detailed && item.tags?.length > 0 && <span>{item.tags.map(tagLabel).join(" · ")}</span>}
     </span>
     <span className={cx("draft-champion-result", Number.isFinite(item.wr) && item.wr >= 55 ? "draft-result-positive" : Number.isFinite(item.wr) && item.wr < 45 ? "draft-result-negative" : "")}>
-      <strong>{winrateLabel(item.wr)}</strong><span>victoires</span>
+      <strong>{winrateLabel(item.wr)}</strong><span>victoires</span><span>{item.known} résultat{item.known > 1 ? "s" : ""}</span>
     </span>
     {onSources && <ChevronRight className="draft-source-chevron" aria-hidden="true" />}
   </>;
   return onSources
-    ? <button type="button" onClick={onSources} className="draft-champion-row" aria-label={`Voir les parties sources : ${championDisplayName(item.champion)}, ${roleLabel(item.role)}, ${item.games} parties, ${winrateLabel(item.wr)} de victoires, KDA ${item.kda}${detailed ? `, ${resultLabel(item)}, fréquence ${totalGames ? `${Math.round((item.games / totalGames) * 100)}% des drafts` : "indisponible"}${item.tags?.length ? `, styles : ${item.tags.map(tagLabel).join(", ")}` : ""}` : ""}`}>{content}</button>
+    ? <button type="button" onClick={onSources} className="draft-champion-row" aria-label={`Voir les parties sources : ${championDisplayName(item.champion)}, ${roleLabel(item.role)}, ${item.games} parties, ${winrateLabel(item.wr)} de victoires sur ${item.known} résultats connus, KDA ${item.kda ?? "indisponible"}${detailed ? `, ${resultLabel(item)}, fréquence ${totalGames ? `${Math.round((item.games / totalGames) * 100)}% des drafts` : "indisponible"}${item.tags?.length ? `, styles : ${item.tags.map(tagLabel).join(", ")}` : ""}` : ""}`}>{content}</button>
     : <div className="draft-champion-row">{content}</div>;
 }
 
@@ -229,6 +237,7 @@ function DraftTrendTable({ title, rows = [], empty, onSources, variant = "archet
 
 function DraftTrendsModule({ model, onOpenSources, sourceGamesForMatches, detailHref, onNavigateDetail }) {
   const active = model.ally;
+  const analysis = model.analysis;
   const sourceFor = (entry) => sourceGamesForMatches?.(entry.matches || []) || [];
   const openSources = (entry, title, subtitle) => onOpenSources?.({ title, subtitle, metrics: [{ label: "Parties", value: String(entry.games || entry.matches?.length || active.games) }, { label: "Victoires", value: winrateLabel(entry.wr === undefined ? active.wr : entry.wr) }, { label: "Bilan", value: resultLabel(entry.wr === undefined ? active : entry) }], games: sourceFor(entry) });
   const mainPick = active.comfort[0] || active.picks[0];
@@ -244,35 +253,37 @@ function DraftTrendsModule({ model, onOpenSources, sourceGamesForMatches, detail
       {!active.games ? <p className="draft-empty">Les champions et les compositions apparaîtront avec les participants de tes parties importées.</p> : <>
         <dl className="draft-overview">
           <div><dt>Victoires</dt><dd>{winrateLabel(active.wr)}</dd><dd className="draft-overview-detail">{resultLabel(active)}</dd></div>
-          <div><dt>Identité la plus représentée</dt><dd>{tagLabel(active.identity.primary)}</dd><dd className="draft-overview-detail">Sur l’ensemble des champions de la sélection</dd></div>
+          <div><dt>Compositions complètes</dt><dd>{analysis.completeGames} / {active.games}</dd><dd className="draft-overview-detail">Cinq champions et cinq rôles renseignés</dd></div>
           <div><dt>Combinaisons champion / rôle</dt><dd>{active.picks.length}</dd><dd className="draft-overview-detail">Dans {active.games} draft{active.games > 1 ? "s" : ""}</dd></div>
         </dl>
+        <ChampionAnalysis active={active} analysis={model.analysis} onSources={onOpenSources ? openSources : undefined} />
+        <details className="trends-secondary-disclosure draft-analysis-disclosure"><summary><span><strong>Comparer les compositions et les duos</strong><span>Retrouver les associations fréquentes et leurs parties sources</span></span></summary><div className="draft-tables-layout">
+          <DraftTrendTable title="Compositions fréquentes" rows={active.archetypes} empty="Les compositions apparaîtront avec plus de données de draft." {...tableProps("compositions")} onSources={onOpenSources ? (row) => openSources(row, `Composition équipe : ${tagLabel(row.tag)}`, `${row.games} parties · ${winrateLabel(row.wr)} de victoires`) : undefined} />
+          <DraftTrendTable title="Duos fréquents" rows={active.duos} empty="Les duos apparaîtront avec plus de parties." variant="duos" {...tableProps("duos")} onSources={onOpenSources ? (row) => openSources(row, row.champions, `${row.pair} · ${row.games} parties · ${winrateLabel(row.wr)} de victoires`) : undefined} />
+        </div></details>
+        <details className="trends-secondary-disclosure draft-analysis-disclosure"><summary><span><strong>Approfondir les choix de champions</strong><span>Champion repère, habitudes, points à vérifier et champions par rôle</span></span></summary>
         <div className="draft-analysis-layout">
           <div className="draft-picks-column">
             <section className="draft-key-pick">
               <DraftSectionTitle title="Champion repère" {...headingProps("pick-repere")} />
               {mainPick && <>
                 <div className="draft-key-pick-identity"><span className="draft-key-portrait" aria-hidden="true"><ChampionPortrait champion={mainPick.champion} alt="" /></span><div><h5>{championDisplayName(mainPick.champion)}</h5><p>{roleLabel(mainPick.role)} · {mainPick.games} partie{mainPick.games > 1 ? "s" : ""} · {winrateLabel(mainPick.wr)} de victoires</p></div></div>
-                <p className="draft-description">{active.comfort.length ? "Le champion le plus joué parmi ceux qui ont au moins 2 parties et 50 % de victoires." : "Le champion le plus joué. Son résultat reste à confirmer avec davantage de parties."}</p>
+                <p className="draft-description">{active.comfort.length ? "Le champion le plus joué parmi ceux qui ont au moins 2 résultats connus et 50 % de victoires." : "Le champion le plus joué. Son résultat reste à confirmer avec davantage de parties."}</p>
                 {onOpenSources && <button type="button" className="draft-source-link" onClick={sourceAction(mainPick)}>Voir les parties sources <ArrowRight aria-hidden="true" /></button>}
               </>}
             </section>
             <section className="draft-comfort">
               <div className="draft-section-heading"><DraftSectionTitle title="Champions rejoués avec succès" {...headingProps("confort")} /></div>
-              <p className="draft-description">Au moins 2 parties et 50 % de victoires. Ces résultats restent à confirmer avec l’équipe.</p>
+              <p className="draft-description">Au moins 2 résultats connus et 50 % de victoires. Ces résultats restent à confirmer avec l’équipe.</p>
               {active.comfort.length ? <div className="draft-champion-list">{active.comfort.map((item) => <DraftMiniChampion key={`${item.role}-${item.champion}`} item={item} onSources={sourceAction(item)} />)}</div> : <p className="draft-empty">Aucun champion ne remplit encore ces critères sur cette période.</p>}
               <p className="draft-footnote">KDA : éliminations et assistances rapportées aux morts, avec un minimum de 1 au dénominateur.</p>
             </section>
           </div>
           <DraftScoreBoard identity={active.identity} games={active.games} {...tableProps("profil")} />
         </div>
-        <details className="trends-secondary-disclosure draft-analysis-disclosure"><summary><span><strong>Comparer les compositions et les duos</strong><span>Retrouver les associations fréquentes et leurs parties sources</span></span></summary><div className="draft-tables-layout">
-          <DraftTrendTable title="Compositions fréquentes" rows={active.archetypes} empty="Les compositions apparaîtront avec plus de données de draft." {...tableProps("compositions")} onSources={onOpenSources ? (row) => openSources(row, `Composition équipe : ${tagLabel(row.tag)}`, `${row.games} parties · ${winrateLabel(row.wr)} de victoires`) : undefined} />
-          <DraftTrendTable title="Duos fréquents" rows={active.duos} empty="Les duos apparaîtront avec plus de parties." variant="duos" {...tableProps("duos")} onSources={onOpenSources ? (row) => openSources(row, row.champions, `${row.pair} · ${row.games} parties · ${winrateLabel(row.wr)} de victoires`) : undefined} />
-        </div></details>
-        <details className="trends-secondary-disclosure draft-analysis-disclosure"><summary><span><strong>Approfondir les choix de champions</strong><span>Points à vérifier et champions joués par rôle</span></span></summary><div className="draft-review-layout">
+        <div className="draft-review-layout">
           <section className="draft-review"><DraftSectionTitle title="À revoir en équipe" {...headingProps("a-revoir")} />
-            {model.warnings?.length ? <ul className="draft-warning-list">{model.warnings.slice(0, 4).map((warning) => <li key={warning}>{analysisCopy(warning)}</li>)}</ul> : <p className="draft-description">Aucun signal particulier sur cette sélection.</p>}
+            <DraftSignals analysis={analysis} onSources={onOpenSources ? openSources : undefined} />
             {active.traps.length > 0 && <><p className="draft-description">Champions rejoués avec moins de 50% de victoires :</p><div className="draft-champion-list">{active.traps.map((item) => <DraftMiniChampion key={`${item.role}-${item.champion}`} item={item} onSources={sourceAction(item)} />)}</div></>}
           </section>
           <section className="draft-role-pools"><DraftSectionTitle title="Champions les plus joués par rôle" {...headingProps("roles")} /><p className="draft-description">Jusqu’à trois champions par rôle. Sélectionne un champion pour retrouver ses parties.</p>
