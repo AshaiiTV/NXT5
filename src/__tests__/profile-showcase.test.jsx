@@ -5,22 +5,28 @@ import { ProfileShowcase } from "../components/profile/ProfileShowcase.jsx";
 import { ProfileNavigation } from "../pages/workspace/ProfileNavigation.jsx";
 import { PlayerUltimateProfile } from "../pages/workspace/PlayerUltimateProfile.jsx";
 import { SelectInput } from "../components/ui/Core.jsx";
+import { ModalDialog } from "../components/ui/ModalDialog.jsx";
 import { profilePathFromView, profileViewFromPath } from "../app/routing.js";
 import { loadProfileShowcaseAssets } from "../utils/profile-showcase-canvas.js";
 import { pngDownloadPages } from "../utils/png-report.js";
 
 vi.mock("../utils/profile-showcase-canvas.js", () => ({ drawProfileShowcase: vi.fn(), loadProfileShowcaseAssets: vi.fn() }));
 vi.mock("../utils/png-report.js", async (importOriginal) => ({ ...await importOriginal(), pngDownloadPages: vi.fn() }));
-vi.mock("../components/ui/ModalDialog.jsx", () => ({ ModalDialog: ({ children, onClose, ...props }) => <dialog aria-label={props["aria-labelledby"]} onClose={onClose}>{children}</dialog> }));
+vi.mock("../components/ui/ModalDialog.jsx", () => ({ ModalDialog: ({ children, onClose, onKeyDown, ...props }) => <dialog aria-label={props["aria-labelledby"]} onClose={onClose} onKeyDown={onKeyDown}>{children}</dialog> }));
 let renderer;
 const text = (node) => typeof node === "string" ? node : (node?.children || []).map(text).join("");
 const button = (label) => renderer.root.findAllByType("button").find((node) => text(node) === label);
+const dialog = () => renderer.root.findByType("dialog");
+const readerButton = (label) => dialog().findAllByType("button").find((node) => text(node) === label);
+const chapterButton = (index) => dialog().findAllByType("button").find((node) => node.props["aria-label"]?.startsWith(`Chapitre ${index} :`));
+const currentChapter = () => dialog().findByProps({ "aria-current": "step" }).props["aria-label"];
 const player = { id: "p1", name: "Nova", role: "ADC" };
 const rows = Array.from({ length: 6 }, (_, i) => ({ champion: i === 5 ? "KaiSa" : "Jhin", kills: i === 5 ? 15 : 3, deaths: 1, assists: 5, cs_per_min: 7 + i / 5, kill_participation: 0.7, match: { id: `m${i}`, result: i === 1 ? "Défaite" : "Victoire", game_date: `2026-10-0${i + 1}T12:00:00Z`, duration_seconds: 1800 } }));
 const props = { player, rows, teamName: "Astral", category: "Tournoi", teammates: [player] };
 const canvas = { width: 1080, height: 1620, getContext: () => ({ drawImage: vi.fn() }) };
-const focusControl = vi.fn();
-const mount = async (element = <ProfileShowcase {...props} />) => act(async () => { renderer = TestRenderer.create(element, { createNodeMock: (node) => node.type === "canvas" ? canvas : node.type === "button" ? { focus: () => focusControl(node.props["aria-label"]) } : null }); });
+const storyTab = { focus: vi.fn(), isConnected: true };
+const readerScroll = { scrollTop: 0 };
+const mount = async (element = <ProfileShowcase {...props} />) => act(async () => { renderer = TestRenderer.create(element, { createNodeMock: (node) => node.type === "canvas" ? canvas : node.props.className === "profile-showcase" ? { querySelector: (selector) => selector === "#showcase-tab-story" ? storyTab : null, querySelectorAll: () => [readerScroll] } : null }); });
 
 beforeEach(() => {
   vi.stubGlobal("document", { fonts: { ready: Promise.resolve() }, createElement: vi.fn(() => ({ width: 0, height: 0, getContext: () => ({ drawImage: vi.fn() }) })) });
@@ -75,62 +81,109 @@ describe("player card and Wrapped", () => {
   it("navigates every chapter, uses the highlight champion and preserves its source link", async () => {
     await mount();
     await act(async () => button("Découvrir le Wrapped").props.onClick());
-    expect(button("Précédent").props.disabled).toBe(true);
-    await act(async () => button("Suivant").props.onClick());
-    await act(async () => button("Suivant").props.onClick());
+    expect(readerButton("Précédent").props.disabled).toBe(true);
+    await act(async () => readerButton("Suivant").props.onClick());
+    await act(async () => readerButton("Suivant").props.onClick());
     expect(loadProfileShowcaseAssets).toHaveBeenLastCalledWith("Kaisa");
-    const link = renderer.root.findByType("a");
+    const link = dialog().findByType("a");
     expect(link.props.href).toBe("/games?match=m5");
-    await act(async () => button("Suivant").props.onClick());
-    await act(async () => button("Suivant").props.onClick());
-    expect(text(renderer.toJSON())).toContain("Avec Astral.");
-    await act(async () => button("Revoir le bilan").props.onClick());
-    expect(button("Précédent").props.disabled).toBe(true);
+    await act(async () => readerButton("Suivant").props.onClick());
+    await act(async () => readerButton("Suivant").props.onClick());
+    expect(text(dialog().findByProps({ "aria-label": "Effectif actuel de l’équipe" }))).toContain("ADCNova");
+    await act(async () => readerButton("Revoir le bilan").props.onClick());
+    expect(readerButton("Précédent").props.disabled).toBe(true);
+    await act(async () => chapterButton(5).props.onClick());
+    const focus = vi.fn();
+    await act(async () => readerButton("Retrouver ma carte").props.onClick({ currentTarget: { closest: () => ({ querySelector: () => ({ focus }) }) } }));
+    expect(focus).toHaveBeenCalledOnce();
+    expect(readerButton("Voir le verso")).toBeTruthy();
+    expect(dialog().findAllByType("nav")).toHaveLength(0);
   });
 
-  it("keeps chapter controls with the artwork and moves their keyboard focus without global shortcuts", async () => {
+  it("opens an immersive reader with five named chapters and a persistent return-focus target", async () => {
     await mount();
     await act(async () => button("Découvrir le Wrapped").props.onClick());
-    const chapterButton = (index) => renderer.root.findAllByType("button").find((node) => node.props["aria-label"]?.startsWith(`Chapitre ${index + 1} :`));
-    const figure = renderer.root.findByType("figure");
-    expect(figure.findByProps({ "aria-label": "Chapitres du Wrapped" })).toBeTruthy();
-    expect(figure.props.onKeyDown).toBeUndefined();
-    expect(figure.findAllByType("button").some((node) => text(node) === "Suivant")).toBe(true);
-    const preventDefault = vi.fn();
-    await act(async () => chapterButton(0).props.onKeyDown({ key: "ArrowRight", preventDefault }));
-    expect(chapterButton(1).props["aria-current"]).toBe("step");
-    expect(chapterButton(1).props.tabIndex).toBe(0);
-    expect(chapterButton(0).props.tabIndex).toBe(-1);
-    expect(focusControl).toHaveBeenLastCalledWith("Chapitre 2 : Le champion signature");
-    expect(preventDefault).toHaveBeenCalledTimes(1);
-    await act(async () => chapterButton(1).props.onKeyDown({ key: "ArrowRight", altKey: true, preventDefault }));
-    expect(chapterButton(1).props["aria-current"]).toBe("step");
-    expect(preventDefault).toHaveBeenCalledTimes(1);
-    await act(async () => chapterButton(1).props.onKeyDown({ key: "End", preventDefault }));
-    expect(chapterButton(4).props["aria-current"]).toBe("step");
-    await act(async () => chapterButton(4).props.onKeyDown({ key: "Home", preventDefault }));
-    expect(chapterButton(0).props["aria-current"]).toBe("step");
-    await act(async () => chapterButton(0).props.onKeyDown({ key: "ArrowLeft", preventDefault }));
-    expect(chapterButton(4).props["aria-current"]).toBe("step");
-  });
-
-  it("keeps enlarged chapter navigation synchronized and exposes dated comparison context", async () => {
-    await mount();
-    await act(async () => button("Découvrir le Wrapped").props.onClick());
-    await act(async () => button("Agrandir").props.onClick());
-    const dialog = () => renderer.root.findByType("dialog");
-    const choose = (index) => dialog().findAllByType("button").find((node) => node.props["aria-label"]?.startsWith(`Chapitre ${index + 1} :`));
-    await act(async () => choose(3).props.onClick());
-    expect(text(renderer.toJSON())).toContain("01/10/2026 – 03/10/2026");
-    expect(text(renderer.toJSON())).toContain("04/10/2026 – 06/10/2026");
-    expect(renderer.root.findAllByType("canvas")).toHaveLength(2);
-    for (const visual of renderer.root.findAllByType("canvas")) expect(visual.props["aria-label"]).toContain("Moyenne des 3 premières parties");
-    await act(async () => choose(4).props.onClick());
-    expect(text(renderer.toJSON())).toContain("L’effectif actuel ne permet pas d’établir qui a joué chaque partie.");
-    await act(async () => dialog().props.onClose());
+    expect(dialog().findByType("nav").findAllByType("button")).toHaveLength(5);
+    expect(currentChapter()).toBe("Chapitre 1 : Le bilan");
+    expect(renderer.root.findByType(ModalDialog).props.returnFocusRef.current).toBe(storyTab);
+    readerScroll.scrollTop = 250;
+    await act(async () => chapterButton(3).props.onClick());
+    expect(readerScroll.scrollTop).toBe(0);
+    expect(dialog().findByType("canvas").props["aria-label"]).toContain("15 éliminations");
+    await act(async () => chapterButton(4).props.onClick());
+    expect(dialog().findByType("canvas").props["aria-label"]).toContain("Une comparaison descriptive");
+    const periods = dialog().findAllByType("p").map(text).join(" ");
+    expect(periods).toContain("Première période : 01/10/2026 – 03/10/2026");
+    expect(periods).toContain("Seconde période : 04/10/2026 – 06/10/2026");
+    expect(text(dialog().findByProps({ "aria-live": "polite" }))).toBe("Chapitre 4 · L’évolution");
+    await act(async () => readerButton("Fermer").props.onClick());
     expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
-    await act(async () => button("Exporter ce chapitre").props.onClick());
-    expect(vi.mocked(pngDownloadPages).mock.calls[0][1]).toBe("nxt5-nova-wrapped-5.png");
+    expect(renderer.root.findByProps({ "aria-current": "step" }).props["aria-label"]).toBe("Chapitre 4 : L’évolution");
+    await act(async () => button("Agrandir").props.onClick());
+    expect(currentChapter()).toBe("Chapitre 4 : L’évolution");
+  });
+
+  it("supports arrows from the reader header, bounds chapters and preserves modified keys", async () => {
+    await mount();
+    await act(async () => button("Découvrir le Wrapped").props.onClick());
+    const key = async (value, overrides = {}) => {
+      const event = { key: value, target: { tagName: "BUTTON" }, preventDefault: vi.fn(), ...overrides };
+      await act(async () => dialog().props.onKeyDown(event));
+      return event;
+    };
+    expect((await key("ArrowLeft")).preventDefault).toHaveBeenCalled();
+    expect(currentChapter()).toBe("Chapitre 1 : Le bilan");
+    await key("ArrowRight");
+    expect(currentChapter()).toBe("Chapitre 2 : Le champion signature");
+    expect((await key("ArrowRight", { ctrlKey: true })).preventDefault).not.toHaveBeenCalled();
+    expect((await key("ArrowRight", { target: { tagName: "INPUT" } })).preventDefault).not.toHaveBeenCalled();
+    expect((await key("ArrowRight", { target: { tagName: "DIV", isContentEditable: true } })).preventDefault).not.toHaveBeenCalled();
+    expect(currentChapter()).toBe("Chapitre 2 : Le champion signature");
+    await act(async () => chapterButton(5).props.onClick());
+    await key("ArrowRight");
+    expect(currentChapter()).toBe("Chapitre 5 : L’équipe");
+    await key("ArrowLeft");
+    expect(currentChapter()).toBe("Chapitre 4 : L’évolution");
+  });
+
+  it("changes chapters on deliberate touch swipes and leaves vertical scrolling alone", async () => {
+    await mount();
+    await act(async () => button("Découvrir le Wrapped").props.onClick());
+    const swipe = async (dx, dy, pointerType = "touch", cancel = false) => {
+      const art = dialog().findByProps({ className: "profile-showcase-art" });
+      await act(async () => {
+        art.props.onPointerDown({ pointerType, clientX: 150, clientY: 150 });
+        if (cancel) art.props.onPointerCancel();
+        art.props.onPointerUp({ pointerType, clientX: 150 + dx, clientY: 150 + dy });
+      });
+    };
+    await swipe(-100, 10);
+    expect(currentChapter()).toBe("Chapitre 2 : Le champion signature");
+    await swipe(-20, 0);
+    await swipe(-100, 100);
+    await swipe(-100, 0, "mouse");
+    await swipe(-100, 0, "touch", true);
+    expect(currentChapter()).toBe("Chapitre 2 : Le champion signature");
+    await swipe(100, 10);
+    expect(currentChapter()).toBe("Chapitre 1 : Le bilan");
+  });
+
+  it("exports the visible reader chapter and closes the reader when opening its source", async () => {
+    const navigate = vi.fn();
+    await mount(<ProfileShowcase {...props} navigate={navigate} />);
+    await act(async () => button("Découvrir le Wrapped").props.onClick());
+    await act(async () => chapterButton(3).props.onClick());
+    await act(async () => readerButton("Exporter ce chapitre").props.onClick());
+    expect(pngDownloadPages).toHaveBeenCalledWith([expect.objectContaining({ width: 1080, height: 1620 })], "nxt5-nova-wrapped-3.png");
+    const modified = { button: 0, ctrlKey: true, preventDefault: vi.fn() };
+    await act(async () => dialog().findByType("a").props.onClick(modified));
+    expect(modified.preventDefault).not.toHaveBeenCalled();
+    expect(navigate).not.toHaveBeenCalled();
+    const event = { button: 0, preventDefault: vi.fn() };
+    await act(async () => dialog().findByType("a").props.onClick(event));
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith("/games?match=m5");
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
   });
 
   it("shows empty and unavailable data without presenting a fictional edition", async () => {
@@ -139,13 +192,17 @@ describe("player card and Wrapped", () => {
     expect(renderer.root.findAllByType("canvas")).toHaveLength(0);
     expect(loadProfileShowcaseAssets).not.toHaveBeenCalled();
     await act(async () => renderer.update(<ProfileShowcase {...props} rows={[{ champion: "Jhin", match: { id: "unknown" } }]} />));
-    expect(text(renderer.toJSON())).toContain("0 résultat connu sur 1 partie");
+    expect(renderer.root.findByType("canvas").props["aria-label"]).toContain("0 victoires, 0 défaites, 1 résultats inconnus");
+    expect(text(renderer.toJSON())).toContain("0 résultats connus");
     expect(text(renderer.toJSON())).toContain("—");
     await act(async () => button("Découvrir le Wrapped").props.onClick());
     await act(async () => button("Suivant").props.onClick());
     await act(async () => button("Suivant").props.onClick());
     expect(text(renderer.toJSON())).toContain("Aucune partie avec éliminations");
     expect(renderer.root.findAllByType("a")).toHaveLength(0);
+    await act(async () => readerButton("Suivant").props.onClick());
+    expect(text(dialog())).toContain("L’évolution demande au moins six mesures datées");
+    expect(dialog().findAllByType("p").filter((node) => node.props.className === "sr-only")).toHaveLength(0);
   });
 
   it("keeps failed exports recoverable and enables only the latest loaded champion", async () => {
@@ -164,4 +221,5 @@ describe("player card and Wrapped", () => {
     await act(async () => button("Exporter la carte").props.onClick());
     expect(text(renderer.toJSON())).toContain("téléchargé en PNG");
   });
+
 });

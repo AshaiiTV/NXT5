@@ -51,27 +51,15 @@ function background(ctx) {
 }
 
 function frame(ctx) {
-  ctx.save();
-  ctx.beginPath();
-  ctx.roundRect(20, 20, W - 40, H - 40, 29);
-  ctx.lineWidth = 1.5;
-  ctx.globalAlpha = .68;
-  ctx.strokeStyle = spectrum(ctx, 20, 20, W - 40, H - 40);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.roundRect(31, 31, W - 62, H - 62, 22);
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = "rgba(198,212,229,.18)";
-  ctx.stroke();
-  ctx.restore();
+  pngLine(ctx, 72, 40, 232, 40, spectrum(ctx, 72, 40, 160, 0), 3);
 }
 
 // These rectangles are exclusively reserved for whole, centred artwork. Neither
 // text nor a foreground fade is painted over the portrait, including its eyes.
 export const PROFILE_ART_REGIONS = Object.freeze({
-  front: Object.freeze({ x: 90, y: 197, width: 900, height: 815 }),
-  signature: Object.freeze({ x: 240, y: 390, width: 600, height: 1000 }),
-  highlight: Object.freeze({ x: 298, y: 417, width: 484, height: 750 }),
+  front: Object.freeze({ x: 70, y: 210, width: 940, height: 884 }),
+  signature: Object.freeze({ x: 70, y: 380, width: 940, height: 870 }),
+  highlight: Object.freeze({ x: 70, y: 380, width: 940, height: 794 }),
 });
 
 function artwork(ctx, assets, region) {
@@ -101,16 +89,13 @@ function duration(seconds) {
 }
 
 function header(ctx, r, assets, { story = false, chapter = 0 } = {}) {
-  pngImageContain(ctx, assets.logo, 70, 66, 174, 55);
-  fit(ctx, story ? "WRAPPED" : "COLLECTION JOUEUR", 74, 160, 23, C.secondary, 600, 390);
-  fit(ctx, r.contextLabel || "PARTIES SÉLECTIONNÉES", 1006, 91, 24, C.text, 600, 690, "right");
-  fit(ctx, r.dateLabel || "Dates indisponibles", 1006, 130, 24, C.secondary, 400, 690, "right");
+  pngImageContain(ctx, assets.logo, 70, 66, 156, 49);
+  fit(ctx, r.contextLabel || "PARTIES SÉLECTIONNÉES", 1006, 88, 24, C.text, 500, 690, "right");
+  fit(ctx, r.dateLabel || "Dates indisponibles", 1006, 128, 24, C.secondary, 400, 690, "right");
   if (story) {
-    fit(ctx, `${String(chapter + 1).padStart(2, "0")} / 05`, 1006, 167, 24, C.secondary, 600, 220, "right");
-    for (let i = 0; i < 5; i += 1) {
-      pngPanel(ctx, 70 + i * 190, 194, 178, 4, { fill: i === chapter ? spectrum(ctx) : i < chapter ? C.violet : C.border, stroke: null, radius: 2 });
-    }
+    fit(ctx, `WRAPPED / ${String(chapter + 1).padStart(2, "0")}`, 74, 174, 23, C.secondary, 500, 390);
   }
+  frame(ctx);
 }
 
 function footer(ctx, r) {
@@ -126,12 +111,16 @@ function name(ctx, value, x, y, width, size, min = 58) {
 
 function front(ctx, r, assets) {
   background(ctx);
+  const signature = r.signature;
+  stage(ctx, PROFILE_ART_REGIONS.front, { variant: "card" });
   artwork(ctx, assets, PROFILE_ART_REGIONS.front);
   header(ctx, r, assets);
-  fit(ctx, "TON PROFIL EN GRAND", 74, 1053, 28, C.cyan, 600, 932);
-  name(ctx, r.playerName, 62, 1156, 944, 124, 60);
-  paragraph(ctx, identity(r) || "Profil joueur", 76, 1200, 930, 29, C.secondary, 1);
-  pngLine(ctx, 74, 1223, 1006, 1223, "rgba(198,212,229,.23)");
+  name(ctx, r.playerName, 62, 1257, 950, 154, 60);
+  fit(ctx, identity(r) || "Profil joueur", 73, 1302, 27, C.secondary, 500, 934);
+  fit(ctx, signature ? `${championDisplayName(signature.champion)} · CHAMPION LE PLUS JOUÉ` : "Champion indisponible", 73, 1344, 23, C.cyan, 500, 934);
+  polygon(ctx, [[40, 1380], [1040, 1380], [1040, 1555], [72, 1555], [40, 1523]], "#0E1D30");
+  pngLine(ctx, 40, 1380, 392, 1380, C.cyan, 4);
+  pngLine(ctx, 705, 1555, 1040, 1555, C.purple, 4);
   const stats = [
     [pngNumber(metric(r, "kda").value, 1), "KDA GLOBAL", metric(r, "kda").count],
     [pngNumber(metric(r, "csPerMin").value, 1), "CS / MIN", metric(r, "csPerMin").count],
@@ -139,22 +128,11 @@ function front(ctx, r, assets) {
   ];
   stats.forEach(([value, label, count], i) => {
     const x = 74 + i * 316;
-    fit(ctx, value, x, 1299, 62, C.text, 600, 270, "left", 43);
-    fit(ctx, label, x + 2, 1335, 24, C.secondary, 600, 281);
-    fit(ctx, coverage(count, r.games), x + 2, 1367, 22, C.secondary, 400, 278);
-    if (i) pngLine(ctx, x - 32, 1253, x - 32, 1364, "rgba(198,212,229,.16)");
+    fit(ctx, value, x, 1464, 78, C.text, 700, 270, "left", 43);
+    fit(ctx, label, x + 2, 1502, 24, C.secondary, 500, 281);
+    fit(ctx, coverage(count, r.games), x + 2, 1533, 22, C.secondary, 400, 278);
   });
-  pngPanel(ctx, 74, 1394, 932, 84, { fill: "#0B1729", stroke: "rgba(103,232,249,.23)", radius: 10 });
-  const results = r.results || {};
-  fit(ctx, `${pngNumber(results.wins)} V / ${pngNumber(results.losses)} D${results.unknown ? ` / ${pngNumber(results.unknown)} ?` : ""}`, 101, 1446, 34, C.text, 600, 389, "left", 27);
-  fit(ctx, pngPercent(results.rate), 522, 1446, 38, C.text, 700, 208, "left", 30);
-  fit(ctx, "de victoires", 984, 1443, 25, C.secondary, 400, 239, "right");
-  fit(ctx, "CHAMPION LE PLUS JOUÉ", 74, 1518, 23, C.secondary, 600, 700);
-  const signature = r.signature;
-  fit(ctx, signature ? `${championDisplayName(signature.champion)} · ${countLabel(signature.games)}` : "Champion indisponible", 74, 1558, 30, C.text, 600, 820, "left", 26);
-  pngImageContain(ctx, assets.mark, 934, 1495, 73, 73);
-  fit(ctx, rateCoverage(r), 540, 1591, 22, C.secondary, 400, 915, "center");
-  frame(ctx);
+  fit(ctx, rateCoverage(r), 74, 1585, 22, C.secondary, 400, 915);
 }
 
 function back(ctx, r, assets) {
@@ -226,8 +204,6 @@ function back(ctx, r, assets) {
 
 function storyBase(ctx) {
   background(ctx);
-  pngLine(ctx, 34, 231, 34, 1444, "rgba(198,212,229,.14)");
-  pngLine(ctx, 1046, 231, 1046, 1444, "rgba(198,212,229,.14)");
 }
 
 function chapterTitle(ctx, eyebrow, title, { size = 78, center = false } = {}) {
@@ -237,18 +213,40 @@ function chapterTitle(ctx, eyebrow, title, { size = 78, center = false } = {}) {
   fit(ctx, title, x, 353, size, C.text, 700, 940, align, 48);
 }
 
-function stage(ctx, region) {
+function polygon(ctx, points, fill, stroke = null, lineWidth = 1) {
+  ctx.save();
+  ctx.beginPath();
+  points.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lineWidth; ctx.stroke(); }
+  ctx.restore();
+}
+
+function stage(ctx, region, { variant = "signature" } = {}) {
+  // All geometry stays behind the complete official image. The
+  // portrait is painted last, with no crop, mask, text or glow over its face.
   const { x, y, width, height } = region;
-  const glow = ctx.createRadialGradient(540, y + height * .52, 10, 540, y + height * .52, width * .86);
-  glow.addColorStop(0, "rgba(129,140,248,.15)");
-  glow.addColorStop(1, "rgba(129,140,248,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(70, y, 940, height);
-  // All framing marks stay outside the entire art region.
-  for (const side of [-1, 1]) {
-    const edge = side === -1 ? x - 13 : x + width + 13;
-    pngLine(ctx, edge, y + 30, edge, y + 100, C.border, 2);
-    pngLine(ctx, edge, y + height - 100, edge, y + height - 30, C.border, 2);
+  const bottom = y + height;
+  const light = ctx.createRadialGradient(540, y + height * .5, 30, 540, y + height * .5, width * .6);
+  light.addColorStop(0, "rgba(99,102,241,.35)");
+  light.addColorStop(1, "rgba(99,102,241,0)");
+  ctx.fillStyle = light;
+  ctx.fillRect(0, y, W, height);
+  const cyanPlate = ctx.createLinearGradient(80, y, 780, bottom);
+  cyanPlate.addColorStop(0, variant === "highlight" ? "#6D347E" : "#156E88");
+  cyanPlate.addColorStop(1, "#112639");
+  const violetPlate = ctx.createLinearGradient(520, y, 970, bottom);
+  violetPlate.addColorStop(0, "#382577");
+  violetPlate.addColorStop(1, variant === "signature" ? "#7652AE" : "#2A244B");
+  polygon(ctx, [[x + 2, y + height * .27], [x + width * .65, y + 20], [x + width * .79, bottom - 124], [x + 76, bottom - 4]], cyanPlate);
+  polygon(ctx, [[x + width * .5, y + 50], [x + width - 18, y + height * .22], [x + width - 24, bottom - 10], [x + width * .32, bottom - 146]], violetPlate);
+  polygon(ctx, [[x - 12, y + height * .21], [x + width * .68, y + 2], [x + width * .8, bottom - 86], [x + 62, bottom + 10]], null, "rgba(103,232,249,.55)", 1.5);
+  polygon(ctx, [[x + width * .53, y + 33], [x + width + 8, y + height * .18], [x + width - 4, bottom + 9]], null, "rgba(196,181,253,.5)", 1.5);
+  // Short registration bars give the side plates an intentional printed edge.
+  for (let index = 0; index < 3; index += 1) {
+    pngLine(ctx, x - 16, bottom - 125 + index * 11, x + 34, bottom - 125 + index * 11, C.cyan, 3);
+    pngLine(ctx, x + width - 32, y + 110 + index * 11, x + width + 16, y + 110 + index * 11, C.violet, 3);
   }
 }
 
@@ -271,7 +269,11 @@ function resultRibbon(ctx, r, x, y, width, height = 28) {
 }
 
 function storyBilan(ctx, r) {
-  chapterTitle(ctx, "01 · LE BILAN", "Chaque partie compte.");
+  polygon(ctx, [[40, 392], [1040, 392], [1040, 865], [790, 865], [40, 721]], "#0E2335");
+  polygon(ctx, [[40, 392], [577, 392], [40, 721]], "#173E51");
+  pngLine(ctx, 40, 392, 403, 392, C.cyan, 5);
+  polygon(ctx, [[580, 916], [1040, 916], [1040, 1115], [580, 1115]], "#1A1638");
+  chapterTitle(ctx, "LE BILAN", "La sélection en chiffres.", { size: 74 });
   fit(ctx, pngNumber(r.games), 56, 655, 314, C.text, 700, 500, "left", 135);
   fit(ctx, "PARTIES", 573, 454, 47, C.cyan, 700, 435);
   paragraph(ctx, "dans cette sélection", 575, 509, 432, 37, C.secondary, 2, 48);
@@ -305,46 +307,35 @@ function storyBilan(ctx, r) {
 
 function storySignature(ctx, r, assets) {
   const champion = r.signature;
-  chapterTitle(ctx, "02 · TON CHAMPION SIGNATURE", String(championDisplayName(champion?.champion) || "À découvrir").toUpperCase(), { size: 119, center: true });
-  stage(ctx, PROFILE_ART_REGIONS.signature);
+  stage(ctx, PROFILE_ART_REGIONS.signature, { variant: "signature" });
   artwork(ctx, assets, PROFILE_ART_REGIONS.signature);
-  fit(ctx, pngNumber(champion?.games), 71, 746, 108, C.text, 700, 155, "left", 58);
-  fit(ctx, "PARTIES", 74, 791, 26, C.cyan, 600, 152);
-  fit(ctx, "SUR", 74, 881, 24, C.secondary, 500, 152);
-  fit(ctx, pngNumber(r.games), 71, 965, 76, C.secondary, 600, 155);
-  fit(ctx, pngPercent(champion?.rate), 1008, 746, 79, C.text, 700, 155, "right", 44);
-  fit(ctx, "VICTOIRES", 1007, 791, 24, C.cyan, 600, 154, "right");
-  fit(ctx, pngNumber(champion?.known), 1008, 925, 68, C.secondary, 600, 152, "right", 44);
-  fit(ctx, "RÉSULTATS", 1007, 970, 24, C.secondary, 500, 154, "right");
-  fit(ctx, "CONNUS", 1007, 1005, 24, C.secondary, 500, 154, "right");
-  fit(ctx, champion ? "Le champion le plus joué sur cette sélection." : "Aucune donnée de champion disponible", 540, 1443, 29, C.text, 500, 940, "center");
+  chapterTitle(ctx, "LE CHAMPION SIGNATURE", String(championDisplayName(champion?.champion) || "À découvrir").toUpperCase(), { size: 112 });
+  polygon(ctx, [[42, 1290], [1038, 1290], [1038, 1440], [80, 1440], [42, 1402]], "#1B183B");
+  pngLine(ctx, 42, 1290, 367, 1290, C.violet, 4);
+  [[pngNumber(champion?.games), "PARTIES"], [pngNumber(champion?.wins), "VICTOIRES"], [pngPercent(champion?.rate), "DE VICTOIRES"]].forEach(([value, label], i) => {
+    const x = 72 + i * 318;
+    fit(ctx, value, x, 1374, 76, C.text, 700, 280, "left", 48);
+    fit(ctx, label, x, 1415, 24, C.secondary, 500, 280);
+  });
+  fit(ctx, champion ? pngNumber(champion.known) + " résultats connus sur " + countLabel(champion.games) + " · Le plus joué." : "Aucune donnée de champion disponible", 72, 1460, 23, C.secondary, 400, 938);
 }
+
 function storyHighlight(ctx, r, assets) {
   const game = r.highlight;
-  chapterTitle(ctx, "03 · TA PARTIE MARQUANTE", "Une partie à revoir.", { size: 82 });
-  fit(ctx, championDisplayName(game?.champion) || "Champion indisponible", 540, 397, 29, C.violet, 600, 940, "center");
-  stage(ctx, PROFILE_ART_REGIONS.highlight);
+  stage(ctx, PROFILE_ART_REGIONS.highlight, { variant: "highlight" });
   artwork(ctx, assets, PROFILE_ART_REGIONS.highlight);
+  chapterTitle(ctx, "LA PARTIE MARQUANTE", String(championDisplayName(game?.champion) || "À découvrir").toUpperCase(), { size: 116 });
   const result = game?.result === "win" ? "VICTOIRE" : game?.result === "loss" ? "DÉFAITE" : "RÉSULTAT INCONNU";
-  fit(ctx, result, 72, 485, 27, game?.result === "win" ? C.green : game?.result === "loss" ? C.red : C.secondary, 600, 211);
-  paragraph(ctx, game?.dateLabel || "Date indisponible", 73, 534, 209, 27, C.secondary, 2, 37);
-  fit(ctx, duration(game?.durationSeconds), 73, 639, 41, C.text, 600, 209);
-  fit(ctx, "DURÉE", 75, 679, 23, C.secondary, 600, 209);
-  fit(ctx, pngNumber(game?.kda, 1), 68, 856, 108, C.text, 700, 209, "left", 55);
-  fit(ctx, "KDA DE LA PARTIE", 75, 903, 23, C.cyan, 600, 209);
-  fit(ctx, pngNumber(game?.damagePerMin), 1007, 605, 76, C.text, 700, 208, "right", 46);
-  fit(ctx, "DÉGÂTS / MIN", 1007, 649, 24, C.cyan, 600, 208, "right");
-  fit(ctx, pngNumber(game?.csPerMin, 1), 1007, 819, 76, C.text, 700, 208, "right", 46);
-  fit(ctx, "CS / MIN", 1007, 862, 24, C.cyan, 600, 208, "right");
-  fit(ctx, game?.title || "Statistiques de la sélection", 540, 1208, 26, C.secondary, 500, 934, "center");
-  pngLine(ctx, 70, 1234, 1010, 1234, spectrum(ctx), 2);
-  [[game?.kills, "ÉLIMINATIONS"], [game?.deaths, "MORTS"], [game?.assists, "ASSISTANCES"]].forEach(([value, label], index) => {
-    const center = 221 + index * 320;
-    fit(ctx, pngNumber(value), center, 1347, 96, index === 1 ? C.secondary : C.text, 700, 284, "center", 66);
-    fit(ctx, label, center, 1386, 24, C.secondary, 600, 284, "center");
-    if (index < 2) pngLine(ctx, center + 160, 1260, center + 160, 1380, C.border);
+  fit(ctx, result, 72, 1225, 25, game?.result === "win" ? C.green : game?.result === "loss" ? C.red : C.secondary, 600, 400);
+  fit(ctx, game ? game.dateLabel + " · " + duration(game.durationSeconds) : "Date indisponible", 1008, 1225, 24, C.secondary, 400, 560, "right");
+  polygon(ctx, [[42, 1260], [1038, 1260], [1038, 1438], [84, 1438], [42, 1396]], "#281A36");
+  pngLine(ctx, 42, 1260, 367, 1260, C.pink, 4);
+  [[game?.kills, "ÉLIMINATIONS"], [game?.deaths, "MORTS"], [game?.assists, "ASSISTANCES"]].forEach(([value, label], i) => {
+    const x = 72 + i * 318;
+    fit(ctx, pngNumber(value), x, 1370, 124, C.text, 700, 280, "left", 48);
+    fit(ctx, label, x, 1415, 24, C.secondary, 500, 280);
   });
-  paragraph(ctx, game?.selectionReason || "Des statistiques complètes sont nécessaires pour sélectionner une partie.", 70, 1432, 940, 23, C.secondary, 1, 30);
+  fit(ctx, game?.selectionReason || "Des statistiques complètes sont nécessaires pour sélectionner une partie.", 72, 1460, 23, C.secondary, 400, 938);
 }
 
 function progressionChart(ctx, progress, digits) {
@@ -424,7 +415,10 @@ function periodLabel(period) {
 function storyProgression(ctx, r) {
   const progress = r.progression;
   const digits = progress?.key === "visionPerMin" ? 2 : 1;
-  chapterTitle(ctx, "04 · TON ÉVOLUTION", "D’une partie à l’autre.", { size: 77 });
+  polygon(ctx, [[39, 439], [1041, 439], [1041, 587], [87, 587], [39, 539]], "#19223D");
+  pngLine(ctx, 39, 439, 390, 439, C.violet, 4);
+  polygon(ctx, [[42, 610], [1038, 610], [1038, 1049], [42, 1049]], "#0A182A");
+  chapterTitle(ctx, "L’ÉVOLUTION", "D’une partie à l’autre.", { size: 77 });
   fit(ctx, progress?.label || "Évolution indisponible", 72, 413, 36, C.secondary, 500, 936);
   fit(ctx, signed(progress?.delta, digits), 62, 568, 150, C.text, 700, 462, "left", 90);
   fit(ctx, progress?.unit || "MESURE À VENIR", 530, 497, 32, C.cyan, 600, 474);
@@ -433,7 +427,7 @@ function storyProgression(ctx, r) {
   fit(ctx, "Une mesure par partie · pointillés : moyenne de chaque période", 70, 1086, 24, C.secondary, 400, 940);
   [[progress?.early, "PREMIÈRES PARTIES", C.violet], [progress?.recent, "DERNIÈRES PARTIES", C.cyan]].forEach(([part, label, color], index) => {
     const x = index ? 558 : 70;
-    pngPanel(ctx, x, 1120, 452, 223, { fill: C.panel, stroke: C.border, radius: 16 });
+    pngLine(ctx, x, 1120, x + 452, 1120, C.border);
     pngLine(ctx, x + 24, 1120, x + 148, 1120, color, 3);
     fit(ctx, label, x + 26, 1166, 23, color, 600, 400);
     fit(ctx, pngNumber(part?.value, digits), x + 23, 1248, 75, C.text, 700, 260, "left", 52);
@@ -444,7 +438,9 @@ function storyProgression(ctx, r) {
 }
 
 function storyTeam(ctx, r, assets) {
-  chapterTitle(ctx, "05 · TON ÉQUIPE, AUJOURD’HUI", String(r.teamName || "Équipe").toUpperCase(), { size: 107 });
+  polygon(ctx, [[40, 416], [1040, 416], [1040, 704], [771, 704], [40, 602]], "#201B42");
+  polygon(ctx, [[760, 416], [1040, 416], [1040, 704], [922, 704]], "#30255E");
+  chapterTitle(ctx, "L’ÉQUIPE, AUJOURD’HUI", String(r.teamName || "Équipe").toUpperCase(), { size: 107 });
   pngLine(ctx, 70, 408, 1010, 408, spectrum(ctx), 2);
   fit(ctx, "LE JOUEUR DE CE WRAPPED", 73, 478, 25, C.secondary, 600, 710);
   name(ctx, r.playerName, 64, 628, 728, 126, 60);
