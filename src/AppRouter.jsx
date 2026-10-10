@@ -173,12 +173,12 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
 
   useEffect(() => {
     const navTitle = route.path === "/profil" || route.path.startsWith("/profil/") || route.path === "/mon-profil" || route.path.startsWith("/mon-profil/")
-      ? `Profil > ${profileViewLabel(profileViewFromPath(route.path))}`
+      ? `${t("Profil")} > ${t(profileViewLabel(profileViewFromPath(route.path)))}`
       : ["/games", "/integration", "/statistiques", "/rapports"].includes(route.path)
         ? gameWorkspaceSectionLabel(gameWorkspaceSectionFromPath(route.path))
       : NAV.find((item) => item.path === route.path)?.label;
     const adminPage = adminPageFromRoute(route);
-    const title = adminPage ? `${adminPage.label} · Administration — NXT5` : navTitle ? `${navTitle} — NXT5` : undefined;
+    const title = adminPage ? `${t(adminPage.label)} · ${t("Administration")} — NXT5` : navTitle ? `${t(navTitle)} — NXT5` : undefined;
     applyDocumentMetadata(isKnownPath(route.path) ? route.path : "/404", { title });
   }, [route.path, route.search, language]);
 
