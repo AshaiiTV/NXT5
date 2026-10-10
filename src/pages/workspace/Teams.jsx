@@ -428,7 +428,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   async function removeMember(userId, label) {
     if (!canManageMembers || saving) return;
     if (!selectedTeam) return;
-    if (!window.confirm(t("Renvoyer {0} de la team ?", [t(label) || t("ce profil")]))) return;
+    if (!window.confirm(t("Renvoyer {0} de la team ?", [label || t("ce profil")]))) return;
     setSaving(true);
     try {
       await apiFetch("team-member-remove", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id, userId }) });
@@ -443,7 +443,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   async function deletePlayer(playerId, label) {
     if (!selectedTeam) return;
-    if (!window.confirm(t("Supprimer le profil \"{0}\" du roster ?", [t(label) || t("sélectionné")]))) return;
+    if (!window.confirm(t("Supprimer le profil \"{0}\" du roster ?", [label || t("sélectionné")]))) return;
     setSaving(true);
     try {
       await apiFetch("players-delete", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id, playerId }) });
@@ -725,7 +725,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
       <div className="mt-4 grid gap-2 lg:grid-cols-2">
         {unlinkedMemberRows.map((member) => <div key={member.id} className="team-unlinked-account">
           <div className="min-w-0"><div className="flex flex-wrap gap-2"><Badge tone="slate">{t("Non-lié")}</Badge><Badge tone={profileStatusTone(member)}>{t(profileStatusLabel(member))}</Badge></div><p className="mt-2 truncate text-sm font-black text-white">{member.name || member.account_name || t("Compte invité")}</p></div>
-          <div className="flex flex-wrap gap-2"><select value={roleValue(member.role)} onChange={(event) => onRoleChange(member.user_id, event.target.value)} disabled={saving || !canManageMembers || String(member.role || "").toLowerCase() === "owner"} aria-label={t("Accès de {0}", [member.name || member.account_name || t("ce compte")])} className="nxt5-input-shell nxt5-control team-access-select">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}</select><Button type="button" variant="danger" icon={UserMinus} onClick={() => onRemoveMember(member.user_id, member.name || "ce compte non lié")} disabled={saving || !canManageMembers || String(member.role || "").toLowerCase() === "owner"}>{t("Renvoyer")}</Button></div>
+          <div className="flex flex-wrap gap-2"><select value={roleValue(member.role)} onChange={(event) => onRoleChange(member.user_id, event.target.value)} disabled={saving || !canManageMembers || String(member.role || "").toLowerCase() === "owner"} aria-label={t("Accès de {0}", [member.name || member.account_name || t("ce compte")])} className="nxt5-input-shell nxt5-control team-access-select">{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}</select><Button type="button" variant="danger" icon={UserMinus} onClick={() => onRemoveMember(member.user_id, member.name || t("ce compte non lié"))} disabled={saving || !canManageMembers || String(member.role || "").toLowerCase() === "owner"}>{t("Renvoyer")}</Button></div>
         </div>)}
       </div>
     </div>}

@@ -8,14 +8,14 @@ Les libellés, formulaires, erreurs connues, analyses, dates, nombres et exports
 
 ## Vérification
 
-- `npm run i18n:check` : 3 197 clés explicites couvertes en anglais et espagnol, paramètres d’interpolation valides.
-- `npm run verify` réussi sur la version intégrée à `main` : TypeScript, 188 suites / 3 227 tests, build et 13 pages pré-rendues vérifiées.
+- `npm run i18n:check` : 3 162 clés explicites couvertes en anglais et espagnol, paramètres d’interpolation valides.
+- `npm run verify` réussi sur la version intégrée à `main` : TypeScript, 188 suites / 3 230 tests, build et 13 pages pré-rendues vérifiées.
 - `node tools/audit-dependencies.mjs` réussi selon la politique du dépôt.
 - Régressions ciblées : langue différée, concurrence et échec/reprise ; formulaires et noms d’équipe préservés ; vues publiques/connectées/admin EN/ES ; formats, runes/objets et assistant ; recherche multilingue.
 - `git diff --check` sans erreur de whitespace.
 - Liens locaux du guide de maintenance vérifiés.
 
-La version à publier est intégrée à `main` (`28d798c`) dans un checkout isolé. Les dernières évolutions des débriefs, de la draft, des analyses, du chargement et du profil restent présentes. Les autres chantiers locaux ne sont pas inclus.
+La version à publier est intégrée à `main` (`cb50fff`) dans un checkout isolé. Les dernières évolutions des débriefs, de la draft, des analyses, du chargement et du profil restent présentes. Les autres chantiers locaux ne sont pas inclus.
 
 ## Navigateur
 

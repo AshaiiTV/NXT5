@@ -454,5 +454,7 @@ copy.push(
   ["VICTOIRE", "WIN", "VICTORIA"],
 );
 
+copy.push(["{0} résultats connus sur {1} · Le plus joué.", "{0} known results from {1} · Most played.", "{0} resultados conocidos de {1} · El más jugado."]);
+
 export const en = Object.fromEntries(copy.map(([source, english]) => [source, english]));
 export const es = Object.fromEntries(copy.map(([source, , spanish]) => [source, spanish]));
