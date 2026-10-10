@@ -20,7 +20,7 @@ it('E1: proxies the single rune catalogue with cache, timeout and no redirects',
 
 it.each([
   url.replace('ddragon.leagueoflegends.com', 'raw.communitydragon.org'),
-  url.replace('runesReforged', 'champion'), url.replace('fr_FR', 'en_US'),
+  url.replace('runesReforged', 'champion'), url.replace('fr_FR', 'de_DE'),
   url.replace('16.18.1', 'latest'), url + '?anything=1', url + '#fragment',
   url.replace('https://', 'http://'), url.replace('https://', 'https://user:pass@'),
   url.replace('.com/', '.com:8443/'),
@@ -28,6 +28,14 @@ it.each([
   const fetch = vi.fn(); vi.stubGlobal('fetch', fetch);
   expect((await request(target)).status).toBe(400);
   expect(fetch).not.toHaveBeenCalled();
+});
+
+it.each(['en_US', 'es_ES'])('proxies the supported %s rune catalogue without widening the JSON exception', async locale => {
+  const target = url.replace('fr_FR', locale);
+  const fetch = vi.fn().mockResolvedValue(new Response('[]', { headers: { 'content-type': 'application/json' } }));
+  vi.stubGlobal('fetch', fetch);
+  expect((await request(target)).status).toBe(200);
+  expect(fetch).toHaveBeenCalledWith(target, expect.objectContaining({ redirect: 'error' }));
 });
 
 it.each(['{}', 'invalid JSON'])('E1: rejects malformed catalogues without caching (%s)', async body => {

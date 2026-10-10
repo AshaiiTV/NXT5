@@ -1,3 +1,5 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
 import React, { useId } from "react";
 import { Check } from "lucide-react";
 import { Nxt5Wordmark, ResponsiveImage, RoleIcon } from "../brand/BrandAssets.jsx";
@@ -18,13 +20,14 @@ const PHASES = [
 ];
 
 function TeamConvergence() {
+  useLanguage();
   const id = useId().replaceAll(":", "");
   return (
     <div className="nxt5-sync-art" aria-hidden="true">
       <div className="nxt5-sync-horizon" />
       <div className="nxt5-sync-art-aura" />
       <div className="nxt5-sync-art-grid" />
-      <div className="nxt5-sync-art-caption"><span>05 RÔLES</span><span>01 ÉQUIPE</span></div>
+      <div className="nxt5-sync-art-caption"><span>{t("05 RÔLES")}</span><span>{t("01 ÉQUIPE")}</span></div>
       <div className="nxt5-sync-stage">
         <svg className="nxt5-sync-circuit" viewBox="0 0 1100 440" fill="none" preserveAspectRatio="none">
           <defs>
@@ -73,6 +76,7 @@ function TeamConvergence() {
 const teamConvergence = <TeamConvergence />;
 
 export default function AppLoadingScreen({ phase = "app", progress = null }) {
+  useLanguage();
   const index = Math.max(0, PHASES.findIndex((step) => step.id === phase));
   const current = PHASES[index];
   const determinate = phase === "bootstrap" && Number.isFinite(progress?.total) && progress.total > 0 && Number.isFinite(progress?.loaded);
@@ -85,40 +89,40 @@ export default function AppLoadingScreen({ phase = "app", progress = null }) {
       <div className="nxt5-sync-shell">
         <header className="nxt5-sync-header">
           <Nxt5Wordmark className="nxt5-sync-wordmark" loading="eager" />
-          <div className="nxt5-sync-header-label"><span /> ESPACE D’ÉQUIPE</div>
+          <div className="nxt5-sync-header-label"><span />{t(" ESPACE D’ÉQUIPE")}</div>
         </header>
         <main className="nxt5-sync-main">
           {teamConvergence}
           <div className="nxt5-sync-copy">
-            <p className="nxt5-sync-eyebrow">LA SUITE SE JOUE ENSEMBLE</p>
-            <h1><span className="nxt5-sync-title-intro">Cinq rôles.</span><span className="nxt5-sync-title-impact">Une même <span>direction.</span></span></h1>
-            <p className="nxt5-sync-description">Tes joueurs, tes parties, tes prochaines décisions.</p>
+            <p className="nxt5-sync-eyebrow">{t("LA SUITE SE JOUE ENSEMBLE")}</p>
+            <h1><span className="nxt5-sync-title-intro">{t("Cinq rôles.")}</span><span className="nxt5-sync-title-impact">{t("Une même ")}<span>{t("direction.")}</span></span></h1>
+            <p className="nxt5-sync-description">{t("Tes joueurs, tes parties, tes prochaines décisions.")}</p>
           </div>
-          <section className="nxt5-sync-loading" aria-label="Chargement de ton espace">
+          <section className="nxt5-sync-loading" aria-label={t("Chargement de ton espace")}>
             <div className="nxt5-sync-status-row">
               <div className="nxt5-sync-status" role="status" aria-live="polite" aria-atomic="true">
                 <span className="nxt5-sync-status-light" aria-hidden="true"><i /><i /><i /></span>
-                <div><p>{current.status}</p><span>{current.detail}</span></div>
+                <div><p>{t(current.status)}</p><span>{t(current.detail)}</span></div>
               </div>
               <div className="nxt5-sync-count" aria-hidden="true">
-                {determinate ? <><strong>{loaded}<span> / {progress.total}</span></strong><span>PARTIES REÇUES</span></> : <><strong>0{index + 1}<span> / 03</span></strong><span>ÉTAPE EN COURS</span></>}
+                {determinate ? <><strong>{loaded}<span> / {progress.total}</span></strong><span>{t("PARTIES REÇUES")}</span></> : <><strong>0{index + 1}<span> / 03</span></strong><span>{t("ÉTAPE EN COURS")}</span></>}
               </div>
             </div>
-            <div className={`nxt5-sync-progress${determinate ? " is-determinate" : ""}`} role="progressbar" aria-label={determinate ? "Chargement des parties" : current.status} aria-valuemin={determinate ? 0 : undefined} aria-valuemax={determinate ? progress.total : undefined} aria-valuenow={determinate ? loaded : undefined} aria-valuetext={determinate ? `${loaded} parties reçues sur ${progress.total}` : `Étape ${index + 1} sur 3 : ${current.label}`}>
+            <div className={`nxt5-sync-progress${determinate ? " is-determinate" : ""}`} role="progressbar" aria-label={determinate ? t("Chargement des parties") : t(current.status)} aria-valuemin={determinate ? 0 : undefined} aria-valuemax={determinate ? progress.total : undefined} aria-valuenow={determinate ? loaded : undefined} aria-valuetext={determinate ? t("{0} parties reçues sur {1}", [loaded, progress.total]) : t("Étape {0} sur 3 : {1}", [index + 1, t(current.label)])}>
               <span style={determinate ? { transform: `scaleX(${ratio})` } : undefined} />
             </div>
-            <ol className="nxt5-sync-steps" aria-label="Étapes du chargement">
+            <ol className="nxt5-sync-steps" aria-label={t("Étapes du chargement")}>
               {PHASES.map((step, stepIndex) => (
                 <li key={step.id} className={stepIndex === index ? "is-current" : stepIndex < index ? "is-done" : ""} aria-current={stepIndex === index ? "step" : undefined}>
                   <span className="nxt5-sync-step-number" aria-hidden="true">{stepIndex < index ? <Check size={12} /> : `0${stepIndex + 1}`}</span>
-                  <span>{step.label}</span>
-                  {stepIndex < index && <span className="sr-only"> : terminé</span>}
+                  <span>{t(step.label)}</span>
+                  {stepIndex < index && <span className="sr-only">{t(" : terminé")}</span>}
                 </li>
               ))}
             </ol>
           </section>
         </main>
-        <footer className="nxt5-sync-footer"><p className="nxt5-sync-signature">PLAY. LEARN. <span>REPEAT.</span></p></footer>
+        <footer className="nxt5-sync-footer"><p className="nxt5-sync-signature">{t("PLAY. LEARN. ")}<span>{t("REPEAT.")}</span></p></footer>
       </div>
     </div>
   );

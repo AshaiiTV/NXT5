@@ -1,0 +1,36 @@
+// Reviewed product vocabulary for the player card and its Wrapped reader.
+export const en = {
+  "Carte & Wrapped": "Card & Wrapped",
+  "La carte": "The card",
+  "Le Wrapped": "Wrapped",
+  "Le bilan": "The overview",
+  "Le champion signature": "The signature champion",
+  "La partie marquante": "The standout game",
+  "L’évolution": "Your progression",
+  "L’équipe": "The team",
+  "Carte joueur": "Player card",
+  "Carte · {0}": "Card · {0}",
+  "Chapitre {0} · {1}": "Chapter {0} · {1}",
+  "Recto": "Front",
+  "Verso": "Back",
+  "Parcourir le Wrapped": "Explore the Wrapped",
+  "Découvrir le Wrapped": "Discover the Wrapped",
+};
+
+export const es = {
+  "Carte & Wrapped": "Carta y Wrapped",
+  "La carte": "La carta",
+  "Le Wrapped": "Wrapped",
+  "Le bilan": "El balance",
+  "Le champion signature": "Tu campeón insignia",
+  "La partie marquante": "La partida destacada",
+  "L’évolution": "Tu evolución",
+  "L’équipe": "El equipo",
+  "Carte joueur": "Carta de jugador",
+  "Carte · {0}": "Carta · {0}",
+  "Chapitre {0} · {1}": "Capítulo {0} · {1}",
+  "Recto": "Anverso",
+  "Verso": "Reverso",
+  "Parcourir le Wrapped": "Explorar el Wrapped",
+  "Découvrir le Wrapped": "Descubrir el Wrapped",
+};

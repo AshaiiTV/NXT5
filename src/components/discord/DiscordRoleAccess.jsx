@@ -1,9 +1,12 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
 import React, { useEffect, useId, useState } from "react";
 import { Check, Loader2, ShieldCheck, X } from "lucide-react";
 import { Badge, Button } from "../ui/Core.jsx";
 import { DiscordFeedback, discordQuery, useDiscordAction, useDiscordResource } from "./discord-shared.jsx";
 
 export default function DiscordRoleAccess({ teamId, metadata, canManage = false, revision = 0 }) {
+  useLanguage();
   const guildId = metadata.connection?.guildId;
   const [localRevision, setLocalRevision] = useState(0);
   const [draft, setDraft] = useState([]);
@@ -69,30 +72,30 @@ export default function DiscordRoleAccess({ teamId, metadata, canManage = false,
     }, "Restriction par rôles supprimée pour cette équipe.");
   }
 
-  return <section className="discord-section discord-role-access" aria-label="Accès aux commandes de l’équipe">
-    <div className="discord-heading"><h4><ShieldCheck aria-hidden="true" className="h-5 w-5" />Accès aux commandes de l’équipe</h4><Badge tone={policy?.enabled ? stale ? "red" : "cyan" : "slate"}>{policy?.enabled ? stale ? "À reconfigurer" : "Rôles requis" : "Droits NXT5"}</Badge></div>
+  return <section className="discord-section discord-role-access" aria-label={t("Accès aux commandes de l’équipe")}>
+    <div className="discord-heading"><h4><ShieldCheck aria-hidden="true" className="h-5 w-5" />{t("Accès aux commandes de l’équipe")}</h4><Badge tone={policy?.enabled ? stale ? "red" : "cyan" : "slate"}>{policy?.enabled ? stale ? t("À reconfigurer") : t("Rôles requis") : t("Droits NXT5")}</Badge></div>
     <DiscordFeedback loading={resource.loading && !policy} error={resource.error || action.error} notice={action.notice} />
     {policy && <>
-      {stale && <p role="alert" className="discord-feedback discord-feedback-error">Cette règle vient d’un autre serveur Discord. Les commandes de l’équipe restent bloquées tant qu’un responsable ne supprime pas cette ancienne restriction, puis choisit les rôles du serveur actuel.</p>}
-      {!stale && policy.enabled && <p>Pour utiliser les commandes de cette équipe, il faut les droits NXT5 et au moins un de ces rôles Discord : <strong>{policy.roleIds.map((id) => `@${availableRoles.find((role) => role.id === id)?.name || "rôle indisponible"}`).join(", ")}</strong>.</p>}
-      {!policy.enabled && <p>Les membres de cette équipe utilisent les commandes selon leurs droits NXT5. Aucun rôle Discord supplémentaire n’est exigé actuellement.</p>}
-      <p className="discord-help">Le salon détermine l’équipe ; ces rôles ajoutent un contrôle d’accès pour ses commandes. Ils ne donnent aucun droit sur une autre équipe. Le rôle mentionné dans les annonces se choisit séparément dans les salons de publication.</p>
-      {canManage && <Button type="button" variant="ghost" aria-expanded={editing} aria-controls={editing ? formId : undefined} disabled={resource.loading || action.busy} onClick={toggleEdit}>{editing ? "Fermer les réglages" : "Modifier l’accès"}</Button>}
+      {stale && <p role="alert" className="discord-feedback discord-feedback-error">{t("Cette règle vient d’un autre serveur Discord. Les commandes de l’équipe restent bloquées tant qu’un responsable ne supprime pas cette ancienne restriction, puis choisit les rôles du serveur actuel.")}</p>}
+      {!stale && policy.enabled && <p>{t("Pour utiliser les commandes de cette équipe, il faut les droits NXT5 et au moins un de ces rôles Discord : ")}<strong>{policy.roleIds.map((id) => `@${availableRoles.find((role) => role.id === id)?.name || "rôle indisponible"}`).join(", ")}</strong>.</p>}
+      {!policy.enabled && <p>{t("Les membres de cette équipe utilisent les commandes selon leurs droits NXT5. Aucun rôle Discord supplémentaire n’est exigé actuellement.")}</p>}
+      <p className="discord-help">{t("Le salon détermine l’équipe ; ces rôles ajoutent un contrôle d’accès pour ses commandes. Ils ne donnent aucun droit sur une autre équipe. Le rôle mentionné dans les annonces se choisit séparément dans les salons de publication.")}</p>
+      {canManage && <Button type="button" variant="ghost" aria-expanded={editing} aria-controls={editing ? formId : undefined} disabled={resource.loading || action.busy} onClick={toggleEdit}>{editing ? t("Fermer les réglages") : t("Modifier l’accès")}</Button>}
       {canManage && editing && <form id={formId} onSubmit={save} className="discord-role-form">
         <fieldset disabled={!canEdit || stale}>
-          <legend>Rôles Discord autorisés</legend>
-          <p className="discord-help">Coche un ou plusieurs rôles pour autoriser les commandes de cette équipe. Un administrateur Discord sans l’un de ces rôles ne peut pas contourner cette règle. Maximum 25 rôles.</p>
-          {metadata.health?.verified !== true && <p className="discord-feedback">Impossible de modifier les rôles tant que la connexion au serveur n’est pas vérifiée. Actualise Discord pour réessayer.</p>}
+          <legend>{t("Rôles Discord autorisés")}</legend>
+          <p className="discord-help">{t("Coche un ou plusieurs rôles pour autoriser les commandes de cette équipe. Un administrateur Discord sans l’un de ces rôles ne peut pas contourner cette règle. Maximum 25 rôles.")}</p>
+          {metadata.health?.verified !== true && <p className="discord-feedback">{t("Impossible de modifier les rôles tant que la connexion au serveur n’est pas vérifiée. Actualise Discord pour réessayer.")}</p>}
           <div className="discord-role-grid">{availableRoles.map((role) => <label key={role.id} className="discord-check"><input type="checkbox" checked={draft.includes(role.id)} onChange={() => toggleRole(role.id)} /><span>@{role.name}</span></label>)}
-            {missingIds.map((id) => <label key={id} className="discord-check"><input type="checkbox" checked onChange={() => toggleRole(id)} /><span>Rôle indisponible ({id}) · décocher pour le retirer</span></label>)}
+            {missingIds.map((id) => <label key={id} className="discord-check"><input type="checkbox" checked onChange={() => toggleRole(id)} /><span>{t("Rôle indisponible (")}{id}{t(") · décocher pour le retirer")}</span></label>)}
           </div>
-          {!availableRoles.length && metadata.health?.verified === true && <p className="discord-help">Aucun rôle configurable trouvé sur ce serveur.</p>}
-          {missingIds.length > 0 && <p className="discord-help" role="alert">Un rôle enregistré n’est plus disponible. Retire-le de la sélection avant d’enregistrer.</p>}
+          {!availableRoles.length && metadata.health?.verified === true && <p className="discord-help">{t("Aucun rôle configurable trouvé sur ce serveur.")}</p>}
+          {missingIds.length > 0 && <p className="discord-help" role="alert">{t("Un rôle enregistré n’est plus disponible. Retire-le de la sélection avant d’enregistrer.")}</p>}
         </fieldset>
-        <div className="discord-actions"><Button type="submit" icon={action.busy ? Loader2 : Check} disabled={!canSave}>Enregistrer les rôles autorisés</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={cancelEdit}>Annuler les modifications</Button>{dirty && <p role="status" className="discord-help">Modifications non enregistrées · {draft.length} rôle{draft.length > 1 ? "s" : ""} sélectionné{draft.length > 1 ? "s" : ""}.</p>}</div>
+        <div className="discord-actions"><Button type="submit" icon={action.busy ? Loader2 : Check} disabled={!canSave}>{t("Enregistrer les rôles autorisés")}</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={cancelEdit}>{t("Annuler les modifications")}</Button>{dirty && <p role="status" className="discord-help">{t("Modifications non enregistrées · ")}{draft.length}{t(" rôle")}{draft.length > 1 ? "s" : ""}{t(" sélectionné")}{draft.length > 1 ? "s" : ""}.</p>}</div>
       </form>}
-      {canManage && editing && policy.enabled && !confirmRemove && <Button type="button" variant="ghost" icon={X} disabled={!canEdit} onClick={() => setConfirmRemove(true)}>Supprimer la restriction par rôles</Button>}
-      {canManage && editing && policy.enabled && confirmRemove && <div className="discord-confirm"><p>Supprimer la restriction par rôles pour cette équipe ? Ses membres liés à NXT5 pourront de nouveau utiliser les commandes selon leurs droits NXT5, même sans rôle Discord choisi ici.</p><div className="discord-actions"><Button type="button" variant="danger" disabled={action.busy} onClick={remove}>Confirmer la suppression</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={() => setConfirmRemove(false)}>Annuler</Button></div></div>}
+      {canManage && editing && policy.enabled && !confirmRemove && <Button type="button" variant="ghost" icon={X} disabled={!canEdit} onClick={() => setConfirmRemove(true)}>{t("Supprimer la restriction par rôles")}</Button>}
+      {canManage && editing && policy.enabled && confirmRemove && <div className="discord-confirm"><p>{t("Supprimer la restriction par rôles pour cette équipe ? Ses membres liés à NXT5 pourront de nouveau utiliser les commandes selon leurs droits NXT5, même sans rôle Discord choisi ici.")}</p><div className="discord-actions"><Button type="button" variant="danger" disabled={action.busy} onClick={remove}>{t("Confirmer la suppression")}</Button><Button type="button" variant="ghost" disabled={action.busy} onClick={() => setConfirmRemove(false)}>{t("Annuler")}</Button></div></div>}
     </>}
   </section>;
 }

@@ -28,6 +28,23 @@ afterEach(() => {
 });
 
 describe("profile item names", () => {
+  it("keeps each language catalogue separate and updates mounted inventories", async () => {
+    const { setLanguage } = await import("../i18n/locale.js");
+    const fetch = vi.fn(url => Promise.resolve(response({ 3031: { name: url.includes("/en_US/") ? "Infinity Edge" : url.includes("/es_ES/") ? "Filo infinito" : "Lame d'infini" } })));
+    vi.stubGlobal("fetch", fetch);
+    await act(async () => { renderer = TestRenderer.create(<profile.ItemNameText itemId={3031} />); });
+    expect(renderer.toJSON()).toBe("Lame d'infini");
+    await act(async () => setLanguage("en"));
+    expect(renderer.toJSON()).toBe("Infinity Edge");
+    await act(async () => setLanguage("es"));
+    expect(renderer.toJSON()).toBe("Filo infinito");
+    await act(async () => setLanguage("fr"));
+    expect(renderer.toJSON()).toBe("Lame d'infini");
+    expect(fetch).toHaveBeenCalledTimes(3);
+    expect(profile.itemDisplayName(3031, "en")).toBe("Infinity Edge");
+    expect(profile.itemDisplayName(3031, "es")).toBe("Filo infinito");
+  });
+
   it("loads the French catalogue directly from Data Dragon", async () => {
     const fetch = vi.fn().mockResolvedValue(response());
     vi.stubGlobal("fetch", fetch);

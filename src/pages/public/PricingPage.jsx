@@ -1,3 +1,5 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, CheckCircle2, Loader2, Mail, Users } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
@@ -44,6 +46,7 @@ function requestError(error) {
 }
 
 export default function PricingPage({ navigate, user, embedded = false }) {
+  useLanguage();
   const [form, setForm] = useState(() => initialForm(user));
   const initialFormRef = useRef(form);
   const [saving, setSaving] = useState(false);
@@ -119,132 +122,125 @@ export default function PricingPage({ navigate, user, embedded = false }) {
       </>}
       <Content className={embedded ? "min-w-0" : "relative z-10 mx-auto w-full max-w-7xl px-3 pb-12 sm:px-5 sm:pb-16"}>
         {embedded ? <PageHeader
-          eyebrow="Ventes et accès"
-          title="Offres et tarifs"
-          subtitle="Consulte les offres prévues et les réponses aux questions fréquentes."
-        ><Badge tone="purple">Prévisualisation</Badge></PageHeader> : <AdminTabNav activeId="pricing" navigate={navigate} disabled={saving} dirty={dirty} />}
-        <aside className="border-l-2 border-violet-300/40 py-2 pl-4 text-sm leading-6 text-slate-300" aria-label="Accès administrateur">
-          <p className="font-bold text-violet-100">Aperçu réservé à l’administrateur</p>
-          <p>La page et son formulaire sont fermés aux visiteurs et aux autres comptes. Les demandes envoyées depuis cet aperçu sont enregistrées dans le suivi.</p>
+          eyebrow={t("Ventes et accès")}
+          title={t("Offres et tarifs")}
+          subtitle={t("Consulte les offres prévues et les réponses aux questions fréquentes.")}
+        ><Badge tone="purple">{t("Prévisualisation")}</Badge></PageHeader> : <AdminTabNav activeId="pricing" navigate={navigate} disabled={saving} dirty={dirty} />}
+        <aside className="border-l-2 border-violet-300/40 py-2 pl-4 text-sm leading-6 text-slate-300" aria-label={t("Accès administrateur")}>
+          <p className="font-bold text-violet-100">{t("Aperçu réservé à l’administrateur")}</p>
+          <p>{t("La page et son formulaire sont fermés aux visiteurs et aux autres comptes. Les demandes envoyées depuis cet aperçu sont enregistrées dans le suivi.")}</p>
         </aside>
         <section className="pricing-intro" aria-labelledby="pricing-title">
           <div>
-            <Badge tone="cyan">Tarifs · offres à l’étude</Badge>
-            <IntroHeading id="pricing-title" className="pricing-title">
-              Tout le suivi de ton équipe.<br /><span className="nxt5-metal-text">Au même endroit.</span>
+            <Badge tone="cyan">{t("Tarifs · offres à l’étude")}</Badge>
+            <IntroHeading id="pricing-title" className="pricing-title">{t("Tout le suivi de ton équipe.")}<br /><span className="nxt5-metal-text">{t("Au même endroit.")}</span>
             </IntroHeading>
-            <p className="pricing-intro-description">
-              Parties, débriefs, champions et planning : un espace partagé pour les joueurs et leur encadrement. Compare les offres prévues, puis indique celle qui t’intéresse.
-            </p>
+            <p className="pricing-intro-description">{t("Parties, débriefs, champions et planning : un espace partagé pour les joueurs et leur encadrement. Compare les offres prévues, puis indique celle qui t’intéresse.")}</p>
           </div>
-          <aside className="pricing-launch-note" aria-label="Avant le lancement">
+          <aside className="pricing-launch-note" aria-label={t("Avant le lancement")}>
             <Users aria-hidden="true" className="h-6 w-6 text-cyan-200" />
-            <p className="mt-3 text-lg font-semibold">Une offre pour l’équipe entière</p>
-            <p className="mt-2 text-sm leading-6 text-slate-300">14 jours pour essayer ensemble, puis un seul abonnement pour les joueurs et l’encadrement. Le tarif de lancement reste à valider avec les premières équipes.</p>
-            <p className="mt-4 border-t border-cyan-100/15 pt-4 text-sm font-bold leading-6 text-cyan-100">Aucun paiement aujourd’hui.<br />Tes accès actuels restent inchangés.</p>
+            <p className="mt-3 text-lg font-semibold">{t("Une offre pour l’équipe entière")}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-300">{t("14 jours pour essayer ensemble, puis un seul abonnement pour les joueurs et l’encadrement. Le tarif de lancement reste à valider avec les premières équipes.")}</p>
+            <p className="mt-4 border-t border-cyan-100/15 pt-4 text-sm font-bold leading-6 text-cyan-100">{t("Aucun paiement aujourd’hui.")}<br />{t("Tes accès actuels restent inchangés.")}</p>
           </aside>
         </section>
 
-        <section aria-label="Comparer les offres envisagées" className="mt-8">
+        <section aria-label={t("Comparer les offres envisagées")} className="mt-8">
           <div className="pricing-plans">
             {PROPOSED_PLANS.map((plan) => (
               <Surface key={plan.code} className={`pricing-plan pricing-plan--${plan.code}`}>
                 <article aria-labelledby={`plan-${plan.code}`} className="pricing-plan-body">
                   <div>
-                    <p className="pricing-plan-eyebrow">{plan.code === "free" ? "14 jours pour essayer" : "Tarif de lancement"}</p>
-                    <SectionHeading id={`plan-${plan.code}`} className="pricing-plan-title">{plan.name}</SectionHeading>
-                    <p className="pricing-plan-description mt-3 text-sm leading-6 text-slate-300">{plan.description}</p>
-                    <p className="pricing-price">{plan.price}</p>
-                    <p className="mt-2 text-sm font-bold text-slate-300">{plan.period}</p>
-                    <p className="pricing-plan-terms mt-4 text-sm font-semibold leading-6 text-cyan-100">{plan.terms}</p>
+                    <p className="pricing-plan-eyebrow">{plan.code === "free" ? t("14 jours pour essayer") : t("Tarif de lancement")}</p>
+                    <SectionHeading id={`plan-${plan.code}`} className="pricing-plan-title">{t(plan.name)}</SectionHeading>
+                    <p className="pricing-plan-description mt-3 text-sm leading-6 text-slate-300">{t(plan.description)}</p>
+                    <p className="pricing-price">{t(plan.price)}</p>
+                    <p className="mt-2 text-sm font-bold text-slate-300">{t(plan.period)}</p>
+                    <p className="pricing-plan-terms mt-4 text-sm font-semibold leading-6 text-cyan-100">{t(plan.terms)}</p>
                   </div>
                   <ul className="pricing-plan-features">
-                    {plan.features.map((feature) => <li key={feature}><Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-cyan-200" /><span>{feature}</span></li>)}
+                    {plan.features.map((feature) => <li key={feature}><Check aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-cyan-200" /><span>{t(feature)}</span></li>)}
                   </ul>
-                  <Button type="button" variant={plan.code === "team_monthly" ? "primary" : "ghost"} disabled={saving} icon={ArrowRight} className="w-full" aria-label={`Demander un accès — ${plan.name}`} onClick={() => selectPlan(plan.code)}>Demander un accès</Button>
+                  <Button type="button" variant={plan.code === "team_monthly" ? "primary" : "ghost"} disabled={saving} icon={ArrowRight} className="w-full" aria-label={t("Demander un accès — {0}", [t(plan.name)])} onClick={() => selectPlan(plan.code)}>{t("Demander un accès")}</Button>
                 </article>
               </Surface>
             ))}
           </div>
-          <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">Au lancement, le bot Discord sera réservé au Pass Équipe payant et ne sera pas inclus dans Découverte. Offres en préparation : aucun essai, paiement ni abonnement n’est activé aujourd’hui. Tes accès actuels restent inchangés.</p>
+          <p className="mt-4 max-w-4xl text-sm leading-6 text-slate-300">{t("Au lancement, le bot Discord sera réservé au Pass Équipe payant et ne sera pas inclus dans Découverte. Offres en préparation : aucun essai, paiement ni abonnement n’est activé aujourd’hui. Tes accès actuels restent inchangés.")}</p>
         </section>
 
         {user?.is_platform_admin === true && <details className="pricing-faq-item mt-8" data-pass-preview>
-          <summary>Aperçu après les 14 jours de Découverte</summary>
+          <summary>{t("Aperçu après les 14 jours de Découverte")}</summary>
           <div className="space-y-5 pb-6">
-            <p className="max-w-3xl text-sm leading-6 text-slate-300">Simulation réservée à l’administrateur : voici le message prévu pour une équipe sans Pass après son essai. Tous les outils restent accessibles actuellement ; cet aperçu ne modifie aucun accès.</p>
-            <div className="max-w-sm"><SelectInput label="Outil à prévisualiser" name="previewFeature" value={previewFeature} onChange={setPreviewFeature}>
-              {Object.entries(PASS_FEATURES).map(([value, details]) => <option key={value} value={value}>{details.label}</option>)}
+            <p className="max-w-3xl text-sm leading-6 text-slate-300">{t("Simulation réservée à l’administrateur : voici le message prévu pour une équipe sans Pass après son essai. Tous les outils restent accessibles actuellement ; cet aperçu ne modifie aucun accès.")}</p>
+            <div className="max-w-sm"><SelectInput label={t("Outil à prévisualiser")} name="previewFeature" value={previewFeature} onChange={setPreviewFeature}>
+              {Object.entries(PASS_FEATURES).map(([value, details]) => <option key={value} value={value}>{t(details.label)}</option>)}
             </SelectInput></div>
             <PassFeaturePreview feature={previewFeature} onSubscribe={() => selectPlan("team_monthly")} />
-            <p className="text-xs leading-5 text-slate-300">Dans cet aperçu, « Prendre le Pass Équipe » mène au formulaire de demande d’accès. Aucun paiement ni essai n’est activé.</p>
+            <p className="text-xs leading-5 text-slate-300">{t("Dans cet aperçu, « Prendre le Pass Équipe » mène au formulaire de demande d’accès. Aucun paiement ni essai n’est activé.")}</p>
           </div>
         </details>}
 
         <div className="pricing-details">
           <section aria-labelledby="pricing-faq-title">
-            <Badge tone="purple">Avant de te lancer</Badge>
-            <SectionHeading id="pricing-faq-title" className="pricing-section-title">Les réponses utiles</SectionHeading>
+            <Badge tone="purple">{t("Avant de te lancer")}</Badge>
+            <SectionHeading id="pricing-faq-title" className="pricing-section-title">{t("Les réponses utiles")}</SectionHeading>
             <div className="mt-5">
-              {FAQ.map(([question, answer]) => <details className="pricing-faq-item" key={question}><summary>{question}</summary><p className="pb-5 text-sm leading-7 text-slate-300">{answer}</p></details>)}
+              {FAQ.map(([question, answer]) => <details className="pricing-faq-item" key={question}><summary>{t(question)}</summary><p className="pb-5 text-sm leading-7 text-slate-300">{t(answer)}</p></details>)}
             </div>
           </section>
 
           <section id="demande-acces" ref={formSectionRef} aria-labelledby="access-request-title" className="pricing-request">
             <Surface>
-              <Badge tone="cyan">Préparer ton accès</Badge>
-              <SectionHeading id="access-request-title" className="pricing-section-title">Parlons de ton équipe</SectionHeading>
-              <p className="mt-3 text-sm leading-6 text-slate-300">Dis-nous ce qui t’intéresse. Ta demande nous aide à valider l’offre et à préparer un échange avec toi, sans engagement d’achat.</p>
-              {success ? (
-                <div ref={statusRef} tabIndex={-1} role="status" className="pricing-success mt-6 rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
+              <Badge tone="cyan">{t("Préparer ton accès")}</Badge>
+              <SectionHeading id="access-request-title" className="pricing-section-title">{t("Parlons de ton équipe")}</SectionHeading>
+              <p className="mt-3 text-sm leading-6 text-slate-300">{t("Dis-nous ce qui t’intéresse. Ta demande nous aide à valider l’offre et à préparer un échange avec toi, sans engagement d’achat.")}</p>
+              {success ? (<div ref={statusRef} tabIndex={-1} role="status" className="pricing-success mt-6 rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
                   <CheckCircle2 aria-hidden="true" className="h-7 w-7 text-emerald-200" />
-                  <h3 className="mt-3 text-xl font-black text-emerald-100">Demande reçue ou déjà enregistrée</h3>
-                  <p className="mt-3 text-sm leading-6 text-slate-200">Merci pour ton intérêt. Si une demande existe déjà pour cet e-mail et cette équipe, ses informations initiales sont conservées. Pour les modifier, <a href="/contact" className="font-bold text-cyan-200 underline underline-offset-4">contacte-nous</a>.</p>
-                  <p className="mt-3 text-sm leading-6 text-slate-300">Aucun compte ni abonnement n’a été activé par cette demande. Tes accès actuels restent inchangés.</p>
-                </div>
-              ) : (
-                <form onSubmit={submit} className="mt-6" aria-busy={saving} aria-describedby="access-request-help">
-                  <p id="access-request-help" className="mb-5 text-xs leading-5 text-slate-300">Les champs marqués d’un * sont obligatoires.</p>
+                  <h3 className="mt-3 text-xl font-black text-emerald-100">{t("Demande reçue ou déjà enregistrée")}</h3>
+                  <p className="mt-3 text-sm leading-6 text-slate-200">{t("Merci pour ton intérêt. Si une demande existe déjà pour cet e-mail et cette équipe, ses informations initiales sont conservées. Pour les modifier, ")}<a href="/contact" className="font-bold text-cyan-200 underline underline-offset-4">{t("contacte-nous")}</a>.</p>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">{t("Aucun compte ni abonnement n’a été activé par cette demande. Tes accès actuels restent inchangés.")}</p>
+                </div>) : (<form onSubmit={submit} className="mt-6" aria-busy={saving} aria-describedby="access-request-help">
+                  <p id="access-request-help" className="mb-5 text-xs leading-5 text-slate-300">{t("Les champs marqués d’un * sont obligatoires.")}</p>
                   <fieldset disabled={saving} className="min-w-0 space-y-5">
-                    <legend className="sr-only">Ta demande d’accès NXT5</legend>
-                    <h4 className="pricing-form-heading">Ton équipe et ton contact</h4>
+                    <legend className="sr-only">{t("Ta demande d’accès NXT5")}</legend>
+                    <h4 className="pricing-form-heading">{t("Ton équipe et ton contact")}</h4>
                     <div className="pricing-form-row">
-                      <TextInput label="Ton nom ou pseudo *" name="contactName" autoComplete="name" minLength={2} maxLength={80} value={form.contactName} onChange={(value) => patch("contactName", value)} placeholder="Ton nom" required />
-                      <TextInput label="E-mail de contact *" name="email" autoComplete="email" maxLength={160} value={form.email} onChange={(value) => patch("email", value)} placeholder="toi@exemple.fr" type="email" required />
+                      <TextInput label={t("Ton nom ou pseudo *")} name="contactName" autoComplete="name" minLength={2} maxLength={80} value={form.contactName} onChange={(value) => patch("contactName", value)} placeholder={t("Ton nom")} required />
+                      <TextInput label={t("E-mail de contact *")} name="email" autoComplete="email" maxLength={160} value={form.email} onChange={(value) => patch("email", value)} placeholder="toi@exemple.fr" type="email" required />
                     </div>
                     <div className="pricing-form-row">
-                      <TextInput label="Nom de l’équipe *" name="teamName" minLength={2} maxLength={100} value={form.teamName} onChange={(value) => patch("teamName", value)} placeholder="Ton équipe ou ton projet" required />
-                      <SelectInput label="Ton rôle *" name="role" required value={form.role} onChange={(value) => patch("role", value)}>
-                        <option value="" disabled>Choisis ton rôle</option>
-                        <option value="captain">Capitaine</option><option value="manager">Manager</option><option value="coach">Coach</option><option value="player">Joueur</option><option value="other">Autre</option>
+                      <TextInput label={t("Nom de l’équipe *")} name="teamName" minLength={2} maxLength={100} value={form.teamName} onChange={(value) => patch("teamName", value)} placeholder={t("Ton équipe ou ton projet")} required />
+                      <SelectInput label={t("Ton rôle *")} name="role" required value={form.role} onChange={(value) => patch("role", value)}>
+                        <option value="" disabled>{t("Choisis ton rôle")}</option>
+                        <option value="captain">{t("Capitaine")}</option><option value="manager">{t("Manager")}</option><option value="coach">{t("Coach")}</option><option value="player">{t("Joueur")}</option><option value="other">{t("Autre")}</option>
                       </SelectInput>
                     </div>
                     <div>
-                      <h4 className="pricing-form-heading">L’offre et ton besoin</h4>
-                      <SelectInput label="L’offre qui t’intéresse *" name="planCode" required value={form.planCode} aria-describedby="pricing-plan-detail" onChange={(value) => patch("planCode", value)}>
-                        {PROPOSED_PLAN_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                      <h4 className="pricing-form-heading">{t("L’offre et ton besoin")}</h4>
+                      <SelectInput label={t("L’offre qui t’intéresse *")} name="planCode" required value={form.planCode} aria-describedby="pricing-plan-detail" onChange={(value) => patch("planCode", value)}>
+                        {PROPOSED_PLAN_OPTIONS.map((option) => <option key={option.value} value={option.value}>{t(option.label)}</option>)}
                       </SelectInput>
-                      <p id="pricing-plan-detail" className="mt-2 text-sm leading-6 text-slate-300">{PROPOSED_PLAN_OPTIONS.find((plan) => plan.value === form.planCode)?.label}</p>
+                      <p id="pricing-plan-detail" className="mt-2 text-sm leading-6 text-slate-300">{t(PROPOSED_PLAN_OPTIONS.find((plan) => plan.value === form.planCode)?.label)}</p>
                     </div>
-                    <SelectInput label="Qui prendrait en charge l’offre ?" name="payer" value={form.payer} onChange={(value) => patch("payer", value)}>
-                      <option value="unknown">Pas encore décidé</option><option value="self">Moi</option><option value="team">L’équipe, en commun</option><option value="association">Une association ou une structure</option>
+                    <SelectInput label={t("Qui prendrait en charge l’offre ?")} name="payer" value={form.payer} onChange={(value) => patch("payer", value)}>
+                      <option value="unknown">{t("Pas encore décidé")}</option><option value="self">{t("Moi")}</option><option value="team">{t("L’équipe, en commun")}</option><option value="association">{t("Une association ou une structure")}</option>
                     </SelectInput>
-                    <SelectInput label="Ton intérêt pour cette offre *" name="purchaseIntent" required value={form.purchaseIntent} onChange={(value) => patch("purchaseIntent", value)}>
-                      <option value="" disabled>Choisis une réponse</option><option value="yes">{form.planCode === "free" ? "Oui, je souhaite essayer" : "Oui, au tarif indiqué"}</option><option value="maybe">Peut-être, je souhaite en discuter</option><option value="discover">Je souhaite seulement découvrir</option>
+                    <SelectInput label={t("Ton intérêt pour cette offre *")} name="purchaseIntent" required value={form.purchaseIntent} onChange={(value) => patch("purchaseIntent", value)}>
+                      <option value="" disabled>{t("Choisis une réponse")}</option><option value="yes">{form.planCode === "free" ? t("Oui, je souhaite essayer") : t("Oui, au tarif indiqué")}</option><option value="maybe">{t("Peut-être, je souhaite en discuter")}</option><option value="discover">{t("Je souhaite seulement découvrir")}</option>
                     </SelectInput>
-                    <TextAreaInput label="Un besoin, une question ? (facultatif)" name="message" maxLength={2000} value={form.message} onChange={(value) => patch("message", value)} placeholder="Ton rythme d’entraînement, une saison à préparer, un besoin de l’équipe…" rows={3} />
-                    <div className="pricing-honeypot" aria-hidden="true"><label>Site web<input name="website" type="text" tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => patch("website", event.target.value)} /></label></div>
+                    <TextAreaInput label={t("Un besoin, une question ? (facultatif)")} name="message" maxLength={2000} value={form.message} onChange={(value) => patch("message", value)} placeholder={t("Ton rythme d’entraînement, une saison à préparer, un besoin de l’équipe…")} rows={3} />
+                    <div className="pricing-honeypot" aria-hidden="true"><label>{t("Site web")}<input name="website" type="text" tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => patch("website", event.target.value)} /></label></div>
                     <label className="flex cursor-pointer items-start gap-3 text-sm leading-6 text-slate-300">
                       <input type="checkbox" required checked={form.consent} onChange={(event) => patch("consent", event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-cyan-300" />
-                      <span>J’accepte que NXT5 utilise ces informations pour me recontacter au sujet de cette demande. Aucune inscription à une newsletter. J’ai lu la <a href="/confidentialite" className="font-bold text-cyan-200 underline underline-offset-4">politique de confidentialité</a>. *</span>
+                      <span>{t("J’accepte que NXT5 utilise ces informations pour me recontacter au sujet de cette demande. Aucune inscription à une newsletter. J’ai lu la ")}<a href="/confidentialite" className="font-bold text-cyan-200 underline underline-offset-4">{t("politique de confidentialité")}</a>. *</span>
                     </label>
-                    <p className="text-xs leading-5 text-slate-300">Les données de ta demande sont supprimées après 6 mois, lors du cycle de suppression quotidien.</p>
+                    <p className="text-xs leading-5 text-slate-300">{t("Les données de ta demande sont supprimées après 6 mois, lors du cycle de suppression quotidien.")}</p>
                   </fieldset>
-                  {error && <p ref={statusRef} tabIndex={-1} role="alert" className="mt-5 rounded-xl border border-rose-300/25 bg-rose-500/10 p-4 text-sm font-semibold leading-6 text-rose-100">{error}</p>}
-                  <Button type="submit" icon={saving ? Loader2 : Mail} disabled={saving} className="mt-6 w-full">{saving ? "Enregistrement…" : "Envoyer ma demande d’accès"}</Button>
-                  <p className="mt-3 text-center text-xs leading-5 text-slate-300">Sans paiement et sans engagement d’achat.</p>
-                </form>
-              )}
+                  {error && <p ref={statusRef} tabIndex={-1} role="alert" className="mt-5 rounded-xl border border-rose-300/25 bg-rose-500/10 p-4 text-sm font-semibold leading-6 text-rose-100">{t(error)}</p>}
+                  <Button type="submit" icon={saving ? Loader2 : Mail} disabled={saving} className="mt-6 w-full">{saving ? t("Enregistrement…") : t("Envoyer ma demande d’accès")}</Button>
+                  <p className="mt-3 text-center text-xs leading-5 text-slate-300">{t("Sans paiement et sans engagement d’achat.")}</p>
+                </form>)}
             </Surface>
           </section>
         </div>

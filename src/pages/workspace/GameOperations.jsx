@@ -1,3 +1,5 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowLeftRight, Check, Ellipsis, FileText, Loader2, Plus, Shield, Swords, Users, Upload, X, Pencil, Settings, Trash2 } from "lucide-react";
 import { Surface, Badge, Button, SelectInput, TextInput } from "../../components/ui/Core.jsx";
@@ -26,6 +28,7 @@ function canManageTeamCategories(data, selectedTeamId, currentMember, user) {
 }
 
 export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast, currentMember, user, onDeleted, onUpdated, disabled = false }) {
+  useLanguage();
   const [mode, setMode] = useState("");
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({ label: "", categoryIds: [] });
@@ -34,7 +37,7 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
   const triggerRef = useRef(null);
   const editorBaseline = useRef({});
   const dirty = ["update", "roles", "side"].includes(mode) && JSON.stringify(mode === "update" ? editForm : mode === "roles" ? roleForm : sideForm) !== editorBaseline.current[mode];
-  const cancelEdit = () => { if (!dirty || window.confirm("Fermer cette fenêtre et abandonner les modifications non enregistrées ?")) close(); };
+  const cancelEdit = () => { if (!dirty || window.confirm(t("Fermer cette fenêtre et abandonner les modifications non enregistrées ?"))) close(); };
   const allowed = Boolean(match?.id && match.team_id === selectedTeamId && user?.id && (canManageTeamCategories(data, selectedTeamId, currentMember, user) || String(match.created_by || "") === String(user.id)));
   const categories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const roster = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
@@ -80,25 +83,26 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
   if (!allowed) return null;
   const title = mode === "update" ? "Modifier les informations" : mode === "roles" ? "Corriger les rôles et profils" : mode === "side" ? "Changer le côté de notre équipe" : mode === "delete" ? "Supprimer cette game ?" : "Options de la game";
   return <>
-    <button ref={triggerRef} type="button" className="game-options-trigger" disabled={disabled || saving} aria-label="Options de la game" title="Options de la game" aria-haspopup="dialog" aria-expanded={Boolean(mode)} onClick={() => setMode("menu")}><Ellipsis aria-hidden="true" className="h-5 w-5" /></button>
+    <button ref={triggerRef} type="button" className="game-options-trigger" disabled={disabled || saving} aria-label={t("Options de la game")} title={t("Options de la game")} aria-haspopup="dialog" aria-expanded={Boolean(mode)} onClick={() => setMode("menu")}><Ellipsis aria-hidden="true" className="h-5 w-5" /></button>
     {mode && <GameOperationDialog key={mode} title={title} description={matchImportTitle(match)} onClose={close} busy={saving} dirty={dirty} returnFocusRef={triggerRef} compact={mode !== "roles" && mode !== "side"}>
       {mode === "menu" && <div className="game-operation-menu">
-        <Button type="button" variant="ghost" icon={Pencil} onClick={() => openEditor("update")}>Modifier les informations</Button>
-        <Button type="button" variant="ghost" icon={Settings} disabled={!match.participants?.length} onClick={() => openEditor("roles")}>Corriger les rôles et profils</Button>
-        <Button type="button" variant="ghost" icon={ArrowLeftRight} disabled={!match.participants?.length} onClick={() => openEditor("side")}>Changer le côté de notre équipe</Button>
-        <Button type="button" variant="danger" icon={Trash2} onClick={() => setMode("delete")}>Supprimer</Button>
+        <Button type="button" variant="ghost" icon={Pencil} onClick={() => openEditor("update")}>{t("Modifier les informations")}</Button>
+        <Button type="button" variant="ghost" icon={Settings} disabled={!match.participants?.length} onClick={() => openEditor("roles")}>{t("Corriger les rôles et profils")}</Button>
+        <Button type="button" variant="ghost" icon={ArrowLeftRight} disabled={!match.participants?.length} onClick={() => openEditor("side")}>{t("Changer le côté de notre équipe")}</Button>
+        <Button type="button" variant="danger" icon={Trash2} onClick={() => setMode("delete")}>{t("Supprimer")}</Button>
       </div>}
       {(mode === "update" || mode === "roles") && <ImportHistoryEditor match={match} categories={categories} roster={roster} editing={mode === "update"} editForm={editForm} roleForm={roleForm} saving={saving} showHeading={false} onCancel={cancelEdit} onSave={() => save(mode)} onChange={setEditForm} onRoleChange={(id, role) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], role } }))} onPlayerChange={(id, playerId) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], playerId } }))} />}
       {mode === "side" && <GameSideEditor match={match} roster={roster} form={sideForm} onChange={setSideForm} saving={saving} onCancel={cancelEdit} onSave={() => save("side")} />}
       {mode === "delete" && <div>
-        <p className="text-sm leading-6 text-slate-300">Cette game sera retirée. Ses statistiques, les reviews automatiques et les groupes liés seront mis à jour.</p>
-        <div className="mt-6 flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" onClick={close} disabled={saving}>Annuler</Button><Button type="button" variant="danger" icon={saving ? Loader2 : Trash2} onClick={() => save("delete")} disabled={saving}>{saving ? "Suppression…" : "Supprimer la game"}</Button></div>
+        <p className="text-sm leading-6 text-slate-300">{t("Cette game sera retirée. Ses statistiques, les reviews automatiques et les groupes liés seront mis à jour.")}</p>
+        <div className="mt-6 flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" onClick={close} disabled={saving}>{t("Annuler")}</Button><Button type="button" variant="danger" icon={saving ? Loader2 : Trash2} onClick={() => save("delete")} disabled={saving}>{saving ? t("Suppression…") : t("Supprimer la game")}</Button></div>
       </div>}
     </GameOperationDialog>}
   </>;
 }
 
 export function GameCategoryManager({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
+  useLanguage();
   const [open, setOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -124,7 +128,7 @@ export function GameCategoryManager({ data, selectedTeamId, refreshAll, pushToas
   }
   async function deleteCategory(category) {
     if (!allowed || saving || category.is_default) return;
-    if (!window.confirm(`Supprimer la catégorie "${category.name}" ? Les games resteront importées et conserveront leurs autres catégories.`)) return;
+    if (!window.confirm(t("Supprimer la catégorie \"{0}\" ? Les games resteront importées et conserveront leurs autres catégories.", [category.name]))) return;
     setSaving(true);
     try {
       await apiFetch("match-categories-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, categoryId: category.id }) });
@@ -136,17 +140,17 @@ export function GameCategoryManager({ data, selectedTeamId, refreshAll, pushToas
   }
   if (!allowed) return null;
   return <>
-    <span ref={triggerRef}><Button type="button" variant="ghost" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>Catégories</Button></span>
-    {open && <GameOperationDialog title="Catégories" description="Organise tes games par contexte : scrim, ligue, bootcamp…" compact onClose={close} busy={saving} returnFocusRef={{ current: triggerRef.current?.querySelector("button") }}>
-      <section className="ih-categories" aria-label="Gestion des catégories">
-        <header><Button type="button" variant="ghost" icon={creatorOpen ? X : Plus} disabled={saving} onClick={() => { setCreatorOpen((value) => !value); setForm({ name: "", color: "cyan" }); }}>{creatorOpen ? "Fermer la création" : "Ajouter une catégorie"}</Button></header>
-        <ul className="ih-category-list">{categories.map((category) => <li key={category.id}><span>{category.name}</span>{category.is_default ? <span className="ih-category-default">Par défaut</span> : <button type="button" className="ig-icon-button" onClick={() => deleteCategory(category)} disabled={saving} aria-label={`Supprimer la catégorie ${category.name}`}><X aria-hidden="true" /></button>}</li>)}</ul>
-        {!categories.length && <p>Aucune catégorie pour le moment.</p>}
+    <span ref={triggerRef}><Button type="button" variant="ghost" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>{t("Catégories")}</Button></span>
+    {open && <GameOperationDialog title={t("Catégories")} description={t("Organise tes games par contexte : scrim, ligue, bootcamp…")} compact onClose={close} busy={saving} returnFocusRef={{ current: triggerRef.current?.querySelector("button") }}>
+      <section className="ih-categories" aria-label={t("Gestion des catégories")}>
+        <header><Button type="button" variant="ghost" icon={creatorOpen ? X : Plus} disabled={saving} onClick={() => { setCreatorOpen((value) => !value); setForm({ name: "", color: "cyan" }); }}>{creatorOpen ? t("Fermer la création") : t("Ajouter une catégorie")}</Button></header>
+        <ul className="ih-category-list">{categories.map((category) => <li key={category.id}><span>{category.name}</span>{category.is_default ? <span className="ih-category-default">{t("Par défaut")}</span> : <button type="button" className="ig-icon-button" onClick={() => deleteCategory(category)} disabled={saving} aria-label={t("Supprimer la catégorie {0}", [category.name])}><X aria-hidden="true" /></button>}</li>)}</ul>
+        {!categories.length && <p>{t("Aucune catégorie pour le moment.")}</p>}
         {creatorOpen && <form className="ih-category-create" onSubmit={createCategory}><fieldset disabled={saving}>
-          <TextInput label="Nom de la catégorie" value={form.name} onChange={(name) => setForm((current) => ({ ...current, name }))} placeholder="Ligue, Bootcamp…" required />
-          <SelectInput label="Couleur" value={form.color} onChange={(color) => setForm((current) => ({ ...current, color }))}>{[["cyan", "Cyan"], ["purple", "Violet"], ["green", "Vert"], ["yellow", "Jaune"], ["pink", "Rose"], ["red", "Rouge"], ["blue", "Bleu"], ["slate", "Ardoise"]].map(([color, label]) => <option key={color} value={color}>{label}</option>)}</SelectInput>
-          <Button type="submit" icon={saving ? Loader2 : Plus} disabled={saving || !form.name.trim()}>{saving ? "Création…" : "Créer"}</Button>
-          <Button type="button" variant="ghost" disabled={saving} onClick={() => { setCreatorOpen(false); setForm({ name: "", color: "cyan" }); }}>Annuler</Button>
+          <TextInput label={t("Nom de la catégorie")} value={form.name} onChange={(name) => setForm((current) => ({ ...current, name }))} placeholder={t("Ligue, Bootcamp…")} required />
+          <SelectInput label={t("Couleur")} value={form.color} onChange={(color) => setForm((current) => ({ ...current, color }))}>{[["cyan", "Cyan"], ["purple", "Violet"], ["green", "Vert"], ["yellow", "Jaune"], ["pink", "Rose"], ["red", "Rouge"], ["blue", "Bleu"], ["slate", "Ardoise"]].map(([color, label]) => <option key={color} value={color}>{t(label)}</option>)}</SelectInput>
+          <Button type="submit" icon={saving ? Loader2 : Plus} disabled={saving || !form.name.trim()}>{saving ? t("Création…") : t("Créer")}</Button>
+          <Button type="button" variant="ghost" disabled={saving} onClick={() => { setCreatorOpen(false); setForm({ name: "", color: "cyan" }); }}>{t("Annuler")}</Button>
         </fieldset></form>}
       </section>
     </GameOperationDialog>}
@@ -164,24 +168,26 @@ export function matchCategoriesForMatch(match, categories) {
 }
 
 export function CategoryMultiSelect({ categories, selectedIds, onChange, label = "Catégories" }) {
+  useLanguage();
   const ids = Array.isArray(selectedIds) ? selectedIds.map(String) : [];
   const toggle = (categoryId) => {
     const id = String(categoryId || "");
     onChange(ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]);
   };
   return <div>
-    <p className="mb-2 text-xs font-semibold text-slate-300">{label}</p>
+    <p className="mb-2 text-xs font-semibold text-slate-300">{t(label)}</p>
     <div className="flex flex-wrap gap-2">
       {(categories || []).map((category) => {
         const active = ids.includes(String(category.id));
         return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("inline-flex min-h-11 items-center gap-2 rounded-[2px] border px-3 py-2 text-xs font-semibold transition", active ? [tone(matchCategoryTone(category)), "ring-1 ring-white/35"] : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{active && <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}{category.name}</button>;
       })}
-      {!categories?.length && <Badge tone="slate">Aucune catégorie</Badge>}
+      {!categories?.length && <Badge tone="slate">{t("Aucune catégorie")}</Badge>}
     </div>
   </div>;
 }
 
 export function JsonUploadProgress({ progress }) {
+  useLanguage();
   if (!progress?.active) return null;
   const percent = Math.max(0, Math.min(100, Number(progress.percent || 0)));
   const uploaded = progress.total ? `${formatUploadSize(progress.loaded)} / ${formatUploadSize(progress.total)}` : "Calcul de l’upload...";
@@ -189,8 +195,8 @@ export function JsonUploadProgress({ progress }) {
   return <div className="rounded-2xl border border-cyan-300/18 bg-cyan-400/[0.07] p-3">
     <div className="flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="break-words text-xs font-semibold text-cyan-100">{progress.label || phaseLabel}</p>
-        <p className="mt-1 text-xs font-semibold text-slate-300">{phaseLabel} · {uploaded}</p>
+        <p className="break-words text-xs font-semibold text-cyan-100">{t(progress.label) || t(phaseLabel)}</p>
+        <p className="mt-1 text-xs font-semibold text-slate-300">{t(phaseLabel)} · {uploaded}</p>
       </div>
       <span className="shrink-0 text-sm font-black text-white">{percent}%</span>
     </div>
@@ -201,6 +207,7 @@ export function JsonUploadProgress({ progress }) {
 }
 
 export function ImportRoleHeader({ role, toneName = "cyan", player = null, fallbackLabel = "À lier" }) {
+  useLanguage();
   const roleTone = toneName === "red"
     ? "border-rose-200/20 bg-rose-500/[0.08] text-rose-100"
     : "border-cyan-200/20 bg-cyan-400/[0.08] text-cyan-100";
@@ -213,8 +220,8 @@ export function ImportRoleHeader({ role, toneName = "cyan", player = null, fallb
         <RoleIcon role={role} className="h-5 w-5" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block break-words text-xs font-semibold text-slate-400">Poste</span>
-        <span className="block break-words text-sm font-black text-white">{roleLabel(role)}</span>
+        <span className="block break-words text-xs font-semibold text-slate-400">{t("Poste")}</span>
+        <span className="block break-words text-sm font-black text-white">{t(roleLabel(role))}</span>
       </span>
       <span className={cx("min-w-0 max-w-[46%] shrink rounded-lg border px-2 py-1 text-right text-xs font-semibold", chipTone)}>
         <span className="block truncate">{player?.name || fallbackLabel}</span>
@@ -249,6 +256,7 @@ function gameSideFormReady(match, form, roster) {
 }
 
 export function GameSideEditor({ match, roster, form, onChange, saving, onCancel, onSave }) {
+  useLanguage();
   const current = importedGameSide(match).toUpperCase();
   const allySide = form.allyTeamSide;
   const enemySide = allySide === "BLUE" ? "RED" : allySide === "RED" ? "BLUE" : "";
@@ -261,63 +269,65 @@ export function GameSideEditor({ match, roster, form, onChange, saving, onCancel
   return <form className="ih-editor game-side-editor" onSubmit={(event) => { event.preventDefault(); if (!saving && ready) onSave(); }}>
     <fieldset disabled={saving}>
       <div className="game-side-choice">
-        <SelectInput label="Côté de notre équipe" value={allySide} onChange={(allyTeamSide) => onChange({ ...form, allyTeamSide })} aria-describedby="game-side-help" required>
-          {!current && <option value="" disabled>Choisir un côté</option>}
-          <option value="BLUE">Côté bleu</option><option value="RED">Côté rouge</option>
+        <SelectInput label={t("Côté de notre équipe")} value={allySide} onChange={(allyTeamSide) => onChange({ ...form, allyTeamSide })} aria-describedby="game-side-help" required>
+          {!current && <option value="" disabled>{t("Choisir un côté")}</option>}
+          <option value="BLUE">{t("Côté bleu")}</option><option value="RED">{t("Côté rouge")}</option>
         </SelectInput>
-        <p id="game-side-help">Choisis le côté où jouent les champions de ton équipe, puis vérifie les profils associés. Le résultat et les statistiques seront recalculés. Les notes de review seront conservées.</p>
+        <p id="game-side-help">{t("Choisis le côté où jouent les champions de ton équipe, puis vérifie les profils associés. Le résultat et les statistiques seront recalculés. Les notes de review seront conservées.")}</p>
       </div>
       {allySide && <>
-        <p className="game-side-status" role="status">{allySide === current ? `Côté actuel : ${sideLabel(current).toLowerCase()}. Choisis l’autre côté pour corriger cette game.` : `Après enregistrement : notre équipe sera du ${sideLabel(allySide).toLowerCase()}.`}</p>
-        {!rolesReady && <p className="game-side-notice">Les cinq postes de ce côté doivent être renseignés. Corrige-les dans « Corriger les rôles et profils » avant de changer de côté.</p>}
-        <div className="ih-teams">{[["ALLY", allySide, allies], ["ENEMY", enemySide, gameSideParticipants(match, enemySide)]].map(([teamKey, side, rows]) => <section key={teamKey} className={`ih-team ih-team-${teamKey.toLowerCase()} game-side-team-${side.toLowerCase()}`} aria-label={teamKey === "ALLY" ? "Notre équipe après correction" : "Adversaires après correction"}>
-          <h5>{teamKey === "ALLY" ? "Notre équipe" : "Adversaires"} · {sideLabel(side)}</h5>
+        <p className="game-side-status" role="status">{allySide === current ? t("Côté actuel : {0}. Choisis l’autre côté pour corriger cette game.", [sideLabel(current).toLowerCase()]) : t("Après enregistrement : notre équipe sera du {0}.", [sideLabel(allySide).toLowerCase()])}</p>
+        {!rolesReady && <p className="game-side-notice">{t("Les cinq postes de ce côté doivent être renseignés. Corrige-les dans « Corriger les rôles et profils » avant de changer de côté.")}</p>}
+        <div className="ih-teams">{[["ALLY", allySide, allies], ["ENEMY", enemySide, gameSideParticipants(match, enemySide)]].map(([teamKey, side, rows]) => <section key={teamKey} className={`ih-team ih-team-${teamKey.toLowerCase()} game-side-team-${side.toLowerCase()}`} aria-label={teamKey === "ALLY" ? t("Notre équipe après correction") : t("Adversaires après correction")}>
+          <h5>{teamKey === "ALLY" ? t("Notre équipe") : t("Adversaires")} · {t(sideLabel(side))}</h5>
           <div className="ih-roster">{rows.map((row) => {
             const champion = championDisplayName(row.champion);
             return <div key={row.id} className="ih-participant">
-              <div className="ih-player"><ChampionPortrait row={row} champion={row.champion} alt={champion} className="ih-portrait" /><div><strong>{champion} · {roleLabel(row.role)}</strong><span>{row.summoner_name || row.riot_id || "Joueur"}</span></div></div>
-              {teamKey === "ALLY" && COMP_ROLES.includes(row.role) && <SelectInput label={`Profil NXT5 · ${champion}`} value={form.playerAssignments[row.role] || ""} onChange={(playerId) => onChange({ ...form, playerAssignments: { ...form.playerAssignments, [row.role]: playerId } })} required>
-                <option value="" disabled>Choisir le profil</option>{roster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}
+              <div className="ih-player"><ChampionPortrait row={row} champion={row.champion} alt={champion} className="ih-portrait" /><div><strong>{champion} · {t(roleLabel(row.role))}</strong><span>{row.summoner_name || row.riot_id || t("Joueur")}</span></div></div>
+              {teamKey === "ALLY" && COMP_ROLES.includes(row.role) && <SelectInput label={t("Profil NXT5 · {0}", [champion])} value={form.playerAssignments[row.role] || ""} onChange={(playerId) => onChange({ ...form, playerAssignments: { ...form.playerAssignments, [row.role]: playerId } })} required>
+                <option value="" disabled>{t("Choisir le profil")}</option>{roster.map((player) => <option key={player.id} value={player.id}>{t(roleLabel(player.role))} · {player.name}</option>)}
               </SelectInput>}
             </div>;
           })}</div>
         </section>)}</div>
       </>}
-      {duplicateProfiles && <p className="game-side-notice" role="alert">Choisis un profil différent pour chaque poste.</p>}
-      <div className="ih-editor-actions"><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !ready}>{saving ? "Enregistrement…" : "Enregistrer le côté"}</Button></div>
+      {duplicateProfiles && <p className="game-side-notice" role="alert">{t("Choisis un profil différent pour chaque poste.")}</p>}
+      <div className="ih-editor-actions"><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>{t("Annuler")}</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !ready}>{saving ? t("Enregistrement…") : t("Enregistrer le côté")}</Button></div>
     </fieldset>
   </form>;
 }
 
 export function ImportHistoryEditor({ match, categories, roster, editing, editForm, saving, roleForm, onCancel, onSave, onChange, onRoleChange, onPlayerChange, showHeading = true }) {
+  useLanguage();
   return <form className="ih-editor" onSubmit={(event) => { event.preventDefault(); if (!saving) onSave(); }}>
-    {showHeading && <header><h4>{editing ? "Modifier la game" : "Réassigner postes et profils"}</h4><p>{editing ? "Ajuste le nom et les catégories utilisés dans les stats et les reviews." : "Associe chaque champion au bon poste et au bon profil NXT5."}</p></header>}
+    {showHeading && <header><h4>{editing ? t("Modifier la game") : t("Réassigner postes et profils")}</h4><p>{editing ? t("Ajuste le nom et les catégories utilisés dans les stats et les reviews.") : t("Associe chaque champion au bon poste et au bon profil NXT5.")}</p></header>}
     <fieldset disabled={saving}>
       {editing ? <div className="ih-edit-fields">
-        <TextInput label="Nom de la game" value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder="Game 1 vs BK, Finale LB…" required icon={FileText} />
+        <TextInput label={t("Nom de la game")} value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder={t("Game 1 vs BK, Finale LB…")} required icon={FileText} />
         <CategoryMultiSelect categories={categories} selectedIds={editForm.categoryIds || []} onChange={(categoryIds) => onChange({ ...editForm, categoryIds })} />
       </div> : <div className="ih-teams">{["ALLY", "ENEMY"].map((teamKey) => <section key={teamKey} className={`ih-team ih-team-${teamKey.toLowerCase()}`}>
-        <h5>{teamKey === "ALLY" ? "Notre équipe" : "Adversaires"}</h5>
+        <h5>{teamKey === "ALLY" ? t("Notre équipe") : t("Adversaires")}</h5>
         <div className="ih-roster">{(match.participants || []).filter((row) => row.team_key === teamKey).map((row) => {
           const value = roleForm[row.id];
           const form = value && typeof value === "object" ? value : { role: value || row.role || "", playerId: row.player_id || "" };
           const champion = championDisplayName(row.champion);
           return <div key={row.id} className="ih-participant">
-            <div className="ih-player"><ChampionPortrait row={row} champion={row.champion} alt={champion} className="ih-portrait" /><div><strong>{champion}</strong><span>{row.summoner_name || row.riot_id || "Joueur"}</span></div></div>
+            <div className="ih-player"><ChampionPortrait row={row} champion={row.champion} alt={champion} className="ih-portrait" /><div><strong>{champion}</strong><span>{row.summoner_name || row.riot_id || t("Joueur")}</span></div></div>
             <div className="ih-role-fields">
-              <SelectInput label={`Poste · ${champion}`} value={form.role || ""} onChange={(role) => onRoleChange(row.id, role)}><option value="" disabled>À attribuer</option>{COMP_ROLES.map((role) => <option key={role} value={role}>{roleLabel(role)}</option>)}</SelectInput>
-              {teamKey === "ALLY" && <SelectInput label={`Profil NXT5 · ${champion}`} value={form.playerId || ""} onChange={(playerId) => onPlayerChange(row.id, playerId)}><option value="">Conserver le profil</option><option value="__unlink__">Aucun profil (délier)</option>{form.playerId && form.playerId !== "__unlink__" && !roster.some((player) => String(player.id) === String(form.playerId)) && <option value={form.playerId}>Profil lié hors roster</option>}{roster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}</option>)}</SelectInput>}
+              <SelectInput label={t("Poste · {0}", [champion])} value={form.role || ""} onChange={(role) => onRoleChange(row.id, role)}><option value="" disabled>{t("À attribuer")}</option>{COMP_ROLES.map((role) => <option key={role} value={role}>{t(roleLabel(role))}</option>)}</SelectInput>
+              {teamKey === "ALLY" && <SelectInput label={t("Profil NXT5 · {0}", [champion])} value={form.playerId || ""} onChange={(playerId) => onPlayerChange(row.id, playerId)}><option value="">{t("Conserver le profil")}</option><option value="__unlink__">{t("Aucun profil (délier)")}</option>{form.playerId && form.playerId !== "__unlink__" && !roster.some((player) => String(player.id) === String(form.playerId)) && <option value={form.playerId}>{t("Profil lié hors roster")}</option>}{roster.map((player) => <option key={player.id} value={player.id}>{t(roleLabel(player.role))} · {player.name}</option>)}</SelectInput>}
             </div>
           </div>;
         })}</div>
-        {!(match.participants || []).some((row) => row.team_key === teamKey) && <p className="ih-no-participants">Aucun participant disponible.</p>}
+        {!(match.participants || []).some((row) => row.team_key === teamKey) && <p className="ih-no-participants">{t("Aucun participant disponible.")}</p>}
       </section>)}</div>}
-      <div className="ih-editor-actions"><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>Annuler</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || (editing ? !editForm.label.trim() : !match.participants?.length)}>{saving ? "Enregistrement…" : "Enregistrer"}</Button></div>
+      <div className="ih-editor-actions"><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>{t("Annuler")}</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || (editing ? !editForm.label.trim() : !match.participants?.length)}>{saving ? t("Enregistrement…") : t("Enregistrer")}</Button></div>
     </fieldset>
   </form>;
 }
 
 export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, onImported, onBusyChange, onDirtyChange, currentMember, user }) {
+  useLanguage();
   const [laneAssignments, setLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [enemyLaneAssignments, setEnemyLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [playerAssignments, setPlayerAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
@@ -607,9 +617,9 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     [Check, "Confirmation", "Nomme la partie et enregistre.", importReady],
   ];
   if (!selectedTeamId || !canImport) return <Surface>
-    <h3 className="text-lg font-bold text-white">{!selectedTeamId ? "Choisis ton équipe" : "L’import est réservé au staff"}</h3>
-    <p className="mt-2 text-sm leading-6 text-slate-300">{!selectedTeamId ? "Crée ou rejoins une équipe pour y retrouver tes parties." : "Demande au capitaine ou au staff d’importer la partie. Tu pourras ensuite consulter son bilan et participer au débrief."}</p>
-    <div className="mt-4"><LinkButton href={!selectedTeamId ? "/equipes" : "/games"} navigate={openAppPath} variant="ghost">{!selectedTeamId ? "Ouvrir mon équipe" : "Retour aux parties"}</LinkButton></div>
+    <h3 className="text-lg font-bold text-white">{!selectedTeamId ? t("Choisis ton équipe") : t("L’import est réservé au staff")}</h3>
+    <p className="mt-2 text-sm leading-6 text-slate-300">{!selectedTeamId ? t("Crée ou rejoins une équipe pour y retrouver tes parties.") : t("Demande au capitaine ou au staff d’importer la partie. Tu pourras ensuite consulter son bilan et participer au débrief.")}</p>
+    <div className="mt-4"><LinkButton href={!selectedTeamId ? "/equipes" : "/games"} navigate={openAppPath} variant="ghost">{!selectedTeamId ? t("Ouvrir mon équipe") : t("Retour aux parties")}</LinkButton></div>
   </Surface>;
   return <div className="nxt5-data-dense nxt5-import-page game-import-flow grid min-w-0 gap-5">
         {fileError && <p role="alert" className="mb-4 rounded-xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm text-rose-100">{fileError}</p>}
@@ -619,32 +629,32 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
 
         {importPreview && <Surface className="min-w-0 p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? "Prêt à importer" : "À compléter"}</Badge><h3 className="mt-3 text-2xl font-black text-white">Vérifie les équipes et les joueurs</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">Repère tes champions pour choisir ton équipe. Vérifie ensuite les postes et les profils associés.</p></div>
+            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? t("Prêt à importer") : t("À compléter")}</Badge><h3 className="mt-3 text-2xl font-black text-white">{t("Vérifie les équipes et les joueurs")}</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{t("Repère tes champions pour choisir ton équipe. Vérifie ensuite les postes et les profils associés.")}</p></div>
           </div>
           <div className="game-import-steps">
             {importFlowSteps.map(([Icon, title, text, done], index) => <div key={`rail-${title}`} className={cx("game-import-step", done ? "bg-cyan-300/[0.10] text-cyan-50" : "bg-white/[0.035] text-slate-300")}>
               <div className="flex items-center justify-between gap-2"><span className="flex items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="text-xs font-semibold">{index + 1}. {title}</span></span>{done && <Check className="h-4 w-4 shrink-0" />}</div>
-              <p className="mt-1 break-words text-xs font-semibold text-slate-400">{text}</p>
+              <p className="mt-1 break-words text-xs font-semibold text-slate-400">{t(text)}</p>
             </div>)}
           </div>
               <fieldset disabled={importing || fileImporting || creatingProfiles} className="mt-4 min-w-0 space-y-4">
-                <legend className="sr-only">Vérification avant import</legend>
+                <legend className="sr-only">{t("Vérification avant import")}</legend>
                 <div className="grid gap-3 lg:grid-cols-2">
                   {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} aria-pressed={allyTeamSide === team.side} className={cx("game-import-side border p-4 text-left transition-colors", allyTeamSide === team.side ? "border-cyan-300/45 bg-cyan-400/14 " : "border-white/10 bg-black/24 hover:bg-white/[0.045]")}>
-                    <div className="flex items-center justify-between gap-3"><p className="font-black text-white">{team.side === "BLUE" ? "Côté bleu" : "Côté rouge"}</p><Badge tone={team.win ? "green" : "red"}>{team.win ? "Victoire" : "Défaite"}</Badge></div>
+                    <div className="flex items-center justify-between gap-3"><p className="font-black text-white">{team.side === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</p><Badge tone={team.win ? "green" : "red"}>{team.win ? t("Victoire") : t("Défaite")}</Badge></div>
                     <div className="mt-3 flex flex-wrap gap-2">{team.participants.map((participant) => <div key={participant.participantId} className="flex min-w-0 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] py-1 pl-1 pr-3"><ChampionPortrait champion={participant.champion} alt={participant.champion} className="h-7 w-7 shrink-0 rounded-full object-cover" /><span className="break-words text-xs font-black text-white">{championDisplayName(participant.champion)}</span></div>)}</div>
                   </button>)}
                 </div>
                 {missingProfileRoles.length > 0 && <section className="game-import-roster-setup" aria-labelledby="import-profiles-title">
-                  <h4 id="import-profiles-title" className="text-lg font-bold">Créer les profils manquants depuis le fichier</h4>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">Vérifie les noms et les Riot IDs proposés. Tu peux aussi choisir un profil existant dans les associations ci-dessous. La création est distincte de l’import : ces profils resteront dans l’équipe si tu fermes ensuite cette fenêtre.</p>
-                  <div className="mt-3 grid gap-3">{missingProfileRoles.map(role => <div key={role} className="grid gap-3 sm:grid-cols-2"><TextInput label={`Nom · ${roleLabel(role)}`} value={profileDraft[role]?.name || ""} onChange={name => setProfileDraft(current => ({...current,[role]:{...current[role],name}}))} maxLength={80} /><TextInput label={`Riot ID · ${roleLabel(role)}`} value={profileDraft[role]?.riotId || ""} placeholder="Pseudo#TAG" onChange={riotId => setProfileDraft(current => ({...current,[role]:{...current[role],riotId}}))} maxLength={128} /></div>)}</div>
-                  {!profilesReady && <p className="mt-3 text-sm text-slate-300">Renseigne un nom et un Riot ID distinct au format Pseudo#TAG pour chaque profil proposé.</p>}
-                  <Button className="mt-3" type="button" icon={creatingProfiles ? Loader2 : Users} disabled={!profilesReady || creatingProfiles} onClick={createProposedProfiles}>{creatingProfiles ? "Création…" : "Créer les profils proposés"}</Button>
+                  <h4 id="import-profiles-title" className="text-lg font-bold">{t("Créer les profils manquants depuis le fichier")}</h4>
+                  <p className="mt-2 text-sm leading-6 text-slate-300">{t("Vérifie les noms et les Riot IDs proposés. Tu peux aussi choisir un profil existant dans les associations ci-dessous. La création est distincte de l’import : ces profils resteront dans l’équipe si tu fermes ensuite cette fenêtre.")}</p>
+                  <div className="mt-3 grid gap-3">{missingProfileRoles.map(role => <div key={role} className="grid gap-3 sm:grid-cols-2"><TextInput label={t("Nom · {0}", [t(roleLabel(role))])} value={profileDraft[role]?.name || ""} onChange={name => setProfileDraft(current => ({...current,[role]:{...current[role],name}}))} maxLength={80} /><TextInput label={t("Riot ID · {0}", [t(roleLabel(role))])} value={profileDraft[role]?.riotId || ""} placeholder="Pseudo#TAG" onChange={riotId => setProfileDraft(current => ({...current,[role]:{...current[role],riotId}}))} maxLength={128} /></div>)}</div>
+                  {!profilesReady && <p className="mt-3 text-sm text-slate-300">{t("Renseigne un nom et un Riot ID distinct au format Pseudo#TAG pour chaque profil proposé.")}</p>}
+                  <Button className="mt-3" type="button" icon={creatingProfiles ? Loader2 : Users} disabled={!profilesReady || creatingProfiles} onClick={createProposedProfiles}>{creatingProfiles ? t("Création…") : t("Créer les profils proposés")}</Button>
                 </section>}
                 {allyTeamSide && <div className="grid gap-4 xl:grid-cols-2">
                   <div className="game-import-team">
-                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Notre équipe</h4><Badge tone="cyan">{allyTeamSide === "BLUE" ? "Côté bleu" : "Côté rouge"}</Badge></div>
+                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">{t("Notre équipe")}</h4><Badge tone="cyan">{allyTeamSide === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</Badge></div>
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                       {COMP_ROLES.map((role) => {
                         const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]) || gameplayRoster.find((player) => player.role === role);
@@ -653,24 +663,24 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                           <ImportRoleHeader role={role} player={assignedPlayer} />
                           <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
                             {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt={pickedChampion.champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" /> : <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-dashed border-white/12 text-slate-500"><Swords className="h-4 w-4" /></span>}
-                            <div className="min-w-0"><p className="break-words text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : "Champion à choisir"}</p><p className="break-words text-xs font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || "Joueur du fichier"}</p></div>
+                            <div className="min-w-0"><p className="break-words text-sm font-black text-white">{pickedChampion ? championDisplayName(pickedChampion.champion) : t("Champion à choisir")}</p><p className="break-words text-xs font-semibold text-slate-300">{pickedChampion?.riotId || pickedChampion?.summonerName || t("Joueur du fichier")}</p></div>
                           </div>
-                          <label className="game-import-field"><span>Champion joué</span><select aria-label={`Champion allié · ${roleLabel(role)}`} value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-select">
-                            <option value="">Champion joué</option>
+                          <label className="game-import-field"><span>{t("Champion joué")}</span><select aria-label={t("Champion allié · {0}", [t(roleLabel(role))])} value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-select">
+                            <option value="">{t("Champion joué")}</option>
                             {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={previewAssignmentValue(participant)}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
                           </select></label>
-                          <label className="game-import-field"><span>Profil lié</span><select aria-label={`Profil NXT5 · ${roleLabel(role)}`} value={playerAssignments[role] || ""} onChange={(event) => updatePlayerAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-select">
-                            <option value="">Profil NXT5 lié</option>
-                            {gameplayRoster.map((player) => <option key={player.id} value={player.id}>{roleLabel(player.role)} · {player.name}{player.riot_id ? ` · ${player.riot_id}` : ""}</option>)}
+                          <label className="game-import-field"><span>{t("Profil lié")}</span><select aria-label={t("Profil NXT5 · {0}", [t(roleLabel(role))])} value={playerAssignments[role] || ""} onChange={(event) => updatePlayerAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-select">
+                            <option value="">{t("Profil NXT5 lié")}</option>
+                            {gameplayRoster.map((player) => <option key={player.id} value={player.id}>{t(roleLabel(player.role))} · {player.name}{player.riot_id ? ` · ${player.riot_id}` : ""}</option>)}
                           </select></label>
                         </div>;
                       })}
                     </div>
                   </div>
                   <div className="game-import-team">
-                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">Équipe adverse</h4><Badge tone="red">{enemyPreviewTeam?.side === "BLUE" ? "Côté bleu" : "Côté rouge"}</Badge></div>
-                    <p className="mb-3 text-sm leading-6 text-slate-300">{enemyPreviewTeam ? "Choisis le poste de chaque champion adverse. Si le poste est déjà pris, les deux champions échangent leur poste." : "Choisis d’abord le côté de notre équipe pour attribuer les postes adverses."}</p>
-                    {enemyPreviewTeam && !enemyAssignmentsReady && <p role="status" className="mb-3 text-sm text-rose-100">Attribue un poste à chaque champion adverse pour confirmer l’import.</p>}
+                    <div className="mb-3 flex items-center justify-between gap-3"><h4 className="text-lg font-black text-white">{t("Équipe adverse")}</h4><Badge tone="red">{enemyPreviewTeam?.side === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</Badge></div>
+                    <p className="mb-3 text-sm leading-6 text-slate-300">{enemyPreviewTeam ? t("Choisis le poste de chaque champion adverse. Si le poste est déjà pris, les deux champions échangent leur poste.") : t("Choisis d’abord le côté de notre équipe pour attribuer les postes adverses.")}</p>
+                    {enemyPreviewTeam && !enemyAssignmentsReady && <p role="status" className="mb-3 text-sm text-rose-100">{t("Attribue un poste à chaque champion adverse pour confirmer l’import.")}</p>}
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
                       {(enemyPreviewTeam?.participants || []).map((participant) => {
                         const role = COMP_ROLES.find((item) => enemyLaneAssignments[item] === previewAssignmentValue(participant)) || "";
@@ -679,11 +689,11 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                         <div key={participant.participantId} className={cx("game-import-assignment", role ? "border-rose-200/22 bg-rose-500/[0.06]" : "border-white/10 bg-black/25")}>
                           <div className="mb-3 flex min-w-0 items-center gap-2 rounded-xl border border-white/10 bg-black/24 p-2">
                             <ChampionPortrait champion={participant.champion} alt={champion} className="h-10 w-10 shrink-0 rounded-lg object-cover" />
-                            <div className="min-w-0"><p className="break-words text-sm font-black text-white">{champion}</p><p className="break-words text-xs font-semibold text-slate-300">{participant.riotId || participant.summonerName || "Adversaire"}</p></div>
+                            <div className="min-w-0"><p className="break-words text-sm font-black text-white">{champion}</p><p className="break-words text-xs font-semibold text-slate-300">{participant.riotId || participant.summonerName || t("Adversaire")}</p></div>
                           </div>
-                          <SelectInput label={`Poste · ${champion}`} aria-label={`Poste · ${champion}`} value={role} onChange={(nextRole) => updateEnemyParticipantRole(participant, nextRole)} disabled={importing || fileImporting}>
-                            <option value="">À attribuer</option>
-                            {COMP_ROLES.map((item) => <option key={item} value={item}>{roleLabel(item)}</option>)}
+                          <SelectInput label={t("Poste · {0}", [champion])} aria-label={t("Poste · {0}", [champion])} value={role} onChange={(nextRole) => updateEnemyParticipantRole(participant, nextRole)} disabled={importing || fileImporting}>
+                            <option value="">{t("À attribuer")}</option>
+                            {COMP_ROLES.map((item) => <option key={item} value={item}>{t(roleLabel(item))}</option>)}
                           </SelectInput>
                         </div>
                       );})}
@@ -691,21 +701,21 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                   </div>
                 </div>}
                 {allyTeamSide && <div className="game-import-confirmation-fields grid gap-4 lg:grid-cols-2">
-                  <TextInput label="Nom de la partie" value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder="Entraînement contre Otters · Partie 1" required icon={FileText} />
-                  <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} label="Catégories (facultatif)" />
+                  <TextInput label={t("Nom de la partie")} value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder={t("Entraînement contre Otters · Partie 1")} required icon={FileText} />
+                  <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} label={t("Catégories (facultatif)")} />
                 </div>}
                  {importReady && <div className="rounded-2xl border border-emerald-200/16 bg-emerald-400/[0.055] p-4">
                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                      <div className="min-w-0">
-                       <p className="text-xs font-semibold text-emerald-100">Résumé avant import</p>
+                       <p className="text-xs font-semibold text-emerald-100">{t("Résumé avant import")}</p>
                        <p className="mt-1 break-words text-lg font-black text-white">{importDetails.label}</p>
-                       <p className="mt-1 text-sm font-semibold text-slate-300">{allyTeamSide === "BLUE" ? "Côté bleu" : "Côté rouge"} · {COMP_ROLES.map((role) => gameplayRoster.find((player) => player.id === playerAssignments[role])?.name || role).join(" / ")}</p>
+                       <p className="mt-1 text-sm font-semibold text-slate-300">{allyTeamSide === "BLUE" ? t("Côté bleu") : t("Côté rouge")} · {COMP_ROLES.map((role) => gameplayRoster.find((player) => player.id === playerAssignments[role])?.name || role).join(" / ")}</p>
                      </div>
-                     <Badge tone="green">Prêt</Badge>
+                     <Badge tone="green">{t("Prêt")}</Badge>
                    </div>
                  </div>}
-                 <p id="game-import-status" role="status" className="game-import-status">{importBlockReason || "Tout est prêt. Confirme pour enregistrer la partie et ouvrir son bilan."}</p>
-                 <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()} disabled={importing}>Réinitialiser</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady} aria-describedby="game-import-status">{importing ? "Enregistrement…" : "Confirmer l’import"}</Button></div>
+                 <p id="game-import-status" role="status" className="game-import-status">{t(importBlockReason) || t("Tout est prêt. Confirme pour enregistrer la partie et ouvrir son bilan.")}</p>
+                 <div className="flex flex-wrap justify-end gap-2"><Button type="button" variant="ghost" icon={X} onClick={() => resetImportDraft()} disabled={importing}>{t("Réinitialiser")}</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady} aria-describedby="game-import-status">{importing ? t("Enregistrement…") : t("Confirmer l’import")}</Button></div>
               </fieldset>
         </Surface>}
 

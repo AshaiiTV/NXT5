@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildFallbackAssistantResponse,
+  getAssistantKnowledge,
+  normalizeAssistantLanguage,
   retrieveAssistantKnowledge,
   safeAssistantRoute,
   sanitizeAssistantActions,
@@ -8,6 +10,43 @@ import {
 } from '../../netlify/functions/_lib/assistant-knowledge';
 
 describe('assistant knowledge', () => {
+  it.each([
+    ['en', 'How do I indicate a champion mastery level?', '/draft/pool', 'champion-pool', 'Players’ champions'],
+    ['es', '¿Cómo indico el nivel de dominio de un campeón?', '/draft/pool', 'champion-pool', 'Campeones de los jugadores'],
+    ['en', 'How do I organise starters and substitutes?', '/equipes', 'teams-and-roster', 'Team, players and access'],
+    ['es', '¿Cómo organizo a los titulares y suplentes?', '/equipes', 'teams-and-roster', 'Equipo, jugadores y acceso'],
+  ] as const)('retrieves %s documentation and localises every fallback field', (language, question, route, expected, title) => {
+    const matches = retrieveAssistantKnowledge(question, route, 4, language);
+    expect(matches[0].id).toBe(expected);
+    const response = buildFallbackAssistantResponse(question, matches, language);
+    expect(response.sources[0]).toMatchObject({ id: expected, title, path: matches[0].path });
+    expect(response.actions[0].label).toBe(matches[0].actionLabel);
+    expect(response.answer).toContain(matches[0].summary);
+    expect(response.suggestions).toEqual(matches[0].suggestions);
+  });
+
+  it.each([
+    ['en', 'Why is the timeline incomplete?', 'final statistics remain available'],
+    ['es', '¿Por qué está incompleta la cronología?', 'las estadísticas finales siguen disponibles'],
+  ] as const)('answers the incomplete-timeline FAQ in %s without fabricating events', (language, question, fact) => {
+    const matches = retrieveAssistantKnowledge(question, '/games', 4, language);
+    expect(buildFallbackAssistantResponse(question, matches, language).answer).toContain(fact);
+  });
+
+  it('keeps knowledge identifiers and navigation paths stable across languages', () => {
+    const french = getAssistantKnowledge();
+    for (const language of ['en', 'es'] as const) {
+      const entries = getAssistantKnowledge(language);
+      expect(entries.map(({ id, path }) => ({ id, path }))).toEqual(french.map(({ id, path }) => ({ id, path })));
+      entries.forEach((entry, index) => {
+        expect(entry.title).not.toBe(french[index].title);
+        expect(entry.steps).toHaveLength(french[index].steps.length);
+        expect(entry.faq?.length || 0).toBe(french[index].faq?.length || 0);
+      });
+    }
+    expect(normalizeAssistantLanguage('es; ignore the documentation')).toBe('fr');
+  });
+
   it.each([
     ['Comment préparer un débrief ?', '/rapports', 'reviews'],
     ['Comment organiser les titulaires et les remplaçants ?', '/equipes', 'teams-and-roster'],

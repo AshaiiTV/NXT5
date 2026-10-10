@@ -1,3 +1,6 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
+import { getLocale } from "../../i18n/locale.js";
 import { resultSummary, resultLabel, sideResults, comparableSides, sideLabel } from "../../utils/statistics.js";
 import { canonicalChampion as championAssetId, championNameKey as championKey, championDisplayName, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
 import { DDRAGON_FALLBACK_VERSIONS, championPortraitUrls, itemIconUrls } from "../../../shared/riot-assets.js";
@@ -123,12 +126,13 @@ function championPortraitSources(rowOrChampion, explicitChampion = "") {
 }
 
 function ChampionPortrait({ champion, row, alt, className = "h-full w-full object-cover" }) {
+  useLanguage();
   const sources = useMemo(() => championPortraitSources(row || champion, champion || row?.champion), [row, champion]);
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [sources.join("|")]);
   const source = sources[sourceIndex];
   if (!source) return <div className={cx("flex items-center justify-center bg-gradient-to-br from-cyan-400/18 via-blue-500/10 to-fuchsia-500/18 text-[length:var(--nxt5-font-micro)] font-black text-cyan-100", className)}>{String(alt || champion || row?.champion || "?").slice(0, 2).toUpperCase()}</div>;
-  return <img src={source} alt={alt || champion || row?.champion || "Champion"} className={className} loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />;
+  return <img src={source} alt={alt || champion || row?.champion || t("Champion")} className={className} loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
 function safeExportFilename(value, fallback = "export") {
@@ -197,7 +201,7 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
   sections.forEach(({ tier, rows: tierRows }) => {
     const height = sectionHeight({ rows: tierRows });
     pngPanel(ctx, margin, sectionY, width, height);
-    fit(tier.id === "danger" ? "En entraînement" : POOL_TIER_LABELS[tier.id], margin + 28, sectionY + 43, 550, { font: "700 27px Inter, Arial, sans-serif", color: pngAccent(tier.tone) });
+    fit(t(tier.id === "danger" ? "En entraînement" : POOL_TIER_LABELS[tier.id]), margin + 28, sectionY + 43, 550, { font: "700 27px Inter, Arial, sans-serif", color: pngAccent(tier.tone) });
     const total = (grouped[tier.id] || []).length;
     fit(tierRows.length === total ? `${total} champions` : `${tierRows.length}/${total} champions sur cette page`, W - margin - 28, sectionY + 43, 500, { align: "right", color: PNG_THEME.muted });
     pngLine(ctx, margin + 28, sectionY + 64, W - margin - 28, sectionY + 64);
@@ -221,7 +225,7 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
     });
     sectionY += height + 24;
   });
-  if (!entries.length) fit("Aucun champion déclaré", margin + 28, 443, width - 56, { color: PNG_THEME.muted });
+  if (!entries.length) fit(t("Aucun champion déclaré"), margin + 28, 443, width - 56, { color: PNG_THEME.muted });
   pngFooter(ctx, { width: W, height: H, label: `Pool déclaré · ${currentPage + 1}/${pageCount}` });
   return canvas;
 }
@@ -284,6 +288,7 @@ function championSplashFocus(champion, focus = "default") {
 }
 
 function ChampionBackdrop({ champion, focus = "default" }) {
+  useLanguage();
   const url = championSplashUrl(champion);
   if (!url) return null;
   const focused = focus === "face";
@@ -431,8 +436,8 @@ function matchImportDateLabel(match) {
   if (!value) return "Date d'import inconnue";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value).slice(0, 16);
-  const day = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(date);
-  const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(date);
+  const day = new Intl.DateTimeFormat(getLocale(), { day: "2-digit", month: "2-digit", year: "2-digit" }).format(date);
+  const time = new Intl.DateTimeFormat(getLocale(), { hour: "2-digit", minute: "2-digit" }).format(date);
   return `${day} à ${time}`;
 }
 
@@ -441,9 +446,10 @@ function matchCategoryTone(category) {
 }
 
 function CategoryFilter({ categories, selectedCategoryId, onSelect, label = "Catégories" }) {
+  useLanguage();
   return <div className="flex min-w-0 flex-wrap items-center gap-2">
-    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{label}</span>
-    <button type="button" onClick={() => onSelect("")} className={cx("rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", !selectedCategoryId ? "border-cyan-200/45 bg-cyan-400/14 text-cyan-50" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>Toutes</button>
+    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{t(label)}</span>
+    <button type="button" onClick={() => onSelect("")} className={cx("rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", !selectedCategoryId ? "border-cyan-200/45 bg-cyan-400/14 text-cyan-50" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{t("Toutes")}</button>
     {(categories || []).map((category) => <button key={category.id} type="button" onClick={() => onSelect(String(category.id) === String(selectedCategoryId) ? "" : category.id)} className={cx("rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", String(category.id) === String(selectedCategoryId) ? tone(matchCategoryTone(category)) : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{category.name}</button>)}
   </div>;
 }
@@ -696,14 +702,15 @@ function participantTeamMap(match) {
 }
 
 function HudIcon({ src, sources, label, fallback, emptyText = "VIDE", toneName = "cyan", className = "" }) {
+  useLanguage();
   const sourceList = useMemo(() => [...new Set([...(Array.isArray(sources) ? sources : []), src].filter(Boolean))], [src, sources]);
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [sourceList.join("|")]);
   const source = sourceList[sourceIndex];
   const active = Boolean(source);
-  return <div title={label} className={cx("relative aspect-square min-h-0 min-w-0 overflow-hidden rounded-xl border bg-black/35", active ? toneName === "pink" ? "border-fuchsia-200/25 shadow-[0_0_14px_rgba(217,70,239,.10)]" : "border-cyan-200/20 shadow-[0_0_14px_rgba(34,211,238,.10)]" : "border-white/8 opacity-45", className)}>
+  return <div title={t(label)} className={cx("relative aspect-square min-h-0 min-w-0 overflow-hidden rounded-xl border bg-black/35", active ? toneName === "pink" ? "border-fuchsia-200/25 shadow-[0_0_14px_rgba(217,70,239,.10)]" : "border-cyan-200/20 shadow-[0_0_14px_rgba(34,211,238,.10)]" : "border-white/8 opacity-45", className)}>
     {active ? <>
-      <img src={source} alt={label} className="h-full w-full object-cover" loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />
+      <img src={source} alt={t(label)} className="h-full w-full object-cover" loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />
       <span className="hidden h-full w-full items-center justify-center px-1 text-center text-[length:var(--nxt5-font-micro)] font-black text-slate-300">{fallback}</span>
     </> : <span className="flex h-full w-full items-center justify-center px-1 text-center text-[length:var(--nxt5-font-micro)] font-black text-slate-300">{emptyText}</span>}
   </div>;
@@ -767,6 +774,7 @@ function championTierColumnGlow(tier) {
 }
 
 function ChampionTierMark({ tier, active = false, className = "" }) {
+  useLanguage();
   const Icon = tier?.id === "lock" ? ShieldCheck : tier?.id === "pocket" ? Flame : tier?.id === "danger" ? AlertTriangle : Gauge;
   return <span className={cx("relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border transition", championTierFrame(tier, active), className)}>
     <Icon className="relative z-10 h-5 w-5 drop-shadow-[0_0_10px_rgba(255,255,255,.20)]" />

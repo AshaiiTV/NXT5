@@ -1,9 +1,12 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
 import React, { useEffect, useState } from "react";
 import { BarChart3, Crown, Settings, ShieldCheck, UserPlus, Users } from "lucide-react";
 import { cx } from "../../app/helpers.js";
 import "./brand.css";
 
 export function ResponsiveImage({ src, sources = [], alt, className = "", fetchPriority, sizes, ...props }) {
+  useLanguage();
   const priorityProps = fetchPriority ? { fetchpriority: fetchPriority } : {};
   return (
     <picture>
@@ -14,6 +17,7 @@ export function ResponsiveImage({ src, sources = [], alt, className = "", fetchP
 }
 
 export function BrandLogo({ compact = false, className = "" }) {
+  useLanguage();
   return (
     <div className={cx("flex items-center gap-3", className)}>
       <ResponsiveImage
@@ -36,17 +40,20 @@ export function BrandLogo({ compact = false, className = "" }) {
 }
 
 export function Nxt5Wordmark({ className = "", sizes, loading = "lazy" }) {
+  useLanguage();
   return <ResponsiveImage src="/assets/nxt5-wordmark.png?v=3" sources={[{ srcSet: "/assets/nxt5-wordmark-640.webp 640w, /assets/nxt5-wordmark-320.webp 320w" }]} alt="NXT5" width="1115" height="350" sizes={sizes} loading={loading} decoding="async" className={cx("object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.30)]", className)} />;
 }
 
 export function TeamAvatar({ team, className = "h-12 w-12" }) {
+  useLanguage();
   if (team?.avatar_data_url) {
-    return <div className={cx("overflow-hidden rounded-xl border border-cyan-300/25 bg-black/30", className)}><img src={team.avatar_data_url} alt={team.name || "Team"} className="h-full w-full object-cover" loading="lazy" decoding="async" style={{ transform: "scale(" + Number(team.avatar_zoom || 1) + ")", objectPosition: Number(team.avatar_x ?? 50) + "% " + Number(team.avatar_y ?? 50) + "%" }} /></div>;
+    return <div className={cx("overflow-hidden rounded-xl border border-cyan-300/25 bg-black/30", className)}><img src={team.avatar_data_url} alt={team.name || t("Team")} className="h-full w-full object-cover" loading="lazy" decoding="async" style={{ transform: "scale(" + Number(team.avatar_zoom || 1) + ")", objectPosition: Number(team.avatar_x ?? 50) + "% " + Number(team.avatar_y ?? 50) + "%" }} /></div>;
   }
   return <ResponsiveImage src="/assets/nxt5-logo.png" sources={[{ srcSet: "/assets/nxt5-logo-320.webp 320w, /assets/nxt5-logo-640.webp 640w" }]} alt="NXT5" width="1254" height="989" loading="lazy" decoding="async" className={cx("object-contain object-left drop-shadow-[0_0_18px_rgba(34,211,238,.35)]", className)} />;
 }
 
 export function RoleIcon({ role, className = "h-7 w-7", lightweight = false }) {
+  useLanguage();
   const roleKey = String(role || "").toUpperCase();
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [roleKey]);

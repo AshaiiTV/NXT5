@@ -1,3 +1,5 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
 import { importedGameSide } from "../../utils/imported-games.js";
 import { resultSummary, resultLabel, winrateLabel, sideLabel, sideResults, comparableSides, matchSideLabel } from "../../utils/statistics.js";
 import { MILESTONE_TOLERANCE_MS } from '../../../shared/timeline-milestones.js';
@@ -145,23 +147,23 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
     { label: "Morts / game", value: pngNumber(report.deaths.value, 1), detail: coverage(report.deaths.count) },
     { label: "Kills / game", value: pngNumber(report.kills.value, 1), detail: coverage(report.kills.count) },
   ] });
-  label("Écart d’or : équipe − adversaire · Taux de victoire : résultats connus uniquement", margin, 370, contentWidth);
+  label(t("Écart d’or : équipe − adversaire · Taux de victoire : résultats connus uniquement"), margin, 370, contentWidth);
 
-  fit("Résultats par côté", margin, 416, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
+  fit(t("Résultats par côté"), margin, 416, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
   const sideWidth = contentWidth / report.sides.length;
   report.sides.forEach((entry, index) => {
     const x = margin + index * sideWidth;
     if (index) pngLine(ctx, x - 24, 446, x - 24, 536);
-    label(entry.key === "Blue" ? "Côté bleu" : entry.key === "Red" ? "Côté rouge" : "Côté inconnu", x, 456, sideWidth - 48, { color: pngAccent(entry.key === "Blue" ? "blue" : entry.key === "Red" ? "red" : "muted") });
+    label(t(entry.key === "Blue" ? "Côté bleu" : entry.key === "Red" ? "Côté rouge" : "Côté inconnu"), x, 456, sideWidth - 48, { color: pngAccent(entry.key === "Blue" ? "blue" : entry.key === "Red" ? "red" : "muted") });
     fit(pngPercent(entry.winrate), x, 500, sideWidth - 48, { font: "700 36px Inter, Arial, sans-serif" });
     label(`${pngNumber(entry.games)} games · ${pngNumber(entry.wins)} V / ${pngNumber(entry.losses)} D${entry.unknown ? ` · ${pngNumber(entry.unknown)} sans résultat` : ""}`, x, 532, sideWidth - 48);
   });
   pngLine(ctx, margin, 558, W - margin, 558);
 
-  fit("Statistiques par rôle", margin, roleY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
-  label("Moyennes par game · CS : sbires et monstres tués · Participation aux kills : (kills + assists) / kills d’équipe", margin, roleY + 61, contentWidth);
+  fit(t("Statistiques par rôle"), margin, roleY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
+  label(t("Moyennes par game · CS : sbires et monstres tués · Participation aux kills : (kills + assists) / kills d’équipe"), margin, roleY + 61, contentWidth);
   const roleColumns = [margin, margin + 210, margin + 390, margin + 790, margin + 1100];
-  ["Rôle", "Games", "Kills / morts / assists", "CS à 10 min", "Participation aux kills"].forEach((text, index) => label(text, roleColumns[index], roleY + 104, (roleColumns[index + 1] || W - margin) - roleColumns[index] - 28));
+  ["Rôle", "Games", "Kills / morts / assists", "CS à 10 min", "Participation aux kills"].forEach((text, index) => label(t(text), roleColumns[index], roleY + 104, (roleColumns[index + 1] || W - margin) - roleColumns[index] - 28));
   pngLine(ctx, margin, roleY + 120, W - margin, roleY + 120);
   report.roles.forEach((entry, index) => {
     const y = roleY + 154 + index * 76;
@@ -176,10 +178,10 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
     pngLine(ctx, margin, y + 42, W - margin, y + 42);
   });
 
-  fit("Champions les plus joués", margin, championY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
+  fit(t("Champions les plus joués"), margin, championY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
   label(`${pngNumber(champions.length)} / ${pngNumber(report.champions.length)} champions · Tri par nombre de games`, margin, championY + 61, contentWidth);
   const championColumns = [margin, margin + 600, margin + 840, margin + 1130];
-  ["Champion", "Games", "Victoires / défaites", "Taux de victoire"].forEach((text, index) => label(text, championColumns[index], championY + 103, (championColumns[index + 1] || W - margin) - championColumns[index] - 28));
+  ["Champion", "Games", "Victoires / défaites", "Taux de victoire"].forEach((text, index) => label(t(text), championColumns[index], championY + 103, (championColumns[index + 1] || W - margin) - championColumns[index] - 28));
   pngLine(ctx, margin, championY + 119, W - margin, championY + 119);
   champions.forEach((entry, index) => {
     const y = championY + 158 + index * 64;
@@ -192,8 +194,8 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
     label(`${pngNumber(entry.known)} / ${pngNumber(entry.games)} résultats`, W - margin, y, 175, { align: "right" });
     pngLine(ctx, margin, y + 25, W - margin, y + 25);
   });
-  if (!champions.length) label("Aucun champion renseigné", margin, championY + 160, contentWidth);
-  label("— : donnée indisponible · Les comptes sous les moyennes indiquent les games mesurées dans la sélection.", margin, H - 97, contentWidth);
+  if (!champions.length) label(t("Aucun champion renseigné"), margin, championY + 160, contentWidth);
+  label(t("— : donnée indisponible · Les comptes sous les moyennes indiquent les games mesurées dans la sélection."), margin, H - 97, contentWidth);
   pngFooter(ctx, { width: W, height: H, label: "Tendances d’équipe" });
   return canvas;
 }
@@ -205,6 +207,7 @@ export async function exportTrendsPng(options) {
 }
 
 function TrendsPage({ data, selectedTeamId }) {
+  useLanguage();
   const baseMatches = useMemo(() => (data.matches || []).filter((match) => match.team_id === selectedTeamId), [data.matches, selectedTeamId]);
   const matchCategories = useMemo(() => (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId), [data.matchCategories, selectedTeamId]);
   const navigation = useTrendsNavigation(selectedTeamId);
@@ -308,8 +311,8 @@ function TrendsPage({ data, selectedTeamId }) {
     };
   }), [matches]);
   const detailHeader = detailSection && <>
-    <nav aria-label="Retour aux analyses" className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" /> Retour aux choix des champions</a></nav>
-    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow="Analyses · Choix des champions" title={detailSection.title} subtitle={detailSection.description} /></div>
+    <nav aria-label={t("Retour aux analyses")} className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" />{t(" Retour aux choix des champions")}</a></nav>
+    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow={t("Analyses · Choix des champions")} title={detailSection.title} subtitle={detailSection.description} /></div>
   </>;
 
   const trendPanelOptions = [
@@ -321,10 +324,10 @@ function TrendsPage({ data, selectedTeamId }) {
   ];
 
   if (!matches.length && (trendPanel !== "comparison" || !baseMatches.length)) return <div className="nxt5-data-dense nxt5-trends-page">
-    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Analyses de l’équipe" subtitle="Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles." />}
+    {detailHeader || <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.")} />}
     {baseMatches.length > 0 && <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />}
-    {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les parties</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
-    <div id={`trend-panel-${trendPanel}`} role={baseMatches.length ? "tabpanel" : undefined} aria-labelledby={baseMatches.length ? `trend-tab-${trendPanel}` : undefined} tabIndex={baseMatches.length ? 0 : undefined}><Surface><EmptyState icon={Activity} title={baseMatches.length ? "Aucune partie dans cette sélection" : "Vos analyses commencent ici"} text={baseMatches.length ? "Choisis une autre période ou catégorie pour retrouver les analyses de l’équipe." : "Importe tes premières parties pour suivre les résultats et repérer les points à travailler."} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? "Voir toutes les parties" : "Importer une partie"}</Button></div></Surface></div>
+    {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes les parties")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
+    <div id={`trend-panel-${trendPanel}`} role={baseMatches.length ? "tabpanel" : undefined} aria-labelledby={baseMatches.length ? `trend-tab-${trendPanel}` : undefined} tabIndex={baseMatches.length ? 0 : undefined}><Surface><EmptyState icon={Activity} title={baseMatches.length ? t("Aucune partie dans cette sélection") : t("Vos analyses commencent ici")} text={baseMatches.length ? t("Choisis une autre période ou catégorie pour retrouver les analyses de l’équipe.") : t("Importe tes premières parties pour suivre les résultats et repérer les points à travailler.")} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? t("Voir toutes les parties") : t("Importer une partie")}</Button></div></Surface></div>
     {baseMatches.length > 0 && trendPanelOptions.filter(([id]) => id !== trendPanel).map(([id]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-labelledby={`trend-tab-${id}`} hidden />)}
   </div>;
 
@@ -992,33 +995,33 @@ function TrendsPage({ data, selectedTeamId }) {
   };
 
   return <div className="nxt5-data-dense nxt5-trends-page">
-    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Analyses de l’équipe" subtitle="Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.">
-      {trendPanel !== "comparison" && <Button type="button" variant="ghost" icon={ImageIcon} disabled={exportState === "loading"} onClick={exportTrends}>{exportState === "loading" ? "Export en cours…" : "Exporter la synthèse"}</Button>}
+    {detailHeader || <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.")}>
+      {trendPanel !== "comparison" && <Button type="button" variant="ghost" icon={ImageIcon} disabled={exportState === "loading"} onClick={exportTrends}>{exportState === "loading" ? t("Export en cours…") : t("Exporter la synthèse")}</Button>}
     </PageHeader>}
-    {exportState === "error" && <p role="alert" className="trends-export-status">L’export n’a pas abouti. Réessaie avec le bouton « Exporter la synthèse ».</p>}
-    {exportState === "done" && <p role="status" className="trends-export-status">La synthèse PNG a été téléchargée.</p>}
+    {exportState === "error" && <p role="alert" className="trends-export-status">{t("L’export n’a pas abouti. Réessaie avec le bouton « Exporter la synthèse ».")}</p>}
+    {exportState === "done" && <p role="status" className="trends-export-status">{t("La synthèse PNG a été téléchargée.")}</p>}
     {trendPanel !== "comparison" && <div className="trends-filters">
       <div className="trends-filter-controls">
-        <SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les parties</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
+        <SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes les parties")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
         <TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} />
       </div>
-      <div className="trends-scope"><p aria-live="polite"><strong>{matches.length} partie{matches.length > 1 ? "s" : ""} analysée{matches.length > 1 ? "s" : ""}</strong> sur {categoryMatches.length} · {activeTrendCategory?.name || "Tous les contextes"}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" /> Réinitialiser les filtres</button>}</div>
-      <p className="trends-results-context">{resultLabel(results)} · Taux de victoire : {winrateLabel(winrate)} sur {results.known} résultat{results.known > 1 ? "s" : ""} connu{results.known > 1 ? "s" : ""}.</p>
+      <div className="trends-scope"><p aria-live="polite"><strong>{matches.length}{t(matches.length > 1 ? " parties" : " partie")}{t(matches.length > 1 ? " analysées" : " analysée")}</strong>{t(" sur ")}{categoryMatches.length} · {activeTrendCategory?.name || t("Tous les contextes")}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" />{t(" Réinitialiser les filtres")}</button>}</div>
+      <p className="trends-results-context">{t(resultLabel(results))}{t(" · Taux de victoire : ")}{t(winrateLabel(winrate))}{t(" sur ")}{results.known}{t(results.known > 1 ? " résultats" : " résultat")}{t(results.known > 1 ? " connus" : " connu")}.</p>
     </div>}
-    {trendPanel !== "comparison" && matches.length < 5 && <p className="trends-sample-note"><AlertTriangle aria-hidden="true" /><span>Peu de parties : les répétitions restent à confirmer. Ces observations portent sur {matches.length} partie{matches.length > 1 ? "s" : ""}.</span></p>}
+    {trendPanel !== "comparison" && matches.length < 5 && <p className="trends-sample-note"><AlertTriangle aria-hidden="true" /><span>{t("Peu de parties : les répétitions restent à confirmer. Ces observations portent sur ")}{matches.length}{t(matches.length > 1 ? " parties" : " partie")}.</span></p>}
     {detailSection ? <DraftTrendDetails key={draftDetail} sectionId={draftDetail} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} /> : <>
     <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
-    {trendPanelOptions.map(([id, label]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-label={label} tabIndex={0} hidden={trendPanel !== id} className="trends-tab-content">
+    {trendPanelOptions.map(([id, label]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-label={t(label)} tabIndex={0} hidden={trendPanel !== id} className="trends-tab-content">
       {trendPanel === id && <>
         {id === "coach" && <TrendsOverview objective={teamAiObjective} plan={primaryTeamModelCard} roles={roleSystemRows} briefs={coachBriefs} alerts={staffAlerts} onOpenSources={openTrendSources} onObjectives={showObjectives} />}
         {id === "evolution" && <TrendEvolution matches={matches} onOpenMatch={openSourceGame} />}
-        {id === "comparison" && <Suspense fallback={<Surface><p className="mb-3 text-sm font-semibold text-slate-300" role="status">Chargement de la comparaison…</p><SkeletonRows /></Surface>}><BlockComparisonPanel matches={baseMatches} categories={matchCategories} /></Suspense>}
+        {id === "comparison" && <Suspense fallback={<Surface><p className="mb-3 text-sm font-semibold text-slate-300" role="status">{t("Chargement de la comparaison…")}</p><SkeletonRows /></Surface>}><BlockComparisonPanel matches={baseMatches} categories={matchCategories} /></Suspense>}
         {id === "draft" && <DraftTrendsModule key={selectedTeamId} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} detailHref={navigation.detailHref} onNavigateDetail={navigation.onNavigate} />}
         {id === "ai-objectives" && <Surface><ProgressionObjectives teamObjective={teamAiObjective} roleObjectives={roleAiObjectives} gamesCount={matches.length} onOpenSources={openTrendSources} onOpenContracts={() => setProfileContractsOpen(true)} /></Surface>}
       </>}
     </div>)}
     </>}
-    <details className="trends-reading-help"><summary>Comment lire ces informations ?</summary><div><p>Les filtres s’appliquent à toutes les rubriques sauf Comparer, qui possède ses propres sélections sur l’historique de l’équipe. Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des parties : une valeur par partie dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.</p><p>KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.</p><p>Les plans de jeu et objectifs sont des pistes à vérifier dans les parties sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.</p></div></details>
+    <details className="trends-reading-help"><summary>{t("Comment lire ces informations ?")}</summary><div><p>{t("Les filtres s’appliquent à toutes les rubriques sauf Comparer, qui possède ses propres sélections sur l’historique de l’équipe. Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des parties : une valeur par partie dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.")}</p><p>{t("KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.")}</p><p>{t("Les plans de jeu et objectifs sont des pistes à vérifier dans les parties sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.")}</p></div></details>
     {profileContractsOpen && <TrendContractsDialog objectives={profileAiObjectives} onClose={() => setProfileContractsOpen(false)} onOpenSources={openTrendSources} />}
     {trendSourceModal && <TrendSourcesDialog source={trendSourceModal} onClose={() => setTrendSourceModal(null)} onOpenGame={openSourceGame} signals={sourceGameSignals} read={sourceGameRead} />}
   </div>;

@@ -1,3 +1,5 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
 import React, { useId } from "react";
 import { ArrowRight, LockKeyhole } from "lucide-react";
 import { DISCOVERY_TRIAL_DAYS, PASS_FEATURES, getPassFeatureAccess } from "../../app/pass-access.js";
@@ -7,6 +9,7 @@ import "./pass-feature-gate.css";
 // An isolated visual preview: the blurred background contains decorative shapes only.
 // Never mount protected content beneath an overlay or treat a CSS blur as authorization.
 export function PassFeaturePreview({ feature = "workspace", onSubscribe }) {
+  useLanguage();
   const titleId = useId();
   const details = PASS_FEATURES[feature] || PASS_FEATURES.workspace;
   return (
@@ -19,11 +22,11 @@ export function PassFeaturePreview({ feature = "workspace", onSubscribe }) {
         </div>
         <div className="pass-feature-preview-message">
           <LockKeyhole aria-hidden="true" className="h-6 w-6 text-cyan-200" />
-          <Badge tone="purple">{details.label} · Pass Équipe</Badge>
-          <h2 id={titleId} className="text-2xl font-black leading-tight tracking-tight">Continue avec ton équipe</h2>
-          <p className="text-sm leading-6 text-slate-300">Après les {DISCOVERY_TRIAL_DAYS} jours de Découverte, prends le Pass Équipe pour {details.benefit}.</p>
-          <p className="text-sm font-bold text-cyan-100">9,90 € TTC / mois / équipe</p>
-          {onSubscribe ? <Button type="button" icon={ArrowRight} onClick={onSubscribe}>Prendre le Pass Équipe</Button> : <a href="/tarifs" className="nxt5-cyber-button nxt5-control nxt5-button-primary pass-feature-preview-link">Prendre le Pass Équipe<ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /></a>}
+          <Badge tone="purple">{t(details.label)}{t(" · Pass Équipe")}</Badge>
+          <h2 id={titleId} className="text-2xl font-black leading-tight tracking-tight">{t("Continue avec ton équipe")}</h2>
+          <p className="text-sm leading-6 text-slate-300">{t("Après les ")}{DISCOVERY_TRIAL_DAYS}{t(" jours de Découverte, prends le Pass Équipe pour ")}{t(details.benefit)}.</p>
+          <p className="text-sm font-bold text-cyan-100">{t("9,90 € TTC / mois / équipe")}</p>
+          {onSubscribe ? <Button type="button" icon={ArrowRight} onClick={onSubscribe}>{t("Prendre le Pass Équipe")}</Button> : <a href="/tarifs" className="nxt5-cyber-button nxt5-control nxt5-button-primary pass-feature-preview-link">{t("Prendre le Pass Équipe")}<ArrowRight aria-hidden="true" className="h-4 w-4 shrink-0" /></a>}
         </div>
       </section>
     </Surface>
@@ -31,6 +34,7 @@ export function PassFeaturePreview({ feature = "workspace", onSubscribe }) {
 }
 
 export default function PassFeatureGate({ feature = "workspace", hasTeamPass = false, hasActiveTrial = false, onSubscribe, children }) {
+  useLanguage();
   const access = getPassFeatureAccess(feature, { hasTeamPass, hasActiveTrial });
   if (access.allowed) return children;
   return <PassFeaturePreview feature={feature} onSubscribe={onSubscribe} />;

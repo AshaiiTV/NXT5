@@ -34,11 +34,33 @@ describe("imported game search", () => {
     expect(ids([raw], { query: "draft eclat ahri middle test" })).toEqual(["raw"]);
   });
 
-  it("finds both played/import dates in raw and French-readable forms", () => {
+  it("finds both played/import dates in raw and French, English and Spanish-readable forms", () => {
     const dated = game("dated", { raw: { info: { gameCreation: Date.parse("2026-08-25T12:00:00Z") } }, created_at: "2026-09-08T12:00:00Z" });
-    for (const query of ["25/08/2026", "25/08/26", "25 aout 2026", "2026-09-08", "8 septembre 2026", String(dated.raw.info.gameCreation)]) {
+    for (const query of ["25/08/2026", "25/08/26", "25 aout 2026", "25 August 2026", "25 de agosto de 2026", "2026-09-08", "8 septembre 2026", "8 September 2026", "8 de septiembre de 2026", String(dated.raw.info.gameCreation)]) {
       expect(ids([dated], { query })).toEqual(["dated"]);
     }
+  });
+
+  it("searches translated results and sides while keeping stored filter values and player names intact", () => {
+    const defeated = Object.freeze(game("defeated", { result: "Défaite", side: "Blue Side", raw: Object.freeze({ nxt5Label: "Victoire personnelle" }), participants: Object.freeze([Object.freeze({ champion: "Jinx", summoner_name: "Éclair", team_key: "ALLY" })]) }));
+    const victorious = Object.freeze(game("victorious", { result: "Victoire", side: "Red Side", participants: Object.freeze([Object.freeze({ champion: "Ahri", summoner_name: "Derrota", team_key: "ALLY" })]) }));
+    const unknown = Object.freeze(game("unknown", { result: "Analyse", side: "unknown", participants: Object.freeze([Object.freeze({ champion: "Jinx" })]) }));
+    const matches = Object.freeze([defeated, victorious, unknown]);
+    for (const query of ["Jinx Defeated", "eclair defeat blue", "Jinx loss", "Jinx derrota lado azul", "Jinx défaite côté bleu"]) {
+      const result = filterImportedGames(matches, { query, result: "Défaite", side: "blue" });
+      expect(result).toEqual([defeated]);
+      expect(result[0]).toBe(defeated);
+    }
+    for (const query of ["Ahri victory red", "Ahri win", "Ahri victoria rojo", "Ahri victoire rouge"]) {
+      expect(ids(matches, { query, result: "Victoire", side: "red" })).toEqual(["victorious"]);
+    }
+    expect(ids([unknown], { query: "Jinx defeat" })).toEqual([]);
+    expect(ids([unknown], { query: "rojo" })).toEqual([]);
+    expect(ids(matches, { query: "Victoire personnelle" })).toEqual(["defeated"]);
+    expect(ids(matches, { query: "Derrota Ahri" })).toEqual(["victorious"]);
+    expect(defeated.result).toBe("Défaite");
+    expect(defeated.side).toBe("Blue Side");
+    expect(victorious.participants[0].summoner_name).toBe("Derrota");
   });
 
   it("treats whitespace as an empty query and safely skips absent metadata", () => {

@@ -1,4 +1,6 @@
 import { getSocialLinks } from "../app/social-links.js";
+import { getLanguage, getLocale } from "../i18n/locale.js";
+import { t } from "../i18n/translate.js";
 
 export const SITE_ORIGIN = "https://nxt5.org";
 export const SOCIAL_IMAGE = "/og-nxt5.png";
@@ -88,13 +90,18 @@ export function normalizeSeoPath(path = "/") {
   return (path.split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/");
 }
 
-export function getMetadata(path = "/", { noindex = false, title, socialLinks = getSocialLinks() } = {}) {
+export function getMetadata(path = "/", { noindex = false, title, socialLinks = getSocialLinks(), language = "fr" } = {}) {
   path = normalizeSeoPath(path);
+  const translate = (value) => t(value, undefined, language);
+  const locale = getLocale(language);
   const entry = PUBLIC_METADATA[path];
   const metadata = {
     path,
-    title: entry?.title || PRIVATE_TITLES[path] || title || "Espace équipe — NXT5",
-    description: entry?.description || (path === "/404" ? "Cette page NXT5 est introuvable. Reviens à l’accueil pour découvrir les outils d’analyse et de préparation League of Legends." : "Connecte-toi à NXT5 pour retrouver ton équipe, tes parties et tes outils de préparation League of Legends."),
+    title: translate(entry?.title || PRIVATE_TITLES[path] || title || "Espace équipe — NXT5"),
+    description: translate(entry?.description || (path === "/404" ? "Cette page NXT5 est introuvable. Reviens à l’accueil pour découvrir les outils d’analyse et de préparation League of Legends." : "Connecte-toi à NXT5 pour retrouver ton équipe, tes parties et tes outils de préparation League of Legends.")),
+    language,
+    locale,
+    imageAlt: translate("NXT5 — Analyse de parties et préparation d’équipe League of Legends"),
     robots: noindex || !entry ? "noindex, follow" : "index, follow, max-image-preview:large",
     canonical: entry ? `${SITE_ORIGIN}${path}` : null,
     image: `${SITE_ORIGIN}${SOCIAL_IMAGE}`,
@@ -106,25 +113,25 @@ export function getMetadata(path = "/", { noindex = false, title, socialLinks = 
       "@graph": [
         {
           "@type": "Organization", "@id": `${SITE_ORIGIN}/#organization`, name: "NXT5", url: `${SITE_ORIGIN}/`,
-          description: "Projet indépendant d’analyse et de préparation pour les équipes League of Legends.",
+          description: translate("Projet indépendant d’analyse et de préparation pour les équipes League of Legends."),
           logo: { "@type": "ImageObject", url: `${SITE_ORIGIN}/assets/nxt5-logo.png` },
           sameAs: socialLinks.map(({ href }) => href),
         },
         {
-          "@type": "WebSite", "@id": `${SITE_ORIGIN}/#website`, name: "NXT5", url: `${SITE_ORIGIN}/`, inLanguage: "fr-FR",
+          "@type": "WebSite", "@id": `${SITE_ORIGIN}/#website`, name: "NXT5", url: `${SITE_ORIGIN}/`, inLanguage: locale,
           publisher: { "@id": `${SITE_ORIGIN}/#organization` },
         },
         {
           "@type": path === "/contact" ? "ContactPage" : "WebPage", "@id": `${metadata.canonical}#webpage`,
-          url: metadata.canonical, name: metadata.title, description: metadata.description, inLanguage: "fr-FR",
+          url: metadata.canonical, name: metadata.title, description: metadata.description, inLanguage: locale,
           isPartOf: { "@id": `${SITE_ORIGIN}/#website` },
           ...(path !== "/" ? { breadcrumb: { "@id": `${metadata.canonical}#breadcrumb` } } : {}),
         },
         ...(path === "/" ? [] : [{
           "@type": "BreadcrumbList", "@id": `${metadata.canonical}#breadcrumb`,
           itemListElement: [
-            { "@type": "ListItem", position: 1, name: "Accueil", item: `${SITE_ORIGIN}/` },
-            { "@type": "ListItem", position: 2, name: entry.label, item: metadata.canonical },
+            { "@type": "ListItem", position: 1, name: translate("Accueil"), item: `${SITE_ORIGIN}/` },
+            { "@type": "ListItem", position: 2, name: translate(entry.label), item: metadata.canonical },
           ],
         }]),
       ],
@@ -146,7 +153,7 @@ export function metadataTags(metadata) {
     ["name", "description", metadata.description],
     ["name", "robots", metadata.robots],
     ["property", "og:site_name", "NXT5"],
-    ["property", "og:locale", "fr_FR"],
+    ["property", "og:locale", (metadata.locale || "fr-FR").replace("-", "_")],
     ["property", "og:type", "website"],
     ["property", "og:title", metadata.title],
     ["property", "og:description", metadata.description],
@@ -155,12 +162,12 @@ export function metadataTags(metadata) {
     ["property", "og:image:type", "image/png"],
     ["property", "og:image:width", "1200"],
     ["property", "og:image:height", "630"],
-    ["property", "og:image:alt", "NXT5 — Analyse de parties et préparation d’équipe League of Legends"],
+    ["property", "og:image:alt", metadata.imageAlt || "NXT5 — Analyse de parties et préparation d’équipe League of Legends"],
     ["name", "twitter:card", "summary_large_image"],
     ["name", "twitter:title", metadata.title],
     ["name", "twitter:description", metadata.description],
     ["name", "twitter:image", metadata.image],
-    ["name", "twitter:image:alt", "NXT5 — Analyse de parties et préparation d’équipe League of Legends"],
+    ["name", "twitter:image:alt", metadata.imageAlt || "NXT5 — Analyse de parties et préparation d’équipe League of Legends"],
   ];
 }
 
@@ -176,8 +183,9 @@ export function renderMetadata(metadata) {
 
 export function applyDocumentMetadata(path, options = {}) {
   const noindex = Boolean(import.meta.env?.NXT5_NOINDEX) || window.location.origin !== SITE_ORIGIN;
-  const metadata = getMetadata(path, { ...options, noindex });
+  const metadata = getMetadata(path, { language: getLanguage(), ...options, noindex });
   document.title = metadata.title;
+  if (document.documentElement) document.documentElement.lang = metadata.language;
   document.head.querySelectorAll("[data-nxt5-seo]").forEach(element => element.remove());
   for (const [attribute, key, content] of metadataTags(metadata)) {
     const element = document.createElement("meta");

@@ -1,9 +1,10 @@
-const countFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 });
-const decimalFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 });
+import { getLocale } from "../../i18n/locale.js";
+const countFormat = () => new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 0 });
+const decimalFormat = () => new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 1 });
 
 export const finiteNumber = (value) => Number.isFinite(Number(value)) ? Number(value) : 0;
-export const audienceNumber = (value) => countFormat.format(finiteNumber(value));
-export const audienceDecimal = (value) => decimalFormat.format(finiteNumber(value));
+export const audienceNumber = (value) => countFormat().format(finiteNumber(value));
+export const audienceDecimal = (value) => decimalFormat().format(finiteNumber(value));
 export const audiencePercent = (value) => `${audienceDecimal(value)} %`;
 
 export function audienceDuration(value) {
@@ -14,7 +15,7 @@ export function audienceDuration(value) {
 
 export function audienceDate(value, { short = false, time = false } = {}) {
   if (!value || !Number.isFinite(Date.parse(value))) return "—";
-  return new Intl.DateTimeFormat("fr-FR", {
+  return new Intl.DateTimeFormat(getLocale(), {
     timeZone: "UTC", day: "numeric", month: short ? "short" : "long",
     ...(short ? {} : { year: "numeric" }), ...(time ? { hour: "2-digit", minute: "2-digit" } : {}),
   }).format(new Date(value));
@@ -50,7 +51,7 @@ export const sourceLabel = (value) => SOURCE_LABELS[value] || value || "Direct /
 export function countryLabel(value) {
   if (!value || value === "unknown" || value === "XX") return "Non déterminé";
   if (!/^[a-z]{2}$/i.test(value)) return value;
-  try { return new Intl.DisplayNames(["fr"], { type: "region" }).of(value.toUpperCase()) || value; }
+  try { return new Intl.DisplayNames([getLocale()], { type: "region" }).of(value.toUpperCase()) || value; }
   catch { return value; }
 }
 

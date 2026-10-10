@@ -1,3 +1,5 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
 import React, { useEffect, useRef, useState } from "react";
 import { LEGAL_VERSION } from "../../../shared/legal.js";
 import { Link2, Loader2, Lock, Mail, ShieldCheck, Unlink, UserPlus } from "lucide-react";
@@ -34,12 +36,14 @@ export function socialCallbackStatus(search = window.location.search) {
 }
 
 function Feedback({ children, success = false }) {
+  useLanguage();
   const ref = useRef(null);
   useEffect(() => { ref.current?.focus(); }, [children]);
   return <div ref={ref} tabIndex={-1} role={success ? "status" : "alert"} className={`nxt5-social-feedback ${success ? "is-success" : "is-error"}`}>{children}</div>;
 }
 
 export function SocialNotice({ status = socialCallbackStatus() }) {
+  useLanguage();
   const provider = providerLabel(new URLSearchParams(window.location.search).get("provider"));
   const messages = {
     linked: `Ton compte ${provider} est associé à NXT5. Tu peux l’utiliser pour te connecter.`,
@@ -50,16 +54,17 @@ export function SocialNotice({ status = socialCallbackStatus() }) {
     conflict: `Ce compte ${provider} est déjà associé à un autre compte NXT5. Connecte-toi à celui-ci pour gérer l’association.`,
     existing_account: "Un compte NXT5 existe déjà avec cette adresse. Connecte-toi à ton compte existant, puis associe ce service dans Paramètres.",
   };
-  return messages[status] ? <Feedback success={status === "linked"}>{messages[status]}</Feedback> : null;
+  return messages[status] ? <Feedback success={status === "linked"}>{t(messages[status])}</Feedback> : null;
 }
 
 function ProviderSignInButton({ provider, disabled, loading, onClick, linking = false }) {
+  useLanguage();
   const branded = provider.id === "google" || provider.id === "apple";
   const label = `Continuer avec ${provider.label}`;
-  if (!branded) return <Button type="button" variant="ghost" disabled={disabled} onClick={onClick} icon={loading ? Loader2 : undefined} className="w-full min-h-[52px]" aria-label={linking ? `Associer ${provider.label}` : undefined}>{loading ? `Ouverture de ${provider.label}…` : linking ? "Associer" : label}</Button>;
-  return <button type="button" className="nxt5-provider-button" data-provider={provider.id} disabled={disabled} aria-busy={loading || undefined} aria-label={linking ? `${label} pour associer ce compte` : undefined} onClick={onClick}>
+  if (!branded) return <Button type="button" variant="ghost" disabled={disabled} onClick={onClick} icon={loading ? Loader2 : undefined} className="w-full min-h-[52px]" aria-label={linking ? t("Associer {0}", [t(provider.label)]) : undefined}>{loading ? t("Ouverture de {0}…", [t(provider.label)]) : linking ? t("Associer") : t(label)}</Button>;
+  return <button type="button" className="nxt5-provider-button" data-provider={provider.id} disabled={disabled} aria-busy={loading || undefined} aria-label={linking ? t("{0} pour associer ce compte", [t(label)]) : undefined} onClick={onClick}>
     <img className="nxt5-provider-logo" src={provider.id === "google" ? "/assets/auth/google-g.svg" : "/assets/auth/apple-signin-black.svg"} alt="" aria-hidden="true" width={provider.id === "google" ? 20 : 31} height={provider.id === "google" ? 20 : 44} />
-    <span className="nxt5-provider-label">{label}</span>
+    <span className="nxt5-provider-label">{t(label)}</span>
     <span className="nxt5-provider-progress" aria-hidden="true">{loading && <Loader2 className="h-4 w-4 animate-spin" />}</span>
   </button>;
 }
@@ -76,6 +81,7 @@ async function startSocialFlow(provider, flow, rememberMe = false) {
 }
 
 export function SocialLogin({ flow = "login", rememberMe = false, disabled = false }) {
+  useLanguage();
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -102,18 +108,19 @@ export function SocialLogin({ flow = "login", rememberMe = false, disabled = fal
     catch (err) { setError(err.message || "La connexion n’a pas pu démarrer."); setBusy(""); inFlight.current = false; }
   }
 
-  if (loading) return <p className="nxt5-social-loading" role="status">Chargement des autres méthodes de connexion…</p>;
+  if (loading) return <p className="nxt5-social-loading" role="status">{t("Chargement des autres méthodes de connexion…")}</p>;
   if (!providers.length && !error) return null;
-  return <section className="nxt5-social-login" aria-label="Autres méthodes de connexion">
+  return <section className="nxt5-social-login" aria-label={t("Autres méthodes de connexion")}>
     {!!providers.length && <><div className="flex flex-col gap-2">
       {providers.map((provider) => <ProviderSignInButton key={provider.id} provider={provider} disabled={disabled || Boolean(busy)} loading={busy === provider.id} onClick={() => start(provider.id)} />)}
-    </div><p className="nxt5-social-divider">Ou avec ton e-mail</p></>}
-    {busy && <p className="mt-3 text-center text-sm text-slate-300" role="status">Ouverture de {providerLabel(busy)}…</p>}
-    {error && <div className="mt-3 space-y-2"><Feedback>{error}</Feedback>{!providers.length && <Button type="button" variant="ghost" onClick={() => setAttempt((value) => value + 1)}>Réessayer</Button>}</div>}
+    </div><p className="nxt5-social-divider">{t("Ou avec ton e-mail")}</p></>}
+    {busy && <p className="mt-3 text-center text-sm text-slate-300" role="status">{t("Ouverture de ")}{t(providerLabel(busy))}…</p>}
+    {error && <div className="mt-3 space-y-2"><Feedback>{t(error)}</Feedback>{!providers.length && <Button type="button" variant="ghost" onClick={() => setAttempt((value) => value + 1)}>{t("Réessayer")}</Button>}</div>}
   </section>;
 }
 
 export function SocialSignup({ onComplete, loginHref }) {
+  useLanguage();
   const [emailRequested, setEmailRequested] = useState(false);
   const [emailToken] = useState(() => new URLSearchParams((window.location.hash || "").replace(/^#/, "")).get("email_token") || "");
   const [pending, setPending] = useState(null);
@@ -160,32 +167,34 @@ export function SocialSignup({ onComplete, loginHref }) {
     } finally { setSaving(false); inFlight.current = false; }
   }
 
-  if (loading) return <p className="mt-5 text-sm text-slate-300" role="status">Préparation de ton inscription…</p>;
-  if (emailRequested) return <div className="nxt5-social-signup"><Feedback success>Vérifie ta boîte e-mail pour poursuivre. Ouvre le lien dans ce navigateur sous quinze minutes. Si aucun message n’arrive, recommence la connexion.</Feedback><a href={loginHref}>Revenir à la connexion</a></div>;
-  if (emailToken && pending) return <div className="nxt5-social-signup"><p className="nxt5-social-help">Confirme la création de ton compte avec {providerLabel(pending.provider)} et l’adresse e-mail que tu viens de vérifier.</p><form onSubmit={submit}>{error && <Feedback>{error}</Feedback>}<Button type="submit" disabled={saving} icon={saving ? Loader2 : ShieldCheck}>{saving ? "Confirmation…" : "Confirmer mon inscription"}</Button></form><a href={loginHref}>Revenir à la connexion</a></div>;
+  if (loading) return <p className="mt-5 text-sm text-slate-300" role="status">{t("Préparation de ton inscription…")}</p>;
+  if (emailRequested) return <div className="nxt5-social-signup"><Feedback success>{t("Vérifie ta boîte e-mail pour poursuivre. Ouvre le lien dans ce navigateur sous quinze minutes. Si aucun message n’arrive, recommence la connexion.")}</Feedback><a href={loginHref}>{t("Revenir à la connexion")}</a></div>;
+  if (emailToken && pending) return <div className="nxt5-social-signup"><p className="nxt5-social-help">{t("Confirme la création de ton compte avec ")}{t(providerLabel(pending.provider))}{t(" et l’adresse e-mail que tu viens de vérifier.")}</p><form onSubmit={submit}>{error && <Feedback>{t(error)}</Feedback>}<Button type="submit" disabled={saving} icon={saving ? Loader2 : ShieldCheck}>{saving ? t("Confirmation…") : t("Confirmer mon inscription")}</Button></form><a href={loginHref}>{t("Revenir à la connexion")}</a></div>;
   return <div className="nxt5-social-signup">
-    {pending && <><p className="flex items-start gap-2 text-sm leading-6 text-cyan-100"><ShieldCheck aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" /><span>Connexion avec {providerLabel(pending.provider)} confirmée. Choisis ton pseudo NXT5 pour terminer.</span></p>
+    {pending && <><p className="flex items-start gap-2 text-sm leading-6 text-cyan-100"><ShieldCheck aria-hidden="true" className="mt-1 h-4 w-4 shrink-0" /><span>{t("Connexion avec ")}{t(providerLabel(pending.provider))}{t(" confirmée. Choisis ton pseudo NXT5 pour terminer.")}</span></p>
       <form onSubmit={submit} className="nxt5-auth-form">
         <fieldset disabled={saving} className="min-w-0 space-y-4">
-          <TextInput label="Pseudo" value={form.displayName} onChange={(displayName) => setForm((current) => ({ ...current, displayName }))} placeholder="Ex : Joueur NXT5" required icon={UserPlus} autoComplete="nickname" />
-          <TextInput label="E-mail de récupération" value={form.email} onChange={(email) => setForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} autoComplete="email" />
-          {(!pending.emailVerified || form.email.trim().toLowerCase() !== pending.email?.toLowerCase()) && <p className="nxt5-social-help">Nous t’enverrons un lien pour vérifier cette adresse et protéger la récupération de ton compte.</p>}
+          <TextInput label={t("Pseudo")} value={form.displayName} onChange={(displayName) => setForm((current) => ({ ...current, displayName }))} placeholder={t("Ex : Joueur NXT5")} required icon={UserPlus} autoComplete="nickname" />
+          <TextInput label={t("E-mail de récupération")} value={form.email} onChange={(email) => setForm((current) => ({ ...current, email }))} placeholder="joueur@exemple.com" type="email" required icon={Mail} autoComplete="email" />
+          {(!pending.emailVerified || form.email.trim().toLowerCase() !== pending.email?.toLowerCase()) && <p className="nxt5-social-help">{t("Nous t’enverrons un lien pour vérifier cette adresse et protéger la récupération de ton compte.")}</p>}
           <LegalConsent checked={legalAccepted} onChange={setLegalAccepted} />
-          {error && <Feedback>{error}</Feedback>}
-          {collision && <a href={loginHref} className="block text-sm font-black text-cyan-200 underline underline-offset-4">Me connecter à mon compte existant</a>}
-          <Button type="submit" disabled={saving || !legalAccepted || !form.displayName.trim() || !form.email.trim()} icon={saving ? Loader2 : UserPlus} className="nxt5-auth-submit">{saving ? "Création…" : "Créer mon compte NXT5"}</Button>
+          {error && <Feedback>{t(error)}</Feedback>}
+          {collision && <a href={loginHref} className="block text-sm font-black text-cyan-200 underline underline-offset-4">{t("Me connecter à mon compte existant")}</a>}
+          <Button type="submit" disabled={saving || !legalAccepted || !form.displayName.trim() || !form.email.trim()} icon={saving ? Loader2 : UserPlus} className="nxt5-auth-submit">{saving ? t("Création…") : t("Créer mon compte NXT5")}</Button>
         </fieldset>
       </form></>}
-    {!pending && error && <Feedback>{error}</Feedback>}
-    <a href={loginHref} className="block text-center text-sm font-black text-cyan-200 hover:text-white">Revenir à la connexion</a>
+    {!pending && error && <Feedback>{t(error)}</Feedback>}
+    <a href={loginHref} className="block text-center text-sm font-black text-cyan-200 hover:text-white">{t("Revenir à la connexion")}</a>
   </div>;
 }
 
 export function LegalConsent({ checked, onChange }) {
-  return <label className="nxt5-auth-consent"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} required /><span>J’accepte les <a href="/conditions" target="_blank" rel="noopener noreferrer">conditions générales d’utilisation<span className="sr-only"> (nouvel onglet)</span></a>, le <a href="/reglement" target="_blank" rel="noopener noreferrer">règlement NXT5<span className="sr-only"> (nouvel onglet)</span></a> et reconnais avoir lu la <a href="/confidentialite" target="_blank" rel="noopener noreferrer">politique de confidentialité<span className="sr-only"> (nouvel onglet)</span></a> (version {LEGAL_VERSION}).</span></label>;
+  useLanguage();
+  return <label className="nxt5-auth-consent"><input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} required /><span>{t("J’accepte les ")}<a href="/conditions" target="_blank" rel="noopener noreferrer">{t("conditions générales d’utilisation")}<span className="sr-only">{t(" (nouvel onglet)")}</span></a>{t(", le ")}<a href="/reglement" target="_blank" rel="noopener noreferrer">{t("règlement NXT5")}<span className="sr-only">{t(" (nouvel onglet)")}</span></a>{t(" et reconnais avoir lu la ")}<a href="/confidentialite" target="_blank" rel="noopener noreferrer">{t("politique de confidentialité")}<span className="sr-only">{t(" (nouvel onglet)")}</span></a>{t(" (version ")}{LEGAL_VERSION}).</span></label>;
 }
 
 export function SocialAccounts({ onStatus }) {
+  useLanguage();
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -250,34 +259,33 @@ export function SocialAccounts({ onStatus }) {
   }
 
   return <Surface className="nxt5-social-connections xl:col-span-2">
-    <Badge tone="cyan">Connexions</Badge>
-    <h3 className="nxt5-social-title">Connexions associées</h3>
-    <p className="nxt5-social-description">Associe un service pour te reconnecter au même compte NXT5.{status?.providers?.some((provider) => provider.enabled === true) && ` Services disponibles : ${PROVIDERS.filter((provider) => status.providers.some((entry) => entry.id === provider.id && entry.enabled === true)).map((provider) => provider.label).join(", ")}.`}</p>
+    <Badge tone="cyan">{t("Connexions")}</Badge>
+    <h3 className="nxt5-social-title">{t("Connexions associées")}</h3>
+    <p className="nxt5-social-description">{t("Associe un service pour te reconnecter au même compte NXT5.")}{status?.providers?.some((provider) => provider.enabled === true) && t(" Services disponibles : {0}.", [PROVIDERS.filter((provider) => status.providers.some((entry) => entry.id === provider.id && entry.enabled === true)).map((provider) => provider.label).join(", ")])}</p>
     {socialCallbackStatus() && <div className="mt-4"><SocialNotice /></div>}
-    {loading && <p className="mt-4 text-sm text-slate-300" role="status">Chargement des comptes associés…</p>}
-    {error && <div className="mt-4"><Feedback>{error}</Feedback>{!status && <Button type="button" variant="ghost" className="mt-3" onClick={() => setAttempt((value) => value + 1)}>Réessayer</Button>}</div>}
-    {success && <div className="mt-4"><Feedback success>{success}</Feedback></div>}
+    {loading && <p className="mt-4 text-sm text-slate-300" role="status">{t("Chargement des comptes associés…")}</p>}
+    {error && <div className="mt-4"><Feedback>{t(error)}</Feedback>{!status && <Button type="button" variant="ghost" className="mt-3" onClick={() => setAttempt((value) => value + 1)}>{t("Réessayer")}</Button>}</div>}
+    {success && <div className="mt-4"><Feedback success>{t(success)}</Feedback></div>}
     {status && <div className="nxt5-social-connection-list">
       {PROVIDERS.map((provider) => {
         const available = status.providers?.some((entry) => entry.id === provider.id && entry.enabled === true);
         const linked = status.linked?.find((entry) => entry.provider === provider.id);
         return <div key={provider.id} className="nxt5-social-connection">
           <div className="nxt5-social-connection-row">
-            <div className="min-w-0"><p className="flex flex-wrap items-center gap-2 font-black text-white">{provider.label}{linked && <Badge tone="cyan">Associé</Badge>}</p>
-              <p className="mt-1 break-words text-sm leading-6 text-slate-300">{linked ? linked.displayName || `Ton compte ${provider.label}` : available ? "Aucun compte associé" : "Service non disponible"}</p>
-              {linked && !available && <p className="nxt5-social-help">La connexion avec ce service est temporairement indisponible.</p>}
+            <div className="min-w-0"><p className="flex flex-wrap items-center gap-2 font-black text-white">{t(provider.label)}{linked && <Badge tone="cyan">{t("Associé")}</Badge>}</p>
+              <p className="mt-1 break-words text-sm leading-6 text-slate-300">{linked ? linked.displayName || t("Ton compte {0}", [t(provider.label)]) : available ? t("Aucun compte associé") : t("Service non disponible")}</p>
+              {linked && !available && <p className="nxt5-social-help">{t("La connexion avec ce service est temporairement indisponible.")}</p>}
             </div>
-            {linked ? <Button type="button" variant="ghost" icon={Unlink} disabled={Boolean(busy) || !status.hasPassword || unlinkProvider === provider.id} onClick={(event) => { trigger.current = event.currentTarget; setUnlinkProvider(provider.id); setPassword(""); setSuccess(""); setError(""); }} aria-label={`Dissocier ${provider.label}`}>Dissocier</Button>
-              : available && (provider.id === "google" || provider.id === "apple") ? <div className="nxt5-provider-link-action"><ProviderSignInButton provider={provider} linking disabled={Boolean(busy) || Boolean(unlinkProvider)} loading={busy === provider.id} onClick={() => link(provider.id)} /></div> : <Button type="button" variant="ghost" icon={busy === provider.id ? Loader2 : Link2} disabled={!available || Boolean(busy) || Boolean(unlinkProvider)} onClick={() => link(provider.id)} aria-label={`Associer ${provider.label}`}>{busy === provider.id ? "Ouverture…" : available ? "Associer" : "Indisponible"}</Button>}
+            {linked ? <Button type="button" variant="ghost" icon={Unlink} disabled={Boolean(busy) || !status.hasPassword || unlinkProvider === provider.id} onClick={(event) => { trigger.current = event.currentTarget; setUnlinkProvider(provider.id); setPassword(""); setSuccess(""); setError(""); }} aria-label={t("Dissocier {0}", [t(provider.label)])}>{t("Dissocier")}</Button> : available && (provider.id === "google" || provider.id === "apple") ? <div className="nxt5-provider-link-action"><ProviderSignInButton provider={provider} linking disabled={Boolean(busy) || Boolean(unlinkProvider)} loading={busy === provider.id} onClick={() => link(provider.id)} /></div> : <Button type="button" variant="ghost" icon={busy === provider.id ? Loader2 : Link2} disabled={!available || Boolean(busy) || Boolean(unlinkProvider)} onClick={() => link(provider.id)} aria-label={t("Associer {0}", [t(provider.label)])}>{busy === provider.id ? t("Ouverture…") : available ? t("Associer") : t("Indisponible")}</Button>}
           </div>
           {unlinkProvider === provider.id && <form onSubmit={unlink} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); cancelUnlink(); } }} className="nxt5-social-unlink">
-            <p className="text-sm leading-6 text-slate-300">Après la dissociation de {provider.label}, ton e-mail et ton mot de passe NXT5 te permettront de te connecter.</p>
-            <TextInput label="Mot de passe NXT5" value={password} onChange={setPassword} type="password" required autoFocus autoComplete="current-password" icon={Lock} disabled={Boolean(busy)} />
-            <div className="flex flex-wrap gap-2"><Button type="submit" variant="danger" disabled={!password || Boolean(busy)} icon={busy ? Loader2 : Unlink}>{busy ? "Dissociation…" : `Dissocier ${provider.label}`}</Button><Button type="button" variant="ghost" onClick={cancelUnlink} disabled={Boolean(busy)}>Annuler</Button></div>
+            <p className="text-sm leading-6 text-slate-300">{t("Après la dissociation de ")}{t(provider.label)}{t(", ton e-mail et ton mot de passe NXT5 te permettront de te connecter.")}</p>
+            <TextInput label={t("Mot de passe NXT5")} value={password} onChange={setPassword} type="password" required autoFocus autoComplete="current-password" icon={Lock} disabled={Boolean(busy)} />
+            <div className="flex flex-wrap gap-2"><Button type="submit" variant="danger" disabled={!password || Boolean(busy)} icon={busy ? Loader2 : Unlink}>{busy ? t("Dissociation…") : t("Dissocier {0}", [t(provider.label)])}</Button><Button type="button" variant="ghost" onClick={cancelUnlink} disabled={Boolean(busy)}>{t("Annuler")}</Button></div>
           </form>}
         </div>;
       })}
     </div>}
-    {status && !status.hasPassword && <p className="mt-4 border-t border-white/10 pt-4 text-sm leading-6 text-slate-300">Crée d’abord un mot de passe NXT5 depuis la section Sécurité pour pouvoir dissocier un service ou modifier ton e-mail. Un lien sera envoyé à ton adresse.</p>}
+    {status && !status.hasPassword && <p className="mt-4 border-t border-white/10 pt-4 text-sm leading-6 text-slate-300">{t("Crée d’abord un mot de passe NXT5 depuis la section Sécurité pour pouvoir dissocier un service ou modifier ton e-mail. Un lien sera envoyé à ton adresse.")}</p>}
   </Surface>;
 }

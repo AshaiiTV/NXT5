@@ -1,5 +1,12 @@
 .administration-shell { min-height: 100vh; color: var(--nxt5-text); background: radial-gradient(ellipse at 10% 0%, #12334438, transparent 40%), radial-gradient(ellipse 55rem 35rem at 100% 0%, rgba(139, 92, 246, .12), transparent 70%), var(--nxt5-bg); }
 .administration-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; max-width: 1680px; margin: auto; padding: 20px 32px; border-bottom: 1px solid var(--nxt5-border); }
+.administration-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0; }
+@media (max-width: 640px) {
+  .administration-header { flex-wrap: wrap; }
+  .administration-header-actions { display: contents; }
+  .administration-header-actions > a { order: 3; flex-basis: 100%; }
+  .administration-brand { flex: 1; }
+}
 .administration-brand { display: flex; align-items: center; gap: 24px; min-width: 0; }
 .administration-brand > a { flex-shrink: 0; }
 .administration-brand h1 { padding-left: 24px; border-left: 1px solid var(--nxt5-border-strong); font-size: var(--nxt5-font-body); font-weight: 650; letter-spacing: .01em; }

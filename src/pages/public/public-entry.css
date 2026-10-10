@@ -13,8 +13,8 @@
   margin-inline: auto;
 }
 .nxt5-entry-header {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -23,7 +23,8 @@
   border-bottom: 1px solid rgba(207, 250, 254, .09);
 }
 .nxt5-entry-header > a img { width: 136px; height: auto; aspect-ratio: 1115 / 350; filter: none; }
-.nxt5-entry-header-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 1.5rem; min-width: 0; row-gap: .5rem; }
+.nxt5-entry-header-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 1.5rem; min-width: 0; row-gap: .5rem; }
+.nxt5-entry-header > .nxt5-language-switcher { grid-column: 3; grid-row: 1; }
 .nxt5-entry-header-link,
 .nxt5-entry-text-link {
   display: inline-flex;
@@ -169,7 +170,7 @@
   .nxt5-entry-main, .nxt5-entry-header { width: min(100% - 2.5rem, 36rem); }
   .nxt5-entry-header { min-height: 88px; padding-block: .7rem; }
   .nxt5-entry-header > a img { width: 120px; height: auto; }
-  .nxt5-entry-header-actions { gap: 1rem; }
+  .nxt5-entry-header-actions { grid-column: 1 / -1; grid-row: 2; gap: 1rem; }
   .nxt5-entry-header-link { font-size: var(--nxt5-font-ui); }
   .nxt5-home-page .nxt5-entry-header-link { display: none; }
   .nxt5-entry-hero { grid-template-columns: minmax(0, 1fr); gap: 2.5rem; padding-block: 2.5rem 3rem; }
