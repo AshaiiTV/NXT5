@@ -16,7 +16,7 @@ La présence d’un correctif sur `main` ne prouve pas sa mise en production. Po
 
 ## Signaler une vulnérabilité en privé
 
-Pour signaler une vulnérabilité en privé, écrire à **[sachad.d91@gmail.com](mailto:sachad.d91@gmail.com)**, contact de Sacha Degouzon, éditeur de NXT5. La [page Contact NXT5](https://nxt5.org/contact) rappelle cette adresse et donne aussi accès au serveur Discord officiel : un message privé à l’équipe NXT5 identifiée sur ce serveur reste possible. Le lien d’invitation et les salons communautaires ne constituent pas un canal privé. Si le contact privé est indisponible, demander simplement à joindre l’équipe, sans publier les détails de la faille.
+Pour signaler une vulnérabilité en privé, écrire à **[contact@nxt5.org](mailto:contact@nxt5.org)**, contact de Sacha Degouzon, éditeur de NXT5. La [page Contact NXT5](https://nxt5.org/contact) rappelle cette adresse et donne aussi accès au serveur Discord officiel : un message privé à l’équipe NXT5 identifiée sur ce serveur reste possible. Le lien d’invitation et les salons communautaires ne constituent pas un canal privé. Si le contact privé est indisponible, demander simplement à joindre l’équipe, sans publier les détails de la faille.
 
 Ne pas ouvrir d’issue publique ni publier de preuve d’exploitation, de données d’équipe ou de compte dans une pull request ou un salon Discord public. L’adresse e-mail sert aussi aux autres demandes privées liées à NXT5 ; aucune clé de chiffrement n’est publiée. Cette politique ne suppose pas que le signalement privé de vulnérabilités GitHub soit activé.
 
