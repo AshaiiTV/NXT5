@@ -1,3 +1,6 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
+import { getLocale } from "../../i18n/locale.js";
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Check, ExternalLink, Eye, Loader2, Megaphone, Plus, RefreshCw, Send } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
@@ -25,7 +28,7 @@ function newReference() {
 }
 function announcementDate(value) {
   return value && Number.isFinite(Date.parse(value))
-    ? new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
+    ? new Intl.DateTimeFormat(getLocale(), { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
     : "Date indisponible";
 }
 function safeDiscordLink(value, kind) {
@@ -36,8 +39,9 @@ function safeDiscordLink(value, kind) {
   } catch { return ""; }
 }
 function DiscordLink({ href, kind, children }) {
+  useLanguage();
   const safeHref = safeDiscordLink(href, kind);
-  return safeHref ? <a className="community-announcement-link" href={safeHref} target="_blank" rel="noopener noreferrer">{children}<ExternalLink size={15} aria-hidden="true" /><span className="sr-only"> (nouvel onglet)</span></a> : null;
+  return safeHref ? <a className="community-announcement-link" href={safeHref} target="_blank" rel="noopener noreferrer">{children}<ExternalLink size={15} aria-hidden="true" /><span className="sr-only">{t(" (nouvel onglet)")}</span></a> : null;
 }
 function validData(value) {
   return value && Array.isArray(value.guilds) && value.guilds.every(guild => typeof guild.id === "string" && Array.isArray(guild.channels))
@@ -56,13 +60,15 @@ function checkedResult(value, snapshot) {
   return combinedResult(snapshot.reference, value.results.map(item => ({ ...snapshot.destinations.find(destination => sameDestination(item, destination)), ...item })));
 }
 function ResultsList({ results }) {
+  useLanguage();
   return <ul className="community-announcement-receipts">{results.map(item => {
     const [label, tone] = STATUS_LABELS[item.status] || ["État inconnu", "slate"];
-    return <li key={item.guildId}><div><strong>{item.guildName || `Serveur ${item.guildId}`}</strong><p>#{item.channelName || item.channelId}</p>{item.error && <p>{item.error}</p>}<DiscordLink href={item.messageUrl}>Voir le message Discord</DiscordLink></div><Badge tone={tone}>{label}</Badge></li>;
+    return <li key={item.guildId}><div><strong>{item.guildName || t("Serveur {0}", [item.guildId])}</strong><p>#{item.channelName || item.channelId}</p>{item.error && <p>{t(item.error)}</p>}<DiscordLink href={item.messageUrl}>{t("Voir le message Discord")}</DiscordLink></div><Badge tone={tone}>{t(label)}</Badge></li>;
   })}</ul>;
 }
 
 export default function CommunityAnnouncementsPanel() {
+  useLanguage();
   const id = useId();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -263,68 +269,68 @@ export default function CommunityAnnouncementsPanel() {
 
   return <Surface className="community-announcements"><section aria-labelledby={`${id}-title`}>
     <header className="community-announcements-heading">
-      <div><h3 id={`${id}-title`}><Megaphone size={20} aria-hidden="true" />Annonces communautaires</h3><p>Publie la même annonce sur un ou plusieurs serveurs où le bot est installé.</p></div>
-      <Button type="button" variant="ghost" icon={RefreshCw} onClick={refresh} disabled={loading || Boolean(busy)}>{loading ? "Chargement des serveurs…" : "Actualiser les serveurs"}</Button>
+      <div><h3 id={`${id}-title`}><Megaphone size={20} aria-hidden="true" />{t("Annonces communautaires")}</h3><p>{t("Publie la même annonce sur un ou plusieurs serveurs où le bot est installé.")}</p></div>
+      <Button type="button" variant="ghost" icon={RefreshCw} onClick={refresh} disabled={loading || Boolean(busy)}>{loading ? t("Chargement des serveurs…") : t("Actualiser les serveurs")}</Button>
     </header>
-    {loadError && <div className="community-announcement-notice is-error" role="alert"><strong>{data ? "L’actualisation des serveurs a échoué." : "Annonces indisponibles."}</strong><p>{loadError}</p>{data && <p>Les dernières informations restent affichées.</p>}</div>}
-    {error && <div className="community-announcement-notice is-error" role="alert">{error}</div>}
-    {loading && !data && <p className="community-announcement-help" role="status">Chargement des serveurs du bot et de leurs salons…</p>}
+    {loadError && <div className="community-announcement-notice is-error" role="alert"><strong>{data ? t("L’actualisation des serveurs a échoué.") : t("Annonces indisponibles.")}</strong><p>{t(loadError)}</p>{data && <p>{t("Les dernières informations restent affichées.")}</p>}</div>}
+    {error && <div className="community-announcement-notice is-error" role="alert">{t(error)}</div>}
+    {loading && !data && <p className="community-announcement-help" role="status">{t("Chargement des serveurs du bot et de leurs salons…")}</p>}
     {data && <>
-      {!data.community?.joined && <div className="community-announcement-notice"><strong>Ajoute le bot à ton serveur communauté</strong><p>Le serveur NXT5 indiqué sur la page Contact n’accueille pas encore le bot. Invite-le, puis actualise les serveurs pour choisir son salon.</p><DiscordLink kind="install" href={data.community?.installUrl}>Inviter le bot sur le serveur communauté</DiscordLink><p>L’autorisation s’ouvre dans Discord et demande la permission Administrateur. Tu dois pouvoir gérer ce serveur.</p></div>}
+      {!data.community?.joined && <div className="community-announcement-notice"><strong>{t("Ajoute le bot à ton serveur communauté")}</strong><p>{t("Le serveur NXT5 indiqué sur la page Contact n’accueille pas encore le bot. Invite-le, puis actualise les serveurs pour choisir son salon.")}</p><DiscordLink kind="install" href={data.community?.installUrl}>{t("Inviter le bot sur le serveur communauté")}</DiscordLink><p>{t("L’autorisation s’ouvre dans Discord et demande la permission Administrateur. Tu dois pouvoir gérer ce serveur.")}</p></div>}
       <fieldset className="community-announcement-servers" aria-describedby={`${id}-servers-help`}>
-        <legend>Serveurs destinataires</legend>
-        <p className="community-announcement-help" id={`${id}-servers-help`}>Coche les serveurs, puis choisis un salon pour chacun. Jusqu’à {MAX_SERVERS} serveurs par annonce.</p>
-        {!data.guilds.length && <p className="community-announcement-help">Aucun serveur disponible. Invite le bot, puis actualise cette liste.</p>}
+        <legend>{t("Serveurs destinataires")}</legend>
+        <p className="community-announcement-help" id={`${id}-servers-help`}>{t("Coche les serveurs, puis choisis un salon pour chacun. Jusqu’à ")}{MAX_SERVERS}{t(" serveurs par annonce.")}</p>
+        {!data.guilds.length && <p className="community-announcement-help">{t("Aucun serveur disponible. Invite le bot, puis actualise cette liste.")}</p>}
         {data.guilds.map(guild => {
           const selected = destinations.find(item => item.guildId === guild.id);
           const unavailable = Boolean(guild.error) || !guild.channels.some(channel => channel.canSend);
           return <div className="community-announcement-guild" key={guild.id}>
             <label className="community-announcement-guild-choice"><input type="checkbox" checked={Boolean(selected)} onChange={event => toggleGuild(guild, event.target.checked)}
-              disabled={locked || busy === "configure" || (!selected && (unavailable || destinations.length >= MAX_SERVERS))} /><span><strong>{guild.name || guild.id}</strong>{guild.id === data.community?.guildId && <small>Serveur communauté · Contact</small>}</span></label>
-            {guild.error && <p className="community-announcement-help">{guild.error}</p>}
-            {!guild.error && unavailable && <p className="community-announcement-help">Aucun salon autorisé. Vérifie les permissions du bot, puis actualise les serveurs.</p>}
-            {selected && <SelectInput label={`Salon d’annonces · ${guild.name || guild.id}`} value={selected.channelId} onChange={value => change(setDestinations, destinations.map(item => item.guildId === guild.id ? { ...item, channelId: value } : item))} disabled={locked || busy === "configure"}>
-              <option value="">Choisir un salon</option>
-              {selected.channelId && !guild.channels.some(item => item.id === selected.channelId) && <option value={selected.channelId} disabled>Salon enregistré indisponible</option>}
-              {guild.channels.map(channel => <option key={channel.id} value={channel.id} disabled={!channel.canSend}>#{channel.name || channel.id}{!channel.canSend ? " · Envoi non autorisé" : ""}</option>)}
+              disabled={locked || busy === "configure" || (!selected && (unavailable || destinations.length >= MAX_SERVERS))} /><span><strong>{guild.name || guild.id}</strong>{guild.id === data.community?.guildId && <small>{t("Serveur communauté · Contact")}</small>}</span></label>
+            {guild.error && <p className="community-announcement-help">{t(guild.error)}</p>}
+            {!guild.error && unavailable && <p className="community-announcement-help">{t("Aucun salon autorisé. Vérifie les permissions du bot, puis actualise les serveurs.")}</p>}
+            {selected && <SelectInput label={t("Salon d’annonces · {0}", [guild.name || guild.id])} value={selected.channelId} onChange={value => change(setDestinations, destinations.map(item => item.guildId === guild.id ? { ...item, channelId: value } : item))} disabled={locked || busy === "configure"}>
+              <option value="">{t("Choisir un salon")}</option>
+              {selected.channelId && !guild.channels.some(item => item.id === selected.channelId) && <option value={selected.channelId} disabled>{t("Salon enregistré indisponible")}</option>}
+              {guild.channels.map(channel => <option key={channel.id} value={channel.id} disabled={!channel.canSend}>#{channel.name || channel.id}{!channel.canSend ? t(" · Envoi non autorisé") : ""}</option>)}
             </SelectInput>}
           </div>;
         })}
-        {destinations.filter(item => !data.guilds.some(guild => guild.id === item.guildId)).map(item => <div className="community-announcement-guild" key={item.guildId}><label className="community-announcement-guild-choice"><input type="checkbox" checked onChange={() => change(setDestinations, destinations.filter(destination => destination.guildId !== item.guildId))} disabled={locked || busy === "configure"} /><span>Serveur {item.guildId} indisponible</span></label><p className="community-announcement-help">Actualise les serveurs ou retire cette destination avant de continuer.</p></div>)}
+        {destinations.filter(item => !data.guilds.some(guild => guild.id === item.guildId)).map(item => <div className="community-announcement-guild" key={item.guildId}><label className="community-announcement-guild-choice"><input type="checkbox" checked onChange={() => change(setDestinations, destinations.filter(destination => destination.guildId !== item.guildId))} disabled={locked || busy === "configure"} /><span>{t("Serveur ")}{item.guildId}{t(" indisponible")}</span></label><p className="community-announcement-help">{t("Actualise les serveurs ou retire cette destination avant de continuer.")}</p></div>)}
       </fieldset>
-      <div className="community-announcement-actions"><Button type="button" variant="ghost" icon={busy === "configure" ? Loader2 : Check} onClick={configure} disabled={loading || Boolean(busy) || !destinationChanged || !validDestinations}>{busy === "configure" ? "Enregistrement…" : result ? "Rétablir les destinations de cet envoi" : "Enregistrer les destinations"}</Button><DiscordLink kind="install" href={data.installUrl}>Ajouter le bot à un autre serveur</DiscordLink></div>
-      <p className="community-announcement-help">{!destinations.length ? "Sélectionne au moins un serveur pour préparer l’aperçu." : !validDestinations ? "Choisis un salon autorisé pour chaque serveur sélectionné." : destinationChanged ? "Enregistre ces destinations avant de préparer l’aperçu." : `${destinations.length} serveur${destinations.length > 1 ? "s" : ""} sélectionné${destinations.length > 1 ? "s" : ""}. L’envoi aura lieu uniquement après ta confirmation de l’aperçu.`}</p>
-      {notice && <p className="community-announcement-notice" role="status">{notice}</p>}
+      <div className="community-announcement-actions"><Button type="button" variant="ghost" icon={busy === "configure" ? Loader2 : Check} onClick={configure} disabled={loading || Boolean(busy) || !destinationChanged || !validDestinations}>{busy === "configure" ? t("Enregistrement…") : result ? t("Rétablir les destinations de cet envoi") : t("Enregistrer les destinations")}</Button><DiscordLink kind="install" href={data.installUrl}>{t("Ajouter le bot à un autre serveur")}</DiscordLink></div>
+      <p className="community-announcement-help">{!destinations.length ? t("Sélectionne au moins un serveur pour préparer l’aperçu.") : !validDestinations ? t("Choisis un salon autorisé pour chaque serveur sélectionné.") : destinationChanged ? t("Enregistre ces destinations avant de préparer l’aperçu.") : t("{0} serveur{1} sélectionné{2}. L’envoi aura lieu uniquement après ta confirmation de l’aperçu.", [destinations.length, destinations.length > 1 ? "s" : "", destinations.length > 1 ? "s" : ""])}</p>
+      {notice && <p className="community-announcement-notice" role="status">{t(notice)}</p>}
       <form className="community-announcement-editor" onSubmit={preparePreview}>
-        <TextInput label="Identifiant de l’annonce" value={reference} onChange={value => change(setReference, value)} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._\-]{0,79}" required disabled={locked} aria-describedby={`${id}-reference-help`} />
-        <p className="community-announcement-help" id={`${id}-reference-help`}>Conservé pour chaque serveur lors d’une vérification ou d’une reprise, afin d’éviter les doublons.</p>
-        <TextAreaInput label="Texte de l’annonce (Markdown Discord)" value={content} onChange={value => change(setContent, value)} rows={10} maxLength={MAX_CONTENT} required disabled={locked} placeholder="Rédige ou colle ton annonce ici…" aria-describedby={`${id}-content-help`} />
-        <div className="community-announcement-editor-meta" id={`${id}-content-help`}><p>Les mentions ne déclenchent aucune notification.</p><span>{content.length} / {MAX_CONTENT} caractères</span></div>
-        {!locked && <div className="community-announcement-actions"><Button type="submit" variant={preview ? "ghost" : "primary"} icon={busy === "preview" ? Loader2 : Eye} disabled={loading || Boolean(busy) || !configured || !validContent}>{busy === "preview" ? "Préparation de l’aperçu…" : "Préparer l’aperçu"}</Button><p>L’aperçu ne publie aucun message.</p></div>}
+        <TextInput label={t("Identifiant de l’annonce")} value={reference} onChange={value => change(setReference, value)} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9._\-]{0,79}" required disabled={locked} aria-describedby={`${id}-reference-help`} />
+        <p className="community-announcement-help" id={`${id}-reference-help`}>{t("Conservé pour chaque serveur lors d’une vérification ou d’une reprise, afin d’éviter les doublons.")}</p>
+        <TextAreaInput label={t("Texte de l’annonce (Markdown Discord)")} value={content} onChange={value => change(setContent, value)} rows={10} maxLength={MAX_CONTENT} required disabled={locked} placeholder={t("Rédige ou colle ton annonce ici…")} aria-describedby={`${id}-content-help`} />
+        <div className="community-announcement-editor-meta" id={`${id}-content-help`}><p>{t("Les mentions ne déclenchent aucune notification.")}</p><span>{content.length} / {MAX_CONTENT}{t(" caractères")}</span></div>
+        {!locked && <div className="community-announcement-actions"><Button type="submit" variant={preview ? "ghost" : "primary"} icon={busy === "preview" ? Loader2 : Eye} disabled={loading || Boolean(busy) || !configured || !validContent}>{busy === "preview" ? t("Préparation de l’aperçu…") : t("Préparer l’aperçu")}</Button><p>{t("L’aperçu ne publie aucun message.")}</p></div>}
       </form>
       {preview && <section className="community-announcement-preview" aria-labelledby={`${id}-preview-title`}>
-        <h4 id={`${id}-preview-title`} ref={previewRef} tabIndex={-1}>Aperçu de l’annonce</h4>
+        <h4 id={`${id}-preview-title`} ref={previewRef} tabIndex={-1}>{t("Aperçu de l’annonce")}</h4>
         <ul className="community-announcement-targets">{preview.destinations.map(item => <li key={item.guildId}><strong>{item.guildName || item.guildId}</strong> · #{item.channelName || item.channelId}</li>)}</ul>
-        <p className="community-announcement-help">Texte exact à publier. La mise en forme Markdown sera appliquée dans Discord.</p><pre>{preview.content}</pre>
-        <div className="community-announcement-actions"><Button type="button" icon={busy === "publish" ? Loader2 : Send} onClick={publish} disabled={loading || Boolean(busy) || !configured}>{busy === "publish" ? "Publication…" : result ? "Reprendre les envois sur Discord" : "Publier sur Discord"}</Button><p>{result ? "Seuls les envois en attente ou en échec seront tentés. Les messages déjà envoyés ou à vérifier ne sont pas renvoyés." : `Cette action publie dans les ${preview.destinations.length === 1 ? "serveur et salon indiqués" : `${preview.destinations.length} serveurs indiqués`}.`}</p></div>
+        <p className="community-announcement-help">{t("Texte exact à publier. La mise en forme Markdown sera appliquée dans Discord.")}</p><pre>{preview.content}</pre>
+        <div className="community-announcement-actions"><Button type="button" icon={busy === "publish" ? Loader2 : Send} onClick={publish} disabled={loading || Boolean(busy) || !configured}>{busy === "publish" ? t("Publication…") : result ? t("Reprendre les envois sur Discord") : t("Publier sur Discord")}</Button><p>{result ? t("Seuls les envois en attente ou en échec seront tentés. Les messages déjà envoyés ou à vérifier ne sont pas renvoyés.") : t("Cette action publie dans les {0}.", [preview.destinations.length === 1 ? t("serveur et salon indiqués") : t("{0} serveurs indiqués", [preview.destinations.length])])}</p></div>
       </section>}
       {result && <div ref={resultRef} tabIndex={-1} role="status" className={`community-announcement-notice ${result.status === "sent" ? "is-success" : "is-uncertain"}`}>
-        <strong>{result.status === "sent" ? "Annonce publiée sur tous les serveurs sélectionnés." : result.status === "failed" ? "Les envois ont échoué." : "Publication à compléter ou à vérifier."}</strong>
-        <p>Identifiant : {result.reference}</p><ResultsList results={result.results} />
+        <strong>{result.status === "sent" ? t("Annonce publiée sur tous les serveurs sélectionnés.") : result.status === "failed" ? t("Les envois ont échoué.") : t("Publication à compléter ou à vérifier.")}</strong>
+        <p>{t("Identifiant : ")}{result.reference}</p><ResultsList results={result.results} />
         <div className="community-announcement-actions">
-          {result.results.some(item => ["sending", "uncertain"].includes(item.status)) && <Button type="button" variant="ghost" icon={busy === "recover" ? Loader2 : RefreshCw} onClick={() => recover(result.reference)} disabled={loading || Boolean(busy)}>Vérifier le résultat</Button>}
-          {result.results.some(item => ["failed", "queued"].includes(item.status)) && !preview && <Button type="button" variant="ghost" icon={Eye} onClick={() => preparePreview(null, true)} disabled={loading || Boolean(busy) || !configured}>Préparer la reprise des envois</Button>}
-          {!pendingResult(result) && <Button type="button" variant="ghost" icon={Plus} onClick={startNew} disabled={Boolean(busy)}>Nouvelle annonce</Button>}
+          {result.results.some(item => ["sending", "uncertain"].includes(item.status)) && <Button type="button" variant="ghost" icon={busy === "recover" ? Loader2 : RefreshCw} onClick={() => recover(result.reference)} disabled={loading || Boolean(busy)}>{t("Vérifier le résultat")}</Button>}
+          {result.results.some(item => ["failed", "queued"].includes(item.status)) && !preview && <Button type="button" variant="ghost" icon={Eye} onClick={() => preparePreview(null, true)} disabled={loading || Boolean(busy) || !configured}>{t("Préparer la reprise des envois")}</Button>}
+          {!pendingResult(result) && <Button type="button" variant="ghost" icon={Plus} onClick={startNew} disabled={Boolean(busy)}>{t("Nouvelle annonce")}</Button>}
         </div>
       </div>}
-      <details className="community-announcement-history"><summary>Derniers envois · {Math.min(data.announcements.length, 20)}</summary>
+      <details className="community-announcement-history"><summary>{t("Derniers envois · ")}{Math.min(data.announcements.length, 20)}</summary>
         {data.announcements.length ? <ol>{data.announcements.slice(0, 20).map(item => {
           const [label, tone] = STATUS_LABELS[item.status] || ["État inconnu", "slate"];
           const guild = data.guilds.find(value => value.id === item.guildId);
           const name = guild?.channels.find(value => value.id === item.channelId)?.name;
           const checking = checkingReference === `${item.reference}:${item.guildId}`;
-          return <li key={item.id || `${item.reference}:${item.guildId}`}><div><strong>{item.reference}</strong><p>{item.guildName || guild?.name || `Serveur ${item.guildId}`} · #{item.channelName || name || item.channelId}</p><p><time dateTime={item.createdAt || undefined}>{announcementDate(item.createdAt)}</time></p><DiscordLink href={item.messageUrl}>Voir le message Discord</DiscordLink>{["uncertain", "sending"].includes(item.status) && <div className="community-announcement-actions"><Button type="button" variant="ghost" icon={checking ? Loader2 : RefreshCw} onClick={() => recover(item.reference, item.guildId)} disabled={loading || Boolean(busy)} aria-label={`Vérifier ${item.reference} sur ${item.guildName || guild?.name || item.guildId}`}>{checking ? "Vérification…" : "Vérifier cet envoi"}</Button></div>}{["queued", "failed"].includes(item.status) && <div className="community-announcement-actions"><Button type="button" variant="ghost" icon={RefreshCw} onClick={() => restore(item.reference)} disabled={loading || Boolean(busy) || Boolean(content.trim()) || Boolean(result)}>Reprendre cette annonce</Button>{(content.trim() || result) && <p className="community-announcement-help">Termine ou vide le brouillon en cours avant de reprendre cette annonce.</p>}</div>}</div><Badge tone={tone}>{label}</Badge></li>;
-        })}</ol> : <p className="community-announcement-help">Aucune annonce enregistrée.</p>}
+          return <li key={item.id || `${item.reference}:${item.guildId}`}><div><strong>{item.reference}</strong><p>{item.guildName || guild?.name || t("Serveur {0}", [item.guildId])} · #{item.channelName || name || item.channelId}</p><p><time dateTime={item.createdAt || undefined}>{announcementDate(item.createdAt)}</time></p><DiscordLink href={item.messageUrl}>{t("Voir le message Discord")}</DiscordLink>{["uncertain", "sending"].includes(item.status) && <div className="community-announcement-actions"><Button type="button" variant="ghost" icon={checking ? Loader2 : RefreshCw} onClick={() => recover(item.reference, item.guildId)} disabled={loading || Boolean(busy)} aria-label={t("Vérifier {0} sur {1}", [item.reference, item.guildName || guild?.name || item.guildId])}>{checking ? t("Vérification…") : t("Vérifier cet envoi")}</Button></div>}{["queued", "failed"].includes(item.status) && <div className="community-announcement-actions"><Button type="button" variant="ghost" icon={RefreshCw} onClick={() => restore(item.reference)} disabled={loading || Boolean(busy) || Boolean(content.trim()) || Boolean(result)}>{t("Reprendre cette annonce")}</Button>{(content.trim() || result) && <p className="community-announcement-help">{t("Termine ou vide le brouillon en cours avant de reprendre cette annonce.")}</p>}</div>}</div><Badge tone={tone}>{t(label)}</Badge></li>;
+        })}</ol> : <p className="community-announcement-help">{t("Aucune annonce enregistrée.")}</p>}
       </details>
     </>}
   </section></Surface>;

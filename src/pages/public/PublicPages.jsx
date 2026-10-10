@@ -1,3 +1,5 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
 import React, { useEffect, useRef, useState } from "react";
 import { LEGAL_UPDATED_LABEL, LEGAL_VERSION, NXT5_CONTACT_EMAIL, NXT5_EDITOR_NAME } from "../../../shared/legal.js";
 import { ArrowRight, ArrowUpRight, BarChart3, Check, ChevronDown, ChevronRight, FileText, Heart, Loader2, Lock, Mail, Shield, Target, UserPlus, Users } from "lucide-react";
@@ -7,6 +9,7 @@ import { cx, readRememberPreference, writeRememberPreference } from "../../app/h
 import { isSafeInternalPath } from "../../app/routing.js";
 import { SUPPORT_URL } from "../../app/support.js";
 import { Nxt5Wordmark } from "../../components/brand/BrandAssets.jsx";
+import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
 import { LegalConsent, SocialLogin, SocialNotice, SocialSignup, socialCallbackStatus, socialReturnContext } from "../../components/account/SocialAccounts.jsx";
@@ -14,15 +17,17 @@ import "./public-information.css";
 import "./public-entry.css";
 import { DemoMatchSummary } from "./DemoMatchSummary.jsx";
 function MarketingPreview({ navigate }) {
+  useLanguage();
   return (
     <figure className="nxt5-entry-preview">
       <DemoMatchSummary compact />
-      <figcaption><PublicTextLink href="/demo" navigate={navigate}>Explorer cette séance fictive dans la démo <ArrowRight aria-hidden="true" size={16} /></PublicTextLink></figcaption>
+      <figcaption><PublicTextLink href="/demo" navigate={navigate}>{t("Explorer cette séance fictive dans la démo ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink></figcaption>
     </figure>
   );
 }
 
 export function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate, target, rel, ...props }) {
+  useLanguage();
   const base = "nxt5-cyber-button nxt5-control inline-flex min-h-11 min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-semibold leading-5 transition duration-200";
   const variants = {
     primary: "nxt5-button-primary border",
@@ -40,6 +45,7 @@ export function LinkButton({ href, children, icon: Icon, variant = "primary", cl
 }
 
 export function SiteHeader({ children, navigate, simple = false }) {
+  useLanguage();
   function goHome(event) {
     if (!navigate) return;
     event.preventDefault();
@@ -48,8 +54,9 @@ export function SiteHeader({ children, navigate, simple = false }) {
 
   return (
     <header className="nxt5-entry-header">
-      <a href="/" onClick={goHome} aria-label="Accueil NXT5" className="shrink-0 transition hover:opacity-90"><Nxt5Wordmark className="nxt5-entry-wordmark" sizes="(max-width: 767px) 120px, 136px" loading="eager" /></a>
+      <a href="/" onClick={goHome} aria-label={t("Accueil NXT5")} className="shrink-0 transition hover:opacity-90"><Nxt5Wordmark className="nxt5-entry-wordmark" sizes="(max-width: 767px) 120px, 136px" loading="eager" /></a>
       {children && <div className="nxt5-entry-header-actions">{children}</div>}
+      <LanguageSwitcher />
     </header>
   );
 }
@@ -61,6 +68,7 @@ const INFORMATION_GROUPS = [
 ];
 
 export function PublicTextLink({ href, navigate, children, ...props }) {
+  useLanguage();
   function go(event) {
     if (event.defaultPrevented || !navigate || !isSafeInternalPath(href) || props.target === "_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault();
@@ -70,12 +78,13 @@ export function PublicTextLink({ href, navigate, children, ...props }) {
 }
 
 export function PublicInformationNav({ navigate, activePath }) {
+  useLanguage();
   return (
-    <nav aria-label="Rubriques d’information" className="nxt5-information-nav">
+    <nav aria-label={t("Rubriques d’information")} className="nxt5-information-nav">
       {INFORMATION_GROUPS.map((group) => (
         <PublicTextLink key={group.href} href={group.href} navigate={navigate}
           aria-current={group.pages.some(([path]) => path === activePath) ? "location" : undefined}>
-          {group.label}
+          {t(group.label)}
         </PublicTextLink>
       ))}
     </nav>
@@ -83,29 +92,30 @@ export function PublicInformationNav({ navigate, activePath }) {
 }
 
 export function LegalLinks({ navigate }) {
+  useLanguage();
   return (
     <footer className="nxt5-footer">
       <div className="nxt5-footer-main">
         <div className="nxt5-footer-project">
-          <p className="nxt5-footer-signature">Cinq rôles. Une même direction.</p>
-          {SUPPORT_URL && <PublicTextLink href="/soutenir" navigate={navigate} className="nxt5-footer-support"><Heart aria-hidden="true" size={16} />Soutenir NXT5</PublicTextLink>}
+          <p className="nxt5-footer-signature">{t("Cinq rôles. Une même direction.")}</p>
+          {SUPPORT_URL && <PublicTextLink href="/soutenir" navigate={navigate} className="nxt5-footer-support"><Heart aria-hidden="true" size={16} />{t("Soutenir NXT5")}</PublicTextLink>}
         </div>
         <div className="min-w-0">
-          <nav aria-label="Découvrir NXT5">
-            <PublicTextLink href="/fonctionnalites" navigate={navigate}>Fonctionnalités</PublicTextLink>
-            <PublicTextLink href="/demo" navigate={navigate}>Démonstration</PublicTextLink>
-            <PublicTextLink href="/guides/importer-premier-scrim" navigate={navigate}>Guide d’import</PublicTextLink>
-            <PublicTextLink href="/guides/preparer-debrief" navigate={navigate}>Guide de débrief</PublicTextLink>
+          <nav aria-label={t("Découvrir NXT5")}>
+            <PublicTextLink href="/fonctionnalites" navigate={navigate}>{t("Fonctionnalités")}</PublicTextLink>
+            <PublicTextLink href="/demo" navigate={navigate}>{t("Démonstration")}</PublicTextLink>
+            <PublicTextLink href="/guides/importer-premier-scrim" navigate={navigate}>{t("Guide d’import")}</PublicTextLink>
+            <PublicTextLink href="/guides/preparer-debrief" navigate={navigate}>{t("Guide de débrief")}</PublicTextLink>
           </nav>
-          <nav aria-label="Informations et contact">
+          <nav aria-label={t("Informations et contact")}>
             {INFORMATION_GROUPS.map(({ href, label }) => (
-              <PublicTextLink key={href} href={href} navigate={navigate}>{label}</PublicTextLink>
+              <PublicTextLink key={href} href={href} navigate={navigate}>{t(label)}</PublicTextLink>
             ))}
-            <button type="button" onClick={openCookieSettings} aria-haspopup="dialog" className="inline-flex min-h-11 items-center text-left text-xs font-semibold text-slate-100 hover:text-cyan-200 hover:underline hover:underline-offset-[5px]">Gérer mes cookies</button>
+            <button type="button" onClick={openCookieSettings} aria-haspopup="dialog" className="inline-flex min-h-11 items-center text-left text-xs font-semibold text-slate-100 hover:text-cyan-200 hover:underline hover:underline-offset-[5px]">{t("Gérer mes cookies")}</button>
           </nav>
         </div>
       </div>
-      <p className="nxt5-footer-disclaimer">NXT5 n’est pas affilié à Riot Games.</p>
+      <p className="nxt5-footer-disclaimer">{t("NXT5 n’est pas affilié à Riot Games.")}</p>
     </footer>
   );
 }
@@ -261,6 +271,7 @@ export const LEGAL_PAGES = {
 };
 
 export function LegalPage({ route, navigate, user }) {
+  useLanguage();
   const page = LEGAL_PAGES[route.path] || LEGAL_PAGES["/mentions-legales"];
   const group = INFORMATION_GROUPS.find((item) => item.pages.some(([path]) => path === route.path)) || INFORMATION_GROUPS[0];
   const sectionId = (index) => `document-${route.path.replace(/\//g, "")}-${index + 1}`;
@@ -268,59 +279,55 @@ export function LegalPage({ route, navigate, user }) {
     <div className="nxt5-information-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
-        {user ? (
-          <LinkButton href="/equipes" navigate={navigate} icon={ArrowRight}>Mon équipe</LinkButton>
-        ) : (
-          <>
-            <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
-            <LinkButton href="/creer-un-compte" navigate={navigate}>Créer un compte</LinkButton>
-          </>
-        )}
+        {user ? (<LinkButton href="/equipes" navigate={navigate} icon={ArrowRight}>{t("Mon équipe")}</LinkButton>) : (<>
+            <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">{t("Se connecter")}</LinkButton>
+            <LinkButton href="/creer-un-compte" navigate={navigate}>{t("Créer un compte")}</LinkButton>
+          </>)}
       </SiteHeader>
       <main className="nxt5-information-main">
         <PublicInformationNav navigate={navigate} activePath={route.path} />
         <header className="nxt5-information-hero nxt5-enter">
-          <Badge tone="cyan">{page.eyebrow}</Badge>
-          <h1 id="document-title" className="nxt5-metal-text">{page.title}</h1>
-          <p>{page.intro}</p>
-          {!page.contact && <div className="nxt5-document-meta"><FileText aria-hidden="true" size={16} /><span>Version applicable : {LEGAL_VERSION}</span></div>}
+          <Badge tone="cyan">{t(page.eyebrow)}</Badge>
+          <h1 id="document-title" className="nxt5-metal-text">{t(page.title)}</h1>
+          <p>{t(page.intro)}</p>
+          {!page.contact && <div className="nxt5-document-meta"><FileText aria-hidden="true" size={16} /><span>{t("Version applicable : ")}{LEGAL_VERSION}</span></div>}
         </header>
         <div className="nxt5-legal-layout">
           <aside className="nxt5-document-sidebar">
-            <nav aria-label={group.label} className="nxt5-document-menu">
-              <p className="nxt5-information-label">Dans cette rubrique</p>
+            <nav aria-label={t(group.label)} className="nxt5-document-menu">
+              <p className="nxt5-information-label">{t("Dans cette rubrique")}</p>
               {group.pages.map(([href, label]) => (
                 <PublicTextLink key={href} href={href} navigate={navigate} aria-current={route.path === href ? "page" : undefined}>
-                  <span>{label}</span><ChevronRight aria-hidden="true" size={16} />
+                  <span>{t(label)}</span><ChevronRight aria-hidden="true" size={16} />
                 </PublicTextLink>
               ))}
             </nav>
             <details key={route.path} className="nxt5-document-outline">
-              <summary>Sommaire du document<ChevronDown aria-hidden="true" size={16} /></summary>
-              <nav aria-label="Sommaire du document">
+              <summary>{t("Sommaire du document")}<ChevronDown aria-hidden="true" size={16} /></summary>
+              <nav aria-label={t("Sommaire du document")}>
                 <ol>{page.sections.map(([title], index) => (
-                  <li key={title}><a href={`#${sectionId(index)}`}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>{title}</a></li>
+                  <li key={title}><a href={`#${sectionId(index)}`}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>{t(title)}</a></li>
                 ))}</ol>
               </nav>
             </details>
-            {!page.contact && <PublicTextLink href="/contact" navigate={navigate} className="nxt5-document-help">Une question ? Contacte l’équipe<ArrowRight aria-hidden="true" size={16} /></PublicTextLink>}
+            {!page.contact && <PublicTextLink href="/contact" navigate={navigate} className="nxt5-document-help">{t("Une question ? Contacte l’équipe")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink>}
           </aside>
           <Surface className="nxt5-document-surface">
             <article aria-labelledby="document-title" className="nxt5-document-body">
               {page.sections.map(([title, text], index) => (
                 <section id={sectionId(index)} key={title} tabIndex={-1} className="nxt5-document-section">
-                  <h2><span aria-hidden="true" className="nxt5-section-number">{String(index + 1).padStart(2, "0")}</span>{title}</h2>
-                  <p>{text}</p>
+                  <h2><span aria-hidden="true" className="nxt5-section-number">{String(index + 1).padStart(2, "0")}</span>{t(title)}</h2>
+                  <p>{t(text)}</p>
                 </section>
               ))}
               {!!page.resources?.length && <section className="nxt5-document-resources">
-                <h2>Références et garanties</h2>
+                <h2>{t("Références et garanties")}</h2>
                 <ul>{page.resources.map(([label, href]) => (
-                  <li key={href}><a href={href} target="_blank" rel="noopener noreferrer"><span>{label}<span className="sr-only"> (nouvel onglet)</span></span><ArrowUpRight aria-hidden="true" size={16} /></a></li>
+                  <li key={href}><a href={href} target="_blank" rel="noopener noreferrer"><span>{t(label)}<span className="sr-only">{t(" (nouvel onglet)")}</span></span><ArrowUpRight aria-hidden="true" size={16} /></a></li>
                 ))}</ul>
               </section>}
-              {page.contact && <div className="nxt5-document-contact"><LinkButton href="/reseaux" navigate={navigate} icon={Users}>Réseaux et contact NXT5</LinkButton><p>Retrouve le lien Discord officiel et les conseils pour contacter l’équipe en privé.</p></div>}
-              <a href="#document-title" className="nxt5-back-to-top">Retour en haut du document</a>
+              {page.contact && <div className="nxt5-document-contact"><LinkButton href="/reseaux" navigate={navigate} icon={Users}>{t("Réseaux et contact NXT5")}</LinkButton><p>{t("Retrouve le lien Discord officiel et les conseils pour contacter l’équipe en privé.")}</p></div>}
+              <a href="#document-title" className="nxt5-back-to-top">{t("Retour en haut du document")}</a>
             </article>
           </Surface>
         </div>
@@ -331,51 +338,52 @@ export function LegalPage({ route, navigate, user }) {
 }
 
 export function HomeScreen({ navigate }) {
+  useLanguage();
   return (
     <div className="nxt5-entry-page nxt5-home-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate} simple>
-        <PublicTextLink href="/fonctionnalites" navigate={navigate} className="nxt5-entry-header-link">Fonctionnalités</PublicTextLink>
-        <PublicTextLink href="/demo" navigate={navigate} className="nxt5-entry-header-link">Démonstration</PublicTextLink>
-        {SUPPORT_URL && <PublicTextLink href="/soutenir" navigate={navigate} className="nxt5-entry-header-link">Soutenir NXT5</PublicTextLink>}
-        <LinkButton href="/connexion" navigate={navigate} variant="ghost">Se connecter</LinkButton>
+        <PublicTextLink href="/fonctionnalites" navigate={navigate} className="nxt5-entry-header-link">{t("Fonctionnalités")}</PublicTextLink>
+        <PublicTextLink href="/demo" navigate={navigate} className="nxt5-entry-header-link">{t("Démonstration")}</PublicTextLink>
+        {SUPPORT_URL && <PublicTextLink href="/soutenir" navigate={navigate} className="nxt5-entry-header-link">{t("Soutenir NXT5")}</PublicTextLink>}
+        <LinkButton href="/connexion" navigate={navigate} variant="ghost">{t("Se connecter")}</LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main">
         <section className="nxt5-entry-hero" aria-labelledby="home-title">
           <div className="nxt5-entry-hero-copy">
-            <p className="nxt5-entry-eyebrow">League of Legends · Équipes et coachs</p>
-            <h1 id="home-title">Comprends tes parties.<br /><span>Prépare la suite.</span></h1>
-            <p className="nxt5-entry-lead">NXT5 est l’espace de travail des équipes et coachs League of Legends : analyse les parties, prépare les débriefs et organise les entraînements au même endroit.</p>
+            <p className="nxt5-entry-eyebrow">{t("League of Legends · Équipes et coachs")}</p>
+            <h1 id="home-title">{t("Comprends tes parties.")}<br /><span>{t("Prépare la suite.")}</span></h1>
+            <p className="nxt5-entry-lead">{t("NXT5 est l’espace de travail des équipes et coachs League of Legends : analyse les parties, prépare les débriefs et organise les entraînements au même endroit.")}</p>
             <div className="nxt5-entry-actions">
-              <LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight}>Créer mon espace</LinkButton>
-              <LinkButton href="/demo" navigate={navigate} variant="ghost">Essayer la démo</LinkButton>
+              <LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight}>{t("Créer mon espace")}</LinkButton>
+              <LinkButton href="/demo" navigate={navigate} variant="ghost">{t("Essayer la démo")}</LinkButton>
             </div>
-            <p className="nxt5-entry-hero-note"><strong>Accès actuellement gratuit. Aucun abonnement activé.</strong><br />Explore la démo sur tout écran. Pour importer tes parties, utilise un ordinateur Windows ou Mac avec League of Legends ouvert.</p>
+            <p className="nxt5-entry-hero-note"><strong>{t("Accès actuellement gratuit. Aucun abonnement activé.")}</strong><br />{t("Explore la démo sur tout écran. Pour importer tes parties, utilise un ordinateur Windows ou Mac avec League of Legends ouvert.")}</p>
           </div>
           <MarketingPreview navigate={navigate} />
         </section>
 
         <section id="features" className="nxt5-entry-features" aria-labelledby="features-title">
           <div className="nxt5-entry-section-heading">
-            <p className="nxt5-entry-eyebrow">Un espace de travail commun</p>
-            <h2 id="features-title">Tes joueurs, tes parties,<br />tes prochains entraînements.</h2>
-            <p>Des statistiques de partie aux décisions de coaching, garde un fil commun entre les joueurs et l’encadrement.</p>
+            <p className="nxt5-entry-eyebrow">{t("Un espace de travail commun")}</p>
+            <h2 id="features-title">{t("Tes joueurs, tes parties,")}<br />{t("tes prochains entraînements.")}</h2>
+            <p>{t("Des statistiques de partie aux décisions de coaching, garde un fil commun entre les joueurs et l’encadrement.")}</p>
           </div>
           <div className="nxt5-entry-feature-list">
             {[
               [Users, "Organise l’équipe", "Ajoute les joueurs et leur rôle, puis partage les disponibilités. Chacun retrouve les prochaines séances dans le planning."],
               [BarChart3, "Comprends tes parties", "Importe une partie pour lire son résultat, les statistiques et les moments clés. Compare ensuite plusieurs parties dans Analyses."],
               [Target, "Prépare la prochaine séance", "Note les points à travailler dans un débrief. Prépare les choix de champions avec ton équipe dans Draft."],
-            ].map(([Icon, title, text], index) => <article className="nxt5-entry-feature" key={title}><div className="nxt5-entry-feature-heading"><Icon aria-hidden="true" size={23} /><span>0{index + 1}</span></div><h3>{title}</h3><p>{text}</p></article>)}
+            ].map(([Icon, title, text], index) => <article className="nxt5-entry-feature" key={title}><div className="nxt5-entry-feature-heading"><Icon aria-hidden="true" size={23} /><span>0{index + 1}</span></div><h3>{t(title)}</h3><p>{t(text)}</p></article>)}
           </div>
-          <div className="nxt5-entry-actions"><PublicTextLink href="/fonctionnalites" navigate={navigate} className="nxt5-entry-text-link">Découvrir les outils d’analyse et de coaching<ArrowRight aria-hidden="true" size={16} /></PublicTextLink></div>
+          <div className="nxt5-entry-actions"><PublicTextLink href="/fonctionnalites" navigate={navigate} className="nxt5-entry-text-link">{t("Découvrir les outils d’analyse et de coaching")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink></div>
         </section>
 
         <section id="workflow" className="nxt5-entry-workflow" aria-labelledby="workflow-title">
           <div className="nxt5-entry-section-heading">
-            <p className="nxt5-entry-eyebrow">Pour commencer</p>
-            <h2 id="workflow-title">De ta première équipe<br />au premier débrief.</h2>
-            <p>Le site rassemble les faits. Ton équipe décide des points à travailler.</p>
+            <p className="nxt5-entry-eyebrow">{t("Pour commencer")}</p>
+            <h2 id="workflow-title">{t("De ta première équipe")}<br />{t("au premier débrief.")}</h2>
+            <p>{t("Le site rassemble les faits. Ton équipe décide des points à travailler.")}</p>
           </div>
           <ol className="nxt5-entry-steps">
             {[
@@ -383,14 +391,14 @@ export function HomeScreen({ navigate }) {
               ["Importe une partie", "Sur Windows ou Mac, NXT5 Importer prépare le fichier JSON. Vérifie les cinq joueurs avant de confirmer."],
               ["Repère les écarts", "Commence par le résumé, puis ouvre les détails utiles."],
               ["Prépare un débrief", "Garde vos observations et les points à travailler ensemble."],
-            ].map(([title, text], index) => <li key={title}><span>0{index + 1}</span><div><h3>{title}</h3><p>{text}</p></div></li>)}
+            ].map(([title, text], index) => <li key={title}><span>0{index + 1}</span><div><h3>{t(title)}</h3><p>{t(text)}</p></div></li>)}
           </ol>
-          <div className="nxt5-entry-actions"><PublicTextLink href="/guides/importer-premier-scrim" navigate={navigate} className="nxt5-entry-text-link">Importer mon premier scrim <ArrowRight aria-hidden="true" size={16} /></PublicTextLink><PublicTextLink href="/guides/preparer-debrief" navigate={navigate} className="nxt5-entry-text-link">Préparer un débrief utile <ArrowRight aria-hidden="true" size={16} /></PublicTextLink></div>
+          <div className="nxt5-entry-actions"><PublicTextLink href="/guides/importer-premier-scrim" navigate={navigate} className="nxt5-entry-text-link">{t("Importer mon premier scrim ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink><PublicTextLink href="/guides/preparer-debrief" navigate={navigate} className="nxt5-entry-text-link">{t("Préparer un débrief utile ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink></div>
         </section>
 
         <section className="nxt5-entry-start" aria-labelledby="start-title">
-          <div><p className="nxt5-entry-eyebrow">À toi de commencer</p><h2 id="start-title">Retrouve ton équipe sur NXT5.</h2><p>Crée ton compte, puis ouvre ou rejoins ton espace équipe.</p></div>
-          <LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight}>Créer un compte</LinkButton>
+          <div><p className="nxt5-entry-eyebrow">{t("À toi de commencer")}</p><h2 id="start-title">{t("Retrouve ton équipe sur NXT5.")}</h2><p>{t("Crée ton compte, puis ouvre ou rejoins ton espace équipe.")}</p></div>
+          <LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight}>{t("Créer un compte")}</LinkButton>
         </section>
       </main>
       <LegalLinks navigate={navigate} />
@@ -399,21 +407,22 @@ export function HomeScreen({ navigate }) {
 }
 
 export function NotFoundPage({ navigate }) {
+  useLanguage();
   return (
     <div className="nxt5-entry-page nxt5-auth-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
-        <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
-        <LinkButton href="/creer-un-compte" navigate={navigate}>Créer un compte</LinkButton>
+        <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">{t("Se connecter")}</LinkButton>
+        <LinkButton href="/creer-un-compte" navigate={navigate}>{t("Créer un compte")}</LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
         <Surface className="nxt5-auth-card">
           <Badge tone="red">404</Badge>
-          <h1>Page introuvable</h1>
-          <p className="nxt5-auth-intro">Cette URL ne correspond à aucune page NXT5. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.</p>
+          <h1>{t("Page introuvable")}</h1>
+          <p className="nxt5-auth-intro">{t("Cette URL ne correspond à aucune page NXT5. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.")}</p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <LinkButton href="/" navigate={navigate} variant="ghost">Retour accueil</LinkButton>
-            <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Se connecter</LinkButton>
+            <LinkButton href="/" navigate={navigate} variant="ghost">{t("Retour accueil")}</LinkButton>
+            <LinkButton href="/connexion" navigate={navigate} icon={Lock}>{t("Se connecter")}</LinkButton>
           </div>
         </Surface>
       </main>
@@ -423,6 +432,7 @@ export function NotFoundPage({ navigate }) {
 }
 
 export function ForgotPasswordPage({ navigate }) {
+  useLanguage();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -454,20 +464,20 @@ export function ForgotPasswordPage({ navigate }) {
     <div className="nxt5-entry-page nxt5-auth-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate} simple>
-        <PublicTextLink href={loginHref} navigate={navigate} className="nxt5-entry-header-link">Retour à la connexion</PublicTextLink>
+        <PublicTextLink href={loginHref} navigate={navigate} className="nxt5-entry-header-link">{t("Retour à la connexion")}</PublicTextLink>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
         <Surface className="nxt5-auth-card">
-          <p className="nxt5-entry-eyebrow">Récupération du compte</p>
-          <h1>Mot de passe oublié ?</h1>
-          <p className="nxt5-auth-intro">Entre l’e-mail de ton compte pour recevoir un lien de réinitialisation.</p>
+          <p className="nxt5-entry-eyebrow">{t("Récupération du compte")}</p>
+          <h1>{t("Mot de passe oublié ?")}</h1>
+          <p className="nxt5-auth-intro">{t("Entre l’e-mail de ton compte pour recevoir un lien de réinitialisation.")}</p>
           <form onSubmit={submit} className="nxt5-auth-form">
-            <TextInput label="E-mail du compte" value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" autoComplete="email" required icon={Mail} />
-            {message && <div role="status" className="nxt5-auth-notice is-success">{message}</div>}
-            {error && <div role="alert" className="nxt5-auth-notice is-error">{error}</div>}
-            <Button type="submit" disabled={loading || !email.trim()} icon={loading ? Loader2 : Mail} className="nxt5-auth-submit">{loading ? "Envoi..." : "Envoyer le lien"}</Button>
+            <TextInput label={t("E-mail du compte")} value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" autoComplete="email" required icon={Mail} />
+            {message && <div role="status" className="nxt5-auth-notice is-success">{t(message)}</div>}
+            {error && <div role="alert" className="nxt5-auth-notice is-error">{t(error)}</div>}
+            <Button type="submit" disabled={loading || !email.trim()} icon={loading ? Loader2 : Mail} className="nxt5-auth-submit">{loading ? "Envoi..." : t("Envoyer le lien")}</Button>
           </form>
-          <p className="nxt5-auth-alternative"><PublicTextLink href={loginHref} navigate={navigate}>Retour à la connexion</PublicTextLink></p>
+          <p className="nxt5-auth-alternative"><PublicTextLink href={loginHref} navigate={navigate}>{t("Retour à la connexion")}</PublicTextLink></p>
         </Surface>
       </main>
       <LegalLinks navigate={navigate} />
@@ -476,6 +486,7 @@ export function ForgotPasswordPage({ navigate }) {
 }
 
 export function ResetPasswordPage({ navigate, onAuth }) {
+  useLanguage();
   const token = new URLSearchParams(window.location.search).get("token") || "";
   const [form, setForm] = useState({ nextPassword: "", confirmPassword: "" });
   const [loading, setLoading] = useState(false);
@@ -506,28 +517,22 @@ export function ResetPasswordPage({ navigate, onAuth }) {
     <div className="nxt5-entry-page nxt5-auth-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
-        <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">Se connecter</LinkButton>
+        <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">{t("Se connecter")}</LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
         <Surface className="nxt5-auth-card">
-          <Badge tone="purple">Nouveau mot de passe</Badge>
-          <h1>Réinitialiser le mot de passe</h1>
-          {!token ? (
-            <div className="mt-6 space-y-4"><p role="alert" className="nxt5-auth-notice is-error">Ce lien de réinitialisation est incomplet. Demande un nouveau lien pour retrouver l’accès à ton compte.</p><LinkButton href="/mot-de-passe-oublie" navigate={navigate}>Demander un nouveau lien</LinkButton></div>
-          ) : done ? (
-            <div className="mt-6 space-y-4">
-              <div role="status" className="nxt5-auth-notice is-success">Mot de passe mis à jour. Connecte-toi avec ton e-mail et ce mot de passe, puis associe à nouveau tes comptes externes dans Paramètres.</div>
-              <LinkButton href="/connexion" navigate={navigate} icon={Lock}>Se connecter</LinkButton>
-            </div>
-          ) : (
-            <form onSubmit={submit} className="nxt5-auth-form">
-              <p className="text-sm leading-6 text-slate-300">Cette opération ferme tes sessions et dissocie toutes tes connexions externes associées. Tu pourras les associer à nouveau après ta connexion avec ton nouveau mot de passe.</p>
-              <TextInput label="Nouveau mot de passe" value={form.nextPassword} onChange={(nextPassword) => setForm((current) => ({ ...current, nextPassword }))} placeholder="8 caractères minimum" type="password" required icon={Shield} />
-              <TextInput label="Confirmer" value={form.confirmPassword} onChange={(confirmPassword) => setForm((current) => ({ ...current, confirmPassword }))} placeholder="Répète le nouveau mot de passe" type="password" required icon={Check} />
-              {error && <div role="alert" className="nxt5-auth-notice is-error">{error}</div>}
-              <Button type="submit" disabled={loading || !form.nextPassword || !form.confirmPassword} icon={loading ?Loader2 : Shield} className="nxt5-auth-submit">{loading ?"Mise à jour..." : "Changer le mot de passe"}</Button>
-            </form>
-          )}
+          <Badge tone="purple">{t("Nouveau mot de passe")}</Badge>
+          <h1>{t("Réinitialiser le mot de passe")}</h1>
+          {!token ? (<div className="mt-6 space-y-4"><p role="alert" className="nxt5-auth-notice is-error">{t("Ce lien de réinitialisation est incomplet. Demande un nouveau lien pour retrouver l’accès à ton compte.")}</p><LinkButton href="/mot-de-passe-oublie" navigate={navigate}>{t("Demander un nouveau lien")}</LinkButton></div>) : done ? (<div className="mt-6 space-y-4">
+              <div role="status" className="nxt5-auth-notice is-success">{t("Mot de passe mis à jour. Connecte-toi avec ton e-mail et ce mot de passe, puis associe à nouveau tes comptes externes dans Paramètres.")}</div>
+              <LinkButton href="/connexion" navigate={navigate} icon={Lock}>{t("Se connecter")}</LinkButton>
+            </div>) : (<form onSubmit={submit} className="nxt5-auth-form">
+              <p className="text-sm leading-6 text-slate-300">{t("Cette opération ferme tes sessions et dissocie toutes tes connexions externes associées. Tu pourras les associer à nouveau après ta connexion avec ton nouveau mot de passe.")}</p>
+              <TextInput label={t("Nouveau mot de passe")} value={form.nextPassword} onChange={(nextPassword) => setForm((current) => ({ ...current, nextPassword }))} placeholder={t("8 caractères minimum")} type="password" required icon={Shield} />
+              <TextInput label={t("Confirmer")} value={form.confirmPassword} onChange={(confirmPassword) => setForm((current) => ({ ...current, confirmPassword }))} placeholder={t("Répète le nouveau mot de passe")} type="password" required icon={Check} />
+              {error && <div role="alert" className="nxt5-auth-notice is-error">{t(error)}</div>}
+              <Button type="submit" disabled={loading || !form.nextPassword || !form.confirmPassword} icon={loading ?Loader2 : Shield} className="nxt5-auth-submit">{loading ? t("Mise à jour...") : t("Changer le mot de passe")}</Button>
+            </form>)}
         </Surface>
       </main>
       <LegalLinks navigate={navigate} />
@@ -536,6 +541,7 @@ export function ResetPasswordPage({ navigate, onAuth }) {
 }
 
 export function AuthPage({ mode, onAuth, pushToast, navigate }) {
+  useLanguage();
   const isRegister = mode === "register";
   const [form, setForm] = useState({ email: "", displayName: "", password: "" });
   const [rememberMe, setRememberMe] = useState(readRememberPreference);
@@ -603,37 +609,37 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
       <AmbientBackground />
       <SiteHeader navigate={navigate} simple>
         <PublicTextLink href={isRegister ? `/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`} navigate={navigate} className="nxt5-entry-header-link">
-          {isRegister ? "J’ai déjà un compte" : "Créer un compte"}
+          {isRegister ? t("J’ai déjà un compte") : t("Créer un compte")}
         </PublicTextLink>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-auth-layout">
         <section className="nxt5-auth-story" aria-labelledby="auth-story-title">
-          <p className="nxt5-entry-eyebrow">Ton espace équipe</p>
-          <h2 id="auth-story-title">Cinq rôles.<br /><span>Un travail commun.</span></h2>
-          <p>Retrouve tes joueurs, tes parties et les points à travailler lors de la prochaine séance.</p>
+          <p className="nxt5-entry-eyebrow">{t("Ton espace équipe")}</p>
+          <h2 id="auth-story-title">{t("Cinq rôles.")}<br /><span>{t("Un travail commun.")}</span></h2>
+          <p>{t("Retrouve tes joueurs, tes parties et les points à travailler lors de la prochaine séance.")}</p>
           <ul>
-            {[[Users, "Les joueurs de ton équipe", "Profils, rôles et disponibilités au même endroit."], [BarChart3, "Tes parties à portée de main", "Le résumé et les statistiques restent liés à chaque partie."], [FileText, "Vos débriefs au même endroit", "Garde les observations et les prochaines actions de l’équipe."]].map(([Icon, title, text]) => <li key={title}><Icon aria-hidden="true" size={21} /><div><strong>{title}</strong><span>{text}</span></div></li>)}
+            {[[Users, "Les joueurs de ton équipe", "Profils, rôles et disponibilités au même endroit."], [BarChart3, "Tes parties à portée de main", "Le résumé et les statistiques restent liés à chaque partie."], [FileText, "Vos débriefs au même endroit", "Garde les observations et les prochaines actions de l’équipe."]].map(([Icon, title, text]) => <li key={title}><Icon aria-hidden="true" size={21} /><div><strong>{t(title)}</strong><span>{t(text)}</span></div></li>)}
           </ul>
         </section>
         <Surface className="nxt5-auth-card">
-          <p className="nxt5-entry-eyebrow">{isRegister ? "Bienvenue sur NXT5" : "Bon retour sur NXT5"}</p>
-          <h1>{isRegister && registrationRequested ? "Demande reçue" : isSocialComplete ? "Termine ton inscription" : isRegister ? "Créer un compte" : "Connexion"}</h1>
-          <p className="nxt5-auth-intro">{isRegister && registrationRequested ? "Tu peux poursuivre avec les liens ci-dessous." : isSocialComplete ? "Confirme tes informations pour créer ton compte NXT5." : isRegister ? "Crée ton compte pour ouvrir ou rejoindre un espace équipe. Accès actuellement gratuit, aucun abonnement activé." : "Retrouve tes équipes, tes parties et tes débriefs."}</p>
-          {isRegister && !registrationRequested && <p className="nxt5-auth-intro">L’import de tes parties nécessite NXT5 Importer sur Windows ou Mac avec League of Legends ouvert. <PublicTextLink href="/demo" navigate={navigate}>Tu peux d’abord essayer la démo sans compte.</PublicTextLink></p>}
+          <p className="nxt5-entry-eyebrow">{isRegister ? t("Bienvenue sur NXT5") : t("Bon retour sur NXT5")}</p>
+          <h1>{isRegister && registrationRequested ? t("Demande reçue") : isSocialComplete ? t("Termine ton inscription") : isRegister ? t("Créer un compte") : t("Connexion")}</h1>
+          <p className="nxt5-auth-intro">{isRegister && registrationRequested ? t("Tu peux poursuivre avec les liens ci-dessous.") : isSocialComplete ? t("Confirme tes informations pour créer ton compte NXT5.") : isRegister ? t("Crée ton compte pour ouvrir ou rejoindre un espace équipe. Accès actuellement gratuit, aucun abonnement activé.") : t("Retrouve tes équipes, tes parties et tes débriefs.")}</p>
+          {isRegister && !registrationRequested && <p className="nxt5-auth-intro">{t("L’import de tes parties nécessite NXT5 Importer sur Windows ou Mac avec League of Legends ouvert. ")}<PublicTextLink href="/demo" navigate={navigate}>{t("Tu peux d’abord essayer la démo sans compte.")}</PublicTextLink></p>}
           {socialStatus && <div className="mt-4"><SocialNotice status={socialStatus} /></div>}
-          {isRegister && registrationRequested ? <div className="nxt5-registration-confirmation"><p ref={registrationStatusRef} tabIndex={-1} role="status" className="nxt5-auth-notice is-success">Si cette adresse peut être utilisée, tu recevras un e-mail de vérification. Si tu as déjà un compte, connecte-toi ou réinitialise ton mot de passe.</p><p>Vérifie aussi tes courriers indésirables. Aucun abonnement n’a été activé.</p><LinkButton href={`/connexion${querySuffix}`} navigate={navigate} icon={ArrowRight}>Se connecter</LinkButton><PublicTextLink href={`/mot-de-passe-oublie${querySuffix}`} navigate={navigate} className="nxt5-entry-text-link">Réinitialiser mon mot de passe</PublicTextLink></div> : isSocialComplete ? <SocialSignup onComplete={completeAuth} loginHref="/connexion?next=%2Fparametres" /> : <>
+          {isRegister && registrationRequested ? <div className="nxt5-registration-confirmation"><p ref={registrationStatusRef} tabIndex={-1} role="status" className="nxt5-auth-notice is-success">{t("Si cette adresse peut être utilisée, tu recevras un e-mail de vérification. Si tu as déjà un compte, connecte-toi ou réinitialise ton mot de passe.")}</p><p>{t("Vérifie aussi tes courriers indésirables. Aucun abonnement n’a été activé.")}</p><LinkButton href={`/connexion${querySuffix}`} navigate={navigate} icon={ArrowRight}>{t("Se connecter")}</LinkButton><PublicTextLink href={`/mot-de-passe-oublie${querySuffix}`} navigate={navigate} className="nxt5-entry-text-link">{t("Réinitialiser mon mot de passe")}</PublicTextLink></div> : isSocialComplete ? <SocialSignup onComplete={completeAuth} loginHref="/connexion?next=%2Fparametres" /> : <>
           <SocialLogin flow={isRegister ? "register" : "login"} rememberMe={rememberMe} disabled={loading} />
           <form onSubmit={submit} className="nxt5-auth-form">
-            <TextInput label={isRegister ? "E-mail" : "E-mail ou ancien pseudo"} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : "joueur@exemple.com ou ancien pseudo"} type={isRegister ? "email" : "text"} autoComplete={isRegister ? "email" : "username"} required icon={Mail} />
-            {isRegister && <TextInput label="Pseudo" value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder="Ex : Joueur NXT5" autoComplete="nickname" required icon={UserPlus} />}
-            <TextInput label="Mot de passe" value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" autoComplete={isRegister ? "new-password" : "current-password"} required icon={Lock} />
-            <div className="nxt5-auth-preferences"><PremiumToggle checked={rememberMe} onChange={setRememberMe} title="Rester connecté" text="Sur cet appareil." /></div>
+            <TextInput label={isRegister ? "E-mail" : t("E-mail ou ancien pseudo")} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : t("joueur@exemple.com ou ancien pseudo")} type={isRegister ? "email" : "text"} autoComplete={isRegister ? "email" : "username"} required icon={Mail} />
+            {isRegister && <TextInput label={t("Pseudo")} value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder={t("Ex : Joueur NXT5")} autoComplete="nickname" required icon={UserPlus} />}
+            <TextInput label={t("Mot de passe")} value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" autoComplete={isRegister ? "new-password" : "current-password"} required icon={Lock} />
+            <div className="nxt5-auth-preferences"><PremiumToggle checked={rememberMe} onChange={setRememberMe} title={t("Rester connecté")} text={t("Sur cet appareil.")} /></div>
             {isRegister && <LegalConsent checked={legalAccepted} onChange={setLegalAccepted} />}
-            {error && <div role="alert" className="nxt5-auth-notice is-error">{error}</div>}
-            <Button type="submit" disabled={loading || (isRegister && !legalAccepted)} icon={loading ? Loader2 : isRegister ? UserPlus : ArrowRight} className="nxt5-auth-submit">{loading ? "Chargement…" : isRegister ? "Créer le compte" : "Entrer dans NXT5"}</Button>
+            {error && <div role="alert" className="nxt5-auth-notice is-error">{t(error)}</div>}
+            <Button type="submit" disabled={loading || (isRegister && !legalAccepted)} icon={loading ? Loader2 : isRegister ? UserPlus : ArrowRight} className="nxt5-auth-submit">{loading ? t("Chargement…") : isRegister ? t("Créer le compte") : t("Entrer dans NXT5")}</Button>
           </form>
-          {!isRegister && <div className="nxt5-auth-recovery"><PublicTextLink href="/mot-de-passe-oublie" navigate={navigate}>Mot de passe oublié ?</PublicTextLink></div>}
-          <p className="nxt5-auth-alternative">{isRegister ? "Déjà inscrit ? " : "Pas encore de compte ? "}<PublicTextLink href={isRegister ? `/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`} navigate={navigate}>{isRegister ? "Se connecter" : "Créer un compte"}</PublicTextLink></p>
+          {!isRegister && <div className="nxt5-auth-recovery"><PublicTextLink href="/mot-de-passe-oublie" navigate={navigate}>{t("Mot de passe oublié ?")}</PublicTextLink></div>}
+          <p className="nxt5-auth-alternative">{isRegister ? t("Déjà inscrit ? ") : t("Pas encore de compte ? ")}<PublicTextLink href={isRegister ? `/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`} navigate={navigate}>{isRegister ? t("Se connecter") : t("Créer un compte")}</PublicTextLink></p>
           </>}
         </Surface>
       </main>

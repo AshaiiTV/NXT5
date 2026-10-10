@@ -1,3 +1,6 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
+import { getLocale } from "../../i18n/locale.js";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, RefreshCw, CalendarDays, Trash2, Users } from "lucide-react";
 import { PLANNING_DAYS, PLANNING_EVENT_TYPES, PLANNING_TIMES } from "../../app/constants.jsx";
@@ -22,7 +25,8 @@ const SESSION_LABELS = {
 };
 
 function sessionLabel(event) {
-  return SESSION_LABELS[event?.type]?.label || event?.label || "Séance";
+  const label = SESSION_LABELS[event?.type]?.label;
+  return label ? t(label) : event?.label || t("Séance");
 }
 
 function sessionGroupLabel(group) {
@@ -31,10 +35,11 @@ function sessionGroupLabel(group) {
 
 function formatPlanningDate(date) {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
+  return date.toLocaleDateString(getLocale(), { day: "2-digit", month: "2-digit" });
 }
 
 function Planning({ data, selectedTeamId, planningStore, currentMember, user, refreshAll }) {
+  const language = useLanguage();
   const gameplayPlayers = useMemo(() => sortPlayersByRole((data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role))), [data.players, selectedTeamId]);
   const roleSlots = useMemo(() => planningRoleSlots(gameplayPlayers), [gameplayPlayers]);
   const representedRoles = roleSlots.filter(({ player }) => player).length;
@@ -45,7 +50,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
   const weekOptions = useMemo(() => [
     { id: "current", label: "Semaine en cours", start: dateKey(baseWeekStart), range: formatWeekRange(baseWeekStart) },
     { id: "next", label: "Semaine d’après", start: dateKey(addDays(baseWeekStart, 7)), range: formatWeekRange(addDays(baseWeekStart, 7)) },
-  ], [baseWeekStart]);
+  ], [baseWeekStart, language]);
   const [selectedWeekStart, setSelectedWeekStart] = useState(weekOptions[0].start);
   const selectedWeek = useMemo(() => weekOptions.find((week) => week.start === selectedWeekStart) || weekOptions[0], [selectedWeekStart, weekOptions]);
   const weekStartDate = useMemo(() => dateFromKey(selectedWeek.start), [selectedWeek.start]);
@@ -307,8 +312,8 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
       const availableIds = new Set(effectivePlayerIdsByCell.get(key) || []);
       const staffLit = Boolean(staffPlanningPlayerId && availableIds.has(staffPlanningPlayerId));
       const availableNames = [
-        ...roleSlots.filter(({ player }) => player && availableIds.has(String(player.id))).map(({ role, player }) => `${roleLabel(role)} · ${player.name}`),
-        staffLit ? "Encadrement" : null,
+        ...roleSlots.filter(({ player }) => player && availableIds.has(String(player.id))).map(({ role, player }) => `${t(roleLabel(role))} · ${player.name}`),
+        staffLit ? t("Encadrement") : null,
       ].filter(Boolean);
       const slotEvent = visibleSlotEvents[key];
       const slotEventLabel = sessionGroupLabel(slotEvent);
@@ -320,7 +325,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
         activeSlot,
         slotEvent,
         slotEventLabel,
-        title: [slotEventLabel, availableNames.join(" · ") || "Aucune disponibilité renseignée"].filter(Boolean).join(" · "),
+        title: [slotEventLabel, availableNames.join(" · ") || t("Aucune disponibilité renseignée")].filter(Boolean).join(" · "),
         roles: roleSlots.map(({ role, player }) => ({
           role,
           player,
@@ -330,44 +335,44 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
         staffUnit: staffPlanningPlayerId ? {
           lit: staffLit,
           selectedStaffHere: selectedIsStaff && activeSlot,
-          title: staffLit ? "Encadrement disponible" : "Encadrement sans disponibilité renseignée",
+          title: t(staffLit ? "Encadrement disponible" : "Encadrement sans disponibilité renseignée"),
         } : null,
       };
     }),
-  })), [draftSlots, effectivePlayerIdsByCell, roleSlots, selectedIsStaff, selectedPlayerId, staffPlanningPlayerId, visibleSlotEvents, weekDays]);
+  })), [draftSlots, effectivePlayerIdsByCell, roleSlots, selectedIsStaff, selectedPlayerId, staffPlanningPlayerId, visibleSlotEvents, weekDays, language]);
 
-  if (!selectedTeamId || !players.length || !linkedPlayer) return <div className="space-y-4"><PageHeader eyebrow="Équipe" title="Planning" subtitle="Indique tes disponibilités pour organiser la prochaine séance." />{selectedTeamId && <DiscordPlanningEvents events={data.botEvents} teamId={selectedTeamId} />}<Surface><EmptyState icon={selectedTeamId ? Users : CalendarDays} title={!selectedTeamId ? "Choisis ton équipe" : !players.length ? "Ajoutez les premiers joueurs" : "Relie ton compte à ton profil"} text={!selectedTeamId ? "Ouvre ton équipe pour retrouver son planning." : !players.length ? "Le responsable ou le staff doit ajouter les profils des joueurs et de l’encadrement avant de remplir le planning." : "Demande au responsable de l’équipe de relier ton compte à ton profil joueur. L’encadrement partage une seule ligne de disponibilité."} /><div className="mt-4 flex justify-center"><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>{selectedTeamId ? "Voir mon équipe" : "Choisir une équipe"}</Button></div></Surface></div>;
+  if (!selectedTeamId || !players.length || !linkedPlayer) return <div className="space-y-4"><PageHeader eyebrow={t("Équipe")} title={t("Planning")} subtitle={t("Indique tes disponibilités pour organiser la prochaine séance.")} />{selectedTeamId && <DiscordPlanningEvents events={data.botEvents} teamId={selectedTeamId} />}<Surface><EmptyState icon={selectedTeamId ? Users : CalendarDays} title={!selectedTeamId ? t("Choisis ton équipe") : !players.length ? t("Ajoutez les premiers joueurs") : t("Relie ton compte à ton profil")} text={!selectedTeamId ? t("Ouvre ton équipe pour retrouver son planning.") : !players.length ? t("Le responsable ou le staff doit ajouter les profils des joueurs et de l’encadrement avant de remplir le planning.") : t("Demande au responsable de l’équipe de relier ton compte à ton profil joueur. L’encadrement partage une seule ligne de disponibilité.")} /><div className="mt-4 flex justify-center"><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>{selectedTeamId ? t("Voir mon équipe") : t("Choisir une équipe")}</Button></div></Surface></div>;
 
   return (
     <div className="nxt5-data-dense nxt5-planning-page min-w-0">
-      <PageHeader eyebrow="Équipe" title="Planning de l’équipe" subtitle="Indique quand tu es disponible, puis choisis les séances à organiser ensemble.">
+      <PageHeader eyebrow={t("Équipe")} title={t("Planning de l’équipe")} subtitle={t("Indique quand tu es disponible, puis choisis les séances à organiser ensemble.")}>
         <div className="flex flex-wrap gap-2">
           {weekOptions.map((week) => (
             <button key={week.id} type="button" onClick={() => setSelectedWeekStart(week.start)} aria-pressed={selectedWeek.start === week.start} className={cx("nxt5-planning-week min-h-11 rounded-[2px] border px-3 py-2 text-left transition", selectedWeek.start === week.start ? "border-cyan-300/35 bg-cyan-400/10 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-400 hover:border-cyan-300/25 hover:text-white")}>
-              <span className="block text-xs font-semibold">{week.label}</span>
+              <span className="block text-xs font-semibold">{t(week.label)}</span>
               <span className="mt-0.5 block text-xs font-semibold opacity-80">{week.range}</span>
             </button>
           ))}
         </div>
       </PageHeader>
       <DiscordPlanningEvents events={data.botEvents} teamId={selectedTeamId} />
-      {eventMenu && <div ref={eventMenuRef} role="group" aria-label="Type de séance" onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()} className="nxt5-planning-menu fixed z-[80] w-[228px] border border-cyan-200/22 p-2 text-white" style={{ left: eventMenu.x, top: eventMenu.y }}>
+      {eventMenu && <div ref={eventMenuRef} role="group" aria-label={t("Type de séance")} onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()} className="nxt5-planning-menu fixed z-[80] w-[228px] border border-cyan-200/22 p-2 text-white" style={{ left: eventMenu.x, top: eventMenu.y }}>
         <div className="px-2 pb-2 pt-1">
-          <p className="text-sm font-semibold text-cyan-100">Ajouter une séance</p>
+          <p className="text-sm font-semibold text-cyan-100">{t("Ajouter une séance")}</p>
           <p className="mt-1 truncate text-xs font-bold text-slate-300">{eventMenuDay?.[1] || eventMenu.day} · {eventMenu.time}</p>
-          {eventMenuGroup && <p className="mt-2 text-sm text-slate-300">Déjà prévu : {sessionGroupLabel(eventMenuGroup)}.</p>}
-          <p className="mt-2 text-sm text-slate-300">{selectedIsStaff ? "Tu modifies la séance de l’encadrement." : selectedPlayer ? "Tu modifies ta séance." : `Tu modifies la séance de ${eventStorePlayer?.name || "ce joueur"}.`} Les séances des autres profils sont conservées.</p>
+          {eventMenuGroup && <p className="mt-2 text-sm text-slate-300">{t("Déjà prévu : ")}{sessionGroupLabel(eventMenuGroup)}.</p>}
+          <p className="mt-2 text-sm text-slate-300">{selectedIsStaff ? t("Tu modifies la séance de l’encadrement.") : selectedPlayer ? t("Tu modifies ta séance.") : t("Tu modifies la séance de {0}.", [eventStorePlayer?.name || t("ce joueur")])}{t(" Les séances des autres profils sont conservées.")}</p>
         </div>
         <div className="grid gap-1">
           {PLANNING_EVENT_TYPES.map((item) => <button key={item.id} type="button" onClick={() => applyPlanningEventType(item.id)} className="flex min-h-11 w-full items-center gap-2 rounded-[2px] border border-transparent px-2.5 py-2 text-left transition hover:border-cyan-200/20 hover:bg-white/[0.06]">
             <span className={cx("h-2.5 w-2.5 rounded-full", item.dot)} />
-            <span className="nxt5-planning-session-copy"><span>{SESSION_LABELS[item.id]?.label || item.label}</span><small>{SESSION_LABELS[item.id]?.detail}</small></span>
+            <span className="nxt5-planning-session-copy"><span>{t(SESSION_LABELS[item.id]?.label) || t(item.label)}</span><small>{t(SESSION_LABELS[item.id]?.detail)}</small></span>
           </button>)}
         </div>
         {eventMenuCurrent && <div className="mt-2 border-t border-white/10 pt-2">
           <button type="button" onClick={removePlanningEvent} className="flex min-h-11 w-full items-center gap-2 rounded-[2px] border border-rose-300/15 bg-rose-500/10 px-2.5 py-2 text-left text-rose-100 transition hover:border-rose-200/35 hover:bg-rose-500/16">
             <Trash2 className="h-3.5 w-3.5" />
-            <span className="text-sm font-semibold">Retirer cette séance · {sessionLabel(eventMenuCurrent)}</span>
+            <span className="text-sm font-semibold">{t("Retirer cette séance · ")}{t(sessionLabel(eventMenuCurrent))}</span>
           </button>
         </div>}
       </div>}
@@ -380,27 +385,27 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
             <section aria-labelledby="planning-team-notes-title">
               <div className="nxt5-planning-notes-heading">
                 <div>
-                  <h3 id="planning-team-notes-title" className="text-xl font-black text-white">Précisions de l’équipe</h3>
-                  <p className="mt-1 text-xs text-slate-400">Notes enregistrées · {selectedWeek.range}</p>
+                  <h3 id="planning-team-notes-title" className="text-xl font-black text-white">{t("Précisions de l’équipe")}</h3>
+                  <p className="mt-1 text-xs text-slate-400">{t("Notes enregistrées · ")}{selectedWeek.range}</p>
                 </div>
-                {refreshAll && <Button type="button" variant="ghost" icon={RefreshCw} onClick={refreshTeamNotes} disabled={refreshingNotes}>{refreshingNotes ? "Actualisation…" : "Actualiser les précisions"}</Button>}
+                {refreshAll && <Button type="button" variant="ghost" icon={RefreshCw} onClick={refreshTeamNotes} disabled={refreshingNotes}>{refreshingNotes ? t("Actualisation…") : t("Actualiser les précisions")}</Button>}
               </div>
               <div className={cx("nxt5-planning-notes-content", canEditSelected && "nxt5-planning-notes-editable")}>
                 {teamNotes.length ? <ul className="nxt5-planning-notes-list">
                   {teamNotes.map(({ player, text, sharedStaff }) => <li key={player.id}>
                     <div className="nxt5-planning-note-author">
                       <span aria-hidden="true">{isStaffRole(player.role) ? <BookOpen className="h-5 w-5 text-fuchsia-200" /> : <RoleIcon role={player.role} className="h-5 w-5" />}</span>
-                      <span>{sharedStaff ? "Encadrement" : player.name || "Joueur"}</span>
-                      <span className="nxt5-planning-note-role">{sharedStaff ? "Note partagée du staff" : roleLabel(player.role)}</span>
+                      <span>{sharedStaff ? t("Encadrement") : player.name || t("Joueur")}</span>
+                      <span className="nxt5-planning-note-role">{sharedStaff ? t("Note partagée du staff") : t(roleLabel(player.role))}</span>
                     </div>
                     <p className="nxt5-planning-note-text">{text}</p>
                   </li>)}
-                </ul> : <p className="nxt5-planning-notes-empty">Aucune précision partagée pour cette semaine.</p>}
+                </ul> : <p className="nxt5-planning-notes-empty">{t("Aucune précision partagée pour cette semaine.")}</p>}
                 {canEditSelected && <div className="nxt5-planning-note-editor">
-                  <label htmlFor="planning-note" className="nxt5-field-label">{selectedIsStaff ? "Précisions de l’encadrement" : "Précisions sur tes disponibilités"}</label>
-                  <textarea id="planning-note" value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected} maxLength={500} aria-describedby="planning-note-help" rows={3} placeholder="Ex. : disponible après 20 h, retard possible le jeudi…" className="nxt5-input-shell nxt5-control mt-2 w-full resize-y rounded-[10px] border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35" />
-                  <p id="planning-note-help" className="mt-2 text-xs text-slate-400">Ces précisions sont visibles par toute l’équipe une fois enregistrées, pour la semaine affichée. 500 caractères maximum.</p>
-                  <div className="nxt5-planning-save mt-3"><Badge tone={saveStatusMeta.tone}>{saveStatusMeta.label}</Badge>{saveStatus === "error" && <Button type="button" variant="ghost" icon={RefreshCw} onClick={planningDraft.save} disabled={saving}>Réessayer l’enregistrement</Button>}</div>
+                  <label htmlFor="planning-note" className="nxt5-field-label">{selectedIsStaff ? t("Précisions de l’encadrement") : t("Précisions sur tes disponibilités")}</label>
+                  <textarea id="planning-note" value={notes} onChange={(event) => setNotes(event.target.value)} disabled={!canEditSelected} maxLength={500} aria-describedby="planning-note-help" rows={3} placeholder={t("Ex. : disponible après 20 h, retard possible le jeudi…")} className="nxt5-input-shell nxt5-control mt-2 w-full resize-y rounded-[10px] border border-white/10 bg-black/24 px-3 py-2 text-sm font-semibold text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/35" />
+                  <p id="planning-note-help" className="mt-2 text-xs text-slate-400">{t("Ces précisions sont visibles par toute l’équipe une fois enregistrées, pour la semaine affichée. 500 caractères maximum.")}</p>
+                  <div className="nxt5-planning-save mt-3"><Badge tone={saveStatusMeta.tone}>{t(saveStatusMeta.label)}</Badge>{saveStatus === "error" && <Button type="button" variant="ghost" icon={RefreshCw} onClick={planningDraft.save} disabled={saving}>{t("Réessayer l’enregistrement")}</Button>}</div>
                 </div>}
               </div>
             </section>
@@ -408,34 +413,34 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
           <Surface className="p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
-                <h3 className="text-xl font-black text-white">{editingEvents || (!canEditSelected && canEditEvents) ? "Ajouter ou modifier une séance" : "Mes disponibilités"}</h3>
-                <p className="mt-1 text-sm leading-6 text-slate-300">{editingEvents || (!canEditSelected && canEditEvents) ? "Choisis un créneau, puis un entraînement, un match ou un débrief." : canEditSelected ? "Clique sur tes créneaux disponibles. Clique à nouveau pour les retirer." : "Tu peux consulter les disponibilités de l’équipe."}</p>
+                <h3 className="text-xl font-black text-white">{editingEvents || (!canEditSelected && canEditEvents) ? t("Ajouter ou modifier une séance") : t("Mes disponibilités")}</h3>
+                <p className="mt-1 text-sm leading-6 text-slate-300">{editingEvents || (!canEditSelected && canEditEvents) ? t("Choisis un créneau, puis un entraînement, un match ou un débrief.") : canEditSelected ? t("Clique sur tes créneaux disponibles. Clique à nouveau pour les retirer.") : t("Tu peux consulter les disponibilités de l’équipe.")}</p>
               </div>
-              <div className="nxt5-planning-save" role="status" aria-live="polite"><Badge tone={saveStatusMeta.tone}>{saveStatusMeta.label}</Badge>{saveStatus === "error" && <Button type="button" variant="ghost" icon={RefreshCw} onClick={planningDraft.save} disabled={saving}>Réessayer</Button>}</div>
+              <div className="nxt5-planning-save" role="status" aria-live="polite"><Badge tone={saveStatusMeta.tone}>{t(saveStatusMeta.label)}</Badge>{saveStatus === "error" && <Button type="button" variant="ghost" icon={RefreshCw} onClick={planningDraft.save} disabled={saving}>{t("Réessayer")}</Button>}</div>
             </div>
             <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-y border-white/10 py-3">
               <div className="flex min-w-0 items-center gap-3">
-                {selectedIsStaff ? <span title="Encadrement" className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-fuchsia-200/40 bg-fuchsia-400/10 text-fuchsia-50 "><BookOpen className="h-4 w-4" /><span className="absolute -right-0.5 -top-0.5 h-2 w-2 rotate-45 rounded-[2px] border border-cyan-100/60 bg-cyan-200 " /></span> : <RoleIcon role={selectedPlayer?.role} className="h-5 w-5 shrink-0" />}
+                {selectedIsStaff ? <span title={t("Encadrement")} className="relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-fuchsia-200/40 bg-fuchsia-400/10 text-fuchsia-50 "><BookOpen className="h-4 w-4" /><span className="absolute -right-0.5 -top-0.5 h-2 w-2 rotate-45 rounded-[2px] border border-cyan-100/60 bg-cyan-200 " /></span> : <RoleIcon role={selectedPlayer?.role} className="h-5 w-5 shrink-0" />}
                 <div className="min-w-0">
                   <p className="break-words text-sm font-black text-white">{selectedDisplayName}</p>
-                  <p className="mt-0.5 text-sm text-slate-400">{selectedPlayer ? `${selectedDisplayRole} · ${selectedIsStaff ? "disponibilités partagées par le staff" : "profil lié à ton compte"}` : "Demande au staff de relier ton compte à un profil joueur."}</p>
+                  <p className="mt-0.5 text-sm text-slate-400">{selectedPlayer ? `${selectedDisplayRole} · ${selectedIsStaff ? "disponibilités partagées par le staff" : "profil lié à ton compte"}` : t("Demande au staff de relier ton compte à un profil joueur.")}</p>
                 </div>
               </div>
-              <Badge tone={canEditSelected ? "green" : "slate"}>{canEditSelected ? (selectedIsStaff ? "Planning partagé du staff" : "Mon planning") : "Lecture seule"}</Badge>
+              <Badge tone={canEditSelected ? "green" : "slate"}>{canEditSelected ? (selectedIsStaff ? t("Planning partagé du staff") : t("Mon planning")) : t("Lecture seule")}</Badge>
             </div>
             <div className="nxt5-planning-actions">
-              {canEditEvents && canEditSelected && <Button type="button" variant="ghost" icon={CalendarDays} aria-pressed={editingEvents} onClick={() => setEditingEvents((active) => !active)} className={editingEvents ? "border-cyan-200/45 bg-cyan-400/10 text-cyan-100" : ""}>{editingEvents ? "Revenir à mes disponibilités" : "Ajouter une séance"}</Button>}
-              <p className="text-sm leading-6 text-slate-300">{selectedFilledSlots} créneaux renseignés sur {selectedFilledDays} jours · {selectedEventCount} séance{selectedEventCount > 1 ? "s" : ""}</p>
+              {canEditEvents && canEditSelected && <Button type="button" variant="ghost" icon={CalendarDays} aria-pressed={editingEvents} onClick={() => setEditingEvents((active) => !active)} className={editingEvents ? "border-cyan-200/45 bg-cyan-400/10 text-cyan-100" : ""}>{editingEvents ? t("Revenir à mes disponibilités") : t("Ajouter une séance")}</Button>}
+              <p className="text-sm leading-6 text-slate-300">{selectedFilledSlots}{t(" créneaux renseignés sur ")}{selectedFilledDays}{t(" jours · ")}{selectedEventCount}{t(selectedEventCount > 1 ? " séances" : " séance")}</p>
             </div>
             <PlanningAvailabilityGrid rows={planningGridRows} weekDays={weekDays} canEditSelected={canEditSelected} canEditEvents={canEditEvents} editingEvents={editingEvents} draftSlots={draftSlots} onDay={setDaySlots} onTime={setTimeForWeek} onToggle={toggleSlot} onEvent={openPlanningEventMenu} frameTone={frameTone} />
-            {canEditSelected && !editingEvents && <details className="nxt5-planning-help"><summary>Remplir plusieurs créneaux à la fois</summary><p>Ces raccourcis remplacent tes disponibilités de la semaine affichée. Les séances sont conservées.</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("evenings")}>Soirées · 20 h à 23 h</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("scrim")}>Entraînement · 19 h à 22 h</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("weekend")}>Week-end · 20 h à 23 h</Button><Button type="button" variant="danger" onClick={() => applyAvailabilityPreset("clear")}>Vider mes disponibilités</Button></div></details>}
+            {canEditSelected && !editingEvents && <details className="nxt5-planning-help"><summary>{t("Remplir plusieurs créneaux à la fois")}</summary><p>{t("Ces raccourcis remplacent tes disponibilités de la semaine affichée. Les séances sont conservées.")}</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("evenings")}>{t("Soirées · 20 h à 23 h")}</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("scrim")}>{t("Entraînement · 19 h à 22 h")}</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("weekend")}>{t("Week-end · 20 h à 23 h")}</Button><Button type="button" variant="danger" onClick={() => applyAvailabilityPreset("clear")}>{t("Vider mes disponibilités")}</Button></div></details>}
             <details className="nxt5-planning-help">
-              <summary>Lire le planning et les présences de l’équipe</summary>
-              <p>Une icône claire signale une disponibilité ; une icône sombre, aucune disponibilité renseignée. Chaque poste représente son titulaire, ou un remplaçant actif si le poste n’a pas de titulaire. Le livre représente l’encadrement, avec une disponibilité partagée.</p>
-              <p>Un clic sur un jour remplit ou vide cette journée. Un clic sur une heure fait la même chose pour toute la semaine. Un clic droit sur un créneau ouvre aussi les types de séance.</p>
-              <p>Les séances différentes sur un même créneau sont affichées ensemble. Tu peux modifier ou retirer celle que tu as ajoutée ; les séances des autres membres sont conservées.</p>
-              <div className="nxt5-planning-legend">{PLANNING_EVENT_TYPES.map((item) => <span key={item.id}><span aria-hidden="true" className={cx("h-2 w-2 rounded-full", item.dot)} />{SESSION_LABELS[item.id]?.label || item.label}</span>)}</div>
-              <div className="nxt5-planning-legend">{bestCells[0]?.count > 0 && <Badge tone="cyan">Présences maximum : {bestCells[0].count}/{planningUnitTotal}</Badge>}<Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots} créneaux avec {representedRoles} joueurs</Badge>{staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots} créneaux avec encadrement</Badge>}</div>
+              <summary>{t("Lire le planning et les présences de l’équipe")}</summary>
+              <p>{t("Une icône claire signale une disponibilité ; une icône sombre, aucune disponibilité renseignée. Chaque poste représente son titulaire, ou un remplaçant actif si le poste n’a pas de titulaire. Le livre représente l’encadrement, avec une disponibilité partagée.")}</p>
+              <p>{t("Un clic sur un jour remplit ou vide cette journée. Un clic sur une heure fait la même chose pour toute la semaine. Un clic droit sur un créneau ouvre aussi les types de séance.")}</p>
+              <p>{t("Les séances différentes sur un même créneau sont affichées ensemble. Tu peux modifier ou retirer celle que tu as ajoutée ; les séances des autres membres sont conservées.")}</p>
+              <div className="nxt5-planning-legend">{PLANNING_EVENT_TYPES.map((item) => <span key={item.id}><span aria-hidden="true" className={cx("h-2 w-2 rounded-full", item.dot)} />{t(SESSION_LABELS[item.id]?.label) || t(item.label)}</span>)}</div>
+              <div className="nxt5-planning-legend">{bestCells[0]?.count > 0 && <Badge tone="cyan">{t("Présences maximum : ")}{bestCells[0].count}/{planningUnitTotal}</Badge>}<Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots}{t(" créneaux avec ")}{representedRoles}{t(" joueurs")}</Badge>{staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots}{t(" créneaux avec encadrement")}</Badge>}</div>
             </details>
           </Surface>
 

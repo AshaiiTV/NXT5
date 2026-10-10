@@ -5,6 +5,7 @@ import { apiFetch } from "../api/client.js";
 import { ChampionSectionTabs, MatchupNotebook } from "../components/profile/MatchupNotebook.jsx";
 import { Button, SelectInput, TextAreaInput, TextInput } from "../components/ui/Core.jsx";
 import { ProfileChampionsView } from "../pages/workspace/PlayerUltimateProfile.jsx";
+import { setLanguage } from "../i18n/locale.js";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
 const cleanups = [];
@@ -15,6 +16,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanups.splice(0).forEach((cleanup) => cleanup());
+  setLanguage("fr");
   vi.clearAllMocks();
   vi.unstubAllGlobals();
 });
@@ -59,6 +61,26 @@ async function mount({ rows = [sampleRow("one", "Victoire"), sampleRow("two")], 
 }
 
 describe("matchup notebook view", () => {
+  it("preserves user notes, experiment titles and game names when switching language in an open draft", async () => {
+    const game = sampleRow("one", "Victoire");
+    game.match.raw.nxt5Label = "Paramètres";
+    const app = await mount({ rows: [game], notebooks: [notebook({
+      plan: { lanePlan: "Annuler", vigilance: "Connexion", toKeep: "Enregistrer" },
+      experiments: [{ id: "trial", title: "Déconnexion", status: "active", plan: "Modifier", observation: "Supprimer", conclusion: "Retour", matchIds: ["one"] }],
+    })] });
+    await app.open();
+    await app.press("Modifier le carnet");
+    for (const language of ["en", "es"]) {
+      await act(async () => setLanguage(language));
+      expect(app.root.findAllByType("textarea").map(node => node.props.value)).toEqual(["Annuler", "Connexion", "Enregistrer", "Modifier", "Supprimer", "Retour"]);
+      expect(app.root.findAllByType("input").find(node => node.props.value === "Déconnexion")).toBeDefined();
+      const linkedGame = app.root.findAllByType("input").find(node => node.props.type === "checkbox");
+      expect(text(linkedGame.parent)).toContain("Paramètres");
+      expect(app.root.findAllByType("select").some(node => node.props.value === "active")).toBe(true);
+    }
+    expect(app.calls.some(call => call.body.action === "save")).toBe(false);
+  });
+
   it("lists strict opponents with known-result sampling and shared notebook status", async () => {
     const ambiguous = sampleRow("ambiguous", "Victoire", [enemy, { ...enemy, id: "second" }]);
     const app = await mount({ rows: [sampleRow("one", "Victoire"), sampleRow("two"), ambiguous], notebooks: [notebook({ experiments: [{ id: "trial-a", title: "Départ défensif", status: "active", matchIds: [] }] })] });

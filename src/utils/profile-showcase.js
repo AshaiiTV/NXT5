@@ -1,10 +1,12 @@
+import { getLocale } from "../i18n/locale.js";
+import { t } from "../i18n/translate.js";
 import { canonicalChampion } from "../../shared/champions.js";
 import { canonicalRole } from "../../shared/roles.js";
 import { importedGameDurationSeconds } from "./imported-games.js";
 import { matchDisplayName } from "./matches.js";
 import { pngNumeric } from "./png-report.js";
 
-const dateFormat = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" });
+const dateFormat = () => new Intl.DateTimeFormat(getLocale(), { day: "2-digit", month: "2-digit", year: "numeric" });
 const aliases = {
   damage: ["damage", "totalDamageDealtToChampions"],
   vision: ["vision", "visionScore"],
@@ -144,7 +146,7 @@ function observation(row, index) {
     champion: canonicalChampion(row?.champion),
     matchId: row?.match?.id == null ? "" : String(row.match.id),
     result: result(row),
-    dateLabel: timestamp === null ? "Date inconnue" : dateFormat.format(timestamp),
+    dateLabel: timestamp === null ? t("Date inconnue") : dateFormat().format(timestamp),
     kda: [kills, deaths, assists].every((value) => value !== null) ? (kills + assists) / Math.max(1, deaths) : null,
     csPerMin: csPerMinute(row, seconds),
     kp: participation(row),
@@ -198,16 +200,16 @@ export function buildProfileShowcase({ player = {}, rows = [], teamName = "", ca
   const champions = [...groups.values()].map((group) => ({ champion: group.champion, games: group.entries.length, ...results(group.entries) }))
     .sort((a, b) => b.games - a.games || (b.rate ?? -1) - (a.rate ?? -1) || a.champion.localeCompare(b.champion, "fr"));
   const dates = observations.map((entry) => entry.timestamp).filter((value) => value !== null).sort((a, b) => a - b);
-  const dateLabel = !dates.length ? "Dates non renseignées"
-    : dateFormat.format(dates[0]) === dateFormat.format(dates[dates.length - 1]) ? dateFormat.format(dates[0])
-      : `${dateFormat.format(dates[0])} – ${dateFormat.format(dates[dates.length - 1])}`;
+  const dateLabel = !dates.length ? t("Dates non renseignées")
+    : dateFormat().format(dates[0]) === dateFormat().format(dates[dates.length - 1]) ? dateFormat().format(dates[0])
+      : `${dateFormat().format(dates[0])} – ${dateFormat().format(dates[dates.length - 1])}`;
   const recentResults = observations.slice().sort((a, b) => (a.timestamp ?? 0) - (b.timestamp ?? 0) || a.index - b.index).slice(-12)
     .map((entry) => ({ result: entry.result, matchId: entry.matchId, dateLabel: entry.dateLabel }));
   const victories = complete.filter((entry) => entry.result === "win");
   const best = (victories.length ? victories : complete).slice().sort((a, b) => b.kda - a.kda || (b.timestamp ?? 0) - (a.timestamp ?? 0) || a.index - b.index)[0];
   const highlight = best ? {
     matchId: best.matchId, champion: best.champion, result: best.result,
-    title: matchDisplayName(best.row.match, "Partie"), dateLabel: best.dateLabel,
+    title: matchDisplayName(best.row.match, t("Partie")), dateLabel: best.dateLabel,
     kills: best.kills, deaths: best.deaths, assists: best.assists, kda: best.kda,
     csPerMin: best.csPerMin, damagePerMin: best.damagePerMin, kp: best.kp,
     durationSeconds: best.seconds,
@@ -226,8 +228,8 @@ export function buildProfileShowcase({ player = {}, rows = [], teamName = "", ca
   });
   return {
     playerId: player?.id == null ? "" : String(player.id),
-    playerName: String(player?.name || player?.riot_id || "Joueur"), role,
-    teamName: String(teamName || "Équipe"), contextLabel: String(category || "Tous les contextes"),
+    playerName: String(player?.name || player?.riot_id || t("Joueur")), role,
+    teamName: String(teamName || t("Équipe")), contextLabel: String(category || t("Tous les contextes")),
     dateLabel, datedGames: dates.length, games,
     results: results(observations),
     metrics: {

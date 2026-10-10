@@ -1,3 +1,6 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
+import { getLocale } from "../../i18n/locale.js";
 import { availableNumber, resultSummary, resultLabel, winrateLabel, matchResult } from "../../utils/statistics.js";
 import React from "react";
 import { ArrowRight, ChevronRight } from "lucide-react";
@@ -31,7 +34,8 @@ const DRAFT_DETAIL_SECTIONS = [
 ];
 
 function DraftSectionTitle({ title, href, onNavigate, sectionId }) {
-  return <h4>{href ? <a id={sectionId ? `draft-detail-${sectionId}` : undefined} href={href} onClick={onNavigate} className="draft-detail-link" aria-label={`Voir le détail : ${title}`}><span>{title}</span><ArrowRight aria-hidden="true" /></a> : title}</h4>;
+  useLanguage();
+  return <h4>{href ? <a id={sectionId ? `draft-detail-${sectionId}` : undefined} href={href} onClick={onNavigate} className="draft-detail-link" aria-label={t("Voir le détail : {0}", [t(title)])}><span>{t(title)}</span><ArrowRight aria-hidden="true" /></a> : t(title)}</h4>;
 }
 
 function draftRows(match, teamKey) {
@@ -151,22 +155,23 @@ function buildDraftTrendModel(matches) {
 }
 
 function DraftMiniChampion({ item, onSources, detailed = false, totalGames = 0 }) {
+  useLanguage();
   const content = <>
     <span className="draft-champion-portrait" aria-hidden="true"><ChampionPortrait champion={item.champion} alt="" /></span>
     <span className="draft-champion-copy">
       <strong>{championDisplayName(item.champion)}</strong>
-      <span>{roleLabel(item.role)} · {item.games} partie{item.games > 1 ? "s" : ""} · KDA {item.kda ?? "—"}</span>
-      {item.kdaGames < item.games && <span>KDA sur {item.kdaGames} partie{item.kdaGames > 1 ? "s" : ""} renseignée{item.kdaGames > 1 ? "s" : ""}</span>}
-      {detailed && <span>{resultLabel(item)} · Fréquence : {totalGames ? `${Math.round((item.games / totalGames) * 100)}%` : "—"}</span>}
-      {detailed && item.tags?.length > 0 && <span>{item.tags.map(tagLabel).join(" · ")}</span>}
+      <span>{t(roleLabel(item.role))} · {item.games}{t(item.games > 1 ? " parties" : " partie")}{t(" · KDA ")}{item.kda ?? "—"}</span>
+      {item.kdaGames < item.games && <span>{t("KDA sur ")}{item.kdaGames}{t(item.kdaGames > 1 ? " parties" : " partie")}{t(item.kdaGames > 1 ? " renseignées" : " renseignée")}</span>}
+      {detailed && <span>{t(resultLabel(item))}{t(" · Fréquence : ")}{totalGames ? `${Math.round((item.games / totalGames) * 100)}%` : "—"}</span>}
+      {detailed && item.tags?.length > 0 && <span>{item.tags.map(tag => t(tagLabel(tag))).join(" · ")}</span>}
     </span>
     <span className={cx("draft-champion-result", Number.isFinite(item.wr) && item.wr >= 55 ? "draft-result-positive" : Number.isFinite(item.wr) && item.wr < 45 ? "draft-result-negative" : "")}>
-      <strong>{winrateLabel(item.wr)}</strong><span>victoires</span><span>{item.known} résultat{item.known > 1 ? "s" : ""}</span>
+      <strong>{t(winrateLabel(item.wr))}</strong><span>{t("victoires")}</span><span>{item.known}{t(item.known > 1 ? " résultats" : " résultat")}</span>
     </span>
     {onSources && <ChevronRight className="draft-source-chevron" aria-hidden="true" />}
   </>;
   return onSources
-    ? <button type="button" onClick={onSources} className="draft-champion-row" aria-label={`Voir les parties sources : ${championDisplayName(item.champion)}, ${roleLabel(item.role)}, ${item.games} parties, ${winrateLabel(item.wr)} de victoires sur ${item.known} résultats connus, KDA ${item.kda ?? "indisponible"}${detailed ? `, ${resultLabel(item)}, fréquence ${totalGames ? `${Math.round((item.games / totalGames) * 100)}% des drafts` : "indisponible"}${item.tags?.length ? `, styles : ${item.tags.map(tagLabel).join(", ")}` : ""}` : ""}`}>{content}</button>
+    ? <button type="button" onClick={onSources} className="draft-champion-row" aria-label={t("Voir les parties sources : {0}, {1}, {2} parties, {3} de victoires sur {4} résultats connus, KDA {5}{6}", [championDisplayName(item.champion), t(roleLabel(item.role)), item.games, t(winrateLabel(item.wr)), item.known, item.kda ?? "indisponible", detailed ? t(", {0}, fréquence {1}{2}", [t(resultLabel(item)), totalGames ? t("{0}% des drafts", [Math.round((item.games / totalGames) * 100)]) : "indisponible", item.tags?.length ? t(", styles : {0}", [item.tags.map(tag => t(tagLabel(tag))).join(", ")]) : ""]) : ""])}>{content}</button>
     : <div className="draft-champion-row">{content}</div>;
 }
 
@@ -181,61 +186,64 @@ function draftScoreTone(scoreId) {
 }
 
 function DraftScoreBoard({ identity, games = 0, detailHref, onNavigateDetail, sectionId, showHeading = true }) {
+  useLanguage();
   const scores = [...(identity?.scores || [])].sort((a, b) => b.count - a.count);
   const maxCount = Math.max(1, ...scores.map((score) => score.count));
   const primary = scores.find((score) => score.count > 0);
-  const avgPerDraft = (score) => (Number(score?.count || 0) / Math.max(1, games)).toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const avgPerDraft = (score) => (Number(score?.count || 0) / Math.max(1, games)).toLocaleString(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   return <section className="draft-score-board">
     {showHeading && <div className="draft-section-heading">
-      <DraftSectionTitle title="Profil des compositions" href={detailHref} onNavigate={onNavigateDetail} sectionId={sectionId} />
-      {primary && <span className="draft-context">Dominante : {primary.label.toLowerCase()}</span>}
+      <DraftSectionTitle title={t("Profil des compositions")} href={detailHref} onNavigate={onNavigateDetail} sectionId={sectionId} />
+      {primary && <span className="draft-context">{t("Dominante : ")}{t(primary.label).toLowerCase()}</span>}
     </div>}
-    {!games || !primary ? <p className="draft-empty">Pas encore assez de données pour dégager un profil de draft.</p> : <>
-      <p className="draft-description">{analysisCopy(identity?.text)}</p>
-      <div className="draft-score-labels" aria-hidden="true"><span>Marqueurs de style</span><span>Total</span><span>Par draft</span></div>
+    {!games || !primary ? <p className="draft-empty">{t("Pas encore assez de données pour dégager un profil de draft.")}</p> : <>
+      <p className="draft-description">{t(analysisCopy(identity?.text))}</p>
+      <div className="draft-score-labels" aria-hidden="true"><span>{t("Marqueurs de style")}</span><span>{t("Total")}</span><span>{t("Par draft")}</span></div>
       <ul className="draft-score-list">
         {scores.map((score) => <li key={score.id} className="draft-score-row">
           <div className="draft-score-style">
-            <span>{score.label}</span>
+            <span>{t(score.label)}</span>
             <span className="draft-score-track" aria-hidden="true"><span style={{ width: `${Math.min(100, (score.count / maxCount) * 100)}%` }} /></span>
           </div>
-          <strong className="draft-score-total">{score.count}<span className="sr-only"> marqueurs au total</span></strong>
-          <span className="draft-score-average">{avgPerDraft(score)}<span className="sr-only"> marqueurs par draft</span></span>
+          <strong className="draft-score-total">{score.count}<span className="sr-only">{t(" marqueurs au total")}</span></strong>
+          <span className="draft-score-average">{avgPerDraft(score)}<span className="sr-only">{t(" marqueurs par draft")}</span></span>
         </li>)}
       </ul>
-      <p className="draft-footnote">Un champion peut porter plusieurs marqueurs. Les barres comparent leur fréquence, pas leur efficacité.</p>
+      <p className="draft-footnote">{t("Un champion peut porter plusieurs marqueurs. Les barres comparent leur fréquence, pas leur efficacité.")}</p>
     </>}
   </section>;
 }
 
 function DraftTrendTable({ title, rows = [], empty, onSources, variant = "archetypes", detailHref, onNavigateDetail, sectionId, limit = 5, showHeading = true, description, totalGames }) {
+  useLanguage();
   const isDuos = variant === "duos";
   const visibleRows = limit === null ? rows : rows.slice(0, limit);
   const showFrequency = totalGames !== undefined;
   return <section className="draft-trend-table">
-    {showHeading && <div className="draft-section-heading"><DraftSectionTitle title={title} href={detailHref} onNavigate={onNavigateDetail} sectionId={sectionId} /></div>}
-    {description !== false && <p className="draft-description">{description || <>{isDuos ? "Les duos les plus joués, regroupés par paire de rôles." : "Les identités de composition les plus jouées."} Tri par nombre de parties.</>}</p>}
+    {showHeading && <div className="draft-section-heading"><DraftSectionTitle title={t(title)} href={detailHref} onNavigate={onNavigateDetail} sectionId={sectionId} /></div>}
+    {description !== false && <p className="draft-description">{description || <>{isDuos ? t("Les duos les plus joués, regroupés par paire de rôles.") : t("Les identités de composition les plus jouées.")}{t(" Tri par nombre de parties.")}</>}</p>}
     {rows.length ? <>
-      <div className="draft-table-labels" aria-hidden="true"><span>{isDuos ? "Champions et rôles" : "Composition"}</span><span>Parties</span><span>Bilan</span><span>Victoires</span><span /></div>
+      <div className="draft-table-labels" aria-hidden="true"><span>{isDuos ? t("Champions et rôles") : t("Composition")}</span><span>{t("Parties")}</span><span>{t("Bilan")}</span><span>{t("Victoires")}</span><span /></div>
       <ul className="draft-table-list">{visibleRows.map((row, index) => {
         const label = row.label || (row.tag ? tagLabel(row.tag) : row.champions);
         const content = <>
-          <span className="draft-table-identity"><strong>{label}</strong>{row.pair && <span>{row.pair}</span>}{showFrequency && <span>Fréquence : {totalGames ? `${Math.round((row.games / totalGames) * 100)}%` : "—"} des drafts</span>}</span>
-          <span className="draft-table-stat"><span className="draft-mobile-label">Parties</span><strong>{row.games}</strong></span>
-          <span className="draft-table-stat"><span className="draft-mobile-label">Bilan</span><span>{resultLabel(row)}</span></span>
-          <span className={cx("draft-table-stat", Number.isFinite(row.wr) && row.wr >= 55 ? "draft-result-positive" : Number.isFinite(row.wr) && row.wr < 45 ? "draft-result-negative" : "")}><span className="draft-mobile-label">Victoires</span><strong>{winrateLabel(row.wr)}</strong></span>
+          <span className="draft-table-identity"><strong>{t(label)}</strong>{row.pair && <span>{row.pair}</span>}{showFrequency && <span>{t("Fréquence : ")}{totalGames ? `${Math.round((row.games / totalGames) * 100)}%` : "—"}{t(" des drafts")}</span>}</span>
+          <span className="draft-table-stat"><span className="draft-mobile-label">{t("Parties")}</span><strong>{row.games}</strong></span>
+          <span className="draft-table-stat"><span className="draft-mobile-label">{t("Bilan")}</span><span>{t(resultLabel(row))}</span></span>
+          <span className={cx("draft-table-stat", Number.isFinite(row.wr) && row.wr >= 55 ? "draft-result-positive" : Number.isFinite(row.wr) && row.wr < 45 ? "draft-result-negative" : "")}><span className="draft-mobile-label">{t("Victoires")}</span><strong>{t(winrateLabel(row.wr))}</strong></span>
           {onSources ? <ChevronRight className="draft-table-chevron" aria-hidden="true" /> : <span />}
         </>;
         return <li key={`${row.tag || row.champions || row.champion}-${index}`}>
-          {onSources ? <button type="button" className="draft-table-row" onClick={() => onSources(row)} aria-label={`Voir les parties sources : ${label}${row.pair ? `, ${row.pair}` : ""}, ${row.games} parties, ${resultLabel(row)}, ${winrateLabel(row.wr)} de victoires${showFrequency ? `, fréquence ${totalGames ? `${Math.round((row.games / totalGames) * 100)}% des drafts` : "indisponible"}` : ""}`}>{content}</button> : <div className="draft-table-row">{content}</div>}
+          {onSources ? <button type="button" className="draft-table-row" onClick={() => onSources(row)} aria-label={t("Voir les parties sources : {0}{1}, {2} parties, {3}, {4} de victoires{5}", [t(label), row.pair ? `, ${row.pair}` : "", row.games, t(resultLabel(row)), t(winrateLabel(row.wr)), showFrequency ? t(", fréquence {0}", [totalGames ? t("{0}% des drafts", [Math.round((row.games / totalGames) * 100)]) : "indisponible"]) : ""])}>{content}</button> : <div className="draft-table-row">{content}</div>}
         </li>;
       })}</ul>
-      {onSources && <p className="draft-footnote">Sélectionne une ligne pour voir ses parties sources.</p>}
+      {onSources && <p className="draft-footnote">{t("Sélectionne une ligne pour voir ses parties sources.")}</p>}
     </> : <p className="draft-empty">{empty}</p>}
   </section>;
 }
 
 function DraftTrendsModule({ model, onOpenSources, sourceGamesForMatches, detailHref, onNavigateDetail }) {
+  useLanguage();
   const active = model.ally;
   const analysis = model.analysis;
   const sourceFor = (entry) => sourceGamesForMatches?.(entry.matches || []) || [];
@@ -247,48 +255,48 @@ function DraftTrendsModule({ model, onOpenSources, sourceGamesForMatches, detail
   return <Surface className="draft-trends-surface">
     <div className="draft-trends-content">
       <header className="draft-module-heading">
-        <div><h3>Les choix de champions de l’équipe</h3><p className="draft-description">La draft est le choix des champions avant la partie. Compare les habitudes de l’équipe et ouvre les parties pour comprendre leurs résultats.</p></div>
-        <p className="draft-context">{active.games} draft{active.games > 1 ? "s" : ""} disponible{active.games > 1 ? "s" : ""}</p>
+        <div><h3>{t("Les choix de champions de l’équipe")}</h3><p className="draft-description">{t("La draft est le choix des champions avant la partie. Compare les habitudes de l’équipe et ouvre les parties pour comprendre leurs résultats.")}</p></div>
+        <p className="draft-context">{active.games}{t(active.games > 1 ? " drafts" : " draft")}{t(active.games > 1 ? " disponibles" : " disponible")}</p>
       </header>
-      {!active.games ? <p className="draft-empty">Les champions et les compositions apparaîtront avec les participants de tes parties importées.</p> : <>
+      {!active.games ? <p className="draft-empty">{t("Les champions et les compositions apparaîtront avec les participants de tes parties importées.")}</p> : <>
         <dl className="draft-overview">
-          <div><dt>Victoires</dt><dd>{winrateLabel(active.wr)}</dd><dd className="draft-overview-detail">{resultLabel(active)}</dd></div>
-          <div><dt>Compositions complètes</dt><dd>{analysis.completeGames} / {active.games}</dd><dd className="draft-overview-detail">Cinq champions et cinq rôles renseignés</dd></div>
-          <div><dt>Combinaisons champion / rôle</dt><dd>{active.picks.length}</dd><dd className="draft-overview-detail">Dans {active.games} draft{active.games > 1 ? "s" : ""}</dd></div>
+          <div><dt>{t("Victoires")}</dt><dd>{t(winrateLabel(active.wr))}</dd><dd className="draft-overview-detail">{t(resultLabel(active))}</dd></div>
+          <div><dt>{t("Compositions complètes")}</dt><dd>{analysis.completeGames} / {active.games}</dd><dd className="draft-overview-detail">{t("Cinq champions et cinq rôles renseignés")}</dd></div>
+          <div><dt>{t("Combinaisons champion / rôle")}</dt><dd>{active.picks.length}</dd><dd className="draft-overview-detail">{t("Dans ")}{active.games}{t(active.games > 1 ? " drafts" : " draft")}</dd></div>
         </dl>
         <ChampionAnalysis active={active} analysis={model.analysis} onSources={onOpenSources ? openSources : undefined} />
-        <details className="trends-secondary-disclosure draft-analysis-disclosure"><summary><span><strong>Comparer les compositions et les duos</strong><span>Retrouver les associations fréquentes et leurs parties sources</span></span></summary><div className="draft-tables-layout">
-          <DraftTrendTable title="Compositions fréquentes" rows={active.archetypes} empty="Les compositions apparaîtront avec plus de données de draft." {...tableProps("compositions")} onSources={onOpenSources ? (row) => openSources(row, `Composition équipe : ${tagLabel(row.tag)}`, `${row.games} parties · ${winrateLabel(row.wr)} de victoires`) : undefined} />
-          <DraftTrendTable title="Duos fréquents" rows={active.duos} empty="Les duos apparaîtront avec plus de parties." variant="duos" {...tableProps("duos")} onSources={onOpenSources ? (row) => openSources(row, row.champions, `${row.pair} · ${row.games} parties · ${winrateLabel(row.wr)} de victoires`) : undefined} />
+        <details className="trends-secondary-disclosure draft-analysis-disclosure"><summary><span><strong>{t("Comparer les compositions et les duos")}</strong><span>{t("Retrouver les associations fréquentes et leurs parties sources")}</span></span></summary><div className="draft-tables-layout">
+          <DraftTrendTable title={t("Compositions fréquentes")} rows={active.archetypes} empty="Les compositions apparaîtront avec plus de données de draft." {...tableProps("compositions")} onSources={onOpenSources ? (row) => openSources(row, `Composition équipe : ${tagLabel(row.tag)}`, `${row.games} parties · ${winrateLabel(row.wr)} de victoires`) : undefined} />
+          <DraftTrendTable title={t("Duos fréquents")} rows={active.duos} empty="Les duos apparaîtront avec plus de parties." variant="duos" {...tableProps("duos")} onSources={onOpenSources ? (row) => openSources(row, row.champions, `${row.pair} · ${row.games} parties · ${winrateLabel(row.wr)} de victoires`) : undefined} />
         </div></details>
-        <details className="trends-secondary-disclosure draft-analysis-disclosure"><summary><span><strong>Approfondir les choix de champions</strong><span>Champion repère, habitudes, points à vérifier et champions par rôle</span></span></summary>
+        <details className="trends-secondary-disclosure draft-analysis-disclosure"><summary><span><strong>{t("Approfondir les choix de champions")}</strong><span>{t("Champion repère, habitudes, points à vérifier et champions par rôle")}</span></span></summary>
         <div className="draft-analysis-layout">
           <div className="draft-picks-column">
             <section className="draft-key-pick">
-              <DraftSectionTitle title="Champion repère" {...headingProps("pick-repere")} />
+              <DraftSectionTitle title={t("Champion repère")} {...headingProps("pick-repere")} />
               {mainPick && <>
-                <div className="draft-key-pick-identity"><span className="draft-key-portrait" aria-hidden="true"><ChampionPortrait champion={mainPick.champion} alt="" /></span><div><h5>{championDisplayName(mainPick.champion)}</h5><p>{roleLabel(mainPick.role)} · {mainPick.games} partie{mainPick.games > 1 ? "s" : ""} · {winrateLabel(mainPick.wr)} de victoires</p></div></div>
-                <p className="draft-description">{active.comfort.length ? "Le champion le plus joué parmi ceux qui ont au moins 2 résultats connus et 50 % de victoires." : "Le champion le plus joué. Son résultat reste à confirmer avec davantage de parties."}</p>
-                {onOpenSources && <button type="button" className="draft-source-link" onClick={sourceAction(mainPick)}>Voir les parties sources <ArrowRight aria-hidden="true" /></button>}
+                <div className="draft-key-pick-identity"><span className="draft-key-portrait" aria-hidden="true"><ChampionPortrait champion={mainPick.champion} alt="" /></span><div><h5>{championDisplayName(mainPick.champion)}</h5><p>{t(roleLabel(mainPick.role))} · {mainPick.games}{t(mainPick.games > 1 ? " parties" : " partie")} · {t(winrateLabel(mainPick.wr))}{t(" de victoires")}</p></div></div>
+                <p className="draft-description">{active.comfort.length ? t("Le champion le plus joué parmi ceux qui ont au moins 2 résultats connus et 50 % de victoires.") : t("Le champion le plus joué. Son résultat reste à confirmer avec davantage de parties.")}</p>
+                {onOpenSources && <button type="button" className="draft-source-link" onClick={sourceAction(mainPick)}>{t("Voir les parties sources ")}<ArrowRight aria-hidden="true" /></button>}
               </>}
             </section>
             <section className="draft-comfort">
-              <div className="draft-section-heading"><DraftSectionTitle title="Champions rejoués avec succès" {...headingProps("confort")} /></div>
-              <p className="draft-description">Au moins 2 résultats connus et 50 % de victoires. Ces résultats restent à confirmer avec l’équipe.</p>
-              {active.comfort.length ? <div className="draft-champion-list">{active.comfort.map((item) => <DraftMiniChampion key={`${item.role}-${item.champion}`} item={item} onSources={sourceAction(item)} />)}</div> : <p className="draft-empty">Aucun champion ne remplit encore ces critères sur cette période.</p>}
-              <p className="draft-footnote">KDA : éliminations et assistances rapportées aux morts, avec un minimum de 1 au dénominateur.</p>
+              <div className="draft-section-heading"><DraftSectionTitle title={t("Champions rejoués avec succès")} {...headingProps("confort")} /></div>
+              <p className="draft-description">{t("Au moins 2 résultats connus et 50 % de victoires. Ces résultats restent à confirmer avec l’équipe.")}</p>
+              {active.comfort.length ? <div className="draft-champion-list">{active.comfort.map((item) => <DraftMiniChampion key={`${item.role}-${item.champion}`} item={item} onSources={sourceAction(item)} />)}</div> : <p className="draft-empty">{t("Aucun champion ne remplit encore ces critères sur cette période.")}</p>}
+              <p className="draft-footnote">{t("KDA : éliminations et assistances rapportées aux morts, avec un minimum de 1 au dénominateur.")}</p>
             </section>
           </div>
           <DraftScoreBoard identity={active.identity} games={active.games} {...tableProps("profil")} />
         </div>
         <div className="draft-review-layout">
-          <section className="draft-review"><DraftSectionTitle title="À revoir en équipe" {...headingProps("a-revoir")} />
+          <section className="draft-review"><DraftSectionTitle title={t("À revoir en équipe")} {...headingProps("a-revoir")} />
             <DraftSignals analysis={analysis} onSources={onOpenSources ? openSources : undefined} />
-            {active.traps.length > 0 && <><p className="draft-description">Champions rejoués avec moins de 50% de victoires :</p><div className="draft-champion-list">{active.traps.map((item) => <DraftMiniChampion key={`${item.role}-${item.champion}`} item={item} onSources={sourceAction(item)} />)}</div></>}
+            {active.traps.length > 0 && <><p className="draft-description">{t("Champions rejoués avec moins de 50% de victoires :")}</p><div className="draft-champion-list">{active.traps.map((item) => <DraftMiniChampion key={`${item.role}-${item.champion}`} item={item} onSources={sourceAction(item)} />)}</div></>}
           </section>
-          <section className="draft-role-pools"><DraftSectionTitle title="Champions les plus joués par rôle" {...headingProps("roles")} /><p className="draft-description">Jusqu’à trois champions par rôle. Sélectionne un champion pour retrouver ses parties.</p>
+          <section className="draft-role-pools"><DraftSectionTitle title={t("Champions les plus joués par rôle")} {...headingProps("roles")} /><p className="draft-description">{t("Jusqu’à trois champions par rôle. Sélectionne un champion pour retrouver ses parties.")}</p>
             <ul>{active.rolePicks.map((entry) => <li className="draft-role-row" key={entry.role}>
-              <div className="draft-role-name"><span aria-hidden="true"><RoleIcon role={entry.role} className="draft-role-icon" lightweight /></span><strong>{roleLabel(entry.role)}</strong></div>
+              <div className="draft-role-name"><span aria-hidden="true"><RoleIcon role={entry.role} className="draft-role-icon" lightweight /></span><strong>{t(roleLabel(entry.role))}</strong></div>
               <div className="draft-role-champions">{entry.picks.map((pick) => onOpenSources ? <button type="button" className="draft-pool-link" onClick={sourceAction(pick)} key={pick.champion}>{championDisplayName(pick.champion)} <span>{pick.games} G</span></button> : <span className="draft-pool-link" key={pick.champion}>{championDisplayName(pick.champion)} <span>{pick.games} G</span></span>)}</div>
             </li>)}</ul>
           </section>

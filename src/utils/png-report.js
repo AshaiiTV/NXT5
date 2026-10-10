@@ -1,3 +1,5 @@
+import { getLocale } from "../i18n/locale.js";
+import { t } from "../i18n/translate.js";
 export const PNG_THEME = Object.freeze({
   bg: "#020611",
   panel: "#0a1427",
@@ -29,8 +31,10 @@ function ellipsize(ctx, text, width) {
   return ctx.measureText("…").width <= width ? `${chars.join("").trimEnd()}…` : "";
 }
 
-export function pngFitText(ctx, text, x, y, maxWidth, { font = "600 20px Inter, Arial, sans-serif", color = PNG_THEME.text, min = 20, align = "left" } = {}) {
-  const value = String(text ?? "");
+// Only product labels opt in. Player/team names, categories and coaching notes
+// must remain untouched even when they happen to match a translation key.
+export function pngFitText(ctx, text, x, y, maxWidth, { font = "600 20px Inter, Arial, sans-serif", color = PNG_THEME.text, min = 20, align = "left", localize = false } = {}) {
+  const value = String(localize ? t(text ?? "") : text ?? "");
   const sizeMatch = font.match(/(\d+(?:\.\d+)?)px/);
   let size = sizeMatch ? Number(sizeMatch[1]) : 20;
   ctx.save();
@@ -48,12 +52,12 @@ export function pngFitText(ctx, text, x, y, maxWidth, { font = "600 20px Inter, 
   return fitted;
 }
 
-export function pngWrapText(ctx, text, maxWidth, { font = "500 20px Inter, Arial, sans-serif", maxLines = Infinity } = {}) {
+export function pngWrapText(ctx, text, maxWidth, { font = "500 20px Inter, Arial, sans-serif", maxLines = Infinity, localize = false } = {}) {
   if (maxLines <= 0 || maxWidth <= 0) return [];
   ctx.save();
   ctx.font = font;
   const lines = [];
-  for (const paragraph of String(text ?? "").split(/\r?\n/)) {
+  for (const paragraph of String(localize ? t(text ?? "") : text ?? "").split(/\r?\n/)) {
     let line = "";
     for (const word of paragraph.trim().split(/\s+/).filter(Boolean)) {
       const candidate = line ? `${line} ${word}` : word;
@@ -118,28 +122,28 @@ export function pngMetricStrip(ctx, { x = 64, y = 200, width, items = [] }) {
   items.forEach((item, index) => {
     const cellX = x + index * cellWidth;
     if (index) pngLine(ctx, cellX, y + 20, cellX, y + 100);
-    pngFitText(ctx, item.label, cellX + 24, y + 30, cellWidth - 48, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+    pngFitText(ctx, item.label, cellX + 24, y + 30, cellWidth - 48, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, localize: true });
     pngFitText(ctx, item.value, cellX + 24, y + 73, cellWidth - 48, { font: "700 38px Inter, Arial, sans-serif", color: item.accent ? pngAccent(item.accent) : PNG_THEME.text, min: 28 });
-    pngFitText(ctx, item.detail, cellX + 24, y + 101, cellWidth - 48 - (item.marker ? 110 : 0), { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
-    if (item.marker) pngFitText(ctx, item.marker, cellX + cellWidth - 24, y + 101, 102, { font: "600 20px Inter, Arial, sans-serif", color: pngAccent(item.markerAccent), align: "right" });
+    pngFitText(ctx, item.detail, cellX + 24, y + 101, cellWidth - 48 - (item.marker ? 110 : 0), { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, localize: true });
+    if (item.marker) pngFitText(ctx, item.marker, cellX + cellWidth - 24, y + 101, 102, { font: "600 20px Inter, Arial, sans-serif", color: pngAccent(item.markerAccent), align: "right", localize: true });
   });
 }
 
 export function pngHeader(ctx, { width, title, subtitle = "", eyebrow = "", logo, meta, margin = 64 }) {
   const textWidth = width - margin * 2 - 270;
-  if (eyebrow) pngFitText(ctx, eyebrow, margin, 62, textWidth, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.cyan });
+  if (eyebrow) pngFitText(ctx, eyebrow, margin, 62, textWidth, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.cyan, localize: true });
   pngFitText(ctx, title, margin, 117, textWidth, { font: "700 44px Inter, Arial, sans-serif", min: 28 });
   pngFitText(ctx, subtitle, margin, 156, width - margin * 2, { font: "500 22px Inter, Arial, sans-serif", color: PNG_THEME.muted });
   pngImageContain(ctx, logo, width - margin - 204, 46, 204, 65);
-  if (meta) pngFitText(ctx, meta, width - margin, 129, 240, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
+  if (meta) pngFitText(ctx, meta, width - margin, 129, 240, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right", localize: true });
   pngLine(ctx, margin, 184, width - margin, 184);
   return 200;
 }
 
 export function pngFooter(ctx, { width, height, label = "", margin = 64 }) {
   pngLine(ctx, margin, height - 67, width - margin, height - 67);
-  pngFitText(ctx, label, margin, height - 33, width - margin * 2 - 290, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
-  pngFitText(ctx, `Exporté le ${new Date().toLocaleDateString("fr-FR")}`, width - margin, height - 33, 280, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
+  pngFitText(ctx, label, margin, height - 33, width - margin * 2 - 290, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, localize: true });
+  pngFitText(ctx, t("Exporté le {0}", [new Date().toLocaleDateString(getLocale())]), width - margin, height - 33, 280, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
 }
 
 // An absent metric remains absent; a recorded zero remains a number.
@@ -152,7 +156,7 @@ export function pngNumeric(value) {
 
 export function pngNumber(value, digits = 0) {
   const number = pngNumeric(value);
-  return number === null ? "—" : number.toLocaleString("fr-FR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return number === null ? "—" : number.toLocaleString(getLocale(), { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 export function pngPercent(value, digits = 0) {
@@ -187,7 +191,7 @@ export function pngDateRange(matches = []) {
     return [];
   }).sort((a, b) => a - b);
   if (!dates.length) return "Date indisponible";
-  const format = (date) => date.toLocaleDateString("fr-FR");
+  const format = (date) => date.toLocaleDateString(getLocale());
   const first = format(dates[0]);
   const last = format(dates.at(-1));
   return first === last ? first : `${first} – ${last}`;

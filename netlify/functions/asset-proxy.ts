@@ -16,7 +16,7 @@ const ALLOWED_CONTENT_TYPES = new Set([
 const MAX_ASSET_BYTES = 2 * 1024 * 1024;
 const ASSET_TIMEOUT_MS = 10_000;
 const GITHUB_IMAGE_PATH_RE = /\.(png|jpe?g|webp)$/i;
-const RUNE_CATALOG_PATH_RE = /^\/cdn\/[1-9]\d?\.[1-9]\d?\.[1-9]\/data\/fr_FR\/runesReforged\.json$/;
+const RUNE_CATALOG_PATH_RE = /^\/cdn\/[1-9]\d?\.[1-9]\d?\.[1-9]\/data\/(?:fr_FR|en_US|es_ES)\/runesReforged\.json$/;
 const MAX_RUNE_CATALOG_BYTES = 512 * 1024;
 const RUNE_CATALOG_TIMEOUT_MS = 4000;
 
@@ -89,7 +89,7 @@ async function fetchUpstream(target: URL, init: { accept: string; redirect: Requ
   }
 }
 
-// The only JSON exception: a versioned French rune catalogue, never arbitrary
+// The only JSON exception: a versioned rune catalogue in a supported language, never arbitrary
 // JSON or SVG.
 function runeCatalog(target: URL): Promise<Response> {
   return fetchUpstream(target, { accept: 'application/json', redirect: 'error', timeoutMs: RUNE_CATALOG_TIMEOUT_MS }, async (upstream) => {

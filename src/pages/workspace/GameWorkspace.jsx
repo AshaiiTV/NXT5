@@ -1,3 +1,6 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
+import { getLocale } from "../../i18n/locale.js";
 import { MILESTONE_TOLERANCE_MS } from "../../../shared/timeline-milestones.js";
 import { assetProxyUrl } from "../../utils/matches.js";
 import { availableNumber } from "../../utils/statistics.js";
@@ -159,19 +162,19 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
         { label: "Kills / game", value: pngNumber(measures[0].ally, 1), detail: `${measures[0].count}/${games} games` },
       ] });
       pngPanel(ctx, M, 364, CW, 456);
-      text("Moyennes par game", M + 24, 406, 620, 28, PNG_THEME.text, 700);
-      text("Écart = équipe − adversaires", W - M - 24, 405, 490, 20, PNG_THEME.muted, 500, "right");
+      text(t("Moyennes par game"), M + 24, 406, 620, 28, PNG_THEME.text, 700);
+      text(t("Écart = équipe − adversaires"), W - M - 24, 405, 490, 20, PNG_THEME.muted, 500, "right");
       [["Mesure", M + 24, 330], [teamName, M + 400, 308], ["Adversaires", M + 746, 220], ["Écart", M + 1030, 190], ["Games", M + 1280, 174]].forEach(([label, x, width]) => text(label, x, 452, width, 20, PNG_THEME.muted));
       measures.forEach((measure, index) => {
         const y = 480 + index * 46;
         pngLine(ctx, M + 24, y - 10, W - M - 24, y - 10);
-        text(measure.label, M + 24, y + 21, 330, 22);
+        text(t(measure.label), M + 24, y + 21, 330, 22);
         text(pngNumber(measure.ally, measure.digits), M + 400, y + 21, 308, 28, PNG_THEME.text, 700);
         text(pngNumber(measure.enemy, measure.digits), M + 746, y + 21, 220, 28, PNG_THEME.text, 700);
         text(signed(measure.diff, measure.digits), M + 1030, y + 21, 190, 28, PNG_THEME.text, 700);
         text(`${measure.count}/${games}`, M + 1280, y + 21, 174, 22, PNG_THEME.muted);
       });
-      text("Games : 5 joueurs renseignés par équipe pour la mesure · — = indisponible", M + 24, 795, CW - 48, 20, PNG_THEME.muted, 500);
+      text(t("Games : 5 joueurs renseignés par équipe pour la mesure · — = indisponible"), M + 24, 795, CW - 48, 20, PNG_THEME.muted, 500);
     }
     page.parts.forEach((part) => {
       const height = 108 + part.rows.reduce((sum, row) => sum + row.height, 0);
@@ -181,7 +184,7 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
         [["Game / identifiant", M + 24, 464], ["Résultat", M + 522, 174], ["Date", M + 734, 190], ["Durée", M + 964, 130], ["Côté équipe", M + 1132, 160], ["Patch", M + 1334, 122]].forEach(([label, x, width]) => text(label, x, part.y + 84, width, 20, PNG_THEME.muted));
       } else {
         text(teamName, M + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
-        text("Adversaires", W / 2 + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
+        text(t("Adversaires"), W / 2 + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
       }
       let y = part.y + 108;
       part.rows.forEach((row) => {
@@ -190,7 +193,7 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
           const { match, names } = row;
           lines(names, M + 24, y + 30, 464, 22, PNG_THEME.text, 700);
           text(match.game_id || "Identifiant —", M + 24, y + 30 + names.length * 27, 464, 20, PNG_THEME.muted, 500);
-          text(resultLabel(match), M + 522, y + 43, 174, 24, resultColor(match), 700);
+          text(t(resultLabel(match)), M + 522, y + 43, 174, 24, resultColor(match), 700);
           text(pngDateRange([match]) === "Date indisponible" ? "—" : pngDateRange([match]), M + 734, y + 43, 190, 20, PNG_THEME.muted);
           text(duration(durationSeconds(match)), M + 964, y + 43, 130, 24);
           text(sideLabel(match).replace("Côté ", ""), M + 1132, y + 43, 160, 22, sideColor(match), 700);
@@ -230,17 +233,19 @@ function metricSideMarkerMeta(marker) {
 }
 
 function MetricSideMarker({ marker }) {
+  useLanguage();
   const meta = metricSideMarkerMeta(marker);
   if (!meta) return null;
-  return <span className={cx("inline-flex shrink-0 items-center rounded-lg border px-1.5 py-0.5 text-xs font-black uppercase leading-none tracking-[0.08em]", tone(meta.tone))}>{meta.text}</span>;
+  return <span className={cx("inline-flex shrink-0 items-center rounded-lg border px-1.5 py-0.5 text-xs font-black uppercase leading-none tracking-[0.08em]", tone(meta.tone))}>{t(meta.text)}</span>;
 }
 
-function MetricCard({ icon: Icon, label, value, hint, tone: t = "purple", delay = 0, compact = false, sideMarker = "" }) {
+function MetricCard({ icon: Icon, label, value, hint, tone: metricTone = "purple", delay = 0, compact = false, sideMarker = "" }) {
+  useLanguage();
   return (
     <Surface delay={delay} className={cx("overflow-hidden", compact ? "min-h-0 p-3" : "min-h-[104px] p-3 sm:p-4")}>
       <div className={cx("flex items-start justify-between", compact ? "gap-3" : "gap-4")}>
-        <div className="min-w-0 flex-1"><div className="flex min-w-0 items-start justify-between gap-2"><p className="min-w-0 text-xs font-semibold text-slate-300">{label}</p><MetricSideMarker marker={sideMarker} /></div><p className={cx("break-words font-black text-white", compact ? "mt-1 text-xl sm:text-2xl" : "mt-1 text-2xl sm:text-3xl")}>{value ?? "-"}</p><p className={cx("font-semibold text-slate-300", compact ? "mt-1 text-xs leading-5" : "mt-1 text-xs leading-5")}>{hint ?? "En attente de données"}</p></div>
-        <div className={cx("shrink-0 rounded-xl border", compact ? "p-2" : "p-2.5", tone(t))}><Icon className={cx(compact ? "h-4 w-4" : "h-5 w-5")} /></div>
+        <div className="min-w-0 flex-1"><div className="flex min-w-0 items-start justify-between gap-2"><p className="min-w-0 text-xs font-semibold text-slate-300">{t(label)}</p><MetricSideMarker marker={sideMarker} /></div><p className={cx("break-words font-black text-white", compact ? "mt-1 text-xl sm:text-2xl" : "mt-1 text-2xl sm:text-3xl")}>{value ?? "-"}</p><p className={cx("font-semibold text-slate-300", compact ? "mt-1 text-xs leading-5" : "mt-1 text-xs leading-5")}>{t(hint) ?? t("En attente de données")}</p></div>
+        <div className={cx("shrink-0 rounded-xl border", compact ? "p-2" : "p-2.5", tone(metricTone))}><Icon className={cx(compact ? "h-4 w-4" : "h-5 w-5")} /></div>
       </div>
     </Surface>
   );
@@ -283,7 +288,8 @@ function winningTeamForDiff(value) {
 }
 
 // Compatibility export: both former pages now share the Games workspace.
-function Matches(props) { return <Statistics {...props} />; }
+function Matches(props) {
+  useLanguage(); return <Statistics {...props} />; }
 
 function objectiveEventTone(event) {
   const label = objectiveEventLabel(event).toLowerCase();
@@ -429,6 +435,7 @@ const OBJECTIVE_ICON_SOURCES = {
 };
 
 function ObjectivePictogram({ type, className = "", fallback = "O" }) {
+  useLanguage();
   const sources = OBJECTIVE_ICON_SOURCES[type] || [];
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [type]);
@@ -438,6 +445,7 @@ function ObjectivePictogram({ type, className = "", fallback = "O" }) {
 }
 
 function ObjectiveFallbackIcon({ type, fallback = "O", className = "" }) {
+  useLanguage();
   const config = {
     "dragon-fire": ["#fb923c", "#ef4444", "F"],
     "dragon-water": ["#67e8f9", "#2563eb", "O"],
@@ -456,6 +464,7 @@ function objectiveSummaryHasData(data) {
 }
 
 function ObjectiveTeamCard({ match, teamKey, side, title, data: providedData }) {
+  useLanguage();
   const data = providedData || objectiveTeamSummary(match, teamKey);
   const isRed = side === "RED";
   const stats = [
@@ -471,19 +480,19 @@ function ObjectiveTeamCard({ match, teamKey, side, title, data: providedData }) 
         <span className={cx("h-2 w-2 shrink-0 rounded-full ", isRed ? "bg-rose-300 text-rose-300" : "bg-cyan-200 text-cyan-200")} />
         <h4 className="break-words text-xs font-semibold text-white">{title}</h4>
       </div>
-      <p className="shrink-0 text-xs font-semibold text-slate-400"><span className="text-white">{data.dragonCount}</span> drake{data.dragonCount > 1 ? "s" : ""}</p>
+      <p className="shrink-0 text-xs font-semibold text-slate-400"><span className="text-white">{data.dragonCount}</span>{t(data.dragonCount > 1 ? " drakes" : " drake")}</p>
     </div>
     <dl className="games-objective-counts">
-      {stats.map(([label, value, icon, t], index) => <div key={label} className={cx("min-w-0 px-1 text-center sm:px-2", index > 0 && "border-l border-white/[0.07]")}>
+      {stats.map(([label, value, icon, metricTone], index) => <div key={label} className={cx("min-w-0 px-1 text-center sm:px-2", index > 0 && "border-l border-white/[0.07]")}>
         <dt className="flex min-w-0 flex-col items-center justify-center gap-1.5">
-          <span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tone(t))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-9 w-9" /></span>
-          <span className="text-xs font-semibold text-slate-300">{label}</span>
+          <span className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tone(metricTone))}><ObjectivePictogram type={icon} fallback={String(label).charAt(0)} className="h-9 w-9" /></span>
+          <span className="text-xs font-semibold text-slate-300">{t(label)}</span>
         </dt>
         <dd className="mt-1 text-lg font-black tabular-nums text-white">{value}</dd>
       </div>)}
     </dl>
     {data.dragons.length > 0 && <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
-      <p className="shrink-0 text-xs font-semibold text-slate-400">Dragons</p>
+      <p className="shrink-0 text-xs font-semibold text-slate-400">{t("Dragons")}</p>
       <div className="flex min-w-0 flex-wrap gap-1.5">
         {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-black text-white", tone(objectiveEventTone(event)))}>
           <ObjectivePictogram type={objectiveDragonIconType(event)} fallback={objectiveEventIcon(event)} className="h-6 w-6" />
@@ -496,6 +505,7 @@ function ObjectiveTeamCard({ match, teamKey, side, title, data: providedData }) 
 }
 
 function ObjectiveHud({ match, compact = false }) {
+  useLanguage();
   const events = objectiveEvents(match);
   const blueTeamKey = objectiveTeamKeyForSide(match, "BLUE");
   const redTeamKey = objectiveTeamKeyForSide(match, "RED");
@@ -506,16 +516,16 @@ function ObjectiveHud({ match, compact = false }) {
     <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 px-1">
       <div className="flex min-w-0 items-center gap-2">
         <Trophy className="h-4 w-4 shrink-0 text-cyan-200" />
-        <h3 className="text-xs font-semibold text-white">Objectifs</h3>
+        <h3 className="text-xs font-semibold text-white">{t("Objectifs")}</h3>
       </div>
-      {events.length > 0 && <p className="text-xs font-semibold text-slate-400"><span className="text-white">{events.length}</span> prises enregistrées</p>}
+      {events.length > 0 && <p className="text-xs font-semibold text-slate-400"><span className="text-white">{events.length}</span>{t(" prises enregistrées")}</p>}
     </div>
     <div className="grid overflow-hidden rounded-2xl border border-white/[0.08] bg-black/10 xl:grid-cols-2">
-      <ObjectiveTeamCard match={match} teamKey={blueTeamKey} side="BLUE" title="Côté bleu" data={blueData} />
-      <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title="Côté rouge" data={redData} />
+      <ObjectiveTeamCard match={match} teamKey={blueTeamKey} side="BLUE" title={t("Côté bleu")} data={blueData} />
+      <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title={t("Côté rouge")} data={redData} />
     </div>
     {events.length ? <>
-      <div className="nxt5-objective-timeline mt-2 overflow-x-auto overflow-y-hidden border-t border-white/[0.07] pt-2 pb-1" role="region" aria-label="Prises d’objectifs dans le temps" tabIndex={0}>
+      <div className="nxt5-objective-timeline mt-2 overflow-x-auto overflow-y-hidden border-t border-white/[0.07] pt-2 pb-1" role="region" aria-label={t("Prises d’objectifs dans le temps")} tabIndex={0}>
         <ol className="flex w-max min-w-full items-stretch px-2 py-1">
           {events.map((event, index) => {
             const isRed = event.side === "RED";
@@ -530,9 +540,9 @@ function ObjectiveHud({ match, compact = false }) {
                   <span className="flex min-w-0 items-center gap-1">
                     <time className="shrink-0 text-xs font-black tabular-nums text-white">{event.time}</time>
                     <span className={cx("h-1 w-1 shrink-0 rounded-full", isRed ? "bg-rose-300" : isBlue ? "bg-cyan-200" : "bg-slate-400")} />
-                    <span className={cx("whitespace-nowrap text-xs font-black uppercase", isRed ? "text-rose-100/75" : isBlue ? "text-cyan-100/75" : "text-slate-300")}>{isRed ? "Rouge" : isBlue ? "Bleu" : "—"}</span>
+                    <span className={cx("whitespace-nowrap text-xs font-black uppercase", isRed ? "text-rose-100/75" : isBlue ? "text-cyan-100/75" : "text-slate-300")}>{isRed ? t("Rouge") : isBlue ? t("Bleu") : "—"}</span>
                   </span>
-                  <span className="mt-0.5 block text-xs font-black leading-4 text-white">{event.label}</span>
+                  <span className="mt-0.5 block text-xs font-black leading-4 text-white">{t(event.label)}</span>
                 </span>
               </div>
               {index < events.length - 1 && <span className="flex w-3 shrink-0 items-center" aria-hidden="true"><span className="h-px flex-1 bg-white/12" /><span className="h-1 w-1 rounded-full bg-white/25" /></span>}
@@ -652,10 +662,10 @@ function roleDiffRows(match) {
   });
 }
 
-function timelineTeamLabel(teamKey, teamName = "Notre équipe") {
-  if (teamKey === "ALLY") return String(teamName || "Notre équipe").trim() || "Notre équipe";
-  if (teamKey === "ENEMY") return "Adversaire";
-  return teamKey === "NEUTRAL" ? "Contesté" : "—";
+function timelineTeamLabel(teamKey, teamName = "") {
+  if (teamKey === "ALLY") return String(teamName || "").trim() || t("Notre équipe");
+  if (teamKey === "ENEMY") return t("Adversaire");
+  return teamKey === "NEUTRAL" ? t("Contesté") : "—";
 }
 
 function timelineTeamTone(teamKey) {
@@ -764,6 +774,7 @@ function timelineMilestones(match, teamName) {
 }
 
 function MatchTimelineReview({ match, teamName }) {
+  useLanguage();
   const status = timelineStatus(match);
   const objectives = objectiveContext(match);
   const kills = championKillEvents(match);
@@ -791,53 +802,57 @@ function MatchTimelineReview({ match, teamName }) {
     <div className="games-timeline-heading">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="min-w-0">
-          <div className="flex flex-wrap gap-2"><Badge tone="cyan">Déroulé coach</Badge><Badge tone={status.toneName}>{status.label}</Badge><Badge tone="purple">{kills.length} kills</Badge><Badge tone="slate">{events.length} moments</Badge></div>
-          <h4 className="mt-3 text-2xl font-black text-white">Lecture chronologique</h4>
-          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{highlight ? `${highlight.time} · ${timelineTeamLabel(highlight.teamKey, teamName)} · ${highlight.title}` : "Aucun moment clé détecté dans la timeline importée."}</p>
+          <div className="flex flex-wrap gap-2"><Badge tone="cyan">{t("Déroulé coach")}</Badge><Badge tone={status.toneName}>{t(status.label)}</Badge><Badge tone="purple">{kills.length}{t(" kills")}</Badge><Badge tone="slate">{events.length}{t(" moments")}</Badge></div>
+          <h4 className="mt-3 text-2xl font-black text-white">{t("Lecture chronologique")}</h4>
+          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{highlight ? `${highlight.time} · ${timelineTeamLabel(highlight.teamKey, teamName)} · ${highlight.title}` : t("Aucun moment clé détecté dans la timeline importée.")}</p>
         </div>
         <div className="grid w-full gap-2 sm:grid-cols-3 xl:w-[34rem]">
           {goldMarks.map((item) => <TimelineGoldCheckpoint key={item.minute} minute={item.minute} diff={item.diff} />)}
         </div>
       </div>
       <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <TimelineReadoutCard icon={Gauge} label="Économie finale" value={formatSignedShort(finalGoldDiff)} detail={finalGoldDiff >= 0 ? `Avantage ${timelineTeamLabel("ALLY", teamName)}` : "Avantage adverse"} toneName={diffTone(finalGoldDiff)} />
-        <TimelineReadoutCard icon={Target} label="Objectifs neutres" value={`${allyObjectives}-${enemyObjectives}`} detail={`${timelineTeamLabel("ALLY", teamName)} · Adversaire`} toneName={allyObjectives >= enemyObjectives ? "cyan" : "red"} />
-        <TimelineReadoutCard icon={Swords} label="Fights détectés" value={`${allyFights}-${enemyFights}`} detail="Fenêtres multi-kills" toneName={allyFights >= enemyFights ? "green" : "red"} />
+        <TimelineReadoutCard icon={Gauge} label={t("Économie finale")} value={formatSignedShort(finalGoldDiff)} detail={finalGoldDiff >= 0 ? t("Avantage {0}", [timelineTeamLabel("ALLY", teamName)]) : t("Avantage adverse")} toneName={diffTone(finalGoldDiff)} />
+        <TimelineReadoutCard icon={Target} label={t("Objectifs neutres")} value={`${allyObjectives}-${enemyObjectives}`} detail={t("{0} · Adversaire", [timelineTeamLabel("ALLY", teamName)])} toneName={allyObjectives >= enemyObjectives ? "cyan" : "red"} />
+        <TimelineReadoutCard icon={Swords} label={t("Fights détectés")} value={`${allyFights}-${enemyFights}`} detail={t("Fenêtres multi-kills")} toneName={allyFights >= enemyFights ? "green" : "red"} />
       </div>
     </div>
     {events.length ? <div className="grid gap-3 p-4 xl:grid-cols-3">
       {phases.map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} teamName={teamName} />)}
-    </div> : <p className="m-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">Aucun déroulé exploitable dans ce JSON pour les moments clés.</p>}
+    </div> : <p className="m-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">{t("Aucun déroulé exploitable dans ce JSON pour les moments clés.")}</p>}
   </div>;
 }
 
 function TimelineGoldCheckpoint({ minute, diff }) {
+  useLanguage();
   const missing = diff === null;
   return <div className={cx("rounded-2xl border px-3 py-2", missing ? tone("slate") : tone(diffTone(diff)))}>
-    <p className="text-xs font-semibold opacity-80">{minute} min</p>
+    <p className="text-xs font-semibold opacity-80">{minute}{t(" min")}</p>
     <p className="mt-1 text-lg font-black leading-none text-white">{missing ? "—" : formatSignedShort(diff)}</p>
-    <p className="mt-1 break-words text-xs font-semibold opacity-75">écart or</p>
+    <p className="mt-1 break-words text-xs font-semibold opacity-75">{t("écart or")}</p>
   </div>;
 }
 
 function TimelineReadoutCard({ icon: Icon, label, value, detail, toneName }) {
+  useLanguage();
   return <div className="games-stat-block">
     <div className="flex items-center justify-between gap-3">
-      <p className="break-words text-xs font-semibold text-slate-300">{label}</p>
+      <p className="break-words text-xs font-semibold text-slate-300">{t(label)}</p>
       <div className={cx("rounded-xl border p-2", tone(toneName))}><Icon className="h-4 w-4" /></div>
     </div>
     <p className="mt-2 break-words text-2xl font-black text-white">{value}</p>
-    <p className="break-words text-xs font-semibold text-slate-300">{detail}</p>
+    <p className="break-words text-xs font-semibold text-slate-300">{t(detail)}</p>
   </div>;
 }
 
 function TimelineEventGlyph({ event }) {
+  useLanguage();
   if (event.kind === "objective") return <ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-8 w-8" />;
   if (event.kind === "fight") return <Swords className="h-4 w-4" />;
   return <Shield className="h-4 w-4" />;
 }
 
 function TimelineEventCard({ event, index, kills, match, teamName }) {
+  useLanguage();
   const toneName = event.toneName || timelineTeamTone(event.teamKey);
   const score = killScoreAtTimestamp(kills, event.timestamp);
   const gold = timelineGoldDiff(match, event.timestamp);
@@ -857,13 +872,13 @@ function TimelineEventCard({ event, index, kills, match, teamName }) {
           <Badge tone="slate">#{index + 1}</Badge>
           <Badge tone={toneName}>{timelineTeamLabel(event.teamKey, teamName)}</Badge>
         </div>
-        <p className="mt-2 break-words text-sm font-black text-white">{event.title}</p>
-        <p className="mt-1 text-xs leading-5 text-slate-300">{event.context || event.detail || kindLabel}</p>
-        {event.detail && event.detail !== event.context && <p className="mt-1 text-xs leading-5 text-slate-400">{event.detail}</p>}
+        <p className="mt-2 break-words text-sm font-black text-white">{t(event.title)}</p>
+        <p className="mt-1 text-xs leading-5 text-slate-300">{t(event.context || event.detail || kindLabel)}</p>
+        {event.detail && event.detail !== event.context && <p className="mt-1 text-xs leading-5 text-slate-400">{t(event.detail)}</p>}
         <div className="mt-3 grid grid-cols-3 gap-1.5">
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Kills</span><span className="text-xs font-black text-white">{score.ally}-{score.enemy}</span></span>
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Gold</span><span className={cx("text-xs font-black", gold === null ? "text-slate-300" : gold >= 0 ? "text-emerald-100" : "text-rose-100")}>{gold === null ? "—" : formatSignedShort(gold)}</span></span>
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">Type</span><span className="break-words text-xs font-black text-white">{kindLabel}</span></span>
+          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">{t("Kills")}</span><span className="text-xs font-black text-white">{score.ally}-{score.enemy}</span></span>
+          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">{t("Gold")}</span><span className={cx("text-xs font-black", gold === null ? "text-slate-300" : gold >= 0 ? "text-emerald-100" : "text-rose-100")}>{gold === null ? "—" : formatSignedShort(gold)}</span></span>
+          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">{t("Type")}</span><span className="break-words text-xs font-black text-white">{t(kindLabel)}</span></span>
         </div>
       </div>
     </div>
@@ -871,27 +886,30 @@ function TimelineEventCard({ event, index, kills, match, teamName }) {
 }
 
 function TimelinePhaseColumn({ phase, kills, match, teamName }) {
+  useLanguage();
   return <section className="games-timeline-phase">
     <div className="mb-3 flex items-center justify-between gap-3">
       <div className="min-w-0">
-        <p className="break-words text-sm font-black text-white">{phase.label}</p>
-        <p className="mt-0.5 text-xs font-semibold text-slate-400">{phase.range} min</p>
+        <p className="break-words text-sm font-black text-white">{t(phase.label)}</p>
+        <p className="mt-0.5 text-xs font-semibold text-slate-400">{phase.range}{t(" min")}</p>
       </div>
       <Badge tone={phase.toneName}>{phase.events.length}</Badge>
     </div>
-    {phase.events.length > 6 && <p className="mb-2 text-xs text-slate-400">6 moments affichés sur {phase.events.length} dans cette phase.</p>}
+    {phase.events.length > 6 && <p className="mb-2 text-xs text-slate-400">{t("6 moments affichés sur ")}{phase.events.length}{t(" dans cette phase.")}</p>}
     <div className="space-y-2">
-      {phase.events.length ? phase.events.slice(0, 6).map((event, index) => <TimelineEventCard key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`} event={event} index={index} kills={kills} match={match} teamName={teamName} />) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm font-semibold leading-6 text-slate-400">Aucun moment majeur détecté.</div>}
+      {phase.events.length ? phase.events.slice(0, 6).map((event, index) => <TimelineEventCard key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`} event={event} index={index} kills={kills} match={match} teamName={teamName} />) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm font-semibold leading-6 text-slate-400">{t("Aucun moment majeur détecté.")}</div>}
     </div>
   </section>;
 }
 
 function RoleDiffPanel({ match }) {
+  useLanguage();
   const rows = roleDiffRows(match);
-  return <section className="games-analysis-section"><h4 className="games-section-heading">Écarts par rôle</h4><div className="grid gap-1.5 lg:grid-cols-5">{rows.map((item) => <div key={item.role} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-2"><Badge tone={diffTone(item.goldDiff)}>{roleLabel(item.role)}</Badge><span className={cx("text-xs font-black", item.goldDiff >= 0 ? "text-emerald-200" : "text-rose-200")}>{formatGoldDiff(item.goldDiff)}</span></div><p className="mt-2 break-words text-xs font-semibold text-slate-300">CS10 {item.cs10Diff === null ? "N/A" : `${item.cs10Diff >= 0 ? "+" : ""}${item.cs10Diff}`} · Dégâts {(item.damageDiff >= 0 ? "+" : "") + formatPoints(item.damageDiff)}</p><p className="mt-1 break-words text-xs font-semibold text-slate-400">Écart morts {item.deathsDiff >= 0 ? "+" : ""}{item.deathsDiff}</p></div>)}</div></section>;
+  return <section className="games-analysis-section"><h4 className="games-section-heading">{t("Écarts par rôle")}</h4><div className="grid gap-1.5 lg:grid-cols-5">{rows.map((item) => <div key={item.role} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-2"><Badge tone={diffTone(item.goldDiff)}>{t(roleLabel(item.role))}</Badge><span className={cx("text-xs font-black", item.goldDiff >= 0 ? "text-emerald-200" : "text-rose-200")}>{formatGoldDiff(item.goldDiff)}</span></div><p className="mt-2 break-words text-xs font-semibold text-slate-300">{t("CS10 ")}{item.cs10Diff === null ? "N/A" : `${item.cs10Diff >= 0 ? "+" : ""}${item.cs10Diff}`}{t(" · Dégâts ")}{(item.damageDiff >= 0 ? "+" : "") + formatPoints(item.damageDiff)}</p><p className="mt-1 break-words text-xs font-semibold text-slate-400">{t("Écart morts ")}{item.deathsDiff >= 0 ? "+" : ""}{item.deathsDiff}</p></div>)}</div></section>;
 }
 
 function DeathContextPanel({ match }) {
+  useLanguage();
   const data = deathContext(match);
   const topRepeated = data.repeated[0];
   const cards = [
@@ -900,10 +918,11 @@ function DeathContextPanel({ match }) {
     [Flame, "Shutdowns donnés", data.shutdowns.length, "Bounty timeline", data.shutdowns.length ? "red" : "slate"],
     [Target, "Focus deaths", topRepeated?.deaths || 0, topRepeated ? `${topRepeated.name} · ${championDisplayName(topRepeated.champion)}` : "Aucun profil exposé", topRepeated?.deaths >= 5 ? "red" : "cyan"],
   ];
-  return <section className="games-analysis-section"><h4 className="games-section-heading">Contexte des morts</h4><div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, value, detail, t]) => <div key={label} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-slate-300">{label}</p><div className={cx("rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div></div><p className="mt-2 text-xl font-black text-white">{value}</p><p className="break-words text-xs font-semibold text-slate-300">{detail}</p></div>)}</div>{data.beforeObjectives.length > 0 && <div className="mt-2 grid gap-1.5 xl:grid-cols-2">{data.beforeObjectives.slice(0, 4).map((death, index) => <div key={`${death.timestamp}-${index}`} className="rounded-xl border border-rose-300/12 bg-rose-500/[0.045] px-3 py-2 text-xs font-semibold text-slate-200"><span className="font-black text-white">{death.time}</span> · {death.victim?.summoner_name || death.victim?.riot_id || "Joueur"} meurt avant objectif</div>)}</div>}</section>;
+  return <section className="games-analysis-section"><h4 className="games-section-heading">{t("Contexte des morts")}</h4><div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, value, detail, metricTone]) => <div key={label} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-slate-300">{t(label)}</p><div className={cx("rounded-xl p-2", tone(metricTone))}><Icon className="h-4 w-4" /></div></div><p className="mt-2 text-xl font-black text-white">{value}</p><p className="break-words text-xs font-semibold text-slate-300">{t(detail)}</p></div>)}</div>{data.beforeObjectives.length > 0 && <div className="mt-2 grid gap-1.5 xl:grid-cols-2">{data.beforeObjectives.slice(0, 4).map((death, index) => <div key={`${death.timestamp}-${index}`} className="rounded-xl border border-rose-300/12 bg-rose-500/[0.045] px-3 py-2 text-xs font-semibold text-slate-200"><span className="font-black text-white">{death.time}</span> · {death.victim?.summoner_name || death.victim?.riot_id || t("Joueur")}{t(" meurt avant objectif")}</div>)}</div>}</section>;
 }
 
 function DraftImpactPanel({ match }) {
+  useLanguage();
   const ally = teamRows(match, "ALLY");
   const identity = compositionIdentity(ally);
   const physical = ally.reduce((total, row) => total + Number(row.raw?.physicalDamageDealtToChampions || 0), 0);
@@ -918,10 +937,11 @@ function DraftImpactPanel({ match }) {
     !tags.some(([tag]) => ["frontline", "tank"].includes(tag)) && "Première ligne peu visible dans la draft.",
     !tags.some(([tag]) => ["engage", "pick"].includes(tag)) && "Initiation ou catch à confirmer.",
   ].filter(Boolean);
-  return <div className="games-analysis-section"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>Lecture draft</Badge><h4 className="mt-3 text-xl font-black text-white">{tagLabel(identity.primary)}</h4><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{identity.text}</p></div><div className="flex flex-wrap gap-2"><Badge tone="cyan">Magique {apRatio}%</Badge><Badge tone="yellow">Physique {adRatio}%</Badge><Badge tone="slate">Brut {Math.round((trueDamage / total) * 100)}%</Badge></div></div><div className="mt-4 flex flex-wrap gap-2">{tags.length ? tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{tagLabel(tag)} x{count}</Badge>) : <Badge tone="slate">Tags insuffisants</Badge>}{warnings.map((warning) => <Badge key={warning} tone="yellow">{warning}</Badge>)}</div></div>;
+  return <div className="games-analysis-section"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>{t("Lecture draft")}</Badge><h4 className="mt-3 text-xl font-black text-white">{t(tagLabel(identity.primary))}</h4><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{t(identity.text)}</p></div><div className="flex flex-wrap gap-2"><Badge tone="cyan">{t("Magique ")}{apRatio}%</Badge><Badge tone="yellow">{t("Physique ")}{adRatio}%</Badge><Badge tone="slate">{t("Brut ")}{Math.round((trueDamage / total) * 100)}%</Badge></div></div><div className="mt-4 flex flex-wrap gap-2">{tags.length ? tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{t(tagLabel(tag))} x{count}</Badge>) : <Badge tone="slate">{t("Tags insuffisants")}</Badge>}{warnings.map((warning) => <Badge key={warning} tone="yellow">{warning}</Badge>)}</div></div>;
 }
 
 function GameSummaryPanel({ match }) {
+  useLanguage();
   const deaths = deathContext(match);
   const objectives = objectiveContext(match);
   const ally = teamRows(match, "ALLY");
@@ -935,10 +955,11 @@ function GameSummaryPanel({ match }) {
     damageLeader ? `Plus gros impact dégâts sur cette partie: ${damageLeader.summoner_name || damageLeader.riot_id || roleLabel(damageLeader.role)} avec ${formatPoints(damageLeader.damage)} sur ${championDisplayName(damageLeader.champion)}.` : "Impact dégâts: données joueurs insuffisantes.",
     weakRole ? `Écart à revoir : ${roleLabel(weakRole.role)} (${formatGoldDiff(weakRole.goldDiff)} or face au rôle adverse, ${deaths.beforeObjectives.length} mort${deaths.beforeObjectives.length > 1 ? "s" : ""} avant objectif côté équipe).` : "Rôles à confirmer dans les données importées.",
   ];
-  return <div className="games-analysis-section games-summary"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">Repères à examiner</Badge><Badge tone={timelineStatus(match).toneName}>{timelineStatus(match).label}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="games-summary-point"><p className="text-xs font-semibold text-emerald-100">{["Moment clé", "Dégâts", "Écart par rôle"][index]}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{line}</p></div>)}</div></div>;
+  return <div className="games-analysis-section games-summary"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">{t("Repères à examiner")}</Badge><Badge tone={timelineStatus(match).toneName}>{t(timelineStatus(match).label)}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="games-summary-point"><p className="text-xs font-semibold text-emerald-100">{t(["Moment clé", "Dégâts", "Écart par rôle"][index])}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{t(line)}</p></div>)}</div></div>;
 }
 
 function GameMetricSignals({ match }) {
+  useLanguage();
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
   const strongest = ally.slice().sort((a, b) => roleScore(b) - roleScore(a))[0];
@@ -950,21 +971,22 @@ function GameMetricSignals({ match }) {
   const enemyDeaths = sumRows(enemy, "deaths");
 	  const cards = [
 	    [Crown, "Meilleure game", strongest, strongest ? `${championDisplayName(strongest.champion)} · ${strongest.kda ?? `${strongest.kills ?? "—"}/${strongest.deaths ?? "—"}/${strongest.assists ?? "—"}`}` : "Aucune donnée", "cyan"],
-	    [AlertTriangle, "Morts", exposed, exposed ? `${exposed.deaths || 0} morts · ${championDisplayName(exposed.champion)}` : "Aucune donnée", exposed?.deaths >= 6 ? "red" : "yellow"],
-	    [Flame, "Dégâts", damageLead, damageLead ? formatPoints(damageLead.damage) + " dégâts" : "Aucune donnée", "purple"],
+	    [AlertTriangle, "Morts", exposed, exposed ? t("{0} morts · {1}", [exposed.deaths || 0, championDisplayName(exposed.champion)]) : "Aucune donnée", exposed?.deaths >= 6 ? "red" : "yellow"],
+	    [Flame, "Dégâts", damageLead, damageLead ? t("{0} dégâts", [formatPoints(damageLead.damage)]) : "Aucune donnée", "purple"],
 	    [Eye, "Vision", visionLead, visionLead ? `${visionLead.vision || 0} vision` : "Aucune donnée", "green"],
 	  ];
 	  const comparisonCards = [
 	    [Gauge, "Écart CS", (csDiff >= 0 ? "+" : "") + formatPoints(csDiff), "Alliés vs adversaires", diffTone(csDiff)],
 	    [Swords, "Morts équipe", `${deaths} / ${enemyDeaths}`, "Alliés vs adversaires", deaths <= enemyDeaths ? "green" : "red"],
 	  ];
-	  return <section className="games-analysis-section"><h4 className="games-section-heading">Signaux individuels</h4>
-	    <div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-xs font-semibold text-slate-300">{label}</p><p className="mt-1 break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="break-words text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
-	    <div className="mt-1.5 grid gap-1.5 md:grid-cols-2">{comparisonCards.map(([Icon, label, value, detail, t]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(t))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-xs font-semibold text-slate-300">{label}</p><p className="mt-1 break-words text-sm font-black text-white">{value}</p><p className="break-words text-xs font-semibold text-slate-300">{detail}</p></div></div></div>)}</div>
+	  return <section className="games-analysis-section"><h4 className="games-section-heading">{t("Signaux individuels")}</h4>
+	    <div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, metricTone]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(metricTone))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-xs font-semibold text-slate-300">{t(label)}</p><p className="mt-1 break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="break-words text-xs font-semibold text-slate-300">{t(detail)}</p></div></div></div>)}</div>
+	    <div className="mt-1.5 grid gap-1.5 md:grid-cols-2">{comparisonCards.map(([Icon, label, value, detail, metricTone]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(metricTone))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-xs font-semibold text-slate-300">{t(label)}</p><p className="mt-1 break-words text-sm font-black text-white">{value}</p><p className="break-words text-xs font-semibold text-slate-300">{t(detail)}</p></div></div></div>)}</div>
 	  </section>;
 	}
 
 function VersusPlayerMini({ row, side, opponent, align = "left" }) {
+  useLanguage();
   const kda = row ? `${row.kills || 0}/${row.deaths || 0}/${row.assists || 0}` : "-/-/-";
   const kp = row ? Math.round(parsePercent(row.kill_participation || row.kp)) : 0;
   const spells = row ? summonerSpellIds(row) : [];
@@ -979,19 +1001,19 @@ function VersusPlayerMini({ row, side, opponent, align = "left" }) {
         {row ? <ChampionPortrait row={row} champion={row.champion} alt={row.champion} /> : <Crown className="m-3 h-6 w-6 text-slate-300" />}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
-        <p className="break-words text-xs font-semibold text-slate-200">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
+        <p className="break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || t("Inconnu")}</p>
+        <p className="break-words text-xs font-semibold text-slate-200">{row ? championDisplayName(row.champion) : t("Champion ?")}</p>
         <div className={cx("mt-2 flex flex-wrap gap-1.5", align === "right" && "justify-end")}>
           <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-black text-white">{kda}</span>
-          <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-black text-slate-200">{kp}% KP</span>
-          <span className="rounded-lg border border-emerald-200/15 bg-emerald-300/10 px-2 py-1 text-xs font-black text-emerald-50">{creepScore(row)} CS</span>
-          <span className="hidden rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-black text-slate-200 sm:inline-flex">{formatPoints(row?.damage || 0)} dégâts</span>
-          <span className="hidden rounded-lg border border-yellow-200/15 bg-yellow-300/10 px-2 py-1 text-xs font-black text-yellow-50 md:inline-flex">{formatPoints(row?.gold || 0)} or</span>
-          <span className="hidden rounded-lg border border-cyan-200/15 bg-cyan-300/10 px-2 py-1 text-xs font-black text-cyan-50 lg:inline-flex">{row?.vision || 0} VIS</span>
+          <span className="rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-black text-slate-200">{kp}{t("% KP")}</span>
+          <span className="rounded-lg border border-emerald-200/15 bg-emerald-300/10 px-2 py-1 text-xs font-black text-emerald-50">{creepScore(row)}{t(" CS")}</span>
+          <span className="hidden rounded-lg border border-white/10 bg-black/30 px-2 py-1 text-xs font-black text-slate-200 sm:inline-flex">{formatPoints(row?.damage || 0)}{t(" dégâts")}</span>
+          <span className="hidden rounded-lg border border-yellow-200/15 bg-yellow-300/10 px-2 py-1 text-xs font-black text-yellow-50 md:inline-flex">{formatPoints(row?.gold || 0)}{t(" or")}</span>
+          <span className="hidden rounded-lg border border-cyan-200/15 bg-cyan-300/10 px-2 py-1 text-xs font-black text-cyan-50 lg:inline-flex">{row?.vision || 0}{t(" VIS")}</span>
         </div>
         {(spells.length > 0 || items.length > 0) && <div className={cx("mt-2 flex flex-wrap gap-1", align === "right" && "justify-end")}>
-          {spells.map((spell, index) => <HudIcon key={`${row.id || row.riot_id}-instant-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-6 w-6 rounded-lg" />)}
-          {items.map((item, index) => <HudIcon key={`${row.id || row.riot_id}-instant-item-${index}-${item.id}`} sources={itemIconSources(item.id)} label={item.type === "trinket" ? `Ward ${item.id}` : `Objet ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-6 w-6 rounded-lg" />)}
+          {spells.map((spell, index) => <HudIcon key={`${row.id || row.riot_id}-instant-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={t("Sort {0}", [spell])} fallback={spell} emptyText="S" className="h-6 w-6 rounded-lg" />)}
+          {items.map((item, index) => <HudIcon key={`${row.id || row.riot_id}-instant-item-${index}-${item.id}`} sources={itemIconSources(item.id)} label={item.type === "trinket" ? t("Ward {0}", [item.id]) : t("Objet {0}", [item.id])} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-6 w-6 rounded-lg" />)}
         </div>}
       </div>
     </div>
@@ -999,6 +1021,7 @@ function VersusPlayerMini({ row, side, opponent, align = "left" }) {
 }
 
 function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
+  useLanguage();
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
   const blueTeamKey = objectiveTeamKeyForSide(match, "BLUE");
@@ -1028,7 +1051,7 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
     ["Part vision", shareOfTeam(blueRow, blueTeam, "vision"), shareOfTeam(redRow, redTeam, "vision"), "higher"],
     ["Part des morts", shareOfTeam(blueRow, blueTeam, "deaths"), shareOfTeam(redRow, redTeam, "deaths"), "lower"],
   ];
-  const teamBadge = (teamKey) => teamKey === "ALLY" ? String(teamName || "Notre équipe").trim() : "En face";
+  const teamBadge = (teamKey) => teamKey === "ALLY" ? String(teamName || "").trim() || t("Notre équipe") : t("En face");
   const formatSideDiff = (diff) => {
     if (diff === null) return "-";
     const value = Number.isInteger(diff) ? String(diff) : diff.toFixed(1);
@@ -1041,35 +1064,35 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
     const items = row ? [...itemSlots(row).filter(Boolean).map((id) => ({ id, type: "item" })), ...(trinket ? [{ id: trinket, type: "trinket" }] : [])] : [];
     const isBlue = side === "blue";
     return <div className={cx("rounded-2xl border p-3", isBlue ? "border-cyan-300/14 bg-cyan-400/[0.055]" : "border-rose-300/14 bg-rose-500/[0.055]")}>
-      <div className={cx("mb-3 flex flex-wrap items-center gap-2", align === "right" && "justify-end")}><Badge tone={isBlue ? "cyan" : "red"}>{isBlue ? "Côté bleu" : "Côté rouge"}</Badge><Badge tone={teamKey === "ALLY" ? "green" : "slate"}><span className="block max-w-48 truncate" title={teamBadge(teamKey)}>{teamBadge(teamKey)}</span></Badge></div>
+      <div className={cx("mb-3 flex flex-wrap items-center gap-2", align === "right" && "justify-end")}><Badge tone={isBlue ? "cyan" : "red"}>{isBlue ? t("Côté bleu") : t("Côté rouge")}</Badge><Badge tone={teamKey === "ALLY" ? "green" : "slate"}><span className="block max-w-48 truncate" title={teamBadge(teamKey)}>{teamBadge(teamKey)}</span></Badge></div>
       <div className={cx("flex min-w-0 items-center gap-3", align === "right" && "justify-end text-right")}>
         <ChampionPortrait row={row} champion={row?.champion} alt={row?.champion || role} className="h-12 w-12 rounded-xl object-cover" />
         <div className="min-w-0">
-          <p className="break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "Inconnu"}</p>
-          <p className="break-words text-xs font-semibold text-slate-300">{row ? championDisplayName(row.champion) : "Champion ?"}</p>
+          <p className="break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || t("Inconnu")}</p>
+          <p className="break-words text-xs font-semibold text-slate-300">{row ? championDisplayName(row.champion) : t("Champion ?")}</p>
         </div>
       </div>
       <div className={cx("mt-3 flex flex-wrap gap-1.5", align === "right" && "justify-end")}>
-        {spells.map((spell, index) => <HudIcon key={`${side}-${role}-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={`Sort ${spell}`} fallback={spell} emptyText="S" className="h-8 w-8 rounded-lg" />)}
-        {items.map((item, index) => <HudIcon key={`${side}-${role}-item-${index}-${item.id}`} sources={itemIconSources(item.id)} label={item.type === "trinket" ? `Ward ${item.id}` : `Objet ${item.id}`} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-8 w-8 rounded-lg" />)}
+        {spells.map((spell, index) => <HudIcon key={`${side}-${role}-spell-${index}-${spell}`} sources={summonerSpellIconSources(spell)} label={t("Sort {0}", [spell])} fallback={spell} emptyText="S" className="h-8 w-8 rounded-lg" />)}
+        {items.map((item, index) => <HudIcon key={`${side}-${role}-item-${index}-${item.id}`} sources={itemIconSources(item.id)} label={item.type === "trinket" ? t("Ward {0}", [item.id]) : t("Objet {0}", [item.id])} fallback={item.id} emptyText="-" toneName={item.type === "trinket" ? "pink" : "cyan"} className="h-8 w-8 rounded-lg" />)}
       </div>
     </div>;
   };
   return <div className="nxt5-enter-fast games-lane-comparison">
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-2"><Badge tone="cyan">{roleLabel(role)}</Badge><h5 className="text-base font-black text-white">Comparatif direct de la game</h5></div>
-      <Badge tone="slate">Clique la ligne pour refermer</Badge>
+      <div className="flex items-center gap-2"><Badge tone="cyan">{t(roleLabel(role))}</Badge><h5 className="text-base font-black text-white">{t("Comparatif direct de la game")}</h5></div>
+      <Badge tone="slate">{t("Clique la ligne pour refermer")}</Badge>
     </div>
     <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,.58fr)_minmax(0,1fr)_minmax(0,.58fr)]">
       {renderLoadout(blueRow, "blue", blueTeamKey)}
-      <div className="games-lane-table-scroll" role="region" aria-label={`Statistiques comparées ${roleLabel(role)}`} tabIndex={0}>
+      <div className="games-lane-table-scroll" role="region" aria-label={t("Statistiques comparées {0}", [t(roleLabel(role))])} tabIndex={0}>
         <table className="games-lane-table">
-          <caption className="sr-only">Statistiques {roleLabel(role)} : côté bleu, écart et côté rouge</caption>
-          <thead><tr><th scope="col">Stat</th><th scope="col">Côté bleu</th><th scope="col">Écart</th><th scope="col">Côté rouge</th></tr></thead>
+          <caption className="sr-only">{t("Statistiques ")}{t(roleLabel(role))}{t(" : côté bleu, écart et côté rouge")}</caption>
+          <thead><tr><th scope="col">{t("Stat")}</th><th scope="col">{t("Côté bleu")}</th><th scope="col">{t("Écart")}</th><th scope="col">{t("Côté rouge")}</th></tr></thead>
           <tbody>{metricRows.map(([label, left, right, diff]) => {
             const cleanDiff = Number.isFinite(Number(diff)) ? Number(diff) : null;
             return <tr key={label}>
-              <th scope="row">{label}</th><td>{left}</td>
+              <th scope="row">{t(label)}</th><td>{left}</td>
               <td className={cleanDiff === null ? "text-slate-400" : cleanDiff >= 0 ? "text-cyan-100" : "text-rose-100"}>{formatSideDiff(cleanDiff)}</td>
               <td>{right}</td>
             </tr>;
@@ -1082,23 +1105,25 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
       const diff = Number(left || 0) - Number(right || 0);
       const blueWins = direction === "lower" ? diff < 0 : diff > 0;
       const leader = !diff ? "Égal" : blueWins ? "Côté bleu" : "Côté rouge";
-      return <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="text-xs font-semibold text-slate-300">{label}</p><p className="mt-2 text-sm font-black text-white">{Number(left || 0).toFixed(1)}% / {Number(right || 0).toFixed(1)}%</p><p className={cx("mt-1 text-xs font-black", !diff ? "text-slate-300" : blueWins ? "text-cyan-200" : "text-rose-200")}>{leader}</p></div>;
+      return <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="text-xs font-semibold text-slate-300">{t(label)}</p><p className="mt-2 text-sm font-black text-white">{Number(left || 0).toFixed(1)}% / {Number(right || 0).toFixed(1)}%</p><p className={cx("mt-1 text-xs font-black", !diff ? "text-slate-300" : blueWins ? "text-cyan-200" : "text-rose-200")}>{leader}</p></div>;
     })}</div>
   </div>;
 }
 
 function SideColumnHeader({ side, align = "left" }) {
+  useLanguage();
   const isBlue = side === "blue";
   const Icon = isBlue ? Shield : Swords;
   return <div className={cx("flex items-center gap-2 rounded-2xl border px-3 py-2", isBlue ? "border-cyan-300/22 bg-cyan-400/[0.075] text-cyan-100" : "border-rose-300/22 bg-rose-500/[0.075] text-rose-100", align === "right" && "justify-end")}>
     <span className={cx("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border bg-black/25", isBlue ? "border-cyan-200/30" : "border-rose-200/30")}>
       <Icon className="h-4 w-4" />
     </span>
-    <span className="text-xs font-semibold text-white">{isBlue ? "Côté bleu" : "Côté rouge"}</span>
+    <span className="text-xs font-semibold text-white">{isBlue ? t("Côté bleu") : t("Côté rouge")}</span>
   </div>;
 }
 
 function MatchVersusOverview({ match, teamName }) {
+  useLanguage();
   const [openRole, setOpenRole] = useState("");
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
@@ -1110,10 +1135,10 @@ function MatchVersusOverview({ match, teamName }) {
   const redKey = allyIsBlue ? "ENEMY" : "ALLY";
   return <div className="games-analysis-section games-versus">
     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-      <div><Badge tone="cyan">Vue 5v5</Badge><h4 className="mt-2 text-xl font-black text-white">Joueurs et objectifs</h4></div>
+      <div><Badge tone="cyan">{t("Vue 5v5")}</Badge><h4 className="mt-2 text-xl font-black text-white">{t("Joueurs et objectifs")}</h4></div>
     </div>
     <ObjectiveHud match={match} compact />
-    <div className="nxt5-responsive-scroll" role="region" aria-label="Comparaison des cinq rôles, défilement horizontal" tabIndex={0}>
+    <div className="nxt5-responsive-scroll" role="region" aria-label={t("Comparaison des cinq rôles, défilement horizontal")} tabIndex={0}>
       <div className="nxt5-versus-scroll-frame min-w-[860px] lg:min-w-0">
         <div className="nxt5-versus-row-grid mb-2 grid min-w-0 items-center gap-2">
           <SideColumnHeader side="blue" />
@@ -1130,7 +1155,7 @@ function MatchVersusOverview({ match, teamName }) {
             const winningEdge = blueGold === redGold ? "·" : blueGold > redGold ? "<" : ">";
             const open = openRole === role;
             return <div key={role} className={cx("rounded-[1.35rem] transition", open && "bg-cyan-400/[0.045] p-1 ring-1 ring-cyan-200/18")}>
-              <button type="button" aria-expanded={open} aria-label={`${open ? "Fermer" : "Comparer"} les statistiques ${roleLabel(role)}`} onClick={() => setOpenRole(open ? "" : role)} className="nxt5-versus-row-grid grid w-full min-w-0 items-stretch gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
+              <button type="button" aria-expanded={open} aria-label={t("{0} les statistiques {1}", [open ? t("Fermer") : t("Comparer"), t(roleLabel(role))])} onClick={() => setOpenRole(open ? "" : role)} className="nxt5-versus-row-grid grid w-full min-w-0 items-stretch gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60">
                 <VersusPlayerMini row={blueRow} side={blueKey} opponent={redRow} align="left" />
                 <div className={cx("flex flex-col items-center justify-center rounded-2xl border px-1.5 py-2 text-center transition", open ? "border-cyan-200/40 bg-cyan-400/14 " : "border-white/10 bg-black/35")}>
                   <RoleIcon role={role} className="h-5 w-5" />
@@ -1213,59 +1238,63 @@ function plainCoachText(value) {
 }
 
 function MatchCoachBrief({ match, onReview, hasReview = false }) {
+  useLanguage();
   const publication = buildGamePublicationSnapshot({ match });
   const snapshot = publication.coach;
   const matchId = match?.id || "";
   const signalLabel = { Économie: "Écart d’or final", Dégâts: "Écart de dégâts aux champions", Vision: "Écart de score de vision" }[snapshot.mainSignal.label];
   const hasSignal = ["gold", "damage", "vision"].some((key) => Number.isFinite(publication.facts[key].diff));
-  return <section className="games-analysis-section games-coach-brief" aria-label="Bilan de la partie">
+  return <section className="games-analysis-section games-coach-brief" aria-label={t("Bilan de la partie")}>
     {hasSignal ? <>
       <dl className="games-brief-signal">
-        <dt>{signalLabel}</dt>
+        <dt>{t(signalLabel)}</dt>
         <dd data-tone={snapshot.mainSignal.toneName}>{snapshot.mainSignal.value}</dd>
       </dl>
-      <p className="games-brief-comparison">Notre équipe − adversaires</p>
-      <p className="games-brief-summary">Un écart final ne suffit pas à expliquer le résultat.</p>
+      <p className="games-brief-comparison">{t("Notre équipe − adversaires")}</p>
+      <p className="games-brief-summary">{t("Un écart final ne suffit pas à expliquer le résultat.")}</p>
     </> : <>
-      <h4 className="games-section-heading">Statistiques incomplètes</h4>
-      <p className="games-brief-summary">{plainCoachText(snapshot.summary)}</p>
+      <h4 className="games-section-heading">{t("Statistiques incomplètes")}</h4>
+      <p className="games-brief-summary">{t(plainCoachText(snapshot.summary))}</p>
     </>}
     <div className="games-brief-review">
-      <h4>À vérifier en débrief</h4>
-      <p>{plainCoachText(snapshot.correct)}</p>
-      <Button type="button" icon={hasReview ? FileText : Plus} onClick={onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`))} disabled={!matchId}>{hasReview ? "Ouvrir le débrief" : "Préparer le débrief"}</Button>
+      <h4>{t("À vérifier en débrief")}</h4>
+      <p>{t(plainCoachText(snapshot.correct))}</p>
+      <Button type="button" icon={hasReview ? FileText : Plus} onClick={onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`))} disabled={!matchId}>{hasReview ? t("Ouvrir le débrief") : t("Préparer le débrief")}</Button>
     </div>
   </section>;
 }
 
 function CoachDebriefPrompts({ match }) {
+  useLanguage();
   const snapshot = matchCoachSnapshot(match);
   return <section className="games-analysis-section">
-    <h4 className="games-section-heading">Autres pistes pour le débrief</h4>
+    <h4 className="games-section-heading">{t("Autres pistes pour le débrief")}</h4>
     <dl className="games-brief-prompts">
       {[["À garder", snapshot.keep], ["Prochaine action", snapshot.action]].map(([label, value]) => <div key={label}>
-        <dt>{label}</dt><dd>{plainCoachText(value)}</dd>
+        <dt>{t(label)}</dt><dd>{t(plainCoachText(value))}</dd>
       </div>)}
     </dl>
   </section>;
 }
 
 function CoachSupportingMetrics({ match }) {
+  useLanguage();
   const snapshot = matchCoachSnapshot(match);
   return <section className="games-analysis-section">
-    <h4 className="games-section-heading">Repères de l’analyse</h4>
-    <p className="games-brief-summary"><strong>Poste à revoir :</strong> {snapshot.roleText.replace(/\bCS10\b/g, "Écart de sbires à 10 min")}</p>
+    <h4 className="games-section-heading">{t("Repères de l’analyse")}</h4>
+    <p className="games-brief-summary"><strong>{t("Poste à revoir :")}</strong> {t(snapshot.roleText.replace(/\bCS10\b/g, "Écart de sbires à 10 min"))}</p>
     <div className="nxt5-kpi-grid grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
       {snapshot.metrics.map(([label, value, detail, toneName]) => <div key={label} className="games-stat-block">
-        <p className="break-words text-xs font-semibold text-slate-400">{label}</p>
+        <p className="break-words text-xs font-semibold text-slate-400">{t(label)}</p>
         <p className={cx("mt-1 break-words text-lg font-black", toneName === "green" ? "text-emerald-100" : "text-rose-100")}>{value}</p>
-        <p className="mt-0.5 break-words text-xs font-semibold text-slate-400">{detail}</p>
+        <p className="mt-0.5 break-words text-xs font-semibold text-slate-400">{t(detail)}</p>
       </div>)}
     </div>
   </section>;
 }
 
 function GameAnalysisDisclosure({ title, description, children }) {
+  useLanguage();
   const [open, setOpen] = useState(false);
   return <details className="games-analysis-disclosure" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
     <summary><span><strong>{title}</strong><span>{description}</span></span><ChevronDown aria-hidden="true" /></summary>
@@ -1274,6 +1303,7 @@ function GameAnalysisDisclosure({ title, description, children }) {
 }
 
 function MatchDataPanel({ match, teamName, onReview, hasReview = false }) {
+  useLanguage();
   if (!match) return null;
   const ally = teamRows(match, "ALLY");
   const enemy = teamRows(match, "ENEMY");
@@ -1286,33 +1316,33 @@ function MatchDataPanel({ match, teamName, onReview, hasReview = false }) {
   const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
   const side = matchTeamSideKey(match, "ALLY");
   const status = timelineStatus(match);
-  const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label="Éliminations / morts / assistances" value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={`${enemyKills} éliminations adverses`} tone="cyan" /><MetricCard compact icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Notre équipe moins l’adversaire" tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Or de notre équipe moins l’adversaire" tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint="Score de vision : notre équipe moins l’adversaire" tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div>;
+  const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label={t("Éliminations / morts / assistances")} value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={t("{0} éliminations adverses", [enemyKills])} tone="cyan" /><MetricCard compact icon={Flame} label={t("Écart dégâts")} value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint={t("Notre équipe moins l’adversaire")} tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label={t("Écart or")} value={formatGoldDiff(goldDiff)} hint={t("Or de notre équipe moins l’adversaire")} tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label={t("Écart vision")} value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={t("Score de vision : notre équipe moins l’adversaire")} tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div>;
   return <Surface className="nxt5-match-panel mt-5">
     <div className="games-match-context">
       <div className="games-match-title">
         <h3 tabIndex={-1}>{matchDisplayName(match)}</h3>
-        <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Résultat non renseigné"}</Badge>
+        <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{t(match.result) || t("Résultat non renseigné")}</Badge>
       </div>
       <div className="games-match-meta">
-        <span>{match.duration ? `Durée : ${match.duration}` : "Durée non renseignée"}</span>
-        <span>{side === "blue" ? "Notre équipe : côté bleu" : side === "red" ? "Notre équipe : côté rouge" : "Côté non renseigné"}</span>
+        <span>{match.duration ? t("Durée : {0}", [match.duration]) : t("Durée non renseignée")}</span>
+        <span>{side === "blue" ? t("Notre équipe : côté bleu") : side === "red" ? t("Notre équipe : côté rouge") : t("Côté non renseigné")}</span>
       </div>
     </div>
     <MatchCoachBrief match={match} onReview={onReview} hasReview={hasReview} />
-    <section className="games-explore" aria-label="Détails de la partie">
-      <h4 className="games-section-heading">Détails de la partie</h4>
+    <section className="games-explore" aria-label={t("Détails de la partie")}>
+      <h4 className="games-section-heading">{t("Détails de la partie")}</h4>
       <div key={match.id}>
-        <GameAnalysisDisclosure title="Statistiques et comparaison 5 contre 5" description="Or, dégâts, vision, joueurs, équipements et objectifs.">
+        <GameAnalysisDisclosure title={t("Statistiques et comparaison 5 contre 5")} description={t("Or, dégâts, vision, joueurs, équipements et objectifs.")}>
           {metrics}
           <MatchVersusOverview match={match} teamName={teamName} />
           <CoachSupportingMetrics match={match} />
           {(match.game_id || match.patch) && <section className="games-analysis-section games-match-info">
-            <h4 className="games-section-heading">Informations de la partie</h4>
-            {match.game_id && <p>Identifiant : {match.game_id}</p>}
-            {match.patch && <p>Version du jeu : {match.patch}</p>}
+            <h4 className="games-section-heading">{t("Informations de la partie")}</h4>
+            {match.game_id && <p>{t("Identifiant : ")}{match.game_id}</p>}
+            {match.patch && <p>{t("Version du jeu : ")}{match.patch}</p>}
           </section>}
         </GameAnalysisDisclosure>
-        <GameAnalysisDisclosure title="Points à approfondir" description="Contributions par rôle, contexte des morts et composition de champions (draft).">
+        <GameAnalysisDisclosure title={t("Points à approfondir")} description={t("Contributions par rôle, contexte des morts et composition de champions (draft).")}>
           <CoachDebriefPrompts match={match} />
           <GameSummaryPanel match={match} />
           <GameMetricSignals match={match} />
@@ -1320,7 +1350,7 @@ function MatchDataPanel({ match, teamName, onReview, hasReview = false }) {
           <DeathContextPanel match={match} />
           <DraftImpactPanel match={match} />
         </GameAnalysisDisclosure>
-        <GameAnalysisDisclosure title="Chronologie de la partie" description={`${status.label} · ${status.detail}`}>
+        <GameAnalysisDisclosure title={t("Chronologie de la partie")} description={`${t(status.label)} · ${t(status.detail)}`}>
           <MatchTimelineReview match={match} teamName={teamName} />
         </GameAnalysisDisclosure>
       </div>
@@ -1333,6 +1363,7 @@ function archiveMatchIds(archive) {
 }
 
 function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch, showGames = true }) {
+  useLanguage();
   const rows = matches.flatMap((match) => match.participants || []);
   const ally = rows.filter((row) => row.team_key === "ALLY");
   const enemy = rows.filter((row) => row.team_key === "ENEMY");
@@ -1347,16 +1378,16 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch, sho
   return <Surface glow className="mt-5">
     <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div>
-        <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">Analyse de groupe</Badge><Badge tone="slate">{matches.length} game{matches.length > 1 ? "s" : ""}</Badge></div>
-        <h3 className="mt-3 text-2xl font-black text-white">Résultats du groupe</h3>
-        <p className="mt-1 text-sm font-semibold text-slate-300">Agrégation des games sélectionnées : série, volume, écarts et signaux communs.</p>
+        <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">{t("Analyse de groupe")}</Badge><Badge tone="slate">{matches.length}{t(matches.length > 1 ? " games" : " game")}</Badge></div>
+        <h3 className="mt-3 text-2xl font-black text-white">{t("Résultats du groupe")}</h3>
+        <p className="mt-1 text-sm font-semibold text-slate-300">{t("Agrégation des games sélectionnées : série, volume, écarts et signaux communs.")}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={wins >= matches.length / 2 ? "green" : "red"}>{wins}W / {matches.length - wins}L</Badge>
       </div>
     </div>
-    <div className="nxt5-kpi-grid mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard icon={Trophy} label="Winrate bloc" value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint="Sur les games du groupe" tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label="Écart dégâts" value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint="Total série" tone={diffTone(damageDiff)} sideMarker={winningTeamForDiff(damageDiff)} /><MetricCard icon={Gauge} label="Écart or" value={formatGoldDiff(goldDiff)} hint="Total série" tone={diffTone(goldDiff)} sideMarker={winningTeamForDiff(goldDiff)} /><MetricCard icon={Eye} label="Écart vision" value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={`${deaths} morts alliées / ${enemyDeaths} ennemies`} tone={diffTone(visionDiff)} sideMarker={winningTeamForDiff(visionDiff)} /></div>
-    {showGames && <div className="nxt5-game-list mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 " : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200  transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">Sélectionnée</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button></div>; })}</div>}
+    <div className="nxt5-kpi-grid mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4"><MetricCard icon={Trophy} label={t("Winrate bloc")} value={`${Math.round((wins / Math.max(1, matches.length)) * 100)}%`} hint={t("Sur les games du groupe")} tone={wins >= matches.length / 2 ? "green" : "red"} /><MetricCard icon={Flame} label={t("Écart dégâts")} value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint={t("Total série")} tone={diffTone(damageDiff)} sideMarker={winningTeamForDiff(damageDiff)} /><MetricCard icon={Gauge} label={t("Écart or")} value={formatGoldDiff(goldDiff)} hint={t("Total série")} tone={diffTone(goldDiff)} sideMarker={winningTeamForDiff(goldDiff)} /><MetricCard icon={Eye} label={t("Écart vision")} value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={t("{0} morts alliées / {1} ennemies", [deaths, enemyDeaths])} tone={diffTone(visionDiff)} sideMarker={winningTeamForDiff(visionDiff)} /></div>
+    {showGames && <div className="nxt5-game-list mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{matches.map((match) => { const activeGame = String(selectedMatchId || "") === String(match.id || ""); return <div key={match.id} className={cx("relative overflow-hidden rounded-2xl border p-4 transition", activeGame ? "border-cyan-200/75 bg-cyan-400/14 " : "border-white/10 bg-black/25 hover:border-cyan-300/25 hover:bg-white/[0.055]")}><div className={cx("pointer-events-none absolute inset-y-4 left-0 w-1 rounded-r-full bg-cyan-200  transition", activeGame ? "opacity-100" : "opacity-0")} /><button type="button" aria-pressed={activeGame} onClick={() => onSelectMatch?.(activeGame ? "" : match.id)} className="w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/60"><div className="flex flex-wrap items-center gap-2"><Badge tone={match.result === "Victoire" ? "green" : "red"}>{t(match.result) || t("Analyse")}</Badge><Badge tone="slate">{match.duration || "--:--"}</Badge>{activeGame && <Badge tone="cyan">{t("Sélectionnée")}</Badge>}</div><p className="mt-3 truncate font-black text-white">{matchDisplayName(match)}</p><p className={cx("mt-1 truncate text-xs font-semibold", activeGame ? "text-cyan-100" : "text-slate-300")}>{match.game_id || ""}</p></button></div>; })}</div>}
   </Surface>;
 }
 
@@ -1366,12 +1397,14 @@ const GAME_WORKSPACE_TABS = [
 ];
 
 function GameWorkspace(props) {
+  useLanguage();
   return gameWorkspaceSectionFromPath(props.route?.path) === "review"
     ? <Reports key={props.selectedTeamId} {...props} />
     : <Statistics key={props.selectedTeamId} {...props} />;
 }
 
 function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember, user, route }) {
+  useLanguage();
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
@@ -1466,9 +1499,9 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   }
   function renderImportAction(variant = "primary") {
     if (selectedMatchId || selectedArchiveId) return null;
-    if (!selectedTeam) return <div className="games-import-action"><Button type="button" variant={variant} onClick={() => openAppPath("/equipes")}>Choisir une équipe</Button><p>Crée ou rejoins une équipe pour y retrouver tes parties.</p></div>;
-    if (!canImport) return <p className="games-import-help">Le capitaine ou le staff peut importer les parties de ton équipe.</p>;
-    return <Button type="button" variant={variant} icon={Upload} onClick={() => updateLocation({ import: "1" })}>Importer une partie</Button>;
+    if (!selectedTeam) return <div className="games-import-action"><Button type="button" variant={variant} onClick={() => openAppPath("/equipes")}>{t("Choisir une équipe")}</Button><p>{t("Crée ou rejoins une équipe pour y retrouver tes parties.")}</p></div>;
+    if (!canImport) return <p className="games-import-help">{t("Le capitaine ou le staff peut importer les parties de ton équipe.")}</p>;
+    return <Button type="button" variant={variant} icon={Upload} onClick={() => updateLocation({ import: "1" })}>{t("Importer une partie")}</Button>;
   }
   const toggleArchiveMatch = (matchId) => setArchiveForm((current) => ({ ...current, matchIds: current.matchIds.includes(matchId) ? current.matchIds.filter((id) => id !== matchId) : current.matchIds.length < 80 ? [...current.matchIds, matchId] : current.matchIds }));
   const resetArchiveForm = () => setArchiveForm({ id: "", name: "", description: "", matchIds: [] });
@@ -1504,7 +1537,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     }
   }
   async function deleteArchive(archive) {
-    if (!archive || !window.confirm(`Supprimer l’archive "${archive.name}" ?`)) return;
+    if (!archive || !window.confirm(t("Supprimer l’archive \"{0}\" ?", [archive.name]))) return;
     setSavingArchive(true);
     try {
       await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, archiveId: archive.id }) });
@@ -1548,81 +1581,81 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   }
 
   return <div className="nxt5-data-dense nxt5-stats-page nxt5-games-page min-w-0">
-    <PageHeader eyebrow={selectedTeamName} title="Parties" subtitle={selectedMatchId ? "Comprends le résultat, choisis une piste de travail, puis explore les détails." : "Ouvre une partie pour comprendre ce qui s’est passé et préparer la prochaine session."}>
+    <PageHeader eyebrow={selectedTeamName} title={t("Parties")} subtitle={selectedMatchId ? t("Comprends le résultat, choisis une piste de travail, puis explore les détails.") : t("Ouvre une partie pour comprendre ce qui s’est passé et préparer la prochaine session.")}>
       {!selectedMatchId && !selectedArchiveId && <div ref={importTriggerRef}>{renderImportAction()}</div>}
     </PageHeader>
-    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog title="Importer une partie" description="Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté." onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy} dirty={importDirty} returnFocusRef={importTriggerRef}>
+    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog title={t("Importer une partie")} description={t("Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté.")} onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy} dirty={importDirty} returnFocusRef={importTriggerRef}>
       <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} onDirtyChange={setImportDirty} />
     </GameOperationDialog>}
 
-    {selectedMatchId && <div ref={statsRef} id="selected-game-stats" tabIndex={-1} className="games-detail" aria-label="Analyse de la partie">
+    {selectedMatchId && <div ref={statsRef} id="selected-game-stats" tabIndex={-1} className="games-detail" aria-label={t("Analyse de la partie")}>
       <div className="games-detail-toolbar">
-        <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectMatch("")}>{selectedArchive ? "Retour au groupe" : "Retour aux parties"}</Button>
+        <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectMatch("")}>{selectedArchive ? t("Retour au groupe") : t("Retour aux parties")}</Button>
         {selectedMatch && <div className="games-detail-actions">
-          <Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(false)} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError) || exportingStats}>{exportingStats ? "Export…" : "Exporter PNG"}</Button>
+          <Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(false)} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError) || exportingStats}>{exportingStats ? t("Export…") : t("Exporter PNG")}</Button>
           {!loadingMatchDetail && !selectedMatchDetailError && <DiscordGameShare teamId={selectedTeamId} matchId={selectedMatch.id} matchName={matchDisplayName(selectedMatch)} matchRevision={selectedMatch.publication_revision ?? data.bootstrapRevision ?? ""} canPublish={canPublishDiscord} />}
           <GameActions key={selectedMatchId} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError)} match={selectedMatch} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onDeleted={() => updateLocation({ match: "", ...(selectedArchive && scopedMatches.length <= 1 ? { archive: "" } : {}) })} onUpdated={retryMatchDetail} />
         </div>}
       </div>
-      {!selectedMatch && <div className="games-detail-title"><h3>Analyse de la partie</h3></div>}
-      {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />Chargement des statistiques détaillées…</p>}
-      {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && " Les statistiques déjà chargées restent disponibles."}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>Réessayer</Button></Surface>}
+      {!selectedMatch && <div className="games-detail-title"><h3>{t("Analyse de la partie")}</h3></div>}
+      {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{t("Chargement des statistiques détaillées…")}</p>}
+      {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && t(" Les statistiques déjà chargées restent disponibles.")}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>{t("Réessayer")}</Button></Surface>}
       {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} onReview={openReview} hasReview={Boolean(selectedReport)} />}
-      {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title="Partie introuvable" text="Elle n’est plus disponible dans cette équipe." /></Surface>}
+      {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title={t("Partie introuvable")} text={t("Elle n’est plus disponible dans cette équipe.")} /></Surface>}
     </div>}
 
     <div hidden={Boolean(selectedMatchId)}>
       <div className="games-library-toolbar">
-        <TabNav idPrefix="games-library" panelId="games-library-panel" label="Bibliothèque de parties" items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-2" />
-        {baseMatches.length > 0 && <p className="games-team-record"><span>Équipe</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)} % de victoires</span></p>}
+        <TabNav idPrefix="games-library" panelId="games-library-panel" label={t("Bibliothèque de parties")} items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-2" />
+        {baseMatches.length > 0 && <p className="games-team-record"><span>{t("Équipe")}</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)}{t(" % de victoires")}</span></p>}
       </div>
       <div id="games-library-panel" role="tabpanel" aria-labelledby={`games-library-tab-${workspaceView}`} tabIndex={0}>
       {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
-        <div className="games-group-heading"><div><h3>Groupes de parties</h3><p>Compare les parties d’une session ou d’une série.</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} disabled={savingArchive} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? "Fermer" : "Créer un groupe"}</Button></div>
+        <div className="games-group-heading"><div><h3>{t("Groupes de parties")}</h3><p>{t("Compare les parties d’une session ou d’une série.")}</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} disabled={savingArchive} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? t("Fermer") : t("Créer un groupe")}</Button></div>
         {archiveWorkspaceTab === "select" ? <>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <div className="relative min-w-0 flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-100/70" />
-                  <input type="text" inputMode="search" role="searchbox" aria-label="Rechercher un groupe" value={archiveSearch} onChange={(event) => setArchiveSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setArchiveSearch(""); }} placeholder="Rechercher par nom, description, auteur..." className="h-11 w-full rounded-xl border border-white/10 bg-black/25 pl-10 pr-10 text-sm font-semibold text-white outline-none placeholder:text-slate-500 focus:border-cyan-200/45 focus:ring-2 focus:ring-cyan-300/10" />
-                  {archiveSearch && <button type="button" onClick={() => setArchiveSearch("")} aria-label="Effacer la recherche de groupes" title="Effacer la recherche" className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:bg-white/[0.07] hover:text-white"><X className="h-4 w-4" /></button>}
+                  <input type="text" inputMode="search" role="searchbox" aria-label={t("Rechercher un groupe")} value={archiveSearch} onChange={(event) => setArchiveSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setArchiveSearch(""); }} placeholder={t("Rechercher par nom, description, auteur...")} className="h-11 w-full rounded-xl border border-white/10 bg-black/25 pl-10 pr-10 text-sm font-semibold text-white outline-none placeholder:text-slate-500 focus:border-cyan-200/45 focus:ring-2 focus:ring-cyan-300/10" />
+                  {archiveSearch && <button type="button" onClick={() => setArchiveSearch("")} aria-label={t("Effacer la recherche de groupes")} title={t("Effacer la recherche")} className="absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg text-slate-400 transition hover:bg-white/[0.07] hover:text-white"><X className="h-4 w-4" /></button>}
                 </div>
-                <p aria-live="polite" className="shrink-0 text-xs font-black uppercase tracking-[0.14em] text-slate-400">{searchedArchives.length} sur {archives.length} groupes</p>
+                <p aria-live="polite" className="shrink-0 text-xs font-black uppercase tracking-[0.14em] text-slate-400">{searchedArchives.length}{t(" sur ")}{archives.length}{t(" groupes")}</p>
               </div>
 <div className="games-group-list">
           {searchedArchives.map((archive) => {
             const groupMatches = baseMatches.filter((match) => archiveMatchIds(archive).includes(match.id));
             const groupWins = groupMatches.filter((match) => match.result === "Victoire").length;
             return <div key={archive.id} className="games-group-row">
-              <button type="button" className="games-group-open" onClick={() => selectArchive(archive.id)}><span><strong>{archive.name}</strong><span>{archive.description || `${groupMatches.length} parties`}</span></span><span>{groupWins} V · {groupMatches.filter((match) => match.result === "Défaite").length} D</span><ChevronRight aria-hidden="true" className="h-4 w-4" /></button>
-              <div className="games-group-tools"><button type="button" className="ig-icon-button" aria-label={`Modifier le groupe ${archive.name}`} onClick={() => editArchive(archive)} disabled={savingArchive}><Pencil aria-hidden="true" /></button><button type="button" className="ig-icon-button" aria-label={`Supprimer le groupe ${archive.name}`} onClick={() => deleteArchive(archive)} disabled={savingArchive}><Trash2 aria-hidden="true" /></button></div>
+              <button type="button" className="games-group-open" onClick={() => selectArchive(archive.id)}><span><strong>{archive.name}</strong><span>{archive.description || t("{0} parties", [groupMatches.length])}</span></span><span>{groupWins} V · {groupMatches.filter((match) => match.result === "Défaite").length} D</span><ChevronRight aria-hidden="true" className="h-4 w-4" /></button>
+              <div className="games-group-tools"><button type="button" className="ig-icon-button" aria-label={t("Modifier le groupe {0}", [archive.name])} onClick={() => editArchive(archive)} disabled={savingArchive}><Pencil aria-hidden="true" /></button><button type="button" className="ig-icon-button" aria-label={t("Supprimer le groupe {0}", [archive.name])} onClick={() => deleteArchive(archive)} disabled={savingArchive}><Trash2 aria-hidden="true" /></button></div>
             </div>;
           })}
-          {!archives.length && <EmptyState icon={FileText} title="Aucun groupe" text="Rassemble les parties d’un entraînement ou d’une compétition pour lire leurs résultats ensemble." />}
-          {!!archives.length && !searchedArchives.length && <EmptyState icon={Search} title="Aucun groupe trouvé" text="Essaie un autre nom, une description ou un auteur." />}
+          {!archives.length && <EmptyState icon={FileText} title={t("Aucun groupe")} text={t("Rassemble les parties d’un entraînement ou d’une compétition pour lire leurs résultats ensemble.")} />}
+          {!!archives.length && !searchedArchives.length && <EmptyState icon={Search} title={t("Aucun groupe trouvé")} text={t("Essaie un autre nom, une description ou un auteur.")} />}
         </div></> : <form onSubmit={saveArchive} className="games-group-form">
           <fieldset disabled={savingArchive}>
-            <div className="games-group-fields"><TextInput label="Nom du groupe" value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder="Scrim vs BK — 08/09" required /><TextInput label="Description" value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder="Session, objectif du bloc…" /></div>
-            <div className="games-group-heading"><p>{archiveForm.matchIds.length} partie(s) sélectionnée(s)</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.slice(0, 80).map((match) => match.id) }))} disabled={!matches.length}>{matches.length > 80 ? "Sélectionner les 80 premières" : "Tout sélectionner"}</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>Vider</Button></div></div>
-            <div className="games-group-picks">{matches.map((match) => <label key={match.id}><input type="checkbox" checked={archiveForm.matchIds.includes(match.id)} disabled={archiveForm.matchIds.length >= 80 && !archiveForm.matchIds.includes(match.id)} onChange={() => toggleArchiveMatch(match.id)} /><span><strong>{matchDisplayName(match)}</strong><span>{match.game_id} · {match.result || "Résultat inconnu"}</span></span></label>)}</div>
-            <p className="text-sm text-slate-300">80 parties maximum par groupe. Un débrief automatique est généré à la création pour 20 parties maximum.</p>
-            {!archiveForm.id && archiveForm.matchIds.length > 20 && <p role="status" className="text-sm text-amber-100">Ce groupe contient plus de 20 parties : il sera créé sans débrief automatique.</p>}
-            {!matches.length && <p>Importe une première partie pour créer un groupe.</p>}
-            <div className="games-group-form-actions"><Button type="button" variant="ghost" onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab("select"); }}>Annuler</Button><Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={!archiveForm.name.trim() || !archiveForm.matchIds.length || savingArchive}>{savingArchive ? "Enregistrement…" : archiveForm.id ? "Enregistrer" : "Créer le groupe"}</Button></div>
+            <div className="games-group-fields"><TextInput label={t("Nom du groupe")} value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder={t("Scrim vs BK — 08/09")} required /><TextInput label={t("Description")} value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder={t("Session, objectif du bloc…")} /></div>
+            <div className="games-group-heading"><p>{archiveForm.matchIds.length}{t(" partie(s) sélectionnée(s)")}</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.slice(0, 80).map((match) => match.id) }))} disabled={!matches.length}>{matches.length > 80 ? t("Sélectionner les 80 premières") : t("Tout sélectionner")}</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>{t("Vider")}</Button></div></div>
+            <div className="games-group-picks">{matches.map((match) => <label key={match.id}><input type="checkbox" checked={archiveForm.matchIds.includes(match.id)} disabled={archiveForm.matchIds.length >= 80 && !archiveForm.matchIds.includes(match.id)} onChange={() => toggleArchiveMatch(match.id)} /><span><strong>{matchDisplayName(match)}</strong><span>{match.game_id} · {t(match.result) || t("Résultat inconnu")}</span></span></label>)}</div>
+            <p className="text-sm text-slate-300">{t("80 parties maximum par groupe. Un débrief automatique est généré à la création pour 20 parties maximum.")}</p>
+            {!archiveForm.id && archiveForm.matchIds.length > 20 && <p role="status" className="text-sm text-amber-100">{t("Ce groupe contient plus de 20 parties : il sera créé sans débrief automatique.")}</p>}
+            {!matches.length && <p>{t("Importe une première partie pour créer un groupe.")}</p>}
+            <div className="games-group-form-actions"><Button type="button" variant="ghost" onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab("select"); }}>{t("Annuler")}</Button><Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={!archiveForm.name.trim() || !archiveForm.matchIds.length || savingArchive}>{savingArchive ? t("Enregistrement…") : archiveForm.id ? t("Enregistrer") : t("Créer le groupe")}</Button></div>
           </fieldset>
         </form>}
       </Surface>}
       {selectedArchive && <>
-        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>Tous les groupes</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>Exporter le groupe PNG</Button>{!selectedMatchId && <DiscordGroupShare teamId={selectedTeamId} archiveId={selectedArchive.id} archiveName={selectedArchive.name} archiveRevision={JSON.stringify([selectedArchive.updated_at, selectedArchive.match_ids, data.bootstrapRevision])} canPublish={canPublishDiscord} />}{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>Ouvrir le débrief</Button>}</div></div>
+        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>{t("Tous les groupes")}</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>{t("Exporter le groupe PNG")}</Button>{!selectedMatchId && <DiscordGroupShare teamId={selectedTeamId} archiveId={selectedArchive.id} archiveName={selectedArchive.name} archiveRevision={JSON.stringify([selectedArchive.updated_at, selectedArchive.match_ids, data.bootstrapRevision])} canPublish={canPublishDiscord} />}{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>{t("Ouvrir le débrief")}</Button>}</div></div>
         <div className="games-detail-title"><h3>{selectedArchive.name}</h3>{selectedArchive.description && <p>{selectedArchive.description}</p>}</div>
         <ScrimArchiveSummary matches={scopedMatches} showGames={false} />
       </>}
-      {selectedArchiveId && !selectedArchive && <p role="status" className="games-load-state">Ce groupe n’est plus disponible. Choisis un autre groupe.</p>}
+      {selectedArchiveId && !selectedArchive && <p role="status" className="games-load-state">{t("Ce groupe n’est plus disponible. Choisis un autre groupe.")}</p>}
       <div ref={listRef} hidden={workspaceView === "groups" && !selectedArchive}>
         <ImportedGames
           matches={scopedMatches} categories={matchCategories} selectedMatchId={selectedMatchId} selectedMatch={selectedMatch}
           onSelectMatch={selectMatch} showSelection={false} showCategoryFilter allowImportSort
-          title={selectedArchive ? "Parties du groupe" : "Toutes les parties"}
-          description="Recherche une partie pour lire son résumé, puis ses statistiques."
+          title={selectedArchive ? t("Parties du groupe") : t("Toutes les parties")}
+          description={t("Recherche une partie pour lire son résumé, puis ses statistiques.")}
           scopeName={selectedArchive?.name || ""}
           headerActions={<GameCategoryManager data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
           emptyAction={renderImportAction()}
@@ -1735,24 +1768,26 @@ function renderReportContent(content, rows) {
 }
 
 function ReviewAnalysisStatus({ details }) {
-  if (details.loading) return <p role="status" className="mb-3 text-sm font-semibold text-cyan-100">Préparation automatique de l’analyse des parties liées…</p>;
-  if (details.error) return <div role="alert" className="mb-3 space-y-2 text-sm text-amber-100"><p>{details.error} Le contenu enregistré et les notes restent disponibles.</p><Button type="button" variant="ghost" onClick={details.retry}>Réessayer</Button></div>;
+  useLanguage();
+  if (details.loading) return <p role="status" className="mb-3 text-sm font-semibold text-cyan-100">{t("Préparation automatique de l’analyse des parties liées…")}</p>;
+  if (details.error) return <div role="alert" className="mb-3 space-y-2 text-sm text-amber-100"><p>{details.error}{t(" Le contenu enregistré et les notes restent disponibles.")}</p><Button type="button" variant="ghost" onClick={details.retry}>{t("Réessayer")}</Button></div>;
   return null;
 }
 
 function ReportPreview({ content, rows, matches = [], matchIds = [] }) {
+  useLanguage();
   const text = String(content || "");
   const boundary = /^\[NXT5_REPORT_V3\]\r?$/m.exec(text);
   // Only V3 separates generated analysis from staff writing. Legacy text stays together.
   const notes = boundary ? stripGeneratedReportContent(text) : text;
   return <div className="games-report-preview">
     {boundary ? <>
-      <h4 className="games-section-heading">Notes de l’équipe</h4>
-      {notes.trim() ? renderReportContent(notes, rows) : <p>Aucune observation enregistrée. Ouvre l’analyse des parties pour préparer le débrief, puis ajoute les décisions de l’équipe.</p>}
-      <ReadingDetails className="mt-6" title="Analyse automatique des parties" description="Constats et pistes à confronter à la vidéo.">
+      <h4 className="games-section-heading">{t("Notes de l’équipe")}</h4>
+      {notes.trim() ? renderReportContent(notes, rows) : <p>{t("Aucune observation enregistrée. Ouvre l’analyse des parties pour préparer le débrief, puis ajoute les décisions de l’équipe.")}</p>}
+      <ReadingDetails className="mt-6" title={t("Analyse automatique des parties")} description={t("Constats et pistes à confronter à la vidéo.")}>
         {renderReportContent(text.slice(0, boundary.index), rows)}
       </ReadingDetails>
-    </> : text.trim() ? renderReportContent(text, rows) : <p className="text-sm font-semibold text-slate-300">L’aperçu apparaîtra ici.</p>}
+    </> : text.trim() ? renderReportContent(text, rows) : <p className="text-sm font-semibold text-slate-300">{t("L’aperçu apparaîtra ici.")}</p>}
   </div>;
 }
 
@@ -1848,7 +1883,7 @@ function buildGameReviewContent(match) {
     ...snapshot.coachQuestions.map((item) => `- ${item}`),
     "",
     "Repères",
-    ...snapshot.metrics.map(([label, value, detail]) => `- ${label}: ${value} (${detail})`),
+    ...snapshot.metrics.map(([label, value, detail]) => `- ${label}: ${value} (${t(detail)})`),
     "",
     REPORT_REWRITE_MARKER,
     "Notes staff",
@@ -1910,6 +1945,7 @@ function buildRetroactiveCoachContent(report, matches, staffNotes = stripGenerat
 }
 
 function ReviewActions({ canEdit, disabled, onDuplicate, onDelete }) {
+  useLanguage();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef(null);
   function run(action) {
@@ -1917,21 +1953,23 @@ function ReviewActions({ canEdit, disabled, onDuplicate, onDelete }) {
     action();
   }
   return <>
-    <button ref={triggerRef} type="button" className="game-options-trigger" aria-label="Gérer ce débrief" title="Gérer ce débrief" aria-haspopup="dialog" aria-expanded={open} disabled={disabled} onClick={() => setOpen(true)}><Settings aria-hidden="true" className="h-5 w-5" /></button>
-    {open && <GameOperationDialog title="Gérer ce débrief" onClose={() => setOpen(false)} busy={disabled} returnFocusRef={triggerRef} compact>
+    <button ref={triggerRef} type="button" className="game-options-trigger" aria-label={t("Gérer ce débrief")} title={t("Gérer ce débrief")} aria-haspopup="dialog" aria-expanded={open} disabled={disabled} onClick={() => setOpen(true)}><Settings aria-hidden="true" className="h-5 w-5" /></button>
+    {open && <GameOperationDialog title={t("Gérer ce débrief")} onClose={() => setOpen(false)} busy={disabled} returnFocusRef={triggerRef} compact>
       <div className="game-operation-menu">
-        <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => run(onDuplicate)} disabled={disabled}>Dupliquer</Button>
-        {canEdit && <Button type="button" variant="danger" icon={Trash2} onClick={() => run(onDelete)} disabled={disabled}>Supprimer</Button>}
+        <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => run(onDuplicate)} disabled={disabled}>{t("Dupliquer")}</Button>
+        {canEdit && <Button type="button" variant="danger" icon={Trash2} onClick={() => run(onDelete)} disabled={disabled}>{t("Supprimer")}</Button>}
       </div>
     </GameOperationDialog>}
   </>;
 }
 
 function Reports(props) {
+  useLanguage();
   return <ScopedReports key={`${props.user?.id || ""}:${props.selectedTeamId || ""}`} {...props} />;
 }
 
 function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMember, user }) {
+  useLanguage();
   const reports = (data.reports || []).filter((report) => report.team_id === selectedTeamId);
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
   const archives = useMemo(() => (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId), [data.matchArchives, selectedTeamId]);
@@ -1959,7 +1997,7 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   }, [form, formBaseline, user?.id, selectedTeamId]);
   const draftAvailable = reviewDraftChanged(form, formBaseline);
   function replaceDraft(next, baseline = emptyReviewDraft()) {
-    if (draftAvailable && !window.confirm("Remplacer le brouillon de cette équipe ? Les notes non enregistrées du brouillon actuel seront supprimées.")) return false;
+    if (draftAvailable && !window.confirm(t("Remplacer le brouillon de cette équipe ? Les notes non enregistrées du brouillon actuel seront supprimées."))) return false;
     setForm(next);
     setFormBaseline(baseline);
     return true;
@@ -2094,7 +2132,7 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   }
 
   function discardDraft() {
-    if (saving || !window.confirm("Supprimer ce brouillon et ses notes non enregistrées ?")) return;
+    if (saving || !window.confirm(t("Supprimer ce brouillon et ses notes non enregistrées ?"))) return;
     resetReportForm();
     setComposerOpen(false);
     setLexiconOpen(false);
@@ -2123,7 +2161,7 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
 
   async function deleteReport(report) {
     const canDelete = canCaptainDelete || report.created_by === user?.id;
-    if (!canDelete || !window.confirm("Supprimer ce débrief ?")) return;
+    if (!canDelete || !window.confirm(t("Supprimer ce débrief ?"))) return;
     setSaving(true);
     try {
       await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, reportId: report.id }) });
@@ -2149,51 +2187,51 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   return (
     <div className="nxt5-data-dense nxt5-reviews-page min-w-0">
       <PageHeader
-        title="Débriefs"
-        subtitle="Les observations et décisions pour la prochaine session."
+        title={t("Débriefs")}
+        subtitle={t("Les observations et décisions pour la prochaine session.")}
       >
-        <Button icon={Plus} onClick={startBlankReview}>{draftAvailable ? "Reprendre le brouillon" : "Préparer un débrief"}</Button>
+        <Button icon={Plus} onClick={startBlankReview}>{draftAvailable ? t("Reprendre le brouillon") : t("Préparer un débrief")}</Button>
       </PageHeader>
 
-      {urlComposeReview && (loadingReviewMatch || reviewMatchError) && <Surface className="mb-4"><p role="status">{loadingReviewMatch ? "Chargement de la partie pour préparer le débrief…" : reviewMatchError}</p>{reviewMatchError && <Button type="button" className="mt-2" onClick={retryReviewMatch}>Réessayer</Button>}</Surface>}
-      <TabNav idPrefix="reports" panelId="reports-panel" className="mb-5" label="Rubriques des débriefs" items={[
+      {urlComposeReview && (loadingReviewMatch || reviewMatchError) && <Surface className="mb-4"><p role="status">{loadingReviewMatch ? t("Chargement de la partie pour préparer le débrief…") : reviewMatchError}</p>{reviewMatchError && <Button type="button" className="mt-2" onClick={retryReviewMatch}>{t("Réessayer")}</Button>}</Surface>}
+      <TabNav idPrefix="reports" panelId="reports-panel" className="mb-5" label={t("Rubriques des débriefs")} items={[
         { id: "library", label: "Bibliothèque", meta: reports.length, icon: FileText },
         { id: "queue", label: "À traiter", meta: pendingReviewCount, icon: Check },
       ]} activeId={workspaceView} onChange={setWorkspaceView} columns="sm:grid-cols-2" />
 
       <div id="reports-panel" role="tabpanel" aria-labelledby={`reports-tab-${workspaceView}`} tabIndex={0}>
       {workspaceView === "queue" ? <ReviewQueuePanel matches={matches} reports={reports} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} onStartReview={startReviewFromMatch} onOpenReview={openQueuedReview} /> : <div className="space-y-5">
-        <ReadingDetails title="Choisir un débrief" description={`${reports.length} débrief${reports.length > 1 ? "s" : ""} · Recherche et filtres`} open={libraryOpen} onToggle={(event) => setLibraryOpen(event.currentTarget.open)}>
-        <aside className="games-review-library" aria-label="Bibliothèque des débriefs">
+        <ReadingDetails title={t("Choisir un débrief")} description={t("{0} débrief{1} · Recherche et filtres", [reports.length, reports.length > 1 ? "s" : ""])} open={libraryOpen} onToggle={(event) => setLibraryOpen(event.currentTarget.open)}>
+        <aside className="games-review-library" aria-label={t("Bibliothèque des débriefs")}>
           <div className="border-b border-white/10 px-4 py-4 sm:px-5">
             <div className="flex min-w-0 items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-200/18 bg-cyan-300/[0.07] text-cyan-100"><FileText className="h-5 w-5" /></span>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                  <h3 className="text-xl font-black text-white">Bibliothèque</h3>
-                  <span className="shrink-0 whitespace-nowrap text-xs font-black tabular-nums text-cyan-100">{reports.length} débrief{reports.length > 1 ? "s" : ""}</span>
+                  <h3 className="text-xl font-black text-white">{t("Bibliothèque")}</h3>
+                  <span className="shrink-0 whitespace-nowrap text-xs font-black tabular-nums text-cyan-100">{reports.length}{t(reports.length > 1 ? " débriefs" : " débrief")}</span>
                 </div>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">Sélectionne un débrief pour l’ouvrir.</p>
+                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">{t("Sélectionne un débrief pour l’ouvrir.")}</p>
               </div>
             </div>
 
             <div className="mt-4 space-y-2">
               <label className="games-review-search">
-                <span className="sr-only">Chercher un débrief</span>
+                <span className="sr-only">{t("Chercher un débrief")}</span>
                 <Search className="h-4 w-4 shrink-0 text-cyan-100/70" />
-                <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder="Rechercher par partie ou auteur" className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
+                <input value={reportSearch} onChange={(event) => setReportSearch(event.target.value)} placeholder={t("Rechercher par partie ou auteur")} className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-slate-500" />
               </label>
               <label className="relative block">
-                <span className="games-field-label">Contexte</span>
+                <span className="games-field-label">{t("Contexte")}</span>
                 <select value={selectedArchiveId} onChange={(event) => setSelectedArchiveId(event.target.value)} className="games-review-select">
-                  <option value="">Tous les débriefs</option>
-                  {archives.map((archive) => <option key={archive.id} value={archive.id}>{archive.name} · {archiveMatchIds(archive).length} parties</option>)}
+                  <option value="">{t("Tous les débriefs")}</option>
+                  {archives.map((archive) => <option key={archive.id} value={archive.id}>{archive.name} · {archiveMatchIds(archive).length}{t(" parties")}</option>)}
                 </select>
                 <ChevronDown className="pointer-events-none absolute right-1 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               </label>
             </div>
 
-            {(searchNeedle || selectedArchiveId) && <p className="mt-3 text-xs font-bold text-slate-400"><span className="text-white">{filteredReports.length}</span> résultat{filteredReports.length > 1 ? "s" : ""} sur {reports.length}</p>}
+            {(searchNeedle || selectedArchiveId) && <p className="mt-3 text-xs font-bold text-slate-400"><span className="text-white">{filteredReports.length}</span>{t(filteredReports.length > 1 ? " résultats" : " résultat")}{t(" sur ")}{reports.length}</p>}
           </div>
 
           <div className="nxt5-review-list max-h-[min(66vh,44rem)] overflow-y-auto overscroll-contain">
@@ -2204,15 +2242,15 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
                 <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full transition", active ? "bg-cyan-200 " : "bg-transparent group-hover/report:bg-cyan-200/35")} />
                 <span className="min-w-0">
                   <span className={cx("block break-words text-sm font-black leading-5 transition", active ? "text-cyan-50" : "text-white group-hover/report:text-cyan-50")}>{reportDisplayName(report, matches, "Débrief", archives)}</span>
-                  {report.discord_status === "draft" && <span className="mt-1 block text-xs font-semibold text-amber-200">Brouillon · staff uniquement</span>}
-                  <span className="mt-1.5 block truncate text-xs font-semibold text-slate-400">{report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString("fr-FR")}</span>
+                  {report.discord_status === "draft" && <span className="mt-1 block text-xs font-semibold text-amber-200">{t("Brouillon · staff uniquement")}</span>}
+                  <span className="mt-1.5 block truncate text-xs font-semibold text-slate-400">{report.author_name || "NXT5"} · {new Date(report.updated_at || report.created_at).toLocaleDateString(getLocale())}</span>
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 pl-1">
-                  <span className={cx("whitespace-nowrap text-xs font-black tabular-nums", active ? "text-cyan-100" : "text-slate-400")}>{ids.length} partie{ids.length > 1 ? "s" : ""}</span>
+                  <span className={cx("whitespace-nowrap text-xs font-black tabular-nums", active ? "text-cyan-100" : "text-slate-400")}>{ids.length}{t(ids.length > 1 ? " parties" : " partie")}</span>
                   <ChevronRight className={cx("h-4 w-4 transition", active ? "translate-x-0.5 text-cyan-100" : "text-slate-600 group-hover/report:translate-x-0.5 group-hover/report:text-cyan-100")} />
                 </span>
               </button>;
-            }) : <div className="p-4"><EmptyState icon={FileText} title="Aucun débrief" text="Modifie la recherche ou prépare un premier débrief." /></div>}
+            }) : <div className="p-4"><EmptyState icon={FileText} title={t("Aucun débrief")} text={t("Modifie la recherche ou prépare un premier débrief.")} /></div>}
           </div>
         </aside>
         </ReadingDetails>
@@ -2221,56 +2259,56 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
           {selected ? <>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
-                {selected.discord_status === "draft" && <Badge tone="amber">Brouillon · staff uniquement</Badge>}
-                {selected.discord_status === "draft" && <p className="mt-2 text-sm leading-6 text-slate-300">Pour le partager, utilise /nxt review partager dans Discord et confirme le résumé ainsi que le salon.</p>}
+                {selected.discord_status === "draft" && <Badge tone="amber">{t("Brouillon · staff uniquement")}</Badge>}
+                {selected.discord_status === "draft" && <p className="mt-2 text-sm leading-6 text-slate-300">{t("Pour le partager, utilise /nxt review partager dans Discord et confirme le résumé ainsi que le salon.")}</p>}
                 <h3 ref={reportHeadingRef} tabIndex={-1} className={cx("games-review-title break-words font-bold text-white", selected.discord_status === "draft" && "mt-3")}>{reportDisplayName(selected, matches, "Débrief", archives)}</h3>
-                <p className="mt-2 text-sm font-semibold text-slate-300">Par {selected.author_name || "NXT5"}{selectedMatchIds.length > 0 && <> · {selectedMatchIds.length} partie{selectedMatchIds.length > 1 ? "s" : ""} liée{selectedMatchIds.length > 1 ? "s" : ""}</>}</p>
+                <p className="mt-2 text-sm font-semibold text-slate-300">{t("Par ")}{selected.author_name || "NXT5"}{selectedMatchIds.length > 0 && <> · {t(selectedMatchIds.length > 1 ? "{0} parties liées" : "{0} partie liée", [selectedMatchIds.length])}</>}</p>
               </div>
               <div className="flex flex-wrap gap-2 lg:max-w-[26rem] lg:justify-end">
-                {selectedStatsMatchId && <Button variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/games?match=${encodeURIComponent(selectedStatsMatchId)}`)}>Voir la partie</Button>}
-                {canEditSelected && <Button icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>Éditer</Button>}
+                {selectedStatsMatchId && <Button variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/games?match=${encodeURIComponent(selectedStatsMatchId)}`)}>{t("Voir la partie")}</Button>}
+                {canEditSelected && <Button icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>{t("Éditer")}</Button>}
                 <ReviewActions key={selected.id} canEdit={canEditSelected} disabled={saving} onDuplicate={() => duplicateReport(selected)} onDelete={() => deleteReport(selected)} />
               </div>
             </div>
-            {selectedMatchIds.length > 0 && <p className="games-review-results">{selectedGamesComplete && selectedMatches.length ? `${selectedWins} V · ${selectedMatches.length - selectedWins} D · ${Math.round((selectedWins / selectedMatches.length) * 100)} % de victoires` : "Résultats indisponibles"}</p>}
-            {!selectedGamesComplete && <p className="mt-3 text-xs text-amber-100">{selectedMatches.length} sur {selectedMatchIds.length} parties liées chargées. Les parties restantes sont chargées automatiquement pour compléter l’analyse.</p>}
+            {selectedMatchIds.length > 0 && <p className="games-review-results">{selectedGamesComplete && selectedMatches.length ? t("{0} V · {1} D · {2} % de victoires", [selectedWins, selectedMatches.length - selectedWins, Math.round((selectedWins / selectedMatches.length) * 100)]) : t("Résultats indisponibles")}</p>}
+            {!selectedGamesComplete && <p className="mt-3 text-xs text-amber-100">{selectedMatches.length}{t(" sur ")}{selectedMatchIds.length}{t(" parties liées chargées. Les parties restantes sont chargées automatiquement pour compléter l’analyse.")}</p>}
             <div className="mt-5">
               <ReviewAnalysisStatus details={reviewDetails} />
               <ReportPreview content={selectedContent} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} />
             </div>
-          </> : <EmptyState icon={FileText} title="Aucun débrief sélectionné" text="Choisis un débrief dans la bibliothèque ou prépare-en un nouveau." />}
+          </> : <EmptyState icon={FileText} title={t("Aucun débrief sélectionné")} text={t("Choisis un débrief dans la bibliothèque ou prépare-en un nouveau.")} />}
         </Surface>
       </div>}
 
       </div>
-      {draftAvailable && !composerOpen && <p role="status" className="mt-4 text-sm text-slate-300">Un brouillon est conservé pour cette équipe pendant cette session. Reprends-le avant de fermer ou recharger l’onglet.</p>}
+      {draftAvailable && !composerOpen && <p role="status" className="mt-4 text-sm text-slate-300">{t("Un brouillon est conservé pour cette équipe pendant cette session. Reprends-le avant de fermer ou recharger l’onglet.")}</p>}
       {composerOpen && <ModalDialog onClose={closeComposer} busy={saving} handleHistory aria-labelledby="review-composer-title" className="games-review-composer nxt5-enter-fast relative flex h-[100dvh] w-full min-w-0 flex-col overflow-hidden border border-cyan-200/24 bg-[var(--nxt5-surface)]  sm:h-auto sm:max-h-[calc(100dvh-1.5rem)] sm:max-w-[96rem] sm:rounded-[1.5rem]">
             <div className="hidden" />
             <form onSubmit={saveReport} className="flex min-h-0 flex-1 flex-col">
               <fieldset disabled={saving} className="flex min-h-0 flex-1 flex-col border-0 p-0">
-              <legend className="sr-only">Contenu du débrief</legend>
+              <legend className="sr-only">{t("Contenu du débrief")}</legend>
               <div className="shrink-0 border-b border-white/10 bg-[var(--nxt5-surface)] px-4 py-4 backdrop-blur-xl sm:px-5">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? "Modifier le débrief" : "Nouveau débrief"}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || "Préparer le débrief"}</h3><p className="mt-1 text-sm font-semibold text-slate-300">Choisis les parties à revoir, puis note ce que l’équipe garde, corrige et travaille ensuite.</p></div>
-                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} aria-expanded={lexiconOpen} onClick={() => setLexiconOpen((value) => !value)}>Commandes</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer} disabled={saving} autoFocus>{draftAvailable ? "Fermer et garder le brouillon" : "Fermer"}</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? "Enregistrer" : "Créer le débrief"}</Button></div>
+                  <div className="min-w-0"><Badge tone={form.id ? "yellow" : "green"}>{form.id ? t("Modifier le débrief") : t("Nouveau débrief")}</Badge><h3 id="review-composer-title" className="mt-3 break-words text-2xl font-black text-white sm:text-3xl">{formDisplayTitle || t("Préparer le débrief")}</h3><p className="mt-1 text-sm font-semibold text-slate-300">{t("Choisis les parties à revoir, puis note ce que l’équipe garde, corrige et travaille ensuite.")}</p></div>
+                  <div className="flex flex-wrap gap-2 lg:justify-end"><Button type="button" variant="ghost" icon={Clipboard} aria-expanded={lexiconOpen} onClick={() => setLexiconOpen((value) => !value)}>{t("Commandes")}</Button><Button type="button" variant="ghost" icon={X} onClick={closeComposer} disabled={saving} autoFocus>{draftAvailable ? t("Fermer et garder le brouillon") : t("Fermer")}</Button><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={saving || !formCanSave || !formDisplayTitle.trim()}>{form.id ? t("Enregistrer") : t("Créer le débrief")}</Button></div>
                 </div>
               </div>
 
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 sm:px-5 sm:pb-5">
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-slate-300">Tes modifications sont conservées pendant cette session, même si tu changes de rubrique. Enregistre-les avant de fermer ou recharger l’onglet.</p>{draftAvailable && <Button type="button" variant="ghost" disabled={saving} onClick={discardDraft}>Supprimer le brouillon</Button>}</div>
-                {lexiconOpen && <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-3"><div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">{commands.map(([command, text]) => <button key={command} type="button" onClick={() => insertCommand(command)} className="rounded-xl border border-white/10 bg-black/22 p-3 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10"><p className="font-mono text-sm font-black text-cyan-100">{command}</p><p className="mt-1 text-xs font-semibold text-slate-300">{text}</p></button>)}</div></div>}
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3"><p role="status" className="text-sm text-slate-300">{t("Tes modifications sont conservées pendant cette session, même si tu changes de rubrique. Enregistre-les avant de fermer ou recharger l’onglet.")}</p>{draftAvailable && <Button type="button" variant="ghost" disabled={saving} onClick={discardDraft}>{t("Supprimer le brouillon")}</Button>}</div>
+                {lexiconOpen && <div className="mt-4 rounded-2xl border border-cyan-300/14 bg-cyan-400/[0.055] p-3"><div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-4">{commands.map(([command, text]) => <button key={command} type="button" onClick={() => insertCommand(command)} className="rounded-xl border border-white/10 bg-black/22 p-3 text-left transition hover:border-cyan-300/25 hover:bg-cyan-400/10"><p className="font-mono text-sm font-black text-cyan-100">{command}</p><p className="mt-1 text-xs font-semibold text-slate-300">{t(text)}</p></button>)}</div></div>}
 
                 <div className="mt-4 grid gap-4 2xl:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)]">
               <div className="min-w-0 rounded-2xl border border-white/10 bg-black/20 p-3">
-                <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold text-slate-300">Parties liées</p><p className="mt-1 text-xs font-semibold text-slate-400">{selectionLabel}</p></div><Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length}</Badge></div>
-                <div className="mt-3 flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => setSelectedArchiveId("")} className={cx("shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition", !selectedArchiveId ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.03] text-slate-300")}>Toutes</button>{archives.map((archive) => { const ids = archiveMatchIds(archive); const active = selectedArchiveId === archive.id; return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-[140px] shrink-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-purple-300/40 bg-purple-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-purple-300/25")}><p className="truncate text-xs font-black text-white">{archive.name}</p><p className="mt-1 text-xs font-semibold text-slate-400">{ids.length} partie{ids.length > 1 ? "s" : ""}</p></button>; })}</div>
-                <div className="mt-3 grid grid-cols-2 gap-2"><Button type="button" variant="ghost" icon={Check} onClick={selectAllScopedMatches} disabled={!scopedMatches.length}>Tout lier</Button><Button type="button" variant="ghost" icon={X} onClick={() => setForm((current) => ({ ...current, matchIds: [] }))} disabled={!form.matchIds.length}>Vider</Button></div>
-                <div className="mt-3 max-h-[min(46vh,28rem)] space-y-2 overflow-auto pr-1">{scopedMatches.length ? scopedMatches.map((match) => { const checked = form.matchIds.includes(match.id); return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} aria-pressed={checked} className={cx("w-full rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/22 hover:bg-white/[0.055]")}><div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result || "Partie"}</Badge>{checked && <Badge tone="cyan">Liée</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{match.duration || "--:--"} · {match.side || "Côté inconnu"}</p></div><span className={cx("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border", checked ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-black/30 text-transparent")}><Check className="h-3 w-3" /></span></div></button>; }) : <EmptyState icon={Swords} title="Aucune partie" text="Importe une partie ou retire le filtre actif." />}</div>
+                <div className="flex items-start justify-between gap-3"><div><p className="text-xs font-semibold text-slate-300">{t("Parties liées")}</p><p className="mt-1 text-xs font-semibold text-slate-400">{selectionLabel}</p></div><Badge tone={form.matchIds.length ? "cyan" : "slate"}>{form.matchIds.length}</Badge></div>
+                <div className="mt-3 flex gap-2 overflow-x-auto pb-1"><button type="button" onClick={() => setSelectedArchiveId("")} className={cx("shrink-0 rounded-xl border px-3 py-2 text-left text-xs font-semibold transition", !selectedArchiveId ? "border-cyan-300/35 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.03] text-slate-300")}>{t("Toutes")}</button>{archives.map((archive) => { const ids = archiveMatchIds(archive); const active = selectedArchiveId === archive.id; return <button key={archive.id} type="button" onClick={() => useArchiveForReport(archive)} className={cx("min-w-[140px] shrink-0 rounded-xl border px-3 py-2 text-left transition", active ? "border-purple-300/40 bg-purple-400/12 text-white" : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-purple-300/25")}><p className="truncate text-xs font-black text-white">{archive.name}</p><p className="mt-1 text-xs font-semibold text-slate-400">{ids.length}{t(ids.length > 1 ? " parties" : " partie")}</p></button>; })}</div>
+                <div className="mt-3 grid grid-cols-2 gap-2"><Button type="button" variant="ghost" icon={Check} onClick={selectAllScopedMatches} disabled={!scopedMatches.length}>{t("Tout lier")}</Button><Button type="button" variant="ghost" icon={X} onClick={() => setForm((current) => ({ ...current, matchIds: [] }))} disabled={!form.matchIds.length}>{t("Vider")}</Button></div>
+                <div className="mt-3 max-h-[min(46vh,28rem)] space-y-2 overflow-auto pr-1">{scopedMatches.length ? scopedMatches.map((match) => { const checked = form.matchIds.includes(match.id); return <button key={match.id} type="button" onClick={() => toggleMatch(match.id)} aria-pressed={checked} className={cx("w-full rounded-xl border p-3 text-left transition", checked ? "border-cyan-300/40 bg-cyan-400/12" : "border-white/10 bg-white/[0.03] hover:border-cyan-300/22 hover:bg-white/[0.055]")}><div className="flex items-start justify-between gap-2"><div className="min-w-0"><div className="flex flex-wrap items-center gap-1.5"><Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{t(match.result) || t("Partie")}</Badge>{checked && <Badge tone="cyan">{t("Liée")}</Badge>}</div><p className="mt-2 truncate text-sm font-black text-white">{matchDisplayName(match)}</p><p className="mt-1 truncate text-xs font-semibold text-slate-400">{match.duration || "--:--"} · {t(match.side) || t("Côté inconnu")}</p></div><span className={cx("mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border", checked ? "border-cyan-200 bg-cyan-300 text-slate-950" : "border-white/15 bg-black/30 text-transparent")}><Check className="h-3 w-3" /></span></div></button>; }) : <EmptyState icon={Swords} title={t("Aucune partie")} text={t("Importe une partie ou retire le filtre actif.")} />}</div>
               </div>
 
               <div className="min-w-0 space-y-4">
-                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label="Titre (si aucune partie n’est liée)" value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder="Ex. : Débrief de l’entraînement" icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-xs font-semibold text-slate-400">Parties sélectionnées</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins} V · ${reviewMatches.length - reviewWins} D` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? `${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)} % de victoires` : "Sélectionne des parties"}</p></div></div>
-                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><div className="block"><label htmlFor="review-staff-notes" className="mb-2 block text-xs font-semibold text-slate-300">Observations et décisions de l’équipe</label><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-[2px] border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-300/14">{label}</button>)}</div><textarea id="review-staff-notes" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={`Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine partie\n\n/KDA "ADC"`} required={!form.matchIds.length} rows={18} className="nxt5-input-shell min-h-[22rem] w-full resize-y rounded-[10px] xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></div><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-semibold text-slate-300">Aperçu du débrief</p><Badge tone="slate">Mis à jour en direct</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">Un débrief peut lier au maximum 20 parties. Retire des parties pour enregistrer.</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
+                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label={t("Titre (si aucune partie n’est liée)")} value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder={t("Ex. : Débrief de l’entraînement")} icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-xs font-semibold text-slate-400">{t("Parties sélectionnées")}</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins} V · ${reviewMatches.length - reviewWins} D` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? t("{0} % de victoires", [Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)]) : t("Sélectionne des parties")}</p></div></div>
+                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><div className="block"><label htmlFor="review-staff-notes" className="mb-2 block text-xs font-semibold text-slate-300">{t("Observations et décisions de l’équipe")}</label><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-[2px] border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-300/14">{t(label)}</button>)}</div><textarea id="review-staff-notes" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={t("Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine partie\n\n/KDA \"ADC\"")} required={!form.matchIds.length} rows={18} className="nxt5-input-shell min-h-[22rem] w-full resize-y rounded-[10px] xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></div><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-semibold text-slate-300">{t("Aperçu du débrief")}</p><Badge tone="slate">{t("Mis à jour en direct")}</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">{t("Un débrief peut lier au maximum 20 parties. Retire des parties pour enregistrer.")}</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
               </div>
                 </div>
               </div>

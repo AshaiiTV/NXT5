@@ -1,3 +1,6 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
+import { getLocale } from "../../i18n/locale.js";
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, CalendarDays, FileText, Swords, Upload, Users } from "lucide-react";
 import { BeginnerCompass } from "../../components/layout/AppChrome.jsx";
@@ -10,13 +13,13 @@ import "./home-workspace.css";
 const matchPath = match => `/games?match=${encodeURIComponent(match.id)}`;
 const reportPath = report => `/rapports?report=${encodeURIComponent(report.id)}`;
 const reviewPath = match => `/rapports?match=${encodeURIComponent(match.id)}&compose=1`;
-const countLabel = (count, singular, plural = `${singular}s`) => `${count} ${count > 1 ? plural : singular}`;
+const countLabel = (count, singular, plural = `${singular}s`) => `${count} ${t(count > 1 ? plural : singular)}`;
 
 function dateLabel(timestamp, options = {}) {
   if (timestamp == null || !Number.isFinite(timestamp)) return "Date non renseignée";
   const format = { day: "numeric", month: "short", year: "numeric", ...options };
-  try { return new Intl.DateTimeFormat("fr-FR", format).format(timestamp); }
-  catch { delete format.timeZone; return new Intl.DateTimeFormat("fr-FR", format).format(timestamp); }
+  try { return new Intl.DateTimeFormat(getLocale(), format).format(timestamp); }
+  catch { delete format.timeZone; return new Intl.DateTimeFormat(getLocale(), format).format(timestamp); }
 }
 
 function sessionDate(event) {
@@ -69,6 +72,7 @@ function homeFocus(context, now) {
 }
 
 export default function HomeWorkspace({ data = {}, currentTeam, currentMember, user, steps = [], onboarding = {}, navigate, loading = false, apiError = "", now: suppliedNow }) {
+  useLanguage();
   const [clock, setClock] = useState(() => Date.now());
   const [guideKey, setGuideKey] = useState(null);
   const guideTrigger = useRef(null);
@@ -100,62 +104,62 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   ];
 
   return <div className="nxt5-home" data-home-state={focus.kind}>
-    <PageHeader eyebrow={currentTeam.name} title={focus.title} subtitle={focus.subtitle}>
-      {context.canImport && context.matches.length > 0 && focus.kind !== "quiet" && <LinkButton href="/games?import=1" navigate={navigate} icon={Upload} variant="ghost">Importer une partie</LinkButton>}
+    <PageHeader eyebrow={currentTeam.name} title={t(focus.title)} subtitle={t(focus.subtitle)}>
+      {context.canImport && context.matches.length > 0 && focus.kind !== "quiet" && <LinkButton href="/games?import=1" navigate={navigate} icon={Upload} variant="ghost">{t("Importer une partie")}</LinkButton>}
     </PageHeader>
-    {(loading || apiError) && <p className="nxt5-home-data-status" role="status">{loading ? "Actualisation de l’équipe…" : "Cet aperçu reprend les dernières données chargées. Réessaie l’actualisation pour le mettre à jour."}</p>}
+    {(loading || apiError) && <p className="nxt5-home-data-status" role="status">{loading ? t("Actualisation de l’équipe…") : t("Cet aperçu reprend les dernières données chargées. Réessaie l’actualisation pour le mettre à jour.")}</p>}
     {startIsPrimary ? <BeginnerCompass steps={steps} manager={context.manager} onNavigate={navigate} onClose={closeStart} /> : <Surface glow className="nxt5-home-ready">
-      <p className="nxt5-home-status"><FocusIcon size={18} aria-hidden="true" />{focus.label}</p>
-      <h3>{focus.heading}</h3>
-      <p className="nxt5-home-focus-description">{focus.text}</p>
+      <p className="nxt5-home-status"><FocusIcon size={18} aria-hidden="true" />{t(focus.label)}</p>
+      <h3>{["start", "quiet"].includes(focus.kind) ? t(focus.heading) : focus.heading}</h3>
+      <p className="nxt5-home-focus-description">{t(focus.text)}</p>
       <div className="nxt5-home-actions">
-        <LinkButton href={focus.href} navigate={navigate} icon={ArrowRight}>{focus.action}</LinkButton>
-        {focus.secondary && <PublicTextLink href={focus.secondary.href} navigate={navigate} className="nxt5-home-text-link">{focus.secondary.label}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>}
+        <LinkButton href={focus.href} navigate={navigate} icon={ArrowRight}>{t(focus.action)}</LinkButton>
+        {focus.secondary && <PublicTextLink href={focus.secondary.href} navigate={navigate} className="nxt5-home-text-link">{t(focus.secondary.label)}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>}
       </div>
     </Surface>}
 
     <div className="nxt5-home-overview">
       <section className="nxt5-home-section" aria-labelledby="nxt5-home-games-title">
-        <div className="nxt5-home-section-heading"><Swords size={20} aria-hidden="true" /><h3 id="nxt5-home-games-title">{context.matches.length ? "Dernières parties" : "Votre équipe prend ses marques"}</h3></div>
+        <div className="nxt5-home-section-heading"><Swords size={20} aria-hidden="true" /><h3 id="nxt5-home-games-title">{context.matches.length ? t("Dernières parties") : t("Votre équipe prend ses marques")}</h3></div>
         {context.matches.length ? <>
-          <p className="nxt5-home-section-intro">{countLabel(context.recentMatches.length, "partie")} sur les 14 derniers jours</p>
+          <p className="nxt5-home-section-intro">{t(countLabel(context.recentMatches.length, "partie"))}{t(" sur les 14 derniers jours")}</p>
           <ul className="nxt5-home-games">
             {context.matches.slice(0, 3).map(match => {
               const report = context.reportForMatch(match);
               return <li key={match.id}>
                 <PublicTextLink className="nxt5-home-game-link" href={matchPath(match)} navigate={navigate}>
-                  <span><strong>{matchDisplayName(match, "Partie de l’équipe")}</strong><span className="nxt5-home-game-meta">{dateLabel(homeMatchTimestamp(match))} · {report ? report.discord_status === "draft" ? "Brouillon de débrief" : "Débrief disponible" : "Sans débrief"}</span></span>
-                  {match.result && <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{match.result}</Badge>}
+                  <span><strong>{matchDisplayName(match, "Partie de l’équipe")}</strong><span className="nxt5-home-game-meta">{t(dateLabel(homeMatchTimestamp(match)))} · {report ? report.discord_status === "draft" ? t("Brouillon de débrief") : t("Débrief disponible") : t("Sans débrief")}</span></span>
+                  {match.result && <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{t(match.result)}</Badge>}
                   <ArrowRight size={16} aria-hidden="true" />
                 </PublicTextLink>
               </li>;
             })}
           </ul>
         </> : <>
-          <p className="nxt5-home-section-intro">{context.importPlayers.length ? `${countLabel(context.importPlayers.length, "joueur")} dans l’effectif. Les premières parties et leurs débriefs prendront place ici.` : "Retrouve ici les joueurs, les parties et les prochains rendez-vous de l’équipe au fur et à mesure."}</p>
-          <PublicTextLink href={context.canManageRoster ? "/gestion-equipe?section=roster" : "/equipes"} navigate={navigate} className="nxt5-home-text-link">{context.canManageRoster ? "Compléter l’effectif" : "Voir mon équipe"}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
+          <p className="nxt5-home-section-intro">{context.importPlayers.length ? t("{0} dans l’effectif. Les premières parties et leurs débriefs prendront place ici.", [t(countLabel(context.importPlayers.length, "joueur"))]) : t("Retrouve ici les joueurs, les parties et les prochains rendez-vous de l’équipe au fur et à mesure.")}</p>
+          <PublicTextLink href={context.canManageRoster ? "/gestion-equipe?section=roster" : "/equipes"} navigate={navigate} className="nxt5-home-text-link">{context.canManageRoster ? t("Compléter l’effectif") : t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
         </>}
       </section>
       <section className="nxt5-home-section" aria-labelledby="nxt5-home-next-title">
-        <div className="nxt5-home-section-heading">{focus.kind === "session" && latestReport ? <FileText size={20} aria-hidden="true" /> : <CalendarDays size={20} aria-hidden="true" />}<h3 id="nxt5-home-next-title">{focus.kind === "session" ? "Pour préparer la séance" : "Prochaine séance"}</h3></div>
+        <div className="nxt5-home-section-heading">{focus.kind === "session" && latestReport ? <FileText size={20} aria-hidden="true" /> : <CalendarDays size={20} aria-hidden="true" />}<h3 id="nxt5-home-next-title">{focus.kind === "session" ? t("Pour préparer la séance") : t("Prochaine séance")}</h3></div>
         {focus.kind === "session" ? <>
-          <p className="nxt5-home-section-intro">{latestReport ? latestReport.discord_status === "draft" ? "Un brouillon de débrief attend le staff avant d’être partagé avec l’équipe." : "Reprends les points du dernier débrief avant de vous retrouver." : "Retrouve les joueurs et vos disponibilités pour cette séance."}</p>
-          {latestReport && <p className="nxt5-home-session-title">{latestReport.title || "Dernier débrief de l’équipe"}</p>}
-          <PublicTextLink href={latestReport ? reportPath(latestReport) : "/equipes"} navigate={navigate} className="nxt5-home-text-link">{latestReport ? latestReport.discord_status === "draft" ? "Reprendre le débrief" : "Relire le débrief" : "Voir mon équipe"}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
+          <p className="nxt5-home-section-intro">{latestReport ? latestReport.discord_status === "draft" ? t("Un brouillon de débrief attend le staff avant d’être partagé avec l’équipe.") : t("Reprends les points du dernier débrief avant de vous retrouver.") : t("Retrouve les joueurs et vos disponibilités pour cette séance.")}</p>
+          {latestReport && <p className="nxt5-home-session-title">{latestReport.title || t("Dernier débrief de l’équipe")}</p>}
+          <PublicTextLink href={latestReport ? reportPath(latestReport) : "/equipes"} navigate={navigate} className="nxt5-home-text-link">{latestReport ? latestReport.discord_status === "draft" ? t("Reprendre le débrief") : t("Relire le débrief") : t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
         </> : <>
-          {nextEvent ? <><p className="nxt5-home-session-title">{nextEvent.title || "Séance de l’équipe"}</p><p className="nxt5-home-section-intro">{sessionDate(nextEvent)}</p></> : <p className="nxt5-home-section-intro">Aucune séance à venir dans le planning.{context.linkedPlayer ? " Renseigne tes disponibilités pour aider l’équipe à se retrouver." : " Ouvre le planning pour retrouver les disponibilités de l’équipe."}</p>}
-          <PublicTextLink href="/planning" navigate={navigate} className="nxt5-home-text-link">{nextEvent ? "Voir le planning" : context.linkedPlayer ? "Donner mes disponibilités" : "Ouvrir le planning"}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
+          {nextEvent ? <><p className="nxt5-home-session-title">{nextEvent.title || t("Séance de l’équipe")}</p><p className="nxt5-home-section-intro">{sessionDate(nextEvent)}</p></> : <p className="nxt5-home-section-intro">{t("Aucune séance à venir dans le planning.")}{context.linkedPlayer ? t(" Renseigne tes disponibilités pour aider l’équipe à se retrouver.") : t(" Ouvre le planning pour retrouver les disponibilités de l’équipe.")}</p>}
+          <PublicTextLink href="/planning" navigate={navigate} className="nxt5-home-text-link">{nextEvent ? t("Voir le planning") : context.linkedPlayer ? t("Donner mes disponibilités") : t("Ouvrir le planning")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
         </>}
       </section>
     </div>
 
     {unfinished && !startIsPrimary && <div className="nxt5-home-learning">
-      <div className="nxt5-home-resume"><div><strong>Besoin de prendre tes repères ?</strong><p>Retrouve tes premières étapes, à ton rythme.</p></div><Button ref={guideTrigger} type="button" variant="ghost" aria-expanded={showStart} aria-controls="nxt5-home-learning-content" onClick={showStart ? closeStart : openStart}>{showStart ? "Masquer le démarrage" : "Reprendre le démarrage"}</Button></div>
+      <div className="nxt5-home-resume"><div><strong>{t("Besoin de prendre tes repères ?")}</strong><p>{t("Retrouve tes premières étapes, à ton rythme.")}</p></div><Button ref={guideTrigger} type="button" variant="ghost" aria-expanded={showStart} aria-controls="nxt5-home-learning-content" onClick={showStart ? closeStart : openStart}>{showStart ? t("Masquer le démarrage") : t("Reprendre le démarrage")}</Button></div>
       <div id="nxt5-home-learning-content">{showStart && <BeginnerCompass steps={steps} manager={context.manager} onNavigate={navigate} onClose={closeStart} />}</div>
     </div>}
-    <nav className="nxt5-home-shortcuts" aria-label="Raccourcis du quotidien">
-      {shortcuts.map(({ path, title, text, icon: Icon }) => <PublicTextLink key={path} href={path} navigate={navigate} className="nxt5-home-shortcut"><Icon size={21} aria-hidden="true" /><span><strong>{title}</strong><span>{text}</span></span><ArrowRight size={17} aria-hidden="true" /></PublicTextLink>)}
+    <nav className="nxt5-home-shortcuts" aria-label={t("Raccourcis du quotidien")}>
+      {shortcuts.map(({ path, title, text, icon: Icon }) => <PublicTextLink key={path} href={path} navigate={navigate} className="nxt5-home-shortcut"><Icon size={21} aria-hidden="true" /><span><strong>{t(title)}</strong><span>{t(text)}</span></span><ArrowRight size={17} aria-hidden="true" /></PublicTextLink>)}
     </nav>
-    <PublicTextLink className="nxt5-home-guide" href="/guide" navigate={navigate}>Besoin d’aide ? Ouvrir le guide</PublicTextLink>
+    <PublicTextLink className="nxt5-home-guide" href="/guide" navigate={navigate}>{t("Besoin d’aide ? Ouvrir le guide")}</PublicTextLink>
   </div>;
 }

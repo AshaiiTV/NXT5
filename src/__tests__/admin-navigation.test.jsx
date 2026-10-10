@@ -218,7 +218,7 @@ describe("administration route contract", () => {
     selectedView("teams");
     expect(renderer.root.findByProps({ "data-admin-view": "teams" }).props["data-team-filter"]).toBe("never");
     expect(window.location.search).toBe("?filtre=never");
-    await act(async () => renderer.root.findByType("select").props.onChange({ target: { value: "/admin/bot-discord/publications" } }));
+    await act(async () => renderer.root.findByProps({ "aria-label": "Rubrique" }).props.onChange({ target: { value: "/admin/bot-discord/publications" } }));
     selectedView("bot-publications");
     await act(async () => window.history.back());
     selectedView("teams");

@@ -76,9 +76,9 @@
 .nxt5-start-return button { min-height: 44px; color: var(--nxt5-accent); }
 .nxt5-start-return > span { color: var(--nxt5-muted); }
 .nxt5-topbar { position: sticky; top: 0; z-index: 30; min-width: 0; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 2rem; border-bottom: 1px solid var(--nxt5-border); background: var(--nxt5-bg); backdrop-filter: blur(16px); }
-.nxt5-topbar-location, .nxt5-topbar-actions { display: flex; align-items: center; min-width: 0; }
+.nxt5-topbar-location, .nxt5-topbar-actions, .nxt5-topbar-tools { display: flex; align-items: center; min-width: 0; }
 .nxt5-topbar-location { flex: 1; gap: .5rem; }
-.nxt5-topbar-actions { flex: 0 1 auto; gap: .5rem; }
+.nxt5-topbar-actions, .nxt5-topbar-tools { flex: 0 1 auto; gap: .5rem; }
 .nxt5-topbar-breadcrumb { display: flex; flex-wrap: wrap; align-items: center; min-width: 0; gap: .625rem; }
 .nxt5-topbar-breadcrumb h1 { color: var(--nxt5-text); font-size: var(--nxt5-font-body); font-weight: 650; line-height: 1.4; }
 .nxt5-topbar-breadcrumb > span { color: #a4b6ce; font-size: var(--nxt5-font-small); line-height: 1.4; }
@@ -141,16 +141,19 @@
 
 @media (max-width: 767px) {
   .nxt5-workspace-main { padding: 1.25rem 1rem; }
-  .nxt5-topbar { min-height: 68px; padding: .5rem .75rem; gap: .5rem; }
+  .nxt5-topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; min-height: 68px; padding: .5rem .75rem; gap: .375rem .5rem; }
   .nxt5-topbar-location { gap: .25rem; }
   .nxt5-topbar-breadcrumb { gap: .2rem; }
   .nxt5-topbar-breadcrumb h1 { font-size: var(--nxt5-font-ui); }
   .nxt5-topbar-breadcrumb > span { width: 100%; font-size: var(--nxt5-font-micro); }
   .nxt5-topbar-breadcrumb > svg { display: none; }
-  .nxt5-topbar-actions { gap: .125rem; }
-  .nxt5-team-trigger { max-width: min(32vw, 180px); padding-inline: .375rem; gap: .375rem; font-size: var(--nxt5-font-small); }
+  .nxt5-topbar-actions { display: contents; }
+  .nxt5-topbar-actions > .nxt5-language-switcher { grid-column: 2; grid-row: 1; }
+  .nxt5-topbar-tools, .nxt5-topbar-admin { grid-column: 1 / -1; grid-row: 2; justify-content: flex-end; gap: .375rem; }
+  .nxt5-topbar-tools .nxt5-team-picker { margin-right: auto; }
+  .nxt5-team-trigger { max-width: min(55vw, 270px); padding-inline: .375rem; gap: .375rem; font-size: var(--nxt5-font-small); }
   .nxt5-team-trigger-avatar { display: none; }
-  .nxt5-topbar-actions:has(> .nxt5-chrome-icon-button) .nxt5-team-menu { right: -2.75rem; }
+  .nxt5-topbar-tools .nxt5-team-menu { left: 0; right: auto; }
   .nxt5-api-banner { flex-wrap: wrap; padding: 1rem; }
   .nxt5-api-banner > button { margin-left: 2.125rem; }
   .nxt5-assistant-launcher { right: 1rem; padding: .75rem; }

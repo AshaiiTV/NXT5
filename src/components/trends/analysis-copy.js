@@ -1,10 +1,18 @@
+import { getLanguage } from "../../i18n/locale.js";
+import { t } from "../../i18n/translate.js";
+
 // Display-only wording for generated observations. Keep source data and exports intact.
 export function analysisCopy(value, { csComparison = false } = {}) {
-  return String(value ?? "")
+  const source = String(value ?? "")
     .replace("Réduire les morts gratuites", "Revoir les situations de mort")
     .replace("Les deaths montent trop haut pour transformer les bons plans en games contrôlées.", "Le nombre de morts est élevé dans cette sélection. Ouvre les parties sources pour vérifier les situations à mieux préparer.")
     .replace("L'équipe joue avec moins d'information que l'adversaire, ce qui fragilise setups et entrées rivière.", "Le score de vision est inférieur à celui des adversaires. Vérifie la préparation des objectifs et les entrées en rivière.")
-    .replace("C'est le meilleur levier collectif du bloc.", "C’est une piste à vérifier dans les parties sources.")
+    .replace("C'est le meilleur levier collectif du bloc.", "C’est une piste à vérifier dans les parties sources.");
+  // The French glossary rewrites source keys (for example games → parties).
+  // Translate the original product phrase in other languages so the catalogue
+  // can resolve its template, while keeping the factual cautions above.
+  if (getLanguage() !== "fr") return t(source);
+  return source
     .replace(/\bdu prochain bloc\b/g, "de la prochaine session")
     .replace(/\ble prochain bloc\b/g, "la prochaine session")
     .replace(/\bune review\b/g, "un débrief")

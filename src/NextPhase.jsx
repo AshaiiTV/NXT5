@@ -1,3 +1,6 @@
+import { useLanguage } from "./i18n/useLanguage.js";
+import { t } from "./i18n/translate.js";
+import { getLocale } from "./i18n/locale.js";
 import { availableNumber, resultSummary, resultLabel, sideResults } from "./utils/statistics.js";
 import { csAtMinute } from "./utils/match-timeline.js";
 import { importedGameSide } from "./utils/imported-games.js";
@@ -66,7 +69,7 @@ function formatDate(value, withTime = false) {
   if (!value) return "Date à définir";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Date à définir";
-  return date.toLocaleString("fr-FR", withTime ? { dateStyle: "medium", timeStyle: "short" } : { dateStyle: "medium" });
+  return date.toLocaleString(getLocale(), withTime ? { dateStyle: "medium", timeStyle: "short" } : { dateStyle: "medium" });
 }
 
 function teamRows(match, teamKey = "ALLY") {
@@ -104,22 +107,27 @@ function signed(value, suffix = "") {
 }
 
 function Panel({ children, className = "" }) {
+  useLanguage();
   return <Surface className={cx("!p-0", className)}>{children}</Surface>;
 }
 
 function Label({ children, tone = "cyan" }) {
+  useLanguage();
   return <Badge tone={tone === "amber" ? "yellow" : tone}>{children}</Badge>;
 }
 
 function IconButton({ icon: Icon, label, onClick, danger = false, disabled = false }) {
-  return <Button type="button" icon={Icon} title={label} aria-label={label} onClick={onClick} disabled={disabled} variant={danger ? "danger" : "ghost"} className="h-11 w-11 shrink-0 !px-0" />;
+  useLanguage();
+  return <Button type="button" icon={Icon} title={t(label)} aria-label={t(label)} onClick={onClick} disabled={disabled} variant={danger ? "danger" : "ghost"} className="h-11 w-11 shrink-0 !px-0" />;
 }
 
 function ActionButton({ children, onClick, icon: Icon = ArrowRight, variant = "primary", disabled = false, type = "button", className = "" }) {
+  useLanguage();
   return <Button type={type} onClick={onClick} disabled={disabled} variant={variant} icon={Icon} className={className}>{children}</Button>;
 }
 
 export function TeamDataHealthPanel({ team, players = [], matches = [] }) {
+  useLanguage();
   const [open, setOpen] = useState(false);
   const teamPlayers = players.filter((player) => player.team_id === team?.id && ROLES.includes(normalizeRole(player.role)));
   const teamMatches = matches.filter((match) => match.team_id === team?.id);
@@ -149,14 +157,14 @@ export function TeamDataHealthPanel({ team, players = [], matches = [] }) {
   return <Panel>
     <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="flex w-full items-center gap-4 p-4 text-left sm:p-5">
       <span className={cx("grid h-11 w-11 shrink-0 place-items-center rounded-xl border", issues.length ? "border-amber-300/25 bg-amber-300/10 text-amber-100" : "border-emerald-300/25 bg-emerald-300/10 text-emerald-100")}><ShieldCheck className="h-5 w-5" /></span>
-      <span className="min-w-0 flex-1"><span className="block text-sm font-black text-white">Santé des données</span><span className="mt-1 block text-xs font-semibold text-slate-400">{issues.length ? `${issues.length} point${issues.length > 1 ? "s" : ""} à vérifier avant de tirer des conclusions.` : "Roster, profils et imports sont cohérents."}</span></span>
-      <span className="text-right"><span className={cx("block text-2xl font-black", score === 100 ? "text-emerald-200" : "text-amber-100")}>{score}%</span><span className="block text-xs font-semibold text-slate-500">fiabilité</span></span>
+      <span className="min-w-0 flex-1"><span className="block text-sm font-black text-white">{t("Santé des données")}</span><span className="mt-1 block text-xs font-semibold text-slate-400">{issues.length ? t("{0} point{1} à vérifier avant de tirer des conclusions.", [issues.length, issues.length > 1 ? "s" : ""]) : t("Roster, profils et imports sont cohérents.")}</span></span>
+      <span className="text-right"><span className={cx("block text-2xl font-black", score === 100 ? "text-emerald-200" : "text-amber-100")}>{score}%</span><span className="block text-xs font-semibold text-slate-500">{t("fiabilité")}</span></span>
       <ChevronRight className={cx("h-5 w-5 shrink-0 text-slate-400 transition", open && "rotate-90")} />
     </button>
     {open && <div className="border-t border-white/10 px-4 py-2 sm:px-5">
       {issues.length ? issues.map((issue) => <button key={issue.id} type="button" onClick={() => openRoute(issue.path)} className="grid w-full grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 border-b border-white/[0.07] py-3 text-left last:border-b-0 hover:text-cyan-100">
-        <issue.icon className="h-4 w-4 text-amber-100" /><span className="min-w-0"><span className="block text-sm font-black text-white">{issue.title}</span><span className="mt-0.5 block text-xs font-semibold text-slate-400">{issue.detail}</span></span><ArrowRight className="h-4 w-4 text-cyan-100" />
-      </button>) : <div className="flex items-center gap-3 py-4 text-sm font-semibold text-emerald-100"><Check className="h-5 w-5" /> Aucun correctif nécessaire.</div>}
+        <issue.icon className="h-4 w-4 text-amber-100" /><span className="min-w-0"><span className="block text-sm font-black text-white">{t(issue.title)}</span><span className="mt-0.5 block text-xs font-semibold text-slate-400">{t(issue.detail)}</span></span><ArrowRight className="h-4 w-4 text-cyan-100" />
+      </button>) : <div className="flex items-center gap-3 py-4 text-sm font-semibold text-emerald-100"><Check className="h-5 w-5" />{t(" Aucun correctif nécessaire.")}</div>}
     </div>}
   </Panel>;
 }
@@ -215,11 +223,11 @@ function blockDateRange(matches) {
   const last = formatDate(Math.max(...timestamps));
   const range = first === last ? first : `${first} → ${last}`;
   const missing = matches.length - timestamps.length;
-  return missing ? `${range} · ${missing} date${missing > 1 ? "s" : ""} inconnue${missing > 1 ? "s" : ""}` : range;
+  return missing ? `${range} · ${t(missing > 1 ? "{0} dates inconnues" : "{0} date inconnue", [missing])}` : range;
 }
 
 function blockMetric(value, suffix = "", digits = 0) {
-  return Number.isFinite(value) ? `${Number(value.toFixed(digits)).toLocaleString("fr-FR")}${suffix}` : "—";
+  return Number.isFinite(value) ? `${Number(value.toFixed(digits)).toLocaleString(getLocale())}${t(suffix)}` : "—";
 }
 
 function blockDelta(before, after) {
@@ -227,8 +235,9 @@ function blockDelta(before, after) {
 }
 
 function BlockComparisonRows({ rows }) {
+  useLanguage();
   return <div className="block-comparison-rows">
-    <div className="block-comparison-columns" aria-hidden="true"><span>Repère</span><span>Référence</span><span>Observé</span><span>Évolution</span></div>
+    <div className="block-comparison-columns" aria-hidden="true"><span>{t("Repère")}</span><span>{t("Référence")}</span><span>{t("Observé")}</span><span>{t("Évolution")}</span></div>
     {rows.map(({ label, detail, before, after, suffix = "", digits = 0, deltaSuffix = "", delta: rawDelta, inverse = false, role, beforeDetail, afterDetail }) => {
       const roundedBefore = Number.isFinite(before) ? Number(before.toFixed(digits)) : null;
       const roundedAfter = Number.isFinite(after) ? Number(after.toFixed(digits)) : null;
@@ -237,12 +246,12 @@ function BlockComparisonRows({ rows }) {
       return <div key={label} className="block-comparison-row">
         <div className="block-comparison-metric">
           {role && <span aria-hidden="true"><RoleIcon role={role} className="h-6 w-6" lightweight /></span>}
-          <div><h5>{label}</h5>{detail && <p>{detail}</p>}</div>
+          <div><h5>{t(label)}</h5>{detail && <p>{t(detail)}</p>}</div>
         </div>
         <dl className="block-comparison-values">
-          <div><dt>Référence</dt><dd>{blockMetric(before, suffix, digits)}{beforeDetail && <small>{beforeDetail}</small>}</dd></div>
-          <div><dt>Observé</dt><dd className="block-comparison-observed">{blockMetric(after, suffix, digits)}{afterDetail && <small>{afterDetail}</small>}</dd></div>
-          <div><dt>Évolution</dt><dd className={toneForDelta(delta, inverse)}>{Number.isFinite(delta) ? `${delta > 0 ? "+" : ""}${blockMetric(delta, deltaSuffix, digits)}` : "—"}<small>{change}</small></dd></div>
+          <div><dt>{t("Référence")}</dt><dd>{blockMetric(before, suffix, digits)}{beforeDetail && <small>{t(beforeDetail)}</small>}</dd></div>
+          <div><dt>{t("Observé")}</dt><dd className="block-comparison-observed">{blockMetric(after, suffix, digits)}{afterDetail && <small>{t(afterDetail)}</small>}</dd></div>
+          <div><dt>{t("Évolution")}</dt><dd className={toneForDelta(delta, inverse)}>{Number.isFinite(delta) ? `${delta > 0 ? "+" : ""}${blockMetric(delta, deltaSuffix, digits)}` : "—"}<small>{t(change)}</small></dd></div>
         </dl>
       </div>;
     })}
@@ -250,6 +259,7 @@ function BlockComparisonRows({ rows }) {
 }
 
 export function BlockComparisonPanel({ matches = [], categories = [] }) {
+  useLanguage();
   const [leftKey, setLeftKey] = useState("previous");
   const [rightKey, setRightKey] = useState("recent");
   const options = [{ value: "previous", label: "5 parties précédentes" }, { value: "recent", label: "5 dernières parties" }, { value: "all", label: "Toutes les parties" }, ...categories.map((category) => ({ value: `category:${category.id}`, label: category.name }))];
@@ -260,7 +270,7 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
   const left = blockSnapshot(leftMatches);
   const right = blockSnapshot(rightMatches);
   const overlap = blockOverlapCount(leftMatches, rightMatches);
-  const gameCount = (count) => `${count} partie${count > 1 ? "s" : ""}`;
+  const gameCount = (count) => t(count > 1 ? "{0} parties" : "{0} partie", [count]);
   const sideCount = (games, side) => resultLabel(resultSummary(games.filter((match) => importedGameSide(match) === side)));
   const metrics = [
     { label: "Taux de victoire", detail: "Victoires / résultats connus", beforeDetail: resultLabel(left), afterDetail: resultLabel(right), before: left.wr, after: right.wr, suffix: "%", deltaSuffix: " pts" },
@@ -279,51 +289,52 @@ export function BlockComparisonPanel({ matches = [], categories = [] }) {
   ];
   return <Panel className="block-comparison">
     <div className="block-comparison-heading">
-      <h3>Ce qui change entre deux sélections</h3>
-      <p>Choisis une référence à gauche, puis les parties à observer à droite. Les filtres de période et de catégorie des autres rubriques ne s’appliquent pas ici.</p>
+      <h3>{t("Ce qui change entre deux sélections")}</h3>
+      <p>{t("Choisis une référence à gauche, puis les parties à observer à droite. Les filtres de période et de catégorie des autres rubriques ne s’appliquent pas ici.")}</p>
     </div>
     <div className="block-comparison-selection">
       {[{ label: "Bloc de référence", key: referenceKey, setKey: setLeftKey, games: leftMatches, snapshot: left }, { label: "Bloc observé", key: observedKey, setKey: setRightKey, games: rightMatches, snapshot: right }].map(({ label, key, setKey, games, snapshot }) => <div key={label} className="block-comparison-selector">
-        <SelectInput label={label} value={key} onChange={setKey}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</SelectInput>
-        <p className="block-comparison-sample"><strong>{gameCount(snapshot.games)}</strong><span>{games.length ? blockDateRange(games) : "Aucune partie dans ce bloc"}</span></p>
+        <SelectInput label={t(label)} value={key} onChange={setKey}>{options.map((option) => <option key={option.value} value={option.value}>{option.value.startsWith("category:") ? option.label : t(option.label)}</option>)}</SelectInput>
+        <p className="block-comparison-sample"><strong>{t(gameCount(snapshot.games))}</strong><span>{games.length ? blockDateRange(games) : t("Aucune partie dans ce bloc")}</span></p>
       </div>)}
-      <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => { setLeftKey(observedKey); setRightKey(referenceKey); }} className="block-comparison-swap">Inverser les blocs</Button>
+      <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => { setLeftKey(observedKey); setRightKey(referenceKey); }} className="block-comparison-swap">{t("Inverser les blocs")}</Button>
     </div>
     <div className="block-comparison-context" aria-live="polite">
-      {(!left.games || !right.games) ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>Sélectionne deux blocs non vides pour calculer les écarts.{(referenceKey === "previous" && !left.games) || (observedKey === "previous" && !right.games) ? " Le bloc précédent apparaît à partir de la 6e partie." : ""}</span></p> : overlap > 0 ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>{overlap} partie{overlap > 1 ? "s" : ""} commune{overlap > 1 ? "s" : ""} aux deux blocs : les échantillons se recouvrent.</span></p> : <p>Aucune partie commune aux deux blocs.</p>}
-      <p><strong>Évolution = bloc observé − référence.</strong> Les taux évoluent en points de pourcentage. Les parties sont classées par date de jeu.</p>
+      {(!left.games || !right.games) ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>{t("Sélectionne deux blocs non vides pour calculer les écarts.")}{(referenceKey === "previous" && !left.games) || (observedKey === "previous" && !right.games) ? t(" Le bloc précédent apparaît à partir de la 6e partie.") : ""}</span></p> : overlap > 0 ? <p className="block-comparison-notice"><AlertTriangle aria-hidden="true" /><span>{overlap}{t(overlap > 1 ? " parties" : " partie")}{t(overlap > 1 ? " communes" : " commune")}{t(" aux deux blocs : les échantillons se recouvrent.")}</span></p> : <p>{t("Aucune partie commune aux deux blocs.")}</p>}
+      <p><strong>{t("Évolution = bloc observé − référence.")}</strong>{t(" Les taux évoluent en points de pourcentage. Les parties sont classées par date de jeu.")}</p>
     </div>
     <div className="block-comparison-section">
-      <h4>Résultats de l’équipe</h4>
-      <p className="block-comparison-description">Les écarts d’or, de dégâts et de vision mesurent l’avance sur l’adversaire en fin de partie.</p>
+      <h4>{t("Résultats de l’équipe")}</h4>
+      <p className="block-comparison-description">{t("Les écarts d’or, de dégâts et de vision mesurent l’avance sur l’adversaire en fin de partie.")}</p>
       <BlockComparisonRows rows={metrics} />
     </div>
     <div className="block-comparison-secondary">
       <section className="block-comparison-section block-comparison-roles">
-        <h4>Participation aux kills par rôle</h4>
-        <p className="block-comparison-description">Part des éliminations de l’équipe auxquelles le joueur participe (KP), en moyenne. Le nombre de parties précise l’échantillon de chaque rôle.</p>
+        <h4>{t("Participation aux kills par rôle")}</h4>
+        <p className="block-comparison-description">{t("Part des éliminations de l’équipe auxquelles le joueur participe (KP), en moyenne. Le nombre de parties précise l’échantillon de chaque rôle.")}</p>
         <BlockComparisonRows rows={roleMetrics} />
       </section>
       <section className="block-comparison-section block-comparison-sides">
-        <h4>Taux de victoire par côté</h4>
-        <p className="block-comparison-description">Compare les résultats sur le côté bleu et sur le côté rouge.</p>
+        <h4>{t("Taux de victoire par côté")}</h4>
+        <p className="block-comparison-description">{t("Compare les résultats sur le côté bleu et sur le côté rouge.")}</p>
         <BlockComparisonRows rows={sideMetrics} />
       </section>
     </div>
-    <p className="block-comparison-footnote">— : donnée indisponible. « Favorable » indique le sens de la variation ; tiens compte du nombre de parties et des adversaires avant de conclure.</p>
+    <p className="block-comparison-footnote">{t("— : donnée indisponible. « Favorable » indique le sens de la variation ; tiens compte du nombre de parties et des adversaires avant de conclure.")}</p>
   </Panel>;
 }
 
 function reviewReason(match) {
   const deaths = sum(teamRows(match), "deaths");
   const gold = matchDiff(match, "gold");
-  if (match.result === "Défaite" && gold < -3000) return `Défaite · ${Math.abs(Math.round(gold / 100) * 100).toLocaleString("fr-FR")} or de retard`;
+  if (match.result === "Défaite" && gold < -3000) return `Défaite · ${Math.abs(Math.round(gold / 100) * 100).toLocaleString(getLocale())} or de retard`;
   if (deaths >= 20) return `${deaths} morts alliées à classer`;
   if (!hasTimeline(match)) return "Timeline absente · lecture finale uniquement";
   return match.result === "Défaite" ? "Défaite à revoir" : "Victoire à revoir";
 }
 
 export function ReviewQueuePanel({ matches = [], reports = [], selectedTeamId, refreshAll, pushToast, onStartReview, onOpenReview }) {
+  useLanguage();
   const [busyId, setBusyId] = useState("");
   const [showDone, setShowDone] = useState(false);
   const queue = [...matches].filter((match) => String(match.review_status || "todo") !== "done").sort((a, b) => (a.result === "Défaite" ? -1 : 1) - (b.result === "Défaite" ? -1 : 1) || new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -342,11 +353,11 @@ export function ReviewQueuePanel({ matches = [], reports = [], selectedTeamId, r
     }
   }
   return <Panel className="mb-5">
-    <div className="flex flex-col gap-3 border-b border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"><div><Label tone={showDone ? "green" : queue.length ? "amber" : "green"}>{showDone ? "Historique" : "File de review"}</Label><h3 className="mt-3 text-2xl font-black text-white">{showDone ? `${doneMatches.length} review${doneMatches.length > 1 ? "s" : ""} terminée${doneMatches.length > 1 ? "s" : ""}` : queue.length ? `${queue.length} game${queue.length > 1 ? "s" : ""} à traiter` : "File à jour"}</h3><p className="mt-1 text-sm font-semibold text-slate-400">{showDone ? "Une erreur de classement reste réversible." : "Ouvre la source, prends une décision, puis marque-la terminée."}</p></div><ActionButton variant="ghost" icon={showDone ? ArrowRight : ClipboardCheck} onClick={() => setShowDone((value) => !value)}>{showDone ? "Retour à la file" : `${doneMatches.length} terminée${doneMatches.length > 1 ? "s" : ""}`}</ActionButton></div>
+    <div className="flex flex-col gap-3 border-b border-white/10 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5"><div><Label tone={showDone ? "green" : queue.length ? "amber" : "green"}>{showDone ? t("Historique") : t("File de review")}</Label><h3 className="mt-3 text-2xl font-black text-white">{showDone ? t("{0} review{1} terminée{2}", [doneMatches.length, doneMatches.length > 1 ? "s" : "", doneMatches.length > 1 ? "s" : ""]) : queue.length ? t("{0} game{1} à traiter", [queue.length, queue.length > 1 ? "s" : ""]) : t("File à jour")}</h3><p className="mt-1 text-sm font-semibold text-slate-400">{showDone ? t("Une erreur de classement reste réversible.") : t("Ouvre la source, prends une décision, puis marque-la terminée.")}</p></div><ActionButton variant="ghost" icon={showDone ? ArrowRight : ClipboardCheck} onClick={() => setShowDone((value) => !value)}>{showDone ? t("Retour à la file") : t("{0} terminée{1}", [doneMatches.length, doneMatches.length > 1 ? "s" : ""])}</ActionButton></div>
     {visibleMatches.length ? <div className="divide-y divide-white/[0.07]">{visibleMatches.slice(0, 8).map((match) => {
       const linkedReport = reports.find((report) => [report.match_id, ...(Array.isArray(report.match_ids) ? report.match_ids : [])].some((id) => String(id || "") === String(match.id)));
-      return <div key={match.id} className="grid gap-3 px-4 py-3 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"><button type="button" onClick={() => openRoute(`/games?match=${encodeURIComponent(match.id)}`)} className="min-w-0 text-left"><span className="flex flex-wrap items-center gap-2"><span className="break-words text-sm font-black text-white">{matchName(match)}</span><Label tone={match.result === "Victoire" ? "green" : "red"}>{match.result || "Analyse"}</Label>{linkedReport && <span className="text-xs font-semibold text-cyan-100">Review créée</span>}</span><span className="mt-1 block text-xs font-semibold text-slate-400">{showDone ? `Terminée ${formatDate(match.reviewed_at || match.created_at)}` : `${reviewReason(match)} · ${formatDate(match.created_at)}`}</span></button><div className="flex flex-wrap gap-2"><ActionButton variant="ghost" icon={Eye} onClick={() => openRoute(`/games?match=${encodeURIComponent(match.id)}`)}>Source</ActionButton><ActionButton variant="ghost" icon={linkedReport ? ArrowRight : FileText} onClick={() => linkedReport ? onOpenReview?.(linkedReport) : onStartReview(match)}>{linkedReport ? "Ouvrir la review" : "Créer la review"}</ActionButton><ActionButton variant="ghost" icon={busyId === match.id ? RefreshCw : showDone ? RefreshCw : Check} disabled={Boolean(busyId)} onClick={() => setStatus(match, showDone ? "todo" : "done")}>{showDone ? "Rouvrir" : "Terminé"}</ActionButton></div></div>;
-    })}</div> : <div className="flex items-center gap-3 p-5 text-sm font-semibold text-emerald-100"><ClipboardCheck className="h-5 w-5" /> {showDone ? "Aucune review terminée." : "Toutes les games importées ont été traitées."}</div>}
+      return <div key={match.id} className="grid gap-3 px-4 py-3 sm:px-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center"><button type="button" onClick={() => openRoute(`/games?match=${encodeURIComponent(match.id)}`)} className="min-w-0 text-left"><span className="flex flex-wrap items-center gap-2"><span className="break-words text-sm font-black text-white">{matchName(match)}</span><Label tone={match.result === "Victoire" ? "green" : "red"}>{t(match.result) || t("Analyse")}</Label>{linkedReport && <span className="text-xs font-semibold text-cyan-100">{t("Review créée")}</span>}</span><span className="mt-1 block text-xs font-semibold text-slate-400">{showDone ? t("Terminée {0}", [formatDate(match.reviewed_at || match.created_at)]) : `${t(reviewReason(match))} · ${formatDate(match.created_at)}`}</span></button><div className="flex flex-wrap gap-2"><ActionButton variant="ghost" icon={Eye} onClick={() => openRoute(`/games?match=${encodeURIComponent(match.id)}`)}>{t("Source")}</ActionButton><ActionButton variant="ghost" icon={linkedReport ? ArrowRight : FileText} onClick={() => linkedReport ? onOpenReview?.(linkedReport) : onStartReview(match)}>{linkedReport ? t("Ouvrir la review") : t("Créer la review")}</ActionButton><ActionButton variant="ghost" icon={busyId === match.id ? RefreshCw : showDone ? RefreshCw : Check} disabled={Boolean(busyId)} onClick={() => setStatus(match, showDone ? "todo" : "done")}>{showDone ? t("Rouvrir") : t("Terminé")}</ActionButton></div></div>;
+    })}</div> : <div className="flex items-center gap-3 p-5 text-sm font-semibold text-emerald-100"><ClipboardCheck className="h-5 w-5" /> {showDone ? t("Aucune review terminée.") : t("Toutes les games importées ont été traitées.")}</div>}
   </Panel>;
 }
 
@@ -382,6 +393,7 @@ export function evaluateGoal(goal, rows) {
 }
 
 export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId, canManage, refreshAll, pushToast }) {
+  useLanguage();
   const metricLabels = { deaths: "Morts par partie", kp: "Participation aux éliminations (KP)", kda: "Ratio KDA", vision: "Score de vision par partie", cs10: "Sbires et monstres à 10 minutes (CS)" };
   const activeGoals = goals.filter((goal) => goal.player_id === player?.id && goal.status !== "archived");
   const [creating, setCreating] = useState(false);
@@ -410,29 +422,29 @@ export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId
   }
   return <Panel className="profile-goal-panel">
     <header className="profile-goal-heading">
-      <div><p className="profile-goal-eyebrow">Suivi joueur</p><h3>Objectifs mesurés sur les prochaines parties</h3><p>Les parties importées permettent de suivre chaque cible. Seules les parties importées après le début de l’objectif sont comptées.</p></div>
-      {canManage && <ActionButton variant={creating ? "ghost" : "primary"} icon={creating ? X : Plus} onClick={() => setCreating((value) => !value)}>{creating ? "Fermer" : "Nouvel objectif"}</ActionButton>}
+      <div><p className="profile-goal-eyebrow">{t("Suivi joueur")}</p><h3>{t("Objectifs mesurés sur les prochaines parties")}</h3><p>{t("Les parties importées permettent de suivre chaque cible. Seules les parties importées après le début de l’objectif sont comptées.")}</p></div>
+      {canManage && <ActionButton variant={creating ? "ghost" : "primary"} icon={creating ? X : Plus} onClick={() => setCreating((value) => !value)}>{creating ? t("Fermer") : t("Nouvel objectif")}</ActionButton>}
     </header>
     {creating && <form onSubmit={create} className="profile-goal-form">
-      <SelectInput label="Mesure à suivre" value={form.metric} onChange={setMetric}>{Object.entries(METRICS).map(([id, item]) => <option key={id} value={id}>{metricLabels[id] || item.label}</option>)}</SelectInput>
-      <TextInput label="Nom" value={form.title} onChange={(title) => setForm({ ...form, title })} placeholder="Ex. Mieux préparer les objectifs" />
-      <TextInput label={form.operator === "lte" ? "Maximum par partie" : "Minimum par partie"} type="number" step="0.1" value={form.targetValue} onChange={(value) => setForm({ ...form, targetValue: Number(value) })} />
-      <SelectInput label="Parties où atteindre la cible" value={form.requiredSuccesses} onChange={(value) => setForm({ ...form, requiredSuccesses: Number(value) })}><option value="1">1 / 3</option><option value="2">2 / 3</option><option value="3">3 / 3</option></SelectInput>
-      <div className="profile-goal-form-action"><p>La cible sera évaluée sur les {form.sampleSize} prochaines parties.</p><ActionButton type="submit" icon={saving ? RefreshCw : Target} disabled={saving}>{saving ? "Lancement…" : "Lancer"}</ActionButton></div>
+      <SelectInput label={t("Mesure à suivre")} value={form.metric} onChange={setMetric}>{Object.entries(METRICS).map(([id, item]) => <option key={id} value={id}>{t(metricLabels[id]) || t(item.label)}</option>)}</SelectInput>
+      <TextInput label={t("Nom")} value={form.title} onChange={(title) => setForm({ ...form, title })} placeholder={t("Ex. Mieux préparer les objectifs")} />
+      <TextInput label={form.operator === "lte" ? t("Maximum par partie") : t("Minimum par partie")} type="number" step="0.1" value={form.targetValue} onChange={(value) => setForm({ ...form, targetValue: Number(value) })} />
+      <SelectInput label={t("Parties où atteindre la cible")} value={form.requiredSuccesses} onChange={(value) => setForm({ ...form, requiredSuccesses: Number(value) })}><option value="1">1 / 3</option><option value="2">2 / 3</option><option value="3">3 / 3</option></SelectInput>
+      <div className="profile-goal-form-action"><p>{t("La cible sera évaluée sur les ")}{form.sampleSize}{t(" prochaines parties.")}</p><ActionButton type="submit" icon={saving ? RefreshCw : Target} disabled={saving}>{saving ? t("Lancement…") : t("Lancer")}</ActionButton></div>
     </form>}
     {activeGoals.length ? <div className="profile-goal-list">{activeGoals.map((goal) => {
       const result = evaluateGoal(goal, rows);
       const metric = METRICS[goal.metric] || METRICS.deaths;
       return <article key={goal.id} className="profile-goal-row">
-        <div className="profile-goal-identity"><div className="profile-goal-status"><Label tone={result.complete ? "green" : result.impossible ? "red" : result.inconclusive ? "slate" : "cyan"}>{result.complete ? "Validé" : result.impossible ? "À ajuster" : result.inconclusive ? "Non concluable (données manquantes)" : "En cours"}</Label><span>{result.successes}/{result.required} réussites</span></div><h4>{goal.title}</h4><p>{metricLabels[goal.metric] || metric.label} {goal.operator === "lte" ? "≤" : "≥"} {Number(goal.target_value)}{metric.unit} · {goal.required_successes}/{goal.sample_size} parties</p></div>
+        <div className="profile-goal-identity"><div className="profile-goal-status"><Label tone={result.complete ? "green" : result.impossible ? "red" : result.inconclusive ? "slate" : "cyan"}>{result.complete ? t("Validé") : result.impossible ? t("À ajuster") : result.inconclusive ? t("Non concluable (données manquantes)") : t("En cours")}</Label><span>{result.successes}/{result.required}{t(" réussites")}</span></div><h4>{goal.title}</h4><p>{t(metricLabels[goal.metric]) || t(metric.label)} {goal.operator === "lte" ? "≤" : "≥"} {Number(goal.target_value)}{metric.unit} · {goal.required_successes}/{goal.sample_size}{t(" parties")}</p></div>
         <div className="profile-goal-progress"><div className="profile-goal-samples">{Array.from({ length: Number(goal.sample_size || 3) }, (_, index) => {
           const value = result.values[index];
           const success = Number.isFinite(value) && (goal.operator === "lte" ? value <= Number(goal.target_value) : value >= Number(goal.target_value));
-          return <div key={index} className={cx("profile-goal-sample", !Number.isFinite(value) ? "is-pending" : success ? "is-success" : "is-missed")}><span>Partie {index + 1}</span><strong>{!Number.isFinite(value) ? "—" : `${Number(value).toFixed(goal.metric === "deaths" || goal.metric === "vision" || goal.metric === "cs10" ? 0 : 1)}${metric.unit}`}</strong><small>{value === undefined ? "À jouer" : value === null ? "Indisponible" : success ? "Cible atteinte" : "Hors cible"}</small></div>;
-        })}</div><p>Parties depuis le {formatDate(goal.starts_at || goal.created_at)}</p></div>
-        {canManage && <IconButton icon={Trash2} label="Archiver l'objectif" danger disabled={saving} onClick={() => archive(goal)} />}
+          return <div key={index} className={cx("profile-goal-sample", !Number.isFinite(value) ? "is-pending" : success ? "is-success" : "is-missed")}><span>{t("Partie ")}{index + 1}</span><strong>{!Number.isFinite(value) ? "—" : `${Number(value).toFixed(goal.metric === "deaths" || goal.metric === "vision" || goal.metric === "cs10" ? 0 : 1)}${metric.unit}`}</strong><small>{value === undefined ? t("À jouer") : value === null ? t("Indisponible") : success ? t("Cible atteinte") : t("Hors cible")}</small></div>;
+        })}</div><p>{t("Parties depuis le ")}{formatDate(goal.starts_at || goal.created_at)}</p></div>
+        {canManage && <IconButton icon={Trash2} label={t("Archiver l'objectif")} danger disabled={saving} onClick={() => archive(goal)} />}
       </article>;
-    })}</div> : <div className="profile-goal-empty"><CircleDot aria-hidden="true" /><div><h4>Aucun objectif actif pour ce profil.</h4><p>{canManage ? "Crée une cible mesurable pour suivre les prochaines parties du joueur." : "Les objectifs définis par les responsables de l’équipe apparaîtront ici."}</p></div></div>}
+    })}</div> : <div className="profile-goal-empty"><CircleDot aria-hidden="true" /><div><h4>{t("Aucun objectif actif pour ce profil.")}</h4><p>{canManage ? t("Crée une cible mesurable pour suivre les prochaines parties du joueur.") : t("Les objectifs définis par les responsables de l’équipe apparaîtront ici.")}</p></div></div>}
   </Panel>;
 }
 

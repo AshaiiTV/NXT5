@@ -1,3 +1,10 @@
+import { ASSISTANT_TRANSLATIONS } from './assistant-knowledge-locales';
+
+export type AssistantLanguage = 'fr' | 'en' | 'es';
+export function normalizeAssistantLanguage(value: unknown): AssistantLanguage {
+  return value === 'en' || value === 'es' ? value : 'fr';
+}
+
 export type AssistantAction = {
   label: string;
   path: string;
@@ -397,8 +404,15 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
 
 const STOP_WORDS = new Set([
   'a', 'au', 'aux', 'avec', 'ce', 'ces', 'comment', 'dans', 'de', 'des', 'du', 'elle', 'en', 'est', 'et', 'faire', 'il',
-  'je', 'la', 'le', 'les', 'ma', 'mes', 'mon', 'ne', 'ou', 'où', 'par', 'pas', 'pour', 'que', 'qui', 'se', 'sur', 'un', 'une'
+  'je', 'la', 'le', 'les', 'ma', 'mes', 'mon', 'ne', 'ou', 'où', 'par', 'pas', 'pour', 'que', 'qui', 'se', 'sur', 'un', 'une',
+  'how', 'why', 'what', 'where', 'who', 'do', 'does', 'the', 'to', 'my', 'is', 'are', 'can', 'of', 'in', 'and', 'with',
+  'como', 'por', 'porque', 'donde', 'quien', 'mi', 'mis', 'el', 'los', 'las', 'del', 'una', 'con', 'para', 'esta', 'estan'
 ]);
+
+export function getAssistantKnowledge(language: AssistantLanguage = 'fr'): AssistantKnowledgeEntry[] {
+  const translations = ASSISTANT_TRANSLATIONS[normalizeAssistantLanguage(language)];
+  return translations ? ASSISTANT_KNOWLEDGE.map((entry) => ({ ...entry, ...translations[entry.id] })) : ASSISTANT_KNOWLEDGE;
+}
 
 export function normalizeAssistantText(value: unknown): string {
   return String(value || '')
@@ -429,13 +443,13 @@ export function safeAssistantRoute(value: unknown): string {
   return '/equipes';
 }
 
-export function retrieveAssistantKnowledge(message: unknown, route: unknown, limit = 4): AssistantKnowledgeMatch[] {
+export function retrieveAssistantKnowledge(message: unknown, route: unknown, limit = 4, language: AssistantLanguage = 'fr'): AssistantKnowledgeMatch[] {
   const query = normalizeAssistantText(message);
   const queryTokens = tokens(query);
   const safeRoute = safeAssistantRoute(route);
   const boundedLimit = Math.max(1, Math.min(6, Number(limit) || 4));
 
-  return ASSISTANT_KNOWLEDGE
+  return getAssistantKnowledge(language)
     .map((entry) => {
       const searchable = normalizeAssistantText([
         entry.title,
@@ -455,7 +469,7 @@ export function retrieveAssistantKnowledge(message: unknown, route: unknown, lim
       }
       return { ...entry, score };
     })
-    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, 'fr'))
+    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title, language))
     .slice(0, boundedLimit);
 }
 
@@ -479,9 +493,10 @@ function bestFaq(message: unknown, matches: AssistantKnowledgeMatch[]): { faq: A
   return best && best.score >= 5 ? best : null;
 }
 
-export function buildFallbackAssistantResponse(message: unknown, matches: AssistantKnowledgeMatch[]) {
-  const selected = matches.length ? matches : retrieveAssistantKnowledge(message, '/equipes', 3);
-  const primary = selected[0] || ASSISTANT_KNOWLEDGE[0];
+export function buildFallbackAssistantResponse(message: unknown, matches: AssistantKnowledgeMatch[], language: AssistantLanguage = 'fr') {
+  const translations = ASSISTANT_TRANSLATIONS[language];
+  const selected = matches.length ? matches.map((entry) => ({ ...entry, ...translations?.[entry.id] })) : retrieveAssistantKnowledge(message, '/equipes', 3, language);
+  const primary = selected[0] || getAssistantKnowledge(language)[0];
   const faq = bestFaq(message, selected);
   const answer = faq
     ? faq.faq.answer
