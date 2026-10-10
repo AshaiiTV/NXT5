@@ -23,7 +23,7 @@
     "@napi-rs/canvas": "1.0.9",
     "@neondatabase/serverless": "^0.10.4",
     "@netlify/blobs": "11.1.1",
-    "@netlify/functions": "^2.8.2",
+    "@netlify/functions": "^6.0.0",
     "argon2": "^0.45.1",
     "bcryptjs": "^3.0.3",
     "jose": "6.2.12",
