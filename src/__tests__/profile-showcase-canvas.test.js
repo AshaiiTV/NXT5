@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createCanvas } from "@napi-rs/canvas";
-import { drawProfileShowcase, PROFILE_SHOWCASE_SIZE, PROFILE_ART_REGIONS } from "../utils/profile-showcase-canvas.js";
+import { drawProfileShowcase, PROFILE_ART_REGIONS, PROFILE_SHOWCASE_SIZE } from "../utils/profile-showcase-canvas.js";
 import { profileChampionArtLayout } from "../utils/profile-showcase-art.js";
 
 function report(overrides = {}) {
@@ -12,7 +12,7 @@ function report(overrides = {}) {
     signature: { champion: "Jhin", games: 6, wins: 5, losses: 1, unknown: 0, known: 6, rate: 5 / 6 * 100 },
     champions: [{ champion: "Jhin", games: 6, wins: 5, losses: 1 }, { champion: "Kai’Sa", games: 4, wins: 3, losses: 1 }, { champion: "Xayah", games: 2, wins: 1, losses: 0, unknown: 1 }],
     recentResults: "VVDVVVDVV?VV".split("").map((result) => ({ result: result === "V" ? "win" : result === "D" ? "loss" : "unknown" })),
-    highlight: { champion: "Jhin", result: "win", kills: 14, deaths: 1, assists: 9, kda: 23, dateLabel: "4 octobre 2026", durationSeconds: 1902, csPerMin: 9.4, damagePerMin: 1048, selectionReason: "Meilleur KDA parmi les victoires aux statistiques complètes." },
+    highlight: { champion: "Jhin", result: "win", kills: 14, deaths: 1, assists: 9, dateLabel: "4 octobre 2026", durationSeconds: 1902, csPerMin: 9.4, damagePerMin: 1048, selectionReason: "Meilleur KDA parmi les victoires aux statistiques complètes." },
     progression: { label: "CS par minute", unit: "CS/min", early: { value: 9.3, count: 6 }, recent: { value: 8.1, count: 6 }, delta: -1.2, count: 12, excludedCount: 0 },
     ...overrides,
   };
@@ -24,10 +24,10 @@ function recordingCanvas() {
   const texts = [];
   const fillText = ctx.fillText.bind(ctx);
   ctx.fillText = (text, x, y) => {
-    const measurement = ctx.measureText(text);
-    const width = measurement.width;
+    const measured = ctx.measureText(text);
+    const width = measured.width;
     const left = ctx.textAlign === "right" ? x - width : ctx.textAlign === "center" ? x - width / 2 : x;
-    texts.push({ text, x: left, right: left + width, y, top: y - measurement.actualBoundingBoxAscent });
+    texts.push({ text, x: left, right: left + width, y, top: y - measured.actualBoundingBoxAscent, bottom: y + measured.actualBoundingBoxDescent });
     fillText(text, x, y);
   };
   return { canvas, texts };
@@ -51,6 +51,19 @@ describe("profile collection rendering", () => {
     expect(texts.map((entry) => entry.text)).toEqual(expect.arrayContaining(["0,0", "—", "0 %", "0 / 12 parties", "10 / 12 parties", "11 résultats connus / 12"]));
   });
 
+  it("keeps foreground text outside the whole portrait, including accented player names", () => {
+    const portrait = createCanvas(308, 560);
+    for (const [options, region] of [
+      [{ view: "front" }, PROFILE_ART_REGIONS.front],
+      [{ view: "story", chapter: 1 }, PROFILE_ART_REGIONS.signature],
+      [{ view: "story", chapter: 2 }, PROFILE_ART_REGIONS.highlight],
+    ]) {
+      const { canvas, texts } = recordingCanvas();
+      drawProfileShowcase(canvas, report({ playerName: "ÉCHO À L’ÉQUIPE" }), { ...options, assets: { art: portrait } });
+      expect(texts.filter((text) => text.right > region.x && text.x < region.x + region.width && text.bottom > region.y && text.top < region.y + region.height)).toEqual([]);
+    }
+  });
+
   it("keeps declining evolution factual and renders unavailable stories", () => {
     const { canvas, texts } = recordingCanvas();
     drawProfileShowcase(canvas, report(), { view: "story", chapter: 3 });
@@ -70,7 +83,6 @@ describe("profile collection rendering", () => {
       expect(texts.every(({ x, right }) => x >= 0 && right <= 1080)).toBe(true);
     }
   });
-
   it("keeps the complete centred portrait, its head and both eyes free from foreground elements", () => {
     const art = createCanvas(308, 560);
     const artCtx = art.getContext("2d");
