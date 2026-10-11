@@ -14,6 +14,7 @@ import { compositionSlots, emptyCompositionSlots, jsonList } from "../../utils/p
 import { POOL_TIER_LABELS, championKey, championAssetId, championDisplayName, championPoolRowsByTier, exportChampionTierListPng, canStaffManage, isGameplayRole, championPoolStatus, CHAMPION_TIERS, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championMatchesLane, ALL_CHAMPION_STYLE_TAGS, championPoolStatusLabel, ChampionPortrait, compositionIdentity, championStyleTone, tagLabel, COMP_ROLES, championPoolStatusTone, championStyleTags } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 import DraftAssistance from "../../components/draft/DraftAssistance.jsx";
+import { playerRosterStatus, rosterStatusMeta } from "../../utils/roster.js";
 
 function championOptions() {
   return [...new Set(Object.keys(ALL_CHAMPION_STYLE_TAGS).map(championAssetId))].sort((a, b) => championDisplayName(a).localeCompare(championDisplayName(b)));
@@ -186,12 +187,28 @@ function ChampionSearchTile({ champion, active, existingRow, canManage, saving, 
   </div>;
 }
 
+function ChampionPoolPlayer({ player, selected, count, userId, showStatus = false, onSelect }) {
+  useLanguage();
+  return <button type="button" className="nxt5-pool-player" aria-pressed={selected} onClick={() => onSelect(player.id)} title={`${player.name}${player.riot_id ? ` · ${player.riot_id}` : ""}`}>
+    <RoleIcon role={player.role} />
+    <span className="min-w-0">
+      <span className="nxt5-pool-player-name">{player.name}</span>
+      <span className="nxt5-pool-player-role">{player.role}{showStatus ? ` · ${t(rosterStatusMeta(player).label)}` : ""}{player.user_id && String(player.user_id) === String(userId) ? ` · ${t("Mon profil")}` : ""}</span>
+    </span>
+    <span className="nxt5-pool-player-count" aria-label={t("{0} champions", [count])}>{count}</span>
+  </button>;
+}
+
 function Champions({ data, setData, selectedTeamId, pushToast, currentMember, user }) {
   useLanguage();
   const activeTeamId = selectedTeamId || data.teams[0]?.id || null;
   const canManageTeamPool = canStaffManage(currentMember?.role);
   const players = (data.players || []).filter((player) => String(player.team_id || "") === String(activeTeamId || "") && isGameplayRole(player.role));
-  const linkedPlayer = players.find((player) => String(player.user_id || "") === String(user?.id || ""));
+  const mainPlayers = COMP_ROLES.map((role) => players.find((player) => player.role === role && playerRosterStatus(player) === "MAIN")).filter(Boolean);
+  const mainPlayerIds = new Set(mainPlayers.map((player) => player.id));
+  const otherPlayers = players.filter((player) => !mainPlayerIds.has(player.id));
+  const linkedPlayer = user?.id ? players.find((player) => String(player.user_id || "") === String(user.id)) : null;
+  const fallbackPlayer = (!canManageTeamPool && linkedPlayer) || mainPlayers[0] || players.find((player) => playerRosterStatus(player) !== "INACTIVE") || players[0];
   const laneOptions = ["ALL", "TOP", "JGL", "MID", "ADC", "SUP"];
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [query, setQuery] = useState("");
@@ -199,7 +216,9 @@ function Champions({ data, setData, selectedTeamId, pushToast, currentMember, us
   const [saving, setSaving] = useState(false);
   const [localPool, setLocalPool] = useState(data.championPool || []);
   const libraryRef = useRef(null);
-  const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || players[0];
+  const otherPlayersRef = useRef(null);
+  const selectedPlayer = players.find((player) => player.id === selectedPlayerId) || fallbackPlayer;
+  const selectedOtherPlayer = otherPlayers.find((player) => player.id === selectedPlayer?.id);
   const canManageSelectedPool = canManageTeamPool || String(selectedPlayer?.user_id || "") === String(user?.id || "");
   const selectedPlayerRows = (localPool || [])
     .filter((row) => String(row.team_id || "") === String(activeTeamId || "") && selectedPlayer && (String(row.player_id || "") === String(selectedPlayer.id || "") || row.player_name === selectedPlayer.name))
@@ -223,10 +242,14 @@ function Champions({ data, setData, selectedTeamId, pushToast, currentMember, us
     .filter((champion) => championMatchesLane(champion, laneFilter));
 
   useEffect(() => {
-    const fallbackPlayerId = !canManageTeamPool && linkedPlayer?.id ? linkedPlayer.id : players[0]?.id || "";
+    const fallbackPlayerId = fallbackPlayer?.id || "";
     if (!selectedPlayerId && fallbackPlayerId) setSelectedPlayerId(fallbackPlayerId);
     if (selectedPlayerId && !players.some((player) => player.id === selectedPlayerId)) setSelectedPlayerId(fallbackPlayerId);
-  }, [activeTeamId, canManageTeamPool, linkedPlayer?.id, players.map((player) => player.id).join("|")]);
+  }, [activeTeamId, fallbackPlayer?.id, selectedPlayerId, players.map((player) => player.id).join("|")]);
+
+  useEffect(() => {
+    if (selectedOtherPlayer && otherPlayersRef.current) otherPlayersRef.current.open = true;
+  }, [activeTeamId, selectedOtherPlayer?.id]);
 
   useEffect(() => {
     if (selectedPlayer?.role && laneOptions.includes(selectedPlayer.role)) setLaneFilter(selectedPlayer.role);
@@ -238,6 +261,10 @@ function Champions({ data, setData, selectedTeamId, pushToast, currentMember, us
 
   function rowsForTier(status) {
     return selectedRows.filter((row) => row.status === status);
+  }
+
+  function championCountForPlayer(player) {
+    return localPool.filter((row) => String(row.team_id || "") === String(activeTeamId || "") && ["manual", "riot_manual"].includes(String(row.source || "")) && (String(row.player_id || "") === String(player.id) || row.player_name === player.name)).length;
   }
 
   function exportSelectedTierList() {
@@ -346,16 +373,19 @@ function Champions({ data, setData, selectedTeamId, pushToast, currentMember, us
         <Button type="button" variant="ghost" icon={Download} onClick={exportSelectedTierList} disabled={!selectedPlayer || !selectedRows.length}>{t("Exporter la liste en PNG")}</Button>
       </PageHeader>
       {players.length ? (<>
-          <div className="nxt5-pool-roster" role="group" aria-label={t("Choisir un joueur")}>
-            {players.map((player) => {
-              const selected = selectedPlayer?.id === player.id;
-              const count = localPool.filter((row) => String(row.team_id || "") === String(activeTeamId || "") && ["manual", "riot_manual"].includes(String(row.source || "")) && (String(row.player_id || "") === String(player.id) || row.player_name === player.name)).length;
-              return <button key={player.id} type="button" className="nxt5-pool-player" aria-pressed={selected} onClick={() => setSelectedPlayerId(player.id)} title={`${player.name}${player.riot_id ? ` · ${player.riot_id}` : ""}`}>
-                <RoleIcon role={player.role} />
-                <span className="min-w-0"><span className="nxt5-pool-player-name">{player.name}</span><span className="nxt5-pool-player-role">{player.role}{player.user_id && String(player.user_id) === String(user?.id) ? t(" · Mon profil") : ""}</span></span>
-                <span className="nxt5-pool-player-count" aria-label={t("{0} champions", [count])}>{count}</span>
-              </button>;
-            })}
+          <div className="nxt5-pool-player-picker">
+            {mainPlayers.length > 0 && <div className="nxt5-pool-roster" role="group" aria-label={t("Choisir un joueur")}>
+              {mainPlayers.map((player) => <ChampionPoolPlayer key={player.id} player={player} selected={selectedPlayer?.id === player.id} count={championCountForPlayer(player)} userId={user?.id} onSelect={setSelectedPlayerId} />)}
+            </div>}
+            {otherPlayers.length > 0 && <details key={activeTeamId} ref={otherPlayersRef} className="nxt5-pool-other-players">
+              <summary>
+                <ChevronDown className="h-4 w-4" aria-hidden="true" />
+                <span>{t("Remplaçants et autres joueurs")} <span className="nxt5-pool-other-count">({otherPlayers.length})</span>{selectedOtherPlayer && <span className="nxt5-pool-other-selected"> · {selectedOtherPlayer.name}</span>}</span>
+              </summary>
+              <div className="nxt5-pool-other-grid" role="group" aria-label={t("Remplaçants et autres joueurs")}>
+                {otherPlayers.map((player) => <ChampionPoolPlayer key={player.id} player={player} selected={selectedPlayer?.id === player.id} count={championCountForPlayer(player)} userId={user?.id} showStatus onSelect={setSelectedPlayerId} />)}
+              </div>
+            </details>}
           </div>
 
           {selectedPlayer && <div className="nxt5-pool-workspace">
