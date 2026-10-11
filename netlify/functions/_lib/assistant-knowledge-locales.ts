@@ -125,34 +125,88 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     compositions: {
       "title": "Preparing compositions",
       "actionLabel": "Open compositions",
-      "summary": "Prepare your team’s five champions and game plan using the champions declared by players. Playing style and enemy responses are ideas to check with the team.",
+      "summary": "Prepare your team’s five champions and game plan. Pick assistance compares the player’s pool and games on the team; suggested enemy responses remain ideas to check.",
       "keywords": [
-      "composition",
-      "enemy composition",
-      "opponents",
-      "draft",
-      "our drafts",
-      "their draft",
-      "pick",
-      "ban",
-      "side",
-      "counter",
-      "drag drop",
-      "five roles",
-      "game plan",
-      "save composition"
-    ],
+        "composition",
+        "enemy composition",
+        "opponents",
+        "draft",
+        "our drafts",
+        "their draft",
+        "pick",
+        "ban",
+        "side",
+        "counter",
+        "drag drop",
+        "pick assistance",
+        "champion pick assistance",
+        "champion choice assistance",
+        "champion picks",
+        "available picks",
+        "available choices",
+        "missing champion",
+        "opponent",
+        "patch",
+        "category",
+        "ranking",
+        "mobalytics",
+        "save composition"
+      ],
       "steps": [
-      "Name the composition and choose the player and champion for each of the five roles.",
-      "Indicate blue or red side and write the game plan if useful. Choices come from the champions declared by players.",
-      "Use Create the composition or Save changes. You can save an incomplete composition and complete it later.",
-      "With at least one champion picked, open Go deeper: playing style and opposing responses to see enemy champions to watch. These are ideas to check; duplicate a composition to prepare a variation."
-    ],
+        "Name the composition and choose the player and champion for each of the five roles.",
+        "Open Pick assistance: champion pool and team games. Choose the role to prepare, optionally add an enemy champion and filter games by category or patch.",
+        "Compare declared proficiency and source games. Pick adds the champion to the draft; save the composition to share the pick with the team. You can save an incomplete composition and complete it later.",
+        "Describe the game plan. Go deeper: playing style and opposing responses suggests enemy champions to watch; duplicate a composition to prepare a variation."
+      ],
       "suggestions": [
-      "How do I create a composition?",
-      "How do I prepare our champion picks?",
-      "Where can I see enemy responses to prepare for?"
-    ],},
+        "How do I use champion pick assistance?",
+        "How are champion picks ranked?",
+        "Why is my champion missing from available choices?"
+      ],
+      "faq": [
+        {
+          "question": "How do I use champion pick assistance?",
+          "triggers": [
+            "pick assistance",
+            "champion choice assistance",
+            "prepare our champion picks",
+            "pick a champion in the composition"
+          ],
+          "answer": "In Draft → Compositions, open Pick assistance: champion pool and team games below the five roles. Choose the role to prepare, then optionally an enemy champion. You can filter games by category and patch. To change players, use the corresponding role in the composition. Check the source games, then click Pick. Picking updates the draft: save the composition to share it with the team."
+        },
+        {
+          "question": "How are champion picks ranked?",
+          "triggers": [
+            "picks ranked",
+            "champion ranking",
+            "suggestion order",
+            "win rate ranking",
+            "best counter"
+          ],
+          "answer": "Assistance ranks champions from the player’s manual pool first by declared proficiency, then by the number of games that player has with a known result on the team. Win rate does not determine the order. Results cover whole games; they prove neither a lane win nor a guaranteed counter. Check source games and the number of known results before choosing."
+        },
+        {
+          "question": "Why is my champion missing from available choices?",
+          "triggers": [
+            "champion missing",
+            "missing champion",
+            "champion not shown",
+            "no available picks",
+            "no champions available"
+          ],
+          "answer": "Check the selected player and role: only champions from that player’s manual pool on this team are suggested. Champions already picked in another role and the enemy champion are excluded. Add the champion to the correct player’s pool if needed; if there is no player in this role, add their profile first."
+        },
+        {
+          "question": "Are Mobalytics statistics used in the suggestions?",
+          "triggers": [
+            "mobalytics",
+            "external statistics",
+            "imported counters"
+          ],
+          "answer": "After choosing an enemy champion, the Mobalytics link opens their counters for the selected role in a new tab. These statistics are not imported and do not affect the NXT5 ranking. Check the role, patch, rank and number of games on the external source. A champion missing from its list is not a proven bad matchup."
+        }
+      ]
+    },
     planning: {
       title: 'Schedule and availability', actionLabel: 'Open Schedule',
       summary: 'The schedule brings together availability, sessions and weekly notes. Saved notes are visible to the whole team.',
@@ -333,34 +387,87 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     compositions: {
       "title": "Preparar composiciones",
       "actionLabel": "Abrir las composiciones",
-      "summary": "Prepara los cinco campeones y el plan de juego del equipo a partir de los campeones declarados por los jugadores. El estilo de juego y las respuestas rivales son ideas que comprobar con el equipo.",
+      "summary": "Prepara los cinco campeones y el plan de juego de tu equipo. La ayuda para elegir compara el repertorio del jugador y sus partidas en el equipo; las respuestas rivales siguen siendo ideas que comprobar.",
       "keywords": [
-      "composición",
-      "composición rival",
-      "rivales",
-      "draft",
-      "nuestras drafts",
-      "su draft",
-      "elección",
-      "bloqueo",
-      "lado",
-      "counter",
-      "arrastrar",
-      "cinco posiciones",
-      "plan de juego",
-      "guardar composición"
-    ],
+        "composición",
+        "composición rival",
+        "adversarios",
+        "draft",
+        "nuestras selecciones",
+        "sus selecciones",
+        "pick",
+        "ban",
+        "lado",
+        "counter",
+        "arrastrar",
+        "ayuda para elegir",
+        "ayuda para elegir campeones",
+        "elecciones de campeones",
+        "opciones disponibles",
+        "campeón ausente",
+        "campeón no aparece",
+        "rival",
+        "parche",
+        "categoría",
+        "clasificación",
+        "mobalytics",
+        "borrador",
+        "guardar composición"
+      ],
       "steps": [
-      "Pon un nombre a la composición y elige el jugador y el campeón para cada una de las cinco posiciones.",
-      "Indica el lado azul o rojo y escribe el plan de juego si resulta útil. Las opciones proceden de los campeones declarados por los jugadores.",
-      "Utiliza Crea la composición o Guardar cambios. Puedes guardar una composición incompleta y completarla más tarde.",
-      "Con al menos un campeón elegido, abre Profundizar: estilo de juego y respuestas del rival para consultar los campeones rivales que conviene vigilar. Son ideas que comprobar; duplica una composición para preparar una variante."
-    ],
+        "Pon un nombre a la composición y elige el jugador y el campeón para cada una de las cinco posiciones.",
+        "Abre Ayuda para elegir: repertorio y partidas del equipo. Elige el rol que preparar, añade opcionalmente un campeón rival y filtra las partidas por categoría o parche.",
+        "Compara el dominio declarado y las partidas de referencia. Elegir añade el campeón al borrador; guarda la composición para compartir la elección con el equipo. Puedes guardar una composición incompleta y completarla más tarde.",
+        "Describe el plan de juego. Profundizar: estilo de juego y respuestas del rival propone campeones rivales que vigilar; duplica una composición para preparar una variante."
+      ],
       "suggestions": [
-      "¿Cómo creo una composición?",
-      "¿Cómo preparo nuestras elecciones de campeones?",
-      "¿Dónde veo las respuestas rivales que preparar?"
-    ],},
+        "¿Cómo utilizo la ayuda para elegir campeones?",
+        "¿Cómo se ordenan las opciones de campeones?",
+        "¿Por qué mi campeón no aparece en las opciones disponibles?"
+      ],
+      "faq": [
+        {
+          "question": "¿Cómo utilizo la ayuda para elegir campeones?",
+          "triggers": [
+            "ayuda para elegir",
+            "preparo nuestras elecciones de campeones",
+            "elegir un campeón en la composición"
+          ],
+          "answer": "En Draft → Composiciones, abre Ayuda para elegir: repertorio y partidas del equipo debajo de los cinco roles. Elige el rol que preparar y, opcionalmente, un campeón rival. Puedes filtrar las partidas por categoría y parche. Para cambiar de jugador, usa el rol correspondiente en la composición. Consulta las partidas de referencia y pulsa Elegir. La elección modifica el borrador: guarda la composición para compartirla con el equipo."
+        },
+        {
+          "question": "¿Cómo se ordenan las opciones de campeones?",
+          "triggers": [
+            "ordenan las opciones",
+            "clasificación de campeones",
+            "orden de sugerencias",
+            "clasificación por victorias",
+            "mejor counter"
+          ],
+          "answer": "La ayuda ordena los campeones del repertorio manual del jugador primero por dominio declarado y después por el número de partidas de ese jugador con resultado conocido en el equipo. El porcentaje de victorias no determina el orden. Los resultados corresponden a partidas enteras; no demuestran una victoria en línea ni un counter garantizado. Consulta las partidas de referencia y el número de resultados conocidos antes de elegir."
+        },
+        {
+          "question": "¿Por qué mi campeón no aparece en las opciones disponibles?",
+          "triggers": [
+            "campeón no aparece",
+            "campeón ausente",
+            "falta un campeón",
+            "no hay opciones disponibles",
+            "no hay campeones disponibles"
+          ],
+          "answer": "Comprueba el jugador y el rol seleccionados: solo se proponen los campeones de su repertorio manual en este equipo. Se excluyen los campeones elegidos en otro rol y el campeón rival. Añade el campeón al repertorio del jugador correcto si hace falta; si no hay ningún jugador en ese rol, añade primero su perfil."
+        },
+        {
+          "question": "¿Se utilizan las estadísticas de Mobalytics en las sugerencias?",
+          "triggers": [
+            "mobalytics",
+            "estadísticas externas",
+            "counters importados"
+          ],
+          "answer": "Después de elegir un campeón rival, el enlace de Mobalytics abre sus counters para el rol seleccionado en una pestaña nueva. Estas estadísticas no se importan ni modifican la clasificación de NXT5. Comprueba el rol, el parche, el rango y el número de partidas en la fuente externa. Que un campeón no aparezca en su lista no demuestra que sea un mal enfrentamiento."
+        }
+      ]
+    },
     planning: {
       title: 'Calendario y disponibilidad', actionLabel: 'Abrir el Calendario',
       summary: 'El calendario reúne la disponibilidad, las sesiones y las notas de la semana. Las notas guardadas son visibles para todo el equipo.',

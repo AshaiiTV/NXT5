@@ -58,9 +58,26 @@ describe('assistant knowledge', () => {
     expect(response.actions[0].path).toBe('/draft/compositions');
   });
 
-  it.each(['fr', 'en', 'es'] as const)('does not advertise unpublished champion pick assistance in %s', language => {
-    const composition = getAssistantKnowledge(language).find(entry => entry.id === 'compositions');
-    expect(JSON.stringify(composition)).not.toMatch(/mobalytics|aide au choix|pick assistance|ayuda para elegir/i);
+  it.each([
+    ['fr', 'Comment utiliser l’aide au choix des champions ?', ['Aide au choix : pool et parties de l’équipe', 'brouillon', 'enregistre la composition']],
+    ['en', 'How do I use champion choice assistance?', ['Pick assistance: champion pool and team games', 'draft', 'save the composition']],
+    ['es', '¿Cómo utilizo la ayuda para elegir campeones?', ['Ayuda para elegir: repertorio y partidas del equipo', 'borrador', 'guarda la composición']],
+    ['fr', 'Comment sont classés les choix de champions ?', ['maîtrise déclarée', 'Le taux de victoire ne détermine pas l’ordre']],
+    ['en', 'How are champion picks ranked?', ['declared proficiency', 'Win rate does not determine the order']],
+    ['es', '¿Cómo se ordenan las opciones de campeones?', ['dominio declarado', 'El porcentaje de victorias no determina el orden']],
+    ['fr', 'Pourquoi mon champion n’apparaît pas dans les choix disponibles ?', ['pool manuel', 'sont exclus']],
+    ['en', 'Why is my champion missing from available choices?', ['manual pool', 'are excluded']],
+    ['es', '¿Por qué mi campeón no aparece en las opciones disponibles?', ['repertorio manual', 'Se excluyen']],
+    ['fr', 'Les statistiques Mobalytics sont-elles utilisées dans les suggestions ?', ['ne sont pas importées', 'ne modifient pas le classement']],
+    ['en', 'Are Mobalytics statistics used in the suggestions?', ['not imported', 'do not affect the NXT5 ranking']],
+    ['es', '¿Se utilizan las estadísticas de Mobalytics en las sugerencias?', ['no se importan', 'ni modifican la clasificación']],
+  ] as const)('explains current champion pick assistance in %s: %s', (language, question, facts) => {
+    const matches = retrieveAssistantKnowledge(question, '/draft/compositions', 4, language, 'compositions');
+    expect(matches[0].id).toBe('compositions');
+    const response = buildFallbackAssistantResponse(question, matches, language);
+    for (const fact of facts) expect(response.answer).toContain(fact);
+    expect(response.sources[0].id).toBe('compositions');
+    expect(response.actions[0].path).toBe('/draft/compositions');
   });
 
   it.each([

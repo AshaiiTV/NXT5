@@ -7364,5 +7364,6 @@
   "Comment publier une partie sur Discord ?": "How do I publish a match on Discord?",
   "Depuis une partie ou un groupe, choisir Préparer un débrief. Le débrief d’un groupe reprend son nom.": "From a game or group, choose Prepare a debrief. A group debrief uses the group’s name.",
   "Retrouver le débrief dans la bibliothèque, lire Notes de l’équipe et ouvrir Analyse automatique des parties pour vérifier les pistes. Utiliser Éditer pour le compléter, selon tes droits.": "Find the debrief in the library, read Team notes and open Automated match analysis to check the suggestions. Use Edit to add to it, depending on your permissions.",
-  "Ouvrir l’engrenage Gérer ce débrief pour Dupliquer ou Supprimer, selon tes droits.": "Open the Manage this review gear button to Duplicate or Delete, depending on your permissions."
+  "Ouvrir l’engrenage Gérer ce débrief pour Dupliquer ou Supprimer, selon tes droits.": "Open the Manage this review gear button to Duplicate or Delete, depending on your permissions.",
+  "Ouvrir Aide au choix : pool et parties de l’équipe pour comparer la maîtrise déclarée et les parties du joueur, puis choisir un champion. Le choix reste dans le brouillon jusqu’à l’enregistrement.": "Open Pick assistance: champion pool and team games to compare declared proficiency and the player’s games, then pick a champion. The pick stays in the draft until you save."
 }

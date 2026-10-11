@@ -346,7 +346,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     "title": "Préparer les compositions",
     "path": "/draft/compositions",
     "actionLabel": "Ouvrir les compositions",
-    "summary": "Prépare les cinq champions et le plan de jeu de ton équipe à partir des champions déclarés par les joueurs. Le style de jeu et les réponses adverses sont des pistes à vérifier en équipe.",
+    "summary": "Prépare les cinq champions et le plan de jeu de ton équipe. L’aide au choix compare le pool du joueur et ses parties dans l’équipe ; les réponses adverses restent des pistes à vérifier.",
     "keywords": [
       "compo",
       "composition",
@@ -361,21 +361,74 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       "side",
       "counter",
       "drag drop",
-      "cinq postes",
-      "plan de jeu",
+      "aide au choix",
+      "aide au choix des champions",
+      "choix de champions",
+      "choix disponibles",
+      "champion absent",
+      "champion manquant",
+      "adversaire",
+      "patch",
+      "catégorie",
+      "classement",
+      "mobalytics",
+      "brouillon",
       "enregistrer composition"
     ],
     "steps": [
       "Nomme la composition et choisis le joueur et le champion pour chacun des cinq postes.",
-      "Indique le côté bleu ou rouge et écris le plan de jeu si utile. Les choix proviennent des champions déclarés par les joueurs.",
-      "Utilise Créer la composition ou Enregistrer les modifications. Tu peux enregistrer une composition incomplète et la compléter plus tard.",
-      "Avec au moins un champion choisi, ouvre Approfondir : style de jeu et réponses adverses pour consulter les champions adverses à surveiller. Ce sont des pistes à vérifier ; duplique une composition pour préparer une variante."
+      "Ouvre Aide au choix : pool et parties de l’équipe. Choisis le poste à préparer, ajoute éventuellement un champion adverse et filtre les parties par catégorie ou patch.",
+      "Compare la maîtrise déclarée et les parties sources. Choisir ajoute le champion au brouillon ; enregistre la composition pour partager le choix avec l’équipe. Tu peux enregistrer une composition incomplète et la compléter plus tard.",
+      "Décris le plan de jeu. Approfondir : style de jeu et réponses adverses propose des champions adverses à surveiller ; duplique une composition pour préparer une variante."
     ],
     "suggestions": [
-      "Comment créer une composition ?",
-      "Comment préparer nos choix de champions ?",
-      "Où voir les réponses adverses à préparer ?"
-    ],},
+      "Comment utiliser l’aide au choix des champions ?",
+      "Comment sont classés les choix de champions ?",
+      "Pourquoi mon champion n’apparaît pas dans les choix disponibles ?"
+    ],
+    "faq": [
+      {
+        "question": "Comment utiliser l’aide au choix des champions ?",
+        "triggers": [
+          "aide au choix",
+          "préparer nos choix de champions",
+          "choisir un champion dans la composition"
+        ],
+        "answer": "Dans Draft → Compositions, ouvre Aide au choix : pool et parties de l’équipe sous les cinq postes. Choisis le poste à préparer, puis éventuellement un champion adverse. Tu peux filtrer les parties par catégorie et patch. Pour changer de joueur, utilise le poste correspondant dans la composition. Consulte les parties sources, puis clique sur Choisir. Le choix modifie le brouillon : enregistre la composition pour le partager avec l’équipe."
+      },
+      {
+        "question": "Comment sont classés les choix de champions ?",
+        "triggers": [
+          "classés les choix",
+          "classement des champions",
+          "ordre des suggestions",
+          "taux de victoire classe",
+          "meilleur counter"
+        ],
+        "answer": "L’aide classe les champions du pool manuel du joueur d’abord par maîtrise déclarée, puis par nombre de parties de ce joueur au résultat connu dans l’équipe. Le taux de victoire ne détermine pas l’ordre. Les résultats concernent les parties entières ; ils ne prouvent ni une victoire en lane ni un counter garanti. Consulte les parties sources et le nombre de résultats connus avant de choisir."
+      },
+      {
+        "question": "Pourquoi mon champion n’apparaît pas dans les choix disponibles ?",
+        "triggers": [
+          "champion n’apparaît pas",
+          "champion absent",
+          "champion manquant",
+          "aucun choix disponible",
+          "aucun champion disponible"
+        ],
+        "answer": "Vérifie le joueur et le poste sélectionnés : seuls les champions de son pool manuel dans cette équipe sont proposés. Les champions déjà pris à un autre poste et le champion adverse sont exclus. Ajoute le champion au pool du bon joueur si nécessaire ; si aucun joueur n’est présent à ce poste, ajoute d’abord son profil."
+      },
+      {
+        "question": "Les statistiques Mobalytics sont-elles utilisées dans les suggestions ?",
+        "triggers": [
+          "mobalytics",
+          "statistiques externes",
+          "counters importés"
+        ],
+        "answer": "Après avoir choisi un champion adverse, le lien Mobalytics ouvre ses counters au poste sélectionné dans un nouvel onglet. Ces statistiques ne sont pas importées et ne modifient pas le classement NXT5. Vérifie le poste, le patch, le rang et le nombre de parties sur la source externe. Un champion absent de sa liste n’est pas un mauvais matchup démontré."
+      }
+    ]
+  },
   {
     id: 'planning',
     title: 'Planning et disponibilités',
