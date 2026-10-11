@@ -4,7 +4,7 @@ Implémentation préparée le 23 septembre 2026 sur `feat/social-login-20260923`
 
 ## Parcours
 
-- E-mail et mot de passe : parcours existant conservé.
+- E-mail et mot de passe : l'inscription envoie un lien sans ouvrir de session. Pour vérifier l'adresse, se connecter avec le mot de passe choisi, puis ouvrir à nouveau le lien dans ce navigateur. La validation exige que le jeton et la session active appartiennent au même compte, puis révoque ses autres sessions. Un lien ouvert sans cette connexion reste utilisable ; si le mot de passe est inconnu, passer par la récupération du compte. Cette double preuve empêche qu'un lien reçu par e-mail active le mot de passe choisi par un tiers ayant préinscrit l'adresse.
 - Google, Discord, Apple ou Riot déjà associé : connexion au même identifiant utilisateur NXT5, avec ses équipes, données, permissions et abonnement existants.
 - Première connexion externe : formulaire de confirmation du pseudo, de l’e-mail de récupération et des textes en vigueur. Aucun mot de passe NXT5 n’est demandé. Un e-mail différent ou non vérifié par le fournisseur nécessite une vérification NXT5. L’adresse masquée Apple est acceptée ; Riot demande une adresse de récupération car le scope utilisé ne fournit pas d’e-mail.
 - Adresse déjà utilisée : invitation à se connecter au compte existant, puis à associer le service depuis Paramètres. Aucune fusion automatique par adresse e-mail, Riot ID déclaré ou pseudo.

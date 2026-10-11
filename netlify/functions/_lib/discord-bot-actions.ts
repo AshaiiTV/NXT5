@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { sql } from './db';
-import { assertDiscordArtifactEnvironment, discordError, uuid } from './discord-access';
+import { assertDiscordArtifactEnvironment, discordError, discordTeamWriteQueries, uuid } from './discord-access';
 import { getDiscordGuild } from './discord-client';
 import { isDiscordId } from './discord-config';
 import { assertSubjectRateLimit } from './rate-limit';
@@ -213,16 +213,34 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     const kind=asText(options.type,20),channel=asText(options.canal,20);if(!['games','planning','reviews','bilans'].includes(kind)||!isDiscordId(channel))throw discordError('Type de publication ou salon invalide.');
     const live=await getDiscordGuild(ctx.guildId),chosen=live.channels.find(c=>c.id===channel&&c.canSend);if(!chosen)throw discordError('Ce salon est indisponible ou le bot ne peut pas y envoyer.');
     if(!confirmed)return botConfirmation(ctx,command,options,`Utiliser <#${channel}> pour les ${kind} de ${botText(ctx.teamName)} ? Vérifie que les personnes ayant accès à ce salon sont autorisées à lire ces publications. Les données partagées y seront visibles.`);
+    const channelWrites:any[]=[];
     if(kind==='games'){
       const routes=await sql('select id,channel_id from discord_routes where team_id=$1 and enabled',[ctx.teamId]);
       if(!routes.some(r=>r.channel_id===channel)&&routes.length>=10)throw discordError('La limite de dix destinations est atteinte.');
-      await sql(`insert into discord_routes(team_id,guild_id,channel_id,channel_name,created_by,automatic) values($1,$2,$3,$4,$5,false)
-        on conflict(team_id,channel_id,publication_kind) do update set guild_id=excluded.guild_id,channel_name=excluded.channel_name,enabled=true,updated_at=now()`,[ctx.teamId,ctx.guildId,channel,chosen.name,ctx.userId]);
+      channelWrites.push(sql(`select 1/case when exists(select 1 from discord_routes where team_id=$1 and channel_id=$2 and enabled)
+        or (select count(*) from discord_routes where team_id=$1 and enabled)<10 then 1 else 0 end`,[ctx.teamId,channel]));
+      channelWrites.push(sql(`insert into discord_routes(team_id,guild_id,channel_id,channel_name,created_by,automatic) values($1,$2,$3,$4,$5,false)
+        on conflict(team_id,channel_id,publication_kind) do update set guild_id=excluded.guild_id,channel_name=excluded.channel_name,enabled=true,updated_at=now()`,[ctx.teamId,ctx.guildId,channel,chosen.name,ctx.userId]));
     }
     // JSON merge in SQL prevents concurrent category updates from overwriting each other.
-    await sql(`insert into discord_bot_settings(team_id,channels) values($1,jsonb_build_object($2::text,$3::text)) on conflict(team_id)
-      do update set channels=discord_bot_settings.channels||excluded.channels,updated_at=now()`,[ctx.teamId,kind,channel]);
-    await audit(ctx,command,ctx.teamId,{kind,channel});return botMessage('Salon enregistré',`${kind} → <#${channel}>${kind==='games'?'\nDestination manuelle ; les filtres et l’activation automatique se règlent dans NXT5.':''}`);
+    // The Discord lookup may finish after a captain was removed or the team was
+    // relinked. Validate the current rights and guild under the same locks as
+    // those changes, then persist both channel settings atomically.
+    try {
+      await sql.transaction([
+        ...discordTeamWriteQueries(ctx.teamId,ctx.userId),
+        sql('select team_id from discord_connections where team_id=$1 for update',[ctx.teamId]),
+        sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and status in ('active','paused')) then 1 else 0 end",[ctx.teamId,ctx.guildId]),
+        ...channelWrites,
+        sql(`insert into discord_bot_settings(team_id,channels) values($1,jsonb_build_object($2::text,$3::text)) on conflict(team_id)
+          do update set channels=discord_bot_settings.channels||excluded.channels,updated_at=now()`,[ctx.teamId,kind,channel]),
+        sql("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,'discord.reglages.canal','discord_workflow',$2,$3::jsonb)",[ctx.userId,ctx.teamId,JSON.stringify({teamId:ctx.teamId,kind,channel})]),
+      ]);
+    } catch(error:any) {
+      if(error?.code==='22012')throw discordError('Tes accès ou la connexion Discord ont changé. Relance la commande.',409,'DISCORD_CONFIG_CHANGED');
+      throw error;
+    }
+    return botMessage('Salon enregistré',`${kind} → <#${channel}>${kind==='games'?'\nDestination manuelle ; les filtres et l’activation automatique se règlent dans NXT5.':''}`);
   }
   if(command==='reglages fuseau'){
     const canonical=validateTimezone(options.fuseau);

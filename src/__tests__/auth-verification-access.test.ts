@@ -3,7 +3,10 @@ import bcrypt from 'bcryptjs';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const state = vi.hoisted(() => ({ pg: null as any, queries: [] as string[], emails: vi.fn(async (_message: any) => {}) }));
+const state = vi.hoisted(() => ({
+  pg: null as any, queries: [] as string[], emails: vi.fn(async (_message: any) => {}),
+  beforeQuery: null as null | ((query: string) => Promise<void>)
+}));
 vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: async () => {}, assertSocialSchemaReady: async () => {} }));
 vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.emails }));
 // Keep the production guard, handlers and parameterized SQL. Only transport and
@@ -14,6 +17,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
     const statement = JSON.parse(options.body);
     state.queries.push(statement.query);
     try {
+      await state.beforeQuery?.(statement.query);
       const result = await state.pg.query(statement.query, statement.params);
       return new Response(JSON.stringify({
         fields: result.fields,
@@ -69,6 +73,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   vi.stubEnv('SESSION_SECRET', 'test-secret-'.repeat(8));
+  state.beforeQuery = null;
   cookie = token;
   context.cookies.set.mockClear();
   state.emails.mockReset().mockResolvedValue(undefined);
@@ -107,7 +112,7 @@ describe('verified email is required by the real business API guard', () => {
     expect(response.status).toBe(200);
     expect((await response.json()).user).toMatchObject({ email_verified: false });
     expect((await create()).status).toBe(403);
-    expect((await verifyEmail(request(`verify-email?token=${verificationToken}`))).headers.get('location')).toContain('success=true');
+    expect((await verifyEmail(request(`verify-email?token=${verificationToken}`), context)).headers.get('location')).toContain('success=true');
     expect((await create()).status).toBe(200);
   });
 
@@ -118,7 +123,7 @@ describe('verified email is required by the real business API guard', () => {
     expect((await create()).status).toBe(403);
     expect((await authMe(request('auth-me'), context)).status).toBe(200);
     const delivery = state.emails.mock.calls[0][0];
-    expect((await verifyEmail(request(`verify-email?token=${delivery.token}`))).headers.get('location')).toContain('success=true');
+    expect((await verifyEmail(request(`verify-email?token=${delivery.token}`), context)).headers.get('location')).toContain('success=true');
     expect((await create()).status).toBe(200);
   });
 
@@ -129,7 +134,7 @@ describe('verified email is required by the real business API guard', () => {
     expect((await account()).email_verified).toBe(false);
     expect((await create()).status).toBe(403);
     const delivery = state.emails.mock.calls[0][0];
-    await verifyEmail(request(`verify-email?token=${delivery.token}`));
+    await verifyEmail(request(`verify-email?token=${delivery.token}`), context);
     expect((await create()).status).toBe(200);
   });
 
@@ -171,6 +176,93 @@ describe('verified email is required by the real business API guard', () => {
     expect(response.status).toBe(429);
     expect(Number(response.headers.get('Retry-After'))).toBeGreaterThan(0);
     expect(await bcrypt.compare(password, (await account()).password_hash)).toBe(true);
+  });
+});
+
+describe('email verification requires the account login in the mailbox browser', () => {
+  const verification = (value: string | undefined) => verifyEmail(request(`verify-email?token=${verificationToken}`), {
+    cookies: { get: () => value }
+  } as any);
+
+  it('cannot activate a preregistered account when its mailbox owner follows the email without knowing its password', async () => {
+    // The seeded password/session belong to the person who preregistered the
+    // mailbox. Opening the emailed link in the mailbox owner's other browser
+    // must not turn that person's existing session into business access.
+    expect((await create()).status).toBe(403);
+    const response = await verification(undefined);
+    expect(response.headers.get('location')).toContain('error=signin');
+    expect(response.headers.get('location')).not.toContain(verificationToken);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('referrer-policy')).toBe('no-referrer');
+    expect(await account()).toMatchObject({ email_verified: false, email_verify_token: sha256(verificationToken) });
+    expect((await create()).status).toBe(403);
+  });
+
+  it.each(['unknown', 'expired', 'revoked', 'another-account'])('keeps the email token intact for a %s browser session', async kind => {
+    const otherSession = 'mailbox-browser-session';
+    const otherId = '00000000-0000-4000-8000-000000000002';
+    if (kind === 'another-account') await state.pg.query("insert into users(id,account_name,name,email,password_hash,email_verified) values ($1,'other','Other','other@example.test','hash',true)", [otherId]);
+    if (kind !== 'unknown') await state.pg.query(`insert into sessions(user_id,token_hash,expires_at,revoked_at)
+      values ($1,$2,${kind === 'expired' ? "now() - interval '1 second'" : "now() + interval '1 day'"},${kind === 'revoked' ? 'now()' : 'null'})`, [kind === 'another-account' ? otherId : userId, sha256(otherSession)]);
+    expect((await verification(otherSession)).headers.get('location')).toContain('error=signin');
+    expect(await account()).toMatchObject({ email_verified: false, email_verify_token: sha256(verificationToken) });
+    expect((await create()).status).toBe(403);
+  });
+
+  it('verifies the signed-in account once and revokes other sessions without touching another account', async () => {
+    const otherId = '00000000-0000-4000-8000-000000000002';
+    await state.pg.query("insert into users(id,account_name,name,email,password_hash,email_verified) values ($1,'other','Other','other@example.test','hash',true)", [otherId]);
+    for (const [id, value] of [[userId, 'old-sibling-session'], [otherId, 'unrelated-session']]) {
+      await state.pg.query("insert into sessions(user_id,token_hash,expires_at) values ($1,$2,now() + interval '1 day')", [id, sha256(value)]);
+    }
+    expect((await verification(cookie)).headers.get('location')).toContain('success=true');
+    expect((await verification(cookie)).headers.get('location')).toContain('error=invalid');
+    expect((await create()).status).toBe(200);
+    const sessions = (await state.pg.query('select token_hash,revoked_at from sessions')).rows;
+    expect(sessions.find((row: any) => row.token_hash === sha256('old-sibling-session')).revoked_at).not.toBeNull();
+    expect(sessions.find((row: any) => row.token_hash === sha256('unrelated-session')).revoked_at).toBeNull();
+    expect(sessions.find((row: any) => row.token_hash === sha256(cookie)).revoked_at).toBeNull();
+  });
+
+  it.each(['expired', 'revoked'])('rechecks a session that becomes %s after reading the mailbox token', async kind => {
+    state.beforeQuery = async query => {
+      if (!query.includes('with verified_account')) return;
+      state.beforeQuery = null;
+      await state.pg.query(`update sessions set ${kind === 'expired' ? "expires_at=now() - interval '1 second'" : 'revoked_at=now()'} where token_hash=$1`, [sha256(cookie)]);
+    };
+    expect((await verification(cookie)).headers.get('location')).not.toContain('success=true');
+    expect(await account()).toMatchObject({ email_verified: false, email_verify_token: sha256(verificationToken) });
+  });
+
+  it('requires a fresh account snapshot if another login is issued during verification, then revokes that session on retry', async () => {
+    let newCookie = '';
+    state.beforeQuery = async query => {
+      if (!query.includes('with verified_account')) return;
+      state.beforeQuery = null;
+      await createSession({ userId, request: request('auth-login'),
+        context: { cookies: { set: (value: any) => { newCookie = value.value; } } } as any,
+        expectedPasswordHash: (await account()).password_hash });
+    };
+    expect((await verification(cookie)).headers.get('location')).not.toContain('success=true');
+    expect(newCookie).not.toBe('');
+    expect(await account()).toMatchObject({ email_verified: false, email_verify_token: sha256(verificationToken) });
+    expect((await verification(cookie)).headers.get('location')).toContain('success=true');
+    expect((await state.pg.query('select revoked_at from sessions where token_hash=$1', [sha256(newCookie)])).rows[0].revoked_at).not.toBeNull();
+  });
+
+  it('rolls back email activation and link consumption if session revocation fails', async () => {
+    await state.pg.query("insert into sessions(user_id,token_hash,expires_at) values ($1,$2,now() + interval '1 day')", [userId, sha256('sibling')]);
+    await state.pg.exec('alter table sessions add constraint audit_test_no_revocation check (revoked_at is null)');
+    try {
+      const response = await verification(cookie);
+      expect(response.status).toBe(500);
+      expect(await account()).toMatchObject({ email_verified: false, email_verify_token: sha256(verificationToken) });
+      const message = await response.text();
+      expect(message).not.toContain(verificationToken);
+      expect(message).not.toContain('audit_test_no_revocation');
+    } finally {
+      await state.pg.exec('alter table sessions drop constraint audit_test_no_revocation');
+    }
   });
 });
 

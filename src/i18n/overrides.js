@@ -1,5 +1,10 @@
 // Reviewed product copy. Keep these source strings aligned with the French UI.
 const copy = [
+  ["Pour confirmer une nouvelle inscription, connecte-toi avec le mot de passe choisi, puis ouvre le lien de vérification reçu par e-mail dans ce même navigateur.", "To confirm a new registration, sign in with the password you chose, then open the verification email link in the same browser.", "Para confirmar un nuevo registro, inicia sesión con la contraseña que elegiste y abre el enlace de verificación del correo en este mismo navegador."],
+  ["Connecte-toi pour vérifier ton e-mail", "Sign in to verify your email", "Inicia sesión para verificar tu correo"],
+  ["Connecte-toi au compte concerné avec le mot de passe que tu as choisi lors de l’inscription, puis rouvre le lien reçu par e-mail dans ce même navigateur.", "Sign in to the account using the password you chose when you signed up, then reopen the email link in the same browser.", "Inicia sesión en la cuenta con la contraseña que elegiste al registrarte y vuelve a abrir el enlace del correo en este mismo navegador."],
+  ["Si tu ne connais pas ce mot de passe ou ne reconnais pas cette inscription, réinitialise le mot de passe de cette adresse e-mail avant de continuer.", "If you do not know that password or did not sign up for this account, reset the password for this email address before continuing.", "Si no conoces esa contraseña o no reconoces este registro, restablece la contraseña de esta dirección de correo antes de continuar."],
+  ["Me connecter au compte concerné", "Sign in to this account", "Iniciar sesión en esta cuenta"],
   ["Remplaçants et autres joueurs", "Substitutes and other players", "Suplentes y otros jugadores"],
   ["Équipe Horizon · fictive", "Horizon · fictional team", "Horizon · equipo ficticio"],
   ["Données fictives · Lecture seule", "Sample data · Read only", "Datos de ejemplo · Solo lectura"],

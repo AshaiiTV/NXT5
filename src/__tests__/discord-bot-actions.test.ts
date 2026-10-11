@@ -73,6 +73,24 @@ beforeEach(async()=>{
   await rows(`insert into discord_bot_settings(team_id,channels,reminders_enabled) values($1,'{"planning":"100000000000000002","reviews":"100000000000000002","bilans":"100000000000000002"}',true)`,[team]);
 });
 describe('Discord workflows with real PostgreSQL and fake transport',()=>{
+  it.each(['membership', 'guild'])('rejects a publication channel change when %s changes during the Discord lookup',async(change)=>{
+    const nextOwner='00000000-0000-4000-8000-000000000099';
+    await rows("insert into users(id,account_name,name,password_hash) values($1,'next-owner','Next owner','unused')",[nextOwner]);
+    await rows('update teams set owner_id=$2 where id=$1',[team,nextOwner]);
+    await rows("insert into team_members(team_id,user_id,role) values($1,$2,'captain') on conflict(team_id,user_id) do update set role='captain'",[team,user]);
+    const beforeSettings=await rows('select * from discord_bot_settings where team_id=$1',[team]);
+    transport.guild.mockImplementationOnce(async()=>{
+      if(change==='membership')await rows('delete from team_members where team_id=$1 and user_id=$2',[team,user]);
+      else await rows("update discord_connections set guild_id='100000000000000009',config_version=config_version+1 where team_id=$1",[team]);
+      return {channels:[{id:'100000000000000003',canSend:true,name:'autre salon'}]};
+    });
+    await expect(executeDiscordAction({...ctx,role:'captain'},'reglages canal',{type:'games',canal:'100000000000000003'},true))
+      .rejects.toMatchObject({status:409,code:'DISCORD_CONFIG_CHANGED'});
+    expect(await rows('select * from discord_routes where team_id=$1',[team])).toEqual([]);
+    expect(await rows('select * from discord_bot_settings where team_id=$1',[team])).toEqual(beforeSettings);
+    expect(await rows("select * from audit_logs where action='discord.reglages.canal'")).toEqual([]);
+  });
+
   it('rejects DST nonexistent and ambiguous hours; computes weekly across DST',()=>{
     expect(()=>localDateTime('2026-03-29','02:30','Europe/Paris')).toThrow('n’existe');
     expect(()=>localDateTime('2026-10-25','02:30','Europe/Paris')).toThrow('ambiguë');

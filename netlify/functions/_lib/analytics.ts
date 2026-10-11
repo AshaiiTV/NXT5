@@ -8,6 +8,7 @@ import { sql } from './db';
 import type { RiotMatch } from './types';
 import { assertImportMatch, assertImportPlayerAssignments, normalizeImportCategoryIds } from './import-validation';
 import { assertMatchHasCategory } from './match-categories';
+import { TEAM_STAFF_ROLES } from './teams';
 
 function mmss(seconds) {
   const s = Number(seconds || 0);
@@ -405,7 +406,7 @@ async function runImportSideEffect(label: string, task: () => Promise<unknown>) 
   }
 }
 
-export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [] }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId?: string | null; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[] }) {
+export async function persistAnalyzedMatch({ team, gameId, match, roster, userId, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [] }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId: string; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[] }) {
   assertImportMatch(match);
   const validCategoryIds = normalizeImportCategoryIds(categoryIds);
   assertMatchHasCategory(validCategoryIds);
@@ -468,6 +469,12 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       // Same ordering is used by category deletion; imports of one team cannot
       // interleave their delete/insert sequences, including first-time imports.
       tx`select id from teams where id = ${team.id} for update`,
+      // Riot fetches and analysis can outlast a membership change. Removal and
+      // role changes acquire this same team lock: recheck before any write.
+      tx`select 1 / case when count(*) = 1 then 1 else 0 end as import_authorized
+         from teams t where t.id = ${team.id} and (t.owner_id = ${userId} or exists (
+           select 1 from team_members tm where tm.team_id = t.id and tm.user_id = ${userId}
+             and tm.role = any(${TEAM_STAFF_ROLES})))`,
       tx`update teams set first_import_at = now() where id = ${team.id} and first_import_at is null returning true as first_import`,
       // HTTP transactions are non-interactive. The guard deliberately raises
       // 22012 if a reference disappeared, aborting the whole batch before writes.
@@ -537,11 +544,11 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       tx`select * from matches where team_id = ${team.id} and game_id = ${gameId}`
     ]);
     savedMatch = results[results.length - 1][0];
-    inserted = results[4]?.[0]?.inserted === true;
-    firstImport = results[1]?.[0]?.first_import === true;
+    inserted = results[5]?.[0]?.inserted === true;
+    firstImport = results[2]?.[0]?.first_import === true;
   } catch (error: any) {
     if (error?.code === '22012' || error?.code === '23503') {
-      throw Object.assign(new Error('Les profils ou catégories ont changé pendant l’import. Recharge l’équipe puis réessaie.'), {
+      throw Object.assign(new Error('Les accès, profils ou catégories ont changé pendant l’import. Recharge l’équipe puis réessaie.'), {
         status: 409, code: 'NXT5_IMPORT_REFERENCE_CHANGED'
       });
     }

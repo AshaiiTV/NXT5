@@ -180,7 +180,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     const user = await requireAuth(request, context);
     await assertRateLimit(request, `assistant-chat:${user.id}`, { limit: 12, windowSeconds: 60 });
-    const body = await readJson(request);
+    const body = await readJson(request, MAX_REQUEST_BYTES);
     const language = normalizeAssistantLanguage(body.language);
     const rawMessage = String(body.message || '').replace(/\0/g, '').trim();
     if (!rawMessage) throw Object.assign(new Error('Écris une question avant de l’envoyer.'), { status: 400 });
