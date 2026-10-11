@@ -3,6 +3,7 @@ import { t } from "./i18n/translate.js";
 import React, { startTransition, useEffect, useState, Suspense, useMemo, useRef, lazy } from "react";
 import { apiFetch } from "./api/client.js";
 import { adminPageFromRoute } from "./app/admin-navigation.js";
+import { guideSectionForRoute } from "./app/guide-navigation.js";
 import { gameWorkspaceSectionFromPath, isAppPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import { ModalDialog } from "./components/ui/ModalDialog.jsx";
 import { Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
@@ -350,7 +351,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   const onboardingSteps = getOnboardingSteps({ data, currentTeam, currentMember, user, discovered: onboarding.discovered });
   const nextStep = onboardingSteps.find(step => !step.done && !step.disabled);
   const showStartReturn = onboardingReady && !onboarding.dismissed && onboardingSteps.some(step => !step.done) && !isTeamSetup && ["teams", "team-management", "matches", "reports", "planning", "profile"].includes(active);
-  const helpSection = { home: "getting-started", teams: "teams-and-roster", "team-management": "teams-and-roster", matches: setupParams.get("import") === "1" ? "imports-and-games" : "statistics", reports: "reviews", profile: "player-profile", planning: "planning", trends: "trends", draft: "champion-pool" }[active] || "getting-started";
+  const helpSection = guideSectionForRoute(route);
   const currentPage = active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} loading={loading} apiError={apiError} /> : page;
   const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{currentPage}</PassFeatureGate> : currentPage;
   const assistantWidget = !workspaceLocked && <>

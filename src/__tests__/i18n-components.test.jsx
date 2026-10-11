@@ -98,6 +98,40 @@ describe("language changes in interactive components", () => {
     expect(content(renderer.toJSON())).toContain("Answer kept exactly as returned.");
   });
 
+  it("keeps the open assistant aligned with the help section while excluding private route filters", async () => {
+    const onClose = vi.fn();
+    const privateFilters = "joueur=private-player-id&categorie=private-category-id&periode=private-period";
+    await act(async () => {
+      renderer = TestRenderer.create(<AssistantPanel open onClose={onClose} route={{ path: "/guide", search: `?section=champion-analysis&${privateFilters}` }} />);
+    });
+    const clickSuggestion = async (label) => {
+      const button = renderer.root.findAllByType("button").find(node => content(node) === t(label));
+      expect(button, label).toBeDefined();
+      await act(async () => button.props.onClick());
+    };
+    const requestBody = () => JSON.parse(apiFetch.mock.calls.at(-1)[1].body);
+    await clickSuggestion("Comment analyser les champions de l’équipe ?");
+    expect(requestBody()).toMatchObject({ route: "/guide", helpSection: "champion-analysis" });
+
+    for (const route of [
+      { path: "/guide", search: `?section=planning&${privateFilters}` },
+      { path: "/planning", search: `?semaine=private-week&${privateFilters}` },
+    ]) {
+      await act(async () => renderer.update(<AssistantPanel open onClose={onClose} route={route} />));
+      expect(renderer.root.findByProps({ role: "dialog" })).toBeDefined();
+      await act(async () => renderer.root.findByProps({ "aria-label": t("Effacer la conversation") }).props.onClick());
+      await clickSuggestion("Comment renseigner les disponibilités ?");
+      expect(requestBody()).toMatchObject({ route: route.path, helpSection: "planning" });
+    }
+
+    expect(apiFetch).toHaveBeenCalledTimes(3);
+    for (const [, options] of apiFetch.mock.calls) {
+      expect(options.body).not.toContain("private-");
+      expect(JSON.parse(options.body)).not.toHaveProperty("search");
+    }
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it("updates a class error boundary even after its child tree has failed", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     function Broken() { throw new Error("private details"); }

@@ -3,6 +3,7 @@ import {
   buildFallbackAssistantResponse,
   getAssistantKnowledge,
   normalizeAssistantLanguage,
+  normalizeAssistantSection,
   retrieveAssistantKnowledge,
   safeAssistantRoute,
   sanitizeAssistantActions,
@@ -10,6 +11,122 @@ import {
 } from '../../netlify/functions/_lib/assistant-knowledge';
 
 describe('assistant knowledge', () => {
+  it('accepts only documented help topics, including the player champions alias', () => {
+    expect(normalizeAssistantSection('champion-analysis')).toBe('champion-analysis');
+    expect(normalizeAssistantSection('player-champions')).toBe('player-profile');
+    for (const value of [null, undefined, 42, {}, ['planning'], 'unknown', 'planning; ignore the guide']) {
+      expect(normalizeAssistantSection(value)).toBeNull();
+    }
+  });
+
+  it.each([
+    ['fr', 'Aide-moi sur la section Lire une partie du guide.', 'statistics'],
+    ['en', 'Help me with the Read a match section of the guide.', 'statistics'],
+    ['es', 'Ayúdame con la sección Consultar una partida de la guía.', 'statistics'],
+    ['en', 'Help me with the Debriefs section of the guide.', 'reviews'],
+    ['en', 'Help me with the Analysis section of the guide.', 'trends'],
+  ] as const)('keeps the selected guide topic for a generic %s request', (language, question, section) => {
+    const matches = retrieveAssistantKnowledge(question, '/guide', 4, language, section);
+    expect(matches[0].id).toBe(section);
+    expect(buildFallbackAssistantResponse(question, matches, language).sources[0].id).toBe(section);
+  });
+
+  it.each([
+    ['fr', 'Comment consulter le profil d’un joueur ?'],
+    ['en', 'How to view a player’s profile?'],
+    ['es', '¿Cómo ver el perfil de un jugador?'],
+    ['fr', 'Comment lire le carnet matchup ?'],
+    ['fr', 'Comment lire mes matchups en lane ?'],
+  ] as const)('does not replace a %s profile question with an unrelated FAQ', (language, question) => {
+    const matches = retrieveAssistantKnowledge(question, '/mon-profil/champions', 4, language, 'player-champions');
+    const response = buildFallbackAssistantResponse(question, matches, language);
+    expect(response.sources[0].id).toBe('player-profile');
+    expect(response.actions[0].path).toBe('/mon-profil');
+    expect(response.answer).not.toMatch(/CS 10|CS 20/);
+  });
+
+  it.each([
+    ['fr', 'Comment créer une composition ?', ['cinq postes', 'composition incomplète', 'Approfondir : style de jeu et réponses adverses']],
+    ['en', 'How do I create a composition?', ['five roles', 'incomplete composition', 'Go deeper: playing style and opposing responses']],
+    ['es', '¿Cómo creo una composición?', ['cinco posiciones', 'composición incompleta', 'Profundizar: estilo de juego y respuestas del rival']],
+  ] as const)('explains the deployed composition workflow in %s', (language, question, facts) => {
+    const matches = retrieveAssistantKnowledge(question, '/draft/compositions', 4, language, 'compositions');
+    expect(matches[0].id).toBe('compositions');
+    const response = buildFallbackAssistantResponse(question, matches, language);
+    for (const fact of facts) expect(response.answer).toContain(fact);
+    expect(response.sources[0].id).toBe('compositions');
+    expect(response.actions[0].path).toBe('/draft/compositions');
+  });
+
+  it.each([
+    ['fr', 'Comment utiliser l’aide au choix des champions ?', ['Aide au choix : pool et parties de l’équipe', 'brouillon', 'enregistre la composition']],
+    ['en', 'How do I use champion choice assistance?', ['Pick assistance: champion pool and team games', 'draft', 'save the composition']],
+    ['es', '¿Cómo utilizo la ayuda para elegir campeones?', ['Ayuda para elegir: repertorio y partidas del equipo', 'borrador', 'guarda la composición']],
+    ['fr', 'Comment sont classés les choix de champions ?', ['maîtrise déclarée', 'Le taux de victoire ne détermine pas l’ordre']],
+    ['en', 'How are champion picks ranked?', ['declared proficiency', 'Win rate does not determine the order']],
+    ['es', '¿Cómo se ordenan las opciones de campeones?', ['dominio declarado', 'El porcentaje de victorias no determina el orden']],
+    ['fr', 'Pourquoi mon champion n’apparaît pas dans les choix disponibles ?', ['pool manuel', 'sont exclus']],
+    ['en', 'Why is my champion missing from available choices?', ['manual pool', 'are excluded']],
+    ['es', '¿Por qué mi campeón no aparece en las opciones disponibles?', ['repertorio manual', 'Se excluyen']],
+    ['fr', 'Les statistiques Mobalytics sont-elles utilisées dans les suggestions ?', ['ne sont pas importées', 'ne modifient pas le classement']],
+    ['en', 'Are Mobalytics statistics used in the suggestions?', ['not imported', 'do not affect the NXT5 ranking']],
+    ['es', '¿Se utilizan las estadísticas de Mobalytics en las sugerencias?', ['no se importan', 'ni modifican la clasificación']],
+  ] as const)('explains current champion pick assistance in %s: %s', (language, question, facts) => {
+    const matches = retrieveAssistantKnowledge(question, '/draft/compositions', 4, language, 'compositions');
+    expect(matches[0].id).toBe('compositions');
+    const response = buildFallbackAssistantResponse(question, matches, language);
+    for (const fact of facts) expect(response.answer).toContain(fact);
+    expect(response.sources[0].id).toBe('compositions');
+    expect(response.actions[0].path).toBe('/draft/compositions');
+  });
+
+  it.each([
+    ['fr', 'Où trouver Dupliquer et Supprimer pour un débrief ?', ['engrenage Gérer ce débrief', 'Éditer reste disponible séparément']],
+    ['en', 'Where do I find Duplicate and Delete for a debrief?', ['Manage this review gear icon', 'Edit remains available separately']],
+    ['es', '¿Dónde encuentro Duplicar y Eliminar un análisis postpartida?', ['engranaje Gestionar este análisis postpartida', 'Editar sigue disponible por separado']],
+    ['fr', 'Pourquoi le débrief reprend-il le nom du groupe ?', ['exactement', 'Une sélection partielle']],
+    ['en', 'Why does the debrief use the group’s name?', ['exactly match', 'A partial selection']],
+    ['es', '¿Por qué el análisis postpartida usa el nombre del grupo?', ['coinciden exactamente', 'Una selección parcial']],
+    ['fr', 'Où retrouver l’analyse automatique d’un débrief ?', ['Notes de l’équipe apparaissent en premier', 'Analyse automatique des parties']],
+    ['en', 'Where can I find a debrief’s automated analysis?', ['Team notes appear first', 'Automated match analysis']],
+    ['es', '¿Dónde encuentro el análisis automático de un análisis postpartida?', ['Notas del equipo aparece primero', 'Análisis automático de las partidas']],
+    ['fr', 'Comment réunir plusieurs parties dans un débrief ?', ['20 au maximum', 'enregistre']],
+    ['en', 'How do I combine several games in a debrief?', ['up to 20', 'save']],
+    ['es', '¿Cómo reúno varias partidas en un análisis postpartida?', ['máximo 20', 'guarda']],
+  ] as const)('explains current debrief controls in %s: %s', (language, question, facts) => {
+    const matches = retrieveAssistantKnowledge(question, '/guide', 4, language, 'reviews');
+    expect(matches[0].id).toBe('reviews');
+    const response = buildFallbackAssistantResponse(question, matches, language);
+    for (const fact of facts) expect(response.answer).toContain(fact);
+    expect(response.sources[0].id).toBe('reviews');
+    expect(response.actions[0].path).toBe('/rapports');
+  });
+
+  it('follows an explicit question about another feature despite the current topic', () => {
+    const question = 'Comment lier mon compte Discord ?';
+    const matches = retrieveAssistantKnowledge(question, '/guide', 4, 'fr', 'compositions');
+    expect(matches[0].id).toBe('discord');
+    expect(buildFallbackAssistantResponse(question, matches).actions[0].path).toBe('/bot-discord');
+  });
+
+  it('links the FAQ answer to its own source even if the current-page article ranks first', () => {
+    const question = 'Pourquoi la chronologie est-elle incomplète ?';
+    const matches = getAssistantKnowledge().filter(entry => ['statistics', 'troubleshooting'].includes(entry.id)).map(entry => ({ ...entry, score: entry.id === 'statistics' ? 50 : 40 }));
+    const response = buildFallbackAssistantResponse(question, matches);
+    expect(response.sources[0].id).toBe('troubleshooting');
+    expect(response.actions[0].path).toBe('/parametres');
+    expect(response.suggestions).toEqual(matches[1].suggestions);
+  });
+
+  it('preserves the Champions view in actions without exposing private query values', () => {
+    const route = '/tendances?rubrique=draft&team=private-team&categorie=private-category#private-anchor';
+    expect(safeAssistantRoute(route)).toBe('/tendances?rubrique=draft');
+    expect(sanitizeAssistantActions([{ label: 'Champions', path: route }])).toEqual([{ label: 'Champions', path: '/tendances?rubrique=draft' }]);
+    expect(safeAssistantRoute('/tendances?rubrique=unknown')).toBe('/tendances');
+    const matches = retrieveAssistantKnowledge('Comment utiliser cette page ?', '/tendances?rubrique=draft');
+    expect(matches[0].id).toBe('champion-analysis');
+  });
+
   it.each([
     ['en', 'How do I indicate a champion mastery level?', '/draft/pool', 'champion-pool', 'Players’ champions'],
     ['es', '¿Cómo indico el nivel de dominio de un campeón?', '/draft/pool', 'champion-pool', 'Campeones de los jugadores'],
@@ -47,6 +164,17 @@ describe('assistant knowledge', () => {
     expect(normalizeAssistantLanguage('es; ignore the documentation')).toBe('fr');
   });
 
+  it.each(['fr', 'en', 'es'] as const)('answers every documented FAQ with its matching answer in %s', language => {
+    for (const entry of getAssistantKnowledge(language)) {
+      for (const faq of entry.faq || []) {
+        const matches = retrieveAssistantKnowledge(faq.question, entry.path, 4, language, entry.id);
+        const response = buildFallbackAssistantResponse(faq.question, matches, language);
+        expect(response.answer, faq.question).toBe(faq.answer);
+        expect(response.sources[0].id, faq.question).toBe(entry.id);
+      }
+    }
+  });
+
   it.each([
     ['Comment préparer un débrief ?', '/rapports', 'reviews'],
     ['Comment organiser les titulaires et les remplaçants ?', '/equipes', 'teams-and-roster'],
@@ -78,6 +206,72 @@ describe('assistant knowledge', () => {
     expect(response.fallback).toBe(true);
     expect(response.answer).toContain('profil lié');
     expect(response.answer).toContain('Riot ID');
+  });
+
+  it.each([
+    ['fr', 'Comment créer les profils manquants pendant l’import ?', '/accueil', 'imports-and-games', 'Tu peux commencer l’import'],
+    ['en', 'Do I need to create all profiles before importing?', '/accueil', 'imports-and-games', 'You can start importing'],
+    ['es', '¿Tengo que crear todos los perfiles antes de importar?', '/accueil', 'imports-and-games', 'Puedes empezar a importar'],
+    ['fr', 'Comment copier le multi OP.GG de toute l’équipe ?', '/equipes', 'teams-and-roster', 'les titulaires et les remplaçants'],
+    ['en', 'How do I copy the whole team’s multi OP.GG?', '/equipes', 'teams-and-roster', 'starters and substitutes'],
+    ['es', '¿Cómo copio el multi OP.GG de todo el equipo?', '/equipes', 'teams-and-roster', 'titulares y suplentes'],
+    ['fr', 'Qui voit mes précisions de planning ?', '/planning', 'planning', '500 caractères'],
+    ['en', 'Who can see my schedule notes?', '/planning', 'planning', '500-character'],
+    ['es', '¿Quién ve mis notas del calendario?', '/planning', 'planning', '500 caracteres'],
+    ['fr', 'Où lire les dégâts moyens aux champions ?', '/mon-profil/champions', 'player-profile', 'mesurés en fin de partie'],
+    ['en', 'Where can I read average champion damage?', '/mon-profil/champions', 'player-profile', 'measured at the end'],
+    ['es', '¿Dónde veo el daño medio a campeones?', '/mon-profil/champions', 'player-profile', 'se miden al final'],
+    ['fr', 'Comment enregistrer un carnet de matchup ?', '/mon-profil/champions', 'player-profile', 'Enregistrer le carnet'],
+    ['en', 'How do I save a matchup notebook?', '/mon-profil/champions', 'player-profile', 'Save notebook'],
+    ['es', '¿Cómo guardo un cuaderno de enfrentamiento?', '/mon-profil/champions', 'player-profile', 'Guardar cuaderno'],
+    ['fr', 'Comment lier mon compte Discord ?', '/parametres', 'discord', '/nxt lier'],
+    ['en', 'How do I link my Discord account?', '/parametres', 'discord', '/nxt lier'],
+    ['es', '¿Cómo vinculo mi cuenta de Discord?', '/parametres', 'discord', '/nxt lier'],
+    ['fr', 'Que partagent les publications Discord ?', '/bot-discord', 'discord', 'notes privées du staff ne sont pas incluses'],
+    ['en', 'What do Discord publications share?', '/bot-discord', 'discord', 'Private staff notes are not included'],
+    ['es', '¿Qué comparten las publicaciones de Discord?', '/bot-discord', 'discord', 'notas privadas del cuerpo técnico no se incluyen'],
+  ] as const)('answers the current workflow in %s: %s', (language, question, route, expected, fact) => {
+    const matches = retrieveAssistantKnowledge(question, route, 4, language);
+    expect(matches[0].id).toBe(expected);
+    expect(buildFallbackAssistantResponse(question, matches, language).answer).toContain(fact);
+  });
+
+  it.each([
+    ['fr', 'Comment retrouver les défaites d’un champion ?', '/tendances', 'champion-analysis', 'Revoir les défaites'],
+    ['en', 'How do I find a champion’s losses?', '/tendances', 'champion-analysis', 'Review losses'],
+    ['es', '¿Cómo encuentro las derrotas de un campeón?', '/tendances', 'champion-analysis', 'Revisar derrotas'],
+    ['fr', 'Comment exporter ma carte en PNG ?', '/mon-profil', 'player-showcase', 'PNG'],
+    ['en', 'How do I export my card as a PNG?', '/mon-profil', 'player-showcase', 'PNG'],
+    ['es', '¿Cómo exporto mi tarjeta en PNG?', '/mon-profil', 'player-showcase', 'PNG'],
+    ['fr', 'Où voir les réponses adverses à préparer ?', '/draft/compositions', 'compositions', 'champions adverses'],
+    ['en', 'Where can I see enemy responses to prepare for?', '/draft/compositions', 'compositions', 'enemy champions'],
+    ['es', '¿Dónde veo las respuestas rivales que preparar?', '/draft/compositions', 'compositions', 'campeones rivales'],
+    ['fr', 'Comment exporter ma carte joueur ?', '/mon-profil/carte', 'player-showcase', 'PNG'],
+    ['fr', 'Comment enregistrer un carnet de matchups ?', '/mon-profil/champions', 'player-profile', 'Enregistrer le carnet'],
+    ['fr', 'Comment analyser les champions de l’équipe ?', '/tendances', 'champion-analysis', 'Champions'],
+    ['en', 'How do I analyse the team’s champions?', '/tendances', 'champion-analysis', 'Champions'],
+    ['es', '¿Cómo analizar los campeones del equipo?', '/tendances', 'champion-analysis', 'Campeones'],
+    ['fr', 'Où comparer ses champions aux champions adverses ?', '/mon-profil/champions', 'player-profile', 'Matchups'],
+    ['en', 'Where can I compare my champions with enemy champions?', '/mon-profil/champions', 'player-profile', 'Matchups'],
+    ['es', '¿Dónde comparo mis campeones con los campeones rivales?', '/mon-profil/champions', 'player-profile', 'Enfrentamientos'],
+  ] as const)('finds the updated instructions in %s: %s', (language, question, route, expected, fact) => {
+    const matches = retrieveAssistantKnowledge(question, route, 4, language);
+    expect(matches[0].id).toBe(expected);
+    const response = buildFallbackAssistantResponse(question, matches, language);
+    expect(response.answer).toContain(fact);
+    expect(response.actions[0].path).toBe(matches[0].path);
+  });
+
+  it('keeps the adaptive home and new destinations available without allowing arbitrary paths', () => {
+    for (const path of ['/accueil', '/bot-discord', '/mon-profil/carte']) {
+      expect(safeAssistantRoute(path)).toBe(path);
+      expect(sanitizeAssistantActions([{ label: 'Ouvrir', path }])).toEqual([{ label: 'Ouvrir', path }]);
+    }
+    expect(safeAssistantRoute('/mon-profil/secret')).toBe('/equipes');
+    expect(sanitizeAssistantActions([{ label: 'Indisponible', path: '/bot-discord/admin' }])).toEqual([]);
+    const matches = retrieveAssistantKnowledge('Quel est mon prochain pas sur l’accueil ?', '/accueil');
+    expect(matches[0].id).toBe('getting-started');
+    expect(buildFallbackAssistantResponse('Quel est mon prochain pas sur l’accueil ?', matches).answer).toContain('selon ton rôle');
   });
 
   it('only allows known internal navigation actions', () => {
