@@ -1,5 +1,7 @@
 // Reviewed complete messages for counts, mixed markup and accessibility.
 export const en = {
+  "Vérifie ton équipe et les joueurs ci-dessous avant de confirmer.": "Check your team and the players below before confirming.",
+  "Ton équipe a été reconnue grâce aux cinq Riot ID. Vérifie les postes et les profils avant de confirmer.": "Your team was recognized from all five Riot IDs. Check the roles and profiles before confirming.",
   "partie": "game",
   "parties": "games",
   "{0} partie": "{0} game",
@@ -39,6 +41,8 @@ export const en = {
 };
 
 export const es = {
+  "Vérifie ton équipe et les joueurs ci-dessous avant de confirmer.": "Revisa tu equipo y los jugadores de abajo antes de confirmar.",
+  "Ton équipe a été reconnue grâce aux cinq Riot ID. Vérifie les postes et les profils avant de confirmer.": "Se ha reconocido a tu equipo por los cinco Riot ID. Revisa los roles y los perfiles antes de confirmar.",
   "partie": "partida",
   "parties": "partidas",
   "{0} partie": "{0} partida",

@@ -243,6 +243,143 @@ describe("enemy role assignment while importing a game", () => {
 });
 
 
+describe("recognized team import suggestions", () => {
+  function recognizedPreview(gameId = "EUW1_7123456789") {
+    const match = preview();
+    return { ...match, gameId, teams: match.teams.map((team) => ({
+      ...team,
+      participants: team.participants.map((participant, index) => ({
+        ...participant, riotId: `${team.side} Joueur ${index + 1}#EUW`, summonerName: `${team.side} Joueur ${index + 1}`,
+      })),
+    })) };
+  }
+  function recognizedRoster(match, side) {
+    return match.teams.find((team) => team.side === side).participants.map((participant, index) => ({
+      id: `profile-${roles[index]}`, team_id: "team", role: roles[index], name: participant.summonerName, riot_id: participant.riotId,
+    }));
+  }
+  async function mountRecognized(match, side, roster = recognizedRoster(match, side)) {
+    return mount({ data: { ...DEFAULT_DATA, teams: [{ id: "team", owner_id: "owner" }], players: roster } });
+  }
+  const nameInput = (renderer) => renderer.root.findAllByType(TextInput).find((node) => node.props.label === "Nom de la partie");
+  const sideButton = (renderer, side) => renderer.root.findAllByType("button").find((node) => text(node).startsWith(side === "BLUE" ? "Côté bleu" : "Côté rouge"));
+
+  it.each(["BLUE", "RED"])("suggests %s and a usable name, then waits for explicit confirmation before saving", async (side) => {
+    const match = recognizedPreview();
+    const { renderer, props } = await mountRecognized(match, side);
+    const source = await load(renderer, { info: { gameId: 7123456789 } }, match);
+    expect(sideButton(renderer, side).props["aria-pressed"]).toBe(true);
+    expect(nameInput(renderer).props.value).toBe(match.gameId);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+    expect(apiUploadJson).toHaveBeenCalledTimes(1);
+    expect(apiUploadJson.mock.calls[0][1]).toEqual({ teamId: "team", payload: source, previewOnly: true });
+    expect(apiFetch).not.toHaveBeenCalled();
+    expect(props.onImported).not.toHaveBeenCalled();
+    expect(props.refreshAll).not.toHaveBeenCalled();
+
+    apiUploadJson.mockResolvedValueOnce({ match: { id: "saved" } });
+    await click(renderer, "Confirmer l’import");
+    expect(apiUploadJson).toHaveBeenLastCalledWith("matches-import-file", {
+      teamId: "team", payload: source, label: match.gameId, categoryIds: [], allyTeamSide: side,
+      laneAssignments: assignments(side), enemyLaneAssignments: assignments(side === "BLUE" ? "RED" : "BLUE"),
+      playerAssignments: Object.fromEntries(roles.map((role) => [role, `profile-${role}`])),
+    }, expect.any(Function));
+    expect(props.onImported).toHaveBeenCalledWith({ match: { id: "saved" } });
+  });
+
+  it.each([
+    [{ metadata: { label: "Finale contre Otters" } }, "Finale contre Otters"],
+    [{ info: { gameId: 7123456789 } }, "EUW1_7123456789"],
+  ])("keeps the supplied or suggested name editable and submits the exact edit: %j", async (source, initialName) => {
+    const match = recognizedPreview();
+    const { renderer } = await mountRecognized(match, "BLUE");
+    await load(renderer, source, match);
+    expect(nameInput(renderer).props.value).toBe(initialName);
+    await act(async () => nameInput(renderer).props.onChange("Session du samedi · Partie 2"));
+    apiUploadJson.mockResolvedValueOnce({ match: { id: "saved" } });
+    await click(renderer, "Confirmer l’import");
+    expect(apiUploadJson.mock.calls.at(-1)[1]).toEqual(expect.objectContaining({
+      payload: source, label: "Session du samedi · Partie 2", allyTeamSide: "BLUE",
+    }));
+  });
+
+  it("keeps corrected enemy posts when the suggested side is clicked again", async () => {
+    const match = recognizedPreview();
+    const { renderer } = await mountRecognized(match, "BLUE");
+    await load(renderer, {}, match);
+    await change(enemySelect(renderer, "RED", 0), "MID");
+    await chooseSide(renderer, "BLUE");
+    expect(enemySelect(renderer, "RED", 0).props.value).toBe("MID");
+    expect(enemySelect(renderer, "RED", 2).props.value).toBe("TOP");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+  });
+
+  it("keeps the captain's manual side and assignments after an automatic suggestion", async () => {
+    const match = recognizedPreview();
+    const { renderer } = await mountRecognized(match, "BLUE");
+    await load(renderer, {}, match);
+    await chooseSide(renderer, "RED");
+    await change(enemySelect(renderer, "BLUE", 0), "MID");
+    await act(async () => nameInput(renderer).props.onChange("Côté corrigé"));
+    await chooseSide(renderer, "RED");
+    expect(sideButton(renderer, "RED").props["aria-pressed"]).toBe(true);
+    expect(sideButton(renderer, "BLUE").props["aria-pressed"]).toBe(false);
+    expect(enemySelect(renderer, "BLUE", 0).props.value).toBe("MID");
+    expect(enemySelect(renderer, "BLUE", 2).props.value).toBe("TOP");
+    apiUploadJson.mockResolvedValueOnce({ match: { id: "saved" } });
+    await click(renderer, "Confirmer l’import");
+    expect(apiUploadJson.mock.calls.at(-1)[1]).toEqual(expect.objectContaining({
+      allyTeamSide: "RED", label: "Côté corrigé",
+      enemyLaneAssignments: { TOP: participantValue(3), JGL: participantValue(2), MID: participantValue(1), ADC: participantValue(4), SUP: participantValue(5) },
+    }));
+  });
+
+  it("returns to manual choice when the next file does not identify the team", async () => {
+    const match = recognizedPreview();
+    const { renderer } = await mountRecognized(match, "BLUE");
+    await load(renderer, {}, match);
+    await change(enemySelect(renderer, "RED", 0), "MID");
+    await load(renderer, {}, { ...preview("anonymous"), gameId: "EUW1_7123456790" });
+    expect(sideButton(renderer, "BLUE").props["aria-pressed"]).toBe(false);
+    expect(sideButton(renderer, "RED").props["aria-pressed"]).toBe(false);
+    expect(enemySelects(renderer)).toHaveLength(0);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    expect(text(renderer.root)).toContain("Choisis le côté de ton équipe pour continuer.");
+    await chooseSide(renderer, "BLUE");
+    expect(nameInput(renderer).props.value).toBe("EUW1_7123456790");
+    expect(enemySelect(renderer, "RED", 0).props.value).toBe("TOP");
+  });
+
+  it.each([
+    { team_id: "other-team" },
+    { role: "COACH" },
+  ])("does not recognize a team through a profile outside the gameplay roster: %j", async (overrides) => {
+    const match = recognizedPreview();
+    const roster = recognizedRoster(match, "BLUE");
+    roster[4] = { ...roster[4], ...overrides };
+    const { renderer } = await mountRecognized(match, "BLUE", roster);
+    await load(renderer, {}, match);
+    expect(sideButton(renderer, "BLUE").props["aria-pressed"]).toBe(false);
+    expect(enemySelects(renderer)).toHaveLength(0);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it("gives a complete Riot ID priority over an earlier profile's misleading display name", async () => {
+    const match = recognizedPreview();
+    const roster = recognizedRoster(match, "BLUE");
+    roster.unshift({ id: "misleading", team_id: "team", role: "TOP", riot_id: "Remplaçant#EUW", name: roster[0].riot_id });
+    const { renderer } = await mountRecognized(match, "BLUE", roster);
+    await load(renderer, {}, match);
+    expect(sideButton(renderer, "BLUE").props["aria-pressed"]).toBe(true);
+    expect(select(renderer, `Profil NXT5 · ${roleLabel("TOP")}`).props.value).toBe("profile-TOP");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+    apiUploadJson.mockResolvedValueOnce({ match: { id: "saved" } });
+    await click(renderer, "Confirmer l’import");
+    expect(apiUploadJson.mock.calls.at(-1)[1].playerAssignments).toEqual(Object.fromEntries(roles.map((role) => [role, `profile-${role}`])));
+  });
+});
+
 describe("explicit roster creation from an import preview", () => {
   const uniquePreview = () => ({ teams: preview().teams.map(team => ({ ...team, participants: team.participants.map((player, index) => ({ ...player, riotId: `${team.side} Joueur ${index}#EUW`, summonerName: `${team.side} Joueur ${index}` })) })) });
   const emptyTeam = { ...DEFAULT_DATA, teams: [{ id: "team", owner_id: "owner" }], players: [] };
