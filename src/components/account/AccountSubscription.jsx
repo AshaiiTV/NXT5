@@ -60,7 +60,7 @@ export default function AccountSubscription({ compact = false }) {
 
   return <Surface className="mb-5 account-subscription"><section aria-labelledby="account-subscription-title">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h3 id="account-subscription-title" className="text-lg font-semibold">{t("Mon abonnement")}</h3><p className="mt-2 text-sm leading-6 text-slate-300">{t("La formule et les dates associées à ton compte par l’administration.")}</p></div>
+      <div><h3 id="account-subscription-title" className="text-lg font-semibold">{t("Mon abonnement")}</h3><p className="mt-2 text-sm leading-6 text-slate-300">{t("L’administration gère la formule et les dates de ton abonnement.")}</p></div>
       <Button type="button" variant="ghost" icon={loading ? Loader2 : RefreshCw} disabled={loading} onClick={() => setRefresh((value) => value + 1)}>{loading ? t("Vérification…") : t("Actualiser l’abonnement")}</Button>
     </div>
     {loading && !subscription && <p className="mt-4 text-sm text-slate-300" role="status">{t("Chargement de ton abonnement…")}</p>}
@@ -77,7 +77,7 @@ export default function AccountSubscription({ compact = false }) {
           {subscription.status === "scheduled" && <p className="mt-3 text-sm text-slate-300">{t("Cet essai prendra effet à la date de début indiquée.")}</p>}
           {subscription.status === "revoked" && <p className="mt-3 text-sm text-slate-300">{t("L’attribution de cet essai a été retirée.")}</p>}
         </> : subscription.status !== "active" && <p className="mt-3 text-sm text-slate-300">{subscription.status === "scheduled" ? t("Ce Pass prendra effet à la date de début indiquée.") : t("Ce Pass n’est plus actif.")}</p>}
-      </> : <p className="mt-3 text-sm text-slate-300">{t("Aucun abonnement n’est attribué à ton profil.")}</p>}
+      </> : <p className="mt-3 text-sm text-slate-300">{t("Aucun abonnement n’est attribué à ton compte.")}</p>}
       <p className="account-subscription-launch">{t("Les abonnements ne sont pas encore lancés : tous les outils restent accessibles, quel que soit le statut indiqué ici.")}</p>
       <p className="mt-3 text-sm leading-6 text-slate-400">{t("Une attribution manuelle ne déclenche aucun paiement ni reconduction automatique. Pour une modification, contacte l’administration.")}</p>
     </div>}

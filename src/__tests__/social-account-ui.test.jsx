@@ -243,7 +243,7 @@ describe("social account settings", () => {
     window.location.search = "?token=reset-token";
     const onAuth = vi.fn();
     const renderer = await render(<ResetPasswordPage navigate={vi.fn()} onAuth={onAuth} />);
-    expect(content(renderer.root)).toContain("dissocie toutes tes connexions externes associées");
+    expect(content(renderer.root)).toContain("dissocie tous tes comptes externes");
     edit(renderer, "Nouveau mot de passe", "a-long-new-password");
     edit(renderer, "Confirmer", "a-long-new-password");
     apiFetch.mockResolvedValueOnce({ ok: true });

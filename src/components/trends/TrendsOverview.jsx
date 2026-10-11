@@ -43,7 +43,7 @@ export function TrendsOverview({ objective, plan, roles, briefs, alerts, onOpenS
       <div className="trends-disclosure-content"><Badge tone={plan.toneName}>{t(analysisCopy(plan.value))}</Badge>
       <p className="trends-copy">{t(analysisCopy(plan.text))}</p>
       <button type="button" className="trends-text-action" onClick={() => open(plan)}><FileText aria-hidden="true" />{t(" Examiner les parties de ce plan")}</button>
-      <details className="trends-role-details"><summary>{t("Comprendre la contribution des rôles")}</summary><p className="trends-copy">{t("Les ressources et les champions éclairent la place de chacun dans ce plan de jeu.")}</p>
+      <details className="trends-role-details"><summary>{t("Comprendre la contribution des rôles")}</summary><p className="trends-copy">{t("Compare les ressources et les champions de chaque rôle dans ce plan de jeu.")}</p>
       <div className="trends-role-columns" aria-hidden="true"><span>{t("Rôle et champions")}</span><span>{t("Lecture du rôle")}</span><span>{t("Part d’or")}</span><span>{t("Part de dégâts")}</span><span>{t("Sources")}</span></div>
       <div className="trends-roles">{[...roles].sort((a, b) => ROSTER_ROLE_ORDER.indexOf(a.role) - ROSTER_ROLE_ORDER.indexOf(b.role)).map((row) => <article className="trends-role" key={row.role}>
         <div className="trends-role-name"><RoleIcon role={row.role} lightweight /><div><h5>{t(roleLabel(row.role))}</h5><p>{row.championText || t("Champions non renseignés")}</p></div></div>

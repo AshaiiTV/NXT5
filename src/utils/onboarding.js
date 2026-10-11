@@ -27,10 +27,10 @@ export function getOnboardingSteps({ data = {}, currentTeam, currentMember, user
       detail: matches.length ? "Première partie ajoutée" : "Les profils peuvent être créés pendant l’import.",
       done: Boolean(latestMatch), disabled: false, action: "Importer une partie", path: "/games?import=1", help: "imports-and-games" },
     { id: "reading", label: "Résumé", title: "Ouvre le résumé de ta partie", description: "Commence par le résultat et les écarts entre les équipes. Garde un point à discuter pour le débrief.",
-      detail: seen("reading") ? "Résumé ouvert" : "Un premier regard sur votre jeu.",
+      detail: seen("reading") ? "Résumé ouvert" : "Consulte le résultat et les écarts entre les équipes.",
       done: Boolean(latestMatch && seen("reading")), disabled: !latestMatch, action: "Voir ma partie", path: matchPath, help: "statistics", reason: !latestMatch ? "Le résumé sera disponible après ton premier import." : "" },
     { id: "reports", label: "Débriefer", title: "Prépare ton premier débrief", description: "Note ce que l’équipe garde, ce qu’elle corrige et une action à travailler à la prochaine séance.",
-      detail: latestReport ? "Premier débrief enregistré" : "Un point concret pour la prochaine séance.",
+      detail: latestReport ? "Premier débrief enregistré" : "Choisis une action à travailler à la prochaine séance.",
       done: Boolean(latestReport), disabled: !latestMatch && !latestReport, action: latestReport ? "Voir le débrief" : "Préparer le débrief",
       path: reportPath || (latestMatch ? `/rapports?match=${encodeURIComponent(latestMatch.id)}&compose=1` : ""), help: "reviews", reason: !latestMatch && !latestReport ? "Importe une partie pour préparer le débrief." : "" },
   ];
@@ -38,7 +38,7 @@ export function getOnboardingSteps({ data = {}, currentTeam, currentMember, user
   const hasAvailability = player && teamRows("availability").some(row => sameId(row.player_id, player.id)
     && (String(row.notes || "").trim() || Object.values(availabilitySlots(row.slots)).some(times => times.length)));
   return [
-    { id: "profile", label: "Mon profil", title: "Fais connaissance avec ton espace", description: "Ton profil rassemble tes champions, tes parties et les points à travailler avec ton coach.",
+    { id: "profile", label: "Mon profil", title: "Consulte ton profil joueur", description: "Ton profil rassemble tes champions, tes parties et les points à travailler avec ton coach.",
       detail: seen("profile") ? "Profil ouvert" : player ? "Ton profil est relié à ton compte." : "Ton profil doit être relié par le responsable.",
       done: Boolean(player && seen("profile")), disabled: !player, action: "Ouvrir mon profil", path: player ? `/mon-profil?player=${encodeURIComponent(player.id)}` : "", help: "player-profile",
       reason: !player ? "Demande au responsable de relier ton compte NXT5 à ton profil joueur dans la gestion de l’équipe." : "" },
@@ -46,7 +46,7 @@ export function getOnboardingSteps({ data = {}, currentTeam, currentMember, user
       detail: hasAvailability ? "Disponibilités renseignées" : "Choisis tes créneaux dans le planning.",
       done: Boolean(hasAvailability), disabled: !player, action: "Donner mes disponibilités", path: player ? "/planning" : "", help: "planning", reason: !player ? "Tes disponibilités seront accessibles une fois ton profil relié." : "" },
     { id: "team-review", label: "Notre jeu", title: latestReport ? "Retrouve le débrief de ton équipe" : "Découvre une partie de ton équipe", description: latestReport ? "Retrouve les observations du staff et les points à travailler ensemble." : "Ouvre une partie pour découvrir son résumé et les résultats de l’équipe.",
-      detail: seen("team-review") ? "Espace de l’équipe ouvert" : "Les mêmes repères pour toute l’équipe.",
+      detail: seen("team-review") ? "Espace de l’équipe ouvert" : "Consulte les parties et les débriefs de ton équipe.",
       done: Boolean((latestMatch || latestReport) && seen("team-review")), disabled: !latestMatch && !latestReport, action: latestReport ? "Ouvrir le débrief" : "Voir une partie", path: reportPath || matchPath,
       help: latestReport ? "reviews" : "statistics", reason: !latestMatch && !latestReport ? "Le staff prépare les premières parties. Tu les retrouveras ici dès leur import." : "" },
   ];

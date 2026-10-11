@@ -33,7 +33,7 @@ const CHAMPION_TAG_DEFINITIONS = [
   ["scaling", "Devient plus puissant avec le temps, les niveaux ou les objets."],
   ["early", "Peut prendre l’avantage dès le début de partie."],
   ["tempo", "Aide l’équipe à agir avant l’adversaire, par ses déplacements ou autour des objectifs."],
-  ["snowball", "Prend beaucoup de valeur quand il obtient une avance tôt."],
+  ["snowball", "Devient plus menaçant avec une avance en début de partie."],
   ["assassin", "Menace explosive sur les cibles fragiles."],
   ["burst", "Inflige beaucoup de dégâts sur une fenêtre courte."],
   ["control", "Limite les déplacements adverses et défend une zone grâce à ses sorts."],
@@ -55,7 +55,7 @@ const CHAMPION_TAG_DEFINITIONS = [
   ["disrupt", "Dérange le plan adverse et casse les formations."],
   ["anti-dive", "Répond bien aux compositions qui veulent rentrer dans l'équipe."],
   ["self-peel", "Dispose d'outils personnels pour survivre à une menace."],
-  ["attach", "Se lie à un allié et amplifie son impact."],
+  ["attach", "Renforce un allié auquel il est lié."],
   ["flank", "Menace forte quand il arrive sur le côté ou dans le dos."],
   ["simple", "Plan de jeu direct, facile à exécuter."],
   ["playmaker", "Peut créer une action décisive grâce à sa précision ou au moment choisi."],
@@ -609,7 +609,7 @@ function CompositionCounterPanel({ slots, rows, compact = false }) {
   </div>;
   return <section className="nxt5-composition-section">
     <h3 className="text-xl font-black text-white">{t("Champions adverses à surveiller")}</h3>
-    <p className="mt-1 text-sm leading-6 text-slate-300">{t("Ces adversaires, parfois appelés counters, peuvent gêner vos champions. Les suggestions reposent sur leurs rôles et leurs styles : vérifie-les avec ton équipe.")}</p>
+    <p className="mt-1 text-sm leading-6 text-slate-300">{t("Ces champions adverses, aussi appelés counters, peuvent gêner tes choix. Les suggestions reposent sur les rôles et les styles des champions : vérifie-les avec ton équipe.")}</p>
     <div className="nxt5-composition-counter-roles">
       {groups.map((group) => <div key={group.role} className="min-w-0">
         <div className="flex items-center gap-2"><RoleIcon role={group.role} className="h-5 w-5" /><h4 className="text-sm font-black text-white">{t(roleLabel(group.role))}</h4><span className="ml-auto text-xs tabular-nums text-slate-300">{group.counters.length}{t(" champions")}</span></div>
@@ -686,7 +686,7 @@ function CompositionTagLexicon({ open }) {
   if (!open) return null;
   return <Surface className="mt-4">
     <h3 className="text-xl font-black text-white">{t("Comprendre les styles de jeu")}</h3>
-    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("Les étiquettes décrivent ce qu’un champion peut apporter à la composition. Ce sont des repères pour préparer les choix de champions, pas une évaluation certaine du résultat.")}</p>
+    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("Les étiquettes décrivent ce qu’un champion peut apporter à la composition. Utilise-les pour préparer tes choix ; elles ne prédisent pas le résultat de la partie.")}</p>
     <dl className="nxt5-composition-lexicon">{CHAMPION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag}><dt className="text-sm font-bold text-cyan-100">{t(tagLabel(tag))}</dt><dd className="mt-1 text-sm leading-6 text-slate-300">{t(definition)}</dd></div>)}</dl>
     <section className="nxt5-composition-section">
       <h4 className="text-sm font-black text-violet-100">{t("Étiquettes pour retrouver une composition")}</h4>
@@ -837,7 +837,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
             <details className="nxt5-composition-details"><summary>{t("Aide au choix : pool et parties de l’équipe")}</summary><DraftAssistance key={selectedTeamId} data={data} teamId={selectedTeamId} slots={form.slots} champions={championOptions()} onPick={updateSlot} disabled={!canCreate || saving} /></details>
             <details className="nxt5-composition-details"><summary>{t("Choisir à partir des portraits des champions")}</summary><CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} /></details>
 
-            {formPicks.length > 0 && <details className="nxt5-composition-details"><summary>{t("Approfondir : style de jeu et réponses adverses")}</summary><p className="nxt5-composition-help">{t("La maîtrise vient du classement des champions par les joueurs. Le style et les réponses adverses sont des pistes à vérifier en équipe.")}</p><div className="nxt5-composition-section">
+            {formPicks.length > 0 && <details className="nxt5-composition-details"><summary>{t("Style de jeu et réponses adverses")}</summary><p className="nxt5-composition-help">{t("La maîtrise vient du classement des champions par les joueurs. Le style et les réponses adverses sont des pistes à vérifier en équipe.")}</p><div className="nxt5-composition-section">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-cyan-100">{t("Style de jeu suggéré")}</p>

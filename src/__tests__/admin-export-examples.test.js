@@ -44,7 +44,7 @@ describe("site export catalogue integration", () => {
     for (const id of ["discord-game", "discord-test"]) {
       await expect(createExportExample(id)).rejects.toThrow("Ce modèle d’export n’existe pas.");
     }
-    expect(EXPORT_TEMPLATES.find(template => template.id === "game")).toMatchObject({ title: "Statistiques d’une game", category: "site", format: "PNG" });
+    expect(EXPORT_TEMPLATES.find(template => template.id === "game")).toMatchObject({ title: "Statistiques d’une partie", category: "site", format: "PNG" });
     const example = await createExportExample("game");
     const bytes = Buffer.from(await example.blob.arrayBuffer());
     expect(example.filename).toBe("nxt5-exemple-fictif-game.png");

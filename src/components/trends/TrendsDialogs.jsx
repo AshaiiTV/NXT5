@@ -58,7 +58,7 @@ export function TrendSourcesDialog({ source, onClose, onOpenGame, signals, read 
         <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => onOpenGame(game)}>{t("Ouvrir la partie")}</Button>
       </article>;
     })}</div>
-    {!filtered.length && <div className="trends-dialog-empty"><h4>{games.length ? t("Aucune partie ne correspond") : t("Aucune partie source isolée")}</h4><p>{games.length ? t("Modifie la recherche ou le résultat sélectionné.") : t("Ce signal ne dispose pas encore de sources dans la sélection active.")}</p>{games.length > 0 && <Button type="button" variant="ghost" onClick={() => { setSearch(""); setResult(""); }}>{t("Réinitialiser la recherche")}</Button>}</div>}
+    {!filtered.length && <div className="trends-dialog-empty"><h4>{games.length ? t("Aucune partie ne correspond") : t("Aucune partie source isolée")}</h4><p>{games.length ? t("Modifie la recherche ou le résultat sélectionné.") : t("Aucune partie de cette sélection ne permet de vérifier ce point.")}</p>{games.length > 0 && <Button type="button" variant="ghost" onClick={() => { setSearch(""); setResult(""); }}>{t("Réinitialiser la recherche")}</Button>}</div>}
   </TrendsDialog>;
 }
 

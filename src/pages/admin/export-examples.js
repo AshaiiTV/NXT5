@@ -3,24 +3,24 @@
 // to the product's templates without maintaining separate mock layouts.
 export const EXPORT_TEMPLATES = Object.freeze([
   {
-    id: "game", category: "site", title: "Statistiques d’une game", source: "Parties · Statistiques", format: "PNG",
-    description: "Le PNG unique d’une game, téléchargé depuis Parties et publié sur Discord : les deux équipes, les dix joueurs et les objectifs.",
+    id: "game", category: "site", title: "Statistiques d’une partie", source: "Parties · Statistiques", format: "PNG",
+    description: "Un seul PNG rassemble les deux équipes, les dix joueurs et les objectifs. Il se télécharge depuis Parties et se publie sur Discord.",
     uses: ["Résultat, durée, côté et patch", "Statistiques et équipement des dix joueurs", "Objectifs et écarts entre les équipes", "Même PNG dans Parties et sur Discord"],
   },
   {
-    id: "group", category: "site", title: "Groupe de games", source: "Parties · Groupe de games", format: "PNG",
-    description: "La synthèse d’une sélection de games, réunie dans une seule image.",
-    uses: ["Victoires et moyennes de la sélection", "Comparaison équipe et adversaires", "Liste complète des games", "Champions joués et nombre de picks"],
+    id: "group", category: "site", title: "Groupe de parties", source: "Parties · Groupe de parties", format: "PNG",
+    description: "Le bilan des parties sélectionnées dans une seule image.",
+    uses: ["Victoires et moyennes de la sélection", "Comparaison équipe et adversaires", "Liste complète des parties", "Champions joués et nombre de picks"],
   },
   {
     id: "trends", category: "site", title: "Tendances d’équipe", source: "Analyses · Exporter la synthèse", format: "PNG",
-    description: "Les résultats et les repères collectifs de la catégorie et de la période choisies.",
+    description: "Les résultats et les statistiques d’équipe pour la catégorie et la période choisies.",
     uses: ["Taux de victoire et écarts d’or", "Résultats par côté", "Moyennes par rôle", "Champions les plus joués"],
   },
   {
     id: "profile", category: "site", title: "Profil joueur", source: "Mon profil · Exporter le résumé", format: "PNG",
-    description: "Les statistiques d’un joueur sur les games reliées à son profil.",
-    uses: ["Games analysées, victoires et KDA", "Moyennes par game et couverture des données", "CS à 10 et 20 minutes", "Résultats par champion"],
+    description: "Les statistiques d’un joueur sur les parties liées à son profil.",
+    uses: ["Parties analysées, victoires et KDA", "Moyennes par partie et données disponibles", "CS à 10 et 20 minutes", "Résultats par champion"],
   },
   {
     id: "pool", category: "site", title: "Pool de champions déclaré", source: "Mon profil · Champion pool / Draft · Champions des joueurs", format: "PNG",
@@ -177,7 +177,7 @@ export async function createExportExample(id) {
     });
   } else if (id === "trends") {
     const { renderTrendsPng } = await import("../workspace/TrendsPage.jsx");
-    canvases = [await renderTrendsPng({ matches, teamName: TEAM.name, categoryName: CATEGORY.name, periodLabel: "4 games de démonstration" })];
+    canvases = [await renderTrendsPng({ matches, teamName: TEAM.name, categoryName: CATEGORY.name, periodLabel: "4 parties de démonstration" })];
   } else if (id === "profile") {
     const { renderPlayerProfilePng } = await import("../workspace/PlayerUltimateProfile.jsx");
     const rows = matches.flatMap((match) => match.participants.filter((row) => row.player_id === PLAYER.id).map((row) => ({ ...row, match })));

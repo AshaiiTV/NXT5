@@ -45,7 +45,7 @@ export function BeginnerCompass({ steps = [], onNavigate, onClose, manager = tru
         <button type="button" onClick={onClose}>{t("Explorer librement")}<ArrowRight size={16} aria-hidden="true" /></button>
       </div>
     </Surface>
-    <p className="nxt5-start-reassurance">{t("Retrouve ce parcours à tout moment dans Accueil. Tu avances à ton rythme.")}</p>
+    <p className="nxt5-start-reassurance">{t("Tu peux reprendre ces étapes à tout moment depuis Accueil.")}</p>
   </section>;
 }
 

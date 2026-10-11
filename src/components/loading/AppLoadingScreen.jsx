@@ -14,9 +14,9 @@ const ROLES = [
 ];
 
 const PHASES = [
-  { id: "app", label: "Ouverture", status: "Ouverture de NXT5", detail: "Ton espace d’équipe se prépare." },
+  { id: "app", label: "Ouverture", status: "Ouverture de NXT5", detail: "Chargement de ton espace d’équipe." },
   { id: "session", label: "Connexion", status: "Connexion à ton espace", detail: "On retrouve ton équipe." },
-  { id: "bootstrap", label: "Synchronisation", status: "Synchronisation en cours", detail: "Tes joueurs, tes parties et tes débriefs." },
+  { id: "bootstrap", label: "Synchronisation", status: "Synchronisation en cours", detail: "Chargement des joueurs, parties et débriefs." },
 ];
 
 function TeamConvergence() {
@@ -96,7 +96,7 @@ export default function AppLoadingScreen({ phase = "app", progress = null }) {
           <div className="nxt5-sync-copy">
             <p className="nxt5-sync-eyebrow">{t("LA SUITE SE JOUE ENSEMBLE")}</p>
             <h1><span className="nxt5-sync-title-intro">{t("Cinq rôles.")}</span><span className="nxt5-sync-title-impact">{t("Une même ")}<span>{t("direction.")}</span></span></h1>
-            <p className="nxt5-sync-description">{t("Tes joueurs, tes parties, tes prochaines décisions.")}</p>
+            <p className="nxt5-sync-description">{t("Retrouve tes joueurs et tes parties pour préparer la suite.")}</p>
           </div>
           <section className="nxt5-sync-loading" aria-label={t("Chargement de ton espace")}>
             <div className="nxt5-sync-status-row">

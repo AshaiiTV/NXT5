@@ -271,8 +271,8 @@ it('R4-S1 renders local objective assets directly, including remote fallback fai
 
 it.each([
   [[8, null, 7], 'À ajuster', { impossible: true, inconclusive: false }],
-  [[3, null, 8], 'Non concluable (données manquantes)', { impossible: false, inconclusive: true }],
-  [[null, null, null], 'Non concluable (données manquantes)', { impossible: false, inconclusive: true }],
+  [[3, null, 8], 'Données insuffisantes pour conclure', { impossible: false, inconclusive: true }],
+  [[null, null, null], 'Données insuffisantes pour conclure', { impossible: false, inconclusive: true }],
   [[3, null, 2], 'Validé', { complete: true, inconclusive: false }],
   [[3, null], 'En cours', { impossible: false, inconclusive: false }],
 ])('R4-S2 evaluates missing observations %j as %s', (values, label, expected) => {

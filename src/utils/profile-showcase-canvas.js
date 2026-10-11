@@ -76,7 +76,10 @@ const countLabel = (count) => t(count === 1 ? "{0} partie" : "{0} parties", [png
 const identity = (r) => [r.teamName, r.role].filter(Boolean).join(" · ");
 const metric = (r, key) => r.metrics?.[key] || { value: null, count: 0 };
 const coverage = (count, total) => t("{0} / {1} parties", [pngNumber(count), pngNumber(total)]);
-const rateCoverage = (r) => r.results?.unknown > 0 ? t("{0} résultats connus / {1}", [pngNumber(r.results.known), pngNumber(r.games)]) : countLabel(r.games);
+const rateCoverage = (r) => r.results?.unknown > 0 ? t("Résultats connus : {0} / {1}", [pngNumber(r.results.known), pngNumber(r.games)]) : countLabel(r.games);
+const recentLabel = (count, allDated) => allDated
+  ? t(count === 1 ? "{0} DERNIÈRE PARTIE" : "{0} DERNIÈRES PARTIES", [pngNumber(count)])
+  : t(count === 1 ? "{0} PARTIE AFFICHÉE" : "{0} PARTIES AFFICHÉES", [pngNumber(count)]);
 const signed = (value, digits = 1) => {
   if (pngNumeric(value) === null) return "—";
   const rounded = Number(Number(value).toFixed(digits));
@@ -103,7 +106,7 @@ function footer(ctx, r) {
   pngLine(ctx, 70, 1482, 1010, 1482);
   fit(ctx, r.playerName || t("Joueur"), 70, 1532, 29, C.text, 600, 435);
   fit(ctx, identity(r), 1010, 1532, 27, C.secondary, 400, 475, "right");
-  fit(ctx, `${countLabel(r.games)} · ${r.dateLabel || "Dates indisponibles"}`, 70, 1580, 24, C.secondary, 400, 940);
+  fit(ctx, `${countLabel(r.games)} · ${r.dateLabel || t("Dates indisponibles")}`, 70, 1580, 24, C.secondary, 400, 940);
 }
 
 function name(ctx, value, x, y, width, size, min = 58) {
@@ -172,7 +175,7 @@ function back(ctx, r, assets) {
     fit(ctx, coverage(count, r.games), x + 1, y + 69, 22, C.secondary, 400, 257);
   });
   const recent = (r.recentResults || []).slice(-12);
-  fit(ctx, `${recent.length} ${r.datedGames === r.games ? "DERNIÈRES PARTIES" : "PARTIES AFFICHÉES"}`, 75, 985, 26, C.text, 600, 930);
+  fit(ctx, recentLabel(recent.length, r.datedGames === r.games), 75, 985, 26, C.text, 600, 930);
   const gap = 10;
   const cell = (932 - gap * 11) / 12;
   recent.forEach((entry, i) => {
@@ -180,12 +183,12 @@ function back(ctx, r, assets) {
     const win = entry.result === "win";
     const x = 74 + i * (cell + gap);
     pngPanel(ctx, x, 1011, cell, 66, { fill: known ? win ? "#10282B" : "#291826" : C.panel, stroke: known ? win ? "#285750" : "#684050" : C.border, radius: 7 });
-    fit(ctx, known ? win ? "V" : "D" : "?", x + cell / 2, 1056, 29, known ? win ? C.green : C.red : C.secondary, 600, cell - 8, "center");
+    fit(ctx, known ? win ? t("V") : t("D") : "?", x + cell / 2, 1056, 29, known ? win ? C.green : C.red : C.secondary, 600, cell - 8, "center");
   });
-  fit(ctx, t("{0} · ? = résultat inconnu", [r.datedGames === r.games ? t("De la plus ancienne à la plus récente") : t("Ordre des dates connues")]), 75, 1118, 23, C.secondary, 400, 931);
+  fit(ctx, t(r.datedGames === r.games ? "De la plus ancienne à la plus récente · ? = résultat inconnu" : "Ordre des dates connues · ? = résultat inconnu"), 75, 1118, 23, C.secondary, 400, 931);
   const pool = (r.champions || []).slice(0, 3);
   fit(ctx, t("LES PLUS JOUÉS"), 75, 1183, 26, C.text, 600, 400);
-  fit(ctx, t("{0} / {1} champions", [pool.length, (r.champions || []).length]), 1006, 1183, 25, C.secondary, 400, 480, "right");
+  fit(ctx, t((r.champions || []).length === 1 ? "{0} / {1} champion" : "{0} / {1} champions", [pngNumber(pool.length), pngNumber((r.champions || []).length)]), 1006, 1183, 25, C.secondary, 400, 480, "right");
   pool.forEach((champion, i) => {
     const y = 1217 + i * 78;
     fit(ctx, championDisplayName(champion.champion), 75, y + 25, 29, C.text, 600, 309, "left", 24);
@@ -193,7 +196,7 @@ function back(ctx, r, assets) {
     pngPanel(ctx, 399, y + 18, 304, 7, { fill: C.border, stroke: null, radius: 3 });
     const length = Math.max(0, Math.min(304, 304 * champion.games / Math.max(1, pool[0].games)));
     if (length) pngPanel(ctx, 399, y + 18, length, 7, { fill: [C.cyan, C.violet, C.pink][i], stroke: null, radius: 3 });
-    fit(ctx, `${champion.wins} V / ${champion.losses} D${champion.unknown ? ` / ${champion.unknown} ?` : ""}`, 1005, y + 28, 24, C.secondary, 600, 280, "right");
+    fit(ctx, `${t("{0} V / {1} D", [pngNumber(champion.wins), pngNumber(champion.losses)])}${champion.unknown ? ` / ${pngNumber(champion.unknown)} ?` : ""}`, 1005, y + 28, 24, C.secondary, 600, 280, "right");
     if (i < pool.length - 1) pngLine(ctx, 75, y + 66, 1004, y + 66, "rgba(198,212,229,.11)");
   });
   if (!pool.length) fit(ctx, t("Aucun champion renseigné"), 75, 1268, 29, C.secondary, 400, 930);
@@ -290,9 +293,9 @@ function storyBilan(ctx, r) {
   pngLine(ctx, 70, 894, 1010, 894);
   fit(ctx, pngPercent(r.results?.rate), 57, 1091, 194, C.text, 700, 555, "left", 112);
   fit(ctx, t("DE VICTOIRES"), 622, 987, 29, C.cyan, 600, 387);
-  paragraph(ctx, t("{0} résultats connus sur {1}", [pngNumber(r.results?.known), countLabel(r.games)]), 623, 1044, 380, 27, C.secondary, 3, 36);
+  paragraph(ctx, t("Résultats connus : {0} sur {1}", [pngNumber(r.results?.known), countLabel(r.games)]), 623, 1044, 380, 27, C.secondary, 3, 36);
   const recent = (r.recentResults || []).slice(-12);
-  fit(ctx, `${pngNumber(recent.length)} ${r.datedGames === r.games ? "DERNIÈRES PARTIES" : "PARTIES AFFICHÉES"}`, 70, 1177, 27, C.text, 600, 940);
+  fit(ctx, recentLabel(recent.length, r.datedGames === r.games), 70, 1177, 27, C.text, 600, 940);
   const gap = 10;
   const cell = (940 - gap * 11) / 12;
   recent.forEach((entry, index) => {
@@ -300,10 +303,10 @@ function storyBilan(ctx, r) {
     const known = win || entry.result === "loss";
     const x = 70 + index * (cell + gap);
     pngPanel(ctx, x, 1210, cell, 81, { fill: known ? win ? "#10282B" : "#291826" : C.panel, stroke: known ? win ? "#285750" : "#684050" : C.border, radius: 10 });
-    fit(ctx, known ? win ? "V" : "D" : "?", x + cell / 2, 1265, 34, known ? win ? C.green : C.red : C.secondary, 600, cell - 10, "center");
+    fit(ctx, known ? win ? t("V") : t("D") : "?", x + cell / 2, 1265, 34, known ? win ? C.green : C.red : C.secondary, 600, cell - 10, "center");
   });
   if (!recent.length) fit(ctx, t("Résultats individuels indisponibles"), 70, 1265, 30, C.secondary, 400, 940);
-  fit(ctx, r.datedGames === r.games ? t("De la plus ancienne à la plus récente") : t("Les dates disponibles définissent l’ordre d’affichage"), 70, 1340, 25, C.secondary, 400, 940);
+  fit(ctx, t(r.datedGames === r.games ? "De la plus ancienne à la plus récente" : "Classées selon les dates disponibles"), 70, 1340, 25, C.secondary, 400, 940);
   fit(ctx, t("? = résultat inconnu · durée : {0}", [coverage(r.playTime?.count, r.games)]), 70, 1412, 25, C.secondary, 400, 940);
 }
 
@@ -319,7 +322,7 @@ function storySignature(ctx, r, assets) {
     fit(ctx, value, x, 1374, 76, C.text, 700, 280, "left", 48);
     fit(ctx, t(label), x, 1415, 24, C.secondary, 500, 280);
   });
-  fit(ctx, champion ? t("{0} résultats connus sur {1} · Le plus joué.", [pngNumber(champion.known), countLabel(champion.games)]) : t("Aucune donnée de champion disponible"), 72, 1460, 23, C.secondary, 400, 938);
+  fit(ctx, champion ? t("Résultats connus : {0} sur {1} · Le plus joué.", [pngNumber(champion.known), countLabel(champion.games)]) : t("Aucune donnée de champion disponible"), 72, 1460, 23, C.secondary, 400, 938);
 }
 
 function storyHighlight(ctx, r, assets) {
@@ -433,10 +436,10 @@ function storyProgression(ctx, r) {
     pngLine(ctx, x + 24, 1120, x + 148, 1120, color, 3);
     fit(ctx, t(label), x + 26, 1166, 23, color, 600, 400);
     fit(ctx, pngNumber(part?.value, digits), x + 23, 1248, 75, C.text, 700, 260, "left", 52);
-    fit(ctx, t("{0} parties", [pngNumber(part?.count)]), x + 427, 1240, 23, C.secondary, 500, 141, "right");
+    fit(ctx, countLabel(part?.count), x + 427, 1240, 23, C.secondary, 500, 141, "right");
     fit(ctx, periodLabel(part), x + 26, 1304, 22, C.secondary, 400, 400);
   });
-  paragraph(ctx, progress ? t("{0} datées{1}. Deux moitiés chronologiques, sans attribuer l’écart à une cause.", [countLabel(progress.count), progress.excludedCount ? t(" · {0} exclue{1}", [progress.excludedCount, progress.excludedCount > 1 ? "s" : ""]) : ""]) : t("Au moins six mesures datées et deux blocs dont l’ordre peut être établi sont nécessaires."), 70, 1402, 940, 25, C.secondary, 2, 34);
+  paragraph(ctx, progress ? `${t("{0} datées", [countLabel(progress.count)])}${progress.excludedCount ? ` · ${t(progress.excludedCount === 1 ? "{0} partie exclue" : "{0} parties exclues", [pngNumber(progress.excludedCount)])}` : ""}. ${t("Les deux moitiés chronologiques sont comparées sans expliquer la cause de l’écart.")}` : t("Il faut au moins six mesures datées et deux groupes de parties dont on peut établir l’ordre."), 70, 1402, 940, 25, C.secondary, 2, 34);
 }
 
 function storyTeam(ctx, r, assets) {
@@ -448,14 +451,14 @@ function storyTeam(ctx, r, assets) {
   name(ctx, r.playerName, 64, 628, 728, 126, 60);
   pngImageContain(ctx, assets.mark, 814, 469, 196, 196);
   fit(ctx, r.role || t("Rôle non renseigné"), 75, 689, 38, C.violet, 600, 730);
-  paragraph(ctx, t("{0} dans cette sélection · {1}", [countLabel(r.games), r.dateLabel || t("dates indisponibles")]), 75, 756, 930, 29, C.secondary, 2, 39);
+  paragraph(ctx, t("{0} dans cette sélection · {1}", [countLabel(r.games), r.dateLabel || t("Dates indisponibles")]), 75, 756, 930, 29, C.secondary, 2, 39);
   const roster = Array.isArray(r.teammates) ? r.teammates : [];
   const selectedId = r.playerId == null ? "" : String(r.playerId);
   const selected = (member) => selectedId && String(member.id) === selectedId;
   const ordered = [...roster].sort((a, b) => Number(Boolean(selected(b))) - Number(Boolean(selected(a))));
   const displayed = ordered.slice(0, 6);
   fit(ctx, t("EFFECTIF ACTUEL"), 73, 870, 26, C.cyan, 600, 530);
-  fit(ctx, displayed.length < roster.length ? t("{0} / {1} profils affichés", [displayed.length, roster.length]) : t("{0} profil{1}", [roster.length, roster.length === 1 ? "" : "s"]), 1007, 870, 24, C.secondary, 500, 420, "right");
+  fit(ctx, displayed.length < roster.length ? t("{0} / {1} profils affichés", [pngNumber(displayed.length), pngNumber(roster.length)]) : t(roster.length === 1 ? "{0} profil" : "{0} profils", [pngNumber(roster.length)]), 1007, 870, 24, C.secondary, 500, 420, "right");
   displayed.forEach((member, index) => {
     const y = 901 + index * 75;
     const current = selected(member);

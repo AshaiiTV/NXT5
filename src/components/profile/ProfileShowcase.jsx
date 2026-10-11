@@ -47,11 +47,11 @@ function ChapterControls({ chapter, onChange }) {
 
 function StoryHeadline({ report, chapter }) {
   useLanguage();
-  if (chapter === 1) return <>{t("Ta signature.")}<strong>{report.signature ? championDisplayName(report.signature.champion) : t("À découvrir")}</strong></>;
-  if (chapter === 2) return <>{t("Ce moment-là.")}<strong>{report.highlight ? `${report.highlight.kills} / ${report.highlight.deaths} / ${report.highlight.assists}` : "—"}</strong></>;
-  if (chapter === 3) return <>{t("Le chemin parcouru.")}<strong>{t(evolutionDelta(report.progression))}</strong></>;
-  if (chapter === 4) return <>{t("L’histoire continue.")}<strong>{report.teamName}</strong></>;
-  return <>{t("Tout commence par")}<strong>{t("{0} parties.", [report.games])}</strong></>;
+  if (chapter === 1) return <>{t("Ton champion le plus joué.")}<strong>{report.signature ? championDisplayName(report.signature.champion) : t("À découvrir")}</strong></>;
+  if (chapter === 2) return <>{t("Ta partie marquante.")}<strong>{report.highlight ? `${report.highlight.kills} / ${report.highlight.deaths} / ${report.highlight.assists}` : "—"}</strong></>;
+  if (chapter === 3) return <>{t("Ton évolution.")}<strong>{t(evolutionDelta(report.progression))}</strong></>;
+  if (chapter === 4) return <>{t("Ton équipe.")}<strong>{report.teamName}</strong></>;
+  return <>{t("Le bilan de tes")}<strong>{t("{0} parties.", [report.games])}</strong></>;
 }
 
 function accessibleDescription(report, view, chapter) {
@@ -168,14 +168,14 @@ export function ProfileShowcase({ player, rows = [], teamName = "", category = "
       <div className="profile-showcase-content">
       <section key={mode + "-" + chapter} className="profile-showcase-story" aria-label={mode === "story" ? t("Parcourir le Wrapped") : t("Bilan de la carte")}>
         <p className="profile-showcase-eyebrow"><span />{mode === "story" ? String(chapter + 1).padStart(2, "0") + " / 05 · " + t(CHAPTERS[chapter]) : t("Édition joueur") + " / " + (report.role || "NXT5")}</p>
-        <h3 className="profile-showcase-headline">{mode === "story" ? <StoryHeadline report={report} chapter={chapter} /> : <>{t("Ta carte.")}<strong>{t("Ton empreinte.")}</strong></>}</h3>
+        <h3 className="profile-showcase-headline">{mode === "story" ? <StoryHeadline report={report} chapter={chapter} /> : <>{t("Ta carte.")}<strong>{t("Tes résultats.")}</strong></>}</h3>
         <p className="profile-showcase-identity">{mode === "card" ? report.playerName + " · " + report.teamName : report.playerName}</p>
-        <p className="profile-showcase-description">{mode === "card" ? t("Tes parties, ton champion, tes moments. Une carte à garder. Un parcours à découvrir.") : t(copy.description)}</p>
+        <p className="profile-showcase-description">{mode === "card" ? t("Garde une carte de tes résultats et retrouve ton champion le plus joué, ta partie marquante et ton évolution dans le Wrapped.") : t(copy.description)}</p>
         {mode === "card" && <div className="profile-showcase-launch"><Button type="button" icon={Play} onClick={openReader}>{t("Découvrir le Wrapped")}</Button><span>{t("5 chapitres · à ton rythme")}</span></div>}
         {mode === "story" && chapter === 2 && report.highlight?.matchId && <a className="profile-text-action" href={"/games?match=" + encodeURIComponent(report.highlight.matchId)} onClick={(event) => { if (!navigate || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); if (inDialog) setExpanded(false); navigate("/games?match=" + encodeURIComponent(report.highlight.matchId)); }}>{t("Ouvrir la partie source")}<ArrowRight aria-hidden="true" /></a>}
         {mode === "story" && chapter === 3 && report.progression?.excludedCount > 0 && <p className="profile-showcase-meta">{t("{0} parties exclues : date ou mesure indisponible.", [report.progression.excludedCount])}</p>}
         {mode === "story" && chapter === 3 && report.progression && <p className="sr-only">{t("Première période")} : {report.progression.early.startDateLabel} – {report.progression.early.endDateLabel}. {t("Seconde période")} : {report.progression.recent.startDateLabel} – {report.progression.recent.endDateLabel}.</p>}
-        {mode === "story" && chapter === 4 && <div className="profile-showcase-finale"><p>{t("La suite se joue avec eux.")}</p><ul className="profile-showcase-roster" aria-label={t("Effectif actuel de l’équipe")}>{report.teammates.map((member) => <li key={member.id || member.name + "|" + member.role}><span>{member.role || "—"}</span><strong>{member.name}</strong></li>)}</ul><Button type="button" variant="ghost" icon={IdCard} onClick={(event) => { const focusTarget = inDialog ? event.currentTarget.closest("dialog")?.querySelector("header button") : rootRef.current?.querySelector("#showcase-tab-card"); focusTarget?.focus(); setMode("card"); setBack(false); setExportStatus(""); }}>{t("Retrouver ma carte")}</Button></div>}
+        {mode === "story" && chapter === 4 && <div className="profile-showcase-finale"><p>{t("Les membres actuels de ton équipe.")}</p><ul className="profile-showcase-roster" aria-label={t("Effectif actuel de l’équipe")}>{report.teammates.map((member) => <li key={member.id || member.name + "|" + member.role}><span>{member.role || "—"}</span><strong>{member.name}</strong></li>)}</ul><Button type="button" variant="ghost" icon={IdCard} onClick={(event) => { const focusTarget = inDialog ? event.currentTarget.closest("dialog")?.querySelector("header button") : rootRef.current?.querySelector("#showcase-tab-card"); focusTarget?.focus(); setMode("card"); setBack(false); setExportStatus(""); }}>{t("Retrouver ma carte")}</Button></div>}
         <p className="profile-showcase-context">{report.contextLabel}<br />{report.dateLabel}</p>
       </section>
       <figure ref={inDialog ? undefined : figureRef} className="profile-showcase-figure" aria-label={currentLabel}>
@@ -201,7 +201,7 @@ export function ProfileShowcase({ player, rows = [], teamName = "", category = "
     </div>;
   }
 
-  if (!report.games) return <Surface><EmptyState icon={IdCard} title={t("La carte commence avec une partie")} text={t("Aucune partie reliée à ce joueur dans cette sélection. Change la catégorie ou importe une partie pour créer sa carte et son Wrapped.")} /></Surface>;
+  if (!report.games) return <Surface><EmptyState icon={IdCard} title={t("Importe une partie pour créer la carte")} text={t("Aucune partie reliée à ce joueur dans cette sélection. Change la catégorie ou importe une partie pour créer sa carte et son Wrapped.")} /></Surface>;
   return <div className="profile-showcase" ref={rootRef}>
     <div className="profile-showcase-toolbar">
       <TabNav items={VIEWS.map((item) => ({ ...item, label: t(item.label) }))} activeId={mode} onChange={changeMode} label={t("Format du visuel")} idPrefix="showcase" panelId="showcase-panel" />

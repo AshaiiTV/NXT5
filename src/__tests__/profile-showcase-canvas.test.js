@@ -1,7 +1,12 @@
-import { describe, expect, it } from "vitest";
+import "./helpers/i18n.js";
+import { afterEach, describe, expect, it } from "vitest";
 import { createCanvas } from "@napi-rs/canvas";
 import { drawProfileShowcase, PROFILE_ART_REGIONS, PROFILE_SHOWCASE_SIZE } from "../utils/profile-showcase-canvas.js";
 import { profileChampionArtLayout } from "../utils/profile-showcase-art.js";
+import { setLanguage } from "../i18n/locale.js";
+import { buildProfileShowcase } from "../utils/profile-showcase.js";
+
+afterEach(() => setLanguage("fr"));
 
 function report(overrides = {}) {
   return {
@@ -34,7 +39,8 @@ function recordingCanvas() {
 }
 
 describe("profile collection rendering", () => {
-  it("renders both card faces and every chapter in the same export dimensions", () => {
+  it.each(["fr", "en", "es"])("renders both card faces and every chapter within the export dimensions in %s", language => {
+    setLanguage(language);
     for (const options of [{ view: "front" }, { view: "back" }, ...Array.from({ length: 5 }, (_, chapter) => ({ view: "story", chapter }))]) {
       const { canvas, texts } = recordingCanvas();
       expect(drawProfileShowcase(canvas, report(), options)).toBe(canvas);
@@ -45,10 +51,41 @@ describe("profile collection rendering", () => {
     }
   });
 
+  it.each([
+    ["en", "Known results: 11 / 12", "Totals · 12 / 12", "5 W / 1 L"],
+    ["es", "Resultados conocidos: 11 / 12", "Totales · 12 / 12", "5 V / 1 D"],
+  ])("translates canvas captions in %s while preserving user names and categories", (language, results, totals, record) => {
+    setLanguage(language);
+    const data = report({ playerName: "Victoire", teamName: "Accueil", contextLabel: "Défaite" });
+    const { canvas, texts } = recordingCanvas();
+    for (const options of [{ view: "front" }, { view: "back" }, ...Array.from({ length: 5 }, (_, chapter) => ({ view: "story", chapter }))]) drawProfileShowcase(canvas, data, options);
+    const rendered = texts.map(entry => entry.text);
+    const allText = rendered.join(" ");
+    expect(rendered).toContain(results);
+    expect(allText).toContain(totals);
+    expect(rendered).toContain(record);
+    expect(rendered).toContain("Défaite");
+    expect(rendered).toContain("VICTOIRE");
+    expect(rendered).toContain("Accueil · ADC");
+    expect(allText).not.toMatch(/résultats connus|profils affichés|moitiés chronologiques|PARTIES AFFICHÉES|PARTIES SÉLECTIONNÉES/);
+  });
+
+  it.each(["en", "es"])("localizes empty-profile defaults before drawing in %s", language => {
+    setLanguage(language);
+    const data = buildProfileShowcase();
+    expect(data.playerName).not.toBe("Joueur");
+    expect(data.teamName).not.toBe("Équipe");
+    expect(data.contextLabel).not.toBe("Tous les contextes");
+    expect(data.dateLabel).not.toBe("Dates non renseignées");
+    const { canvas, texts } = recordingCanvas();
+    drawProfileShowcase(canvas, data, { view: "front" });
+    expect(texts.map(entry => entry.text).join(" ")).not.toMatch(/Tous les contextes|Dates non renseignées/);
+  });
+
   it("shows absent measures separately from real zero and discloses partial coverage", () => {
     const { canvas, texts } = recordingCanvas();
     drawProfileShowcase(canvas, report({ metrics: { kda: { value: 0, count: 12 }, csPerMin: { value: null, count: 0 }, kp: { value: 0, count: 10 } } }), { view: "front" });
-    expect(texts.map((entry) => entry.text)).toEqual(expect.arrayContaining(["0,0", "—", "0 %", "0 / 12 parties", "10 / 12 parties", "11 résultats connus / 12"]));
+    expect(texts.map((entry) => entry.text)).toEqual(expect.arrayContaining(["0,0", "—", "0 %", "0 / 12 parties", "10 / 12 parties", "Résultats connus : 11 / 12"]));
   });
 
   it("keeps foreground text outside the whole portrait, including accented player names", () => {
@@ -128,7 +165,7 @@ describe("profile collection rendering", () => {
     expect((points[1].x - points[0].x) / (points[5].x - points[0].x)).toBeCloseTo(1000 / 99000);
     expect(points[0].y).toBeGreaterThan(points[1].y);
     expect(texts.map(({ text }) => text)).toEqual(expect.arrayContaining(["+0,06", "0,00", "date 1 – date 3", "date 4 – date 6"]));
-    expect(texts.map(({ text }) => text).join(" ")).toContain("6 exclues");
+    expect(texts.map(({ text }) => text).join(" ")).toContain("6 parties exclues");
   });
 
   it("labels the current roster honestly, discloses truncation and identifies the player by ID", () => {

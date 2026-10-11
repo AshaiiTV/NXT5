@@ -20,11 +20,11 @@ export const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platform=mac
 export const NXT5_IMPORTER_MAC_INTEL_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platform=mac&arch=x64`;
 
 export const NAV = [
-  { id: "home", label: "Accueil", hint: "Ton prochain pas", icon: House, path: "/accueil" },
+  { id: "home", label: "Accueil", hint: "Tes prochaines actions", icon: House, path: "/accueil" },
   { id: "teams", label: "Équipe", hint: "Retrouver tes joueurs", icon: Users, shortcut: "T", path: "/equipes" },
   { id: "matches", label: "Parties", hint: "Importer et revoir une partie", icon: Swords, shortcut: "G", path: "/games" },
   { id: "bot-discord", label: "Bot Discord", hint: "Connexion et publications", icon: Bot, path: "/bot-discord" },
-  { id: "trends", label: "Analyses", hint: "Suivre plusieurs parties", icon: Activity, shortcut: "N", path: "/tendances" },
+  { id: "trends", label: "Analyses", hint: "Comparer tes parties", icon: Activity, shortcut: "N", path: "/tendances" },
   { id: "planning", label: "Planning", hint: "Organiser les séances", icon: CalendarDays, shortcut: "L", path: "/planning" },
   { id: "draft", label: "Draft & Pool", hint: "Choisir les champions", icon: Sparkles, shortcut: "D", path: "/draft/pool" },
   { id: "reports", label: "Débriefs", hint: "Noter les points à travailler", icon: FileText, shortcut: "R", path: "/rapports" },
@@ -33,7 +33,7 @@ export const NAV = [
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
   { id: "audience", label: "Fréquentation", hint: "Audience et conversions", icon: BarChart3, path: "/admin/frequentation", hidden: true },
-  { id: "admin", label: "Administration", hint: "Vue plateforme", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
+  { id: "admin", label: "Administration", hint: "Gérer NXT5", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
   { id: "access-requests", label: "Demandes d’accès", hint: "Validation des offres", icon: Users, path: "/admin/demandes-acces", hidden: true },
   { id: "account-subscriptions", label: "Comptes et abonnements", hint: "Attributions manuelles", icon: Users, path: "/admin/abonnements", hidden: true },
 ];

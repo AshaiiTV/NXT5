@@ -9,10 +9,10 @@ const DEFAULT_SOCIAL_URLS = {
 const NETWORKS = [
   { id: "discord", label: "Discord", hosts: ["discord.gg", "discord.com"], description: "Retrouve la communauté, partage tes retours et échange avec le staff." },
   { id: "instagram", label: "Instagram", hosts: ["instagram.com", "www.instagram.com"], description: "Conseils et actualités NXT5 en images et en vidéos courtes." },
-  { id: "youtube", label: "YouTube", hosts: ["youtube.com", "www.youtube.com"], description: "Retrouve les vidéos et les nouveautés NXT5 sur la chaîne officielle." },
+  { id: "youtube", label: "YouTube", hosts: ["youtube.com", "www.youtube.com"], description: "La chaîne YouTube officielle @NXT5-ORG." },
   { id: "twitch", label: "Twitch", hosts: ["twitch.tv", "www.twitch.tv"], description: "Retrouve NXT5 en direct." },
   { id: "tiktok", label: "TikTok", hosts: ["tiktok.com", "www.tiktok.com"], description: "Les moments NXT5 en format court." },
-  { id: "x", label: "X", hosts: ["x.com", "www.x.com", "twitter.com", "www.twitter.com"], description: "Les nouvelles de NXT5 au fil des mises à jour." },
+  { id: "x", label: "X", hosts: ["x.com", "www.x.com", "twitter.com", "www.twitter.com"], description: "Les mises à jour de NXT5." },
 ];
 
 export function getSocialLinks(env = import.meta.env || {}) {
