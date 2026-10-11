@@ -2,7 +2,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import React from "react";
 import { NXT5_CONTACT_EMAIL } from "../../../shared/legal.js";
-import { ArrowRight, ArrowUpRight, LifeBuoy, MessageCircle, Radio, Shield, Users } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Camera, LifeBuoy, MessageCircle, Play, Radio, Shield, Users } from "lucide-react";
 import { getSocialLinks } from "../../app/social-links.js";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, PageHeader, Surface } from "../../components/ui/Core.jsx";
@@ -13,6 +13,8 @@ const COMMUNITY_USES = [
   [MessageCircle, "Fais avancer NXT5", "Partage tes retours et tes idées."],
   [LifeBuoy, "Trouve un coup de main", "Pose tes questions sur le site et ses outils."],
 ];
+
+const NETWORK_ICONS = { instagram: Camera, youtube: Play };
 
 export default function SocialPage({ navigate, user }) {
   useLanguage();
@@ -32,7 +34,7 @@ export default function SocialPage({ navigate, user }) {
         <header className="nxt5-information-hero nxt5-enter">
           <Badge tone="cyan">{t("La communauté NXT5")}</Badge>
           <h1 className="nxt5-metal-text">{t("La communauté et les réseaux NXT5")}</h1>
-          <p>{t("Rejoins le Discord NXT5 pour poser une question ou partager une idée. Pour ton compte et tes données personnelles, contacte l’équipe en privé.")}</p>
+          <p>{t("Suis les vidéos et les actualités NXT5 sur YouTube et Instagram. Rejoins la communauté sur Discord pour poser une question ou partager une idée.")}</p>
         </header>
 
         {discord && <Surface glow className="nxt5-community-feature nxt5-enter">
@@ -50,12 +52,15 @@ export default function SocialPage({ navigate, user }) {
         </Surface>}
 
         {!!otherNetworks.length && <section className="nxt5-other-networks" aria-labelledby="other-networks-title">
-          <h2 id="other-networks-title">{t("Retrouve-nous aussi ici")}</h2>
-          <Surface><ul className="nxt5-network-list">{otherNetworks.map((network) => (
-            <li key={network.id}><a href={network.href} target="_blank" rel="noopener noreferrer" aria-describedby="social-new-tab">
-              <Radio aria-hidden="true" size={22} /><span><strong>{t(network.label)}</strong><span>{t(network.description)}</span></span><ArrowUpRight aria-hidden="true" size={20} />
-            </a></li>
-          ))}</ul></Surface>
+          <h2 id="other-networks-title">{t("Les vidéos et les actualités NXT5")}</h2>
+          <Surface><ul className="nxt5-network-list">{otherNetworks.map((network) => {
+            const Icon = NETWORK_ICONS[network.id] || Radio;
+            return (
+              <li key={network.id}><a href={network.href} target="_blank" rel="noopener noreferrer" aria-describedby="social-new-tab">
+                <Icon aria-hidden="true" size={22} /><span><strong>{t(network.label)}</strong><span>{t(network.description)}</span></span><ArrowUpRight aria-hidden="true" size={20} />
+              </a></li>
+            );
+          })}</ul></Surface>
         </section>}
         {!links.length && <Surface><p className="nxt5-community-empty">{t("Aucun lien vers les réseaux de NXT5 n’est disponible sur cette page.")}</p></Surface>}
         <p id="social-new-tab" className="nxt5-social-link-note"><ArrowUpRight aria-hidden="true" size={15} />{t("Les liens vers les réseaux s’ouvrent dans un nouvel onglet.")}</p>

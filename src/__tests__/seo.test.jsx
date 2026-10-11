@@ -33,9 +33,11 @@ describe("public SEO and real component rendering", () => {
     const metadata = getMetadata("/reseaux");
     expect(metadata.description).toContain("Discord");
     expect(metadata.description).toContain("YouTube");
+    expect(metadata.description).toContain("Instagram");
     const organization = metadata.structuredData["@graph"].find(item => item["@type"] === "Organization");
     expect(organization.sameAs).toEqual([
       "https://discord.gg/esPcQAeNWu",
+      "https://www.instagram.com/nxt5org/",
       "https://www.youtube.com/channel/UC_C-OnOepIO05qfqlcUrMRA",
     ]);
     for (const href of organization.sameAs) expect(render("/reseaux")).toContain(`href="${href}"`);
@@ -45,7 +47,7 @@ describe("public SEO and real component rendering", () => {
   it("keeps configured community profiles identical in rendered pages, browser metadata and build metadata", () => {
     const env = {
       VITE_SOCIAL_YOUTUBE_URL: "https://www.youtube.com/@NXT5-ORG",
-      VITE_SOCIAL_INSTAGRAM_URL: "https://www.instagram.com/nxt5org/",
+      VITE_SOCIAL_INSTAGRAM_URL: "https://www.instagram.com/configured-team/",
       VITE_SOCIAL_TWITCH_URL: "https://untrusted.example/nxt5org",
     };
     for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
