@@ -13,6 +13,7 @@ import { cx } from "../../app/helpers.js";
 import { compositionSlots, emptyCompositionSlots, jsonList } from "../../utils/planning.js";
 import { POOL_TIER_LABELS, championKey, championAssetId, championDisplayName, championPoolRowsByTier, exportChampionTierListPng, canStaffManage, isGameplayRole, championPoolStatus, CHAMPION_TIERS, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championMatchesLane, ALL_CHAMPION_STYLE_TAGS, championPoolStatusLabel, ChampionPortrait, compositionIdentity, championStyleTone, tagLabel, COMP_ROLES, championPoolStatusTone, championStyleTags } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
+import DraftAssistance from "../../components/draft/DraftAssistance.jsx";
 
 function championOptions() {
   return [...new Set(Object.keys(ALL_CHAMPION_STYLE_TAGS).map(championAssetId))].sort((a, b) => championDisplayName(a).localeCompare(championDisplayName(b)));
@@ -794,6 +795,8 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
               {COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}
             </div>
 
+            <details className="nxt5-composition-details"><summary>{t("Aide au choix : pool et parties de l’équipe")}</summary><DraftAssistance key={selectedTeamId} data={data} teamId={selectedTeamId} slots={form.slots} champions={championOptions()} onPick={updateSlot} disabled={!canCreate || saving} /></details>
+
             <div className="nxt5-composition-form-actions"><p id="composition-save-help">{!canCreate ? t("Rejoins l’équipe pour enregistrer une composition.") : !form.title.trim() ? t("Ajoute un nom pour enregistrer la composition.") : t("{0}/5 champions choisis. Tu peux enregistrer une composition incomplète et la compléter plus tard.", [formPicks.length])}</p><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()} aria-describedby="composition-save-help">{saving ? t("Enregistrement…") : form.id ? t("Enregistrer les modifications") : t("Créer la composition")}</Button></div>
 
             <details className="nxt5-composition-details"><summary>{t("Choisir à partir des portraits des champions")}</summary><CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} /></details>
@@ -847,7 +850,7 @@ function DraftWorkspace({ data, setData, selectedTeamId, refreshAll, pushToast, 
   return <div>
     <TabNav idPrefix="draft" panelId="draft-panel" className="mb-5" label={t("Espace Draft")} items={DRAFT_VIEW_ROUTES.map((item) => ({ ...item, icon: icons[item.id] }))} activeId={view} onChange={(id) => navigate(draftPathFromView(id))} columns="sm:grid-cols-2" />
     <div id="draft-panel" role="tabpanel" aria-labelledby={`draft-tab-${view}`} tabIndex={0}>
-    {view === "compositions" ? <Compositions data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} /> : <Champions data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
+    {view === "compositions" ? <Compositions key={selectedTeamId} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} /> : <Champions data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
     </div>
   </div>;
 }
