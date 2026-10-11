@@ -1,3 +1,7 @@
+# NXT5 Importer 0.3.6
+
+- Le logo central et l’emblème d’en-tête utilisent le détourage transparent officiel : suppression des résidus de fond sombre, sans modification du dessin ni des couleurs.
+
 # NXT5 Importer 0.3.5
 
 - Electron 44.4.5 (correctifs de sécurité et de stabilité d’Electron, sans changement de fonctionnement).
