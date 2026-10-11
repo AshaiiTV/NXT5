@@ -1,5 +1,6 @@
 // Reviewed product copy. Keep these source strings aligned with the French UI.
 const copy = [
+  ["Remplaçants et autres joueurs", "Substitutes and other players", "Suplentes y otros jugadores"],
   ["Équipe Horizon · fictive", "Horizon · fictional team", "Horizon · equipo ficticio"],
   ["Données fictives · Lecture seule", "Sample data · Read only", "Datos de ejemplo · Solo lectura"],
   ["La question du débrief", "Review question", "Pregunta para el análisis"],
