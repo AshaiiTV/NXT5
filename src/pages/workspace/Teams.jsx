@@ -578,13 +578,6 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       {selectedTeam && !showSetup && <div>
         <Surface className="team-roster-surface">
           <PremiumRosterTable key={selectedTeam.id} roster={roster} matches={data.matches || []} currentUserId={user?.id} canManage={canManageRoster} />
-          {activeRoster.length > 0 && <details className="team-roster-options">
-            <summary>{t("Liens OP.GG par groupe")}</summary>
-            <div className="team-roster-copy-actions">
-              {mainTeamRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(mainTeamRoster, "des titulaires")}>{t("Copier OP.GG titulaires · ")}{mainTeamRoster.length}</Button>}
-              {substituteRoster.length > 0 && <Button type="button" variant="ghost" icon={Clipboard} onClick={() => copyMultiOpggLink(substituteRoster, "des remplaçants")}>{t("Copier OP.GG remplaçants · ")}{substituteRoster.length}</Button>}
-            </div>
-          </details>}
         </Surface>
       </div>}
     </div>

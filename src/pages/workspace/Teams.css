@@ -78,7 +78,6 @@
 .team-roster-staff li > :last-child { color: var(--nxt5-muted); font-size: var(--nxt5-font-small); }
 .team-roster-options { margin-top: 20px; border-top: 1px solid var(--nxt5-border); }
 .team-roster-options > summary { min-height: 44px; padding: 12px 4px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); cursor: pointer; }
-.team-roster-copy-actions { display: flex; flex-wrap: wrap; gap: 8px; padding-block: 4px 8px; }
 .team-roster .team-roster-empty { margin: 0; padding: 8px 0; border: 0; }
 .team-roster-empty p { margin-top: 8px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.65; }
 @container team-roster (max-width: 580px) {
