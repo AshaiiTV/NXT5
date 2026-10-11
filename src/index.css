@@ -671,13 +671,8 @@ html.nxt5-low-gpu .nxt5-hud-lines::before {
 .nxt5-hud-row { border: 0; border-top: 1px solid var(--nxt5-border); background: transparent; box-shadow: none; }
 .nxt5-flat-block { border-color: var(--nxt5-border); background: transparent; box-shadow: none; }
 
-.nxt5-composition-bank-grid,
-.nxt5-composition-card-slots {
+.nxt5-composition-bank-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.5rem), 1fr)) !important;
-}
-
-.nxt5-composition-card-slots {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.5rem), 1fr)) !important;
 }
 
 .nxt5-composition-bank-pool {
@@ -702,8 +697,7 @@ html.nxt5-low-gpu .nxt5-hud-lines::before {
 
 @media (min-width: 1440px) {
 
-  .nxt5-composition-bank-grid,
-  .nxt5-composition-card-slots {
+  .nxt5-composition-bank-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   }
 }

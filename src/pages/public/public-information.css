@@ -7,19 +7,19 @@
   color: var(--nxt5-text);
 }
 .nxt5-footer-main {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.25rem 2rem;
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  align-items: start;
+  gap: 1.5rem 3rem;
   border-top: 1px solid var(--nxt5-border);
-  padding-top: 1.25rem;
+  padding-top: 2rem;
 }
 .nxt5-footer-signature { margin: 0; font-size: var(--nxt5-font-small); font-weight: 600; }
-.nxt5-footer-project { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 1.25rem; }
+.nxt5-footer-project { display: flex; flex-direction: column; align-items: flex-start; gap: .75rem; padding-top: .75rem; }
 .nxt5-footer-support { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 44px; font-size: var(--nxt5-font-small); font-weight: 600; color: var(--nxt5-accent); }
 .nxt5-footer-support:hover { text-decoration: underline; text-underline-offset: 5px; }
 .nxt5-footer nav { display: flex; flex-wrap: wrap; gap: 0 1.5rem; }
+.nxt5-footer nav + nav { margin-top: .5rem; padding-top: .5rem; border-top: 1px solid var(--nxt5-border); }
 .nxt5-footer nav a, .nxt5-back-to-top {
   display: inline-flex;
   align-items: center;
@@ -52,7 +52,7 @@
   flex: 1;
   width: min(100%, 80rem);
   margin-inline: auto;
-  padding: 0.5rem 1.25rem 4rem;
+  padding: 1rem 1.25rem 4rem;
 }
 .nxt5-information-nav {
   display: flex;
@@ -77,12 +77,12 @@
   color: var(--nxt5-accent);
   border-bottom-color: var(--nxt5-accent);
 }
-.nxt5-information-hero { max-width: 58rem; margin-bottom: clamp(2rem, 4vw, 3rem); }
+.nxt5-information-hero { max-width: 58rem; margin-bottom: clamp(2rem, 4vw, 3rem); padding-block: .5rem 1rem; }
 .nxt5-information-hero h1 {
   margin: 1.125rem 0 0;
   padding-bottom: 0.125rem;
-  font-size: clamp(1.625rem, 2.3vw, 2.125rem);
-  font-weight: 800;
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-weight: 700;
   line-height: 1.12;
   letter-spacing: -0.04em;
   overflow-wrap: anywhere;
@@ -103,7 +103,7 @@
   gap: clamp(1.5rem, 4vw, 3rem);
 }
 .nxt5-document-sidebar { position: sticky; top: 1.5rem; min-width: 0; }
-.nxt5-information-label { margin: 0 0 0.75rem; color: var(--nxt5-muted); font-size: var(--nxt5-font-micro); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+.nxt5-information-label { margin: 0 0 0.75rem; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); font-weight: 600; }
 .nxt5-document-menu > a {
   display: flex;
   min-height: 48px;
@@ -164,7 +164,7 @@
   line-height: 1.6;
   color: var(--nxt5-accent);
 }
-.nxt5-document-body { padding: 0 clamp(0rem, 2vw, 1.5rem); }
+.nxt5-document-body { padding: .25rem clamp(0rem, 2vw, 1.5rem); }
 .nxt5-document-section { padding: clamp(1.25rem, 3vw, 2rem) 0; scroll-margin-top: 2rem; }
 .nxt5-document-section + .nxt5-document-section, .nxt5-document-resources { border-top: 1px solid var(--nxt5-border); }
 .nxt5-document-section h2 {
@@ -249,7 +249,8 @@
   .nxt5-document-body { padding-inline: 0.25rem; }
   .nxt5-document-section h2 { gap: 0.625rem; }
   .nxt5-footer { padding-inline: 1rem; }
-  .nxt5-footer-main { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+  .nxt5-footer-main { grid-template-columns: minmax(0, 1fr); gap: 1rem; padding-top: 1.5rem; }
+  .nxt5-footer-project { padding-top: 0; }
   .nxt5-footer nav { gap: 0 1.25rem; }
   .nxt5-footer nav a { font-size: var(--nxt5-font-small); }
 }

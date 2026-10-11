@@ -58,14 +58,14 @@
 .trend-evolution-description { margin-top: 8px; max-width: 64ch; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.6; }
 .trend-series-metric-control { flex: 0 1 260px; min-width: 0; }
 .trend-series-definition { max-width: 72ch; margin-top: 20px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.65; }
-.trend-series-figure { margin-top: 24px; }
+.trend-series-figure { margin-top: 24px; padding: 20px; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-field); }
 .trend-series-plot-heading { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; }
-.trend-series-chart { display: flex; gap: 12px; margin-top: 8px; padding-right: 8px; }
+.trend-series-chart { display: flex; gap: 12px; margin-top: 20px; padding-right: 8px; }
 .trend-series-y-axis { position: relative; flex: 0 0 52px; height: 232px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-variant-numeric: tabular-nums; }
 .trend-series-y-axis span { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
 .trend-series-plot { position: relative; min-width: 0; flex: 1; }
 .trend-series-plot > svg { display: block; width: 100%; height: 232px; overflow: visible; cursor: crosshair; }
-.trend-series-gridline { stroke: rgba(207, 250, 254, .12); stroke-dasharray: 3 5; }
+.trend-series-gridline { stroke: rgba(207, 250, 254, .12); stroke-dasharray: 2 6; }
 .trend-series-zero { stroke: var(--nxt5-text-secondary); stroke-width: 1.2; }
 .trend-series-line { fill: none; stroke: var(--nxt5-accent); stroke-width: 2.5; stroke-linejoin: round; }
 .trend-series-selection-line { stroke: var(--nxt5-accent-2); stroke-dasharray: 4 4; stroke-width: 1.5; }
@@ -92,14 +92,14 @@
 .trend-series-navigation { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; margin-top: 0; }
 .trend-series-navigation > label { flex: 1 1 280px; min-width: 0; }
 .trend-series-step-controls { display: flex; gap: 8px; }
-.trend-series-selected { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; margin-top: 0; padding: 4px 0 4px 20px; border-left: 2px solid var(--nxt5-accent-2); }
+.trend-series-selected { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; margin-top: 0; padding: 8px 0 8px 24px; border-left: 2px solid var(--nxt5-accent-2); }
 .trend-series-selected-content { flex: 1 1 320px; min-width: 0; }
 .trend-series-selected-context { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; }
 .trend-series-selected h4 { margin-top: 10px; font-size: 17px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
 .trend-series-selected-content > p { margin-top: 4px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.6; }
 .trend-series-selected dl { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin-top: 12px; }
 .trend-series-selected dt { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); }
-.trend-series-selected dd { font-size: 21px; font-weight: 700; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.trend-series-selected dd { font-size: 28px; font-weight: 700; letter-spacing: -.025em; line-height: 1.3; font-variant-numeric: tabular-nums; }
 .trend-series-details { margin-top: 24px; border-top: 1px solid var(--nxt5-border); border-bottom: 1px solid var(--nxt5-border); }
 .trend-series-details > summary { min-height: 52px; padding: 16px 0; cursor: pointer; font-size: var(--nxt5-font-ui); font-weight: 700; line-height: 1.5; }
 .trend-series-details > summary:hover { color: var(--nxt5-accent); }
@@ -117,6 +117,8 @@
 .trend-evolution-note { margin-top: 16px; max-width: 72ch; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.65; }
 
 @container (max-width: 540px) {
+  .trend-series-figure { padding: 16px 12px; }
+  .trend-series-chart { gap: 8px; padding-right: 4px; }
   .trend-series-metric-control { flex-basis: 100%; }
   .trend-series-step-controls { flex: 1 1 100%; }
   .trend-series-step-controls > button { flex: 1; }

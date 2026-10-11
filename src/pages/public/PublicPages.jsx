@@ -8,7 +8,7 @@ import { AUDIENCE_CONSENT_VERSION, openCookieSettings, trackAudienceEvent } from
 import { cx, readRememberPreference, writeRememberPreference } from "../../app/helpers.js";
 import { isSafeInternalPath } from "../../app/routing.js";
 import { SUPPORT_URL } from "../../app/support.js";
-import { Nxt5Wordmark } from "../../components/brand/BrandAssets.jsx";
+import { Nxt5Wordmark, RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
@@ -16,11 +16,20 @@ import { LegalConsent, SocialLogin, SocialNotice, SocialSignup, socialCallbackSt
 import "./public-information.css";
 import "./public-entry.css";
 import { DemoMatchSummary } from "./DemoMatchSummary.jsx";
+
+function TeamRoleSignature() {
+  return <div className="nxt5-entry-role-signature" aria-hidden="true">{["TOP", "JGL", "MID", "ADC", "SUP"].map((role) => <span key={role}><RoleIcon role={role} className="h-7 w-7" /><span>{role}</span></span>)}</div>;
+}
+
 function MarketingPreview({ navigate }) {
   useLanguage();
   return (
     <figure className="nxt5-entry-preview">
-      <DemoMatchSummary compact />
+      <div className="nxt5-entry-preview-frame">
+        <div className="nxt5-entry-preview-toolbar"><span><Users size={17} aria-hidden="true" />{t("Ton espace équipe")}</span><span>{t("Démonstration")}</span></div>
+        <TeamRoleSignature />
+        <DemoMatchSummary compact />
+      </div>
       <figcaption><PublicTextLink href="/demo" navigate={navigate}>{t("Explorer cette séance fictive dans la démo ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink></figcaption>
     </figure>
   );
@@ -374,7 +383,7 @@ export function HomeScreen({ navigate }) {
               [Users, "Organise l’équipe", "Ajoute les joueurs et leur rôle, puis partage les disponibilités. Chacun retrouve les prochaines séances dans le planning."],
               [BarChart3, "Comprends tes parties", "Importe une partie pour lire son résultat, les statistiques et les moments clés. Compare ensuite plusieurs parties dans Analyses."],
               [Target, "Prépare la prochaine séance", "Note les points à travailler dans un débrief. Prépare les choix de champions avec ton équipe dans Draft."],
-            ].map(([Icon, title, text], index) => <article className="nxt5-entry-feature" key={title}><div className="nxt5-entry-feature-heading"><Icon aria-hidden="true" size={23} /><span>0{index + 1}</span></div><h3>{t(title)}</h3><p>{t(text)}</p></article>)}
+            ].map(([Icon, title, text]) => <article className="nxt5-entry-feature" key={title}><div className="nxt5-entry-feature-heading"><Icon aria-hidden="true" size={23} /></div><div><h3>{t(title)}</h3><p>{t(text)}</p></div></article>)}
           </div>
           <div className="nxt5-entry-actions"><PublicTextLink href="/fonctionnalites" navigate={navigate} className="nxt5-entry-text-link">{t("Découvrir les outils d’analyse et de coaching")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink></div>
         </section>
@@ -617,6 +626,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
           <p className="nxt5-entry-eyebrow">{t("Ton espace équipe")}</p>
           <h2 id="auth-story-title">{t("Cinq rôles.")}<br /><span>{t("Un travail commun.")}</span></h2>
           <p>{t("Retrouve tes joueurs, tes parties et les points à travailler lors de la prochaine séance.")}</p>
+          <TeamRoleSignature />
           <ul>
             {[[Users, "Les joueurs de ton équipe", "Profils, rôles et disponibilités au même endroit."], [BarChart3, "Tes parties à portée de main", "Le résumé et les statistiques restent liés à chaque partie."], [FileText, "Vos débriefs au même endroit", "Garde les observations et les prochaines actions de l’équipe."]].map(([Icon, title, text]) => <li key={title}><Icon aria-hidden="true" size={21} /><div><strong>{t(title)}</strong><span>{t(text)}</span></div></li>)}
           </ul>

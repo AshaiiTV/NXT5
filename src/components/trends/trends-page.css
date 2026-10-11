@@ -1,15 +1,15 @@
 .nxt5-trends-page { min-width: 0; container: trends-page / inline-size; }
-.nxt5-trends-page .trends-filters { margin-bottom: 20px; padding: 4px 0 16px; border-bottom: 1px solid var(--nxt5-border); }
-.trends-filter-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 16px 28px; }
+.nxt5-trends-page .trends-filters { margin-bottom: 24px; padding: 20px; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-surface); }
+.trends-filter-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 20px 28px; }
 .trends-filter-controls > label { flex: 0 1 280px; min-width: 0; }
 .trends-filter-controls > label > span { font-size: var(--nxt5-font-ui); letter-spacing: .02em; text-transform: none; }
-.trends-scope { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; margin-top: 14px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
+.trends-scope { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 16px; margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--nxt5-border); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
 .trends-scope strong { color: var(--nxt5-text); font-weight: 650; }
 .trends-sample-note { display: flex; align-items: start; gap: 10px; margin: 0 0 20px; color: #fde68a; font-size: var(--nxt5-font-small); line-height: 1.6; }
 .trends-sample-note svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
 .trends-navigation { margin-bottom: 24px; }
 .trends-tabs { display: flex; border-bottom: 1px solid var(--nxt5-border-strong); gap: 6px; }
-.trends-tabs > button { position: relative; display: flex; flex: 1; min-width: 0; align-items: center; gap: 10px; border-radius: var(--nxt5-radius-button, 2px) var(--nxt5-radius-button, 2px) 0 0; min-height: 64px; padding: 12px; text-align: left; color: var(--nxt5-text-secondary); }
+.trends-tabs > button { position: relative; display: flex; flex: 1; min-width: 0; align-items: center; gap: 12px; border-radius: var(--nxt5-radius-button, 2px) var(--nxt5-radius-button, 2px) 0 0; min-height: 72px; padding: 14px 12px; text-align: left; color: var(--nxt5-text-secondary); }
 .trends-tabs > button:hover { background: rgba(255,255,255,.035); }
 .trends-tabs > button[aria-selected="true"] { color: var(--nxt5-text); background: var(--nxt5-spectrum-soft); }
 .trends-tabs > button[aria-selected="true"]::after { content: ""; position: absolute; inset: auto 12px -1px; height: 3px; background: var(--nxt5-spectrum-gradient); }
@@ -55,6 +55,7 @@
 .trends-role-number b { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .trends-role-number > span { display: none; }
 .trends-review-list details { border-top: 1px solid var(--nxt5-border); }
+.trends-review-list details[open] { border-top-color: var(--nxt5-accent-2); }
 .trends-review-list summary { position: relative; cursor: pointer; padding: 18px 28px 18px 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; }
 .trends-review-list summary::after { content: "+"; position: absolute; right: 4px; font-size: 20px; line-height: 1; color: #a5f3fc; }
 .trends-review-list details[open] summary::after { content: "−"; }
@@ -62,7 +63,7 @@
 .trends-review-list summary > .trends-eyebrow { min-width: 96px; }
 .trends-review-list summary > strong { flex: 1; min-width: 200px; font-size: var(--nxt5-font-ui); font-weight: 650; line-height: 1.5; }
 .trends-review-list summary > span:last-child { font-size: var(--nxt5-font-ui); color: var(--nxt5-text-secondary); }
-.trends-review-content { padding-bottom: 16px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.75; }
+.trends-review-content { padding: 0 0 20px 16px; border-left: 2px solid var(--nxt5-border); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.75; }
 .trends-review-content p { max-width: 72ch; }
 .trends-review-content ul { display: flex; flex-wrap: wrap; gap: 4px 28px; list-style: disc; padding: 8px 0 8px 18px; font-size: var(--nxt5-font-body); }
 .trends-alerts { border-top: 1px solid var(--nxt5-border); padding-top: 20px; margin-top: 10px; }
@@ -122,6 +123,7 @@
   .trends-role-number > span { display: block; font-size: var(--nxt5-font-small); color: var(--nxt5-text-secondary); margin-bottom: 4px; }
 }
 @container trends-page (max-width: 639px) {
+  .nxt5-trends-page .trends-filters { padding: 16px; }
   .trends-filter-controls { align-items: stretch; flex-direction: column; }
   .trends-filter-controls > label { flex-basis: auto; }
   .trends-tabs { display: none; }

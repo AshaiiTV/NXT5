@@ -554,7 +554,7 @@ function CompositionChampionBank({ players, rows, slots, onPick }) {
         return <div key={role} className="nxt5-composition-bank-role">
           <div className="mb-3 flex items-center justify-between gap-2"><span className="flex items-center gap-2 text-xs font-semibold text-white"><RoleIcon role={role} className="h-5 w-5" />{role}</span><span className="break-words text-xs font-bold text-cyan-100/80">{player?.name || t("Profil manquant")}</span></div>
           {tierGroups.length ? <div className="nxt5-composition-tier-grid">{tierGroups.map(({ tier, items }) => <section key={tier.id}>
-            <div className="mb-2 flex min-w-0 items-center gap-2">
+            <div className="nxt5-composition-tier-heading mb-2 flex min-w-0 items-center gap-2">
               <ChampionTierMark tier={tier} active className="h-6 w-6 rounded-lg [&_svg]:h-3.5 [&_svg]:w-3.5" />
               <p className="break-words text-xs font-semibold text-slate-200">{t(tierShortLabel[tier.id])}</p>
               <span className="h-px min-w-2 flex-1 bg-white/[0.08]" />
@@ -600,16 +600,16 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
   const slotPicks = COMP_ROLES.map((role) => ({ role, pick: rows.find((row) => row.id === slots[role]?.poolId) }));
   const picks = slotPicks.map((slot) => slot.pick).filter(Boolean);
   const identity = compositionIdentity(picks);
-  return <Surface className="group relative overflow-hidden p-0 transition duration-200 hover:border-cyan-300/28">
-        <div className="relative z-10 p-4">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+  return <Surface className="nxt5-composition-card group relative overflow-hidden p-0">
+        <div className="nxt5-composition-card-content relative z-10">
+      <div className="nxt5-composition-card-heading">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2"><Badge tone={mastery.tone}>{t(mastery.label)}</Badge><span className="text-sm text-slate-300">{picks.length}{t("/5 champions")}{tags.length ? ` · ${tags.map(tagLabel).join(" · ")}` : ""}</span></div>
           <h3 className="mt-3 break-words text-2xl font-black text-white">{composition.title}</h3>
           <p className="mt-1 text-xs font-semibold text-cyan-100/72">{t("Créée par ")}{composition.created_by_name || t("un membre")}</p>
           {composition.notes && <p className="mt-3 max-w-4xl text-sm font-semibold leading-6 text-slate-200">{composition.notes}</p>}
         </div>
-        {canManage && <div className="flex shrink-0 flex-wrap gap-2">
+        {canManage && <div className="nxt5-composition-card-actions flex shrink-0 flex-wrap gap-2">
           <Button type="button" variant="ghost" icon={Clipboard} onClick={() => onEdit(composition)} disabled={saving} aria-label={t("Modifier la composition")}>{t("Modifier")}</Button>
           <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => onDuplicate(composition)} disabled={saving} aria-label={t("Dupliquer la composition")}>{t("Dupliquer")}</Button>
           <button type="button" onClick={() => onDelete(composition.id)} disabled={saving} title={t("Supprimer")} aria-label={t("Supprimer la composition")} className="min-h-11 min-w-11 rounded-[2px] p-3 text-slate-300 transition hover:bg-rose-500/10 hover:text-rose-200"><Trash2 className="h-4 w-4" /></button>
@@ -620,13 +620,13 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
           {slotPicks.map(({ role, pick }) => {
             const pickStatus = pick ? championPoolStatus(pick) : "";
             const tier = pick ? championTierByStatus(pickStatus) : null;
-            return <div key={role} className={cx("relative min-h-[140px] border-t border-white/10 py-3", pick ? "text-white" : "text-slate-400")}>
-              <div className="relative z-10 flex h-full min-h-[116px] flex-col justify-between">
-                <div className="flex items-center justify-between gap-2">
+            return <div key={role} className={cx("nxt5-composition-saved-slot", pick ? "has-pick text-white" : "text-slate-400")}>
+              <div className="nxt5-composition-saved-slot-content">
+                <div className="nxt5-composition-saved-role flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-2 text-xs font-semibold"><RoleIcon role={role} className="h-4 w-4 text-cyan-100" />{role}</span>
                   {tier && <ChampionTierMark tier={tier} active className="h-8 w-8 rounded-xl ring-1 ring-black/45 [&_svg]:h-4 [&_svg]:w-4" />}
                 </div>
-                {pick ? <div className="mt-5">
+                {pick ? <div className="nxt5-composition-saved-champion">
                   <div className="flex items-end gap-3">
                     <span className="inline-flex h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/15 bg-black/45"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span>
                     <div className="min-w-0 pb-1">
@@ -832,7 +832,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
         <div id="composition-style-lexicon"><CompositionTagLexicon open={showTagLexicon} /></div>
       </div>
 
-      <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="nxt5-composition-library-heading">
         <div>
           <h3 id="nxt5-saved-compositions" tabIndex={-1} className="nxt5-composition-saved-heading text-xl font-bold text-white">{t("Compositions enregistrées")}</h3>
           <p className="mt-1 text-xs font-bold text-slate-400">{filteredCompositions.length} / {compositions.length}{t(" visibles")}</p>
@@ -842,7 +842,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
         </div>
       </div>
 
-      <div className="mt-3 grid gap-3">
+      <div className="nxt5-composition-library-list">
         {filteredCompositions.length ? filteredCompositions.map((composition) => <CompositionCard key={composition.id} composition={composition} rows={rows} canManage={isStaff || composition.created_by === user?.id} saving={saving} onEdit={editComposition} onDuplicate={duplicateComposition} onDelete={deleteComposition} />) : compositions.length ? <EmptyState icon={Sparkles} title={t("Aucune composition pour ce côté")} text={t("Choisis « Toutes » ou ajoute l’étiquette Côté bleu ou Côté rouge à une composition.")} /> : <EmptyState icon={Sparkles} title={t("Aucune composition enregistrée")} text={t("Prépare ta première composition avec les champions déclarés par les joueurs.")} />}
       </div>
     </div>

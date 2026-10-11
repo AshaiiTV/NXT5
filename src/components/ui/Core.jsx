@@ -10,7 +10,7 @@ import { getTopDialog, subscribeDialogs } from "./dialog-registry.js";
 export function Badge({ children, tone: badgeTone = "slate", pulse = false, className = "", ...props }) {
   useLanguage();
   return (
-    <span {...props} className={cx("nxt5-badge inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-left text-xs font-semibold leading-5 whitespace-normal", tone(badgeTone), className)}>
+    <span {...props} data-tone={badgeTone} className={cx("nxt5-badge inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-left text-xs font-semibold leading-5 whitespace-normal", tone(badgeTone), className)}>
       {pulse && <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />}
       <span className="min-w-0 break-words">{children}</span>
     </span>
@@ -169,10 +169,10 @@ export function ToastStack({ toasts, removeToast }) {
     <div className="fixed bottom-5 right-4 z-[80] max-w-[calc(100vw-2rem)] space-y-3" aria-live="polite" aria-atomic="false">
       <React.Fragment>
         {toasts.map((toast) => (
-          <div key={toast.id} className={cx("nxt5-enter-fast w-[min(92vw,380px)] max-w-full rounded-[1.25rem] border p-4 shadow-2xl backdrop-blur-xl", tone(toast.type || "cyan"))}>
+          <div key={toast.id} className="nxt5-toast nxt5-enter-fast" data-tone={toast.type || "cyan"}>
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 rounded-2xl bg-white/10 p-2">{toast.type === "red" ? <AlertTriangle className="h-4 w-4" /> : <Check className="h-4 w-4" />}</div>
-              <div className="min-w-0 flex-1"><p className="font-black">{t(toast.title)}</p>{toast.text && <p className="mt-1 whitespace-pre-line text-sm leading-5 opacity-80">{t(toast.text)}</p>}</div>
+              <div className="nxt5-toast-icon" aria-hidden="true">{["red", "yellow", "amber"].includes(toast.type) ? <AlertTriangle className="h-4 w-4" /> : <Check className="h-4 w-4" />}</div>
+              <div className="nxt5-toast-copy min-w-0 flex-1"><p>{t(toast.title)}</p>{toast.text && <p>{t(toast.text)}</p>}</div>
               <button type="button" aria-label={t("Fermer la notification")} onClick={() => removeToast(toast.id)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-white/10"><X aria-hidden="true" className="h-4 w-4" /></button>
             </div>
           </div>
@@ -186,17 +186,16 @@ export function ToastStack({ toasts, removeToast }) {
 export function EmptyState({ icon: Icon = BarChart3, title, text, action }) {
   useLanguage();
   return (
-    <div className="relative flex min-h-[190px] flex-col items-center justify-center overflow-hidden rounded-[1.25rem] border border-dashed border-white/10 bg-white/[0.018] p-5 text-center">
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[linear-gradient(126deg,rgba(34,211,238,.05),transparent_38%,rgba(167,139,250,.04))]" />
-      <div className="relative rounded-xl border border-white/10 bg-white/[0.05] p-3 text-cyan-100"><Icon className="h-5 w-5" /></div>
-      <h3 className="relative mt-3 text-lg font-black text-white">{title}</h3>
-      <p className="relative mt-2 max-w-xl text-sm leading-6 text-slate-400">{text}</p>
-      {action && <div className="relative mt-5">{action}</div>}
+    <div className="nxt5-empty-state">
+      <div className="nxt5-empty-icon" aria-hidden="true"><Icon className="h-6 w-6" /></div>
+      <h3>{title}</h3>
+      <p>{text}</p>
+      {action && <div className="nxt5-empty-action">{action}</div>}
     </div>
   );
 }
 
 export function SkeletonRows({ count = 4 }) {
   useLanguage();
-  return <div className="space-y-3">{Array.from({ length: count }).map((_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />)}</div>;
+  return <div className="nxt5-skeleton-rows" aria-hidden="true">{Array.from({ length: count }).map((_, i) => <div key={i} className="nxt5-skeleton-row animate-pulse"><span className="nxt5-skeleton-icon" /><span className="nxt5-skeleton-copy"><span /><span /></span><span className="nxt5-skeleton-meta" /></div>)}</div>;
 }

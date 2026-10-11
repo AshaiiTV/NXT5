@@ -17,8 +17,9 @@
 .draft-empty { padding: 18px 0; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.65; }
 .draft-footnote { margin: 12px 0 0; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.6; }
 .draft-overview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; padding: 24px 0; border-bottom: 1px solid var(--nxt5-border-strong); }
+.draft-overview > div + div { border-left: 1px solid var(--nxt5-border); padding-left: 24px; }
 .draft-overview dt { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; }
-.draft-overview dd:not(.draft-overview-detail) { margin-top: 6px; font-size: clamp(22px, 2.8cqi, 30px); font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.draft-overview dd:not(.draft-overview-detail) { margin-top: 8px; font-size: clamp(24px, 2.8cqi, 30px); font-weight: 700; letter-spacing: -.025em; line-height: 1.25; font-variant-numeric: tabular-nums; }
 .draft-overview .draft-overview-detail { margin-top: 6px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 400; line-height: 1.5; }
 .draft-analysis-layout, .draft-tables-layout, .draft-review-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; padding: 24px 0; }
 .draft-analysis-layout > *, .draft-tables-layout > *, .draft-review-layout > * { min-width: 0; }
@@ -89,6 +90,7 @@ button.draft-champion-row:hover, button.draft-table-row:hover { background: rgba
 @container (max-width: 600px) {
   .draft-overview { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .draft-overview > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 2px 16px; }
+  .draft-overview > div + div { border-left: 0; border-top: 1px solid var(--nxt5-border); padding-left: 0; padding-top: 16px; }
   .draft-overview dd:not(.draft-overview-detail) { margin: 0; font-size: 23px; }
   .draft-overview .draft-overview-detail { grid-column: 1 / -1; margin: 0; }
   .draft-table-labels { display: none; }
