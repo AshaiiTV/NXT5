@@ -26,7 +26,7 @@
 .nxt5-profile-page .profile-section-heading h3, .profile-followup-intro h3 { font-size: 20px; line-height: 1.4; font-weight: 700; }
 .profile-section-heading > span, .profile-section-heading p, .profile-followup-intro p { font-size: var(--nxt5-font-body); line-height: 1.65; color: var(--nxt5-text-secondary); }
 .profile-section-heading p, .profile-followup-intro p { margin-top: 6px; max-width: 72ch; }
-.nxt5-profile-page .profile-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 24px; margin: 20px 0 4px; }
+.nxt5-profile-page .profile-metrics { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 24px; margin: 20px 0 4px; }
 .profile-metrics > div { min-width: 0; padding-left: 20px; border-left: 1px solid var(--nxt5-border); }
 .profile-metrics > div:first-child { border: 0; padding-left: 0; }
 .profile-metrics dt { font-size: var(--nxt5-font-small); line-height: 1.5; color: var(--nxt5-text-secondary); }
@@ -106,9 +106,11 @@
 .nxt5-profile-page .profile-goals button[aria-label] { min-width: 44px; }
 .nxt5-profile-page button:focus-visible, .nxt5-profile-page a:focus-visible, .nxt5-profile-page summary:focus-visible, .nxt5-profile-page textarea:focus-visible, .profile-content:focus-visible { outline: 2px solid #67e8f9; outline-offset: 3px; }
 .nxt5-profile-page .profile-content p, .nxt5-profile-page .profile-content h3, .nxt5-profile-page .profile-content h4 { overflow-wrap: anywhere; }
-@container profile-page (max-width: 850px) {
+@container profile-page (max-width: 1000px) {
   .nxt5-profile-page .profile-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 24px; }
   .profile-metrics > div { padding-left: 0; border: 0; }
+}
+@container profile-page (max-width: 850px) {
   .profile-history-main { grid-template-columns: minmax(0,1fr) auto; }
   .profile-history-main > button { grid-column: 1 / -1; justify-self: start; }
 }
