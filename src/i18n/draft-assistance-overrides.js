@@ -1,5 +1,12 @@
 // Draft assistance: player pools, team match evidence, and external references.
 export const en = {
+  "Joueur · {0}": "Player · {0}",
+  "Retirer le champion · {0}": "Remove champion · {0}",
+  "Choisis les cinq champions parmi les listes de tes joueurs.": "Pick five champions from your players' champion pools.",
+  "Ex. : Protéger Jinx": "E.g. Protect Jinx",
+  "Rejoins l’équipe pour enregistrer une composition.": "Join the team to save a composition.",
+  "Ajoute un nom pour enregistrer la composition.": "Add a name to save the composition.",
+  "Enregistrement…": "Saving…",
   "Aide au choix : pool et parties de l’équipe": "Pick assistance: champion pool and team games",
   "{0} résultats connus sur {1} parties": "{0} known results across {1} games",
   "Aucune partie renseignée": "No games recorded",
@@ -29,6 +36,13 @@ export const en = {
 };
 
 export const es = {
+  "Joueur · {0}": "Jugador · {0}",
+  "Retirer le champion · {0}": "Quitar campeón · {0}",
+  "Choisis les cinq champions parmi les listes de tes joueurs.": "Elige cinco campeones de los repertorios de tus jugadores.",
+  "Ex. : Protéger Jinx": "Ej.: Proteger a Jinx",
+  "Rejoins l’équipe pour enregistrer une composition.": "Únete al equipo para guardar una composición.",
+  "Ajoute un nom pour enregistrer la composition.": "Añade un nombre para guardar la composición.",
+  "Enregistrement…": "Guardando…",
   "Aide au choix : pool et parties de l’équipe": "Ayuda para elegir: repertorio y partidas del equipo",
   "{0} résultats connus sur {1} parties": "{0} resultados conocidos de {1} partidas",
   "Aucune partie renseignée": "No hay partidas registradas",
