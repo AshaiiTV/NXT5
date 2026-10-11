@@ -29,7 +29,7 @@ export function ImporterDownloadPanel({ fileImporting, hasTeam, hasPreview, onIm
     <><Surface className="min-w-0">
       <section aria-labelledby="importer-download-title" className="min-w-0 sm:p-2">
         <h3 id="importer-download-title" className="text-xl font-bold text-white">{hasPreview ? t("Fichier chargé") : t("Ajoute le fichier de ta partie")}</h3>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{hasPreview ? t("Choisis ton équipe ci-dessous, puis vérifie les joueurs avant de confirmer.") : t("Choisis le fichier .json créé par NXT5 Importer. Tu pourras vérifier les équipes et les joueurs avant l’enregistrement.")}</p>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">{hasPreview ? t("Vérifie ton équipe et les joueurs ci-dessous avant de confirmer.") : t("Choisis le fichier .json créé par NXT5 Importer. Tu pourras vérifier les équipes et les joueurs avant l’enregistrement.")}</p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <Button type="button" variant={hasPreview ? "ghost" : "primary"} icon={fileImporting ? Loader2 : Upload} disabled={fileImporting || !hasTeam} aria-busy={fileImporting} onClick={() => fileInput.current?.click()} className="min-h-12">
             {fileImporting ? t("Chargement…") : hasPreview ? t("Changer de fichier") : t("Choisir mon fichier")}

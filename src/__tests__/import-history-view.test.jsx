@@ -495,9 +495,9 @@ describe("import flow without a second game list", () => {
     expect(renderer.root.findAllByType("h2")).toHaveLength(0);
     await load(renderer, JSON.stringify(source));
     expect(apiUploadJson.mock.calls[0].slice(0, 2)).toEqual(["matches-import-file", { teamId: "team", payload: source, previewOnly: true }]);
-    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
     const blue = renderer.root.findAllByType("button").find((node) => text(node).startsWith("Côté bleu"));
-    await act(async () => blue.props.onClick());
+    expect(blue.props["aria-pressed"]).toBe(true);
+    expect(apiUploadJson).toHaveBeenCalledTimes(1);
     expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
     // React 19 regroupe les rendus d'un même act : l'import final reste en attente
     // pour observer l'état occupé avant sa résolution.

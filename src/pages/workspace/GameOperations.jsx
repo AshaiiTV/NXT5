@@ -9,6 +9,7 @@ import { ImporterDownloadPanel } from "./ImporterDownloadPanel.jsx";
 import { cx, errorToast, tone, formatUploadSize } from "../../app/helpers.js";
 import { matchCategoryIds, matchDisplayName } from "../../utils/matches.js";
 import { importedGameSide } from "../../utils/imported-games.js";
+import { suggestImportSide, suggestedImportLabel } from "../../utils/import-suggestions.js";
 import { normalizeRole } from "../../../shared/roles.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, isGameplayRole, normalizeProfileKey, matchCategoryTone, championMatchesLane } from "./workspace-shared.jsx";
@@ -332,6 +333,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   const [enemyLaneAssignments, setEnemyLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [playerAssignments, setPlayerAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [allyTeamSide, setAllyTeamSide] = useState("");
+  const [suggestedSide, setSuggestedSide] = useState("");
   const [importDetails, setImportDetails] = useState({ label: "", categoryIds: [] });
   const [importPreview, setImportPreview] = useState(null);
   const [previewPayload, setPreviewPayload] = useState(null);
@@ -430,6 +432,9 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     return lookup;
   }
   function matchedRosterPlayer(participant, lookup) {
+    const riotId = String(participant.riotId || "").trim().toLowerCase();
+    const exact = riotId.includes("#") && gameplayRoster.find(player => String(player.riot_id || "").trim().toLowerCase() === riotId);
+    if (exact) return exact;
     return preportIdentityKeys(participant).map((key) => lookup.get(key)).find(Boolean) || null;
   }
   function previewRoleScore(participant, role, index, matchedPlayer) {
@@ -445,8 +450,8 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     if (fallbackRole === role) score += 10;
     return score;
   }
-  function roleParticipantMapForSide(side) {
-    const team = previewTeams.find((item) => item.side === side);
+  function roleParticipantMapForSide(side, preview = importPreview) {
+    const team = (preview?.teams || []).find((item) => item.side === side);
     const participants = [...(team?.participants || [])].sort((a, b) => Number(a.participantId || 0) - Number(b.participantId || 0));
     const lookup = rosterIdentityLookup();
     const candidates = [];
@@ -481,16 +486,16 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     });
     return byRole;
   }
-  function laneAssignmentsForSide(side) {
-    const byRole = roleParticipantMapForSide(side);
+  function laneAssignmentsForSide(side, preview = importPreview) {
+    const byRole = roleParticipantMapForSide(side, preview);
     return COMP_ROLES.reduce((next, role) => {
       next[role] = previewAssignmentValue(byRole.get(role)?.participant);
       return next;
     }, {});
   }
-  function playerAssignmentsForSide(side) {
+  function playerAssignmentsForSide(side, preview = importPreview) {
     const defaults = rosterAssignmentsByRole();
-    const byRole = roleParticipantMapForSide(side);
+    const byRole = roleParticipantMapForSide(side, preview);
     return COMP_ROLES.reduce((next, role) => {
       next[role] = byRole.get(role)?.matched?.id || defaults[role] || "";
       return next;
@@ -498,12 +503,16 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   }
   function selectImportSide(side) {
     if (side === allyTeamSide) return;
+    setSuggestedSide("");
+    applyImportSide(side, importPreview);
+  }
+  function applyImportSide(side, preview) {
     const enemySide = side === "BLUE" ? "RED" : "BLUE";
     setAllyTeamSide(side);
-    setLaneAssignments(laneAssignmentsForSide(side));
-    setEnemyLaneAssignments(laneAssignmentsForSide(enemySide));
-    setPlayerAssignments(playerAssignmentsForSide(side));
-    const byRole = roleParticipantMapForSide(side);
+    setLaneAssignments(laneAssignmentsForSide(side, preview));
+    setEnemyLaneAssignments(laneAssignmentsForSide(enemySide, preview));
+    setPlayerAssignments(playerAssignmentsForSide(side, preview));
+    const byRole = roleParticipantMapForSide(side, preview);
     setProfileDraft(Object.fromEntries(COMP_ROLES.map(role => {
       const participant = byRole.get(role)?.participant;
       return [role, { name: participant?.summonerName || participant?.riotId?.split("#")[0] || "", riotId: participant?.riotId?.includes("#") ? participant.riotId : "" }];
@@ -514,6 +523,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     setImportPreview(null);
     setPreviewPayload(null);
     setAllyTeamSide("");
+    setSuggestedSide("");
     setImportDetails({ label: "", categoryIds: [] });
     setLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setEnemyLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
@@ -572,10 +582,17 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
       setPreviewPayload(payload);
       setImportPreview(result.match);
       setImportDetails({
-        label: payload?.label || payload?.metadata?.label || payload?.opponent || payload?.metadata?.opponent || "",
+        label: suggestedImportLabel(payload, result.match),
         categoryIds: []
       });
-      pushToast({ type: "green", title: "Fichier chargé", text: "Choisis ton équipe, puis vérifie les champions et les joueurs avant de confirmer." });
+      const side = suggestImportSide(result.match, gameplayRoster);
+      if (side) {
+        applyImportSide(side, result.match);
+        setSuggestedSide(side);
+      }
+      pushToast({ type: "green", title: "Fichier chargé", text: side
+        ? t("Ton équipe a été reconnue grâce aux cinq Riot ID. Vérifie les postes et les profils avant de confirmer.")
+        : "Choisis ton équipe, puis vérifie les champions et les joueurs avant de confirmer." });
       clearUploadProgressSoon();
     } catch (err) {
       const toast = err instanceof SyntaxError
@@ -629,7 +646,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
 
         {importPreview && <Surface className="min-w-0 p-5">
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? t("Prêt à importer") : t("À compléter")}</Badge><h3 className="mt-3 text-2xl font-black text-white">{t("Vérifie les équipes et les joueurs")}</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{t("Repère tes champions pour choisir ton équipe. Vérifie ensuite les postes et les profils associés.")}</p></div>
+            <div className="min-w-0"><Badge tone={importReady ? "green" : "orange"}>{importReady ? t("Prêt à importer") : t("À compléter")}</Badge><h3 className="mt-3 text-2xl font-black text-white">{t("Vérifie les équipes et les joueurs")}</h3><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{suggestedSide ? t("Ton équipe a été reconnue grâce aux cinq Riot ID. Vérifie les postes et les profils avant de confirmer.") : t("Repère tes champions pour choisir ton équipe. Vérifie ensuite les postes et les profils associés.")}</p></div>
           </div>
           <div className="game-import-steps">
             {importFlowSteps.map(([Icon, title, text, done], index) => <div key={`rail-${title}`} className={cx("game-import-step", done ? "bg-cyan-300/[0.10] text-cyan-50" : "bg-white/[0.035] text-slate-300")}>
