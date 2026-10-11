@@ -50,6 +50,20 @@ describe('assistant AI daily budget', () => {
   });
   afterEach(() => vi.unstubAllEnvs());
 
+  it.each([undefined, '1'])('rejects a streamed body over 20 KB with content-length %s before consuming AI budgets', async (declaredLength) => {
+    const headers: Record<string, string> = { 'content-type': 'application/json' };
+    if (declaredLength) headers['content-length'] = declaredLength;
+    const response = await handler(new Request('https://nxt5.org/.netlify/functions/assistant-chat', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ message: 'Comment importer une partie ?', extra: 'é'.repeat(10_000) }),
+    }), {} as any);
+
+    expect(response.status).toBe(413);
+    expect(state.subject).not.toHaveBeenCalled();
+    expect(state.create).not.toHaveBeenCalled();
+  });
+
   it('calls the model within the account and platform daily budgets', async () => {
     const { status, body } = await ask();
     expect(status).toBe(200);

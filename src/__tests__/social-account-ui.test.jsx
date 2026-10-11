@@ -55,6 +55,7 @@ describe("social account entry and completion", () => {
     expect(pushToast).not.toHaveBeenCalled();
     expect(content(renderer.root)).toContain("Demande reçue");
     expect(content(renderer.root)).toContain("Si tu as déjà un compte");
+    expect(content(renderer.root)).toContain("connecte-toi avec le mot de passe choisi, puis ouvre le lien de vérification reçu par e-mail dans ce même navigateur");
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
     const login = renderer.root.findAllByType("a").find((node) => content(node).trim() === "Se connecter");
     const destination = new URL(login.props.href, "https://nxt5.org");

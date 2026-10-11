@@ -89,6 +89,7 @@ const otherUserId = '00000000-0000-4000-8000-000000000002';
 const password = 'Correct current password';
 const originalToken = 'old-address-verification-token';
 const nextToken = 'new-address-verification-token';
+const verificationSession = 'email-verification-browser-session';
 const context = { cookies: { set: vi.fn() } } as any;
 
 function profile(email = 'next@example.test', currentPassword: string | undefined = password) {
@@ -97,7 +98,9 @@ function profile(email = 'next@example.test', currentPassword: string | undefine
   }), context);
 }
 function verify(token = originalToken) {
-  return verifyEmail(new Request(`https://nxt5.test/verify-email?token=${token}`));
+  return verifyEmail(new Request(`https://nxt5.test/verify-email?token=${token}`), {
+    cookies: { get: () => verificationSession }
+  } as any);
 }
 function resend() {
   return resendVerification(new Request('https://nxt5.test/resend', { method: 'POST' }), context);
@@ -162,6 +165,10 @@ describe('authentication request size limits', () => {
 });
 
 describe('email verification belongs to the current address', () => {
+  beforeEach(async () => {
+    await state.pg.query("insert into sessions(user_id, token_hash, expires_at) values ($1, $2, now() + interval '1 day')", [userId, sha256(verificationSession)]);
+  });
+
   it('rejects the stored hash as a bearer token but accepts the original token once', async () => {
     expect((await verify(sha256(originalToken))).headers.get('location')).toContain('error=invalid');
     expect((await user()).email_verified).toBe(false);
@@ -174,7 +181,7 @@ describe('email verification belongs to the current address', () => {
     expect(locations.filter(location => location?.includes('success=true'))).toHaveLength(1);
     expect(locations.filter(location => location?.includes('error=invalid'))).toHaveLength(1);
     expect(await user()).toMatchObject({ email_verified: true, email_verify_token: null, email_verify_expires_at: null });
-    expect(state.statements.every(query => /update\s+users/i.test(query))).toBe(true);
+    expect((await state.pg.query('select revoked_at from sessions where token_hash=$1', [sha256(verificationSession)])).rows[0].revoked_at).toBeNull();
   });
 
   it.each(['expired', 'missing'])('rejects a token with %s expiration', async (kind) => {

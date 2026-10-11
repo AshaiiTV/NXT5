@@ -171,6 +171,36 @@ afterAll(async () => { await database.pg?.close(); });
 afterEach(() => { vi.unstubAllEnvs(); });
 
 describe('atomic match imports against PostgreSQL', () => {
+  it.each([
+    ['file', 'remove', false], ['riot', 'remove', true],
+    ['file', 'demote', true], ['riot', 'demote', false]
+  ])('rejects a %s import after staff %s, preserving existing data=%s', async (kind, change, reimport) => {
+    if (reimport) await persistAnalyzedMatch(importArgs());
+    const previous = await storedMatch();
+    const beforeReports = (await database.pg.query('select * from reports order by id')).rows;
+    const otherUserId = '00000000-0000-4000-8000-000000000099';
+    await database.pg.query("insert into users(id,account_name,name,password_hash) values($1,'owner','Owner','unused')", [otherUserId]);
+    await database.pg.query('update teams set owner_id=$1 where id=$2', [otherUserId, teamId]);
+    await database.pg.query("insert into team_members(team_id,user_id,role) values($1,$2,'coach') on conflict(team_id,user_id) do update set role='coach'", [teamId, userId]);
+    database.beforeBatch = async () => {
+      await database.pg.query(change === 'remove'
+        ? 'delete from team_members where team_id=$1 and user_id=$2'
+        : "update team_members set role='player' where team_id=$1 and user_id=$2", [teamId, userId]);
+    };
+    const args = importArgs(9);
+    vi.mocked(fetchRiotMatch).mockResolvedValue(args.match);
+    const response = await (kind === 'file' ? importFile : importRiot)(new Request('https://nxt5.example/test', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...args, teamId, payload: args.match })
+    }), {} as any);
+    expect(response.status).toBe(409);
+    expect(await storedMatch()).toEqual(previous);
+    expect((await database.pg.query('select * from reports order by id')).rows).toEqual(beforeReports);
+    expect((await database.pg.query("select * from audit_logs where action in ('match.import','match.import_file')")).rows).toEqual([]);
+    expect(sendNotification).not.toHaveBeenCalled();
+    if (!reimport) expect((await database.pg.query('select first_import_at from teams where id=$1', [teamId])).rows[0].first_import_at).toBeNull();
+  });
+
   it.each(['BLUE', 'RED'])('persists explicit participant selections and enemy role swaps with anonymous names on %s side', async (side) => {
     const args = importArgs();
     args.allyTeamSide = side;
