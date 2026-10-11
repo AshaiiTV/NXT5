@@ -34,6 +34,9 @@ export async function loadMigrations() {
     ['canonical-champions-20260929-v1', '../database/migrations/20260929_canonical_champions.mjs'],
     ['timeline-cs-rule-20260929-v2', '../database/migrations/20260929_timeline_cs_rule.mjs'],
     ['riot-sync-20261006-v1', '../database/migrations/20261006_riot_sync.sql'],
+    ['opponents-drafts-20261012-v1', '../database/migrations/20261012_opponents_drafts.sql'],
+    ['match-drafts-20261012-v1', '../database/migrations/20261012_match_drafts.sql'],
+    ['match-opponents-20261012-v1', '../database/migrations/20261012_match_opponents.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const source = await readFile(new URL(file, import.meta.url), 'utf8');

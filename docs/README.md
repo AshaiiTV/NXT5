@@ -30,6 +30,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 - [Internationalisation : français, anglais et espagnol](internationalisation.md)
 - [Carnets de matchups](carnets-matchups.md)
 - [Aide au choix des champions](draft-assistance.md)
+- [Équipes adverses et drafts des parties](drafter-opponents-prototype.md)
 - [Assistant NXT5](assistant/README.md)
 - [Administration : achats et navigation](administration-achats.md)
 

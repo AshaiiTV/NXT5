@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "netlify dev",
+    "prototype:drafter": "node tools/drafter-prototype.mjs",
     "build": "vite build && node tools/prerender.mjs",
     "build:preview": "node tools/build-preview.mjs",
     "test": "vitest run",

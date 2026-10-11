@@ -22,6 +22,7 @@ import { PNG_THEME, pngAccent, pngFitText, pngLine, pngBackground, pngHeader, pn
 import { useTrendsNavigation } from "../../hooks/useTrendsNavigation.js";
 import { DraftTrendDetails } from "../../components/trends/DraftTrendDetails.jsx";
 import { buildDraftTrendModel, DRAFT_DETAIL_SECTIONS, DraftTrendsModule } from "../../components/trends/DraftTrends.jsx";
+import DrafterAnalysis from "../../components/trends/DrafterAnalysis.jsx";
 
 const BlockComparisonPanel = lazyNamed(loadNextPhase, "BlockComparisonPanel");
 
@@ -320,15 +321,24 @@ function TrendsPage({ data, selectedTeamId }) {
     ["evolution", "Évolution", Activity, "Suivre partie après partie"],
     ["comparison", "Comparer", RefreshCw, "Voir ce qui a changé"],
     ["draft", "Champions", Crown, "Choix et compositions"],
+    ["drafts", "Drafts & bans", Shield, "Priorités et ordre de sélection"],
     ["ai-objectives", "Objectifs", Target, "Cibles équipe et joueurs"],
   ];
 
+  if (trendPanel === "drafts") return <div className="nxt5-data-dense nxt5-trends-page">
+    <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Retrouve les priorités de sélection et les bans des drafts importées.")} />
+    <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
+    {trendPanelOptions.map(([id]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-labelledby={`trend-tab-${id}`} hidden={id !== "drafts"} tabIndex={0}>
+      {id === "drafts" && <DrafterAnalysis key={selectedTeamId} teamId={selectedTeamId} matches={baseMatches} />}
+    </div>)}
+  </div>;
+
   if (!matches.length && (trendPanel !== "comparison" || !baseMatches.length)) return <div className="nxt5-data-dense nxt5-trends-page">
     {detailHeader || <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.")} />}
-    {baseMatches.length > 0 && <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />}
+    <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
     {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes les parties")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
-    <div id={`trend-panel-${trendPanel}`} role={baseMatches.length ? "tabpanel" : undefined} aria-labelledby={baseMatches.length ? `trend-tab-${trendPanel}` : undefined} tabIndex={baseMatches.length ? 0 : undefined}><Surface><EmptyState icon={Activity} title={baseMatches.length ? t("Aucune partie dans cette sélection") : t("Vos analyses commencent ici")} text={baseMatches.length ? t("Choisis une autre période ou catégorie pour retrouver les analyses de l’équipe.") : t("Importe tes premières parties pour suivre les résultats et repérer les points à travailler.")} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? t("Voir toutes les parties") : t("Importer une partie")}</Button></div></Surface></div>
-    {baseMatches.length > 0 && trendPanelOptions.filter(([id]) => id !== trendPanel).map(([id]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-labelledby={`trend-tab-${id}`} hidden />)}
+    <div id={`trend-panel-${trendPanel}`} role="tabpanel" aria-labelledby={`trend-tab-${trendPanel}`} tabIndex={0}><Surface><EmptyState icon={Activity} title={baseMatches.length ? t("Aucune partie dans cette sélection") : t("Vos analyses commencent ici")} text={baseMatches.length ? t("Choisis une autre période ou catégorie pour retrouver les analyses de l’équipe.") : t("Importe tes premières parties pour suivre les résultats et repérer les points à travailler.")} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? t("Voir toutes les parties") : t("Importer une partie")}</Button></div></Surface></div>
+    {trendPanelOptions.filter(([id]) => id !== trendPanel).map(([id]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-labelledby={`trend-tab-${id}`} hidden />)}
   </div>;
 
   const avg = (value) => value / Math.max(1, matches.length);

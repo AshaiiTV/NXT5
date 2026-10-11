@@ -1,4 +1,4 @@
-export const TREND_PANEL_IDS = ["coach", "evolution", "comparison", "draft", "ai-objectives"];
+export const TREND_PANEL_IDS = ["coach", "evolution", "comparison", "draft", "drafts", "ai-objectives"];
 export const DRAFT_DETAIL_IDS = ["pick-repere", "confort", "profil", "compositions", "duos", "a-revoir", "roles"];
 
 export function isTrendDetailPath(path = "") {
