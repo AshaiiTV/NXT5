@@ -30,7 +30,10 @@ const snapshot: DrafterSnapshot = {
   status: 'completed' as const, fearless: false, ironman: false, firstPick: 'blue' as const,
   patch: null, importedAt: '2026-10-12T10:00:00.000Z', warnings: ['Un ban vide.']
 };
-const context: any = {};
+// These handlers run against isolated PGlite, even inside a Netlify build.
+// Hosted SITE_ID/AWS markers otherwise override the local CONTEXT fallback.
+// The deployment-barrier test supplies its own explicit preview context.
+const context: any = { deploy: { context: 'dev' } };
 function request(body: any, headers: Record<string, string> = {}) {
   return new Request('https://nxt5.org/api/opponents-drafts', {
     method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://nxt5.org', ...headers }, body: JSON.stringify(body)

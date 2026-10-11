@@ -88,7 +88,13 @@ describe("private administrator routes", () => {
     expect(renderer.root.findByProps({ "data-loader": "true" }).props["data-phase"]).toBe("session");
     expect(renderer.root.findAllByProps({ "data-pricing": "true" })).toHaveLength(0);
     await act(async () => resolveSession({ user: admin }));
-    await act(async () => { await vi.dynamicImportSettled(); });
+    // Each committed Suspense boundary can start the next lazy import:
+    // PrivateApp -> AdministrationPage -> PricingPage. Wait for the route,
+    // rather than assuming one import drain commits all three boundaries.
+    await vi.waitFor(async () => {
+      await act(async () => { await vi.dynamicImportSettled(); });
+      expect(renderer.root.findAllByProps({ "data-pricing": "true" })).toHaveLength(1);
+    });
     expect(renderer.root.findByProps({ "data-pricing": "true" }).children).toContain("Administrateur");
     expect(renderer.root.findAllByProps({ "data-loader": "true" })).toHaveLength(0);
     expect(useTeamData).not.toHaveBeenCalled();
