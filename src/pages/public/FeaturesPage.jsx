@@ -74,10 +74,10 @@ export function FeaturesPage({ navigate, user }) {
 
       <section className="nxt5-features-example" aria-labelledby="feature-example-title"><div><p className="nxt5-entry-eyebrow">{t("Un exemple, du résultat à l’action")}</p><h2 id="feature-example-title">{t("Une statistique. Une question. Un débrief.")}</h2><p>{t("Un avantage de vision ne suffit pas à expliquer une victoire. Le bilan donne un point de départ ; l’équipe vérifie le contexte et choisit ce qu’elle travaillera.")}</p><PublicTextLink href="/demo" navigate={navigate} className="nxt5-entry-text-link">{t("Ouvrir les trois parties fictives ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink></div><DemoMatchSummary compact /></section>
 
-      <nav aria-label={t("Outils présentés")} className="nxt5-features-index">{FEATURES.map(({ id, label }) => <a key={id} href={`#${id}`}>{t(label)}<ArrowRight size={14} aria-hidden="true" /></a>)}</nav>
+      <nav aria-label={t("Outils présentés")} className="nxt5-features-index">{FEATURES.map(({ id, icon: Icon, label }) => <a key={id} href={`#${id}`}><Icon size={18} aria-hidden="true" /><span>{t(label)}</span><ArrowRight size={14} aria-hidden="true" /></a>)}</nav>
 
-      <div className="nxt5-features-sections">{FEATURES.map(({ id, icon: Icon, label, title, text, detail, items }, index) => <section key={id} id={id} aria-labelledby={`${id}-title`} className="nxt5-feature-section">
-        <div className="nxt5-feature-section-heading"><p className="nxt5-entry-eyebrow"><Icon size={20} aria-hidden="true" /><span>0{index + 1} · {t(label)}</span></p><h2 id={`${id}-title`}>{t(title)}</h2></div>
+      <div className="nxt5-features-sections">{FEATURES.map(({ id, icon: Icon, label, title, text, detail, items }) => <section key={id} id={id} aria-labelledby={`${id}-title`} className="nxt5-feature-section">
+        <div className="nxt5-feature-section-heading"><p className="nxt5-entry-eyebrow"><Icon size={20} aria-hidden="true" /><span>{t(label)}</span></p><h2 id={`${id}-title`}>{t(title)}</h2></div>
         <div className="nxt5-feature-section-body"><p>{t(text)}</p><details><summary>{t("Voir les outils et leurs limites")}</summary><p>{t(detail)}</p><ul>{items.map((item) => <li key={item}>{t(item)}</li>)}</ul></details>{id === "coaching" && <PublicTextLink href="/guides/preparer-debrief" navigate={navigate} className="nxt5-entry-text-link">{t("Le guide du premier débrief ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink>}{id === "analyse" && <PublicTextLink href="/guides/importer-premier-scrim" navigate={navigate} className="nxt5-entry-text-link">{t("Le guide du premier import ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink>}</div>
       </section>)}</div>
 

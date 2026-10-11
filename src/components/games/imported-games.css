@@ -7,7 +7,7 @@
 .ig-description, .ig-scope-name { margin-top: 4px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.6; }
 .ig-total { flex: 0 0 auto; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); white-space: nowrap; }
 .ig-total strong { color: var(--nxt5-text-secondary); font-weight: 650; font-variant-numeric: tabular-nums; }
-.ig-controls { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; }
+.ig-controls { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; padding-top: 20px; border-top: 1px solid var(--nxt5-border); }
 .ig-search-row, .ig-filters { display: contents; }
 .ig-search { grid-column: span 9; min-width: 0; }
 .ig-sort { grid-column: span 3; min-width: 0; }
@@ -37,8 +37,9 @@
 .ig-results { scroll-margin-top: 24px; }
 .ig-column-labels { display: none; }
 .ig-list { list-style: none; padding: 0; margin: 0; }
-.ig-game { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; width: 100%; padding: 18px 12px; border-top: 1px solid var(--nxt5-border); text-align: left; }
+.ig-game { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; width: 100%; padding: 18px 12px; border-top: 1px solid var(--nxt5-border); text-align: left; transition: background-color 140ms ease; }
 .ig-game:hover { background: rgba(255,255,255,.035); }
+.ig-game:focus-visible { z-index: 1; outline-offset: -2px; }
 .ig-game:disabled { cursor: default; }
 .ig-game:disabled:hover { background: transparent; }
 .ig-game[aria-pressed="true"] { background: rgba(103,232,249,.065); box-shadow: inset 3px 0 0 var(--nxt5-accent); }
@@ -57,7 +58,7 @@
 .ig-composition-enemy { grid-column: 2; }
 .ig-composition-label { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 600; }
 .ig-champions { display: flex; flex-wrap: wrap; gap: 4px; }
-.ig-champion { width: 26px; height: 26px; border-radius: 5px; flex-shrink: 0; object-fit: cover; }
+.ig-champion { width: 28px; height: 28px; border: 1px solid var(--nxt5-border); border-radius: 5px; flex-shrink: 0; object-fit: cover; }
 .ig-side, .ig-missing { color: #c2d0e3; font-size: var(--nxt5-font-small); line-height: 1.5; }
 .ig-side-blue { color: #bae6fd; }
 .ig-side-red { color: #fecdd3; }
@@ -76,7 +77,7 @@
 .ig-pagination { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 20px; padding-top: 16px; border-top: 1px solid var(--nxt5-border); color: #c2d0e3; font-size: var(--nxt5-font-small); font-variant-numeric: tabular-nums; }
 .ig-page-size, .ig-pagination nav { display: flex; align-items: center; gap: 12px; }
 .ig-page-size select { min-height: 44px; min-width: 64px; padding: 0 10px; border: 1px solid var(--nxt5-border); border-radius: 10px; color: var(--nxt5-text); background: var(--nxt5-field); }
-.ig-icon-button { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--nxt5-border); border-radius: 10px; color: #cffafe; flex-shrink: 0; }
+.ig-icon-button { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-button); color: #cffafe; flex-shrink: 0; }
 .ig-icon-button svg { width: 16px; height: 16px; }
 .ig-icon-button:hover:not(:disabled) { background: rgba(103,232,249,.08); border-color: var(--nxt5-border-strong); }
 .ig-icon-button:disabled { opacity: .35; cursor: not-allowed; }
@@ -113,6 +114,15 @@
 @container (max-width: 879px) {
   .ih-teams, .ih-edit-fields { grid-template-columns: minmax(0, 1fr); }
   .ih-category-create fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@container (min-width: 700px) and (max-width: 1059px) {
+  .ig-game { grid-template-columns: 100px minmax(0, 1fr) minmax(0, 1fr) 120px; gap: 16px; }
+  .ig-game-identity { grid-column: 2 / 4; grid-row: 1; }
+  .ig-result { align-self: start; padding-top: 2px; }
+  .ig-review { grid-column: 4; grid-row: 1; align-self: start; }
+  .ig-composition { grid-column: 2; grid-row: 2; }
+  .ig-composition-enemy { grid-column: 3; }
+  .ig-date { grid-column: 4; grid-row: 2; display: grid; align-content: start; }
 }
 @container (min-width: 1060px) {
   .ig-column-labels, .ig-game { display: grid; grid-template-columns: 96px minmax(160px, 1fr) 156px 156px 126px 96px 16px; gap: 18px; align-items: center; }

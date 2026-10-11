@@ -8,7 +8,7 @@ import { openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, ReadingDetails, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
 import { cx, profileStatusLabel, profileStatusTone } from "../../app/helpers.js";
 import { multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus, rosterStatusMeta, ROSTER_STATUS_OPTIONS } from "../../utils/roster.js";
-import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
+import { RoleIcon, TeamAvatar } from "../../components/brand/BrandAssets.jsx";
 import { ROSTER_ROLE_ORDER, canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, lazyNamed, loadNextPhase, TEAM_ACCESS_ROLES, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
 import "./Teams.css";
@@ -523,12 +523,14 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     </div> : <Surface glow><EmptyState icon={Users} title={t("Aucune équipe")} text={t("Crée ou rejoins une équipe avant d’ouvrir la gestion.")} /></Surface>}
   </div>;
 
-  return <div ref={pageRef} className="nxt5-teams-page" data-entry={showSetup ? "true" : undefined}><PageHeader eyebrow={showSetup ? t("Bienvenue dans NXT5") : t("Équipe")} title={showSetup ? pendingCreation ? t("Ton équipe est créée. On continue.") : setupIntent === "create" ? t("Créons ton espace d’équipe.") : setupIntent === "join" ? t("Retrouve ton équipe.") : t("Comment veux-tu commencer ?") : selectedTeam.name} subtitle={showSetup ? setupIntent === "choose" && !pendingCreation ? t("Choisis ta situation. On te guide pour la suite.") : undefined : [selectedTeam.tag, selectedTeam.region, t(activeRoster.length === 1 ? "{0} joueur actif" : "{0} joueurs actifs", [activeRoster.length])].filter(Boolean).join(" · ")}>{hasTeams && <>
+  return <div ref={pageRef} className="nxt5-teams-page" data-entry={showSetup ? "true" : undefined}><div className={!showSetup ? "team-identity-header" : undefined}>
+    {!showSetup && <div className="team-identity-avatar" aria-hidden="true"><TeamAvatar team={selectedTeam} className="team-identity-image" /></div>}
+    <PageHeader eyebrow={showSetup ? t("Bienvenue dans NXT5") : t("Équipe")} title={showSetup ? pendingCreation ? t("Ton équipe est créée. On continue.") : setupIntent === "create" ? t("Créons ton espace d’équipe.") : setupIntent === "join" ? t("Retrouve ton équipe.") : t("Comment veux-tu commencer ?") : selectedTeam.name} subtitle={showSetup ? setupIntent === "choose" && !pendingCreation ? t("Choisis ta situation. On te guide pour la suite.") : undefined : [selectedTeam.tag, selectedTeam.region, t(activeRoster.length === 1 ? "{0} joueur actif" : "{0} joueurs actifs", [activeRoster.length])].filter(Boolean).join(" · ")}>{hasTeams && <>
       {!showSetup && <Button type="button" icon={Clipboard} disabled={!activeRoster.length} title={activeRoster.length ? t("Copier le lien des titulaires et des remplaçants") : t("Ajoute un titulaire ou un remplaçant pour copier le multi OP.GG")} onClick={() => copyMultiOpggLink(activeRoster, "de l’équipe")}>{t("Copier le multi OP.GG")}</Button>}
       {canManageRoster && !showSetup && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>{t("Gestion de l’équipe")}</LinkButton>}
       {showSetup && <Button type="button" variant="ghost" icon={X} disabled={saving} onClick={closeSetup}>{t("Fermer les formulaires")}</Button>}
       {pendingCreation && !showSetup && <Button type="button" variant="ghost" onClick={() => { focusSetup.current = true; setTeamSetupOpen(true); }}>{t("Reprendre l’import de joueurs")}</Button>}
-    </>}</PageHeader>
+    </>}</PageHeader></div>
     {showSetup && setupIntent === "choose" && !pendingCreation && <div className="team-entry-choices">
       <button type="button" className="team-entry-choice" onClick={() => chooseSetup("create")}>
         <Shield size={28} aria-hidden="true" /><span className="team-entry-audience">{t("Je suis responsable de l’équipe")}</span><strong>{t("Créer mon équipe")}</strong><span>{t("Un espace commun pour vos parties, vos débriefs et vos entraînements.")}</span><span className="team-entry-action">{t("Créer mon espace ")}<ArrowRight size={18} aria-hidden="true" /></span>

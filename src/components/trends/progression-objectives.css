@@ -29,6 +29,8 @@
   display: grid;
   gap: 28px;
   padding: 32px 0;
+  margin-top: 20px;
+  border-top: 1px solid var(--nxt5-border);
 }
 
 .nxt5-objectives-content .objectives-eyebrow {
@@ -184,7 +186,7 @@
 }
 
 .objectives-role-instruction h5 {
-  font-size: var(--nxt5-font-body);
+  font-size: 18px;
   font-weight: 700;
   line-height: 1.4;
 }
@@ -233,8 +235,9 @@
 
   .objectives-role-target {
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
-    gap: 12px;
+    gap: 4px 12px;
   }
 
   .objectives-role-target > p:last-child {

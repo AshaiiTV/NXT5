@@ -152,6 +152,7 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
 export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam, onHelp }) {
   useLanguage();
   const nav = NAV.find((item) => item.id === active) || NAV[0];
+  const PageIcon = nav.icon;
   const detailLabel = active === "profile" ? profileViewLabel(profileViewFromPath(window.location.pathname)) : active === "draft" ? draftViewLabel(draftViewFromPath(window.location.pathname)) : "";
   const [teamMenuOpen, setTeamMenuOpen] = React.useState(false);
   const teamPickerRef = React.useRef(null);
@@ -170,6 +171,7 @@ export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCr
   return <header className="nxt5-topbar">
     <div className="nxt5-topbar-location">
       <button type="button" aria-label={t("Ouvrir le menu")} aria-controls="nxt5-sidebar" onClick={() => setOpen(true)} className="nxt5-chrome-icon-button nxt5-topbar-menu"><Menu size={20} aria-hidden="true" /></button>
+      <span className="nxt5-topbar-page-icon" aria-hidden="true"><PageIcon size={18} /></span>
       <div className="nxt5-topbar-breadcrumb"><h1>{t(nav.label)}</h1>{detailLabel && <><ChevronRight size={14} aria-hidden="true" /><span>{t(detailLabel)}</span></>}</div>
     </div>
     <div className="nxt5-topbar-actions">

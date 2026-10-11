@@ -8,6 +8,7 @@ import { Activity, AlertTriangle, Check, Clipboard, Crown, Download, Eye, FileTe
 import { apiFetch } from "../../api/client.js";
 import { profilePathFromView, profileViewFromPath, openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TabNav } from "../../components/ui/Core.jsx";
+import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { cx, tone } from "../../app/helpers.js";
 import { matchDisplayName, matchHasCategory, opponentRoleRow, assetProxyUrl } from "../../utils/matches.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
@@ -481,9 +482,12 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   ];
   if (!selectedPlayer) return <div className="nxt5-profile-page"><PageHeader eyebrow={t("Équipe")} title={t("Profils joueurs")} subtitle={t("Les résultats, les champions et le suivi de chaque joueur.")} /><Surface><EmptyState icon={Activity} title={t("Aucun profil joueur")} text={t("Ajoute un joueur dans la gestion de l’équipe pour consulter son profil.")} /><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>{t("Voir l’équipe")}</Button></Surface></div>;
   return <div className="nxt5-data-dense nxt5-profile-page">
+    <div className="profile-identity-header">
+    <span className="profile-identity-role" aria-hidden="true"><RoleIcon role={selectedPlayer.role} className="profile-identity-icon" /></span>
     <PageHeader eyebrow={t("Profil joueur")} title={selectedPlayer.name} subtitle={`${roleLabel(selectedPlayer.role)} · ${selectedPlayer.riot_id || "Riot ID non renseigné"}${selectedPlayer.user_id === user?.id ? " · Ton profil" : ""}`}>
       <Button type="button" variant="ghost" icon={exporting ? Loader2 : Download} onClick={downloadProfile} disabled={exporting || !games}>{exporting ? t("Export en cours…") : t("Exporter le résumé")}</Button>
     </PageHeader>
+    </div>
     {exportStatus && <p role="status" className="profile-notice">{t(exportStatus)}</p>}
     <div className="profile-context">
       <div className="profile-filters">

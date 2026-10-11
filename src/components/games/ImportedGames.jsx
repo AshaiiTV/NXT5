@@ -95,7 +95,7 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
           <label htmlFor={searchId} className="ig-label">{t("Rechercher une partie")}</label>
           <span className="ig-search-field">
             <Search aria-hidden="true" />
-            <input id={searchId} ref={searchRef} type="search" value={filters.query} onChange={(event) => setFilter("query", event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") clearSearch(); }} placeholder={t("Adversaire, identifiant, joueur, champion…")} className="nxt5-input-shell nxt5-control" />
+            <input id={searchId} ref={searchRef} name="game-search" autoComplete="off" type="search" value={filters.query} onChange={(event) => setFilter("query", event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") clearSearch(); }} placeholder={t("Adversaire, identifiant, joueur, champion…")} className="nxt5-input-shell nxt5-control" />
             {filters.query && <button type="button" onClick={clearSearch} aria-label={t("Effacer la recherche")}><X aria-hidden="true" /></button>}
           </span>
         </div>

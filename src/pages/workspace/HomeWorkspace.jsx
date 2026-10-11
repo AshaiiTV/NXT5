@@ -109,12 +109,16 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
     </PageHeader>
     {(loading || apiError) && <p className="nxt5-home-data-status" role="status">{loading ? t("Actualisation de l’équipe…") : t("Cet aperçu reprend les dernières données chargées. Réessaie l’actualisation pour le mettre à jour.")}</p>}
     {startIsPrimary ? <BeginnerCompass steps={steps} manager={context.manager} onNavigate={navigate} onClose={closeStart} /> : <Surface glow className="nxt5-home-ready">
-      <p className="nxt5-home-status"><FocusIcon size={18} aria-hidden="true" />{t(focus.label)}</p>
+      <div className="nxt5-home-focus-layout"><div className="nxt5-home-focus-content">
+      <p className="nxt5-home-status">{t(focus.label)}</p>
       <h3>{["start", "quiet"].includes(focus.kind) ? t(focus.heading) : focus.heading}</h3>
       <p className="nxt5-home-focus-description">{t(focus.text)}</p>
       <div className="nxt5-home-actions">
         <LinkButton href={focus.href} navigate={navigate} icon={ArrowRight}>{t(focus.action)}</LinkButton>
         {focus.secondary && <PublicTextLink href={focus.secondary.href} navigate={navigate} className="nxt5-home-text-link">{t(focus.secondary.label)}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>}
+      </div>
+      </div>
+      <div className="nxt5-home-focus-marker" aria-hidden="true"><FocusIcon strokeWidth={1.25} /></div>
       </div>
     </Surface>}
 
@@ -126,7 +130,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
           <ul className="nxt5-home-games">
             {context.matches.slice(0, 3).map(match => {
               const report = context.reportForMatch(match);
-              return <li key={match.id}>
+              return <li key={match.id} data-result={match.result === "Victoire" ? "win" : match.result === "Défaite" ? "loss" : undefined}>
                 <PublicTextLink className="nxt5-home-game-link" href={matchPath(match)} navigate={navigate}>
                   <span><strong>{matchDisplayName(match, "Partie de l’équipe")}</strong><span className="nxt5-home-game-meta">{t(dateLabel(homeMatchTimestamp(match)))} · {report ? report.discord_status === "draft" ? t("Brouillon de débrief") : t("Débrief disponible") : t("Sans débrief")}</span></span>
                   {match.result && <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{t(match.result)}</Badge>}
