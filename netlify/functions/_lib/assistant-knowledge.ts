@@ -110,7 +110,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
           "opgg roster",
           "opgg titulaires"
         ],
-        "answer": "Dans Équipe, Copier le multi OP.GG réunit les titulaires et les remplaçants disposant d’un Riot ID valide. Les liens séparés restent disponibles dans Liens OP.GG par groupe. Le staff n’est pas inclus."
+        "answer": "Dans Équipe, Copier le multi OP.GG réunit les titulaires et les remplaçants disposant d’un Riot ID valide. Le staff n’est pas inclus."
       },
       {
         "question": "Pourquoi un joueur a moins de parties ?",

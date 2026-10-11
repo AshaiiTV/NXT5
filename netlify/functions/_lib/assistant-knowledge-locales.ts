@@ -18,7 +18,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       steps: ['Open Team management from Team or the button at the top of the app.', 'Add the profile and position, then choose Starter or Substitute in Roster.', 'Link the correct NXT5 account to the player profile once the person has an account.', 'Check the assigned role before sharing an invitation code.'],
       suggestions: ['How do I add a player?', 'How do I organise starters and substitutes?', 'How do I change a player’s name or position?'],
       faq: [
-        { question: 'How do I copy the whole team’s multi OP.GG?', triggers: ['copy opgg', 'copy multi op gg', 'multi opgg', 'op gg main team', 'team opgg', 'roster opgg', 'starters opgg'], answer: 'In Team, Copy multi OP.GG includes starters and substitutes with a valid Riot ID. Separate links remain available in OP.GG links by group. Staff are not included.' },
+        { question: 'How do I copy the whole team’s multi OP.GG?', triggers: ['copy opgg', 'copy multi op gg', 'multi opgg', 'op gg main team', 'team opgg', 'roster opgg', 'starters opgg'], answer: 'In Team, Copy multi OP.GG includes starters and substitutes with a valid Riot ID. Staff are not included.' },
         { question: 'Why does a player have fewer games?', triggers: ['fewer games', 'missing games', 'different game count', 'adc fewer', 'games missing'], answer: 'The count depends on the profile linked to each imported participant. In Games, open the relevant game and its options to check the linked player and position. Correct the link if the player changed their Riot ID or a duplicate profile was selected.' },
       ],
     },
@@ -280,7 +280,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       steps: ['Abre Gestión del equipo desde Equipo o el botón de la parte superior de la aplicación.', 'Añade el perfil y su posición, y elige Titular o Suplente en Plantilla.', 'Vincula la cuenta NXT5 correcta al perfil del jugador cuando tenga una cuenta.', 'Comprueba el rol asignado antes de compartir un código de invitación.'],
       suggestions: ['¿Cómo añado un jugador?', '¿Cómo organizo a los titulares y suplentes?', '¿Cómo cambio el nombre o la posición de un jugador?'],
       faq: [
-        { question: '¿Cómo copio el multi OP.GG de todo el equipo?', triggers: ['copiar opgg', 'copiar multi op gg', 'multi opgg', 'op gg titulares', 'opgg equipo', 'opgg plantilla', 'opgg titulares'], answer: 'En Equipo, Copiar multi OP.GG incluye a titulares y suplentes con un Riot ID válido. Los enlaces separados siguen disponibles en Enlaces OP.GG por grupo. El cuerpo técnico no está incluido.' },
+        { question: '¿Cómo copio el multi OP.GG de todo el equipo?', triggers: ['copiar opgg', 'copiar multi op gg', 'multi opgg', 'op gg titulares', 'opgg equipo', 'opgg plantilla', 'opgg titulares'], answer: 'En Equipo, Copiar multi OP.GG incluye a titulares y suplentes con un Riot ID válido. El cuerpo técnico no está incluido.' },
         { question: '¿Por qué un jugador tiene menos partidas?', triggers: ['menos partidas', 'partidas faltantes', 'cantidad de partidas diferente', 'adc menos', 'faltan partidas'], answer: 'El contador depende del perfil vinculado a cada participante importado. En Partidas, abre la partida correspondiente y sus opciones para comprobar el jugador asociado y su posición. Corrige la asociación si el jugador ha cambiado de Riot ID o se ha elegido un perfil duplicado.' },
       ],
     },

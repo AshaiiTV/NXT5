@@ -188,19 +188,19 @@ describe("readable team roster", () => {
     expect(window.dispatchEvent).toHaveBeenCalledOnce();
   });
 
-  it("retains lineup-specific copy actions inside initially closed details", async () => {
+  it("omits group copy actions while keeping the whole-team copy available", async () => {
     const settings = props();
     settings.data.players = [player, { ...player, id: "reserve", role: "SUB", riot_id: "Reserve#EUW", roster_status: "SUB" }];
     const copy = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal("navigator", { clipboard: { writeText: copy } });
     const { renderer } = await render(settings);
-    const details = renderer.root.findAllByType("details").find((node) => node.findAllByType("summary").some((summary) => summary.children.includes("Liens OP.GG par groupe")));
-    expect(details).toBeTruthy();
-    expect(details.props.open).not.toBe(true);
-    const actions = details.findAllByType(Button);
-    expect(actions).toHaveLength(2);
-    for (const action of actions) await act(async () => action.props.onClick());
-    expect(copy.mock.calls.map(([link]) => new URL(link).searchParams.get("summoners"))).toEqual(["Toplaner#EUW", "Reserve#EUW"]);
+    expect(content(renderer)).not.toContain("Liens OP.GG par groupe");
+    expect(content(renderer)).not.toContain("Copier OP.GG titulaires");
+    expect(content(renderer)).not.toContain("Copier OP.GG remplaçants");
+    const actions = renderer.root.findAllByType(Button).filter((button) => button.props.children === "Copier le multi OP.GG");
+    expect(actions).toHaveLength(1);
+    await act(async () => actions[0].props.onClick());
+    expect(copy.mock.calls.map(([link]) => new URL(link).searchParams.get("summoners"))).toEqual(["Toplaner#EUW,Reserve#EUW"]);
   });
 });
 
@@ -217,11 +217,12 @@ describe("first roster setup", () => {
     expect(window.dispatchEvent).toHaveBeenCalled();
   });
 
-  it("shows only populated copy actions while preserving roster entry", async () => {
+  it("preserves the team copy action and roster entry for a populated roster", async () => {
     const settings = props();
     settings.data.players = [player];
     const { renderer } = await render(settings);
-    expect(content(renderer)).toContain("Copier OP.GG titulaires");
+    expect(content(renderer)).toContain("Copier le multi OP.GG");
+    expect(content(renderer)).not.toContain("Copier OP.GG titulaires");
     expect(content(renderer)).not.toContain("Copier OP.GG remplaçants");
     expect(renderer.root.findAllByType("a").some((item) => item.props.href === "/gestion-equipe?section=roster")).toBe(true);
   });
