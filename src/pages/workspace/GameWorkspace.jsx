@@ -15,6 +15,9 @@ import { trackAudienceEvent } from "../../app/audience-client.js";
 import { ImportGameFlow, GameActions, GameCategoryManager, GameOperationDialog, matchImportTitle, matchCategoriesForMatch, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor } from "./GameOperations.jsx";
 import "./games-workspace.css";
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
+import OpponentsWorkspace from "../../components/opponents/OpponentsWorkspace.jsx";
+import MatchDrafterPanel from "../../components/opponents/MatchDrafterPanel.jsx";
+import MatchOpponentPanel from "../../components/opponents/MatchOpponentPanel.jsx";
 
 import { cx, tone } from "../../app/helpers.js";
 import { matchDisplayName } from "../../utils/matches.js";
@@ -1418,7 +1421,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const urlMatchId = query.get("match") || "";
   const urlArchiveId = query.get("archive") || "";
   const urlImportOpen = query.get("import") === "1";
-  const urlView = query.get("view") === "groups" || urlArchiveId ? "groups" : "games";
+  const legacyOpponentPath = route?.path === "/draft/adversaires";
+  const urlView = query.get("view") === "groups" || urlArchiveId ? "groups" : query.get("view") === "teams" || legacyOpponentPath ? "teams" : "games";
   const [selectedMatchId, setSelectedMatchId] = useState(urlMatchId);
   const [selectedArchiveId, setSelectedArchiveId] = useState(urlArchiveId);
   const [importOpen, setImportOpen] = useState(urlImportOpen && !urlMatchId && !urlArchiveId);
@@ -1440,6 +1444,12 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const previousSelection = useRef("");
 
   useEffect(() => {
+    if (!legacyOpponentPath) return;
+    window.history.replaceState({}, "", "/games?view=teams");
+    window.dispatchEvent(new Event("popstate"));
+  }, [legacyOpponentPath]);
+
+  useEffect(() => {
     setSelectedMatchId(urlMatchId);
     setSelectedArchiveId(urlArchiveId);
     setImportOpen(urlImportOpen && !urlMatchId && !urlArchiveId);
@@ -1453,12 +1463,12 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     if ("match" in changes) setSelectedMatchId(changes.match || "");
     if ("archive" in changes) setSelectedArchiveId(changes.archive || "");
     if ("import" in changes) setImportOpen(changes.import === "1");
-    if ("view" in changes) setWorkspaceView(changes.view === "groups" ? "groups" : "games");
+    if ("view" in changes) setWorkspaceView(["groups", "teams"].includes(changes.view) ? changes.view : "games");
     openAppPath(`/games${next.size ? `?${next}` : ""}`);
   }
   const selectMatch = (id) => updateLocation({ match: id });
   const selectArchive = (id) => updateLocation({ archive: id, match: "", view: "groups" });
-  const selectView = (id) => updateLocation({ view: id === "groups" ? "groups" : "", archive: "", match: "" });
+  const selectView = (id) => updateLocation({ view: ["groups", "teams"].includes(id) ? id : "", archive: "", match: "" });
   useEffect(() => {
     if (selectedMatchId) {
       (statsRef.current?.querySelector?.("h3") || statsRef.current)?.focus({ preventScroll: true });
@@ -1498,7 +1508,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     updateLocation({ import: "", view: "", archive: "", match: id ? String(id) : "" });
   }
   function renderImportAction(variant = "primary") {
-    if (selectedMatchId || selectedArchiveId) return null;
+    if (selectedMatchId || selectedArchiveId || workspaceView === "teams") return null;
     if (!selectedTeam) return <div className="games-import-action"><Button type="button" variant={variant} onClick={() => openAppPath("/equipes")}>{t("Choisir une équipe")}</Button><p>{t("Crée ou rejoins une équipe pour y retrouver tes parties.")}</p></div>;
     if (!canImport) return <p className="games-import-help">{t("Le capitaine ou le staff peut importer les parties de ton équipe.")}</p>;
     return <Button type="button" variant={variant} icon={Upload} onClick={() => updateLocation({ import: "1" })}>{t("Importer une partie")}</Button>;
@@ -1581,7 +1591,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   }
 
   return <div className="nxt5-data-dense nxt5-stats-page nxt5-games-page min-w-0">
-    <PageHeader eyebrow={selectedTeamName} title={t("Parties")} subtitle={selectedMatchId ? t("Comprends le résultat, choisis une piste de travail, puis explore les détails.") : t("Ouvre une partie pour comprendre ce qui s’est passé et préparer la prochaine session.")}>
+    <PageHeader eyebrow={selectedTeamName} title={t("Parties")} subtitle={selectedMatchId ? t("Comprends le résultat, choisis une piste de travail, puis explore les détails.") : workspaceView === "teams" ? t("Retrouve les équipes adverses, leurs champions et les parties associées.") : t("Ouvre une partie pour comprendre ce qui s’est passé et préparer la prochaine session.")}>
       {!selectedMatchId && !selectedArchiveId && <div ref={importTriggerRef}>{renderImportAction()}</div>}
     </PageHeader>
     {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog className="game-import-dialog" title={t("Importer une partie")} onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy} dirty={importDirty} returnFocusRef={importTriggerRef}>
@@ -1601,15 +1611,18 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{t("Chargement des statistiques détaillées…")}</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && t(" Les statistiques déjà chargées restent disponibles.")}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>{t("Réessayer")}</Button></Surface>}
       {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} onReview={openReview} hasReview={Boolean(selectedReport)} />}
+      {selectedMatch && <MatchOpponentPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={refreshAll} />}
+      {selectedMatch && <MatchDrafterPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={refreshAll} />}
       {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title={t("Partie introuvable")} text={t("Elle n’est plus disponible dans cette équipe.")} /></Surface>}
     </div>}
 
     <div hidden={Boolean(selectedMatchId)}>
       <div className="games-library-toolbar">
-        <TabNav idPrefix="games-library" panelId="games-library-panel" label={t("Bibliothèque de parties")} items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-2" />
-        {baseMatches.length > 0 && <p className="games-team-record"><span>{t("Équipe")}</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)}{t(" % de victoires")}</span></p>}
+        <TabNav idPrefix="games-library" panelId="games-library-panel" label={t("Bibliothèque de parties")} items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }, { id: "teams", label: "Équipes" }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-3" />
+        {workspaceView !== "teams" && baseMatches.length > 0 && <p className="games-team-record"><span>{t("Équipe")}</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)}{t(" % de victoires")}</span></p>}
       </div>
       <div id="games-library-panel" role="tabpanel" aria-labelledby={`games-library-tab-${workspaceView}`} tabIndex={0}>
+      {workspaceView === "teams" && !selectedMatchId && <OpponentsWorkspace selectedTeamId={selectedTeamId} user={user} embedded />}
       {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
         <div className="games-group-heading"><div><h3>{t("Groupes de parties")}</h3><p>{t("Compare les parties d’une session ou d’une série.")}</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} disabled={savingArchive} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? t("Fermer") : t("Créer un groupe")}</Button></div>
         {archiveWorkspaceTab === "select" ? <>
@@ -1650,7 +1663,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         <ScrimArchiveSummary matches={scopedMatches} showGames={false} />
       </>}
       {selectedArchiveId && !selectedArchive && <p role="status" className="games-load-state">{t("Ce groupe n’est plus disponible. Choisis un autre groupe.")}</p>}
-      <div ref={listRef} hidden={workspaceView === "groups" && !selectedArchive}>
+      <div ref={listRef} hidden={workspaceView === "teams" || (workspaceView === "groups" && !selectedArchive)}>
         <ImportedGames
           matches={scopedMatches} categories={matchCategories} selectedMatchId={selectedMatchId} selectedMatch={selectedMatch}
           onSelectMatch={selectMatch} showSelection={false} showCategoryFilter allowImportSort

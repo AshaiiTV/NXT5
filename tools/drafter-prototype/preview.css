@@ -1,0 +1,10 @@
+.drafter-prototype-shell { max-width: 1400px; margin: 0 auto; padding: 28px 24px 64px; }
+.drafter-prototype-header { display: flex; gap: 24px; align-items: center; padding-bottom: 24px; margin-bottom: 28px; border-bottom: 1px solid var(--nxt5-border); }
+.drafter-prototype-header > picture { flex: none; width: 128px; }
+.drafter-prototype-header strong { color: var(--nxt5-text); font-size: 15px; }
+.drafter-prototype-header p { color: var(--nxt5-muted); font-size: 14px; margin-top: 4px; }
+.drafter-prototype-nav { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px; }
+.drafter-prototype-nav a { padding: 12px 20px; min-height: 44px; border: 1px solid var(--nxt5-border); border-radius: 8px; color: var(--nxt5-text); }
+.drafter-prototype-nav a[aria-current] { border-color: var(--nxt5-accent); color: var(--nxt5-accent); }
+.drafter-prototype-nav a:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
+@media (max-width: 640px) { .drafter-prototype-shell { padding: 20px 14px 40px; } .drafter-prototype-header { align-items: flex-start; flex-direction: column; gap: 12px; } }

@@ -6,6 +6,9 @@ import { DEFAULT_DATA } from "../app/constants.jsx";
 import { readRoute } from "../app/routing.js";
 import DiscordGroupShare from "../components/discord/DiscordGroupShare.jsx";
 import { ImportedGames } from "../components/games/ImportedGames.jsx";
+import OpponentsWorkspace from "../components/opponents/OpponentsWorkspace.jsx";
+import MatchDrafterPanel from "../components/opponents/MatchDrafterPanel.jsx";
+import MatchOpponentPanel from "../components/opponents/MatchOpponentPanel.jsx";
 import { TabNav } from "../components/ui/Core.jsx";
 import { GameWorkspace, MatchDataPanel } from "../pages/workspace/GameWorkspace.jsx";
 import { GameActions, ImportGameFlow } from "../pages/workspace/GameOperations.jsx";
@@ -46,6 +49,13 @@ beforeEach(() => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: {} }) }));
   apiFetch.mockImplementation(async (endpoint, options) => {
     if (endpoint.startsWith("team-discord-connection?")) return { configured: true, connection: null };
+    if (endpoint === "opponents-drafts") {
+      const action = JSON.parse(options.body).action;
+      if (action === "list") return { opponents: [], drafts: [], canEdit: true };
+      if (action === "get-match-opponent") return { opponentId: null, opponents: [], canEdit: true };
+      if (action === "get-match-draft") return { draft: null, canEdit: true };
+      throw new Error(`Unexpected opponent action: ${action}`);
+    }
     if (endpoint !== "match-details") throw new Error(`Unexpected request: ${endpoint}`);
     const { matchIds, teamId } = JSON.parse(options.body);
     return { matches: details.filter((match) => matchIds.includes(match.id) && match.team_id === teamId) };
@@ -106,6 +116,51 @@ async function browserBack(path) {
 }
 
 describe("unified Games workspace", () => {
+  it("opens opponent teams as the third Parties tab without exposing the match list or import action", async () => {
+    const renderer = await mount("/games?category=scrim");
+    await click(renderer, "Équipes");
+    expect(window.location.search).toBe("?category=scrim&view=teams");
+    const tabs = renderer.root.findByType(TabNav).props.items;
+    expect(tabs.map((tab) => tab.id)).toEqual(["games", "groups", "teams"]);
+    expect(renderer.root.findByType(OpponentsWorkspace).props.embedded).toBe(true);
+    expect(lists(renderer)).toHaveLength(0);
+    expect(button(renderer, "Importer une partie")).toBeUndefined();
+    await browserBack("/games?category=scrim");
+    expect(lists(renderer)).toHaveLength(1);
+    expect(renderer.root.findAllByType(OpponentsWorkspace)).toHaveLength(0);
+  });
+
+  it("redirects old draft opponent links to the Teams library without leaving a dead Draft tab", async () => {
+    const renderer = await mount("/draft/adversaires");
+    expect(window.history.replaceState).toHaveBeenCalledWith({}, "", "/games?view=teams");
+    expect(window.location.pathname).toBe("/games");
+    expect(window.location.search).toBe("?view=teams");
+    expect(renderer.root.findByType(TabNav).props.activeId).toBe("teams");
+    expect(renderer.root.findAllByType(OpponentsWorkspace)).toHaveLength(1);
+  });
+
+  it("loads separate opponent and draft panels for the selected match and removes both on return", async () => {
+    const renderer = await mount("/games?match=one");
+    expect(renderer.root.findByType(MatchDrafterPanel).props.match.id).toBe("one");
+    expect(renderer.root.findByType(MatchOpponentPanel).props.match.id).toBe("one");
+    const calls = apiFetch.mock.calls.filter(([endpoint]) => endpoint === "opponents-drafts").map(([, options]) => JSON.parse(options.body));
+    expect(calls).toEqual([{ action: "get-match-opponent", teamId: "team", matchId: "one" }, { action: "get-match-draft", teamId: "team", matchId: "one" }]);
+    await click(renderer, "Retour aux parties");
+    expect(renderer.root.findAllByType(MatchDrafterPanel)).toHaveLength(0);
+    expect(renderer.root.findAllByType(MatchOpponentPanel)).toHaveLength(0);
+  });
+
+  it("retains both association panels and avoids refetching them when match statistics refresh", async () => {
+    const props = settings();
+    const renderer = await mount("/games?match=one", props);
+    await act(async () => renderer.update(<Suspense fallback="loading"><RouteHarness props={{ ...props, data: { ...props.data, bootstrapRevision: "new-revision" } }} /></Suspense>));
+    const draftCalls = apiFetch.mock.calls.filter(([endpoint]) => endpoint === "opponents-drafts").map(([, options]) => JSON.parse(options.body).action);
+    expect(draftCalls).toEqual(["get-match-opponent", "get-match-draft"]);
+    expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "match-details")).toHaveLength(2);
+    expect(renderer.root.findAllByType(MatchOpponentPanel)).toHaveLength(1);
+    expect(renderer.root.findAllByType(MatchDrafterPanel)).toHaveLength(1);
+  });
+
   it("opens import for an owner before the roster is complete", async () => {
     const props = settings();
     props.data.players = props.data.players.slice(0, 4);

@@ -240,7 +240,12 @@ describe("imported games in Statistics", () => {
   it("opens stats directly, hides the list and restores its search and filters on return", async () => {
     const settings = statisticsProps();
     const selected = settings.data.matches[2];
-    apiFetch.mockResolvedValue({ matches: [selected] });
+    apiFetch.mockImplementation(async (endpoint, options) => {
+      if (endpoint === "match-details") return { matches: [selected] };
+      if (endpoint === "opponents-drafts" && JSON.parse(options.body).action === "get-match-draft") return { draft: null, canEdit: false };
+      if (endpoint === "opponents-drafts" && JSON.parse(options.body).action === "get-match-opponent") return { opponentId: null, opponents: [], canEdit: false };
+      throw new Error(`Unexpected request: ${endpoint}`);
+    });
     const renderer = await render(<Statistics {...settings} />);
     await search(renderer, "Club 03");
     await filter(renderer, "Résultat", "Victoire");
@@ -254,7 +259,14 @@ describe("imported games in Statistics", () => {
     expect(visible(renderer.root.findByProps({ id: "selected-game-stats" }))).toBe(true);
     expect(visible(renderer.root.findByProps({ type: "search" }))).toBe(false);
     expect(rows(renderer).filter(visible)).toHaveLength(0);
-    expect(apiFetch).toHaveBeenCalledTimes(1);
+    const byAction = (left, right) => (left.payload.action || left.endpoint).localeCompare(right.payload.action || right.endpoint);
+    const requests = () => apiFetch.mock.calls.map(([endpoint, options]) => ({ endpoint, method: options.method, payload: JSON.parse(options.body) })).sort(byAction);
+    const expectedRequests = [
+      { endpoint: "match-details", method: "POST", payload: { teamId: "team", matchIds: [selected.id] } },
+      { endpoint: "opponents-drafts", method: "POST", payload: { action: "get-match-draft", teamId: "team", matchId: selected.id } },
+      { endpoint: "opponents-drafts", method: "POST", payload: { action: "get-match-opponent", teamId: "team", matchId: selected.id } },
+    ].sort(byAction);
+    expect(requests()).toEqual(expectedRequests);
     await click(renderer, "Retour aux parties");
     expect(renderer.root.findAllByProps({ id: "selected-game-stats" })).toHaveLength(0);
     expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("Club 03");
@@ -263,6 +275,7 @@ describe("imported games in Statistics", () => {
     expect(select(renderer, "Trier par").props.value).toBe("oldest");
     expect(rows(renderer).filter(visible)).toHaveLength(1);
     expect(rowLabels(renderer)[0]).toContain("EUW1_3");
+    expect(requests()).toEqual(expectedRequests);
   });
 
   it("keeps the category filter available with no results and can return to all games", async () => {
