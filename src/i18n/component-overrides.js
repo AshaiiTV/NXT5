@@ -1,5 +1,11 @@
 // Reviewed complete messages for counts, mixed markup and accessibility.
 export const en = {
+  "Tags (au moins un)": "Tags (at least one)",
+  "Ajoute au moins un tag à la partie.": "Add at least one tag to the game.",
+  "Ce tag est le dernier tag d’une partie. Ajoute un autre tag à cette partie avant de le supprimer.": "This is the last tag on a game. Add another tag to that game before deleting it.",
+  "Rien n’est encore enregistré.": "Nothing has been saved yet.",
+  "Vérifie les postes adverses. Un poste déjà pris est échangé.": "Check the opposing roles. Choosing an occupied role swaps the two players.",
+  "Confirme pour enregistrer la partie et ouvrir son bilan.": "Confirm to save the game and open its summary.",
   "Vérifie ton équipe et les joueurs ci-dessous avant de confirmer.": "Check your team and the players below before confirming.",
   "Ton équipe a été reconnue grâce aux cinq Riot ID. Vérifie les postes et les profils avant de confirmer.": "Your team was recognized from all five Riot IDs. Check the roles and profiles before confirming.",
   "partie": "game",
@@ -41,6 +47,12 @@ export const en = {
 };
 
 export const es = {
+  "Tags (au moins un)": "Etiquetas (al menos una)",
+  "Ajoute au moins un tag à la partie.": "Añade al menos una etiqueta a la partida.",
+  "Ce tag est le dernier tag d’une partie. Ajoute un autre tag à cette partie avant de le supprimer.": "Esta es la última etiqueta de una partida. Añade otra etiqueta a esa partida antes de eliminarla.",
+  "Rien n’est encore enregistré.": "Todavía no se ha guardado nada.",
+  "Vérifie les postes adverses. Un poste déjà pris est échangé.": "Comprueba los roles rivales. Elegir un rol ocupado intercambia a los dos jugadores.",
+  "Confirme pour enregistrer la partie et ouvrir son bilan.": "Confirma para guardar la partida y abrir su resumen.",
   "Vérifie ton équipe et les joueurs ci-dessous avant de confirmer.": "Revisa tu equipo y los jugadores de abajo antes de confirmar.",
   "Ton équipe a été reconnue grâce aux cinq Riot ID. Vérifie les postes et les profils avant de confirmer.": "Se ha reconocido a tu equipo por los cinco Riot ID. Revisa los roles y los perfiles antes de confirmar.",
   "partie": "partida",
