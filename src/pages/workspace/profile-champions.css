@@ -52,7 +52,7 @@
 .profile-champions-back { margin-bottom: 16px; }
 .profile-champion-detail-heading { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
 .profile-champion-detail-heading p { margin-top: 6px; color: var(--nxt5-text-secondary); }
-.profile-champion-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; padding: 16px 0 24px; border-bottom: 1px solid rgba(207, 250, 254, .13); margin-bottom: 24px; }
+.profile-champion-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; padding: 16px 0 24px; border-bottom: 1px solid rgba(207, 250, 254, .13); margin-bottom: 24px; }
 .profile-champion-metric > p:first-child { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); }
 .profile-champion-metric > strong { display: block; margin: 4px 0; font-size: 24px; line-height: 1.25; font-weight: 700; font-variant-numeric: tabular-nums; }
 .profile-champion-reference-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; margin-bottom: 24px; }

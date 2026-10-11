@@ -730,8 +730,8 @@ function ChampionProfileDetail({ stat, rows = [], selectedPlayer, teamId, userId
   const kda = profileChampionKda(rows);
   const csPerMin = profileChampionAverage(rows, (row) => profileChampionValue(row, "cs_per_min"), 1, " / min");
   const participation = profileChampionAverage(rows, profileChampionParticipation, 0, " %");
+  const damage = profileChampionAverage(rows, (row) => profileChampionValue(row, "damage"), 0);
   const references = [
-    { label: "Dégâts aux champions", ...profileChampionAverage(rows, (row) => profileChampionValue(row, "damage"), 0, " dégâts / partie") },
     { label: "Or gagné", ...profileChampionAverage(rows, (row) => profileChampionValue(row, "gold"), 0, " or / partie") },
     { label: "Score de vision", ...profileChampionAverage(rows, (row) => profileChampionValue(row, "vision"), 1, " / partie") },
     { label: "Sbires à 10 minutes", ...profileChampionAverage(rows, (row) => csAtMinute(row, 10), 0, " CS") },
@@ -759,6 +759,7 @@ function ChampionProfileDetail({ stat, rows = [], selectedPlayer, teamId, userId
       <ChampionVisualMetric label={t("Ratio KDA")} value={profileChampionNumber(kda.ratio, 2)} detail={t("{0}/{1} parties renseignées{2}", [kda.count, rows.length, kda.count ? ` · ${kda.kills} kills / ${kda.deaths} morts / ${kda.assists} assists au total` : ""])} />
       <ChampionVisualMetric label={t("Participation aux kills")} value={participation.value} detail={participation.detail} />
       <ChampionVisualMetric label={t("Sbires par minute")} value={csPerMin.value} detail={csPerMin.detail} />
+      <ChampionVisualMetric label={t("Dégâts moyens aux champions")} value={damage.value} detail={damage.detail} />
     </div>
     <ChampionLanePanel rows={sortedRows} navigate={navigate} bootstrapRevision={bootstrapRevision} />
     <details className="profile-champions-fold"><summary>{t("Statistiques moyennes et adversaires ")}<span>{matchups.length}{t(matchups.length > 1 ? " adversaires" : " adversaire")}{t(matchups.length > 1 ? " reconnus" : " reconnu")}</span></summary>
