@@ -401,7 +401,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       return;
     }
     if (file.size > 900000) {
-      pushToast({ type: "yellow", title: "Image trop lourde", text: "Prends une image sous 900 Ko pour garder l’avatar léger." });
+      pushToast({ type: "yellow", title: "Image trop lourde", text: "Choisis une image de moins de 900 Ko." });
       return;
     }
     const reader = new FileReader();
@@ -491,7 +491,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   async function deleteTeam() {
     if (!canDeleteTeam || saving) return;
     if (!selectedTeam) return;
-    const confirmed = window.confirm(t("Supprimer définitivement la team \"{0}\" ? Cette action supprime aussi roster, matchs, reviews et invitations liés.", [selectedTeam.name]));
+    const confirmed = window.confirm(t("Supprimer définitivement l’équipe « {0} » ? Ses profils, parties, débriefs et invitations seront aussi supprimés.", [selectedTeam.name]));
     if (!confirmed) return;
 
     setSaving(true);
@@ -690,7 +690,7 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
 
     <div className="team-management-section">
       <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div><h4 className="text-xl font-black text-white">{t("Profils & accès")}</h4><p className="mt-1 text-sm font-semibold text-slate-300">{t("Lie un compte, choisis son accès, et retire un profil depuis la même ligne.")}</p></div>
+        <div><h4 className="text-xl font-black text-white">{t("Profils & accès")}</h4><p className="mt-1 text-sm font-semibold text-slate-300">{t("Associe les comptes aux profils et choisis leurs accès. Tu peux aussi retirer un profil.")}</p></div>
         <Badge tone="purple">{roster.length}{t(roster.length > 1 ? " profils" : " profil")}</Badge>
       </div>
       <div className="nxt5-management-profiles mt-4">

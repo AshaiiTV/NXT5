@@ -27,11 +27,11 @@ export function SupportPage({ navigate, user, supportUrl = SUPPORT_URL }) {
           <section className="nxt5-support-story" aria-labelledby="support-title">
             <p className="nxt5-entry-eyebrow">{t("Un projet indépendant")}</p>
             <h1 id="support-title" className="nxt5-page-title">{t("Soutenir NXT5")}</h1>
-            <p className="nxt5-support-intro">{t("Aide à améliorer l’outil que tu utilises avec ton équipe.")}</p>
-            <p>{t("Je développe NXT5 pour aider les équipes à préparer leurs parties et à en tirer des pistes de progrès. Ton soutien contribue aux prochaines améliorations.")}</p>
+            <p className="nxt5-support-intro">{t("Contribue aux améliorations de NXT5.")}</p>
+            <p>{t("Je développe NXT5 pour aider les équipes à préparer leurs parties et à repérer ce qu’elles peuvent travailler. Ton soutien m’aide à poursuivre ce développement.")}</p>
             <ul className="nxt5-support-impact">
-              <li><Sparkles aria-hidden="true" size={20} /><div><h2>{t("Faire évoluer l’outil")}</h2><p>{t("Améliorer les fonctionnalités qui accompagnent le travail de ton équipe.")}</p></div></li>
-              <li><Wrench aria-hidden="true" size={20} /><div><h2>{t("Prendre soin du projet")}</h2><p>{t("Continuer à corriger, simplifier et améliorer NXT5 au quotidien.")}</p></div></li>
+              <li><Sparkles aria-hidden="true" size={20} /><div><h2>{t("Faire évoluer l’outil")}</h2><p>{t("Améliorer les outils que ton équipe utilise.")}</p></div></li>
+              <li><Wrench aria-hidden="true" size={20} /><div><h2>{t("Maintenir NXT5")}</h2><p>{t("Corriger les problèmes et rendre NXT5 plus simple à utiliser au quotidien.")}</p></div></li>
             </ul>
           </section>
           <section aria-labelledby="contribute-title" className="nxt5-support-contribute">
@@ -56,7 +56,7 @@ export function SupportPage({ navigate, user, supportUrl = SUPPORT_URL }) {
             </div>
           </section>
         </div>
-        <p className="nxt5-support-thanks">{t("Merci à celles et ceux qui font vivre NXT5.")}</p>
+        <p className="nxt5-support-thanks">{t("Merci pour ton soutien.")}</p>
       </main>
       <LegalLinks navigate={navigate} />
     </div>

@@ -10,7 +10,7 @@ import { LegalLinks, LinkButton, PublicInformationNav, PublicTextLink, SiteHeade
 
 const COMMUNITY_USES = [
   [Users, "Rencontre la communauté", "Échange avec les joueurs et les encadrants."],
-  [MessageCircle, "Fais avancer NXT5", "Partage tes retours et tes idées."],
+  [MessageCircle, "Partage tes idées", "Partage tes retours et tes idées."],
   [LifeBuoy, "Trouve un coup de main", "Pose tes questions sur le site et ses outils."],
 ];
 
@@ -77,8 +77,8 @@ export default function SocialPage({ navigate, user }) {
             <Surface className="nxt5-support-surface">
               <div className="nxt5-contact-privacy">
                 <LifeBuoy aria-hidden="true" size={24} />
-                <h3>{t("Retrouve l’aide adaptée à ta demande.")}</h3>
-                <p>{t("Problème technique, gestion de ton compte, données personnelles ou publication Discord : la page Contact rassemble les démarches et les informations utiles pour expliquer ta situation.")}</p>
+                <h3>{t("Trouve qui contacter.")}</h3>
+                <p>{t("La page Contact explique comment signaler un problème technique ou demander de l’aide pour ton compte, tes données personnelles ou une publication Discord.")}</p>
                 <PublicTextLink href="/contact" navigate={navigate}>{t("Consulter les contacts et les démarches")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink>
               </div>
             </Surface>

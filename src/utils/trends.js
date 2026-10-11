@@ -85,9 +85,9 @@ function knownResult(match) {
 }
 
 export const TREND_SERIES_METRICS = [
-  { key: "gold", label: "Écart d’or", unit: "or", signed: true, description: "Or de ton équipe − or adverse, en fin de game. Au-dessus de zéro : ton équipe termine avec plus d’or." },
-  { key: "deaths", label: "Morts de l’équipe", unit: "morts", signed: false, description: "Total des morts de tes cinq joueurs en fin de game. Une valeur plus basse signifie moins de morts." },
-  { key: "vision", label: "Écart de vision", unit: "pts de vision", signed: true, description: "Score de vision de ton équipe − score adverse, en fin de game. Au-dessus de zéro : ton équipe a le score le plus élevé." },
+  { key: "gold", label: "Écart d’or", unit: "or", signed: true, description: "Or de ton équipe moins or adverse en fin de partie. Une valeur positive indique que ton équipe termine avec plus d’or." },
+  { key: "deaths", label: "Morts de l’équipe", unit: "morts", signed: false, description: "Total des morts de tes cinq joueurs en fin de partie." },
+  { key: "vision", label: "Écart de vision", unit: "pts de vision", signed: true, description: "Score de vision de ton équipe moins score adverse en fin de partie. Une valeur positive indique que ton équipe a le score le plus élevé." },
 ];
 
 /** Every selected game, oldest first. Unknown dates remain accessible outside the curve. */

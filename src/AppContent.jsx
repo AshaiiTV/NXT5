@@ -66,7 +66,7 @@ export function MissingEmailModal({ user, onUserUpdate, pushToast, onLogout }) {
     <ModalDialog dismissable={false} busy={saving} aria-labelledby="missing-email-title" className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-cyan-300/25 p-6">
         <Badge tone="orange">{t("Action requise")}</Badge>
         <h2 id="missing-email-title" className="mt-5 text-3xl font-black tracking-tight text-white">{t("Ajoute ton e-mail de récupération")}</h2>
-        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t("Les anciens comptes n’avaient pas d’e-mail. Ajoute le tien maintenant pour recevoir les liens de mot de passe oublié.")}</p>
+        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t("Ton compte a été créé sans e-mail. Ajoute une adresse pour pouvoir réinitialiser ton mot de passe.")}</p>
         <form onSubmit={submit} className="mt-6 space-y-4">
           <TextInput label={t("E-mail de récupération")} value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" required icon={Mail} autoFocus autoComplete="email" />
           <TextInput label={t("Mot de passe actuel")} value={currentPassword} onChange={setCurrentPassword} type="password" required icon={Lock} />
@@ -213,7 +213,7 @@ export function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate 
       <p className="mt-3 max-w-xl text-sm font-normal leading-6 text-slate-300 sm:text-base">{t("Ton compte n'avait pas été actif depuis au moins trois mois. Tes équipes et tes données sont toujours disponibles : tu peux reprendre exactement là où tu t'étais arrêté.")}</p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         <div className="rounded-2xl border border-emerald-200/16 bg-emerald-300/[0.055] p-4"><p className="flex items-center gap-2 text-sm font-black text-emerald-100"><ShieldCheck className="h-4 w-4" />{t("Données préservées")}</p><p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">{t("Ce message n'affiche aucun détail sur tes équipes, tes games ou leurs membres.")}</p></div>
-        <div className="rounded-2xl border border-cyan-200/16 bg-cyan-300/[0.055] p-4"><p className="flex items-center gap-2 text-sm font-black text-cyan-100"><Mail className="h-4 w-4" />{t("Rappel maîtrisé")}</p><p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">{t("L'e-mail de retour peut être désactivé à tout moment dans les paramètres.")}</p></div>
+        <div className="rounded-2xl border border-cyan-200/16 bg-cyan-300/[0.055] p-4"><p className="flex items-center gap-2 text-sm font-black text-cyan-100"><Mail className="h-4 w-4" />{t("Rappel par e-mail")}</p><p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">{t("L'e-mail de retour peut être désactivé à tout moment dans les paramètres.")}</p></div>
       </div>
       {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/24 bg-rose-400/10 p-3 text-sm font-bold text-rose-100">{t(error)}</div>}
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
@@ -434,7 +434,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
         <main id="workspace-content" tabIndex={-1} className="nxt5-workspace-main">
           <WorkspaceErrorBoundary key={active}>
             <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
-            {showStartReturn && <div className="nxt5-start-return"><button type="button" onClick={() => navigate("/accueil")}>{t("← Mon accueil")}</button><span>{nextStep ? t("Prochaine étape : {0}", [t(nextStep.label).toLowerCase()]) : onboardingSteps.every(step => step.done) ? t("Tes premiers repères sont en place") : t("Ton équipe prépare la suite")}</span></div>}
+            {showStartReturn && <div className="nxt5-start-return"><button type="button" onClick={() => navigate("/accueil")}>{t("← Mon accueil")}</button><span>{nextStep ? t("Prochaine étape : {0}", [t(nextStep.label).toLowerCase()]) : onboardingSteps.every(step => step.done) ? t("Premières étapes terminées") : t("Prépare la prochaine séance")}</span></div>}
             <div key={active} className="nxt5-fade-in min-w-0">
               <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{independentAccountPage || data.selectedTeamId === selectedTeamId ? guardedPage : <div role="status" className="py-8">{t("Chargement de l’équipe…")}</div>}</Suspense>
             </div>

@@ -44,7 +44,7 @@ function PurchasesPage() {
   useLanguage();
   const [showSummary, setShowSummary] = useState(false);
   return <div className="administration-purchases">
-    <PageHeader eyebrow={t("Ventes et accès")} title={t("Achats")} subtitle={t("Retrouve les commandes, les paiements et le bilan commercial au même endroit.")} />
+    <PageHeader eyebrow={t("Ventes et accès")} title={t("Achats")} subtitle={t("Consulte les commandes, les paiements et le bilan des ventes.")} />
     <PurchaseHistory />
     <details className="administration-purchase-summary" onToggle={event => { if (event.currentTarget.open) setShowSummary(true); }}><summary><BarChart3 size={18} aria-hidden="true" /><span>{t("Bilan des achats")}<small>{t("Chiffres clés et évolution des commandes")}</small></span></summary>{showSummary && <Suspense fallback={<div role="status"><SkeletonRows count={2} /></div>}><PurchaseOverview /></Suspense>}</details>
   </div>;

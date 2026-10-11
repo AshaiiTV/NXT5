@@ -128,7 +128,7 @@ export function PurchaseOverview() {
   const max = Math.max(1, ...(data?.monthly || []).map(row => row[field]));
   const delta = totals?.paidPrevious30d ? ((totals.paid30d - totals.paidPrevious30d) / totals.paidPrevious30d) * 100 : null;
   return <Surface className="purchase-section">
-    <div className="purchase-heading"><div><h3>{t("Bilan commercial")}</h3><p>{t("Indicateurs consolidés sur tout l’historique, indépendants des filtres de recherche des commandes.")}</p></div>
+    <div className="purchase-heading"><div><h3>{t("Bilan commercial")}</h3><p>{t("Ces chiffres couvrent tout l’historique des achats. Les filtres de recherche ne les modifient pas.")}</p></div>
       <Button variant="ghost" disabled={loading} onClick={retry}><RefreshCw size={16} aria-hidden="true" />{t("Actualiser les achats")}</Button>
     </div>
     <LoadState {...state} />

@@ -29,7 +29,7 @@ function sessionDate(event) {
 function homeFocus(context, now) {
   const { matches, latestMatch, latestMatchAt, recentMatches, unreviewedRecentMatches, nextEvent, canImport, canReview, linkedPlayer } = context;
   if (!matches.length) return {
-    kind: "start", title: "Les premiers pas de votre équipe.", subtitle: "Un espace pour vos parties, vos débriefs et vos prochaines séances.",
+    kind: "start", title: "Prépare les premières parties de ton équipe.", subtitle: "Retrouve les parties, les débriefs et le planning de ton équipe.",
     label: "Pour commencer", heading: canImport ? "Ajoute votre première partie" : "Prends tes repères dans l’équipe",
     text: canImport ? "Importe une partie pour retrouver son résumé et préparer votre premier débrief. Tu peux créer les profils joueurs pendant l’import." : "Retrouve les joueurs et le planning. Les parties apparaîtront ici dès leur ajout par le staff.",
     href: canImport ? "/games?import=1" : linkedPlayer ? `/mon-profil?player=${encodeURIComponent(linkedPlayer.id)}` : "/equipes",
@@ -42,7 +42,7 @@ function homeFocus(context, now) {
   };
   const pending = unreviewedRecentMatches[0];
   if (pending) return {
-    kind: "review", title: canReview ? "Place au débrief." : "Vos dernières parties vous attendent.",
+    kind: "review", title: canReview ? "Place au débrief." : "Retrouve les dernières parties de ton équipe.",
     subtitle: `${countLabel(unreviewedRecentMatches.length, "partie récente", "parties récentes")} sans débrief enregistré.`,
     label: canReview ? "Votre prochain débrief" : "Votre dernière activité", heading: matchDisplayName(pending, "Partie de l’équipe"),
     text: canReview ? "Reprends cette partie, note un point à garder et une action à travailler ensemble." : "Ouvre le résumé pour retrouver le résultat et les points à discuter avec l’équipe.",
@@ -54,7 +54,7 @@ function homeFocus(context, now) {
     const report = context.reportForMatch(recent);
     const draft = report?.discord_status === "draft";
     return {
-      kind: "active", title: draft ? "Votre débrief prend forme." : "Gardez le fil de votre jeu.", subtitle: "Retrouve le débrief de votre dernière partie et les points à travailler pour la suite.",
+      kind: "active", title: draft ? "Ton débrief est en cours." : "Reprends le dernier débrief de ton équipe.", subtitle: "Retrouve le débrief de votre dernière partie et les points à travailler pour la suite.",
       label: draft ? "Brouillon · staff uniquement" : "À reprendre ensemble", heading: report?.title || matchDisplayName(recent, "Votre dernière partie"),
       text: draft ? "Reprends ce brouillon avant de le partager avec l’équipe." : "Relis les observations de l’équipe avant la prochaine séance.",
       href: report ? reportPath(report) : matchPath(recent), action: report ? draft ? "Reprendre le débrief" : "Relire le débrief" : "Voir la partie", icon: FileText,
@@ -62,10 +62,10 @@ function homeFocus(context, now) {
   }
   const datedHistory = latestMatchAt != null && latestMatchAt <= now;
   return {
-    kind: "quiet", title: "On prépare la suite ?",
+    kind: "quiet", title: "Prépare la prochaine séance.",
     subtitle: datedHistory ? "Aucune partie récente dans l’espace de l’équipe sur les 14 derniers jours." : "Retrouve votre historique et prépare la prochaine séance.",
-    label: "Pour reprendre", heading: canImport ? "Ajoute votre prochaine partie" : "Retrouve le rythme de l’équipe",
-    text: canImport ? "Vous avez rejoué depuis ? Ajoute la partie pour repartir sur un débrief à jour." : "Consulte le planning et retrouve les points à travailler dans vos dernières parties.",
+    label: "Pour reprendre", heading: canImport ? "Ajoute votre prochaine partie" : "Consulte le planning de ton équipe",
+    text: canImport ? "Si ton équipe a rejoué depuis, importe la partie pour préparer son débrief." : "Consulte le planning et retrouve les points à travailler dans vos dernières parties.",
     href: canImport ? "/games?import=1" : "/planning", action: canImport ? "Importer une partie" : "Ouvrir le planning", icon: canImport ? Upload : CalendarDays,
     secondary: { href: matchPath(latestMatch), label: "Revoir la dernière partie" },
   };
@@ -124,7 +124,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
 
     <div className="nxt5-home-overview">
       <section className="nxt5-home-section" aria-labelledby="nxt5-home-games-title">
-        <div className="nxt5-home-section-heading"><Swords size={20} aria-hidden="true" /><h3 id="nxt5-home-games-title">{context.matches.length ? t("Dernières parties") : t("Votre équipe prend ses marques")}</h3></div>
+        <div className="nxt5-home-section-heading"><Swords size={20} aria-hidden="true" /><h3 id="nxt5-home-games-title">{context.matches.length ? t("Dernières parties") : t("Les premières parties de ton équipe")}</h3></div>
         {context.matches.length ? <>
           <p className="nxt5-home-section-intro">{t(countLabel(context.recentMatches.length, "partie"))}{t(" sur les 14 derniers jours")}</p>
           <ul className="nxt5-home-games">
@@ -140,7 +140,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
             })}
           </ul>
         </> : <>
-          <p className="nxt5-home-section-intro">{context.importPlayers.length ? t("{0} dans l’effectif. Les premières parties et leurs débriefs prendront place ici.", [t(countLabel(context.importPlayers.length, "joueur"))]) : t("Retrouve ici les joueurs, les parties et les prochains rendez-vous de l’équipe au fur et à mesure.")}</p>
+          <p className="nxt5-home-section-intro">{context.importPlayers.length ? t("{0} dans l’effectif. Les premières parties et leurs débriefs apparaîtront ici.", [t(countLabel(context.importPlayers.length, "joueur"))]) : t("Les joueurs, les parties et les prochaines séances apparaîtront ici après leur ajout.")}</p>
           <PublicTextLink href={context.canManageRoster ? "/gestion-equipe?section=roster" : "/equipes"} navigate={navigate} className="nxt5-home-text-link">{context.canManageRoster ? t("Compléter l’effectif") : t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
         </>}
       </section>
@@ -158,7 +158,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
     </div>
 
     {unfinished && !startIsPrimary && <div className="nxt5-home-learning">
-      <div className="nxt5-home-resume"><div><strong>{t("Besoin de prendre tes repères ?")}</strong><p>{t("Retrouve tes premières étapes, à ton rythme.")}</p></div><Button ref={guideTrigger} type="button" variant="ghost" aria-expanded={showStart} aria-controls="nxt5-home-learning-content" onClick={showStart ? closeStart : openStart}>{showStart ? t("Masquer le démarrage") : t("Reprendre le démarrage")}</Button></div>
+      <div className="nxt5-home-resume"><div><strong>{t("Besoin de prendre tes repères ?")}</strong><p>{t("Reprends les étapes de démarrage.")}</p></div><Button ref={guideTrigger} type="button" variant="ghost" aria-expanded={showStart} aria-controls="nxt5-home-learning-content" onClick={showStart ? closeStart : openStart}>{showStart ? t("Masquer le démarrage") : t("Reprendre le démarrage")}</Button></div>
       <div id="nxt5-home-learning-content">{showStart && <BeginnerCompass steps={steps} manager={context.manager} onNavigate={navigate} onClose={closeStart} />}</div>
     </div>}
     <nav className="nxt5-home-shortcuts" aria-label={t("Raccourcis du quotidien")}>

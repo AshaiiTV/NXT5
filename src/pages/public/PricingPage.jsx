@@ -184,7 +184,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
         <div className="pricing-details">
           <section aria-labelledby="pricing-faq-title">
             <Badge tone="purple">{t("Avant de te lancer")}</Badge>
-            <SectionHeading id="pricing-faq-title" className="pricing-section-title">{t("Les réponses utiles")}</SectionHeading>
+            <SectionHeading id="pricing-faq-title" className="pricing-section-title">{t("Questions sur les offres")}</SectionHeading>
             <div className="mt-5">
               {FAQ.map(([question, answer]) => <details className="pricing-faq-item" key={question}><summary>{t(question)}</summary><p className="pb-5 text-sm leading-7 text-slate-300">{t(answer)}</p></details>)}
             </div>
@@ -193,8 +193,8 @@ export default function PricingPage({ navigate, user, embedded = false }) {
           <section id="demande-acces" ref={formSectionRef} aria-labelledby="access-request-title" className="pricing-request">
             <Surface>
               <Badge tone="cyan">{t("Préparer ton accès")}</Badge>
-              <SectionHeading id="access-request-title" className="pricing-section-title">{t("Parlons de ton équipe")}</SectionHeading>
-              <p className="mt-3 text-sm leading-6 text-slate-300">{t("Dis-nous ce qui t’intéresse. Ta demande nous aide à valider l’offre et à préparer un échange avec toi, sans engagement d’achat.")}</p>
+              <SectionHeading id="access-request-title" className="pricing-section-title">{t("Demander un accès pour ton équipe")}</SectionHeading>
+              <p className="mt-3 text-sm leading-6 text-slate-300">{t("Indique l’offre qui t’intéresse et les besoins de ton équipe. Nous utiliserons ta demande pour valider l’offre et en discuter avec toi, sans engagement d’achat.")}</p>
               {success ? (<div ref={statusRef} tabIndex={-1} role="status" className="pricing-success mt-6 rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">
                   <CheckCircle2 aria-hidden="true" className="h-7 w-7 text-emerald-200" />
                   <h3 className="mt-3 text-xl font-black text-emerald-100">{t("Demande reçue ou déjà enregistrée")}</h3>
@@ -204,7 +204,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
                   <p id="access-request-help" className="mb-5 text-xs leading-5 text-slate-300">{t("Les champs marqués d’un * sont obligatoires.")}</p>
                   <fieldset disabled={saving} className="min-w-0 space-y-5">
                     <legend className="sr-only">{t("Ta demande d’accès NXT5")}</legend>
-                    <h4 className="pricing-form-heading">{t("Ton équipe et ton contact")}</h4>
+                    <h4 className="pricing-form-heading">{t("Ton équipe et tes coordonnées")}</h4>
                     <div className="pricing-form-row">
                       <TextInput label={t("Ton nom ou pseudo *")} name="contactName" autoComplete="name" minLength={2} maxLength={80} value={form.contactName} onChange={(value) => patch("contactName", value)} placeholder={t("Ton nom")} required />
                       <TextInput label={t("E-mail de contact *")} name="email" autoComplete="email" maxLength={160} value={form.email} onChange={(value) => patch("email", value)} placeholder="toi@exemple.fr" type="email" required />

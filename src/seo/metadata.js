@@ -15,7 +15,7 @@ export const PUBLIC_METADATA = {
   },
   "/fonctionnalites": {
     title: "Outils d’analyse et de coaching League of Legends — NXT5",
-    description: "Découvre les outils NXT5 pour les joueurs, coachs et staffs League of Legends : statistiques, chronologie, débriefs, champion pools, draft et planning.",
+    description: "Les outils NXT5 pour les joueurs, coachs et staffs League of Legends : statistiques, chronologie, débriefs, champions préparés, draft et planning.",
     label: "Fonctionnalités",
   },
   "/demo": {
@@ -30,7 +30,7 @@ export const PUBLIC_METADATA = {
   },
   "/guides/preparer-debrief": {
     title: "Préparer un débrief d’équipe League of Legends — Guide NXT5",
-    description: "Prépare un débrief utile avec NXT5 : choisis une partie, vérifie un fait avec les joueurs et transforme les observations en une action pour le prochain entraînement.",
+    description: "Prépare un débrief avec NXT5 : choisis une partie, vérifie un fait avec les joueurs et décide d’une action à essayer au prochain entraînement.",
     label: "Premier débrief",
   },
   "/contact": {
@@ -45,7 +45,7 @@ export const PUBLIC_METADATA = {
   },
   "/soutenir": {
     title: "Soutenir le développement de NXT5",
-    description: "Découvre comment soutenir NXT5, un projet indépendant dédié à l’analyse de parties et à la préparation des équipes League of Legends.",
+    description: "Soutiens le développement de NXT5, un projet indépendant pour analyser les parties et préparer les équipes League of Legends.",
     label: "Soutenir NXT5",
   },
   "/mentions-legales": {
@@ -55,7 +55,7 @@ export const PUBLIC_METADATA = {
   },
   "/confidentialite": {
     title: "Politique de confidentialité — NXT5",
-    description: "Comprends quelles données NXT5 utilise, pourquoi elles sont traitées et comment exercer tes droits sur tes informations personnelles.",
+    description: "Les données utilisées par NXT5, les raisons de leur traitement et les démarches pour exercer tes droits sur tes informations personnelles.",
     label: "Confidentialité",
   },
   "/cookies": {
@@ -70,7 +70,7 @@ export const PUBLIC_METADATA = {
   },
   "/reglement": {
     title: "Règlement de la communauté — NXT5",
-    description: "Prends connaissance des règles de la communauté NXT5 : respect des autres joueurs, usage des espaces d’équipe et signalement des abus.",
+    description: "Les règles de la communauté NXT5 : respect des autres joueurs, utilisation des espaces d’équipe et signalement des abus.",
     label: "Règlement",
   },
 };

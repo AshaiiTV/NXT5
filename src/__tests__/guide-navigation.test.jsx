@@ -74,7 +74,7 @@ describe("contextual help", () => {
 
   it("falls back to the first section for an obsolete help bookmark", () => {
     const html = renderToStaticMarkup(<GuidePage route={{ search: "?section=obsolete" }} />);
-    expect(html).toContain("Ton prochain pas est dans Accueil");
+    expect(html).toContain("Retrouver la prochaine action sur l’accueil");
   });
 });
 

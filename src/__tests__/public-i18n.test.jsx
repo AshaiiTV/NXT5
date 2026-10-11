@@ -12,7 +12,7 @@ afterEach(() => setLanguage("fr"));
 
 describe("translated public copy", () => {
   it.each([
-    ["en", "Understand your matches.", "Organise your team", "Prepare your next session"],
+    ["en", "Understand your matches.", "Organise your team", "Plan the next session"],
     ["es", "Entiende tus partidas.", "Organiza tu equipo", "Prepara la próxima sesión"],
   ])("translates both homepage markup and feature arrays in %s", (language, heading, feature, nextSession) => {
     setLanguage(language);

@@ -265,11 +265,11 @@ export const LEGAL_PAGES = {
   "/contact": {
     eyebrow: "Support",
     title: "Contact",
-    intro: "Besoin d’aide, de signaler un souci ou de rejoindre la communauté NXT5 ? Retrouve ici le contact privé de NXT5 et son serveur Discord officiel.",
+    intro: "Pour demander de l’aide ou signaler un problème, contacte NXT5 en privé. Tu peux aussi rejoindre la communauté sur le serveur Discord officiel.",
     sections: [
       ["Contact privé par e-mail", `Pour contacter ${NXT5_EDITOR_NAME}, éditeur de NXT5 et responsable du traitement des données, écris à ${NXT5_CONTACT_EMAIL}. Utilise cette adresse pour les demandes liées à ton compte, à la sécurité, à tes données personnelles ou à l’exercice de tes droits.`],
-      ["Discord NXT5", "Le serveur Discord permet de centraliser les retours, les bugs, les idées de fonctionnalités et les demandes d’aide autour de NXT5. C’est le canal à privilégier pour obtenir une réponse rapide."],
-      ["Support produit", "Pour un problème technique, indique la page concernée, l’action réalisée, le message d’erreur affiché et, si possible, le contexte de l’équipe ou de l’import. Plus le signalement est précis, plus il peut être corrigé vite."],
+      ["Discord NXT5", "Sur le serveur Discord, partage tes retours, signale un bug, propose une fonctionnalité ou demande de l’aide. Privilégie ce canal pour une réponse rapide."],
+      ["Support produit", "Pour un problème technique, indique la page, l’action réalisée et le message d’erreur. Ajoute si possible le contexte de l’équipe ou de l’import : ces précisions aident à corriger le problème plus vite."],
       ["Supprimer ton compte", `Pour demander la suppression de ton compte ou l’examen de données personnelles présentes dans des contenus partagés, écris à ${NXT5_CONTACT_EMAIL}. NXT5 peut demander des éléments raisonnables pour vérifier ton identité.`],
       ["Sécurité et données", `Pour une demande sensible liée à un compte, une équipe, des données ou un accès, écris à ${NXT5_CONTACT_EMAIL}. Un message privé à l’équipe NXT5 sur Discord reste possible. Ne publie aucune information privée dans un salon public. Précise s’il s’agit d’une demande d’accès, de rectification, d’effacement, de limitation, de portabilité ou d’opposition.`],
       ["Délai de réponse", "Les demandes relatives aux données personnelles sont traitées en principe sous un mois. Pour protéger le compte, NXT5 peut demander des éléments raisonnables permettant de vérifier l’identité du demandeur."],
@@ -330,7 +330,7 @@ export function LegalPage({ route, navigate, user }) {
                 </section>
               ))}
               {!!page.resources?.length && <section className="nxt5-document-resources">
-                <h2>{t("Références et garanties")}</h2>
+                <h2>{t("Références")}</h2>
                 <ul>{page.resources.map(([label, href]) => (
                   <li key={href}><a href={href} target="_blank" rel="noopener noreferrer"><span>{t(label)}<span className="sr-only">{t(" (nouvel onglet)")}</span></span><ArrowUpRight aria-hidden="true" size={16} /></a></li>
                 ))}</ul>
@@ -376,7 +376,7 @@ export function HomeScreen({ navigate }) {
           <div className="nxt5-entry-section-heading">
             <p className="nxt5-entry-eyebrow">{t("Un espace de travail commun")}</p>
             <h2 id="features-title">{t("Tes joueurs, tes parties,")}<br />{t("tes prochains entraînements.")}</h2>
-            <p>{t("Des statistiques de partie aux décisions de coaching, garde un fil commun entre les joueurs et l’encadrement.")}</p>
+            <p>{t("Partage les statistiques et les décisions de coaching avec les joueurs et l’encadrement.")}</p>
           </div>
           <div className="nxt5-entry-feature-list">
             {[
@@ -392,7 +392,7 @@ export function HomeScreen({ navigate }) {
           <div className="nxt5-entry-section-heading">
             <p className="nxt5-entry-eyebrow">{t("Pour commencer")}</p>
             <h2 id="workflow-title">{t("De ta première équipe")}<br />{t("au premier débrief.")}</h2>
-            <p>{t("Le site rassemble les faits. Ton équipe décide des points à travailler.")}</p>
+            <p>{t("Appuie-toi sur les données des parties pour choisir avec ton équipe les points à travailler.")}</p>
           </div>
           <ol className="nxt5-entry-steps">
             {[
@@ -428,7 +428,7 @@ export function NotFoundPage({ navigate }) {
         <Surface className="nxt5-auth-card">
           <Badge tone="red">404</Badge>
           <h1>{t("Page introuvable")}</h1>
-          <p className="nxt5-auth-intro">{t("Cette URL ne correspond à aucune page NXT5. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.")}</p>
+          <p className="nxt5-auth-intro">{t("Aucune page NXT5 ne se trouve à cette adresse. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.")}</p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <LinkButton href="/" navigate={navigate} variant="ghost">{t("Retour accueil")}</LinkButton>
             <LinkButton href="/connexion" navigate={navigate} icon={Lock}>{t("Se connecter")}</LinkButton>
@@ -484,7 +484,7 @@ export function ForgotPasswordPage({ navigate }) {
             <TextInput label={t("E-mail du compte")} value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" autoComplete="email" required icon={Mail} />
             {message && <div role="status" className="nxt5-auth-notice is-success">{t(message)}</div>}
             {error && <div role="alert" className="nxt5-auth-notice is-error">{t(error)}</div>}
-            <Button type="submit" disabled={loading || !email.trim()} icon={loading ? Loader2 : Mail} className="nxt5-auth-submit">{loading ? "Envoi..." : t("Envoyer le lien")}</Button>
+            <Button type="submit" disabled={loading || !email.trim()} icon={loading ? Loader2 : Mail} className="nxt5-auth-submit">{loading ? t("Envoi…") : t("Envoyer le lien")}</Button>
           </form>
           <p className="nxt5-auth-alternative"><PublicTextLink href={loginHref} navigate={navigate}>{t("Retour à la connexion")}</PublicTextLink></p>
         </Surface>
@@ -506,7 +506,7 @@ export function ResetPasswordPage({ navigate, onAuth }) {
     event.preventDefault();
     setError("");
     if (form.nextPassword !== form.confirmPassword) {
-      setError("La confirmation ne correspond pas.");
+      setError("Les deux mots de passe ne correspondent pas.");
       return;
     }
     setLoading(true);
@@ -536,7 +536,7 @@ export function ResetPasswordPage({ navigate, onAuth }) {
               <div role="status" className="nxt5-auth-notice is-success">{t("Mot de passe mis à jour. Connecte-toi avec ton e-mail et ce mot de passe, puis associe à nouveau tes comptes externes dans Paramètres.")}</div>
               <LinkButton href="/connexion" navigate={navigate} icon={Lock}>{t("Se connecter")}</LinkButton>
             </div>) : (<form onSubmit={submit} className="nxt5-auth-form">
-              <p className="text-sm leading-6 text-slate-300">{t("Cette opération ferme tes sessions et dissocie toutes tes connexions externes associées. Tu pourras les associer à nouveau après ta connexion avec ton nouveau mot de passe.")}</p>
+              <p className="text-sm leading-6 text-slate-300">{t("La réinitialisation ferme tes sessions et dissocie tous tes comptes externes. Tu pourras les associer à nouveau après t’être connecté avec ton nouveau mot de passe.")}</p>
               <TextInput label={t("Nouveau mot de passe")} value={form.nextPassword} onChange={(nextPassword) => setForm((current) => ({ ...current, nextPassword }))} placeholder={t("8 caractères minimum")} type="password" required icon={Shield} />
               <TextInput label={t("Confirmer")} value={form.confirmPassword} onChange={(confirmPassword) => setForm((current) => ({ ...current, confirmPassword }))} placeholder={t("Répète le nouveau mot de passe")} type="password" required icon={Check} />
               {error && <div role="alert" className="nxt5-auth-notice is-error">{t(error)}</div>}
@@ -628,19 +628,19 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
           <p>{t("Retrouve tes joueurs, tes parties et les points à travailler lors de la prochaine séance.")}</p>
           <TeamRoleSignature />
           <ul>
-            {[[Users, "Les joueurs de ton équipe", "Profils, rôles et disponibilités au même endroit."], [BarChart3, "Tes parties à portée de main", "Le résumé et les statistiques restent liés à chaque partie."], [FileText, "Vos débriefs au même endroit", "Garde les observations et les prochaines actions de l’équipe."]].map(([Icon, title, text]) => <li key={title}><Icon aria-hidden="true" size={21} /><div><strong>{t(title)}</strong><span>{t(text)}</span></div></li>)}
+            {[[Users, "Les joueurs de ton équipe", "Profils, rôles et disponibilités au même endroit."], [BarChart3, "Le détail de tes parties", "Le résumé et les statistiques restent liés à chaque partie."], [FileText, "Les débriefs de ton équipe", "Garde les observations et les prochaines actions de l’équipe."]].map(([Icon, title, text]) => <li key={title}><Icon aria-hidden="true" size={21} /><div><strong>{t(title)}</strong><span>{t(text)}</span></div></li>)}
           </ul>
         </section>
         <Surface className="nxt5-auth-card">
           <p className="nxt5-entry-eyebrow">{isRegister ? t("Bienvenue sur NXT5") : t("Bon retour sur NXT5")}</p>
           <h1>{isRegister && registrationRequested ? t("Demande reçue") : isSocialComplete ? t("Termine ton inscription") : isRegister ? t("Créer un compte") : t("Connexion")}</h1>
-          <p className="nxt5-auth-intro">{isRegister && registrationRequested ? t("Tu peux poursuivre avec les liens ci-dessous.") : isSocialComplete ? t("Confirme tes informations pour créer ton compte NXT5.") : isRegister ? t("Crée ton compte pour ouvrir ou rejoindre un espace équipe. Accès actuellement gratuit, aucun abonnement activé.") : t("Retrouve tes équipes, tes parties et tes débriefs.")}</p>
+          <p className="nxt5-auth-intro">{isRegister && registrationRequested ? t("Consulte ta messagerie pour la suite de l’inscription.") : isSocialComplete ? t("Confirme tes informations pour créer ton compte NXT5.") : isRegister ? t("Crée ton compte pour ouvrir ou rejoindre un espace équipe. Accès actuellement gratuit, aucun abonnement activé.") : t("Retrouve tes équipes, tes parties et tes débriefs.")}</p>
           {isRegister && !registrationRequested && <p className="nxt5-auth-intro">{t("L’import de tes parties nécessite NXT5 Importer sur Windows ou Mac avec League of Legends ouvert. ")}<PublicTextLink href="/demo" navigate={navigate}>{t("Tu peux d’abord essayer la démo sans compte.")}</PublicTextLink></p>}
           {socialStatus && <div className="mt-4"><SocialNotice status={socialStatus} /></div>}
           {isRegister && registrationRequested ? <div className="nxt5-registration-confirmation"><p ref={registrationStatusRef} tabIndex={-1} role="status" className="nxt5-auth-notice is-success">{t("Si cette adresse peut être utilisée, tu recevras un e-mail de vérification. Si tu as déjà un compte, connecte-toi ou réinitialise ton mot de passe.")}</p><p>{t("Pour confirmer une nouvelle inscription, connecte-toi avec le mot de passe choisi, puis ouvre le lien de vérification reçu par e-mail dans ce même navigateur.")}</p><p>{t("Vérifie aussi tes courriers indésirables. Aucun abonnement n’a été activé.")}</p><LinkButton href={`/connexion${querySuffix}`} navigate={navigate} icon={ArrowRight}>{t("Se connecter")}</LinkButton><PublicTextLink href={`/mot-de-passe-oublie${querySuffix}`} navigate={navigate} className="nxt5-entry-text-link">{t("Réinitialiser mon mot de passe")}</PublicTextLink></div> : isSocialComplete ? <SocialSignup onComplete={completeAuth} loginHref="/connexion?next=%2Fparametres" /> : <>
           <SocialLogin flow={isRegister ? "register" : "login"} rememberMe={rememberMe} disabled={loading} />
           <form onSubmit={submit} className="nxt5-auth-form">
-            <TextInput label={isRegister ? "E-mail" : t("E-mail ou ancien pseudo")} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : t("joueur@exemple.com ou ancien pseudo")} type={isRegister ? "email" : "text"} autoComplete={isRegister ? "email" : "username"} required icon={Mail} />
+            <TextInput label={isRegister ? t("E-mail") : t("E-mail ou ancien pseudo")} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : t("joueur@exemple.com ou ancien pseudo")} type={isRegister ? "email" : "text"} autoComplete={isRegister ? "email" : "username"} required icon={Mail} />
             {isRegister && <TextInput label={t("Pseudo")} value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder={t("Ex : Joueur NXT5")} autoComplete="nickname" required icon={UserPlus} />}
             <TextInput label={t("Mot de passe")} value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" autoComplete={isRegister ? "new-password" : "current-password"} required icon={Lock} />
             <div className="nxt5-auth-preferences"><PremiumToggle checked={rememberMe} onChange={setRememberMe} title={t("Rester connecté")} text={t("Sur cet appareil.")} /></div>

@@ -804,7 +804,7 @@ function MatchTimelineReview({ match, teamName }) {
         <div className="min-w-0">
           <div className="flex flex-wrap gap-2"><Badge tone="cyan">{t("Déroulé coach")}</Badge><Badge tone={status.toneName}>{t(status.label)}</Badge><Badge tone="purple">{kills.length}{t(" kills")}</Badge><Badge tone="slate">{events.length}{t(" moments")}</Badge></div>
           <h4 className="mt-3 text-2xl font-black text-white">{t("Lecture chronologique")}</h4>
-          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{highlight ? `${highlight.time} · ${timelineTeamLabel(highlight.teamKey, teamName)} · ${highlight.title}` : t("Aucun moment clé détecté dans la timeline importée.")}</p>
+          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{highlight ? `${highlight.time} · ${timelineTeamLabel(highlight.teamKey, teamName)} · ${highlight.title}` : t("Aucun moment clé détecté dans la chronologie importée.")}</p>
         </div>
         <div className="grid w-full gap-2 sm:grid-cols-3 xl:w-[34rem]">
           {goldMarks.map((item) => <TimelineGoldCheckpoint key={item.minute} minute={item.minute} diff={item.diff} />)}
@@ -818,7 +818,7 @@ function MatchTimelineReview({ match, teamName }) {
     </div>
     {events.length ? <div className="grid gap-3 p-4 xl:grid-cols-3">
       {phases.map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} teamName={teamName} />)}
-    </div> : <p className="m-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">{t("Aucun déroulé exploitable dans ce JSON pour les moments clés.")}</p>}
+    </div> : <p className="m-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">{t("Ce fichier JSON ne contient pas de chronologie exploitable pour afficher les moments clés.")}</p>}
   </div>;
 }
 
@@ -1201,16 +1201,16 @@ function playerSideTimings(match, role) {
     strongside: `${dragonWindow} quand le dragon est la priorité : crash, reset synchronisé puis contrôle de rivière avant le contact.`,
   };
   if (key === "MID") return {
-    weakside: `Pendant la fenêtre opposée au prochain objectif si la prio est perdue : absorber la wave sans forcer le move en retard.`,
+    weakside: "À l’opposé du prochain objectif, sans priorité de voie : récupérer les sbires sans forcer un déplacement tardif.",
     strongside: `${firstDragon ? dragonWindow : topWindow} avec prio : pousser, disparaître de la vision puis créer le surnombre sur le side choisi.`,
   };
   if (key === "JGL") return {
-    weakside: `Le side opposé à l'objectif annoncé à T-90 : prévenir qu'il n'y aura pas de couverture et échanger immédiatement une ressource.`,
+    weakside: "Du côté opposé à l’objectif annoncé 90 s avant : préviens l’équipe qu’elle n’aura pas de couverture et prends une ressource en échange.",
     strongside: `${firstDragon ? dragonWindow : topWindow} : annoncer le path, confirmer les priorités et arriver avant l'adversaire dans la zone.`,
   };
   return {
-    weakside: "Quand les ressources de l'équipe sont engagées sur l'autre side : céder proprement et annoncer le risque.",
-    strongside: "Quand le prochain objectif correspond à son side : créer la priorité avant le setup.",
+    weakside: "Quand l’équipe joue de l’autre côté de la carte : reculer et annoncer le danger.",
+    strongside: "Quand le prochain objectif est de ce côté : obtenir la priorité de voie avant de le préparer.",
   };
 }
 
@@ -1380,7 +1380,7 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch, sho
       <div>
         <div className="flex flex-wrap items-center gap-2"><Badge tone="purple">{t("Analyse de groupe")}</Badge><Badge tone="slate">{matches.length}{t(matches.length > 1 ? " games" : " game")}</Badge></div>
         <h3 className="mt-3 text-2xl font-black text-white">{t("Résultats du groupe")}</h3>
-        <p className="mt-1 text-sm font-semibold text-slate-300">{t("Agrégation des games sélectionnées : série, volume, écarts et signaux communs.")}</p>
+        <p className="mt-1 text-sm font-semibold text-slate-300">{t("Bilan des parties sélectionnées : résultats de la série, nombre de parties, écarts et observations communes.")}</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <Badge tone={wins >= matches.length / 2 ? "green" : "red"}>{wins}W / {matches.length - wins}L</Badge>
@@ -1560,7 +1560,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         const match = exportMatches[0];
         const payload = await apiFetch("match-details", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, matchIds: [match.id] }) });
         const detail = payload?.matches?.find((item) => String(item.id) === String(match.id) && String(item.team_id) === String(selectedTeamId));
-        if (!detail) throw new Error("Impossible de charger les données complètes de la game.");
+        if (!detail) throw new Error("Impossible de charger toutes les données de la partie.");
         exportMatches = [{ ...match, ...detail }];
       }
       await exportStatsPng({
@@ -1824,7 +1824,7 @@ function reportRawGameLine(match) {
 function reportRawSummaryLines(matches) {
   if (!matches.length) return ["Aucune game liée."];
   const rows = matches.flatMap((match) => (match.participants || []).filter((row) => row.team_key === "ALLY"));
-  if (!rows.length) return ["Games liées, mais données joueurs absentes."];
+  if (!rows.length) return ["Les parties sont associées, mais les données des joueurs manquent."];
   const sum = (field) => rows.reduce((total, row) => total + Number(row[field] || 0), 0);
   const wins = matches.filter((match) => match.result === "Victoire").length;
   const games = matches.length;

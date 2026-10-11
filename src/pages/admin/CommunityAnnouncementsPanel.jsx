@@ -259,7 +259,7 @@ export default function CommunityAnnouncementsPanel() {
       revision.current += 1; attempt.current = snapshot;
       setReference(next.reference); setContent(next.content); setDestinations(next.destinations.map(({ guildId, channelId }) => ({ guildId, channelId })));
       setPreview(null); setResult(restored);
-      setNotice("Annonce retrouvée. Prépare l’aperçu de reprise pour envoyer uniquement les destinations en attente ou en échec.");
+      setNotice("Annonce retrouvée. Prépare un nouvel aperçu pour envoyer uniquement aux destinations en attente ou en échec.");
     } catch (failure) {
       if (!mounted.current) return;
       if ([401, 403].includes(failure.status)) clearAccess();
