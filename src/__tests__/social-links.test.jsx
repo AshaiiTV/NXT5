@@ -6,9 +6,10 @@ import { isAdminPath, isAppPath, isKnownPath } from "../app/routing.js";
 import SocialPage from "../pages/public/SocialPage.jsx";
 
 describe("Social links and integration routes", () => {
-  it("shows the verified Discord and YouTube links without inventing other accounts", () => {
+  it("shows the verified Discord, Instagram and YouTube links without inventing other accounts", () => {
     expect(getSocialLinks({})).toEqual([
       expect.objectContaining({ id: "discord", href: "https://discord.gg/esPcQAeNWu" }),
+      expect.objectContaining({ id: "instagram", href: "https://www.instagram.com/nxt5org/" }),
       expect.objectContaining({ id: "youtube", href: "https://www.youtube.com/channel/UC_C-OnOepIO05qfqlcUrMRA" }),
     ]);
   });
@@ -26,6 +27,7 @@ describe("Social links and integration routes", () => {
     expect(html).toContain('target="_blank" rel="noopener noreferrer"');
     expect(html).toContain("nouvel onglet");
     expect(html).toContain('href="/reseaux"');
+    expect(html).toContain('href="https://www.instagram.com/nxt5org/"');
     expect(html).toContain('href="https://www.youtube.com/channel/UC_C-OnOepIO05qfqlcUrMRA"');
   });
   it("exposes social routes publicly while keeping integrations private and admin-only", () => {

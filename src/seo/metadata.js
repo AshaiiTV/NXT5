@@ -39,8 +39,8 @@ export const PUBLIC_METADATA = {
     label: "Contact",
   },
   "/reseaux": {
-    title: "Communauté et Discord officiel — NXT5",
-    description: "Retrouve NXT5 sur Discord et YouTube : échange avec la communauté League of Legends, partage tes retours et accède à la chaîne officielle.",
+    title: "Discord, YouTube et Instagram — NXT5",
+    description: "Retrouve les comptes officiels NXT5 sur Discord, YouTube et Instagram : vidéos, conseils et échanges avec la communauté League of Legends.",
     label: "Réseaux et communauté",
   },
   "/soutenir": {
