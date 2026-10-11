@@ -5,7 +5,7 @@ import "../../styles/compositions.css";
 import { Crown, Sparkles, Download, Search, Users, Trash2, BookOpen, Check, ChevronDown, Loader2, Plus, X, Clipboard, RefreshCw } from "lucide-react";
 import { DRAFT_VIEW_ROUTES } from "../../app/constants.jsx";
 import { draftPathFromView, draftViewFromPath, openAppPath } from "../../app/routing.js";
-import { TabNav, Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TextInput } from "../../components/ui/Core.jsx";
+import { TabNav, Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../api/client.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
@@ -492,22 +492,33 @@ function CompositionSlot({ role, slot, players, rows, onChange }) {
       if (row && String(payload.role || row.role || "").toUpperCase() === role) onChange(role, { playerId: row.player_id || player?.id || "", poolId: row.id });
     } catch {}
   }
-  return <div className="nxt5-composition-slot group">
-    <div className="flex items-start justify-between gap-3">
-      <div className="min-w-0">
-        <div className="flex items-center gap-2"><RoleIcon role={role} className="h-5 w-5" /><p className="text-sm font-semibold text-white">{t(roleLabel(role))}</p></div>
-        <p className="mt-1 break-words text-xs font-bold text-cyan-100/75">{player?.name || t("Profil manquant")}</p>
-      </div>
-      {pick ? <Badge tone={championPoolStatusTone(status)}>{t(championPoolStatusLabel(status))}</Badge> : <Badge tone="slate">{t("À choisir")}</Badge>}
+  return <section className="nxt5-composition-slot" aria-label={t(roleLabel(role))}>
+    <div className="nxt5-composition-slot-heading">
+      <span aria-hidden="true"><RoleIcon role={role} className="h-5 w-5" /></span>
+      <h4>{t(roleLabel(role))}</h4>
+      {pick && <button type="button" className="nxt5-composition-remove" aria-label={t("Retirer le champion · {0}", [role])} title={t("Retirer le champion")} onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })}><X aria-hidden="true" size={16} /></button>}
     </div>
-    {rolePlayers.length > 1 && <div className="mt-3 flex flex-wrap gap-1.5">{rolePlayers.map((item) => <button key={item.id} type="button" onClick={() => onChange(role, { playerId: item.id, poolId: "" })} aria-pressed={item.id === player?.id} className={cx("nxt5-composition-choice border px-3 py-2 text-[length:var(--nxt5-font-ui)] font-semibold transition", item.id === player?.id ? "border-cyan-200/45 bg-cyan-400/12 text-cyan-50" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{item.name}</button>)}</div>}
-    <div className="mt-3"><SelectInput label={t("Champion · {0}", [role])} value={availableRows.some((row) => row.id === slot.poolId) ? slot.poolId : ""} disabled={!availableRows.length} onChange={(poolId) => { const row = availableRows.find((item) => item.id === poolId); onChange(role, { playerId: row?.player_id || player?.id || "", poolId }); }}><option value="">{availableRows.length ? t("Choisir un champion") : t("Aucun champion déclaré")}</option>{CHAMPION_TIERS.map((tier) => { const items = availableRows.filter((row) => championPoolStatus(row) === tier.id); return items.length ? <optgroup key={tier.id} label={t(POOL_TIER_LABELS[tier.id])}>{items.map((row) => <option key={row.id} value={row.id}>{championDisplayName(row.champion)}</option>)}</optgroup> : null; })}</SelectInput></div>
-    <div onDragOver={(event) => event.preventDefault()} onDrop={drop} className={cx("nxt5-composition-drop relative mt-3 rounded-[10px] border border-dashed p-3 transition", pick ? "border-cyan-200/28 bg-cyan-400/[0.055]" : "is-empty border-white/12 bg-white/[0.025] group-hover:border-cyan-300/22")}>
-      <div className={cx("relative flex h-full min-h-[136px] flex-col", pick ? "justify-end" : "justify-center")}>
-        {pick ? <div className="relative py-2 pr-8"><ChampionTierMark tier={championTierByStatus(status)} active className="absolute right-2 top-2 h-6 w-6 rounded-lg ring-1 ring-black/45 [&_svg]:h-3.5 [&_svg]:w-3.5" /><div className="flex items-end gap-3"><span className="inline-flex h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35"><ChampionPortrait row={pick} champion={pick.champion} alt={pick.champion} className="h-full w-full object-cover" /></span><div className="min-w-0"><p className="break-words text-xl font-black text-white">{championDisplayName(pick.champion)}</p><p className="mt-1 break-words text-xs font-bold text-slate-200">{compositionIdentity([pick]).tags.slice(0, 3).map(([tag]) => t(tagLabel(tag))).join(" · ") || "Standard"}</p></div></div><button type="button" onClick={() => onChange(role, { playerId: player?.id || "", poolId: "" })} className="nxt5-composition-choice mt-3 border border-white/10 bg-black/35 px-3 py-2 text-xs font-semibold text-slate-200 transition hover:border-rose-300/30 hover:text-rose-100">{t("Retirer le champion")}</button></div> : <p className="nxt5-composition-help">{availableRows.length ? t("Ou glisse un champion ici depuis les portraits.") : t("Prépare les champions de {0} dans l’onglet Champions des joueurs.", [player?.name || "ce joueur"])}</p>}
-      </div>
+    <div className="nxt5-composition-slot-player">
+      {rolePlayers.length > 1 ? <SelectInput label={t("Joueur · {0}", [role])} title={player?.name} value={player?.id || ""} onChange={(playerId) => onChange(role, { playerId, poolId: "" })}>
+        {rolePlayers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+      </SelectInput> : <div><span className="nxt5-field-label">{t("Joueur · {0}", [role])}</span><p className="nxt5-composition-player-name">{player?.name || t("Profil manquant")}</p></div>}
     </div>
-  </div>;
+    <div onDragOver={(event) => event.preventDefault()} onDrop={drop} className={cx("nxt5-composition-selection", pick && "has-pick")}>
+      <div className="nxt5-composition-selection-preview">
+        {pick ? <>
+          <ChampionPortrait row={pick} champion={pick.champion} alt="" className="nxt5-composition-selection-portrait" />
+          <div className="nxt5-composition-selection-copy"><p>{championDisplayName(pick.champion)}</p><span>{t(POOL_TIER_LABELS[status])}</span></div>
+        </> : <>
+          <span className="nxt5-composition-selection-placeholder" aria-hidden="true"><RoleIcon role={role} className="h-7 w-7" /></span>
+          <p className="nxt5-composition-selection-empty">{availableRows.length ? t("À choisir") : t("Aucun champion déclaré")}</p>
+        </>}
+      </div>
+      <SelectInput label={t("Champion · {0}", [role])} value={availableRows.some((row) => row.id === slot.poolId) ? slot.poolId : ""} disabled={!availableRows.length} onChange={(poolId) => { const row = availableRows.find((item) => item.id === poolId); onChange(role, { playerId: row?.player_id || player?.id || "", poolId }); }}>
+        <option value="">{availableRows.length ? t("Choisir") : t("Aucun champion déclaré")}</option>
+        {CHAMPION_TIERS.map((tier) => { const items = availableRows.filter((row) => championPoolStatus(row) === tier.id); return items.length ? <optgroup key={tier.id} label={t(POOL_TIER_LABELS[tier.id])}>{items.map((row) => <option key={row.id} value={row.id}>{championDisplayName(row.champion)}</option>)}</optgroup> : null; })}
+      </SelectInput>
+    </div>
+  </section>;
 }
 
 function CompositionChampionBank({ players, rows, slots, onPick }) {
@@ -761,44 +772,39 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
 
       {players.length ? (
         <form onSubmit={saveComposition} className="mt-4">
-          <Surface className="p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <Surface className="nxt5-composition-editor">
+            <div className="nxt5-composition-editor-heading">
               <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone={mastery.tone}>{t(mastery.label)}</Badge>
-                </div>
-                <h3 className="mt-3 text-2xl font-black text-white">{form.id ? t("Modifier la composition") : t("Nouvelle composition")}</h3>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("Les choix proposés viennent des champions déclarés par les joueurs.")}</p>
+                <h3>{t(form.id ? "Modifier la composition" : "Nouvelle composition")}</h3>
+                <p>{t("Choisis les cinq champions parmi les listes de tes joueurs.")}</p>
               </div>
-              <div className="flex shrink-0 flex-wrap gap-2">
+              <div className="nxt5-composition-editor-status">
+                <Badge tone={mastery.tone}>{formPicks.length}{t("/5 champions")}</Badge>
                 {form.id && <Button type="button" variant="ghost" icon={X} onClick={resetCompositionForm}>{t("Annuler")}</Button>}
               </div>
             </div>
 
-            <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(260px,.32fr)] xl:items-start">
-              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-                <TextInput label={t("Nom de la composition")} value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder={t("Ex. : Protéger Jinx, Combattre autour du dragon…")} required icon={Sparkles} />
-                <div className="flex flex-wrap gap-2">
-                  {tagOptions.map((tag) => <button key={tag} type="button" aria-pressed={form.tags.includes(tag)} onClick={() => toggleCompTag(tag)} className={cx("nxt5-composition-choice border px-3 py-2 text-sm font-semibold transition", form.tags.includes(tag) ? "border-violet-300/35 bg-violet-400/10 text-violet-100" : "border-white/10 bg-white/[0.035] text-slate-300 hover:text-white")}>{t(tag === "blue side" ? "Côté bleu" : "Côté rouge")}</button>)}
+            <div className="nxt5-composition-editor-meta">
+              <TextInput label={t("Nom de la composition")} value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder={t("Ex. : Protéger Jinx")} required />
+              <fieldset className="nxt5-composition-sides">
+                <legend className="nxt5-field-label">{t("Côté")}</legend>
+                <div>
+                  {tagOptions.map((tag) => <button key={tag} type="button" aria-pressed={form.tags.includes(tag)} onClick={() => toggleCompTag(tag)} className={cx("nxt5-composition-choice", tag === "blue side" ? "is-blue" : "is-red")}><span aria-hidden="true" />{t(tag === "blue side" ? "Côté bleu" : "Côté rouge")}</button>)}
                 </div>
-              </div>
-
-              <label className="block">
-                <span className="nxt5-field-label mb-2 block">{t("Plan de jeu (facultatif)")}</span>
-                <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder={t("Ex. : protéger le tireur et préparer les combats autour du dragon.")} rows={3} className="nxt5-input-shell w-full resize-y rounded-[10px] border border-cyan-100/14 bg-[var(--nxt5-field)] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none transition placeholder:text-slate-400 focus:border-cyan-300/65 focus:ring-4 focus:ring-cyan-300/12" />
-              </label>
+              </fieldset>
             </div>
 
             {!rows.length && <div className="nxt5-composition-prerequisite"><p>{t("Aucun champion n’est encore déclaré. Prépare d’abord les listes des joueurs pour choisir les cinq champions de la composition.")}</p><Button type="button" variant="ghost" onClick={() => openAppPath("/draft/pool")}>{t("Préparer les listes de champions")}</Button></div>}
 
-            <div className="nxt5-composition-slots mt-4 grid gap-3">
+            <div className="nxt5-composition-editor-slots">
               {COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} />)}
             </div>
 
+            <div className="nxt5-composition-editor-notes"><TextAreaInput label={t("Plan de jeu (facultatif)")} value={form.notes} onChange={(notes) => setForm((current) => ({ ...current, notes }))} placeholder={t("Ex. : protéger le tireur et préparer les combats autour du dragon.")} rows={2} /></div>
+
+            <div className="nxt5-composition-form-actions"><p id="composition-save-help">{!canCreate ? t("Rejoins l’équipe pour enregistrer une composition.") : !form.title.trim() ? t("Ajoute un nom pour enregistrer la composition.") : t("{0}/5 champions choisis. Tu peux enregistrer une composition incomplète et la compléter plus tard.", [formPicks.length])}</p><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()} aria-describedby="composition-save-help">{t(saving ? "Enregistrement…" : form.id ? "Enregistrer les modifications" : "Créer la composition")}</Button></div>
+
             <details className="nxt5-composition-details"><summary>{t("Aide au choix : pool et parties de l’équipe")}</summary><DraftAssistance key={selectedTeamId} data={data} teamId={selectedTeamId} slots={form.slots} champions={championOptions()} onPick={updateSlot} disabled={!canCreate || saving} /></details>
-
-            <div className="nxt5-composition-form-actions"><p id="composition-save-help">{!canCreate ? t("Rejoins l’équipe pour enregistrer une composition.") : !form.title.trim() ? t("Ajoute un nom pour enregistrer la composition.") : t("{0}/5 champions choisis. Tu peux enregistrer une composition incomplète et la compléter plus tard.", [formPicks.length])}</p><Button type="submit" icon={saving ? Loader2 : form.id ? Check : Plus} disabled={!canCreate || saving || !form.title.trim()} aria-describedby="composition-save-help">{saving ? t("Enregistrement…") : form.id ? t("Enregistrer les modifications") : t("Créer la composition")}</Button></div>
-
             <details className="nxt5-composition-details"><summary>{t("Choisir à partir des portraits des champions")}</summary><CompositionChampionBank players={players} rows={rows} slots={form.slots} onPick={updateSlot} /></details>
 
             {formPicks.length > 0 && <details className="nxt5-composition-details"><summary>{t("Approfondir : style de jeu et réponses adverses")}</summary><p className="nxt5-composition-help">{t("La maîtrise vient du classement des champions par les joueurs. Le style et les réponses adverses sont des pistes à vérifier en équipe.")}</p><div className="nxt5-composition-section">

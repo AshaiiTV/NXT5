@@ -30,8 +30,8 @@ describe("accessible composition choices", () => {
     expect(picker.findAllByType("option").map((node) => node.props.value)).toEqual(["", "aatrox"]);
     act(() => picker.findByType("select").props.onChange({ target: { value: "aatrox" } }));
     expect(onChange).toHaveBeenCalledWith("TOP", { playerId: "top", poolId: "aatrox" });
-    const substitute = renderer.root.findAllByType("button").find((node) => node.props.children === "Remplaçant");
-    act(() => substitute.props.onClick());
+    const playerPicker = renderer.root.findAllByType(SelectInput).find((node) => node.props.label === "Joueur · TOP");
+    act(() => playerPicker.findByType("select").props.onChange({ target: { value: "sub" } }));
     expect(onChange).toHaveBeenLastCalledWith("TOP", { playerId: "sub", poolId: "" });
   });
 
