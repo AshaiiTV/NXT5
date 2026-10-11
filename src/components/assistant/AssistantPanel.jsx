@@ -5,18 +5,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, ArrowRight, BookOpen, Loader2, MessageCircleQuestion, RefreshCw, Send, Trash2, WifiOff, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { isSafeInternalPath } from "../../app/routing.js";
+import { guideSectionForRoute } from "../../app/guide-navigation.js";
 import { cx } from "../../app/helpers.js";
-
-const ROUTE_SUGGESTIONS = [
-  { matches: ["/equipes", "/gestion-equipe"], prompts: ["Comment ajouter un joueur ?", "Comment organiser les titulaires et les remplaçants ?", "Où modifier les accès de l'équipe ?"] },
-  { matches: ["/games", "/integration", "/statistiques"], prompts: ["Comment lire le bilan de cette partie ?", "Comment importer une partie ?", "Comment analyser un groupe de parties ?"] },
-  { matches: ["/rapports"], prompts: ["Comment préparer un débrief ?", "Comment réunir plusieurs parties dans un débrief ?", "Où retrouver mes anciens débriefs ?"] },
-  { matches: ["/tendances"], prompts: ["Comment choisir les parties à analyser ?", "Comment interpréter les indicateurs d'équipe ?", "Comment retrouver la partie derrière un indicateur ?"] },
-  { matches: ["/planning"], prompts: ["Comment renseigner les disponibilités ?", "Qui peut modifier le planning ?", "Comment préparer une séance d'équipe ?"] },
-  { matches: ["/draft/pool"], prompts: ["Comment modifier les champions d'un joueur ?", "Comment indiquer le niveau de maîtrise d’un champion ?", "Comment distinguer un champion maîtrisé d’un champion en entraînement ?"] },
-  { matches: ["/draft/compositions"], prompts: ["Comment créer une composition ?", "Comment utiliser les niveaux de maîtrise des champions ?", "Comment préparer nos choix de champions ?"] },
-  { matches: ["/mon-profil", "/profil"], prefix: true, prompts: ["Comment consulter le profil d’un joueur ?", "Comment lire l'historique d'un joueur ?", "Où comparer ses champions aux champions adverses ?"] },
-];
 
 const DEFAULT_SUGGESTIONS = [
   "Comment utiliser cette page ?",
@@ -24,13 +14,32 @@ const DEFAULT_SUGGESTIONS = [
   "Où trouver la fonctionnalité que je cherche ?",
 ];
 
+const SECTION_SUGGESTIONS = {
+  "getting-started": ["Comment importer ma première partie ?", "Comment ajouter les joueurs ?", "Comment préparer un débrief utile ?"],
+  "teams-and-roster": ["Comment ajouter un joueur ?", "Comment organiser les titulaires et les remplaçants ?", "Où modifier les accès de l'équipe ?"],
+  "imports-and-games": ["Comment importer une partie ?", "Pourquoi mon import échoue ?", "Comment corriger le joueur associé ?"],
+  statistics: ["Comment lire le bilan de cette partie ?", "Comment importer une partie ?", "Comment analyser un groupe de parties ?"],
+  reviews: ["Comment préparer un débrief ?", "Comment réunir plusieurs parties dans un débrief ?", "Où retrouver mes anciens débriefs ?"],
+  trends: ["Comment choisir les parties à analyser ?", "Comment interpréter les indicateurs d'équipe ?", "Comment retrouver la partie derrière un indicateur ?"],
+  planning: ["Comment renseigner les disponibilités ?", "Qui peut modifier le planning ?", "Comment préparer une séance d'équipe ?"],
+  "champion-pool": ["Comment modifier les champions d'un joueur ?", "Comment indiquer le niveau de maîtrise d’un champion ?", "Comment distinguer un champion maîtrisé d’un champion en entraînement ?"],
+  compositions: ["Comment créer une composition ?", "Comment utiliser les niveaux de maîtrise des champions ?", "Comment préparer nos choix de champions ?"],
+  "player-profile": ["Comment consulter le profil d’un joueur ?", "Comment lire l'historique d'un joueur ?", "Où comparer ses champions aux champions adverses ?"],
+  "permissions-and-account": ["Pourquoi un bouton est bloqué ?", "Où modifier les accès de l'équipe ?", "Comment sécuriser mon compte ?"],
+  troubleshooting: ["Pourquoi la page reste en chargement ?", "Pourquoi la chronologie est-elle incomplète ?", "Pourquoi un bouton est-il désactivé ?"],
+  "champion-analysis": ["Comment analyser les champions de l’équipe ?", "Où revoir les défaites d’un champion ?", "Comment comparer les associations de champions ?"],
+  "player-champions": ["Comment lire les dégâts moyens aux champions ?", "Comment enregistrer un carnet de matchups ?", "Où comparer ses champions aux champions adverses ?"],
+  "player-showcase": ["Comment exporter ma carte joueur ?", "Comment parcourir mon Wrapped ?", "Pourquoi ma carte est vide ?"],
+  discord: ["Comment lier mon compte Discord ?", "Comment configurer le serveur Discord ?", "Comment publier une partie sur Discord ?"],
+};
+
 function messageId() {
   return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-function suggestionsForRoute(path = "") {
-  const route = ROUTE_SUGGESTIONS.find((item) => item.matches.some((candidate) => item.prefix ? path === candidate || path.startsWith(`${candidate}/`) : path === candidate));
-  return route?.prompts || DEFAULT_SUGGESTIONS;
+export function suggestionsForRoute(route = {}) {
+  const section = guideSectionForRoute(route);
+  return SECTION_SUGGESTIONS[section] || DEFAULT_SUGGESTIONS;
 }
 
 function responseBody(payload) {
@@ -96,7 +105,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
   const requestRef = useRef(null);
   const requestVersionRef = useRef(0);
   const onCloseRef = useRef(onClose);
-  const routeSuggestions = useMemo(() => suggestionsForRoute(route?.path || "").map((suggestion) => t(suggestion, undefined, language)), [route?.path, language]);
+  const routeSuggestions = useMemo(() => suggestionsForRoute(route).map((suggestion) => t(suggestion, undefined, language)), [route?.path, route?.search, language]);
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
@@ -161,6 +170,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
           message: content,
           language,
           route: route?.path || "/equipes",
+          helpSection: guideSectionForRoute(route),
           selectedTeamId: selectedTeamId || null,
           selectedEntity: selectedEntity || null,
           history: historyPayload(previousMessages),
@@ -210,7 +220,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
     navigate?.(path);
   }
 
-  function openGuide(sectionId = "") {
+  function openGuide(sectionId = guideSectionForRoute(route)) {
     const query = sectionId ? `?section=${encodeURIComponent(sectionId)}` : "";
     navigate?.(`/guide${query}`);
     onClose?.();

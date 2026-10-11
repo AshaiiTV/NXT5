@@ -9,6 +9,7 @@ import {
   assistantSources,
   buildFallbackAssistantResponse,
   normalizeAssistantLanguage,
+  normalizeAssistantSection,
   retrieveAssistantKnowledge,
   safeAssistantRoute,
   sanitizeAssistantActions,
@@ -83,7 +84,8 @@ function knowledgeContext(matches: AssistantKnowledgeMatch[]) {
     path: entry.path,
     summary: entry.summary,
     steps: entry.steps,
-    suggestions: entry.suggestions
+    suggestions: entry.suggestions,
+    faq: (entry.faq || []).map(({ question, answer }) => ({ question, answer }))
   }));
 }
 
@@ -111,6 +113,7 @@ function systemPrompt(language: AssistantLanguage): string {
 async function askGateway(args: {
   message: string;
   route: string;
+  helpSection: string | null;
   entityType: string | null;
   history: SafeHistoryItem[];
   matches: AssistantKnowledgeMatch[];
@@ -120,6 +123,7 @@ async function askGateway(args: {
   const model = cleanText(process.env.NXT5_ASSISTANT_MODEL || DEFAULT_MODEL, 80) || DEFAULT_MODEL;
   const context = {
     currentRoute: args.route,
+    currentHelpSection: args.helpSection,
     selectedEntityType: args.entityType,
     documentation: knowledgeContext(args.matches)
   };
@@ -188,16 +192,17 @@ export default async function handler(request: Request, context: Context): Promi
     if (teamId) await assertTeamAccess(String(user.id), teamId);
 
     const route = safeAssistantRoute(body.route);
+    const helpSection = normalizeAssistantSection(body.helpSection);
     const history = safeHistory(body.history);
     const entityType = safeEntityType(body.selectedContext || body.selectedEntity);
-    const matches = retrieveAssistantKnowledge(rawMessage, route, 4, language);
+    const matches = retrieveAssistantKnowledge(rawMessage, route, 4, language, helpSection);
     const fallback = buildFallbackAssistantResponse(rawMessage, matches, language);
 
     if (process.env.NXT5_ASSISTANT_DISABLE_AI === '1') return json(fallback);
     if (!await hasDailyAiBudget(String(user.id))) return json(fallback);
 
     try {
-      const modelPayload = await askGateway({ message: rawMessage, route, entityType, history, matches, language });
+      const modelPayload = await askGateway({ message: rawMessage, route, helpSection, entityType, history, matches, language });
       const answer = cleanText(modelPayload.answer, MAX_ANSWER_LENGTH);
       if (!answer) return json(fallback);
       const actions = sanitizeAssistantActions(modelPayload.actions);
