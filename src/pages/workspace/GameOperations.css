@@ -55,24 +55,120 @@
   .game-operation-dialog :is(input, select, textarea) { font-size: var(--nxt5-font-body); }
 }
 
-.game-import-steps { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; margin-top: 20px; }
-.game-import-step { min-width: 0; padding: 12px 0; border-top: 2px solid var(--nxt5-border); background: transparent; }
-.game-import-step p { font-size: var(--nxt5-font-body); line-height: 1.6; font-weight: 400; }
-.game-import-step > div > span > span { font-size: var(--nxt5-font-small); }
-.game-import-status { font-size: var(--nxt5-font-body); line-height: 1.65; color: var(--nxt5-text-secondary); }
-.game-import-confirmation-fields { padding-top: 20px; border-top: 1px solid var(--nxt5-border); }
 .importer-download-details > summary:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
 .importer-download-details > summary { line-height: 1.6; }
-.game-import-side { min-width: 0; min-height: 44px; border-radius: 2px; }
-.game-import-team { min-width: 0; padding-top: 20px; border-top: 1px solid var(--nxt5-border); }
-.game-import-assignment { min-width: 0; padding: 16px 0; border-top: 1px solid var(--nxt5-border); background: transparent; }
-.game-import-field { display: grid; gap: 8px; margin-top: 12px; font-size: var(--nxt5-font-ui); font-weight: 600; color: var(--nxt5-text-secondary); }
 .game-import-select { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--nxt5-border-strong); border-radius: 10px; background: var(--nxt5-field); color: var(--nxt5-text); font-size: var(--nxt5-font-body); font-weight: 500; }
 .game-import-select:focus-visible, .game-import-side:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 2px; }
 .game-import-select:disabled { opacity: .5; cursor: not-allowed; }
-@media (max-width: 720px) {
-  .game-import-steps { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 0 16px; }
-  .game-import-select { font-size: var(--nxt5-font-body); }
-}
 .game-operation-dialog-header { position: sticky; top: 0; z-index: 2; padding-bottom: 16px; border-bottom: 1px solid var(--nxt5-border); background: var(--nxt5-surface); }
 .game-operation-dialog-content { min-width: 0; }
+
+/* Import review: one team sheet, with no nested panels around individual fields. */
+.game-import-flow { display: grid; gap: 24px; min-width: 0; }
+.game-import-review { min-width: 0; margin: 0; padding: 0; border: 0; }
+.game-import-review > section + section { margin-top: 24px; }
+.game-import-section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 12px; }
+.game-import-section-heading h3 { color: var(--nxt5-text); font-size: 18px; font-weight: 700; line-height: 1.4; }
+.game-import-section-heading > span { color: var(--nxt5-muted); font-size: var(--nxt5-font-small); }
+.game-import-recognition { margin: -4px 0 12px; max-width: 76ch; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
+.game-import-side-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.game-import-side { display: block; min-width: 0; padding: 12px 16px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-button); background: transparent; text-align: left; }
+.game-import-side:hover { background: var(--nxt5-surface-soft); }
+.game-import-side[aria-pressed="true"] { border-color: var(--nxt5-accent); background: rgb(103 232 249 / .055); }
+.game-import-side:disabled { cursor: wait; }
+.game-import-side-heading { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.game-import-side-heading > strong { color: var(--nxt5-text); font-size: var(--nxt5-font-body); }
+.game-import-side-heading > .nxt5-badge { margin-left: auto; }
+.game-import-side-indicator { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; flex: 0 0 18px; border: 1px solid var(--nxt5-border-strong); border-radius: 50%; color: var(--nxt5-bg); }
+.game-import-side[aria-pressed="true"] .game-import-side-indicator { border-color: var(--nxt5-accent); background: var(--nxt5-accent); }
+.game-import-side-champions { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 12px; }
+.game-import-side-champion { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--nxt5-font-small); line-height: 1.4; color: var(--nxt5-text-secondary); }
+.game-import-side-champion > span { overflow-wrap: anywhere; }
+.game-import-team { min-width: 0; }
+.game-import-roster-head, .game-import-roster-row { display: grid; grid-template-columns: 104px minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.game-import-roster-head { padding: 0 0 8px; color: var(--nxt5-muted); font-size: var(--nxt5-font-ui); font-weight: 600; }
+.game-import-roster-row { padding: 12px 0; border-top: 1px solid var(--nxt5-border); }
+.game-import-role { display: flex; align-items: center; gap: 10px; min-height: 44px; color: var(--nxt5-text); font-size: var(--nxt5-font-ui); }
+.game-import-champion-field { display: flex; align-items: start; gap: 10px; min-width: 0; }
+.game-import-portrait { width: 44px; height: 44px; flex: 0 0 44px; }
+.game-import-portrait-empty { display: flex; justify-content: center; align-items: center; border: 1px dashed var(--nxt5-border-strong); border-radius: 10px; color: var(--nxt5-muted); }
+.game-import-field { display: grid; flex: 1; gap: 5px; min-width: 0; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); font-weight: 600; }
+.game-import-mobile-label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.game-import-identity { display: block; min-width: 0; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); font-weight: 400; line-height: 1.45; overflow-wrap: anywhere; }
+.game-import-enemies { padding-top: 20px; border-top: 1px solid var(--nxt5-border); }
+.game-import-enemies .game-import-section-heading { margin-bottom: 4px; }
+.game-import-enemy-help { margin-bottom: 16px; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); line-height: 1.5; }
+.game-import-enemy-roster { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
+.game-import-enemy { display: grid; grid-template-rows: 1fr auto; gap: 12px; min-width: 0; }
+.game-import-enemy-player { display: flex; align-items: start; gap: 8px; min-width: 0; }
+.game-import-enemy-player > div { min-width: 0; }
+.game-import-enemy-player strong { display: block; color: var(--nxt5-text); font-size: var(--nxt5-font-ui); line-height: 1.5; overflow-wrap: anywhere; }
+.game-import-enemy .nxt5-field-label { font-size: var(--nxt5-font-small); }
+.game-import-enemy select { padding-left: 12px; }
+.game-import-confirmation-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; margin-top: 24px; padding: 24px 0; border-top: 1px solid var(--nxt5-border); }
+.game-import-confirmation-fields > * { min-width: 0; }
+.game-import-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; padding: 16px 0 0; border-top: 1px solid var(--nxt5-border); background: var(--nxt5-surface); }
+.game-import-status { min-width: 0; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; }
+.game-import-status strong { display: flex; align-items: center; gap: 6px; color: var(--nxt5-text); font-weight: 600; }
+.game-import-status strong:has(svg) { color: var(--nxt5-accent); }
+.game-import-status p { margin-top: 3px; max-width: 48ch; }
+.game-import-footer-actions { display: flex; flex-shrink: 0; gap: 8px; }
+.game-import-roster-setup { padding: 16px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control); background: var(--nxt5-surface-soft); }
+
+.importer-download-content { min-width: 0; }
+.importer-download-intro { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.importer-download-intro > div { min-width: 0; }
+.importer-download-intro h3 { color: var(--nxt5-text); font-size: 20px; font-weight: 700; line-height: 1.4; }
+.importer-download-intro p { margin-top: 6px; max-width: 68ch; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.6; }
+.importer-file-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+.importer-download-panel.importer-download-panel-loaded { padding: 0 0 16px; border: 0; border-bottom: 1px solid var(--nxt5-border); border-radius: 0; box-shadow: none; background: transparent; }
+.importer-download-panel-loaded .importer-download-content { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 0 16px; }
+.importer-download-panel-loaded .importer-download-intro h3 { font-size: var(--nxt5-font-body); font-weight: 600; }
+.importer-download-panel-loaded .importer-download-intro p { margin-top: 2px; font-size: var(--nxt5-font-small); }
+.importer-download-panel-loaded .importer-file-actions { margin: 0; }
+.importer-file-check { width: 20px; height: 20px; flex: 0 0 20px; color: var(--nxt5-accent); }
+.importer-file-progress { grid-column: 1 / -1; }
+
+/* Scoped modal chrome keeps its header opaque right up to the scrolling edge. */
+.game-import-dialog { scroll-padding-block: 90px 112px; }
+.game-import-dialog .game-operation-dialog-inner { padding: 0; }
+.game-import-dialog .game-operation-dialog-header { align-items: center; margin: 0; padding: 16px 24px; }
+.game-import-dialog .game-operation-dialog-content { padding: 20px 24px 0; }
+.game-import-dialog .game-import-flow { container-type: inline-size; }
+.game-import-dialog .game-import-footer { position: sticky; z-index: 1; bottom: 0; margin: 0 -24px; max-width: none; padding: 16px 24px; }
+.game-import-dialog .game-import-flow:not(:has(.game-import-review)) { padding-bottom: 24px; }
+
+@container (max-width: 760px) {
+  .game-import-roster-head { display: none; }
+  .game-import-roster-row { grid-template-columns: 92px minmax(0, 1fr); gap: 12px; }
+  .game-import-profile-field { grid-column: 2; margin-left: 54px; }
+  .game-import-mobile-label { position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal; }
+  .game-import-role { align-self: start; padding-top: 24px; }
+  .game-import-champion-field > .game-import-portrait { margin-top: 27px; }
+  .game-import-enemy-roster { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .game-import-enemy { grid-template-columns: minmax(0, 1fr) minmax(160px, .8fr); grid-template-rows: auto; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid var(--nxt5-border); }
+  .game-import-footer { align-items: start; flex-direction: column; }
+  .game-import-footer-actions { align-self: stretch; justify-content: flex-end; flex-wrap: wrap; }
+}
+@container (max-width: 560px) {
+  .game-import-side-options, .game-import-confirmation-fields { grid-template-columns: minmax(0, 1fr); }
+  .game-import-roster-row { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px 0; }
+  .game-import-role { padding: 0; min-height: 28px; }
+  .game-import-profile-field { grid-column: 1; margin-left: 54px; }
+  .game-import-enemy { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .game-import-enemy > .nxt5-field { margin-left: 48px; }
+  .importer-download-panel-loaded .importer-download-content { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .importer-download-panel-loaded .importer-file-actions { margin-left: 32px; }
+  .game-import-side-champions { gap: 8px 10px; }
+  .game-import-side { padding: 12px; }
+  .game-import-footer-actions > button { width: 100%; }
+}
+@media (max-width: 720px) {
+  .game-import-dialog .game-operation-dialog-header { padding: 12px 16px; }
+  .game-import-dialog .game-operation-dialog-content { padding: 16px 16px 0; }
+  .game-import-dialog .game-import-footer { margin: 0 -16px; padding: 16px; }
+}
+@media (max-width: 1000px), (max-height: 700px) {
+  .game-import-dialog .game-import-footer { position: static; }
+  .game-import-dialog { scroll-padding-bottom: 24px; }
+}

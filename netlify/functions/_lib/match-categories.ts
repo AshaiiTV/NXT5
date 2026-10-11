@@ -5,6 +5,12 @@ export const DEFAULT_MATCH_CATEGORIES = [
   { name: 'Scrim', color: 'cyan' }
 ];
 
+export function assertMatchHasCategory(categoryIds: readonly string[]): void {
+  if (!categoryIds.length) {
+    throw Object.assign(new Error('Ajoute au moins un tag à la partie.'), { status: 400, code: 'NXT5_MATCH_TAG_REQUIRED' });
+  }
+}
+
 export async function ensureMatchCategoriesSchema({ migrateLegacy = true }: { migrateLegacy?: boolean } = {}) {
   await assertSchemaReady();
 }

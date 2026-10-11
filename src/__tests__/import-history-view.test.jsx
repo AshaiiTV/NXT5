@@ -5,7 +5,7 @@ import { apiFetch, apiUploadJson } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 
 import { SelectInput, TextInput } from "../components/ui/Core.jsx";
-import { CategoryMultiSelect, GameActions, GameCategoryManager, ImportGameFlow } from "../pages/workspace/GameOperations.jsx";
+import { CategoryMultiSelect, GameActions, GameCategoryManager, ImportGameFlow, ImportHistoryEditor } from "../pages/workspace/GameOperations.jsx";
 import { ImporterDownloadPanel } from "../pages/workspace/ImporterDownloadPanel.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), apiUploadJson: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -230,6 +230,39 @@ describe("game mutations from the options dialog", () => {
     expect(button(renderer, "Enregistrer").props.disabled).toBe(true);
     await click(renderer, "Annuler");
     expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it("prevents saving after the last tag is removed, including a direct save callback", async () => {
+    const renderer = await render();
+    await openAction(renderer, "Modifier les informations");
+    expect(text(renderer.root)).toContain("Tags (au moins un)");
+    await click(renderer, "Scrim");
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual([]);
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(true);
+    expect(text(renderer.root)).toContain("Ajoute au moins un tag à la partie.");
+    await act(async () => activate(button(renderer, "Enregistrer")));
+    await act(async () => renderer.root.findByType(ImportHistoryEditor).props.onSave());
+    expect(apiFetch).not.toHaveBeenCalled();
+
+    await click(renderer, "Ligue");
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(false);
+    await click(renderer, "Enregistrer");
+    expect(payload().body.categoryIds).toEqual(["league"]);
+  });
+
+  it.each([{ categoryIds: [] }, { categoryIds: ["unknown"] }, { categoryIds: ["other-category"] }])("requires a valid team tag when editing a legacy game with %j", async ({ categoryIds }) => {
+    const props = settings();
+    props.match = { ...props.data.matches[0], category_ids: categoryIds };
+    const renderer = await render(props);
+    await openAction(renderer, "Modifier les informations");
+    await fill(renderer, "Nom de la game", "Nom corrigé");
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(true);
+    expect(button(renderer, "Autre équipe")).toBeUndefined();
+    await act(async () => activate(button(renderer, "Enregistrer")));
+    await act(async () => renderer.root.findByType(ImportHistoryEditor).props.onSave());
+    expect(apiFetch).not.toHaveBeenCalled();
+    await click(renderer, "Scrim");
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(false);
   });
 
   it("cancels role and player changes and restores the original assignments on reopening", async () => {
@@ -498,6 +531,8 @@ describe("import flow without a second game list", () => {
     const blue = renderer.root.findAllByType("button").find((node) => text(node).startsWith("Côté bleu"));
     expect(blue.props["aria-pressed"]).toBe(true);
     expect(apiUploadJson).toHaveBeenCalledTimes(1);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    await click(renderer, "Scrim");
     expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
     // React 19 regroupe les rendus d'un même act : l'import final reste en attente
     // pour observer l'état occupé avant sa résolution.
@@ -506,7 +541,7 @@ describe("import flow without a second game list", () => {
     expect(props.onBusyChange).toHaveBeenLastCalledWith(true);
     await act(async () => { resolveImport(result); await confirming; });
     expect(apiUploadJson.mock.calls[1].slice(0, 2)).toEqual(["matches-import-file", {
-      teamId: "team", payload: source, label: "Finale", categoryIds: [], allyTeamSide: "BLUE",
+      teamId: "team", payload: source, label: "Finale", categoryIds: ["scrim"], allyTeamSide: "BLUE",
       laneAssignments: Object.fromEntries(roles.map((role, index) => [role, `participant:${index + 1}`])),
       enemyLaneAssignments: Object.fromEntries(roles.map((role, index) => [role, `participant:${index + 6}`])),
       playerAssignments: Object.fromEntries(roles.map((role) => [role, `profile-${role}`])),
@@ -524,6 +559,7 @@ describe("import flow without a second game list", () => {
     const { renderer, props } = await renderFlow();
     await load(renderer, JSON.stringify({ label: "Brouillon à garder" }));
     await act(async () => renderer.root.findAllByType("button").find((node) => text(node).startsWith("Côté bleu")).props.onClick());
+    await click(renderer, "Scrim");
     await click(renderer, "Confirmer l’import");
     expect(input(renderer, "Nom de la partie").props.value).toBe("Brouillon à garder");
     expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);

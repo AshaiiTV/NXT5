@@ -296,6 +296,48 @@ describe('atomic match imports against PostgreSQL', () => {
     expect(await storedMatch()).toEqual(before);
   });
 
+  it.each([{ categoryIds: undefined }, { categoryIds: [] }])('rejects an untagged reimport (%j) without replacing the saved game', async ({ categoryIds }) => {
+    await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    database.statements = [];
+    await expect(persistAnalyzedMatch({ ...importArgs(2), categoryIds })).rejects.toMatchObject({
+      status: 400, code: 'NXT5_MATCH_TAG_REQUIRED', message: 'Ajoute au moins un tag à la partie.'
+    });
+    expect(await storedMatch()).toEqual(before);
+    expect(database.statements.some((query) => /\b(insert|update|delete)\b/i.test(query))).toBe(false);
+  });
+
+  describe.each([['file', importFile], ['Riot', importRiot]] as const)('%s import requires a tag', (source, handler) => {
+    async function submit(categoryIds: unknown, previewOnly = false) {
+      const args = importArgs();
+      if (source === 'Riot') vi.mocked(fetchRiotMatch).mockResolvedValueOnce(args.match);
+      return handler(new Request('https://nxt5.example/.netlify/functions/import', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId, gameId: args.gameId, payload: { match: args.match }, label: args.label,
+          laneAssignments: args.laneAssignments, enemyLaneAssignments: args.enemyLaneAssignments,
+          playerAssignments: args.playerAssignments, allyTeamSide: args.allyTeamSide, categoryIds, previewOnly })
+      }), {} as any);
+    }
+
+    it.each([{ categoryIds: undefined }, { categoryIds: [] }, { categoryIds: ['  '] }])('rejects absent or empty tags (%j) before saving or notifying', async ({ categoryIds }) => {
+      const response = await submit(categoryIds);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: 'Ajoute au moins un tag à la partie.', code: 'NXT5_MATCH_TAG_REQUIRED' });
+      expect(await storedMatch()).toEqual({ matches: [], participants: [], archives: [] });
+      expect((await database.pg.query('select first_import_at from teams where id = $1', [teamId])).rows[0].first_import_at).toBeNull();
+      expect(vi.mocked(sendNotification)).not.toHaveBeenCalled();
+      expect(database.statements.some((query) => /\b(insert|update|delete)\b/i.test(query))).toBe(false);
+    });
+
+    it('still previews an untagged file without creating a match', async () => {
+      const response = await submit(undefined, true);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ gameId: importArgs().gameId, match: { teams: expect.any(Array) } });
+      expect(await storedMatch()).toEqual({ matches: [], participants: [], archives: [] });
+      expect(vi.mocked(sendNotification)).not.toHaveBeenCalled();
+    });
+  });
+
   it('rejects a profile outside the roster instead of silently detaching participants', async () => {
     await persistAnalyzedMatch(importArgs());
     const before = await storedMatch();
@@ -352,22 +394,21 @@ describe('atomic match imports against PostgreSQL', () => {
     expect(saved.participants).toHaveLength(10);
   });
 
-  it('cleans primary and secondary category references atomically on deletion', async () => {
+  it.each([categoryId, nextCategoryId])('removes tag %s while retaining the other valid tag', async (deleted) => {
     const args = importArgs();
     args.categoryIds = [categoryId, nextCategoryId];
     await persistAnalyzedMatch(args);
-    for (const [deleted, expected] of [[categoryId, [nextCategoryId]], [nextCategoryId, []]] as const) {
-      const request = new Request('https://nxt5.example/.netlify/functions/match-categories-manage', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'delete', teamId, categoryId: deleted })
-      });
-      const response = await manageCategories(request, {} as any);
-      expect(response.status).toBe(200);
-      const saved = await storedMatch();
-      expect(saved.matches[0].category_ids).toEqual(expected);
-      expect(saved.matches[0].category_id).toBe(expected[0] ?? null);
-      expect(saved.participants).toHaveLength(10);
-    }
+    const request = new Request('https://nxt5.example/.netlify/functions/match-categories-manage', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', teamId, categoryId: deleted })
+    });
+    const response = await manageCategories(request, {} as any);
+    expect(response.status).toBe(200);
+    const saved = await storedMatch();
+    const expected = args.categoryIds.filter((id: string) => id !== deleted);
+    expect(saved.matches[0].category_ids).toEqual(expected);
+    expect(saved.matches[0].category_id).toBe(expected[0]);
+    expect(saved.participants).toHaveLength(10);
   });
 
   it('does not replace another team’s copy of the same Riot game', async () => {
@@ -390,6 +431,70 @@ describe('atomic match imports against PostgreSQL', () => {
     expect(otherParticipants).toHaveLength(10);
     expect(otherParticipants.every((row: any) => row.kills === 3)).toBe(true);
     expect(saved.matches.find((row: any) => row.id === second.id).category_ids).toEqual([foreignCategoryId]);
+  });
+});
+
+describe('required match tags on edits and category deletion', () => {
+  const submit = (handler: typeof manageMatches | typeof manageCategories, body: object) => handler(new Request('https://nxt5.example/.netlify/functions/manage', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teamId, ...body })
+  }), {} as any);
+
+  it.each([{ categoryIds: undefined }, { categoryIds: [] }, { categoryIds: ['  '] }])('does not remove the last tag through a metadata update (%j)', async ({ categoryIds }) => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    database.statements = [];
+    const response = await submit(manageMatches, { matchId: match.id, label: 'Rejected rename', categoryIds });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: 'Ajoute au moins un tag à la partie.', code: 'NXT5_MATCH_TAG_REQUIRED' });
+    expect(await storedMatch()).toEqual(before);
+    expect(database.statements.some((query) => /\b(insert|update|delete)\b/i.test(query))).toBe(false);
+  });
+
+  it('requires team-owned tags and still accepts a replacement tag', async () => {
+    const match = await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    const invalid = await submit(manageMatches, { matchId: match.id, categoryIds: [foreignCategoryId] });
+    expect(invalid.status).toBe(404);
+    expect(await invalid.json()).toMatchObject({ error: 'Catégorie introuvable pour cette team.' });
+    expect(await storedMatch()).toEqual(before);
+    const valid = await submit(manageMatches, { matchId: match.id, label: 'Tournament game', categoryIds: [nextCategoryId] });
+    expect(valid.status).toBe(200);
+    expect((await storedMatch()).matches[0]).toMatchObject({ opponent: 'Tournament game', category_ids: [nextCategoryId], category_id: nextCategoryId });
+  });
+
+  it.each(['current', 'legacy-primary', 'foreign-secondary'])('blocks deleting the last valid tag from a %s match', async (format) => {
+    const match = await persistAnalyzedMatch(importArgs());
+    if (format !== 'current') {
+      await database.pg.query('update matches set category_ids = $1 where id = $2', [JSON.stringify(format === 'legacy-primary' ? [] : [categoryId, foreignCategoryId]), match.id]);
+    }
+    const before = await storedMatch();
+    const response = await submit(manageCategories, { action: 'delete', categoryId });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'NXT5_MATCH_TAG_REQUIRED' });
+    expect(await storedMatch()).toEqual(before);
+    expect((await database.pg.query('select id from match_categories where id = $1', [categoryId])).rows).toHaveLength(1);
+    expect((await database.pg.query("select id from audit_logs where action = 'match_categories.delete'")).rows).toHaveLength(0);
+  });
+
+  it('allows deleting an unused tag', async () => {
+    const response = await submit(manageCategories, { action: 'delete', categoryId: nextCategoryId });
+    expect(response.status).toBe(200);
+    expect((await database.pg.query('select id from match_categories where id = $1', [nextCategoryId])).rows).toHaveLength(0);
+  });
+
+  it('rechecks the last-tag constraint after a concurrent match update', async () => {
+    const args = importArgs();
+    args.categoryIds = [categoryId, nextCategoryId];
+    const match = await persistAnalyzedMatch(args);
+    database.beforeBatch = async () => {
+      await database.pg.query('update matches set category_id = $1, category_ids = $2 where id = $3', [categoryId, JSON.stringify([categoryId]), match.id]);
+    };
+    const response = await submit(manageCategories, { action: 'delete', categoryId });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'NXT5_MATCH_TAG_REQUIRED' });
+    expect((await storedMatch()).matches[0]).toMatchObject({ category_id: categoryId, category_ids: [categoryId] });
+    expect((await database.pg.query('select id from match_categories where id = $1', [categoryId])).rows).toHaveLength(1);
+    expect((await database.pg.query("select id from audit_logs where action = 'match_categories.delete'")).rows).toHaveLength(0);
   });
 });
 

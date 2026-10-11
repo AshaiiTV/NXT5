@@ -7,6 +7,7 @@ import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
 import { sql } from './db';
 import type { RiotMatch } from './types';
 import { assertImportMatch, assertImportPlayerAssignments, normalizeImportCategoryIds } from './import-validation';
+import { assertMatchHasCategory } from './match-categories';
 
 function mmss(seconds) {
   const s = Number(seconds || 0);
@@ -407,6 +408,7 @@ async function runImportSideEffect(label: string, task: () => Promise<unknown>) 
 export async function persistAnalyzedMatch({ team, gameId, match, roster, userId = null, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [] }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId?: string | null; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[] }) {
   assertImportMatch(match);
   const validCategoryIds = normalizeImportCategoryIds(categoryIds);
+  assertMatchHasCategory(validCategoryIds);
   match.nxt5 = {
     ...(match.nxt5 || {}),
     timelineSummary: buildNxt5TimelineSummary(match),

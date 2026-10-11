@@ -1584,7 +1584,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     <PageHeader eyebrow={selectedTeamName} title={t("Parties")} subtitle={selectedMatchId ? t("Comprends le résultat, choisis une piste de travail, puis explore les détails.") : t("Ouvre une partie pour comprendre ce qui s’est passé et préparer la prochaine session.")}>
       {!selectedMatchId && !selectedArchiveId && <div ref={importTriggerRef}>{renderImportAction()}</div>}
     </PageHeader>
-    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog title={t("Importer une partie")} description={t("Télécharge NXT5 Importer ou charge un fichier JSON déjà exporté.")} onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy} dirty={importDirty} returnFocusRef={importTriggerRef}>
+    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog className="game-import-dialog" title={t("Importer une partie")} onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy} dirty={importDirty} returnFocusRef={importTriggerRef}>
       <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} onDirtyChange={setImportDirty} />
     </GameOperationDialog>}
 

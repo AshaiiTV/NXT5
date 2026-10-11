@@ -9,6 +9,7 @@ import { changeMatchSide } from './_lib/match-side';
 import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import { cleanText } from './_lib/text';
+import { assertMatchHasCategory } from './_lib/match-categories';
 
 function cleanIdList(value) {
   return [...new Set((Array.isArray(value) ? value : [value]).map((id) => cleanText(id, 80)).filter(Boolean))];
@@ -160,6 +161,7 @@ export default async function handler(request: Request, context: Context): Promi
       return json({ match: results[3][0] });
     }
 
+    assertMatchHasCategory(categoryIds);
     const validCategoryIds: string[] = [];
     if (categoryIds.length) {
       const categories = await sql`

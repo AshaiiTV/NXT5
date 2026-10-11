@@ -3,7 +3,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch, apiUploadJson } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
-import { ImportGameFlow } from "../pages/workspace/GameOperations.jsx";
+import { CategoryMultiSelect, ImportGameFlow } from "../pages/workspace/GameOperations.jsx";
 import { TextInput } from "../components/ui/Core.jsx";
 import { ImporterDownloadPanel } from "../pages/workspace/ImporterDownloadPanel.jsx";
 import { championDisplayName } from "../pages/workspace/workspace-shared.jsx";
@@ -17,6 +17,11 @@ const champions = {
   RED: ["Garen", "Vi", "Lux", "Ashe", "Leona"],
 };
 const cleanups = [];
+const categories = [
+  { id: "scrim", team_id: "team", name: "Scrim", is_default: true },
+  { id: "league", team_id: "team", name: "Ligue" },
+  { id: "other-category", team_id: "other-team", name: "Autre équipe" },
+];
 const participantValue = (id) => `participant:${id}`;
 const assignments = (side) => Object.fromEntries(roles.map((role, index) => [role, participantValue(index + (side === "BLUE" ? 1 : 6))]));
 function preview(identity = "duplicate") {
@@ -64,17 +69,23 @@ async function change(target, value) {
   expect(target.props.disabled).not.toBe(true);
   await act(async () => target.props.onChange({ target: { value } }));
 }
-async function chooseSide(renderer, side) {
+async function chooseScrim(renderer) {
+  const tag = button(renderer, "Scrim");
+  if (tag && !tag.props["aria-pressed"]) await click(renderer, "Scrim");
+}
+async function chooseSide(renderer, side, { selectTag = true } = {}) {
   const target = renderer.root.findAllByType("button").find((node) => text(node).startsWith(side === "BLUE" ? "Côté bleu" : "Côté rouge"));
   expect(target).toBeTruthy();
   await act(async () => target.props.onClick());
+  if (selectTag) await chooseScrim(renderer);
 }
-async function load(renderer, source = { label: "Scrim vs adversaires", info: { gameId: "fixture" } }, match = preview()) {
+async function load(renderer, source = { label: "Scrim vs adversaires", info: { gameId: "fixture" } }, match = preview(), { selectTag = true } = {}) {
   apiUploadJson.mockResolvedValueOnce({ match });
   const content = JSON.stringify(source);
   await act(async () => renderer.root.findByType(ImporterDownloadPanel).props.onImport({
     name: "game.json", size: content.length, text: async () => content,
   }));
+  if (selectTag) await chooseScrim(renderer);
   return source;
 }
 async function mount(overrides = {}) {
@@ -83,6 +94,7 @@ async function mount(overrides = {}) {
       ...DEFAULT_DATA,
       teams: [{ id: "team", owner_id: "owner" }],
       players: roles.map((role) => ({ id: `profile-${role}`, team_id: "team", name: `NXT5 ${role}`, role })),
+      matchCategories: categories,
     },
     selectedTeamId: "team", user: { id: "owner" }, currentMember: { role: "captain" }, refreshAll: vi.fn(), pushToast: vi.fn(), onImported: vi.fn(),
     ...overrides,
@@ -106,7 +118,7 @@ describe("enemy role assignment while importing a game", () => {
   });
 
   it("lets an owner preview a file before creating missing players", async () => {
-    const { renderer } = await mount({ data: { ...DEFAULT_DATA, teams: [{ id: "team", owner_id: "owner" }], players: [
+    const { renderer } = await mount({ data: { ...DEFAULT_DATA, matchCategories: categories, teams: [{ id: "team", owner_id: "owner" }], players: [
       ...roles.slice(0, 4).map((role) => ({ id: role, team_id: "team", role })),
       { id: "TOP", team_id: "team", role: "TOP" },
       { id: "coach", team_id: "team", role: "COACH" },
@@ -159,7 +171,7 @@ describe("enemy role assignment while importing a game", () => {
     apiUploadJson.mockResolvedValueOnce({ match: { id: "saved" } });
     await click(renderer, "Confirmer l’import");
     expect(apiUploadJson).toHaveBeenLastCalledWith("matches-import-file", {
-      teamId: "team", payload: source, label: source.label, categoryIds: [], allyTeamSide: side,
+      teamId: "team", payload: source, label: source.label, categoryIds: ["scrim"], allyTeamSide: side,
       laneAssignments: assignments(side), enemyLaneAssignments: expectedEnemies,
       playerAssignments: Object.fromEntries(roles.map((role) => [role, `profile-${role}`])),
     }, expect.any(Function));
@@ -243,6 +255,67 @@ describe("enemy role assignment while importing a game", () => {
 });
 
 
+describe("required match tags", () => {
+  it("allows preview without a tag but requires an explicit selection before publishing", async () => {
+    const { renderer, props } = await mount();
+    const source = await load(renderer, undefined, undefined, { selectTag: false });
+    await chooseSide(renderer, "BLUE", { selectTag: false });
+    expect(apiUploadJson).toHaveBeenCalledTimes(1);
+    expect(apiUploadJson.mock.calls[0][1]).toEqual({ teamId: "team", payload: source, previewOnly: true });
+    expect(button(renderer, "Scrim").props["aria-pressed"]).toBe(false);
+    expect(text(renderer.root)).toContain("Tags (au moins un)");
+    expect(text(renderer.root)).toContain("Ajoute au moins un tag à la partie.");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    await act(async () => button(renderer, "Confirmer l’import").props.onClick());
+    expect(apiUploadJson).toHaveBeenCalledTimes(1);
+    expect(props.onImported).not.toHaveBeenCalled();
+
+    await click(renderer, "Scrim");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+    await click(renderer, "Scrim");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    await act(async () => button(renderer, "Confirmer l’import").props.onClick());
+    expect(apiUploadJson).toHaveBeenCalledTimes(1);
+
+    await click(renderer, "Ligue");
+    apiUploadJson.mockResolvedValueOnce({ match: { id: "saved" } });
+    await click(renderer, "Confirmer l’import");
+    expect(apiUploadJson.mock.calls.at(-1)[1].categoryIds).toEqual(["league"]);
+    expect(props.onImported).toHaveBeenCalledWith({ match: { id: "saved" } });
+  });
+
+  it.each([{ categoryIds: ["unknown"] }, { categoryIds: ["other-category"] }, { categoryIds: ["unknown", "other-category"] }])("does not treat unavailable tags %j as a valid selection", async ({ categoryIds }) => {
+    const { renderer } = await mount();
+    await load(renderer, undefined, undefined, { selectTag: false });
+    await chooseSide(renderer, "BLUE", { selectTag: false });
+    expect(button(renderer, "Autre équipe")).toBeUndefined();
+    await act(async () => renderer.root.findByType(CategoryMultiSelect).props.onChange(categoryIds));
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    expect(text(renderer.root)).toContain("Ajoute au moins un tag à la partie.");
+    await act(async () => button(renderer, "Confirmer l’import").props.onClick());
+    expect(apiUploadJson).toHaveBeenCalledTimes(1);
+  });
+
+  it("clears the chosen tag when a new file is loaded and when an import is reset", async () => {
+    const { renderer } = await mount();
+    await load(renderer);
+    await chooseSide(renderer, "BLUE");
+    expect(button(renderer, "Scrim").props["aria-pressed"]).toBe(true);
+    await load(renderer, { label: "Deuxième partie" }, undefined, { selectTag: false });
+    await chooseSide(renderer, "BLUE", { selectTag: false });
+    expect(button(renderer, "Scrim").props["aria-pressed"]).toBe(false);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    await click(renderer, "Ligue");
+    await click(renderer, "Réinitialiser");
+    expect(renderer.root.findAllByType(CategoryMultiSelect)).toHaveLength(0);
+    await load(renderer, { label: "Troisième partie" }, undefined, { selectTag: false });
+    await chooseSide(renderer, "BLUE", { selectTag: false });
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual([]);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+  });
+});
+
+
 describe("recognized team import suggestions", () => {
   function recognizedPreview(gameId = "EUW1_7123456789") {
     const match = preview();
@@ -259,7 +332,7 @@ describe("recognized team import suggestions", () => {
     }));
   }
   async function mountRecognized(match, side, roster = recognizedRoster(match, side)) {
-    return mount({ data: { ...DEFAULT_DATA, teams: [{ id: "team", owner_id: "owner" }], players: roster } });
+    return mount({ data: { ...DEFAULT_DATA, matchCategories: categories, teams: [{ id: "team", owner_id: "owner" }], players: roster } });
   }
   const nameInput = (renderer) => renderer.root.findAllByType(TextInput).find((node) => node.props.label === "Nom de la partie");
   const sideButton = (renderer, side) => renderer.root.findAllByType("button").find((node) => text(node).startsWith(side === "BLUE" ? "Côté bleu" : "Côté rouge"));
@@ -267,20 +340,22 @@ describe("recognized team import suggestions", () => {
   it.each(["BLUE", "RED"])("suggests %s and a usable name, then waits for explicit confirmation before saving", async (side) => {
     const match = recognizedPreview();
     const { renderer, props } = await mountRecognized(match, side);
-    const source = await load(renderer, { info: { gameId: 7123456789 } }, match);
+    const source = await load(renderer, { info: { gameId: 7123456789 } }, match, { selectTag: false });
     expect(sideButton(renderer, side).props["aria-pressed"]).toBe(true);
     expect(nameInput(renderer).props.value).toBe(match.gameId);
-    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
     expect(apiUploadJson).toHaveBeenCalledTimes(1);
     expect(apiUploadJson.mock.calls[0][1]).toEqual({ teamId: "team", payload: source, previewOnly: true });
     expect(apiFetch).not.toHaveBeenCalled();
     expect(props.onImported).not.toHaveBeenCalled();
     expect(props.refreshAll).not.toHaveBeenCalled();
 
+    await click(renderer, "Scrim");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
     apiUploadJson.mockResolvedValueOnce({ match: { id: "saved" } });
     await click(renderer, "Confirmer l’import");
     expect(apiUploadJson).toHaveBeenLastCalledWith("matches-import-file", {
-      teamId: "team", payload: source, label: match.gameId, categoryIds: [], allyTeamSide: side,
+      teamId: "team", payload: source, label: match.gameId, categoryIds: ["scrim"], allyTeamSide: side,
       laneAssignments: assignments(side), enemyLaneAssignments: assignments(side === "BLUE" ? "RED" : "BLUE"),
       playerAssignments: Object.fromEntries(roles.map((role) => [role, `profile-${role}`])),
     }, expect.any(Function));
@@ -382,7 +457,7 @@ describe("recognized team import suggestions", () => {
 
 describe("explicit roster creation from an import preview", () => {
   const uniquePreview = () => ({ teams: preview().teams.map(team => ({ ...team, participants: team.participants.map((player, index) => ({ ...player, riotId: `${team.side} Joueur ${index}#EUW`, summonerName: `${team.side} Joueur ${index}` })) })) });
-  const emptyTeam = { ...DEFAULT_DATA, teams: [{ id: "team", owner_id: "owner" }], players: [] };
+  const emptyTeam = { ...DEFAULT_DATA, matchCategories: categories, teams: [{ id: "team", owner_id: "owner" }], players: [] };
   const field = (renderer, label) => renderer.root.findAllByType(TextInput).find(node => node.props.label === label);
 
   it("does not create profiles on preview/side selection, then links five confirmed identities and imports", async () => {

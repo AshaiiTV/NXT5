@@ -6,6 +6,8 @@ import { ensureMatchCategoriesSchema, normalizeCategoryColor, seedDefaultMatchCa
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import { cleanText } from './_lib/text';
 
+const LAST_MATCH_TAG_MESSAGE = 'Ce tag est le dernier tag d’une partie. Ajoute un autre tag à cette partie avant de le supprimer.';
+
 async function requireCategoryManager(teamId, userId) {
   const membership = await sql`
     select teams.owner_id, team_members.role
@@ -61,11 +63,32 @@ export default async function handler(request: Request, context: Context): Promi
 
     if (action === 'delete') {
       if (category.is_default) throw Object.assign(new Error('Scrim est une catégorie de base et ne peut pas être supprimée.'), { status: 400 });
+      const untaggedMatches = await sql`
+        select m.id from matches m
+        where m.team_id = ${teamId}
+          and (m.category_id = ${categoryId}::uuid or m.category_ids ? ${categoryId})
+          and not exists (
+            select 1 from match_categories remaining
+            where remaining.team_id = m.team_id and remaining.id <> ${categoryId}::uuid
+              and coalesce(m.category_ids, '[]'::jsonb) ? remaining.id::text
+          ) limit 1
+      `;
+      if (untaggedMatches.length) throw Object.assign(new Error(LAST_MATCH_TAG_MESSAGE), { status: 400, code: 'NXT5_MATCH_TAG_REQUIRED' });
       // Imports use the same team lock. Cleanup must happen after taking it,
       // otherwise an in-flight import can reintroduce this ID between cleanup
       // and deletion, leaving category_ids pointing to a deleted category.
       await sql.transaction(tx => [
         tx`select id from teams where id = ${teamId} for update`,
+        // Repeat after acquiring the shared mutation lock: another update may
+        // have removed the other tags since the friendly validation above.
+        tx`select 1 / case when count(*) = 0 then 1 else 0 end from matches m
+           where m.team_id = ${teamId}
+             and (m.category_id = ${categoryId}::uuid or m.category_ids ? ${categoryId})
+             and not exists (
+               select 1 from match_categories remaining
+               where remaining.team_id = m.team_id and remaining.id <> ${categoryId}::uuid
+                 and coalesce(m.category_ids, '[]'::jsonb) ? remaining.id::text
+             )`,
         tx`update matches
            set category_ids = coalesce(category_ids, '[]'::jsonb) - ${categoryId}::text,
                category_id = ((coalesce(category_ids, '[]'::jsonb) - ${categoryId}::text) ->> 0)::uuid
@@ -99,7 +122,8 @@ export default async function handler(request: Request, context: Context): Promi
     }
 
     throw Object.assign(new Error('Action inconnue.'), { status: 400 });
-  } catch (err) {
+  } catch (err: any) {
+    if (err?.code === '22012') return json({ error: LAST_MATCH_TAG_MESSAGE, code: 'NXT5_MATCH_TAG_REQUIRED' }, 409);
     return handleError(err);
   }
 }
