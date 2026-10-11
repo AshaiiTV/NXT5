@@ -2,7 +2,8 @@
 .nxt5-games-page > .nxt5-page-header { padding-bottom: 18px; margin-bottom: 18px; }
 .nxt5-games-page .ig-description { display: none; }
 .games-library-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
-.games-library-toolbar > div { flex: 0 1 360px; min-width: 0; }
+.games-library-toolbar > div { flex: 0 1 28rem; min-width: 0; }
+.games-library-toolbar .nxt5-tab-nav > div { grid-template-columns: repeat(3, minmax(max-content, 1fr)); }
 .games-team-record { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding-block: 8px; color: var(--nxt5-text); font-size: var(--nxt5-font-small); }
 .games-team-record > span { color: #dbe8f8; font-size: var(--nxt5-font-small); }
 .games-team-record > strong { font-size: 18px; font-weight: 750; font-variant-numeric: tabular-nums; }
