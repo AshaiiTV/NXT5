@@ -179,4 +179,26 @@ describe("profile collection rendering", () => {
     expect(labels.join(" ")).toContain("ne permet pas de déduire qui a joué ces parties");
     expect(texts.find(({ text }) => text === "CE PROFIL").y).toBeLessThan(texts.find(({ text }) => text === "Profil 1").y);
   });
+
+  it.each([["fr", "CE PROFIL"], ["en", "THIS PROFILE"], ["es", "ESTE PERFIL"]])("preserves the full current-profile marker beside a long name with wider fallback font metrics in %s", (language, marker) => {
+    setLanguage(language);
+    const { canvas, texts } = recordingCanvas();
+    const ctx = canvas.getContext("2d");
+    const measureText = ctx.measureText.bind(ctx);
+    // Font fallback differs across export environments; exercise a wider face
+    // independently of which system fonts happen to be installed on the runner.
+    ctx.measureText = (value) => {
+      const measured = measureText(value);
+      return { ...measured, width: measured.width * 1.8 };
+    };
+    const longName = "UneTrèsLongueIdentitéSansEspace".repeat(8);
+    drawProfileShowcase(canvas, report({ playerId: "current", teammates: [{ id: "current", name: longName, role: "ADC" }] }), { view: "story", chapter: 4 });
+    const markers = texts.filter(({ text }) => text === marker);
+    expect(markers).toHaveLength(1);
+    const current = markers[0];
+    expect(current.right).toBeLessThanOrEqual(1010);
+    const memberName = texts.find(({ text, y }) => text.startsWith("UneTrèsLongue") && y > 900);
+    expect(memberName).toBeDefined();
+    expect(memberName.right).toBeLessThanOrEqual(current.x - 16);
+  });
 });
