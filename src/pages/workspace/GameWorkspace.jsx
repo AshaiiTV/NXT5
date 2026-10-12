@@ -1623,7 +1623,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         {workspaceView !== "teams" && baseMatches.length > 0 && <p className="games-team-record"><span>{t("Équipe")}</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)}{t(" % de victoires")}</span></p>}
       </div>
       <div id="games-library-panel" role="tabpanel" aria-labelledby={`games-library-tab-${workspaceView}`} tabIndex={0}>
-      {workspaceView === "teams" && !selectedMatchId && <OpponentsWorkspace selectedTeamId={selectedTeamId} user={user} opponentId={query.get("opponent") || ""} embedded />}
+      {workspaceView === "teams" && !selectedMatchId && <OpponentsWorkspace selectedTeamId={selectedTeamId} user={user} opponentId={query.get("opponent") || ""} refreshRevision={data.bootstrapRevision} embedded />}
       {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
         <div className="games-group-heading"><div><h3>{t("Groupes de parties")}</h3><p>{t("Compare les parties d’une session ou d’une série.")}</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} disabled={savingArchive} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? t("Fermer") : t("Créer un groupe")}</Button></div>
         {archiveWorkspaceTab === "select" ? <>

@@ -29,6 +29,8 @@ afterEach(() => {
   act(() => renderer?.unmount());
   renderer = undefined;
   vi.resetAllMocks();
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
 });
 
 function text(node) { return node.children.map((child) => typeof child === "string" ? child : text(child)).join(""); }
@@ -51,15 +53,26 @@ async function submit(label) {
   while (form.type !== "form") form = form.parent;
   await act(async () => { await form.props.onSubmit({ preventDefault() {} }); });
 }
-async function mount(overrides = {}) {
+async function mount(overrides = {}, options = {}) {
   props = { selectedTeamId: "team-1", user: { id: "staff" }, ...overrides };
-  await act(async () => { renderer = TestRenderer.create(<OpponentsWorkspace {...props} />); });
+  await act(async () => { renderer = TestRenderer.create(<OpponentsWorkspace {...props} />, options); });
 }
 async function update(overrides) {
   props = { ...props, ...overrides };
   await act(async () => { renderer.update(<OpponentsWorkspace {...props} />); });
 }
 function defer() { let resolve; let reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
+function browserEvents() {
+  const window = new EventTarget();
+  const document = new EventTarget();
+  document.visibilityState = "visible";
+  Object.defineProperty(document, "hidden", { get: () => document.visibilityState !== "visible" });
+  vi.spyOn(window, "removeEventListener");
+  vi.spyOn(document, "removeEventListener");
+  vi.stubGlobal("window", window);
+  vi.stubGlobal("document", document);
+  return { window, document };
+}
 function mockApi(overrides = {}) {
   apiFetch.mockImplementation((_path, options) => {
     const body = JSON.parse(options.body);
@@ -90,7 +103,8 @@ describe("opponent game dossiers", () => {
   });
 
   it("creates a persistent opponent with notes and selects its empty dossier", async () => {
-    mockApi({ list: { ...list, opponents: [] }, "create-opponent": { opponent } }); await mount();
+    let lists = 0;
+    mockApi({ list: () => Promise.resolve(++lists === 1 ? { ...list, opponents: [] } : list), "create-opponent": { opponent } }); await mount();
     await click("Ajouter un adversaire"); change("Nom de l’adversaire", "  OPIF  "); change("Notes du staff (facultatif)", " Préparer le prochain BO. ");
     await submit("Créer la fiche");
     expect(actions("create-opponent")[0]).toMatchObject({ teamId: "team-1", name: "OPIF", notes: "Préparer le prochain BO." });
@@ -130,15 +144,150 @@ describe("opponent game dossiers", () => {
     let calls = 0;
     mockApi({ list: () => Promise.resolve(++calls === 1 ? { ...list, opponentMatches: [played, { ...played, id: "duplicate" }] } : { ...list, opponentMatches: [played, { ...played, id: "match-2", gameId: "EUW1_43" }] }) });
     await mount(); await click("OPIF"); expect(renderedText()).toContain("1 partie rattachée"); expect(renderedText()).toContain("Jinx1 / 1");
-    await click("Actualiser"); expect(renderedText()).toContain("2 parties rattachées"); expect(renderedText()).toContain("Jinx2 / 2");
+    await update({ refreshRevision: 1 }); expect(renderedText()).toContain("2 parties rattachées"); expect(renderedText()).toContain("Jinx2 / 2");
     expect(dossierName()).toBe("OPIF"); expect(button("Toutes les équipes")).toBeDefined();
     expect(actions("list")).toHaveLength(2);
   });
 
   it("clears a removed selection after refresh", async () => {
     let calls = 0; mockApi({ list: () => Promise.resolve(++calls === 1 ? list : { ...list, opponents: [] }) });
-    await mount(); await click("OPIF"); await click("Actualiser");
+    await mount(); await click("OPIF"); await update({ refreshRevision: 1 });
     expect(renderedText()).not.toContain("OPIF"); expect(renderedText()).toContain("Un dossier pour chaque adversaire");
+  });
+
+  it("keeps the dossier, active game filter and directory settings while a revision reloads", async () => {
+    const pending = defer(); let calls = 0;
+    const loss = { ...played, id: "lost", gameId: "EUW1_43", label: "Défaite précédente", result: "Défaite" };
+    const payload = { ...list, opponentMatches: [played, loss] };
+    mockApi({ list: () => ++calls === 1 ? Promise.resolve(payload) : pending.promise });
+    await mount();
+    expect(button("Actualiser")).toBeUndefined();
+    change("Rechercher une équipe", "  opif  "); change("Tri des équipes", "name");
+    await click("OPIF"); await selectTab("Parties"); change("Résultat de notre équipe", "0");
+    const panel = renderer.root.findByProps({ role: "tabpanel" });
+    await update({ refreshRevision: 1 });
+    expect(dossierName()).toBe("OPIF"); expect(tab("Parties").props["aria-selected"]).toBe(true);
+    expect(field("Résultat de notre équipe").props.value).toBe("0");
+    expect(renderedText()).toContain("Défaite précédente"); expect(renderedText()).not.toContain("Chargement des adversaires…");
+    expect(renderer.root.findByProps({ role: "tabpanel" })).toBe(panel);
+    await act(async () => pending.resolve({ ...payload, opponentMatches: [...payload.opponentMatches, { ...loss, id: "new-loss", gameId: "EUW1_44", label: "Nouvelle défaite" }] }));
+    expect(renderedText()).toContain("Nouvelle défaite"); expect(renderedText()).not.toContain("Scrim OPIF");
+    expect(field("Résultat de notre équipe").props.value).toBe("0");
+    await click("Toutes les équipes");
+    expect(field("Rechercher une équipe").props.value).toBe("  opif  ");
+    expect(field("Tri des équipes").props.value).toBe("name");
+    expect(actions("list")).toHaveLength(2);
+  });
+
+  it("preserves the selected draft replay and focus when unchanged snapshots arrive as new objects", async () => {
+    const pending = defer(); let calls = 0;
+    const draft = { ...storedDraft, snapshot: { ...snapshot, firstPick: "blue", orderEvidence: { version: 1, basis: "reconstructed-public-slots", format: "standard-20", firstPick: "blue", reason: "public-slot-fields-v1" } } };
+    const payload = { ...list, opponentMatches: [played], drafts: [draft] };
+    const focus = vi.fn(), scrollIntoView = vi.fn();
+    mockApi({ list: () => ++calls === 1 ? Promise.resolve(payload) : pending.promise });
+    await mount({}, { createNodeMock: () => ({ focus, scrollIntoView }) });
+    await click("OPIF"); await selectTab("Drafts"); await click("Revoir la draft de Scrim OPIF");
+    await click("Revoir depuis le début"); await click("Étape suivante");
+    const board = renderer.root.findByType(DraftBoard);
+    const range = () => renderer.root.findByProps({ type: "range" });
+    expect(range().props.value).toBe(1);
+    focus.mockClear(); scrollIntoView.mockClear();
+    await update({ refreshRevision: 1 });
+    expect(range().props.value).toBe(1); expect(tab("Drafts").props["aria-selected"]).toBe(true);
+    await act(async () => pending.resolve(structuredClone(payload)));
+    expect(renderer.root.findByType(DraftBoard)).toBe(board); expect(range().props.value).toBe(1);
+    expect(focus).not.toHaveBeenCalled(); expect(scrollIntoView).not.toHaveBeenCalled();
+  });
+
+  it("aborts superseded revisions and never restores an opponent deleted by a newer response", async () => {
+    const older = defer(), latest = defer(); let calls = 0; const signals = [];
+    mockApi({ list: (_body, options) => { signals.push(options.signal); return ++calls === 1 ? Promise.resolve(list) : calls === 2 ? older.promise : latest.promise; } });
+    await mount(); await click("OPIF");
+    await update({ refreshRevision: 1 }); await update({ refreshRevision: 2 });
+    expect(signals[1].aborted).toBe(true); expect(signals[2].aborted).toBe(false);
+    await act(async () => latest.resolve({ ...list, opponents: [] }));
+    expect(renderedText()).toContain("Un dossier pour chaque adversaire");
+    await act(async () => older.resolve({ ...list, opponentMatches: [played] }));
+    expect(renderedText()).not.toContain("OPIF"); expect(renderedText()).not.toContain("Scrim OPIF");
+    expect(renderer.root.findAllByProps({ role: "tabpanel" })).toHaveLength(0);
+  });
+
+  it("keeps available data after a background error and retries without resetting the dossier", async () => {
+    let calls = 0;
+    mockApi({ list: () => ++calls === 2 ? Promise.reject(Object.assign(new Error("Actualisation indisponible."), { status: 503 })) : Promise.resolve({ ...list, opponentMatches: [played] }) });
+    await mount(); await click("OPIF"); await selectTab("Parties");
+    await update({ refreshRevision: 1 });
+    expect(dossierName()).toBe("OPIF"); expect(renderedText()).toContain("Scrim OPIF");
+    expect(tab("Parties").props["aria-selected"]).toBe(true);
+    expect(renderer.root.findAllByProps({ role: "alert" }).some((node) => text(node).includes("Actualisation indisponible."))).toBe(true);
+    await click("Réessayer");
+    expect(dossierName()).toBe("OPIF"); expect(tab("Parties").props["aria-selected"]).toBe(true);
+    expect(renderedText()).not.toContain("Actualisation indisponible."); expect(actions("list")).toHaveLength(3);
+  });
+
+  it.each([401, 403])("hides previously loaded private data after background access failure %s", async (status) => {
+    let calls = 0;
+    mockApi({ list: () => ++calls === 1 ? Promise.resolve({ ...list, opponentMatches: [played], drafts: [storedDraft] }) : Promise.reject(Object.assign(new Error("Accès retiré."), { status })) });
+    await mount(); await click("OPIF"); await selectTab("Drafts"); await click("Revoir la draft de Scrim OPIF");
+    expect(renderer.root.findAllByType(DraftBoard)).toHaveLength(1);
+    await update({ refreshRevision: 1 });
+    expect(renderedText()).toContain("Accès retiré."); expect(renderedText()).not.toContain("OPIF");
+    expect(renderedText()).not.toContain("Scrim OPIF"); expect(renderedText()).not.toContain(opponent.notes);
+    expect(renderer.root.findAllByType(DraftBoard)).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ role: "tabpanel" })).toHaveLength(0);
+  });
+
+  it("revalidates visible pages every 30 seconds and on return without duplicate requests, then cleans up", async () => {
+    vi.useFakeTimers();
+    const { window, document } = browserEvents();
+    const pending = defer(), last = defer(); let calls = 0; let lastSignal;
+    mockApi({ list: (_body, options) => {
+      calls += 1;
+      if (calls === 2) return pending.promise;
+      if (calls === 4) { lastSignal = options.signal; return last.promise; }
+      return Promise.resolve(list);
+    } });
+    await mount(); expect(actions("list")).toHaveLength(1);
+    document.visibilityState = "hidden";
+    await act(async () => { document.dispatchEvent(new Event("visibilitychange")); window.dispatchEvent(new Event("focus")); await vi.advanceTimersByTimeAsync(60_000); });
+    expect(actions("list")).toHaveLength(1);
+    document.visibilityState = "visible";
+    await act(async () => { document.dispatchEvent(new Event("visibilitychange")); window.dispatchEvent(new Event("focus")); });
+    expect(actions("list")).toHaveLength(2);
+    await act(async () => vi.advanceTimersByTimeAsync(30_000));
+    expect(actions("list")).toHaveLength(2);
+    await act(async () => pending.resolve(list));
+    await act(async () => window.dispatchEvent(new Event("focus")));
+    expect(actions("list")).toHaveLength(3);
+    await act(async () => vi.advanceTimersByTimeAsync(30_000));
+    expect(actions("list")).toHaveLength(4);
+    act(() => renderer.unmount()); renderer = undefined;
+    expect(lastSignal.aborted).toBe(true);
+    expect(window.removeEventListener.mock.calls.some(([event]) => event === "focus")).toBe(true);
+    expect(document.removeEventListener.mock.calls.some(([event]) => event === "visibilitychange")).toBe(true);
+    expect(vi.getTimerCount()).toBe(0);
+    await act(async () => { last.resolve(list); window.dispatchEvent(new Event("focus")); document.dispatchEvent(new Event("visibilitychange")); await vi.advanceTimersByTimeAsync(60_000); });
+    expect(actions("list")).toHaveLength(4);
+  });
+
+  it("aborts a pre-creation read and reloads the created dossier without accepting its stale response", async () => {
+    const stale = defer(), creation = defer(), refreshed = defer(); let calls = 0; let readSignal;
+    mockApi({ list: (_body, options) => {
+      calls += 1;
+      if (calls === 1) return Promise.resolve({ ...list, opponents: [] });
+      if (calls === 2) { readSignal = options.signal; return stale.promise; }
+      return refreshed.promise;
+    }, "create-opponent": () => creation.promise });
+    await mount(); await click("Ajouter un adversaire"); change("Nom de l’adversaire", "OPIF");
+    await update({ refreshRevision: 1 });
+    let work; act(() => { work = renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }); });
+    expect(readSignal.aborted).toBe(true);
+    await act(async () => { creation.resolve({ opponent }); await work; });
+    expect(dossierName()).toBe("OPIF"); expect(actions("list")).toHaveLength(3);
+    await act(async () => refreshed.resolve({ ...list, opponentMatches: [played] }));
+    expect(renderedText()).toContain("1 partie rattachée");
+    await act(async () => stale.resolve({ ...list, opponents: [] }));
+    expect(dossierName()).toBe("OPIF"); expect(renderedText()).toContain("Scrim OPIF");
   });
 
   it("opens an opponent from a group link and lists all its groups without counting games twice", async () => {
@@ -169,7 +318,7 @@ describe("opponent game dossiers", () => {
     await selectTab("Parties");
     expect(renderedText()).toContain("Prochain scrim");
     expect(renderedText()).toContain("0 parties dans ce groupe");
-    await click("Toutes les équipes"); await click("OPIF"); await click("Actualiser");
+    await click("Toutes les équipes"); await click("OPIF"); await update({ refreshRevision: 1 });
     expect(dossierName()).toBe("OPIF");
     await update({ opponentId: "missing" });
     expect(directoryNames()).toEqual(["Deuxième adversaire", "OPIF"]);
