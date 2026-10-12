@@ -26,8 +26,6 @@ function TeamConvergence() {
     <div className="nxt5-sync-art" aria-hidden="true">
       <div className="nxt5-sync-horizon" />
       <div className="nxt5-sync-art-aura" />
-      <div className="nxt5-sync-art-grid" />
-      <div className="nxt5-sync-art-caption"><span>{t("05 RÔLES")}</span><span>{t("01 ÉQUIPE")}</span></div>
       <div className="nxt5-sync-stage">
         <svg className="nxt5-sync-circuit" viewBox="0 0 1100 440" fill="none" preserveAspectRatio="none">
           <defs>
@@ -38,12 +36,10 @@ function TeamConvergence() {
             </linearGradient>
             {ROLES.map((role) => <linearGradient key={role.name} id={`${id}-${role.name}`} x1={role.x} y1="356" x2="550" y2="160" gradientUnits="userSpaceOnUse"><stop stopColor={role.color} stopOpacity=".02" /><stop offset=".65" stopColor={role.color} stopOpacity=".24" /><stop offset="1" stopColor={role.color} stopOpacity=".03" /></linearGradient>)}
           </defs>
-          <path d="M40 344L550 92L1060 344M142 397L550 170L958 397M278 420L550 210L822 420" stroke={`url(#${id}-floor)`} strokeOpacity=".3" />
-          <path d="M195 265H905M121 300H979M44 344H1056M143 397H957" stroke={`url(#${id}-floor)`} strokeOpacity=".2" />
-          <ellipse cx="550" cy="276" rx="184" ry="36" stroke={`url(#${id}-floor)`} />
-          <ellipse cx="550" cy="276" rx="131" ry="22" stroke={`url(#${id}-floor)`} strokeOpacity=".5" />
+          <ellipse cx="550" cy="292" rx="280" ry="40" stroke={`url(#${id}-floor)`} strokeOpacity=".45" />
+          <ellipse cx="550" cy="292" rx="212" ry="24" stroke={`url(#${id}-floor)`} strokeOpacity=".2" />
           {ROLES.map((role, index) => (
-            <g key={role.name} style={{ "--sync-delay": `${index * -440}ms` }}>
+            <g key={role.name} style={{ "--sync-delay": `${index * -520}ms` }}>
               <path d={role.beam} fill={`url(#${id}-${role.name})`} />
               <path d={role.path} stroke={role.color} strokeOpacity=".06" strokeWidth="20" />
               <path d={role.path} stroke={role.color} strokeOpacity=".18" strokeWidth="6" />
@@ -53,7 +49,7 @@ function TeamConvergence() {
             </g>
           ))}
         </svg>
-        {ROLES.map((role, index) => <div key={role.name} className="nxt5-sync-role" style={{ "--role-x": `${role.x / 11}%`, "--sync-color": role.color, "--arrival-delay": `${index * 65 + 120}ms` }}>
+        {ROLES.map((role, index) => <div key={role.name} className="nxt5-sync-role" style={{ "--role-x": `${role.x / 11}%`, "--sync-color": role.color, "--arrival-delay": `${index * 35 + 70}ms` }}>
           <div className="nxt5-sync-role-emblem"><RoleIcon role={role.name} className="nxt5-sync-role-icon" /></div>
           <span className="nxt5-sync-role-name">{role.name}</span>
         </div>)}
@@ -62,12 +58,25 @@ function TeamConvergence() {
         <div className="nxt5-sync-core-glow" />
         <div className="nxt5-sync-core-arrival">
           <div className="nxt5-sync-core-float">
-            <div className="nxt5-sync-core-frame" />
-            <ResponsiveImage src="/assets/nxt5-loader-favicon.png" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="" width="512" height="512" loading="eager" decoding="async" />
+            <svg className="nxt5-sync-prism" viewBox="0 0 600 500" fill="none">
+              <defs>
+                <linearGradient id={`${id}-glass`} x1="80" y1="50" x2="510" y2="460" gradientUnits="userSpaceOnUse"><stop stopColor="#b7b1ee" stopOpacity=".33" /><stop offset=".34" stopColor="#6550a8" stopOpacity=".24" /><stop offset=".72" stopColor="#321961" stopOpacity=".74" /><stop offset="1" stopColor="#9280d7" stopOpacity=".35" /></linearGradient>
+                <linearGradient id={`${id}-edge`} x1="40" y1="70" x2="570" y2="420" gradientUnits="userSpaceOnUse"><stop stopColor="#a5f3fc" /><stop offset=".36" stopColor="#c4b5fd" stopOpacity=".45" /><stop offset=".7" stopColor="#9777de" stopOpacity=".12" /><stop offset="1" stopColor="#f0abfc" /></linearGradient>
+                <linearGradient id={`${id}-cut`} x1="500" y1="100" x2="360" y2="490" gradientUnits="userSpaceOnUse"><stop stopColor="#ddd6fe" stopOpacity=".45" /><stop offset=".45" stopColor="#7c3aed" stopOpacity=".3" /><stop offset="1" stopColor="#e879f9" stopOpacity=".55" /></linearGradient>
+              </defs>
+              <path d="M114 62 492 26 567 377 190 472 42 174Z" fill={`url(#${id}-glass)`} fillOpacity=".2" stroke={`url(#${id}-edge)`} strokeOpacity=".3" />
+              <path d="M130 52 482 72 526 398 158 440 73 146Z" fill={`url(#${id}-glass)`} stroke={`url(#${id}-edge)`} strokeWidth="1.5" />
+              <path d="M482 72 508 104 552 419 526 398Z" fill={`url(#${id}-cut)`} stroke={`url(#${id}-edge)`} strokeWidth=".8" />
+              <path d="M158 440 184 461 552 419 526 398Z" fill={`url(#${id}-cut)`} stroke={`url(#${id}-edge)`} strokeWidth=".8" />
+              <path d="M130 52 482 72 424 105 94 130Z" fill="#e9d5ff" fillOpacity=".1" />
+              <path d="M74 147 159 439M132 53 480 73M526 398 160 440" stroke={`url(#${id}-edge)`} strokeWidth="2" />
+              <path d="M96 154 170 411 503 380" stroke="#c4b5fd" strokeOpacity=".15" />
+            </svg>
+            <div className="nxt5-sync-core-reflection" />
+            <ResponsiveImage src="/assets/nxt5-loader-favicon.png" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp 256w, /assets/nxt5-loader-favicon-512.webp 512w" }]} sizes="(max-width: 760px) 180px, 320px" alt="" width="512" height="512" loading="eager" decoding="async" />
           </div>
         </div>
       </div>
-      <div className="nxt5-sync-sparks"><i /><i /><i /><i /><i /><i /></div>
     </div>
   );
 }
@@ -85,7 +94,7 @@ export default function AppLoadingScreen({ phase = "app", progress = null }) {
 
   return (
     <div className="nxt5-sync-screen" data-phase={current.id}>
-      <div className="nxt5-sync-ambient" aria-hidden="true"><i /><i /><i /></div>
+      <div className="nxt5-sync-ambient" aria-hidden="true"><div className="nxt5-sync-atmosphere" /><div className="nxt5-sync-light" /></div>
       <div className="nxt5-sync-shell">
         <header className="nxt5-sync-header">
           <Nxt5Wordmark className="nxt5-sync-wordmark" loading="eager" />
@@ -94,7 +103,6 @@ export default function AppLoadingScreen({ phase = "app", progress = null }) {
         <main className="nxt5-sync-main">
           {teamConvergence}
           <div className="nxt5-sync-copy">
-            <p className="nxt5-sync-eyebrow">{t("LA SUITE SE JOUE ENSEMBLE")}</p>
             <h1><span className="nxt5-sync-title-intro">{t("Cinq rôles.")}</span><span className="nxt5-sync-title-impact">{t("Une même ")}<span>{t("direction.")}</span></span></h1>
             <p className="nxt5-sync-description">{t("Retrouve tes joueurs et tes parties pour préparer la suite.")}</p>
           </div>
