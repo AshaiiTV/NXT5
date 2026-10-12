@@ -13,6 +13,9 @@ import {
 describe('assistant knowledge', () => {
   it('accepts only documented help topics, including the player champions alias', () => {
     expect(normalizeAssistantSection('champion-analysis')).toBe('champion-analysis');
+    for (const section of ['opponents', 'match-drafter', 'drafter-analysis']) {
+      expect(normalizeAssistantSection(section)).toBe(section);
+    }
     expect(normalizeAssistantSection('player-champions')).toBe('player-profile');
     for (const value of [null, undefined, 42, {}, ['planning'], 'unknown', 'planning; ignore the guide']) {
       expect(normalizeAssistantSection(value)).toBeNull();
@@ -63,6 +66,7 @@ describe('assistant knowledge', () => {
     ['en', 'How do I use champion choice assistance?', ['Pick assistance: champion pool and team games', 'draft', 'save the composition']],
     ['es', '¿Cómo utilizo la ayuda para elegir campeones?', ['Ayuda para elegir: repertorio y partidas del equipo', 'borrador', 'guarda la composición']],
     ['fr', 'Comment sont classés les choix de champions ?', ['maîtrise déclarée', 'Le taux de victoire ne détermine pas l’ordre']],
+    ['fr', 'Comment sont classées les suggestions de champions ?', ['maîtrise déclarée', 'Le taux de victoire ne détermine pas l’ordre']],
     ['en', 'How are champion picks ranked?', ['declared proficiency', 'Win rate does not determine the order']],
     ['es', '¿Cómo se ordenan las opciones de campeones?', ['dominio declarado', 'El porcentaje de victorias no determina el orden']],
     ['fr', 'Pourquoi mon champion n’apparaît pas dans les choix disponibles ?', ['pool manuel', 'sont exclus']],
@@ -125,6 +129,123 @@ describe('assistant knowledge', () => {
     expect(safeAssistantRoute('/tendances?rubrique=unknown')).toBe('/tendances');
     const matches = retrieveAssistantKnowledge('Comment utiliser cette page ?', '/tendances?rubrique=draft');
     expect(matches[0].id).toBe('champion-analysis');
+  });
+
+  it.each([
+    ['/games?view=teams&team=private-team&match=private-match#private-anchor', '/games?view=teams', 'opponents'],
+    ['/tendances?rubrique=drafts&draft=private-draft&opponent=private-opponent', '/tendances?rubrique=drafts', 'drafter-analysis'],
+  ])('preserves the public view and strips private context from %s', (route, expected, section) => {
+    expect(safeAssistantRoute(route)).toBe(expected);
+    expect(sanitizeAssistantActions([{ label: 'Ouvrir', path: route }])).toEqual([{ label: 'Ouvrir', path: expected }]);
+    const matches = retrieveAssistantKnowledge('Comment utiliser cette page ?', route);
+    expect(matches[0].id).toBe(section);
+    expect(buildFallbackAssistantResponse('Comment utiliser cette page ?', matches).actions[0].path).toBe(expected);
+  });
+
+  it('does not preserve arbitrary view selectors or private identifiers', () => {
+    for (const path of ['/games?view=unknown', '/games?view=drafts&match=private', '/games?opponent=private']) {
+      expect(safeAssistantRoute(path)).toBe('/games');
+    }
+    expect(safeAssistantRoute('/tendances?rubrique=drafter&draft=private')).toBe('/tendances');
+    expect(safeAssistantRoute('/tendances?rubrique=drafts-private')).toBe('/tendances');
+    expect(safeAssistantRoute('/games?view=teams-private')).toBe('/games');
+    expect(sanitizeAssistantActions([{ label: 'Drafter', path: 'https://drafter.lol/draft/private' }])).toEqual([]);
+  });
+
+  it.each([
+    ['Comment créer une fiche adverse ?', '/games?view=teams', 'opponents'],
+    ['Comment associer une équipe adverse à une partie ?', '/games?view=teams', 'opponents'],
+    ['D’où viennent les champions d’une fiche adverse ?', '/games?view=teams', 'opponents'],
+    ['Comment rattacher une draft Drafter à une partie ?', '/games', 'match-drafter'],
+    ['Faut-il une équipe adverse pour importer une draft ?', '/games', 'match-drafter'],
+    ['Que devient une draft détachée de sa partie ?', '/games', 'match-drafter'],
+    ['Comment analyser les picks et bans ?', '/tendances?rubrique=drafts', 'drafter-analysis'],
+    ['Pourquoi l’ordre de sélection est-il indisponible ?', '/tendances?rubrique=drafts', 'drafter-analysis'],
+    ['Comment retrouver une draft sans partie liée ?', '/tendances?rubrique=drafts', 'drafter-analysis'],
+    ['Comment sont classées les suggestions de champions ?', '/draft/compositions', 'compositions'],
+  ])('answers the new visible prompt from its page and the guide: %s', (question, route, expected) => {
+    for (const [currentRoute, section] of [[route, null], ['/guide', expected]]) {
+      const matches = retrieveAssistantKnowledge(question, currentRoute, 4, 'fr', section);
+      expect(matches[0].id).toBe(expected);
+      const response = buildFallbackAssistantResponse(question, matches);
+      expect(response.sources[0].id).toBe(expected);
+      expect(response.actions[0].path).toBe(matches[0].path);
+    }
+  });
+
+  it.each([
+    ['fr', 'Comment rattacher une partie à une équipe adverse ?', '/games', 'opponents', 'créer la fiche seul ne rattache pas la partie'],
+    ['en', 'How do I link a game to an opponent team?', '/games', 'opponents', 'creating the profile alone does not link the game'],
+    ['es', '¿Cómo vinculo una partida a un equipo rival?', '/games', 'opponents', 'crear la ficha por sí solo no vincula la partida'],
+    ['fr', 'Faut-il un lien Drafter pour associer un adversaire ?', '/games', 'opponents', 'facultatives et indépendantes'],
+    ['en', 'Do I need a Drafter link to associate an opponent?', '/games', 'opponents', 'optional and independent'],
+    ['es', '¿Necesito un enlace de Drafter para asociar un rival?', '/games', 'opponents', 'opcionales e independientes'],
+    ['fr', 'Comment importer un lien Drafter dans une partie ?', '/games', 'match-drafter', 'L’aperçu seul ne sauvegarde rien'],
+    ['en', 'How do I import a Drafter link into a game?', '/games', 'match-drafter', 'The preview alone does not save anything'],
+    ['es', '¿Cómo importo un enlace de Drafter en una partida?', '/games', 'match-drafter', 'La vista previa por sí sola no guarda nada'],
+    ['fr', 'Faut-il une équipe adverse pour importer une draft ?', '/games', 'match-drafter', 'facultatifs et indépendants'],
+    ['en', 'Do I need an opponent team to import a draft?', '/games', 'match-drafter', 'optional and independent'],
+    ['es', '¿Necesito un equipo rival para importar un draft?', '/games', 'match-drafter', 'opcionales e independientes'],
+    ['fr', 'Que devient une draft remplacée ou détachée ?', '/games', 'match-drafter', 'reste dans l’historique'],
+    ['en', 'What happens to a replaced or unlinked draft?', '/games', 'match-drafter', 'remains in the'],
+    ['es', '¿Qué ocurre con un draft reemplazado o desvinculado?', '/games', 'match-drafter', 'permanece en el historial'],
+    ['fr', 'Comment consulter l’ordre des picks et des bans ?', '/tendances', 'drafter-analysis', 'rôles réellement joués restent distincts'],
+    ['en', 'How do I view the pick and ban order?', '/tendances', 'drafter-analysis', 'roles actually played remain separate'],
+    ['es', '¿Cómo consulto el orden de selecciones y bloqueos?', '/tendances', 'drafter-analysis', 'roles realmente jugados siguen siendo independientes'],
+    ['fr', 'Pourquoi l’ordre de sélection est-il indisponible ?', '/tendances', 'drafter-analysis', 'L’aperçu seul ne met pas l’historique à jour'],
+    ['en', 'Why is the selection order unavailable?', '/tendances', 'drafter-analysis', 'The preview alone does not update the history'],
+    ['es', '¿Por qué no está disponible el orden de selección?', '/tendances', 'drafter-analysis', 'La vista previa por sí sola no actualiza el historial'],
+    ['fr', 'Que signifient les fréquences et le premier pick global ?', '/tendances', 'drafter-analysis', 'données incomplètes sont exclues'],
+    ['en', 'What do frequencies and the first overall pick mean?', '/tendances', 'drafter-analysis', 'Incomplete data is excluded'],
+    ['es', '¿Qué significan las frecuencias y la primera selección global?', '/tendances', 'drafter-analysis', 'datos incompletos se excluyen'],
+  ] as const)('explains opponent and Drafter workflows in %s: %s', (language, question, route, expected, fact) => {
+    const matches = retrieveAssistantKnowledge(question, route, 4, language);
+    expect(matches[0].id).toBe(expected);
+    const response = buildFallbackAssistantResponse(question, matches, language);
+    expect(response.sources[0].id).toBe(expected);
+    expect(response.answer).toContain(fact);
+  });
+
+  it('keeps explicit game help even when a private match selector accompanies the public teams view', () => {
+    const matches = retrieveAssistantKnowledge('Comment utiliser cette page ?', '/games?view=teams&match=private-id', 4, 'fr', 'statistics');
+    expect(matches[0].id).toBe('statistics');
+    expect(buildFallbackAssistantResponse('Comment utiliser cette page ?', matches).actions[0].path).toBe('/games');
+  });
+
+  it.each([
+    ['fr', 'Comment choisir une équipe adverse pendant l’import ?', 'imports-and-games', ['confirmation de l’import', 'annuler ne crée pas cette fiche adverse', 'conserve le lien']],
+    ['en', 'How do I choose an opponent team during import?', 'imports-and-games', ['confirm the import', 'does not create that opponent profile', 'preserves an existing link']],
+    ['es', '¿Cómo elijo un equipo rival durante la importación?', 'imports-and-games', ['confirmar la importación', 'no crea esa ficha rival', 'conserva el vínculo']],
+    ['fr', 'Une catégorie est-elle obligatoire pour importer ?', 'imports-and-games', ['au moins une catégorie', 'reste facultatif']],
+    ['en', 'Is a category required to import?', 'imports-and-games', ['at least one category', 'remains optional']],
+    ['es', '¿Es obligatoria una categoría para importar?', 'imports-and-games', ['al menos una categoría', 'sigue siendo opcional']],
+    ['fr', 'Comment associer une équipe adverse à un groupe ?', 'opponents', ['Enregistrer le lien', 'ajoutées ensuite', 'sans modification partielle']],
+    ['en', 'How do I associate an opponent team with a group?', 'opponents', ['Save link', 'added later', 'without partial changes']],
+    ['es', '¿Cómo asocio un equipo rival a un grupo?', 'opponents', ['Guardar vínculo', 'añadidas después', 'sin cambios parciales']],
+    ['fr', 'Que devient l’adversaire des parties si je retire le lien du groupe ?', 'opponents', ['conserve l’adversaire', 'autres groupes liés', 'Drafter reste indépendant']],
+    ['en', 'What happens to game opponents if I remove the group link?', 'opponents', ['preserves the opponents', 'other linked groups', 'Drafter link stays independent']],
+    ['es', '¿Qué ocurre con los rivales de las partidas al quitar el vínculo del grupo?', 'opponents', ['conserva los rivales', 'otros grupos vinculados', 'Drafter sigue siendo independiente']],
+    ['fr', 'Comment parcourir le dossier d’une équipe adverse ?', 'opponents', ['Vue d’ensemble', 'résultat de notre équipe', 'source ou la partie liée']],
+    ['en', 'How do I browse an opponent team’s dossier?', 'opponents', ['Overview', 'our team’s result', 'source or linked game']],
+    ['es', '¿Cómo recorro el dossier de un equipo rival?', 'opponents', ['Vista general', 'resultado de nuestro equipo', 'fuente o partida vinculada']],
+    ['fr', 'Comment analyser les bans contre nous et les rôles concernés ?', 'drafter-analysis', ['Rôle concerné', 'pools déclarés actuels', 'Chaque taux garde son propre échantillon']],
+    ['en', 'How do I analyze bans against us and affected roles?', 'drafter-analysis', ['Affected role', 'current declared pools', 'Each rate keeps its own sample']],
+    ['es', '¿Cómo analizo los bloqueos contra nosotros y los roles afectados?', 'drafter-analysis', ['Rol afectado', 'repertorios declarados actuales', 'Cada tasa conserva su propia muestra']],
+    ['fr', 'Comment lire les rotations de picks ?', 'drafter-analysis', ['picks consécutifs', 'partie liée compatible', 'ne sont pas les rôles joués']],
+    ['en', 'How do I read pick rotations?', 'drafter-analysis', ['consecutive picks', 'compatible linked game', 'not played roles']],
+    ['es', '¿Cómo leo las rotaciones de selecciones?', 'drafter-analysis', ['selecciones consecutivas', 'partida vinculada compatible', 'no son roles jugados']],
+    ['fr', 'D’où viennent les champions d’une fiche adverse ?', 'opponents', ['participants', 'Choix de draft non confirmés en partie']],
+    ['en', 'Where do champions in an opponent profile come from?', 'opponents', ['participants', 'Draft picks not confirmed in game']],
+    ['es', '¿De dónde vienen los campeones de una ficha rival?', 'opponents', ['participantes', 'Selecciones del draft no confirmadas en partida']],
+    ['fr', 'Comment retrouver une draft sans partie liée ?', 'drafter-analysis', ['Affiner le périmètre', 'Sans partie liée', 'aucune partie ni aucun résultat']],
+    ['en', 'How do I find a draft without a linked game?', 'drafter-analysis', ['Refine the scope', 'No linked match', 'no game or result']],
+    ['es', '¿Cómo encuentro un draft sin partida vinculada?', 'drafter-analysis', ['Ajustar el alcance', 'Sin partida vinculada', 'ninguna partida ni resultado']],
+  ] as const)('explains current import, group and draft workflows in %s: %s', (language, question, expected, facts) => {
+    const matches = retrieveAssistantKnowledge(question, '/guide', 4, language, expected);
+    expect(matches[0].id).toBe(expected);
+    const response = buildFallbackAssistantResponse(question, matches, language);
+    expect(response.sources[0].id).toBe(expected);
+    for (const fact of facts) expect(response.answer).toContain(fact);
   });
 
   it.each([
