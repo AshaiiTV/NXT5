@@ -3,7 +3,8 @@ import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { buildGamePublicationSnapshot } from '../../shared/publications/game-publication.js';
 import { publicationFixture } from '../../shared/publications/fixtures.js';
 import { renderGamePublicationCanvas } from '../../shared/publications/game-publication-canvas.js';
-import { loadGamePublicationAssets } from '../../shared/publications/game-publication-assets.js';
+import { loadGamePublicationAssets, PUBLICATION_OBJECTIVE_ASSETS } from '../../shared/publications/game-publication-assets.js';
+import { PNG_THEME } from '../utils/png-report.js';
 import { renderGamePublicationPng } from '../../netlify/functions/_lib/publication-render';
 
 const icon = createCanvas(32, 32);
@@ -56,7 +57,7 @@ describe('single game publication PNG for downloads and Discord', () => {
     const server = await renderGamePublicationPng(snapshot);
     const browser = await renderGamePublicationCanvas(snapshot, {
       createCanvas, loadLogo: () => loadImage('public/assets/nxt5-wordmark.png'),
-      loadAssets: data => loadGamePublicationAssets(data, async () => icon),
+      loadAssets: data => loadGamePublicationAssets(data, async () => icon, { loadObjectiveImage: url => loadImage(`public${url}`) }),
     });
     expect([server.width, server.height]).toEqual([browser.width, browser.height]);
     expect(server.bytes.equals(browser.canvas.toBuffer('image/png'))).toBe(true);
@@ -122,6 +123,43 @@ describe('single game publication PNG for downloads and Discord', () => {
     expect([illustrated.width, illustrated.height]).toEqual([plain.width, plain.height]);
     expect(illustrated.canvas.toBuffer('image/png').equals(plain.canvas.toBuffer('image/png'))).toBe(false);
     expect(JSON.stringify(snapshot)).toBe(before);
+  });
+
+  it('loads only bundled objective assets and keeps the same layout when they are absent', async () => {
+    const snapshot = buildGamePublicationSnapshot(publicationFixture());
+    snapshot.facts.dragons.ally = 0;
+    snapshot.facts.dragons.enemy = null;
+    const loadObjectiveImage = vi.fn(url => loadImage(`public${url}`));
+    const options = { createCanvas, loadLogo: async () => null };
+    const illustrated = await renderGamePublicationCanvas(snapshot, {
+      ...options, loadAssets: data => loadGamePublicationAssets(data, async () => icon, { loadObjectiveImage }),
+    });
+    const missing = await renderGamePublicationCanvas(snapshot, {
+      ...options, loadAssets: data => loadGamePublicationAssets(data, async () => icon, { loadObjectiveImage: async () => { throw new Error('Missing bundled icon'); } }),
+    });
+    expect(loadObjectiveImage.mock.calls.map(([url]) => url)).toEqual(Object.values(PUBLICATION_OBJECTIVE_ASSETS));
+    expect([illustrated.width, illustrated.height]).toEqual([missing.width, missing.height]);
+    expect(illustrated.canvas.toBuffer('image/png').equals(missing.canvas.toBuffer('image/png'))).toBe(false);
+    expect(snapshot.facts.dragons).toMatchObject({ ally: 0, enemy: null });
+  });
+
+  it('keeps victory, defeat and map-side colours separate and essential text inside the canvas', async () => {
+    const snapshot = buildGamePublicationSnapshot(publicationFixture({ side: 'red', longNames: true, incomplete: true }));
+    const trace = traceCanvas();
+    const output = await renderGamePublicationCanvas(snapshot, { createCanvas: trace.createCanvas });
+    const joined = trace.drawn.map(entry => entry.text).join('').replace(/\s/g, '');
+    for (const value of [snapshot.context.teamName, snapshot.context.opponentName, ...snapshot.participants.map(row => row.name)]) {
+      expect(joined).toContain(value.replace(/\s/g, ''));
+    }
+    expect(trace.drawn.find(entry => entry.text === 'Victoire')?.color).toBe(PNG_THEME.green);
+    expect(trace.drawn.find(entry => entry.text === 'Côté rouge · Notre équipe')?.color).not.toBe(PNG_THEME.red);
+    for (const entry of trace.drawn) {
+      const left = entry.x - (entry.align === 'right' ? entry.width : entry.align === 'center' ? entry.width / 2 : 0);
+      expect(left, entry.text).toBeGreaterThanOrEqual(0);
+      expect(left + entry.width, entry.text).toBeLessThanOrEqual(output.width + 1);
+      expect(entry.y, entry.text).toBeGreaterThan(0);
+      expect(entry.y, entry.text).toBeLessThan(output.height);
+    }
   });
 
   it('grows for long names and renders missing metrics within the attachment budget', async () => {

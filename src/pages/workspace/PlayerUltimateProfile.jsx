@@ -15,7 +15,7 @@ import { csAtMinute } from "../../utils/match-timeline.js";
 import { useMatchDetails } from "../../hooks/useMatchDetails.js";
 import { championDisplayName, championPortraitSources, sortPlayersByRole, canStaffManage, isGameplayRole, formatPoints, normalizeProfileRole, playerIntegratedRows, matchCategoryTone, CategoryFilter, itemSlots, parsePercent, teamRows, shareOfTeam, lazyNamed, loadNextPhase, COMP_ROLES, normalizeProfileKey, ChampionPortrait, matchImportDateLabel, ChampionBackdrop, championStyleTags, championStyleTone, tagLabel, formatGoldDiff, itemIconSources, statValue, creepScore, sumRows, HudIcon, summonerSpellIconSources, summonerSpellIds, trinketItemId, formatCountdown, matchTimelineFrames, rowParticipantId, DDRAGON_FALLBACK_VERSIONS, championKey, championAssetId, exportChampionTierListPng, championPoolStatus, CHAMPION_TIERS, championTierFrame, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championPoolStatusLabel, championPoolStatusTone } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
-import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngNumeric, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
+import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngImageContain, pngMetricStrip, pngDownloadPages, pngNumber, pngNumeric, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 
 import { ProfileNavigation, PROFILE_SECTIONS } from "./ProfileNavigation.jsx";
 import "./profile-page.css";
@@ -112,6 +112,8 @@ async function renderPlayerProfilePng({ player, rows = [], category = "Toutes le
   const fit = (text, x, y, maxWidth, options = {}) => pngFitText(ctx, text, x, y, maxWidth, { font: "500 22px Inter, Arial, sans-serif", min: 20, ...options });
   const images = new Map();
   const logoPromise = pngLoadImage("/assets/nxt5-wordmark.png");
+  const roleAsset = { TOP: "top", JGL: "jungle", MID: "middle", ADC: "bottom", SUP: "utility" }[normalizeProfileRole(player?.role)];
+  const roleImagePromise = roleAsset ? pngLoadImage(`/assets/roles/position-${roleAsset}.svg`) : null;
   await Promise.all(champions.map(async (stat) => {
     const sources = championPortraitSources(stat.champion, stat.champion);
     let portrait = null;
@@ -121,9 +123,14 @@ async function renderPlayerProfilePng({ player, rows = [], category = "Toutes le
     }
     images.set(stat.champion, portrait);
   }));
-  pngBackground(ctx, W, H);
+  pngBackground(ctx, W, H, { variant: "profile" });
   pngHeader(ctx, { width: W, title: player?.name || "Profil joueur", subtitle: `${category} · ${pngDateRange(rows.map((row) => row.match).filter(Boolean))}`, eyebrow: "Profil joueur", logo: await logoPromise });
-  fit([roleLabel(player?.role), player?.riot_id, teamName].filter(Boolean).join(" · "), margin, 222, width, { color: PNG_THEME.muted });
+  const roleImage = await roleImagePromise;
+  if (roleImage) {
+    pngPanel(ctx, margin, 198, 32, 32, { stroke: "rgba(196,181,253,0.4)", radius: 8 });
+    pngImageContain(ctx, roleImage, margin + 5, 203, 22, 22);
+  }
+  fit([roleLabel(player?.role), player?.riot_id, teamName].filter(Boolean).join(" · "), margin + (roleImage ? 46 : 0), 222, width - (roleImage ? 46 : 0), { color: PNG_THEME.muted });
 
   if (firstPage) {
     pngMetricStrip(ctx, { x: margin, y: 246, width, items: [
@@ -135,7 +142,8 @@ async function renderPlayerProfilePng({ player, rows = [], category = "Toutes le
     const metricsY = 390;
     const innerX = margin + 28;
     const halfWidth = (width - 80) / 2;
-    pngPanel(ctx, margin, metricsY, width, 426);
+    pngPanel(ctx, margin, metricsY, width, 426, { material: "reading", accent: "purple" });
+    pngPanel(ctx, margin + 1, metricsY + 1, width - 2, 62, { stroke: null, radius: 17 });
     fit("Moyennes par game", innerX, metricsY + 43, 520, { font: "700 27px Inter, Arial, sans-serif" });
     fit("Games renseignées / games analysées", margin + width - 28, metricsY + 43, 600, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
     pngLine(ctx, margin + width / 2, metricsY + 73, margin + width / 2, metricsY + 398);
@@ -145,13 +153,14 @@ async function renderPlayerProfilePng({ player, rows = [], category = "Toutes le
       const x = innerX + column * (halfWidth + 24);
       const y = metricsY + 108 + row * 66;
       fit(metric.label, x, y, 302, { font: "500 21px Inter, Arial, sans-serif", color: PNG_THEME.muted });
-      fit(pngNumber(metric.value, metric.digits), x + halfWidth - 104, y, 164, { font: "700 25px Inter, Arial, sans-serif", align: "right" });
+      fit(pngNumber(metric.value, metric.digits), x + halfWidth - 104, y, 164, { font: "700 25px Inter, Arial, sans-serif", align: "right", color: PNG_THEME.purple });
       fit(`${metric.count}/${report.games}`, x + halfWidth, y, 90, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
       if (row < 4) pngLine(ctx, x, y + 27, x + halfWidth, y + 27);
     });
   }
 
-  pngPanel(ctx, margin, tableY, width, tableHeight);
+  pngPanel(ctx, margin, tableY, width, tableHeight, { material: "reading" });
+  pngPanel(ctx, margin + 1, tableY + 1, width - 2, 61, { stroke: null, radius: 17 });
   fit("Champions joués", margin + 28, tableY + 42, 620, { font: "700 27px Inter, Arial, sans-serif" });
   fit(`${report.champions.length} champions · ${report.games} games`, W - margin - 28, tableY + 42, 500, { color: PNG_THEME.muted, align: "right" });
   const columns = [
@@ -168,6 +177,8 @@ async function renderPlayerProfilePng({ player, rows = [], category = "Toutes le
     const y = tableY + 118 + index * 80;
     const name = championDisplayName(stat.champion);
     const portrait = images.get(stat.champion);
+    if (index % 2 === 0) pngPanel(ctx, margin + 12, y - 3, width - 24, 73, { fill: "rgba(196,181,253,0.035)", stroke: null, radius: 8 });
+    pngPanel(ctx, margin + 25, y + 3, 58, 58, { stroke: "rgba(196,181,253,0.55)", radius: 11 });
     if (!pngImageCover(ctx, portrait, margin + 28, y + 6, 52, 52, 8)) {
       fit(name.slice(0, 2).toUpperCase(), margin + 54, y + 40, 52, { align: "center", color: PNG_THEME.cyan });
     }

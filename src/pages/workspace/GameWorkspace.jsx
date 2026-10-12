@@ -156,7 +156,7 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
   plan.forEach((page, pageIndex) => {
     const { canvas, ctx: canvasCtx } = pngCreateCanvas(W, Math.max(960, page.end + 96));
     ctx = canvasCtx;
-    pngBackground(ctx, W, canvas.height);
+    pngBackground(ctx, W, canvas.height, { variant: "group" });
     header();
     if (page.first) {
       pngMetricStrip(ctx, { x: M, y: 208, width: CW, items: [
@@ -165,7 +165,8 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
         { label: "Durée moyenne", value: duration(pngMean(durationValues)), detail: `${durationValues.length}/${games} games · min:s` },
         { label: "Kills / game", value: pngNumber(measures[0].ally, 1), detail: `${measures[0].count}/${games} games` },
       ] });
-      pngPanel(ctx, M, 364, CW, 456);
+      pngPanel(ctx, M, 364, CW, 456, { material: "reading", accent: "purple" });
+      pngPanel(ctx, M + 382, 426, 330, 335, { stroke: null, radius: 12 });
       text(t("Moyennes par game"), M + 24, 406, 620, 28, PNG_THEME.text, 700);
       text(t("Écart = équipe − adversaires"), W - M - 24, 405, 490, 20, PNG_THEME.muted, 500, "right");
       [["Mesure", M + 24, 330], [teamName, M + 400, 308], ["Adversaires", M + 746, 220], ["Écart", M + 1030, 190], ["Games", M + 1280, 174]].forEach(([label, x, width]) => text(label, x, 452, width, 20, PNG_THEME.muted));
@@ -182,7 +183,8 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
     }
     page.parts.forEach((part) => {
       const height = 108 + part.rows.reduce((sum, row) => sum + row.height, 0);
-      pngPanel(ctx, M, part.y, CW, height);
+      pngPanel(ctx, M, part.y, CW, height, { material: "reading" });
+      pngPanel(ctx, M + 1, part.y + 1, CW - 2, 60, { stroke: null, radius: 17 });
       text(part.key === "games" ? `Games · ${games}` : "Champions joués · nombre de picks", M + 24, part.y + 40, CW - 48, 28, PNG_THEME.text, 700);
       if (part.key === "games") {
         [["Game / identifiant", M + 24, 464], ["Résultat", M + 522, 174], ["Date", M + 734, 190], ["Durée", M + 964, 130], ["Côté équipe", M + 1132, 160], ["Patch", M + 1334, 122]].forEach(([label, x, width]) => text(label, x, part.y + 84, width, 20, PNG_THEME.muted));
@@ -191,10 +193,12 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
         text(t("Adversaires"), W / 2 + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
       }
       let y = part.y + 108;
-      part.rows.forEach((row) => {
+      part.rows.forEach((row, rowIndex) => {
+        if (rowIndex % 2 === 0) pngPanel(ctx, M + 12, y + 3, CW - 24, row.height - 6, { fill: "rgba(196,181,253,0.035)", stroke: null, radius: 8 });
         pngLine(ctx, M + 24, y, W - M - 24, y);
         if (part.key === "games") {
           const { match, names } = row;
+          pngLine(ctx, M + 8, y + 18, M + 8, y + row.height - 18, resultColor(match), 3);
           lines(names, M + 24, y + 30, 464, 22, PNG_THEME.text, 700);
           text(match.game_id || "Identifiant —", M + 24, y + 30 + names.length * 27, 464, 20, PNG_THEME.muted, 500);
           text(t(resultLabel(match)), M + 522, y + 43, 174, 24, resultColor(match), 700);
@@ -206,9 +210,10 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
           if (!entry) return;
           const [champion, count] = entry;
           const x = M + 24 + teamIndex * CW / 2;
+          pngPanel(ctx, x - 3, y + 7, 50, 50, { stroke: teamIndex ? PNG_THEME.pink : PNG_THEME.cyan, radius: 11 });
           drawImage(championPortraitSources(champion, champion), x, y + 10, 44);
           text(championDisplayName(champion), x + 62, y + 40, CW / 2 - 218, 24, PNG_THEME.text, 600);
-          text(pngNumber(count), x + CW / 2 - 80, y + 40, 96, 28, PNG_THEME.text, 700, "right");
+          text(pngNumber(count), x + CW / 2 - 80, y + 40, 96, 28, teamIndex ? PNG_THEME.pink : PNG_THEME.cyan, 700, "right");
         });
         y += row.height;
       });

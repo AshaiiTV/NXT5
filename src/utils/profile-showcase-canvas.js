@@ -2,7 +2,7 @@ import { t } from "../i18n/translate.js";
 import { championDisplayName } from "../../shared/champions.js";
 import { loadProfileChampionArt, drawProfileChampionArt } from "./profile-showcase-art.js";
 import {
-  PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngLoadImage,
+  PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngLoadImage,
   pngImageContain, pngNumber, pngPercent, pngNumeric,
 } from "./png-report.js";
 
@@ -42,13 +42,7 @@ function spectrum(ctx, x = 0, y = 0, width = W, height = 600) {
 }
 
 function background(ctx) {
-  ctx.fillStyle = C.bg;
-  ctx.fillRect(0, 0, W, H);
-  const glow = ctx.createRadialGradient(890, 260, 30, 890, 260, 850);
-  glow.addColorStop(0, "rgba(124,58,237,.16)");
-  glow.addColorStop(1, "rgba(124,58,237,0)");
-  ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
+  pngBackground(ctx, W, H, { variant: "profile" });
 }
 
 function frame(ctx) {
@@ -119,12 +113,12 @@ function front(ctx, r, assets) {
   stage(ctx, PROFILE_ART_REGIONS.front, { variant: "card" });
   artwork(ctx, assets, PROFILE_ART_REGIONS.front);
   header(ctx, r, assets);
+  glassPlate(ctx, [[40, 1126], [1040, 1126], [1040, 1555], [72, 1555], [40, 1523]], { accent: "violet" });
   name(ctx, r.playerName, 62, 1257, 950, 154, 60);
   fit(ctx, identity(r) || t("Profil joueur"), 73, 1302, 27, C.secondary, 500, 934);
   fit(ctx, signature ? `${championDisplayName(signature.champion)} · ${t("CHAMPION LE PLUS JOUÉ")}` : t("Champion indisponible"), 73, 1344, 23, C.cyan, 500, 934);
-  polygon(ctx, [[40, 1380], [1040, 1380], [1040, 1555], [72, 1555], [40, 1523]], "#0E1D30");
-  pngLine(ctx, 40, 1380, 392, 1380, C.cyan, 4);
-  pngLine(ctx, 705, 1555, 1040, 1555, C.purple, 4);
+  pngLine(ctx, 72, 1380, 1008, 1380, "rgba(196,181,253,.32)");
+  pngLine(ctx, 72, 1380, 340, 1380, spectrum(ctx, 72, 1380, 268, 0), 3);
   const stats = [
     [pngNumber(metric(r, "kda").value, 1), "KDA GLOBAL", metric(r, "kda").count],
     [pngNumber(metric(r, "csPerMin").value, 1), "CS / MIN", metric(r, "csPerMin").count],
@@ -142,6 +136,7 @@ function front(ctx, r, assets) {
 function back(ctx, r, assets) {
   background(ctx);
   header(ctx, r, assets);
+  glassPlate(ctx, [[42, 188], [1038, 188], [1038, 596], [80, 596], [42, 558]], { accent: "cyan" });
   fit(ctx, t("LE BILAN DU JOUEUR"), 75, 229, 26, C.cyan, 600, 745);
   name(ctx, r.playerName, 67, 338, 780, 110, 52);
   pngImageContain(ctx, assets.mark, 890, 254, 114, 114);
@@ -187,6 +182,7 @@ function back(ctx, r, assets) {
   });
   fit(ctx, t(r.datedGames === r.games ? "De la plus ancienne à la plus récente · ? = résultat inconnu" : "Ordre des dates connues · ? = résultat inconnu"), 75, 1118, 23, C.secondary, 400, 931);
   const pool = (r.champions || []).slice(0, 3);
+  glassPlate(ctx, [[42, 1144], [1038, 1144], [1038, 1451], [80, 1451], [42, 1413]], { accent: "violet", reflection: .6 });
   fit(ctx, t("LES PLUS JOUÉS"), 75, 1183, 26, C.text, 600, 400);
   fit(ctx, t((r.champions || []).length === 1 ? "{0} / {1} champion" : "{0} / {1} champions", [pngNumber(pool.length), pngNumber((r.champions || []).length)]), 1006, 1183, 25, C.secondary, 400, 480, "right");
   pool.forEach((champion, i) => {
@@ -228,26 +224,52 @@ function polygon(ctx, points, fill, stroke = null, lineWidth = 1) {
   ctx.restore();
 }
 
+/** Static material, clipped to the plate. No exterior shadow or portrait overlay. */
+function glassPlate(ctx, points, { accent = "violet", reflection = 1 } = {}) {
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  const width = Math.max(...xs) - x;
+  const height = Math.max(...ys) - y;
+  const isCyan = accent === "cyan";
+  const isPink = accent === "pink";
+  const base = ctx.createLinearGradient(x, y, x + width, y + height);
+  base.addColorStop(0, isCyan ? "#304E62" : isPink ? "#54335A" : "#443862");
+  base.addColorStop(.45, "#2D274B");
+  base.addColorStop(1, "#1B273C");
+  polygon(ctx, points, base);
+  ctx.save();
+  ctx.beginPath();
+  points.forEach(([px, py], index) => index ? ctx.lineTo(px, py) : ctx.moveTo(px, py));
+  ctx.closePath();
+  ctx.clip();
+  // The broad diagonal reflection makes the glass legible at phone size.
+  const light = ctx.createLinearGradient(x, y, x + width * .88, y + height * .48);
+  light.addColorStop(0, `rgba(226,232,255,${.18 * reflection})`);
+  light.addColorStop(.3, `rgba(196,181,253,${.1 * reflection})`);
+  light.addColorStop(.302, "rgba(196,181,253,0)");
+  light.addColorStop(.7, "rgba(196,181,253,0)");
+  light.addColorStop(1, `rgba(${isCyan ? "103,232,249" : "232,121,249"},${.13 * reflection})`);
+  ctx.fillStyle = light;
+  ctx.fillRect(x, y, width, height);
+  ctx.restore();
+  const edge = ctx.createLinearGradient(x, y, x + width, y + height);
+  edge.addColorStop(0, isCyan ? "rgba(103,232,249,.8)" : "rgba(221,214,254,.7)");
+  edge.addColorStop(.42, "rgba(196,181,253,.22)");
+  edge.addColorStop(1, isPink ? "rgba(232,121,249,.7)" : "rgba(196,181,253,.4)");
+  polygon(ctx, points, null, edge, 1.5);
+}
+
 function stage(ctx, region, { variant = "signature" } = {}) {
   // All geometry stays behind the complete official image. The
   // portrait is painted last, with no crop, mask, text or glow over its face.
   const { x, y, width, height } = region;
   const bottom = y + height;
-  const light = ctx.createRadialGradient(540, y + height * .5, 30, 540, y + height * .5, width * .6);
-  light.addColorStop(0, "rgba(99,102,241,.35)");
-  light.addColorStop(1, "rgba(99,102,241,0)");
-  ctx.fillStyle = light;
-  ctx.fillRect(0, y, W, height);
-  const cyanPlate = ctx.createLinearGradient(80, y, 780, bottom);
-  cyanPlate.addColorStop(0, variant === "highlight" ? "#6D347E" : "#156E88");
-  cyanPlate.addColorStop(1, "#112639");
-  const violetPlate = ctx.createLinearGradient(520, y, 970, bottom);
-  violetPlate.addColorStop(0, "#382577");
-  violetPlate.addColorStop(1, variant === "signature" ? "#7652AE" : "#2A244B");
-  polygon(ctx, [[x + 2, y + height * .27], [x + width * .65, y + 20], [x + width * .79, bottom - 124], [x + 76, bottom - 4]], cyanPlate);
-  polygon(ctx, [[x + width * .5, y + 50], [x + width - 18, y + height * .22], [x + width - 24, bottom - 10], [x + width * .32, bottom - 146]], violetPlate);
-  polygon(ctx, [[x - 12, y + height * .21], [x + width * .68, y + 2], [x + width * .8, bottom - 86], [x + 62, bottom + 10]], null, "rgba(103,232,249,.55)", 1.5);
-  polygon(ctx, [[x + width * .53, y + 33], [x + width + 8, y + height * .18], [x + width - 4, bottom + 9]], null, "rgba(196,181,253,.5)", 1.5);
+  glassPlate(ctx, [[x + 2, y + height * .27], [x + width * .65, y + 20], [x + width * .79, bottom - 124], [x + 76, bottom - 4]], { accent: variant === "highlight" ? "pink" : "cyan", reflection: 1.5 });
+  glassPlate(ctx, [[x + width * .5, y + 50], [x + width - 18, y + height * .22], [x + width - 24, bottom - 10], [x + width * .32, bottom - 146]], { accent: "violet", reflection: 1.5 });
+  pngLine(ctx, x + 2, y + height * .27, x + width * .65, y + 20, variant === "highlight" ? C.pink : C.cyan, 3);
+  pngLine(ctx, x + width - 18, y + height * .22, x + width - 24, bottom - 10, C.violet, 3);
   // Short registration bars give the side plates an intentional printed edge.
   for (let index = 0; index < 3; index += 1) {
     pngLine(ctx, x - 16, bottom - 125 + index * 11, x + 34, bottom - 125 + index * 11, C.cyan, 3);
@@ -274,10 +296,9 @@ function resultRibbon(ctx, r, x, y, width, height = 28) {
 }
 
 function storyBilan(ctx, r) {
-  polygon(ctx, [[40, 392], [1040, 392], [1040, 865], [790, 865], [40, 721]], "#0E2335");
-  polygon(ctx, [[40, 392], [577, 392], [40, 721]], "#173E51");
+  glassPlate(ctx, [[40, 392], [1040, 392], [1040, 865], [790, 865], [40, 721]], { accent: "cyan" });
   pngLine(ctx, 40, 392, 403, 392, C.cyan, 5);
-  polygon(ctx, [[580, 916], [1040, 916], [1040, 1115], [580, 1115]], "#1A1638");
+  glassPlate(ctx, [[580, 916], [1040, 916], [1040, 1115], [610, 1115], [580, 1085]], { reflection: .65 });
   chapterTitle(ctx, t("LE BILAN"), t("La sélection en chiffres."), { size: 74 });
   fit(ctx, pngNumber(r.games), 56, 655, 314, C.text, 700, 500, "left", 135);
   fit(ctx, t("PARTIES"), 573, 454, 47, C.cyan, 700, 435);
@@ -315,7 +336,7 @@ function storySignature(ctx, r, assets) {
   stage(ctx, PROFILE_ART_REGIONS.signature, { variant: "signature" });
   artwork(ctx, assets, PROFILE_ART_REGIONS.signature);
   chapterTitle(ctx, t("LE CHAMPION SIGNATURE"), String(championDisplayName(champion?.champion) || t("À découvrir")).toUpperCase(), { size: 112 });
-  polygon(ctx, [[42, 1290], [1038, 1290], [1038, 1440], [80, 1440], [42, 1402]], "#1B183B");
+  glassPlate(ctx, [[42, 1290], [1038, 1290], [1038, 1440], [80, 1440], [42, 1402]], { accent: "violet" });
   pngLine(ctx, 42, 1290, 367, 1290, C.violet, 4);
   [[pngNumber(champion?.games), "PARTIES"], [pngNumber(champion?.wins), "VICTOIRES"], [pngPercent(champion?.rate), "DE VICTOIRES"]].forEach(([value, label], i) => {
     const x = 72 + i * 318;
@@ -333,7 +354,7 @@ function storyHighlight(ctx, r, assets) {
   const result = game?.result === "win" ? "VICTOIRE" : game?.result === "loss" ? "DÉFAITE" : "RÉSULTAT INCONNU";
   fit(ctx, t(result), 72, 1225, 25, game?.result === "win" ? C.green : game?.result === "loss" ? C.red : C.secondary, 600, 400);
   fit(ctx, game ? game.dateLabel + " · " + duration(game.durationSeconds) : t("Date indisponible"), 1008, 1225, 24, C.secondary, 400, 560, "right");
-  polygon(ctx, [[42, 1260], [1038, 1260], [1038, 1438], [84, 1438], [42, 1396]], "#281A36");
+  glassPlate(ctx, [[42, 1260], [1038, 1260], [1038, 1438], [84, 1438], [42, 1396]], { accent: "pink" });
   pngLine(ctx, 42, 1260, 367, 1260, C.pink, 4);
   [[game?.kills, "ÉLIMINATIONS"], [game?.deaths, "MORTS"], [game?.assists, "ASSISTANCES"]].forEach(([value, label], i) => {
     const x = 72 + i * 318;
@@ -420,9 +441,9 @@ function periodLabel(period) {
 function storyProgression(ctx, r) {
   const progress = r.progression;
   const digits = progress?.key === "visionPerMin" ? 2 : 1;
-  polygon(ctx, [[39, 439], [1041, 439], [1041, 587], [87, 587], [39, 539]], "#19223D");
+  glassPlate(ctx, [[39, 439], [1041, 439], [1041, 587], [87, 587], [39, 539]], { accent: "violet" });
   pngLine(ctx, 39, 439, 390, 439, C.violet, 4);
-  polygon(ctx, [[42, 610], [1038, 610], [1038, 1049], [42, 1049]], "#0A182A");
+  pngPanel(ctx, 42, 610, 996, 439, { material: "reading", radius: 18 });
   chapterTitle(ctx, t("L’ÉVOLUTION"), t("D’une partie à l’autre."), { size: 77 });
   fit(ctx, t(progress?.label || "Évolution indisponible"), 72, 413, 36, C.secondary, 500, 936);
   fit(ctx, signed(progress?.delta, digits), 62, 568, 150, C.text, 700, 462, "left", 90);
@@ -432,7 +453,7 @@ function storyProgression(ctx, r) {
   fit(ctx, t("Une mesure par partie · pointillés : moyenne de chaque période"), 70, 1086, 24, C.secondary, 400, 940);
   [[progress?.early, "PREMIÈRES PARTIES", C.violet], [progress?.recent, "DERNIÈRES PARTIES", C.cyan]].forEach(([part, label, color], index) => {
     const x = index ? 558 : 70;
-    pngLine(ctx, x, 1120, x + 452, 1120, C.border);
+    glassPlate(ctx, [[x, 1120], [x + 452, 1120], [x + 452, 1337], [x + 28, 1337], [x, 1309]], { accent: index ? "cyan" : "violet", reflection: .5 });
     pngLine(ctx, x + 24, 1120, x + 148, 1120, color, 3);
     fit(ctx, t(label), x + 26, 1166, 23, color, 600, 400);
     fit(ctx, pngNumber(part?.value, digits), x + 23, 1248, 75, C.text, 700, 260, "left", 52);
@@ -443,8 +464,8 @@ function storyProgression(ctx, r) {
 }
 
 function storyTeam(ctx, r, assets) {
-  polygon(ctx, [[40, 416], [1040, 416], [1040, 704], [771, 704], [40, 602]], "#201B42");
-  polygon(ctx, [[760, 416], [1040, 416], [1040, 704], [922, 704]], "#30255E");
+  glassPlate(ctx, [[40, 416], [1040, 416], [1040, 704], [771, 704], [40, 602]], { accent: "violet", reflection: 1.25 });
+  glassPlate(ctx, [[760, 416], [1040, 416], [1040, 704], [922, 704]], { accent: "pink", reflection: .8 });
   chapterTitle(ctx, t("L’ÉQUIPE, AUJOURD’HUI"), String(r.teamName || t("Équipe")).toUpperCase(), { size: 107 });
   pngLine(ctx, 70, 408, 1010, 408, spectrum(ctx), 2);
   fit(ctx, t("LE JOUEUR DE CE WRAPPED"), 73, 478, 25, C.secondary, 600, 710);
@@ -469,8 +490,10 @@ function storyTeam(ctx, r, assets) {
   displayed.forEach((member, index) => {
     const y = 901 + index * 75;
     const current = selected(member);
-    if (current) pngPanel(ctx, 70, y, 940, 65, { fill: "#10242F", stroke: "#355666", radius: 10 });
-    else pngLine(ctx, 74, y + 64, 1007, y + 64, "rgba(198,212,229,.14)");
+    if (current) glassPlate(ctx, [[70, y], [1010, y], [1010, y + 65], [86, y + 65], [70, y + 49]], { accent: "cyan", reflection: .6 });
+    else {
+      pngPanel(ctx, 70, y, 940, 65, { material: "reading", stroke: "rgba(196,181,253,.16)", radius: 10 });
+    }
     fit(ctx, member.role || "—", 92, y + 42, 25, current ? C.cyan : C.violet, 600, 151);
     fit(ctx, member.name || t("Profil sans nom"), 254, y + 42, 31, C.text, current ? 700 : 500, current ? currentNameWidth : 725, "left", 26);
     if (current) fit(ctx, currentLabel, 986, y + 40, 21, C.cyan, 600, currentLabelWidth, "right");

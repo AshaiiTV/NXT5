@@ -17,7 +17,7 @@ import { ProgressionObjectives } from "../../components/trends/ProgressionObject
 import { TrendNavigation, TrendsOverview } from "../../components/trends/TrendsOverview.jsx";
 import { TrendSourcesDialog, TrendContractsDialog } from "../../components/trends/TrendsDialogs.jsx";
 import "../../components/trends/trends-page.css";
-import { PNG_THEME, pngAccent, pngFitText, pngLine, pngBackground, pngHeader, pngMetricStrip, pngFooter, pngLoadImage, pngImageCover, pngDownload, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
+import { PNG_THEME, pngAccent, pngFitText, pngLine, pngPanel, pngBackground, pngHeader, pngMetricStrip, pngFooter, pngLoadImage, pngImageCover, pngImageContain, pngDownload, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 
 import { useTrendsNavigation } from "../../hooks/useTrendsNavigation.js";
 import { DraftTrendDetails } from "../../components/trends/DraftTrendDetails.jsx";
@@ -130,10 +130,12 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
   const signedGold = report.gold.value === null ? "—" : `${report.gold.value > 0 ? "+" : ""}${pngNumber(report.gold.value)}`;
   const imageCache = new Map();
   const imageUrls = new Set(["/assets/nxt5-wordmark.png"]);
+  const roleAssets = { TOP: "top", JGL: "jungle", MID: "middle", ADC: "bottom", SUP: "utility" };
+  report.roles.forEach(({ role }) => { if (roleAssets[role]) imageUrls.add(`/assets/roles/position-${roleAssets[role]}.svg`); });
   champions.forEach((entry) => championPortraitSources(entry.champion, entry.champion).forEach((url) => imageUrls.add(url)));
   await Promise.all([...imageUrls].filter(Boolean).map(async (url) => imageCache.set(url, await pngLoadImage(url))));
 
-  pngBackground(ctx, W, H);
+  pngBackground(ctx, W, H, { variant: "trends" });
   pngHeader(ctx, {
     width: W,
     title: teamName,
@@ -153,14 +155,18 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
   fit(t("Résultats par côté"), margin, 416, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
   const sideWidth = contentWidth / report.sides.length;
   report.sides.forEach((entry, index) => {
-    const x = margin + index * sideWidth;
-    if (index) pngLine(ctx, x - 24, 446, x - 24, 536);
-    label(t(entry.key === "Blue" ? "Côté bleu" : entry.key === "Red" ? "Côté rouge" : "Côté inconnu"), x, 456, sideWidth - 48, { color: pngAccent(entry.key === "Blue" ? "blue" : entry.key === "Red" ? "red" : "muted") });
+    const panelX = margin + index * sideWidth;
+    const x = panelX + 22;
+    const accent = entry.key === "Blue" ? "blue" : entry.key === "Red" ? "red" : "muted";
+    pngPanel(ctx, panelX, 434, sideWidth - 16, 114, { accent, radius: 14 });
+    label(t(entry.key === "Blue" ? "Côté bleu" : entry.key === "Red" ? "Côté rouge" : "Côté inconnu"), x, 461, sideWidth - 60, { color: pngAccent(accent) });
     fit(pngPercent(entry.winrate), x, 500, sideWidth - 48, { font: "700 36px Inter, Arial, sans-serif" });
     label(`${pngNumber(entry.games)} games · ${pngNumber(entry.wins)} V / ${pngNumber(entry.losses)} D${entry.unknown ? ` · ${pngNumber(entry.unknown)} sans résultat` : ""}`, x, 532, sideWidth - 48);
   });
   pngLine(ctx, margin, 558, W - margin, 558);
 
+  pngPanel(ctx, margin - 20, roleY - 6, contentWidth + 40, 126 + report.roles.length * 76, { material: "reading" });
+  pngPanel(ctx, margin - 19, roleY - 5, contentWidth + 38, 50, { stroke: null, radius: 17 });
   fit(t("Statistiques par rôle"), margin, roleY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
   label(t("Moyennes par game · CS : sbires et monstres tués · Participation aux kills : (kills + assists) / kills d’équipe"), margin, roleY + 61, contentWidth);
   const roleColumns = [margin, margin + 210, margin + 390, margin + 790, margin + 1100];
@@ -168,7 +174,10 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
   pngLine(ctx, margin, roleY + 120, W - margin, roleY + 120);
   report.roles.forEach((entry, index) => {
     const y = roleY + 154 + index * 76;
-    fit(roleLabel(entry.role), roleColumns[0], y, 180, { font: "700 26px Inter, Arial, sans-serif" });
+    if (index % 2 === 0) pngPanel(ctx, margin - 10, y - 26, contentWidth + 20, 69, { fill: "rgba(196,181,253,0.035)", stroke: null, radius: 8 });
+    pngPanel(ctx, roleColumns[0], y - 24, 44, 44, { stroke: "rgba(196,181,253,0.35)", radius: 10 });
+    pngImageContain(ctx, imageCache.get(`/assets/roles/position-${roleAssets[entry.role]}.svg`), roleColumns[0] + 7, y - 17, 30, 30);
+    fit(roleLabel(entry.role), roleColumns[0] + 58, y + 3, 128, { font: "700 26px Inter, Arial, sans-serif", color: PNG_THEME.purple });
     fit(pngNumber(entry.games), roleColumns[1], y, 145);
     fit([entry.kills, entry.deaths, entry.assists].map((value) => pngNumber(value, 1)).join(" / "), roleColumns[2], y, 364);
     label(coverage(entry.kdaCount), roleColumns[2], y + 27, 364);
@@ -179,6 +188,8 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
     pngLine(ctx, margin, y + 42, W - margin, y + 42);
   });
 
+  pngPanel(ctx, margin - 20, championY - 6, contentWidth + 40, 124 + Math.max(1, champions.length) * 64, { material: "reading" });
+  pngPanel(ctx, margin - 19, championY - 5, contentWidth + 38, 50, { stroke: null, radius: 17 });
   fit(t("Champions les plus joués"), margin, championY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
   label(`${pngNumber(champions.length)} / ${pngNumber(report.champions.length)} champions · Tri par nombre de games`, margin, championY + 61, contentWidth);
   const championColumns = [margin, margin + 600, margin + 840, margin + 1130];
@@ -187,6 +198,8 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
   champions.forEach((entry, index) => {
     const y = championY + 158 + index * 64;
     const portrait = championPortraitSources(entry.champion, entry.champion).map((url) => imageCache.get(url)).find(Boolean);
+    if (index % 2 === 0) pngPanel(ctx, margin - 10, y - 34, contentWidth + 20, 58, { fill: "rgba(196,181,253,0.035)", stroke: null, radius: 8 });
+    pngPanel(ctx, margin - 3, y - 34, 50, 50, { stroke: "rgba(196,181,253,0.55)", radius: 11 });
     pngImageCover(ctx, portrait, margin, y - 31, 44, 44, 8);
     fit(championDisplayName(entry.champion), margin + 62, y, 490, { font: "600 26px Inter, Arial, sans-serif" });
     fit(pngNumber(entry.games), championColumns[1], y, 200);
