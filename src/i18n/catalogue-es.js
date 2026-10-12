@@ -1,3 +1,4 @@
+import { es as home } from './home-overrides.js';
 import base from './messages/es.json' with { type: 'json' };
 import { es as quality } from './quality-overrides.js';
 import { es as reviewed } from './overrides.js';
@@ -9,4 +10,4 @@ import { es as opponents } from './opponents-overrides.js';
 import { es as groupOpponents } from './group-opponents-overrides.js';
 import { es as draftIntelligence } from './draft-intelligence-overrides.js';
 import { es as helpFeatures } from './help-features-overrides.js';
-export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures };
+export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home };

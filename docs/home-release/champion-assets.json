@@ -1,0 +1,251 @@
+{
+  "createdAt": "2026-10-12T17:48:15.288Z",
+  "scope": "Local NXT5 homepage prototype. Official Riot Games Data Dragon champion assets; no generated images.",
+  "documentation": "https://developer.riotgames.com/docs/lol#data-dragon_champions",
+  "sourceVersion": "16.16.1",
+  "versionReason": "First existing DDRAGON_FALLBACK_VERSIONS entry in shared/riot-assets.js.",
+  "conversion": "@napi-rs/canvas 1.0.9; preserve aspect ratio; WebP",
+  "totalBytes": 142678,
+  "assets": [
+    {
+      "champion": "Gnar",
+      "kind": "loading",
+      "path": "public/assets/home-motion/champions/Gnar-loading.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/img/champion/loading/Gnar_0.jpg",
+      "sourceWidth": 308,
+      "sourceHeight": 560,
+      "width": 240,
+      "height": 436,
+      "bytes": 16574,
+      "quality": 85,
+      "sha256": "9a1702616a4572f6c0ff6abaf1ad1451138cbb63c7593ab3dc8d29f1be655209"
+    },
+    {
+      "champion": "Vi",
+      "kind": "loading",
+      "path": "public/assets/home-motion/champions/Vi-loading.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/img/champion/loading/Vi_0.jpg",
+      "sourceWidth": 308,
+      "sourceHeight": 560,
+      "width": 240,
+      "height": 436,
+      "bytes": 24774,
+      "quality": 85,
+      "sha256": "acb3fdaef9a7f2b95e2d900ba9b6ccff8092a468a9910c1eba9dcbbfd0287bc1"
+    },
+    {
+      "champion": "Ahri",
+      "kind": "loading",
+      "path": "public/assets/home-motion/champions/Ahri-loading.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/img/champion/loading/Ahri_0.jpg",
+      "sourceWidth": 308,
+      "sourceHeight": 560,
+      "width": 240,
+      "height": 436,
+      "bytes": 23378,
+      "quality": 85,
+      "sha256": "cdb2f42e80b4ddd69abf079297341d7b7e6734ec582a27118c5edf42302777e7"
+    },
+    {
+      "champion": "Jinx",
+      "kind": "loading",
+      "path": "public/assets/home-motion/champions/Jinx-loading.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/img/champion/loading/Jinx_0.jpg",
+      "sourceWidth": 308,
+      "sourceHeight": 560,
+      "width": 240,
+      "height": 436,
+      "bytes": 17598,
+      "quality": 85,
+      "sha256": "d05529fe4f00cc2e5cc69d6c300583c916e552ec43bf7c0b011b981d74ad2416"
+    },
+    {
+      "champion": "Braum",
+      "kind": "loading",
+      "path": "public/assets/home-motion/champions/Braum-loading.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/img/champion/loading/Braum_0.jpg",
+      "sourceWidth": 308,
+      "sourceHeight": 560,
+      "width": 240,
+      "height": 436,
+      "bytes": 16020,
+      "quality": 85,
+      "sha256": "e61a8f01c92a1efa71052badaa2b64389250d62f1537fb2915bc57a7a6973dfc"
+    },
+    {
+      "champion": "Gnar",
+      "kind": "icon",
+      "path": "public/assets/home-motion/champions/Gnar-icon.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.16.1/img/champion/Gnar.png",
+      "sourceWidth": 128,
+      "sourceHeight": 128,
+      "width": 120,
+      "height": 120,
+      "bytes": 4176,
+      "quality": 88,
+      "sha256": "6d9fe8520bbe7c9c6569be4cf6c008172be4c49874874a5ab9941cf9196d202a"
+    },
+    {
+      "champion": "Ornn",
+      "kind": "icon",
+      "path": "public/assets/home-motion/champions/Ornn-icon.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.16.1/img/champion/Ornn.png",
+      "sourceWidth": 128,
+      "sourceHeight": 128,
+      "width": 120,
+      "height": 120,
+      "bytes": 3200,
+      "quality": 88,
+      "sha256": "9729362944ac501ebf47b788bf74d71fafcd70fd45abc5d8088db092e2bfb6d6"
+    },
+    {
+      "champion": "Vi",
+      "kind": "icon",
+      "path": "public/assets/home-motion/champions/Vi-icon.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.16.1/img/champion/Vi.png",
+      "sourceWidth": 128,
+      "sourceHeight": 128,
+      "width": 120,
+      "height": 120,
+      "bytes": 5842,
+      "quality": 88,
+      "sha256": "cbee1bdf33b429c3d8ee864af919b1bd3fd43e3e6f5a3b38a6efecb207239f84"
+    },
+    {
+      "champion": "JarvanIV",
+      "kind": "icon",
+      "path": "public/assets/home-motion/champions/JarvanIV-icon.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.16.1/img/champion/JarvanIV.png",
+      "sourceWidth": 128,
+      "sourceHeight": 128,
+      "width": 120,
+      "height": 120,
+      "bytes": 5318,
+      "quality": 88,
+      "sha256": "f3e60b95f5682515789a3967ed550792b7956037ff4d5fd2f664d83eb6255ab6"
+    },
+    {
+      "champion": "Ahri",
+      "kind": "icon",
+      "path": "public/assets/home-motion/champions/Ahri-icon.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.16.1/img/champion/Ahri.png",
+      "sourceWidth": 128,
+      "sourceHeight": 128,
+      "width": 120,
+      "height": 120,
+      "bytes": 4370,
+      "quality": 88,
+      "sha256": "ababee37f27fed9b5afc509b3541760ad57b168493b30cf64defaa7ab31d3737"
+    },
+    {
+      "champion": "Orianna",
+      "kind": "icon",
+      "path": "public/assets/home-motion/champions/Orianna-icon.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.16.1/img/champion/Orianna.png",
+      "sourceWidth": 128,
+      "sourceHeight": 128,
+      "width": 120,
+      "height": 120,
+      "bytes": 2990,
+      "quality": 88,
+      "sha256": "0f6421231042f97a55621f1f240d54ad470d4ccd6a905b08a7f8cb8bc9a1680f"
+    },
+    {
+      "champion": "Jinx",
+      "kind": "icon",
+      "path": "public/assets/home-motion/champions/Jinx-icon.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.16.1/img/champion/Jinx.png",
+      "sourceWidth": 128,
+      "sourceHeight": 128,
+      "width": 120,
+      "height": 120,
+      "bytes": 4724,
+      "quality": 88,
+      "sha256": "c8fe02476edc8985c454bc566474c9de729d9270949dde27ca85d15f030233a0"
+    },
+    {
+      "champion": "Ezreal",
+      "kind": "icon",
+      "path": "public/assets/home-motion/champions/Ezreal-icon.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.16.1/img/champion/Ezreal.png",
+      "sourceWidth": 128,
+      "sourceHeight": 128,
+      "width": 120,
+      "height": 120,
+      "bytes": 5348,
+      "quality": 88,
+      "sha256": "45058be820f541c9f1f01157faf94d799884706b5ac7dc9a2d8410f6ce5e4f98"
+    },
+    {
+      "champion": "Braum",
+      "kind": "icon",
+      "path": "public/assets/home-motion/champions/Braum-icon.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.16.1/img/champion/Braum.png",
+      "sourceWidth": 128,
+      "sourceHeight": 128,
+      "width": 120,
+      "height": 120,
+      "bytes": 4030,
+      "quality": 88,
+      "sha256": "1a3a6dbbdd1f342960064d1a0592f28c313d1d97a36635dad42a7d8ce2bab4c1"
+    },
+    {
+      "champion": "Rakan",
+      "kind": "icon",
+      "path": "public/assets/home-motion/champions/Rakan-icon.webp",
+      "source": "https://ddragon.leagueoflegends.com/cdn/16.16.1/img/champion/Rakan.png",
+      "sourceWidth": 128,
+      "sourceHeight": 128,
+      "width": 120,
+      "height": 120,
+      "bytes": 4336,
+      "quality": 88,
+      "sha256": "925f8547ca04898870c4cca1683260b6c3ef9e0ccbf86892de994eb9fa98716d"
+    }
+  ],
+  "fixture": {
+    "source": "src/pages/public/demo-data.js",
+    "matchId": "demo-3",
+    "result": "Victoire",
+    "opponent": "Aurore",
+    "durationSeconds": 2025,
+    "displayDurationMinutes": 33,
+    "teams": [
+      {
+        "side": "ALLY",
+        "champions": [
+          "Gnar",
+          "Vi",
+          "Ahri",
+          "Jinx",
+          "Braum"
+        ],
+        "kills": 21,
+        "deaths": 12,
+        "gold": 64000,
+        "vision": 160
+      },
+      {
+        "side": "ENEMY",
+        "champions": [
+          "Ornn",
+          "Viego",
+          "Orianna",
+          "Ezreal",
+          "Leona"
+        ],
+        "kills": 12,
+        "deaths": 21,
+        "gold": 60000,
+        "vision": 140
+      }
+    ]
+  },
+  "visualVerification": {
+    "checked": [
+      "Gnar-loading.webp",
+      "Ahri-loading.webp"
+    ],
+    "result": "Opened local output images and confirmed official champion identity, preserved portrait composition, no distorted aspect ratio, clear face and details."
+  }
+}

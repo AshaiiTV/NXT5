@@ -44,3 +44,6 @@ else Promise.all([
   // An error screen intentionally replaces the snapshot and is not hydratable.
   mount(function FailedDownload() { throw error; }, undefined, false);
 });
+
+import './pages/home/home-motion.css';
+import './pages/home/product-story.css';

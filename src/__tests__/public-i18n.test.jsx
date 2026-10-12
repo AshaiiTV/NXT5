@@ -12,8 +12,8 @@ afterEach(() => setLanguage("fr"));
 
 describe("translated public copy", () => {
   it.each([
-    ["en", "Understand your matches.", "Organise your team", "Plan the next session"],
-    ["es", "Entiende tus partidas.", "Organiza tu equipo", "Prepara la próxima sesión"],
+    ["en", "Understand your matches.", "The score doesn’t tell the whole story.", "Get together to play"],
+    ["es", "Entiende tus partidas.", "El marcador no lo cuenta todo.", "Reunirse para jugar"],
   ])("translates both homepage markup and feature arrays in %s", (language, heading, feature, nextSession) => {
     setLanguage(language);
     const html = renderToStaticMarkup(<HomeScreen />);
@@ -21,7 +21,8 @@ describe("translated public copy", () => {
     expect(html).toContain(feature);
     expect(html).toContain(nextSession);
     expect(html).not.toContain("Comprends tes parties");
-    expect(html).not.toContain("Organise l’équipe");
+    expect(html).not.toContain("Le score ne raconte pas tout.");
+    expect(html).not.toContain("Déplace le curseur");
   });
 
   it.each([
