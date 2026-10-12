@@ -1,3 +1,9 @@
+# NXT5 Importer 0.3.7
+
+- Verre violet, reflets cyan/lavande et fond bleu nuit sur les écrans Exporter, Historique et Paramètres.
+- Emblème de la colonne gauche décliné en verre violet, avec reflets cyan/fuchsia et fond transparent ; nouvelle hiérarchie de texte et bouton d’export plus lisible.
+- Contrôles et aides agrandis, états d’erreur et de progression conservés, prise en compte du mouvement réduit et des petites fenêtres.
+
 # NXT5 Importer 0.3.6
 
 - Le logo central et l’emblème d’en-tête utilisent le détourage transparent officiel : suppression des résidus de fond sombre, sans modification du dessin ni des couleurs.
