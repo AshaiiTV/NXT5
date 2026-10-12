@@ -89,6 +89,12 @@
   .nxt5-sync-count > span { max-width: 63px; line-height: 1.4; }
   .nxt5-sync-steps li { font-size: 9px; }
 }
+@media (min-width: 640px) and (max-height: 700px) {
+  .nxt5-sync-shell { padding: 20px 32px 18px; }
+  .nxt5-sync-main { padding: 6px 0 14px; }
+  .nxt5-sync-art { height: calc(100svh - 260px); }
+  .nxt5-sync-footer { display: none; }
+}
 @media (min-width: 640px) and (max-height: 500px) {
   .nxt5-sync-shell { padding: 14px 28px 20px; }
   .nxt5-sync-header { position: absolute; top: 20px; left: 28px; }

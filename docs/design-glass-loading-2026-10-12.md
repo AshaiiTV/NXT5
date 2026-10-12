@@ -10,7 +10,7 @@ L’emblème flotte au-dessus de grands plans de verre aux bords fondus. La mati
 - Le sol est dessiné en SVG : plans translucides en perspective, arêtes cyan/lavande/fuchsia, profondeur et fondus latéraux et inférieurs. Le décor WebP de l’accueil et des voiles bleu nuit donnent de la profondeur tout en préservant la lecture.
 - TOP / JGL / MID / ADC / SUP forment un éventail de pictogrammes et de noms, sans boîtes individuelles. Leurs trajectoires et signaux lumineux rejoignent l’emblème. Les pictogrammes locaux proviennent de `RoleIcon`.
 - Le symbole utilise le PNG officiel complet et ses variantes WebP de 256 et 512 px. Sa transparence, ses trois branches et ses proportions sont conservées. Le WebP de 512 px pèse 43 460 octets.
-- Sur téléphone, la scène et les espacements se resserrent autour du statut. En paysage bas, la scène devient compacte, le wordmark passe en haut à gauche et les détails secondaires ainsi que la signature peuvent disparaître.
+- Sur téléphone, la scène et les espacements se resserrent autour du statut. Dans les fenêtres d’au moins 640 px de large et d’au plus 700 px de haut, la scène s’adapte à la hauteur restante et la signature disparaît. Sous 500 px de haut, la scène devient compacte, le wordmark passe en haut à gauche et les détails secondaires peuvent disparaître.
 
 Sources : [AppLoadingScreen.jsx](../src/components/loading/AppLoadingScreen.jsx), [AppLoadingScreen.css](../src/components/loading/AppLoadingScreen.css) et [BrandAssets.jsx](../src/components/brand/BrandAssets.jsx).
 
@@ -32,9 +32,11 @@ La validation du composant réel compilé sous la CSP du site couvre **162 combi
 
 Les **24 transitions de progression** contrôlent le passage entre phases, 0 → 7 → 18 sur 18, les valeurs hors limites, le total nul et le maintien de la scène. Les **630 mesures sur 54 scénarios d’animation** couvrent l’arrivée et le cycle de flottement de six secondes : la distance en deux dimensions entre l’emblème et les rôles reste d’au moins **27,59 px**, supérieure aux 24 px requis. Les modes mouvement réduit et performance sont statiques. Les captures finales ont été inspectées, notamment les fondus latéraux du sol et les petits formats.
 
-La relecture a corrigé le compteur anglais et espagnol en « GAMES RECEIVED » et « PARTIDAS RECIBIDAS », ainsi que la formulation accessible anglaise du ratio. Après cette retouche, le contrôle des 3 570 messages, les 18 tests d’internationalisation et le build ont de nouveau réussi ; les captures EN/ES sur téléphone font l’objet d’un contrôle ciblé.
+La relecture a corrigé le compteur anglais et espagnol en « GAMES RECEIVED » et « PARTIDAS RECIBIDAS », ainsi que la formulation accessible anglaise du ratio. Après cette retouche, le contrôle des 3 570 messages, les 18 tests d’internationalisation et le build ont de nouveau réussi ; quatre recaptures EN/ES à 320 et 390 px valident les libellés, les annonces accessibles et leur disposition.
 
-Un contrôle du build avec les réécritures Netlify vérifie également le véritable écran de connexion et l’accueil public, sur ordinateur et téléphone : emblème 512 px identique au fichier local, aucune erreur JS/CSP ou image manquante, progression visible et accueil public sans écran de chargement.
+La revue a également conduit à adapter la scène aux fenêtres basses entre 501 et 700 px. **Quatorze contrôles FR/ES** couvrent 1024 × 501/550/600/650, 1366 × 768, 700 × 550 et 1000 × 700 : document limité à la hauteur du viewport, tous les éléments utiles visibles, distance emblème/rôles d’au moins 32,22 px et aucune erreur JS/CSP. À 1024 × 501, les étapes se terminent à 438,5 px. Ces vérifications et le nouveau build portent sur le dernier ajustement de hauteur.
+
+Un contrôle du build avec les réécritures Netlify vérifie également le véritable écran de connexion et l’accueil public sur trois formats, soit six scénarios, dont 1024 × 501 : emblème 512 px identique au fichier local, aucune erreur JS/CSP ou image manquante, progression et étapes visibles, accueil public sans écran de chargement.
 
 Ces vérifications utilisent des données fictives et interceptent les API avant le réseau. Elles ne lisent ni ne modifient les données privées de production. Les preuves finales sont conservées localement sous `artifacts/glass-loading/`, notamment `nexus-final-checks.json`, `nexus-final-cycle-checks.json`, les captures `nexus-final-*` et les rapports `live-smoke-*` ; ce dossier n’est pas embarqué dans le site.
 
