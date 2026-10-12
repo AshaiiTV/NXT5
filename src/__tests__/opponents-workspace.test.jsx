@@ -90,6 +90,41 @@ describe("opponent game dossiers", () => {
     expect(apiFetch).not.toHaveBeenCalled(); expect(renderedText()).toContain("Choisis une équipe");
   });
 
+  it("reports an unknown total before loading and a real zero for an empty directory", async () => {
+    const pending = defer(); const onCountChange = vi.fn();
+    mockApi({ list: () => pending.promise }); await mount({ onCountChange });
+    expect(onCountChange).toHaveBeenLastCalledWith(null);
+    expect(onCountChange).not.toHaveBeenCalledWith(0);
+    await act(async () => pending.resolve({ ...list, opponents: [] }));
+    expect(onCountChange).toHaveBeenLastCalledWith(0);
+  });
+
+  it("reports the full collection count independently of directory search, sorting and selection", async () => {
+    const onCountChange = vi.fn();
+    mockApi({ list: { ...list, opponents: [opponent, { id: "second", name: "Boréale" }] } });
+    await mount({ onCountChange });
+    expect(onCountChange).toHaveBeenLastCalledWith(2); onCountChange.mockClear();
+    change("Rechercher une équipe", "OPIF"); change("Tri des équipes", "name");
+    expect(directoryNames()).toEqual(["OPIF"]);
+    await click("OPIF"); await click("Toutes les équipes");
+    change("Rechercher une équipe", "aucun résultat");
+    expect(directoryNames()).toHaveLength(0);
+    expect(onCountChange).not.toHaveBeenCalled();
+  });
+
+  it("does not inflate the count when creating a name that resolves to an existing profile", async () => {
+    const onCountChange = vi.fn(); const refresh = defer(); let calls = 0;
+    const payload = { ...list, opponents: [opponent, { id: "second", name: "Boréale" }] };
+    mockApi({ list: () => ++calls === 1 ? Promise.resolve(payload) : refresh.promise, "create-opponent": { opponent: { ...opponent, notes: "Profil existant" } } });
+    await mount({ onCountChange }); expect(onCountChange).toHaveBeenLastCalledWith(2);
+    await click("Ajouter un adversaire"); change("Nom de l’adversaire", "OPIF"); await submit("Créer la fiche");
+    expect(dossierName()).toBe("OPIF"); expect(onCountChange).toHaveBeenLastCalledWith(2);
+    expect(onCountChange).not.toHaveBeenCalledWith(3);
+    await act(async () => refresh.resolve(payload));
+    await click("Toutes les équipes"); expect(directoryNames()).toHaveLength(2);
+    expect(onCountChange).toHaveBeenLastCalledWith(2);
+  });
+
   it("has no Drafter import or draft-management controls, including for staff", async () => {
     mockApi({ list: { ...list, drafts: [storedDraft] } }); await mount(); await click("OPIF");
     expect(renderedText()).not.toContain("Importer depuis Drafter");
@@ -103,13 +138,15 @@ describe("opponent game dossiers", () => {
   });
 
   it("creates a persistent opponent with notes and selects its empty dossier", async () => {
-    let lists = 0;
-    mockApi({ list: () => Promise.resolve(++lists === 1 ? { ...list, opponents: [] } : list), "create-opponent": { opponent } }); await mount();
+    let lists = 0; const onCountChange = vi.fn();
+    mockApi({ list: () => Promise.resolve(++lists === 1 ? { ...list, opponents: [] } : list), "create-opponent": { opponent } }); await mount({ onCountChange });
+    expect(onCountChange).toHaveBeenLastCalledWith(0);
     await click("Ajouter un adversaire"); change("Nom de l’adversaire", "  OPIF  "); change("Notes du staff (facultatif)", " Préparer le prochain BO. ");
     await submit("Créer la fiche");
     expect(actions("create-opponent")[0]).toMatchObject({ teamId: "team-1", name: "OPIF", notes: "Préparer le prochain BO." });
     expect(renderedText()).toContain("Fiche adversaire créée."); expect(renderedText()).toContain(opponent.notes);
     expect(renderedText()).toContain("0 parties rattachées");
+    expect(onCountChange).toHaveBeenLastCalledWith(1);
   });
 
   it("shows games and played champions without any linked draft", async () => {
@@ -226,15 +263,17 @@ describe("opponent game dossiers", () => {
   });
 
   it.each([401, 403])("hides previously loaded private data after background access failure %s", async (status) => {
-    let calls = 0;
+    let calls = 0; const onCountChange = vi.fn();
     mockApi({ list: () => ++calls === 1 ? Promise.resolve({ ...list, opponentMatches: [played], drafts: [storedDraft] }) : Promise.reject(Object.assign(new Error("Accès retiré."), { status })) });
-    await mount(); await click("OPIF"); await selectTab("Drafts"); await click("Revoir la draft de Scrim OPIF");
+    await mount({ onCountChange }); await click("OPIF"); await selectTab("Drafts"); await click("Revoir la draft de Scrim OPIF");
+    expect(onCountChange).toHaveBeenLastCalledWith(1);
     expect(renderer.root.findAllByType(DraftBoard)).toHaveLength(1);
     await update({ refreshRevision: 1 });
     expect(renderedText()).toContain("Accès retiré."); expect(renderedText()).not.toContain("OPIF");
     expect(renderedText()).not.toContain("Scrim OPIF"); expect(renderedText()).not.toContain(opponent.notes);
     expect(renderer.root.findAllByType(DraftBoard)).toHaveLength(0);
     expect(renderer.root.findAllByProps({ role: "tabpanel" })).toHaveLength(0);
+    expect(onCountChange).toHaveBeenLastCalledWith(null);
   });
 
   it("revalidates visible pages every 30 seconds and on return without duplicate requests, then cleans up", async () => {

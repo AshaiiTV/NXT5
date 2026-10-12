@@ -6,7 +6,7 @@ import { assetProxyUrl } from "../../utils/matches.js";
 import { availableNumber } from "../../utils/statistics.js";
 import { buildGamePublicationSnapshot } from "../../../shared/publications/game-publication.js";
 import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumeric, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
-import React, { useEffect, useState, useDeferredValue, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useDeferredValue, useMemo, useRef } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput, ReadingDetails } from "../../components/ui/Core.jsx";
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft, Settings } from "lucide-react";
@@ -1426,10 +1426,33 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const urlView = query.get("view") === "groups" || urlArchiveId ? "groups" : query.get("view") === "teams" || legacyOpponentPath ? "teams" : "games";
   const [selectedMatchId, setSelectedMatchId] = useState(urlMatchId);
   const [selectedArchiveId, setSelectedArchiveId] = useState(urlArchiveId);
+  const selectedArchive = archives.find((archive) => String(archive.id) === String(selectedArchiveId));
   const [importOpen, setImportOpen] = useState(urlImportOpen && !urlMatchId && !urlArchiveId);
   const [importBusy, setImportBusy] = useState(false);
   const [importDirty, setImportDirty] = useState(false);
   const [workspaceView, setWorkspaceView] = useState(urlView);
+  const countScope = JSON.stringify([selectedTeamId, user?.id]);
+  const [opponentCount, setOpponentCount] = useState({ scope: "", value: null });
+  const updateOpponentCount = useCallback((value) => {
+    setOpponentCount((current) => current.scope === countScope && current.value === value ? current : { scope: countScope, value });
+  }, [countScope]);
+  const teamCount = opponentCount.scope === countScope ? opponentCount.value : null;
+  useEffect(() => {
+    // The directory and group panel supply their counts, including newly created
+    // profiles. Other library views only need the lightweight profile list.
+    if (!selectedTeamId || workspaceView === "teams" || selectedMatchId || selectedArchive?.id) return;
+    const controller = new AbortController();
+    async function loadCount() {
+      try {
+        const result = await apiFetch("opponents-drafts", { method: "POST", body: JSON.stringify({ action: "list-opponents", teamId: selectedTeamId }), signal: controller.signal });
+        if (!controller.signal.aborted) updateOpponentCount(result.opponents.length);
+      } catch {
+        if (!controller.signal.aborted) updateOpponentCount(null);
+      }
+    }
+    loadCount();
+    return () => controller.abort();
+  }, [selectedTeamId, workspaceView, selectedMatchId, selectedArchive?.id, data.bootstrapRevision, updateOpponentCount]);
   const [exportingStats, setExportingStats] = useState(false);
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
   const [savingArchive, setSavingArchive] = useState(false);
@@ -1483,7 +1506,6 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     previousSelection.current = selectedMatchId;
   }, [selectedMatchId]);
 
-  const selectedArchive = archives.find((archive) => String(archive.id) === String(selectedArchiveId));
   const matches = baseMatches;
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
   const selectedMatchSummary = baseMatches.find((match) => String(match.id) === String(selectedMatchId)) || null;
@@ -1619,11 +1641,11 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
 
     <div hidden={Boolean(selectedMatchId)}>
       <div className="games-library-toolbar">
-        <TabNav idPrefix="games-library" panelId="games-library-panel" label={t("Bibliothèque de parties")} items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }, { id: "teams", label: "Équipes" }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-3" />
+        <TabNav idPrefix="games-library" panelId="games-library-panel" label={t("Bibliothèque de parties")} items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }, { id: "teams", label: "Équipes", meta: teamCount === null ? "—" : String(teamCount) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-3" />
         {workspaceView !== "teams" && baseMatches.length > 0 && <p className="games-team-record"><span>{t("Équipe")}</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)}{t(" % de victoires")}</span></p>}
       </div>
       <div id="games-library-panel" role="tabpanel" aria-labelledby={`games-library-tab-${workspaceView}`} tabIndex={0}>
-      {workspaceView === "teams" && !selectedMatchId && <OpponentsWorkspace selectedTeamId={selectedTeamId} user={user} opponentId={query.get("opponent") || ""} refreshRevision={data.bootstrapRevision} embedded />}
+      {workspaceView === "teams" && !selectedMatchId && <OpponentsWorkspace selectedTeamId={selectedTeamId} user={user} opponentId={query.get("opponent") || ""} refreshRevision={data.bootstrapRevision} onCountChange={updateOpponentCount} embedded />}
       {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
         <div className="games-group-heading"><div><h3>{t("Groupes de parties")}</h3><p>{t("Compare les parties d’une session ou d’une série.")}</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} disabled={savingArchive} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? t("Fermer") : t("Créer un groupe")}</Button></div>
         {archiveWorkspaceTab === "select" ? <>
@@ -1662,7 +1684,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {selectedArchive && <>
         <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>{t("Tous les groupes")}</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>{t("Exporter le groupe PNG")}</Button>{!selectedMatchId && <DiscordGroupShare teamId={selectedTeamId} archiveId={selectedArchive.id} archiveName={selectedArchive.name} archiveRevision={JSON.stringify([selectedArchive.updated_at, selectedArchive.match_ids, data.bootstrapRevision])} canPublish={canPublishDiscord} />}{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>{t("Ouvrir le débrief")}</Button>}</div></div>
         <div className="games-detail-title"><h3>{selectedArchive.name}</h3>{selectedArchive.description && <p>{selectedArchive.description}</p>}</div>
-        {!selectedMatchId && <GroupOpponentPanel teamId={selectedTeamId} archive={selectedArchive} user={user} onChanged={() => refreshAll({ throwOnError: true })} />}
+        {!selectedMatchId && <GroupOpponentPanel teamId={selectedTeamId} archive={selectedArchive} user={user} onChanged={() => refreshAll({ throwOnError: true })} onCountChange={updateOpponentCount} />}
         <ScrimArchiveSummary matches={scopedMatches} showGames={false} />
       </>}
       {selectedArchiveId && !selectedArchive && <p role="status" className="games-load-state">{t("Ce groupe n’est plus disponible. Choisis un autre groupe.")}</p>}

@@ -225,6 +225,10 @@ describe("imported games in Statistics", () => {
   beforeEach(() => {
     window.history = { pushState: vi.fn((_state, _title, path) => { window.location = new URL(path, window.location); }) };
     window.dispatchEvent = vi.fn();
+    apiFetch.mockImplementation(async (endpoint, options) => {
+      if (endpoint === "opponents-drafts" && JSON.parse(options.body).action === "list-opponents") return { opponents: [] };
+      throw new Error(`Unexpected request: ${endpoint}`);
+    });
   });
   function statisticsProps(matches = games(3)) {
     return {
@@ -242,6 +246,7 @@ describe("imported games in Statistics", () => {
     const selected = settings.data.matches[2];
     apiFetch.mockImplementation(async (endpoint, options) => {
       if (endpoint === "match-details") return { matches: [selected] };
+      if (endpoint === "opponents-drafts" && JSON.parse(options.body).action === "list-opponents") return { opponents: [] };
       if (endpoint === "opponents-drafts" && JSON.parse(options.body).action === "get-match-draft") return { draft: null, canEdit: false };
       if (endpoint === "opponents-drafts" && JSON.parse(options.body).action === "get-match-opponent") return { opponentId: null, opponents: [], canEdit: false };
       throw new Error(`Unexpected request: ${endpoint}`);
@@ -260,7 +265,8 @@ describe("imported games in Statistics", () => {
     expect(visible(renderer.root.findByProps({ type: "search" }))).toBe(false);
     expect(rows(renderer).filter(visible)).toHaveLength(0);
     const byAction = (left, right) => (left.payload.action || left.endpoint).localeCompare(right.payload.action || right.endpoint);
-    const requests = () => apiFetch.mock.calls.map(([endpoint, options]) => ({ endpoint, method: options.method, payload: JSON.parse(options.body) })).sort(byAction);
+    const requests = () => apiFetch.mock.calls.map(([endpoint, options]) => ({ endpoint, method: options.method, payload: JSON.parse(options.body) }))
+      .filter(({ endpoint, payload }) => endpoint === "match-details" || (endpoint === "opponents-drafts" && ["get-match-draft", "get-match-opponent"].includes(payload.action))).sort(byAction);
     const expectedRequests = [
       { endpoint: "match-details", method: "POST", payload: { teamId: "team", matchIds: [selected.id] } },
       { endpoint: "opponents-drafts", method: "POST", payload: { action: "get-match-draft", teamId: "team", matchId: selected.id } },
