@@ -9,6 +9,7 @@ import type { RiotMatch } from './types';
 import { assertImportMatch, assertImportPlayerAssignments, normalizeImportCategoryIds } from './import-validation';
 import { assertMatchHasCategory } from './match-categories';
 import { TEAM_STAFF_ROLES } from './teams';
+import { assertImportOpponentAvailable, importOpponentInput, importOpponentQueries } from './opponents';
 
 function mmss(seconds) {
   const s = Number(seconds || 0);
@@ -406,7 +407,8 @@ async function runImportSideEffect(label: string, task: () => Promise<unknown>) 
   }
 }
 
-export async function persistAnalyzedMatch({ team, gameId, match, roster, userId, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [] }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId: string; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[] }) {
+export async function persistAnalyzedMatch({ team, gameId, match, roster, userId, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [], opponentId, newOpponentName }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId: string; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[]; opponentId?: unknown; newOpponentName?: unknown }) {
+  const opponentSelection = importOpponentInput(opponentId, newOpponentName);
   assertImportMatch(match);
   const validCategoryIds = normalizeImportCategoryIds(categoryIds);
   assertMatchHasCategory(validCategoryIds);
@@ -460,6 +462,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   const serializedParticipants = JSON.stringify(participants);
   const assignedPlayerIds = [...new Set(Object.values(normalizedPlayerAssignments))];
   await assertSchemaReady();
+  await assertImportOpponentAvailable(team.id, opponentSelection);
 
   let savedMatch;
   let firstImport = false;
@@ -501,6 +504,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
           category_id = case when ${replaceCategories} then excluded.category_id else matches.category_id end,
           category_ids = case when ${replaceCategories} then excluded.category_ids else matches.category_ids end
         returning (xmax = 0) as inserted`,
+      ...importOpponentQueries(tx, team.id, userId, gameId, opponentSelection),
       tx`insert into match_raw_archives (team_id, match_id, game_id, source, payload)
          select team_id, id, game_id, ${(match as any)?.metadata?.source || 'import'}, raw
          from matches where team_id = ${team.id} and game_id = ${gameId}
@@ -548,7 +552,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
     firstImport = results[2]?.[0]?.first_import === true;
   } catch (error: any) {
     if (error?.code === '22012' || error?.code === '23503') {
-      throw Object.assign(new Error('Les accès, profils ou catégories ont changé pendant l’import. Recharge l’équipe puis réessaie.'), {
+      throw Object.assign(new Error('Les accès, profils, catégories ou équipes adverses ont changé pendant l’import. Recharge l’équipe puis réessaie.'), {
         status: 409, code: 'NXT5_IMPORT_REFERENCE_CHANGED'
       });
     }
