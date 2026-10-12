@@ -127,6 +127,31 @@ describe("revoked team membership", () => {
 });
 
 describe("complete team history lifecycle in React", () => {
+  it("loads a linked group even when it is outside the recent group window", async () => {
+    const app = mount("?team=a&view=groups&archive=old-group");
+    expect(new URL(app.requests[0].url, "https://nxt5.test").searchParams.get("archive")).toBe("old-group");
+    await app.resolve(0, page("a", games("a", 1), 0, { matchArchives: [{ id: "old-group", team_id: "a" }] }));
+    expect(app.state.data.matchArchives[0].id).toBe("old-group");
+    app.navigate("?team=a&view=groups&archive=another-group");
+    expect(new URL(app.requests[1].url, "https://nxt5.test").searchParams.get("archive")).toBe("another-group");
+    await app.resolve(1, page("a", games("a", 1), 0, { matchArchives: [{ id: "another-group", team_id: "a" }] }));
+    expect(app.state.data.matchArchives[0].id).toBe("another-group");
+  });
+  it("reports refresh failures to mutation panels without losing the current snapshot", async () => {
+    const app = mount("?team=a");
+    await app.resolve(0, page("a", games("a", 2)));
+    let result;
+    act(() => { result = app.state.refreshAll({ throwOnError: true }).then(() => null, error => error); });
+    const failure = new Error("Réseau indisponible");
+    await app.reject(1, failure);
+    expect(await result).toBe(failure);
+    expect(app.state.apiError).toBe("Réseau indisponible");
+    expect(app.state.loading).toBe(false);
+    expect(app.state.data.matches).toHaveLength(2);
+    app.refresh();
+    await app.reject(2, failure);
+    expect(app.state.apiError).toBe("Réseau indisponible");
+  });
   it("loads the linked team directly, preserving the requested game throughout pagination", async () => {
     const app = mount("?team=b&match=b-101");
     expectRequest(app.requests[0], { teamId: "b" });

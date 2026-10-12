@@ -18,6 +18,7 @@ import { ImportedGames } from "../../components/games/ImportedGames.jsx";
 import OpponentsWorkspace from "../../components/opponents/OpponentsWorkspace.jsx";
 import MatchDrafterPanel from "../../components/opponents/MatchDrafterPanel.jsx";
 import MatchOpponentPanel from "../../components/opponents/MatchOpponentPanel.jsx";
+import GroupOpponentPanel from "../../components/opponents/GroupOpponentPanel.jsx";
 
 import { cx, tone } from "../../app/helpers.js";
 import { matchDisplayName } from "../../utils/matches.js";
@@ -1437,7 +1438,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const deferredArchiveSearch = useDeferredValue(archiveSearch);
   const normalizeArchiveSearch = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr-FR");
   const normalizedArchiveSearch = normalizeArchiveSearch(deferredArchiveSearch.trim());
-  const searchedArchives = normalizedArchiveSearch ? archives.filter((archive) => normalizeArchiveSearch([archive.name, archive.description, archive.created_by_name].filter(Boolean).join(" ")).includes(normalizedArchiveSearch)) : archives;
+  const searchedArchives = normalizedArchiveSearch ? archives.filter((archive) => normalizeArchiveSearch([archive.name, archive.description, archive.created_by_name, archive.opponent_name].filter(Boolean).join(" ")).includes(normalizedArchiveSearch)) : archives;
   const importTriggerRef = useRef(null);
   const statsRef = useRef(null);
   const listRef = useRef(null);
@@ -1611,7 +1612,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{t("Chargement des statistiques détaillées…")}</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && t(" Les statistiques déjà chargées restent disponibles.")}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>{t("Réessayer")}</Button></Surface>}
       {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} onReview={openReview} hasReview={Boolean(selectedReport)} />}
-      {selectedMatch && <MatchOpponentPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={refreshAll} />}
+      {selectedMatch && <MatchOpponentPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={() => refreshAll({ throwOnError: true })} />}
       {selectedMatch && <MatchDrafterPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={refreshAll} />}
       {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title={t("Partie introuvable")} text={t("Elle n’est plus disponible dans cette équipe.")} /></Surface>}
     </div>}
@@ -1622,7 +1623,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         {workspaceView !== "teams" && baseMatches.length > 0 && <p className="games-team-record"><span>{t("Équipe")}</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)}{t(" % de victoires")}</span></p>}
       </div>
       <div id="games-library-panel" role="tabpanel" aria-labelledby={`games-library-tab-${workspaceView}`} tabIndex={0}>
-      {workspaceView === "teams" && !selectedMatchId && <OpponentsWorkspace selectedTeamId={selectedTeamId} user={user} embedded />}
+      {workspaceView === "teams" && !selectedMatchId && <OpponentsWorkspace selectedTeamId={selectedTeamId} user={user} opponentId={query.get("opponent") || ""} embedded />}
       {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
         <div className="games-group-heading"><div><h3>{t("Groupes de parties")}</h3><p>{t("Compare les parties d’une session ou d’une série.")}</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} disabled={savingArchive} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? t("Fermer") : t("Créer un groupe")}</Button></div>
         {archiveWorkspaceTab === "select" ? <>
@@ -1640,6 +1641,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
             const groupWins = groupMatches.filter((match) => match.result === "Victoire").length;
             return <div key={archive.id} className="games-group-row">
               <button type="button" className="games-group-open" onClick={() => selectArchive(archive.id)}><span><strong>{archive.name}</strong><span>{archive.description || t("{0} parties", [groupMatches.length])}</span></span><span>{groupWins} V · {groupMatches.filter((match) => match.result === "Défaite").length} D</span><ChevronRight aria-hidden="true" className="h-4 w-4" /></button>
+              {archive.opponent_id && archive.opponent_name ? <a className="games-group-opponent" href={`/games?view=teams&opponent=${encodeURIComponent(archive.opponent_id)}&team=${encodeURIComponent(selectedTeamId)}`} aria-label={t("Voir l’équipe : {0}", [archive.opponent_name])}><Shield aria-hidden="true" className="h-4 w-4" /><span>{archive.opponent_name}</span></a> : <span className="games-group-unlinked">{t("Équipe non liée")}</span>}
               <div className="games-group-tools"><button type="button" className="ig-icon-button" aria-label={t("Modifier le groupe {0}", [archive.name])} onClick={() => editArchive(archive)} disabled={savingArchive}><Pencil aria-hidden="true" /></button><button type="button" className="ig-icon-button" aria-label={t("Supprimer le groupe {0}", [archive.name])} onClick={() => deleteArchive(archive)} disabled={savingArchive}><Trash2 aria-hidden="true" /></button></div>
             </div>;
           })}
@@ -1660,6 +1662,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {selectedArchive && <>
         <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>{t("Tous les groupes")}</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>{t("Exporter le groupe PNG")}</Button>{!selectedMatchId && <DiscordGroupShare teamId={selectedTeamId} archiveId={selectedArchive.id} archiveName={selectedArchive.name} archiveRevision={JSON.stringify([selectedArchive.updated_at, selectedArchive.match_ids, data.bootstrapRevision])} canPublish={canPublishDiscord} />}{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>{t("Ouvrir le débrief")}</Button>}</div></div>
         <div className="games-detail-title"><h3>{selectedArchive.name}</h3>{selectedArchive.description && <p>{selectedArchive.description}</p>}</div>
+        {!selectedMatchId && <GroupOpponentPanel teamId={selectedTeamId} archive={selectedArchive} user={user} onChanged={() => refreshAll({ throwOnError: true })} />}
         <ScrimArchiveSummary matches={scopedMatches} showGames={false} />
       </>}
       {selectedArchiveId && !selectedArchive && <p role="status" className="games-load-state">{t("Ce groupe n’est plus disponible. Choisis un autre groupe.")}</p>}

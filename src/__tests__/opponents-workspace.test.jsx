@@ -129,6 +129,35 @@ describe("opponent game dossiers", () => {
     expect(renderedText()).not.toContain("OPIF"); expect(renderedText()).toContain("Un dossier pour chaque adversaire");
   });
 
+  it("opens an opponent from a group link and lists all its groups without counting games twice", async () => {
+    mockApi({ list: { ...list, opponentMatches: [played], opponentGroups: [
+      { id: "scrim-1", name: "OPIF session du matin", opponentId: "opif", matchIds: [played.id] },
+      { id: "scrim-2", name: "OPIF session du soir", opponentId: "opif", matchIds: [played.id] },
+      { id: "other", name: "Autre équipe", opponentId: "other", matchIds: [] },
+    ] } });
+    await mount({ opponentId: "opif" });
+    expect(renderedText()).toContain("Groupes contre cet adversaire");
+    expect(renderedText()).toContain("OPIF session du matin");
+    expect(renderedText()).toContain("OPIF session du soir");
+    expect(renderedText()).not.toContain("Autre équipe");
+    expect(renderedText()).toContain("1 partie rattachée");
+    const links = renderer.root.findAllByType("a").filter((node) => text(node) === "Ouvrir le groupe");
+    expect(links.map((node) => node.props.href)).toEqual(["/games?view=groups&archive=scrim-1&team=team-1", "/games?view=groups&archive=scrim-2&team=team-1"]);
+  });
+
+  it("follows a changed opponent route and displays linked empty groups", async () => {
+    mockApi({ list: { ...list, opponents: [opponent, { id: "second", name: "Deuxième adversaire" }], opponentGroups: [{ id: "empty", name: "Prochain scrim", opponentId: "second", matchIds: [] }] } });
+    await mount({ opponentId: "opif" });
+    await update({ opponentId: "second" });
+    expect(button("Deuxième adversaire").props["aria-pressed"]).toBe(true);
+    expect(renderedText()).toContain("Prochain scrim");
+    expect(renderedText()).toContain("0 parties dans ce groupe");
+    await click("OPIF"); await click("Actualiser");
+    expect(button("OPIF").props["aria-pressed"]).toBe(true);
+    await update({ opponentId: "missing" });
+    expect(renderedText()).toContain("Un dossier pour chaque adversaire");
+  });
+
   it("ignores a late list from the previous team and retries the current list", async () => {
     const pending = defer(); let currentCalls = 0; let signal;
     mockApi({ list: (body, options) => body.teamId === "team-1" ? (signal = options.signal, pending.promise) : ++currentCalls === 1 ? Promise.reject(new Error("Chargement interrompu.")) : Promise.resolve({ ...list, opponents: [] }) });

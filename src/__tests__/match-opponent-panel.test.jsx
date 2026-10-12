@@ -97,6 +97,17 @@ describe("independent match opponent association", () => {
     expect(button("Créer une équipe adverse")).toBeUndefined();
   });
 
+  it.each([true, false])("explains group ownership and links each source without direct controls (canEdit=%s)", async (canEdit) => {
+    mockApi({ "get-match-opponent": { opponentId: "opif", opponents: [opponent], canEdit, linkedGroups: [{ id: "group-1", name: "Session du soir" }, { id: "group-2", name: "Préparation" }] } });
+    await mount();
+    expect(content()).toContain("OPIF");
+    expect(content()).toContain("L’équipe adverse de cette partie est définie par ses groupes.");
+    expect(renderer.root.findAllByType("a").map((link) => link.props.href)).toEqual(["/games?view=groups&archive=group-1&team=team-1", "/games?view=groups&archive=group-2&team=team-1"]);
+    expect(renderer.root.findAllByType("form")).toHaveLength(0);
+    expect(button("Créer une équipe adverse")).toBeUndefined();
+    expect(calls("set-match-opponent")).toHaveLength(0);
+  });
+
   it("ignores a late load after switching teams and matches", async () => {
     const pending = defer();
     let signal;

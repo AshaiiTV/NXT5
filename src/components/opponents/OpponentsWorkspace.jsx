@@ -82,13 +82,24 @@ function MatchHistory({ observations }) {
   </section>;
 }
 
-function TeamOpponents({ teamId }) {
+function GroupHistory({ groups, teamId }) {
+  if (!groups.length) return null;
+  return <section className="opponents-group-history">
+    <h3>{t("Groupes contre cet adversaire")}</h3>
+    <ul>{groups.map((group) => <li key={group.id}>
+      <div><h4>{group.name}</h4><p className="opponents-help">{t(group.matchIds.length === 1 ? "{0} partie dans ce groupe" : "{0} parties dans ce groupe", [group.matchIds.length])}</p></div>
+      <a className="opponents-source" href={`/games?view=groups&archive=${encodeURIComponent(group.id)}&team=${encodeURIComponent(teamId)}`}>{t("Ouvrir le groupe")}<ArrowRight size={16} aria-hidden="true" /></a>
+    </li>)}</ul>
+  </section>;
+}
+
+function TeamOpponents({ teamId, opponentId = "" }) {
   const id = useId();
-  const [collection, setCollection] = useState({ opponents: [], opponentMatches: [], drafts: [], canEdit: false });
+  const [collection, setCollection] = useState({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], canEdit: false });
   const [loadState, setLoadState] = useState("loading");
   const [reload, setReload] = useState(0);
   const [loadError, setLoadError] = useState("");
-  const [selectedId, setSelectedId] = useState("");
+  const [selectedId, setSelectedId] = useState(opponentId);
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
@@ -98,6 +109,8 @@ function TeamOpponents({ teamId }) {
   const requests = useRef(new Set());
   const mutationRef = useRef(false);
   const mounted = useRef(true);
+
+  useEffect(() => { setSelectedId(opponentId); }, [opponentId]);
 
   useEffect(() => {
     mounted.current = true;
@@ -110,7 +123,7 @@ function TeamOpponents({ teamId }) {
     setLoadState("loading"); setLoadError("");
     apiFetch("opponents-drafts", { method: "POST", body: JSON.stringify({ action: "list", teamId }), signal: controller.signal })
       .then((result) => { if (!controller.signal.aborted) {
-        setCollection({ opponents: [], opponentMatches: [], drafts: [], ...result });
+        setCollection({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], ...result });
         setSelectedId((current) => result.opponents.some((item) => item.id === current) ? current : "");
         setLoadState("ready");
       } })
@@ -119,6 +132,7 @@ function TeamOpponents({ teamId }) {
   }, [teamId, reload]);
 
   const selected = collection.opponents.find((opponent) => opponent.id === selectedId);
+  const groups = collection.opponentGroups.filter((group) => group.opponentId === selectedId);
   const model = useMemo(() => buildOpponentObservations(selectedId, collection.opponentMatches, collection.drafts), [selectedId, collection.opponentMatches, collection.drafts]);
   const canEdit = loadState === "ready" && collection.canEdit;
 
@@ -158,6 +172,7 @@ function TeamOpponents({ teamId }) {
         {selected ? <>
           <div className="opponents-section-heading"><h2>{selected.name}</h2><Badge>{t(model.total === 1 ? "{0} partie rattachée" : "{0} parties rattachées", [model.total])}</Badge></div>
           {selected.notes && <p className="opponents-notes">{selected.notes}</p>}
+          <GroupHistory groups={groups} teamId={teamId} />
           {model.total ? <>
             <div className="opponents-frequencies">
               <FrequencyList title={t("Champions joués")} entries={model.playedPicks} coverage={model.coverage.played} total={model.total} />
@@ -176,11 +191,11 @@ function TeamOpponents({ teamId }) {
   </>;
 }
 
-export function OpponentsWorkspace({ selectedTeamId, user, embedded = false, title }) {
+export function OpponentsWorkspace({ selectedTeamId, user, embedded = false, title, opponentId = "" }) {
   useLanguage();
   return <div className="opponents-workspace">
     {embedded ? <div className="opponents-intro"><h3>{title || t("Équipes adversaires")}</h3><p>{t("Prépare les prochaines rencontres à partir des parties de tes adversaires.")}</p></div> : <PageHeader title={title || t("Adversaires")} subtitle={t("Prépare les prochaines rencontres à partir des parties de tes adversaires.")} />}
-    {selectedTeamId ? <TeamOpponents key={`${selectedTeamId}:${user?.id || ""}`} teamId={selectedTeamId} /> : <Surface><EmptyState icon={Shield} title={t("Choisis une équipe")} text={t("Les fiches adversaires et leurs parties appartiennent à l’équipe sélectionnée.")} /></Surface>}
+    {selectedTeamId ? <TeamOpponents key={`${selectedTeamId}:${user?.id || ""}`} teamId={selectedTeamId} opponentId={opponentId} /> : <Surface><EmptyState icon={Shield} title={t("Choisis une équipe")} text={t("Les fiches adversaires et leurs parties appartiennent à l’équipe sélectionnée.")} /></Surface>}
   </div>;
 }
 

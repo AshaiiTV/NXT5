@@ -462,7 +462,7 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   const serializedParticipants = JSON.stringify(participants);
   const assignedPlayerIds = [...new Set(Object.values(normalizedPlayerAssignments))];
   await assertSchemaReady();
-  await assertImportOpponentAvailable(team.id, opponentSelection);
+  await assertImportOpponentAvailable(team.id, opponentSelection, gameId);
 
   let savedMatch;
   let firstImport = false;

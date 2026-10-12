@@ -141,13 +141,13 @@ beforeAll(async () => {
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260906_runtime_schema.sql', import.meta.url), 'utf8'));
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260928_team_activation_milestones.sql', import.meta.url), 'utf8'));
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260929_report_source.sql', import.meta.url), 'utf8'));
-  for (const migration of ['20261012_opponents_drafts', '20261012_match_drafts', '20261012_match_opponents']) {
-    await database.pg.exec(readFileSync(new URL(`../../database/migrations/${migration}.sql`, import.meta.url), 'utf8'));
+  for (const file of ['20261012_opponents_drafts.sql', '20261012_match_drafts.sql', '20261012_match_opponents.sql', '20261012_group_opponents.sql']) {
+    await database.pg.exec(readFileSync(new URL(`../../database/migrations/${file}`, import.meta.url), 'utf8'));
   }
   await database.pg.exec(`create table if not exists app_schema_migrations (
     migration_key text primary key, applied_at timestamptz not null default now(), checksum text
   ); insert into app_schema_migrations(migration_key) values ('audit-runtime-20260906-v1'),
-    ('opponents-drafts-20261012-v1'), ('match-drafts-20261012-v1'), ('match-opponents-20261012-v1')`);
+    ('opponents-drafts-20261012-v1'), ('match-drafts-20261012-v1'), ('match-opponents-20261012-v1'), ('group-opponents-20261012-v1')`);
 }, 20_000);
 
 beforeEach(async () => {
@@ -179,6 +179,9 @@ describe('opponent affiliation within the match import transaction', () => {
   const opponent = async (name = 'OPIF', selectedTeam = teamId) => (await query(
     'insert into team_opponents(team_id,name,normalized_name,notes) values($1,$2,$3,$4) returning *',
     [selectedTeam, name, name.toLowerCase(), 'Existing preparation notes']))[0];
+  const groupFor = async (matchId: string, opponentId: string | null = null) => (await query(
+    "insert into match_archives(team_id,created_by,name,match_ids,opponent_id) values($1,$2,'Linked scrim',$3::jsonb,$4) returning *",
+    [teamId, userId, JSON.stringify([matchId]), opponentId]))[0];
   const submit = (kind: string, body: object) => (kind === 'file' ? importFile : importRiot)(new Request('https://nxt5.example/test', {
     method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://nxt5.example' }, body: JSON.stringify({ teamId, ...body })
   }), { deploy: { context: 'dev' } } as any);
@@ -214,6 +217,7 @@ describe('opponent affiliation within the match import transaction', () => {
   it.each(['file', 'riot'])('preserves affiliation when the %s request omits both explicit fields', async kind => {
     const selected = await opponent();
     const first = await persistAnalyzedMatch({ ...importArgs(), opponentId: selected.id });
+    await groupFor(first.id, selected.id);
     const nextArgs = importArgs(2);
     // Source metadata has no authority, even if a file names a real foreign ID.
     const foreign = await opponent('Foreign opponent', otherTeamId);
@@ -242,6 +246,53 @@ describe('opponent affiliation within the match import transaction', () => {
     const created = await persistAnalyzedMatch({ ...importArgs(3), newOpponentName: 'Third team' });
     expect(created.id).toBe(saved.id); expect(created.opponent_id).not.toBe(second.id);
     expect(await query('select id from team_opponents')).toHaveLength(3);
+  });
+
+  it.each(['file', 'riot'])('rejects contradictory opponent choices on %s reimports of a linked group without changing the game', async kind => {
+    const selected = await opponent(); const other = await opponent('Other team');
+    const saved = await persistAnalyzedMatch({ ...importArgs(), opponentId: selected.id });
+    await groupFor(saved.id, selected.id);
+    const before = await storedMatch(); const opponentsBefore = await query('select * from team_opponents order by id');
+    const args = importArgs(8); vi.mocked(fetchRiotMatch).mockResolvedValue(args.match);
+    for (const choice of [{ opponentId: other.id }, { newOpponentName: 'Incompatible new team' }]) {
+      const response = await submit(kind, { ...args, payload: args.match, ...choice });
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ code: 'MATCH_OPPONENT_LINKED_GROUP' });
+      expect(await storedMatch()).toEqual(before);
+      expect(await query('select * from team_opponents order by id')).toEqual(opponentsBefore);
+    }
+  });
+
+  it.each(['file', 'riot'])('permits the same opponent ID or normalized name when reimporting a linked group through %s', async kind => {
+    const selected = await opponent();
+    const saved = await persistAnalyzedMatch({ ...importArgs(), opponentId: selected.id });
+    const archive = await groupFor(saved.id, selected.id);
+    const args = importArgs(8); vi.mocked(fetchRiotMatch).mockResolvedValue(args.match);
+    for (const choice of [{ opponentId: selected.id }, { newOpponentName: '  ｏｐｉｆ ' }]) {
+      const response = await submit(kind, { ...args, payload: args.match, ...choice });
+      expect(response.status).toBe(200);
+      expect((await response.json()).match).toMatchObject({ id: saved.id, opponent_id: selected.id });
+    }
+    expect(await query('select * from team_opponents')).toEqual([selected]);
+    expect(await query('select * from match_archives')).toEqual([archive]);
+    expect((await storedMatch()).participants.every((row: any) => row.kills === 8)).toBe(true);
+  });
+
+  it.each(['existing-id', 'new-name'])('rolls back a %s affiliation and all import writes when a group is linked after preflight', async mode => {
+    const selected = await opponent(); const other = await opponent('Other team');
+    const saved = await persistAnalyzedMatch({ ...importArgs(), opponentId: selected.id });
+    const archive = await groupFor(saved.id);
+    const before = await storedMatch(); const opponentsBefore = await query('select * from team_opponents order by id');
+    const poolBefore = await query('select * from champion_pool order by id');
+    const reportsBefore = await query('select * from reports order by id');
+    database.beforeBatch = async () => { await query('update match_archives set opponent_id=$1 where id=$2', [selected.id, archive.id]); };
+    const choice = mode === 'existing-id' ? { opponentId: other.id } : { newOpponentName: 'Must roll back' };
+    await expect(persistAnalyzedMatch({ ...importArgs(8), ...choice })).rejects.toMatchObject({ status: 409, code: 'NXT5_IMPORT_REFERENCE_CHANGED' });
+    expect(await storedMatch()).toEqual(before);
+    expect(await query('select * from team_opponents order by id')).toEqual(opponentsBefore);
+    expect(await query('select * from champion_pool order by id')).toEqual(poolBefore);
+    expect(await query('select * from reports order by id')).toEqual(reportsBefore);
+    expect(await query('select opponent_id from match_archives where id=$1', [archive.id])).toEqual([{ opponent_id: selected.id }]);
   });
 
   it('rejects ambiguous or invalid explicit choices before any mutation', async () => {
@@ -1062,6 +1113,20 @@ describe('team scoped and paginated match loading', () => {
     expect(body.compositions).toHaveLength(50);
     expect(body.matchArchives).toHaveLength(100);
     expect([...body.compositions, ...body.matchArchives, ...body.players].every((row: any) => row.team_id === teamId)).toBe(true);
+    const archiveId = (await database.pg.query('select id from match_archives where team_id=$1 order by created_at asc,id asc limit 1', [teamId])).rows[0].id;
+    const foreignArchiveId = (await database.pg.query('select id from match_archives where team_id=$1 order by created_at asc,id asc limit 1', [otherTeamId])).rows[0].id;
+    expect(body.matchArchives.some((row: any) => row.id === archiveId)).toBe(false);
+    const opponent = (await database.pg.query("insert into team_opponents(team_id,name,normalized_name) values($1,'History opponent','history opponent') returning id", [teamId])).rows[0];
+    await database.pg.query('update match_archives set opponent_id=$1 where id=$2', [opponent.id, archiveId]);
+    const withArchive = await (await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=1&archive=${archiveId}`), {} as any)).json();
+    expect(withArchive.matchArchives).toHaveLength(101);
+    expect(withArchive.matchArchives.find((row: any) => row.id === archiveId)).toMatchObject({ team_id: teamId, opponent_id: opponent.id, opponent_name: 'History opponent' });
+    expect(withArchive.matchArchives.filter((row: any) => row.id !== archiveId).map((row: any) => row.id)).toEqual(body.matchArchives.map((row: any) => row.id));
+    const alreadyPresent = await (await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=1&archive=${body.matchArchives[0].id}`), {} as any)).json();
+    expect(alreadyPresent.matchArchives).toHaveLength(100);
+    const foreignArchive = await (await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=1&archive=${foreignArchiveId}`), {} as any)).json();
+    expect(foreignArchive.matchArchives).toHaveLength(100);
+    expect(foreignArchive.matchArchives.every((row: any) => row.team_id === teamId)).toBe(true);
     const next = await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=50&offset=50&matchesOnly=1`), {} as any);
     const nextBody = await next.json();
     expect(nextBody.matches).toHaveLength(12);
@@ -1092,6 +1157,8 @@ describe('team scoped and paginated match loading', () => {
     expect(inaccessible.status).toBe(403);
     const invalid = await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=100000`), {} as any);
     expect(invalid.status).toBe(400);
+    const invalidArchive = await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&archive=not-a-uuid`), {} as any);
+    expect(invalidArchive.status).toBe(400);
   });
 });
 

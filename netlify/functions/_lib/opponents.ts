@@ -9,13 +9,29 @@ import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
 export const OPPONENTS_SCHEMA_VERSION = 'opponents-drafts-20261012-v1';
 export const MATCH_DRAFTS_SCHEMA_VERSION = 'match-drafts-20261012-v1';
 export const MATCH_OPPONENTS_SCHEMA_VERSION = 'match-opponents-20261012-v1';
-export const OPPONENT_LIMITS = { opponents: 100, drafts: 200, opponentMatches: 2000 };
+export const GROUP_OPPONENTS_SCHEMA_VERSION = 'group-opponents-20261012-v1';
+export const OPPONENT_LIMITS = { opponents: 100, drafts: 200, opponentMatches: 2000, opponentGroups: 2000 };
 const PREVIEW_LIFETIME_MS = 15 * 60 * 1000;
 const TOKEN_CONTEXT = 'nxt5:drafter-preview:v1:';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function failure(message: string, status = 400, code = 'INVALID_OPPONENT_INPUT') {
   return Object.assign(new Error(message), { status, code });
+}
+
+export function groupOpponentError(error: any) {
+  if (error?.code === 'P0G01') return failure(
+    'Une partie de ce groupe appartient déjà à un groupe lié à une autre équipe adverse. Retire cette partie du groupe ou modifie son autre groupe.',
+    409, 'GROUP_OPPONENT_CONFLICT');
+  if (error?.code === 'P0G02') return failure(
+    'Les parties de ce groupe ont changé ou ne sont pas valides pour cette équipe. Recharge le groupe puis réessaie.',
+    409, 'GROUP_MATCHES_CHANGED');
+  return error;
+}
+
+function linkedGroupOpponentFailure() {
+  return failure('Cette partie appartient à un groupe lié à une équipe adverse. Modifie l’équipe depuis ce groupe ou retire la partie du groupe.',
+    409, 'MATCH_OPPONENT_LINKED_GROUP');
 }
 
 export function opponentUuid(value: unknown): string {
@@ -49,13 +65,20 @@ export function importOpponentInput(opponentId: unknown, newOpponentName: unknow
 
 type ImportOpponentInput = ReturnType<typeof importOpponentInput>;
 
-export async function assertImportOpponentAvailable(teamId: string, input: ImportOpponentInput) {
+export async function assertImportOpponentAvailable(teamId: string, input: ImportOpponentInput, gameId?: string) {
   if (!input) return;
   await assertOpponentsSchemaReady();
   const existing = await sql`select id from team_opponents where team_id = ${teamId}
     and (id = ${input.id}::uuid or normalized_name = ${input.normalizedName}) limit 1`;
+  if (!existing.length && input.id) throw failure('Adversaire introuvable dans cette équipe.', 404, 'OPPONENT_NOT_FOUND');
+  if (gameId) {
+    const conflicts = await sql`select a.id from match_archives a
+      join matches m on m.team_id = a.team_id and a.match_ids ? m.id::text
+      where m.team_id = ${teamId} and m.game_id = ${gameId} and a.opponent_id is not null
+        and a.opponent_id is distinct from ${existing[0]?.id || null}::uuid limit 1`;
+    if (conflicts.length) throw linkedGroupOpponentFailure();
+  }
   if (existing.length) return;
-  if (input.id) throw failure('Adversaire introuvable dans cette équipe.', 404, 'OPPONENT_NOT_FOUND');
   const counts = await sql`select count(*)::integer as total from team_opponents where team_id = ${teamId}`;
   if (counts[0].total >= OPPONENT_LIMITS.opponents) {
     throw failure(`Ce prototype accepte ${OPPONENT_LIMITS.opponents} adversaires par équipe.`, 409, 'OPPONENT_LIMIT_REACHED');
@@ -64,7 +87,9 @@ export async function assertImportOpponentAvailable(teamId: string, input: Impor
 
 /** Append to the existing match transaction AFTER its team lock and final staff
  * check. A disappearing reference or exhausted quota aborts the entire import,
- * including a newly created opponent. Omission leaves a reimport untouched. */
+ * including a newly created opponent. Group conflicts are rechecked here after
+ * name resolution: a group may have been linked since the preflight read.
+ * Omission leaves a reimport untouched. */
 export function importOpponentQueries(tx: NeonQueryFunctionInTransaction<false, false>, teamId: string,
   userId: string, gameId: string, input: ImportOpponentInput) {
   if (!input) return [];
@@ -78,6 +103,14 @@ export function importOpponentQueries(tx: NeonQueryFunctionInTransaction<false, 
       select ${teamId}::uuid, ${userId}::uuid, ${input.name}, ${input.normalizedName}, ''
       where not exists(select 1 from team_opponents where team_id = ${teamId} and normalized_name = ${input.normalizedName})
       on conflict(team_id, normalized_name) do nothing`]),
+    tx`select 1 / case when not exists (
+        select 1 from match_archives a join matches m on m.team_id = a.team_id and a.match_ids ? m.id::text
+        where m.team_id = ${teamId} and m.game_id = ${gameId} and a.opponent_id is not null
+          and a.opponent_id is distinct from (
+            select id from team_opponents where team_id = ${teamId}
+              and (id = ${input.id}::uuid or normalized_name = ${input.normalizedName})
+          )
+      ) then 1 else 0 end as group_opponent_compatible`,
     tx`update matches set opponent_id = (
         select id from team_opponents where team_id = ${teamId}
           and (id = ${input.id}::uuid or normalized_name = ${input.normalizedName}) for key share
@@ -87,8 +120,8 @@ export function importOpponentQueries(tx: NeonQueryFunctionInTransaction<false, 
 
 export async function assertOpponentsSchemaReady() {
   try {
-    const rows = await sql`select migration_key from app_schema_migrations where migration_key = any(${[OPPONENTS_SCHEMA_VERSION, MATCH_DRAFTS_SCHEMA_VERSION, MATCH_OPPONENTS_SCHEMA_VERSION]}::text[])`;
-    if (rows.length !== 3) throw new Error('Missing opponents migration');
+    const rows = await sql`select migration_key from app_schema_migrations where migration_key = any(${[OPPONENTS_SCHEMA_VERSION, MATCH_DRAFTS_SCHEMA_VERSION, MATCH_OPPONENTS_SCHEMA_VERSION, GROUP_OPPONENTS_SCHEMA_VERSION]}::text[])`;
+    if (rows.length !== 4) throw new Error('Missing opponents migration');
   } catch {
     throw Object.assign(new Error('Service en cours de mise à jour.'), {
       status: 503, code: 'SCHEMA_MIGRATION_REQUIRED', publicMessage: 'Service en cours de mise à jour.'
@@ -161,7 +194,7 @@ export async function listOpponentProfiles(teamId: string) {
 }
 
 export async function listOpponents(teamId: string) {
-  const [opponents, drafts, matches] = await Promise.all([
+  const [opponents, drafts, matches, groups] = await Promise.all([
     sql`select id, name, notes, created_at from team_opponents where team_id = ${teamId} order by name, id limit ${OPPONENT_LIMITS.opponents + 1}`,
     sql`select d.*, m.opponent_id as match_opponent_id
       from opponent_drafts d left join matches m on m.team_id = d.team_id and m.id = d.match_id
@@ -171,14 +204,19 @@ export async function listOpponents(teamId: string) {
         (select jsonb_agg(p.champion order by p.role, p.id) from match_participants p
           where p.match_id = m.id and p.team_key = 'ENEMY') as enemy_champions
       from matches m where m.team_id = ${teamId} and m.opponent_id is not null
-      order by m.created_at desc, m.id desc limit ${OPPONENT_LIMITS.opponentMatches + 1}`
+      order by m.created_at desc, m.id desc limit ${OPPONENT_LIMITS.opponentMatches + 1}`,
+    sql`select id, name, opponent_id, match_ids, updated_at from match_archives
+      where team_id = ${teamId} and opponent_id is not null
+      order by updated_at desc, id desc limit ${OPPONENT_LIMITS.opponentGroups + 1}`
   ]);
   // Never present incomplete counts as complete opponent trends.
   if (opponents.length > OPPONENT_LIMITS.opponents || drafts.length > OPPONENT_LIMITS.drafts
-    || matches.length > OPPONENT_LIMITS.opponentMatches) {
+    || matches.length > OPPONENT_LIMITS.opponentMatches || groups.length > OPPONENT_LIMITS.opponentGroups) {
     throw failure('La limite de ce prototype est dépassée. Contacte le staff NXT5.', 409, 'OPPONENT_LIMIT_REACHED');
   }
-  return { opponents: opponents.map(opponentView), drafts: drafts.map(draftView), opponentMatches: matches.map(opponentMatchView), limits: OPPONENT_LIMITS };
+  return { opponents: opponents.map(opponentView), drafts: drafts.map(draftView), opponentMatches: matches.map(opponentMatchView),
+    opponentGroups: groups.map(row => ({ id: row.id, name: row.name, opponentId: row.opponent_id,
+      matchIds: row.match_ids, updatedAt: new Date(row.updated_at).toISOString() })), limits: OPPONENT_LIMITS };
 }
 
 function opponentMatchView(row) {
@@ -208,15 +246,31 @@ export async function getMatchDraft(teamId: string, matchId: string) {
 }
 
 export async function getMatchOpponent(teamId: string, matchId: string) {
-  const [matches, opponents] = await Promise.all([
+  const [matches, opponents, groups] = await Promise.all([
     sql`select opponent_id from matches where team_id = ${teamId} and id = ${matchId} limit 1`,
-    sql`select id, name, notes, created_at from team_opponents where team_id = ${teamId} order by name, id limit ${OPPONENT_LIMITS.opponents + 1}`
+    sql`select id, name, notes, created_at from team_opponents where team_id = ${teamId} order by name, id limit ${OPPONENT_LIMITS.opponents + 1}`,
+    sql`select id, name from match_archives where team_id = ${teamId}
+      and opponent_id is not null and match_ids ? ${matchId} order by name, id limit ${OPPONENT_LIMITS.opponentGroups + 1}`
   ]);
   if (!matches.length) throw failure('Partie introuvable dans cette équipe.', 404, 'DRAFT_MATCH_NOT_FOUND');
+  if (opponents.length > OPPONENT_LIMITS.opponents || groups.length > OPPONENT_LIMITS.opponentGroups) {
+    throw failure('La limite de ce prototype est dépassée. Contacte le staff NXT5.', 409, 'OPPONENT_LIMIT_REACHED');
+  }
+  return { opponentId: matches[0].opponent_id, opponents: opponents.map(opponentView), linkedGroups: groups };
+}
+
+export async function getGroupOpponent(teamId: string, archiveId: string) {
+  const [groups, opponents] = await Promise.all([
+    sql`select opponent_id, jsonb_array_length(match_ids) as match_count from match_archives
+      where team_id = ${teamId} and id = ${archiveId} limit 1`,
+    sql`select id, name, notes, created_at from team_opponents where team_id = ${teamId}
+      order by name, id limit ${OPPONENT_LIMITS.opponents + 1}`
+  ]);
+  if (!groups.length) throw failure('Groupe introuvable dans cette équipe.', 404, 'OPPONENT_GROUP_NOT_FOUND');
   if (opponents.length > OPPONENT_LIMITS.opponents) {
     throw failure('La limite de ce prototype est dépassée. Contacte le staff NXT5.', 409, 'OPPONENT_LIMIT_REACHED');
   }
-  return { opponentId: matches[0].opponent_id, opponents: opponents.map(opponentView) };
+  return { opponentId: groups[0].opponent_id, matchCount: groups[0].match_count, opponents: opponents.map(opponentView) };
 }
 
 /** Team lock serializes quotas; member lock prevents a concurrent staff
@@ -244,19 +298,51 @@ export async function setMatchOpponent(teamId: string, userId: string, matchId: 
       select id from matches where team_id = ${teamId} and id = ${matchId} for update
     ), opponent as (
       select id from team_opponents where team_id = ${teamId} and id = ${opponentId}::uuid for key share
+    ), conflicting_groups as (
+      select id from match_archives where team_id = ${teamId} and match_ids ? ${matchId}
+        and opponent_id is not null and opponent_id is distinct from ${opponentId}::uuid
     ), saved as (
       update matches set opponent_id = ${opponentId}::uuid where team_id = ${teamId} and id = ${matchId}
         and exists(select 1 from authorized) and exists(select 1 from target_match)
         and (${opponentId}::uuid is null or exists(select 1 from opponent))
+        and not exists(select 1 from conflicting_groups)
       returning opponent_id
     )
     select exists(select 1 from authorized) as authorized, exists(select 1 from target_match) as match_exists,
       (${opponentId}::uuid is null or exists(select 1 from opponent)) as opponent_exists,
+      exists(select 1 from conflicting_groups) as group_conflict,
       (select opponent_id from saved) as opponent_id
   `);
   if (!result.match_exists) throw failure('Partie introuvable dans cette équipe.', 404, 'DRAFT_MATCH_NOT_FOUND');
   if (!result.opponent_exists) throw failure('Adversaire introuvable dans cette équipe.', 404, 'OPPONENT_NOT_FOUND');
+  if (result.group_conflict) throw linkedGroupOpponentFailure();
   return result.opponent_id;
+}
+
+export async function setGroupOpponent(teamId: string, userId: string, archiveId: string, opponentId: string | null) {
+  const result = await mutateOpponentTeam(teamId, userId, tx => tx`
+    with authorized as (
+      select id from teams t where t.id = ${teamId} and (t.owner_id = ${userId} or exists (
+        select 1 from team_members m where m.team_id = t.id and m.user_id = ${userId} and m.role = any(${TEAM_STAFF_ROLES}::text[])
+      ))
+    ), target_group as (
+      select id from match_archives where team_id = ${teamId} and id = ${archiveId} for update
+    ), opponent as (
+      select id from team_opponents where team_id = ${teamId} and id = ${opponentId}::uuid for key share
+    ), saved as (
+      update match_archives set opponent_id = ${opponentId}::uuid, updated_at = now()
+      where team_id = ${teamId} and id = ${archiveId}
+        and exists(select 1 from authorized) and exists(select 1 from target_group)
+        and (${opponentId}::uuid is null or exists(select 1 from opponent))
+      returning opponent_id, jsonb_array_length(match_ids) as match_count
+    )
+    select exists(select 1 from authorized) as authorized, exists(select 1 from target_group) as group_exists,
+      (${opponentId}::uuid is null or exists(select 1 from opponent)) as opponent_exists,
+      (select opponent_id from saved) as opponent_id, (select match_count from saved) as match_count
+  `);
+  if (!result.group_exists) throw failure('Groupe introuvable dans cette équipe.', 404, 'OPPONENT_GROUP_NOT_FOUND');
+  if (!result.opponent_exists) throw failure('Adversaire introuvable dans cette équipe.', 404, 'OPPONENT_NOT_FOUND');
+  return { opponentId: result.opponent_id, matchCount: result.match_count };
 }
 
 export async function createOpponent(teamId: string, userId: string, input: ReturnType<typeof opponentInput>) {

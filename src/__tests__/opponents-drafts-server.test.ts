@@ -8,7 +8,8 @@ vi.mock('../../netlify/functions/_lib/db', () => ({ sql: query }));
 vi.mock('../../netlify/functions/_lib/auth', async importOriginal => ({ ...await importOriginal<any>(), requireAuth: authenticate }));
 vi.mock('../../netlify/functions/_lib/drafter-import', () => ({ importDrafterDraft: importDraft }));
 import handler from '../../netlify/functions/opponents-drafts';
-import { createDraftPreviewToken, MATCH_DRAFTS_SCHEMA_VERSION, MATCH_OPPONENTS_SCHEMA_VERSION, OPPONENTS_SCHEMA_VERSION, OPPONENT_LIMITS } from '../../netlify/functions/_lib/opponents';
+import manageArchives from '../../netlify/functions/match-archives-manage';
+import { createDraftPreviewToken, GROUP_OPPONENTS_SCHEMA_VERSION, MATCH_DRAFTS_SCHEMA_VERSION, MATCH_OPPONENTS_SCHEMA_VERSION, OPPONENTS_SCHEMA_VERSION, OPPONENT_LIMITS } from '../../netlify/functions/_lib/opponents';
 import type { DrafterSnapshot } from '../../netlify/functions/_lib/drafter-import';
 
 const owner = crypto.randomUUID();
@@ -59,6 +60,7 @@ beforeAll(async () => {
   expect(migrations.some(m => m.key === OPPONENTS_SCHEMA_VERSION)).toBe(true);
   expect(migrations.some(m => m.key === MATCH_DRAFTS_SCHEMA_VERSION)).toBe(true);
   expect(migrations.some(m => m.key === MATCH_OPPONENTS_SCHEMA_VERSION)).toBe(true);
+  expect(migrations.some(m => m.key === GROUP_OPPONENTS_SCHEMA_VERSION)).toBe(true);
   await applyMigrations(client, migrations);
   query.mockImplementation(async (parts: TemplateStringsArray, ...values: unknown[]) => (await db.query(statement(parts), values)).rows);
   (query as any).transaction = async callback => {
@@ -77,7 +79,7 @@ beforeEach(async () => {
   vi.stubEnv('CONTEXT', 'dev');
   vi.spyOn(console, 'error').mockImplementation(() => {});
   await db.exec('truncate users cascade; delete from rate_limits;');
-  await db.query('insert into app_schema_migrations(migration_key) values($1),($2),($3) on conflict do nothing', [OPPONENTS_SCHEMA_VERSION, MATCH_DRAFTS_SCHEMA_VERSION, MATCH_OPPONENTS_SCHEMA_VERSION]);
+  await db.query('insert into app_schema_migrations(migration_key) values($1),($2),($3),($4) on conflict do nothing', [OPPONENTS_SCHEMA_VERSION, MATCH_DRAFTS_SCHEMA_VERSION, MATCH_OPPONENTS_SCHEMA_VERSION, GROUP_OPPONENTS_SCHEMA_VERSION]);
   for (const id of [owner, staff, viewer, outsider]) {
     await db.query('insert into users(id,account_name,name,password_hash,email,email_verified) values($1::uuid,$1::text,$1::text,$1::text,$2,true)', [id, `${id}@example.test`]);
   }
@@ -257,7 +259,7 @@ describe('independent opponent affiliation of played matches', () => {
       const client = { query: async (text: string, params?: unknown[]) => params ? legacyDb.query(text, params) : (await legacyDb.exec(text)).at(-1) || { rows: [] } };
       const migrations = (await loadMigrations()).map(m => ({ ...m, sql: m.sql.replace(/create extension if not exists pgcrypto;/g, '').replaceAll('gen_random_bytes(5)', "decode('0123456789','hex')") }));
       const migration = migrations.find(m => m.key === MATCH_OPPONENTS_SCHEMA_VERSION)!;
-      await applyMigrations(client, migrations.filter(m => m !== migration));
+      await applyMigrations(client, migrations.slice(0, migrations.indexOf(migration)));
       await legacyDb.query("insert into users(id,account_name,name,password_hash) values($1,'legacy','Legacy','disabled')", [owner]);
       await legacyDb.query("insert into teams(id,owner_id,name,tag) values($1,$2,'Legacy','OLD')", [teamId, owner]);
       await legacyDb.query("insert into matches(id,team_id,game_id,created_by,raw) values($1,$2,'linked',$3,'{\"preserve\":true}'),($4,$2,'unlinked',$3,'{}')", [matchId, teamId, owner, otherMatchId]);
@@ -267,7 +269,7 @@ describe('independent opponent affiliation of played matches', () => {
         values($1,$2,$3,'blue','legacy_linked',1,'https://drafter.lol/draft/legacy_linked',$4::jsonb),
         ($1,$2,null,'red','legacy_loose',1,'https://drafter.lol/draft/legacy_loose',$4::jsonb)`, [teamId, opponentId, matchId, JSON.stringify(snapshot)]);
       const draftsBefore = (await legacyDb.query('select * from opponent_drafts order by source_id')).rows;
-      expect(await applyMigrations(client, migrations)).toEqual([MATCH_OPPONENTS_SCHEMA_VERSION]);
+      expect(await applyMigrations(client, migrations)).toEqual([MATCH_OPPONENTS_SCHEMA_VERSION, GROUP_OPPONENTS_SCHEMA_VERSION]);
       expect((await legacyDb.query('select id,opponent_id,raw from matches order by game_id')).rows).toEqual([
         { id: matchId, opponent_id: opponentId, raw: { preserve: true } }, { id: otherMatchId, opponent_id: null, raw: {} }
       ]);
@@ -341,7 +343,7 @@ describe('independent opponent affiliation of played matches', () => {
     const foreign = await create('Foreign', { teamId: otherTeam });
     expect((await call('get-match-opponent', { matchId })).status).toBe(403);
     authenticate.mockResolvedValue({ id: viewer });
-    expect(await (await call('get-match-opponent', { matchId })).json()).toEqual({ opponentId: null, opponents: [local], canEdit: false });
+    expect(await (await call('get-match-opponent', { matchId })).json()).toEqual({ opponentId: null, opponents: [local], linkedGroups: [], canEdit: false });
     expect((await call('set-match-opponent', { matchId, opponentId: local.id })).status).toBe(403);
     authenticate.mockResolvedValue({ id: staff });
     expect((await call('set-match-opponent', { matchId, opponentId: local.id })).status).toBe(200);
@@ -400,6 +402,215 @@ describe('independent opponent affiliation of played matches', () => {
     expect((await call('set-match-opponent', { matchId, opponentId: null })).status).toBe(503);
     expect((await call('list')).status).toBe(503);
   });
+});
+
+describe('persistent opponent links for game groups', () => {
+  async function group(ids = [matchId], values: { team?: string; creator?: string; name?: string } = {}) {
+    return (await db.query(`insert into match_archives(team_id,created_by,name,match_ids)
+      values($1,$2,$3,$4::jsonb) returning *`, [values.team || teamId, values.creator || owner,
+      values.name || 'Session', JSON.stringify(ids)])).rows[0] as any;
+  }
+  const link = (archive: any, opponent: any) => call('set-group-opponent', { archiveId: archive.id, opponentId: opponent?.id || null });
+  const memberships = async () => (await db.query('select id,opponent_id from matches order by id')).rows;
+  const updateGroup = (archive: any, ids: string[], name = 'Updated') => manageArchives(request({ action: 'update', teamId,
+    archiveId: archive.id, name, matchIds: ids }), context);
+
+  it('links every game atomically and exposes groups independently of draft availability', async () => {
+    const opponent = await create(); const archive = await group([matchId, otherMatchId]);
+    const draft = await linkedDraft();
+    const before = (await db.query('select id,opponent,raw from matches order by id')).rows;
+    expect(await (await call('get-group-opponent', { archiveId: archive.id })).json()).toEqual({
+      opponentId: null, opponents: [opponent], matchCount: 2, canEdit: true
+    });
+    expect(await (await link(archive, opponent)).json()).toEqual({ opponentId: opponent.id, matchCount: 2 });
+    expect((await memberships()).filter((row: any) => row.id !== foreignMatchId).every((row: any) => row.opponent_id === opponent.id)).toBe(true);
+    expect((await db.query('select id,opponent,raw from matches order by id')).rows).toEqual(before);
+    expect((await (await call('get-match-draft', { matchId })).json()).draft).toEqual({ ...draft, opponentId: opponent.id });
+    const listed = await (await call('list')).json();
+    expect(listed.opponentGroups).toEqual([{ id: archive.id, name: 'Session', opponentId: opponent.id,
+      matchIds: [matchId, otherMatchId], updatedAt: expect.any(String) }]);
+    expect(listed.opponentMatches).toHaveLength(2);
+    expect(await (await call('get-match-opponent', { matchId })).json()).toMatchObject({
+      opponentId: opponent.id, linkedGroups: [{ id: archive.id, name: 'Session' }]
+    });
+  });
+
+  it('allows several groups for one opponent but rolls back an incompatible overlapping link', async () => {
+    const firstOpponent = await create(); const secondOpponent = await create('Other opponent');
+    const first = await group(); const second = await group([matchId, otherMatchId], { name: 'Second session' });
+    expect((await link(first, firstOpponent)).status).toBe(200);
+    const before = await memberships();
+    const conflict = await link(second, secondOpponent);
+    expect(conflict.status).toBe(409); expect(await conflict.json()).toMatchObject({ code: 'GROUP_OPPONENT_CONFLICT' });
+    expect(await memberships()).toEqual(before);
+    expect((await (await call('get-group-opponent', { archiveId: second.id })).json()).opponentId).toBeNull();
+    expect((await link(second, firstOpponent)).status).toBe(200);
+    const linked = await memberships();
+    expect((await link(first, secondOpponent)).status).toBe(409);
+    expect(await memberships()).toEqual(linked);
+  });
+
+  it('inherits the opponent for future additions and retains affiliations when games leave the group', async () => {
+    const opponent = await create(); const archive = await group();
+    expect((await link(archive, opponent)).status).toBe(200);
+    expect((await updateGroup(archive, [matchId, otherMatchId])).status).toBe(200);
+    expect((await (await call('get-match-opponent', { matchId: otherMatchId })).json()).opponentId).toBe(opponent.id);
+    expect((await updateGroup(archive, [otherMatchId])).status).toBe(200);
+    expect(await (await call('get-match-opponent', { matchId })).json()).toMatchObject({ opponentId: opponent.id, linkedGroups: [] });
+    const replacement = await create('Replacement');
+    expect((await link(archive, replacement)).status).toBe(200);
+    expect((await (await call('get-match-opponent', { matchId: otherMatchId })).json()).opponentId).toBe(replacement.id);
+    expect((await (await call('get-match-opponent', { matchId })).json()).opponentId).toBe(opponent.id);
+  });
+
+  it('rolls back all fields and affiliations when membership changes collide with another group', async () => {
+    const opponent = await create(); const other = await create('Other');
+    const first = await group(); const second = await group([otherMatchId], { name: 'Second' });
+    await link(first, opponent); await link(second, other);
+    const beforeMatches = await memberships();
+    const beforeGroups = (await db.query('select * from match_archives order by id')).rows;
+    const response = await updateGroup(first, [matchId, otherMatchId], 'Must roll back');
+    expect(response.status).toBe(409); expect(await response.json()).toMatchObject({ code: 'GROUP_OPPONENT_CONFLICT' });
+    expect(await memberships()).toEqual(beforeMatches);
+    expect((await db.query('select * from match_archives order by id')).rows).toEqual(beforeGroups);
+    expect((await db.query("select * from audit_logs where action='match_archives.update'")).rows).toEqual([]);
+  });
+
+  it('prevents contradictory individual assignments until every linked group is detached', async () => {
+    const opponent = await create(); const other = await create('Other');
+    const first = await group(); const second = await group();
+    await link(first, opponent); await link(second, opponent);
+    for (const opponentId of [null, other.id]) {
+      const response = await call('set-match-opponent', { matchId, opponentId });
+      expect(response.status).toBe(409); expect(await response.json()).toMatchObject({ code: 'MATCH_OPPONENT_LINKED_GROUP' });
+    }
+    expect((await call('set-match-opponent', { matchId, opponentId: opponent.id })).status).toBe(200);
+    expect((await link(first, null)).status).toBe(200);
+    expect((await call('set-match-opponent', { matchId, opponentId: null })).status).toBe(409);
+    expect((await link(second, null)).status).toBe(200);
+    expect((await (await call('get-match-opponent', { matchId })).json()).opponentId).toBe(opponent.id);
+    expect((await call('set-match-opponent', { matchId, opponentId: other.id })).status).toBe(200);
+  });
+
+  it('keeps match affiliations on group deletion and safely clears both links on opponent deletion', async () => {
+    const opponent = await create(); const archive = await group();
+    await link(archive, opponent);
+    expect((await manageArchives(request({ action: 'delete', teamId, archiveId: archive.id }), context)).status).toBe(200);
+    expect((await (await call('get-match-opponent', { matchId })).json()).opponentId).toBe(opponent.id);
+    const next = await group(); await link(next, opponent);
+    const draft = await linkedDraft();
+    await db.query('delete from team_opponents where id=$1', [opponent.id]);
+    expect((await (await call('get-group-opponent', { archiveId: next.id })).json()).opponentId).toBeNull();
+    expect((await (await call('get-match-opponent', { matchId })).json()).opponentId).toBeNull();
+    expect((await (await call('get-match-draft', { matchId })).json()).draft).toMatchObject({ id: draft.id, matchId, snapshot });
+  });
+
+  it('scopes reads and writes to a team and validates group, opponent and selected match identifiers', async () => {
+    const opponent = await create(); const archive = await group();
+    const foreign = await group([foreignMatchId], { team: otherTeam, creator: outsider });
+    authenticate.mockResolvedValue({ id: outsider }); const otherOpponent = await create('Foreign', { teamId: otherTeam });
+    authenticate.mockResolvedValue({ id: owner });
+    for (const action of ['get-group-opponent', 'set-group-opponent']) {
+      expect((await call(action, { archiveId: foreign.id, opponentId: opponent.id })).status).toBe(404);
+      expect((await call(action, { archiveId: 'invalid', opponentId: opponent.id })).status).toBe(400);
+    }
+    expect((await link(archive, otherOpponent)).status).toBe(404);
+    for (const opponentId of [undefined, '', 'invalid', false]) {
+      expect((await call('set-group-opponent', { archiveId: archive.id, opponentId })).status).toBe(400);
+    }
+    await expect(db.query('update match_archives set opponent_id=$1 where id=$2', [otherOpponent.id, archive.id])).rejects.toMatchObject({ code: '23503' });
+    expect((await updateGroup(archive, [matchId, foreignMatchId])).status).toBe(400);
+    expect((await updateGroup(archive, [matchId, 'invalid'])).status).toBe(400);
+    expect((await (await call('get-group-opponent', { archiveId: archive.id })).json()).opponentId).toBeNull();
+  });
+
+  it.each(['foreign', 'missing', 'invalid'])('rejects an old group with %s match references without partial writes', async kind => {
+    const opponent = await create();
+    const invalid = kind === 'foreign' ? foreignMatchId : kind === 'missing' ? crypto.randomUUID() : 'invalid';
+    const archive = await group([matchId, invalid]);
+    const before = await memberships();
+    const response = await link(archive, opponent);
+    expect(response.status).toBe(409); expect(await response.json()).toMatchObject({ code: 'GROUP_MATCHES_CHANGED' });
+    expect(await memberships()).toEqual(before);
+  });
+
+  it('allows member reads and creator metadata edits but requires staff for linked membership and affiliation', async () => {
+    const opponent = await create(); const archive = await group([matchId], { creator: viewer });
+    await link(archive, opponent);
+    authenticate.mockResolvedValue({ id: viewer });
+    expect(await (await call('get-group-opponent', { archiveId: archive.id })).json()).toMatchObject({ canEdit: false, opponentId: opponent.id });
+    expect((await link(archive, null)).status).toBe(403);
+    expect((await updateGroup(archive, [matchId], 'Creator title')).status).toBe(200);
+    expect((await updateGroup(archive, [matchId, otherMatchId])).status).toBe(403);
+    authenticate.mockResolvedValue({ id: staff });
+    expect((await updateGroup(archive, [matchId, otherMatchId])).status).toBe(200);
+    beforeTransaction = async () => { await db.query("update team_members set role='viewer' where user_id=$1", [staff]); };
+    expect((await link(archive, null)).status).toBe(403);
+    expect((await (await call('get-group-opponent', { archiveId: archive.id })).json()).opponentId).toBe(opponent.id);
+  });
+
+  it('rechecks a group linked between a creator edit and the transaction', async () => {
+    const opponent = await create(); const archive = await group([matchId], { creator: viewer });
+    authenticate.mockResolvedValue({ id: viewer });
+    beforeTransaction = async () => { await db.query('update match_archives set opponent_id=$1 where id=$2', [opponent.id, archive.id]); };
+    expect((await updateGroup(archive, [matchId, otherMatchId])).status).toBe(409);
+    expect((await db.query('select match_ids from match_archives where id=$1', [archive.id])).rows).toEqual([{ match_ids: [matchId] }]);
+    expect((await (await call('get-match-opponent', { matchId: otherMatchId })).json()).opponentId).toBeNull();
+  });
+
+  it.each(['opponent', 'group'])('rechecks a concurrently deleted %s without changing matches', async kind => {
+    const opponent = await create(); const archive = await group();
+    const before = await memberships();
+    beforeTransaction = async () => { await db.query(kind === 'group' ? 'delete from match_archives where id=$1' : 'delete from team_opponents where id=$1', [kind === 'group' ? archive.id : opponent.id]); };
+    expect((await link(archive, opponent)).status).toBe(404);
+    expect(await memberships()).toEqual(before);
+  });
+
+  it('blocks group propagation from deployment previews before any authentication or database access', async () => {
+    const previewContext = { deploy: { context: 'deploy-preview' } } as any;
+    const response = await handler(request({ action: 'set-group-opponent', teamId, archiveId: crypto.randomUUID(), opponentId: null }), previewContext);
+    expect(response.status).toBe(409); expect(await response.json()).toMatchObject({ code: 'MATCH_SOURCE_DEPLOY_PREVIEW_DISABLED' });
+    const archiveResponse = await manageArchives(request({ action: 'update', teamId, archiveId: crypto.randomUUID(), name: 'Group', matchIds: [matchId] }), previewContext);
+    expect(archiveResponse.status).toBe(409);
+    expect(query).not.toHaveBeenCalled(); expect(authenticate).not.toHaveBeenCalled();
+  });
+
+  it('requires the group migration before exposing group columns', async () => {
+    const archive = await group();
+    await db.query('delete from app_schema_migrations where migration_key=$1', [GROUP_OPPONENTS_SCHEMA_VERSION]);
+    for (const action of ['get-group-opponent', 'set-group-opponent', 'list']) {
+      expect((await call(action, { archiveId: archive.id, opponentId: null })).status).toBe(503);
+    }
+  });
+
+  it('backfills only complete unanimous groups once and preserves later unlink decisions on replay', async () => {
+    const legacyDb = new PGlite(); await legacyDb.waitReady;
+    try {
+      const client = { query: async (text: string, params?: unknown[]) => params ? legacyDb.query(text, params) : (await legacyDb.exec(text)).at(-1) || { rows: [] } };
+      const migrations = (await loadMigrations()).map(m => ({ ...m, sql: m.sql.replace(/create extension if not exists pgcrypto;/g, '').replaceAll('gen_random_bytes(5)', "decode('0123456789','hex')") }));
+      const migration = migrations.find(m => m.key === GROUP_OPPONENTS_SCHEMA_VERSION)!;
+      await applyMigrations(client, migrations.slice(0, migrations.indexOf(migration)));
+      await legacyDb.query("insert into users(id,account_name,name,password_hash) values($1,'legacy','Legacy','disabled')", [owner]);
+      await legacyDb.query("insert into teams(id,owner_id,name,tag) values($1,$2,'Legacy','OLD'),($3,$2,'Other','OTHER')", [teamId, owner, otherTeam]);
+      const opponentId = crypto.randomUUID(), otherOpponentId = crypto.randomUUID(), unknownMatch = crypto.randomUUID();
+      await legacyDb.query("insert into team_opponents(id,team_id,name,normalized_name) values($1,$2,'First','first'),($3,$2,'Other','other')", [opponentId, teamId, otherOpponentId]);
+      await legacyDb.query(`insert into matches(id,team_id,game_id,opponent_id) values
+        ($1,$2,'first',$3),($4,$2,'second',$5),($6,$2,'unknown',null),($7,$8,'foreign',null)`,
+      [matchId, teamId, opponentId, otherMatchId, otherOpponentId, unknownMatch, foreignMatchId, otherTeam]);
+      for (const [name, ids] of [['unanimous', [matchId]], ['mixed', [matchId, otherMatchId]], ['unknown', [matchId, unknownMatch]],
+        ['missing', [matchId, crypto.randomUUID()]], ['foreign', [matchId, foreignMatchId]], ['malformed', [matchId, 'invalid']], ['empty', []]] as [string, string[]][]) {
+        await legacyDb.query('insert into match_archives(team_id,name,match_ids) values($1,$2,$3::jsonb)', [teamId, name, JSON.stringify(ids)]);
+      }
+      const before = (await legacyDb.query('select * from matches order by id')).rows;
+      expect(await applyMigrations(client, migrations)).toEqual([GROUP_OPPONENTS_SCHEMA_VERSION]);
+      expect((await legacyDb.query('select name,opponent_id from match_archives where opponent_id is not null')).rows).toEqual([{ name: 'unanimous', opponent_id: opponentId }]);
+      expect((await legacyDb.query('select * from matches order by id')).rows).toEqual(before);
+      await legacyDb.query('update match_archives set opponent_id=null');
+      await legacyDb.exec(migration.sql);
+      expect((await legacyDb.query('select name from match_archives where opponent_id is not null')).rows).toEqual([]);
+      expect(await applyMigrations(client, migrations)).toEqual([]);
+    } finally { await legacyDb.close(); }
+  }, 20_000);
 });
 
 describe('opponent draft server', () => {
