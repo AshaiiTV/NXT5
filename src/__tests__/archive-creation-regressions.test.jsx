@@ -7,7 +7,13 @@ import { Button, TextInput } from "../components/ui/Core.jsx";
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
 vi.mock("../app/routing.js", async original => ({ ...await original(), openAppPath: vi.fn() }));
 let renderer;
-beforeEach(() => { vi.stubGlobal("window", { location: new URL("https://nxt5.test/games?view=groups"), addEventListener: vi.fn(), removeEventListener: vi.fn() }); });
+beforeEach(() => {
+  vi.stubGlobal("window", { location: new URL("https://nxt5.test/games?view=groups"), addEventListener: vi.fn(), removeEventListener: vi.fn() });
+  apiFetch.mockImplementation(async (path, options) => {
+    if (path === "opponents-drafts" && JSON.parse(options.body).action === "list-opponents") return { opponents: [] };
+    throw new Error(`Unexpected request: ${path}`);
+  });
+});
 afterEach(() => { act(() => renderer?.unmount()); renderer = null; vi.resetAllMocks(); vi.unstubAllGlobals(); });
 const button = label => renderer.root.findAllByType(Button).find(node => node.props.children === label);
 async function mount(count) {
@@ -44,8 +50,10 @@ describe("B2 group creation", () => {
     if (count > 80) expect(boxes.filter(node => !node.props.checked).every(node => node.props.disabled)).toBe(true);
     apiFetch.mockResolvedValueOnce({ archive: { id: "created" } });
     await act(async () => submit());
-    expect(apiFetch).toHaveBeenCalledOnce();
-    expect(JSON.parse(apiFetch.mock.calls[0][1].body).matchIds).toHaveLength(Math.min(count, 80));
+    const writes = apiFetch.mock.calls.filter(([path]) => path === "match-archives-manage");
+    expect(writes).toHaveLength(1);
+    expect(JSON.parse(writes[0][1].body).matchIds).toHaveLength(Math.min(count, 80));
+    expect(apiFetch.mock.calls.filter(([path]) => path === "reports-manage")).toHaveLength(0);
   });
   it("refreshes and preserves the form when group creation fails", async () => {
     const props = await mount(1); apiFetch.mockRejectedValueOnce(new Error("Réseau"));

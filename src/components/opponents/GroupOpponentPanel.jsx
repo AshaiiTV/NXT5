@@ -6,7 +6,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { Button, SelectInput, Surface, TextInput } from "../ui/Core.jsx";
 import "./group-opponent-panel.css";
 
-function GroupOpponent({ teamId, archiveId, onChanged }) {
+function GroupOpponent({ teamId, archiveId, onChanged, onCountChange }) {
   const id = useId();
   const [opponents, setOpponents] = useState([]);
   const [savedId, setSavedId] = useState("");
@@ -41,6 +41,10 @@ function GroupOpponent({ teamId, archiveId, onChanged }) {
       }).catch((failure) => { if (!controller.signal.aborted) { setError(failure.message || t("Impossible de charger l’équipe du groupe.")); setLoad("error"); } });
     return () => controller.abort();
   }, [teamId, archiveId, reload]);
+
+  useEffect(() => {
+    onCountChange?.(load === "ready" ? opponents.length : null);
+  }, [onCountChange, load, opponents.length]);
 
   async function request(action, payload) {
     const controller = new AbortController();
@@ -110,10 +114,10 @@ function GroupOpponent({ teamId, archiveId, onChanged }) {
   </Surface>;
 }
 
-export function GroupOpponentPanel({ teamId, archive, user, onChanged }) {
+export function GroupOpponentPanel({ teamId, archive, user, onChanged, onCountChange }) {
   useLanguage();
   if (!teamId || !archive?.id || (archive.team_id && archive.team_id !== teamId)) return null;
-  return <GroupOpponent key={`${teamId}:${archive.id}:${user?.id || ""}`} teamId={teamId} archiveId={archive.id} onChanged={onChanged} />;
+  return <GroupOpponent key={`${teamId}:${archive.id}:${user?.id || ""}`} teamId={teamId} archiveId={archive.id} onChanged={onChanged} onCountChange={onCountChange} />;
 }
 
 export default GroupOpponentPanel;

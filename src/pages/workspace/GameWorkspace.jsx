@@ -1426,6 +1426,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const urlView = query.get("view") === "groups" || urlArchiveId ? "groups" : query.get("view") === "teams" || legacyOpponentPath ? "teams" : "games";
   const [selectedMatchId, setSelectedMatchId] = useState(urlMatchId);
   const [selectedArchiveId, setSelectedArchiveId] = useState(urlArchiveId);
+  const selectedArchive = archives.find((archive) => String(archive.id) === String(selectedArchiveId));
   const [importOpen, setImportOpen] = useState(urlImportOpen && !urlMatchId && !urlArchiveId);
   const [importBusy, setImportBusy] = useState(false);
   const [importDirty, setImportDirty] = useState(false);
@@ -1437,9 +1438,9 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   }, [countScope]);
   const teamCount = opponentCount.scope === countScope ? opponentCount.value : null;
   useEffect(() => {
-    // The open directory supplies its own count, including live updates and new
+    // The directory and group panel supply their counts, including newly created
     // profiles. Other library views only need the lightweight profile list.
-    if (!selectedTeamId || workspaceView === "teams" || selectedMatchId || selectedArchiveId) return;
+    if (!selectedTeamId || workspaceView === "teams" || selectedMatchId || selectedArchive?.id) return;
     const controller = new AbortController();
     async function loadCount() {
       try {
@@ -1451,7 +1452,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     }
     loadCount();
     return () => controller.abort();
-  }, [selectedTeamId, workspaceView, selectedMatchId, selectedArchiveId, data.bootstrapRevision, updateOpponentCount]);
+  }, [selectedTeamId, workspaceView, selectedMatchId, selectedArchive?.id, data.bootstrapRevision, updateOpponentCount]);
   const [exportingStats, setExportingStats] = useState(false);
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
   const [savingArchive, setSavingArchive] = useState(false);
@@ -1505,7 +1506,6 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     previousSelection.current = selectedMatchId;
   }, [selectedMatchId]);
 
-  const selectedArchive = archives.find((archive) => String(archive.id) === String(selectedArchiveId));
   const matches = baseMatches;
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
   const selectedMatchSummary = baseMatches.find((match) => String(match.id) === String(selectedMatchId)) || null;
@@ -1684,7 +1684,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {selectedArchive && <>
         <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>{t("Tous les groupes")}</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>{t("Exporter le groupe PNG")}</Button>{!selectedMatchId && <DiscordGroupShare teamId={selectedTeamId} archiveId={selectedArchive.id} archiveName={selectedArchive.name} archiveRevision={JSON.stringify([selectedArchive.updated_at, selectedArchive.match_ids, data.bootstrapRevision])} canPublish={canPublishDiscord} />}{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>{t("Ouvrir le débrief")}</Button>}</div></div>
         <div className="games-detail-title"><h3>{selectedArchive.name}</h3>{selectedArchive.description && <p>{selectedArchive.description}</p>}</div>
-        {!selectedMatchId && <GroupOpponentPanel teamId={selectedTeamId} archive={selectedArchive} user={user} onChanged={() => refreshAll({ throwOnError: true })} />}
+        {!selectedMatchId && <GroupOpponentPanel teamId={selectedTeamId} archive={selectedArchive} user={user} onChanged={() => refreshAll({ throwOnError: true })} onCountChange={updateOpponentCount} />}
         <ScrimArchiveSummary matches={scopedMatches} showGames={false} />
       </>}
       {selectedArchiveId && !selectedArchive && <p role="status" className="games-load-state">{t("Ce groupe n’est plus disponible. Choisis un autre groupe.")}</p>}

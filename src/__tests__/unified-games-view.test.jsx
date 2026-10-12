@@ -53,6 +53,7 @@ beforeEach(() => {
       const action = JSON.parse(options.body).action;
       if (action === "list") return { opponents: [], drafts: [], canEdit: true };
       if (action === "list-opponents") return { opponents: [], canEdit: true };
+      if (action === "get-group-opponent") return { opponentId: null, opponents: [], matchCount: 2, canEdit: true };
       if (action === "get-match-opponent") return { opponentId: null, opponents: [], canEdit: true };
       if (action === "get-match-draft") return { draft: null, canEdit: true };
       throw new Error(`Unexpected opponent action: ${action}`);
@@ -178,9 +179,22 @@ describe("unified Games workspace", () => {
     expect(String(teamsCount(renderer))).toBe("2"); expect(opponentCalls("list-opponents")).toHaveLength(2);
   });
 
-  it("does not request the lightweight list inside a group and reloads it on return", async () => {
+  it("uses the full group opponent list for its badge without an additional lightweight request", async () => {
+    const pending = defer();
+    const opponents = [{ id: "opif", name: "OPIF" }, { id: "other", name: "Autre équipe" }];
+    mockOpponents({ "get-group-opponent": () => pending.promise, "create-opponent": { opponent: { id: "new", name: "Nouvelle équipe" } } });
     const renderer = await mount("/games?archive=block");
+    expect(teamsCount(renderer)).toBe("—");
     expect(opponentCalls("list-opponents")).toHaveLength(0);
+    await act(async () => pending.resolve({ opponents, opponentId: "opif", matchCount: 12, canEdit: true }));
+    expect(String(teamsCount(renderer))).toBe("2");
+    await click(renderer, "Créer une équipe adverse");
+    const createForm = renderer.root.findByProps({ className: "group-opponent-create" });
+    await act(async () => createForm.findByType("input").props.onChange({ target: { value: "Nouvelle équipe" } }));
+    await act(async () => createForm.props.onSubmit({ preventDefault() {} }));
+    expect(String(teamsCount(renderer))).toBe("3");
+    expect(opponentCalls("list-opponents")).toHaveLength(0);
+    expect(opponentCalls("get-group-opponent")).toHaveLength(1);
     await click(renderer, "Tous les groupes");
     expect(opponentCalls("list-opponents")).toHaveLength(1); expect(String(teamsCount(renderer))).toBe("0");
   });

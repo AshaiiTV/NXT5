@@ -49,6 +49,20 @@ describe("group opponent association", () => {
     expect(renderer.toJSON()).toBeNull();
   });
 
+  it.each([0, 3])("reports an unknown count while loading, then the full collection of %s opponents", async (count) => {
+    const pending = defer();
+    const onCountChange = vi.fn();
+    mockApi({ "get-group-opponent": () => pending.promise });
+    await mount({ onCountChange });
+    expect(onCountChange).toHaveBeenLastCalledWith(null);
+    expect(onCountChange).not.toHaveBeenCalledWith(0);
+    const opponents = Array.from({ length: count }, (_, index) => ({ id: `opponent-${index}`, name: `Équipe ${index}` }));
+    await act(async () => pending.resolve({ opponents, opponentId: opponents[0]?.id || null, matchCount: 12, canEdit: false }));
+    expect(onCountChange).toHaveBeenLastCalledWith(count);
+    expect(calls("get-group-opponent")).toHaveLength(1);
+    expect(calls("list-opponents")).toHaveLength(0);
+  });
+
   it("sends one group association request, explains propagation and refreshes before success", async () => {
     mockApi();
     const onChanged = vi.fn();
@@ -75,8 +89,10 @@ describe("group opponent association", () => {
   });
 
   it("creates an opponent without associating until the link is saved", async () => {
+    const onCountChange = vi.fn();
     mockApi({ "get-group-opponent": { opponentId: null, opponents: [], matchCount: 3, canEdit: true } });
-    await mount();
+    await mount({ onCountChange });
+    expect(onCountChange).toHaveBeenLastCalledWith(0);
     await click("Créer une équipe adverse");
     change("Nom de l’équipe adverse", " OPIF ");
     await submit("Créer l’équipe");
@@ -84,6 +100,22 @@ describe("group opponent association", () => {
     expect(calls("set-group-opponent")).toHaveLength(0);
     expect(field("Associer une équipe au groupe").props.value).toBe("opif");
     expect(content()).toContain("Équipe créée. Enregistre le lien pour l’associer à ce groupe.");
+    expect(onCountChange).toHaveBeenLastCalledWith(1);
+    expect(calls("get-group-opponent")).toHaveLength(1);
+  });
+
+  it("does not increment the total when creation returns an existing opponent", async () => {
+    const onCountChange = vi.fn();
+    mockApi();
+    await mount({ onCountChange });
+    expect(onCountChange).toHaveBeenLastCalledWith(1);
+    onCountChange.mockClear();
+    await click("Créer une équipe adverse");
+    change("Nom de l’équipe adverse", "OPIF");
+    await submit("Créer l’équipe");
+    expect(field("Associer une équipe au groupe").findAllByType("option").filter((node) => node.props.value === "opif")).toHaveLength(1);
+    expect(onCountChange).not.toHaveBeenCalled();
+    expect(calls("get-group-opponent")).toHaveLength(1);
   });
 
   it("shows a saved opponent and team link to a read-only member without mutation controls", async () => {
@@ -97,20 +129,25 @@ describe("group opponent association", () => {
 
   it("ignores late reads when switching groups and offers no mutation controls while loading", async () => {
     const pending = defer();
+    const onCountChange = vi.fn();
     let signal;
     mockApi({ "get-group-opponent": (body, options) => {
       if (body.archiveId === "group-1") { signal = options.signal; return pending.promise; }
       return Promise.resolve({ opponentId: null, opponents: [], matchCount: 2, canEdit: true });
     } });
-    await mount();
+    await mount({ onCountChange });
+    expect(onCountChange).toHaveBeenLastCalledWith(null);
     expect(button("Enregistrer le lien")).toBeUndefined();
     expect(button("Créer une équipe adverse")).toBeUndefined();
     await update({ archive: { id: "group-2", team_id: "team-1" } });
     expect(signal.aborted).toBe(true);
+    expect(onCountChange).toHaveBeenLastCalledWith(0);
     await act(async () => pending.resolve({ opponentId: "opif", opponents: [opponent], matchCount: 3, canEdit: true }));
     expect(content()).not.toContain("OPIF");
     expect(content()).toContain("2 parties dans ce groupe");
     expect(field("Associer une équipe au groupe").props.value).toBe("");
+    expect(onCountChange).toHaveBeenLastCalledWith(0);
+    expect(onCountChange).not.toHaveBeenCalledWith(1);
   });
 
   it("ignores late writes when switching teams and groups", async () => {
@@ -132,16 +169,21 @@ describe("group opponent association", () => {
 
   it("retries failed reads and keeps the choice after a conflicting write", async () => {
     let reads = 0;
+    const onCountChange = vi.fn();
     mockApi({ "get-group-opponent": () => ++reads === 1 ? Promise.reject(new Error("Lecture indisponible.")) : Promise.resolve({ opponentId: null, opponents: [opponent], matchCount: 3, canEdit: true }), "set-group-opponent": () => Promise.reject(new Error("Une partie est liée à une autre équipe par un groupe.")) });
-    await mount();
+    await mount({ onCountChange });
+    expect(onCountChange).toHaveBeenLastCalledWith(null);
+    expect(onCountChange).not.toHaveBeenCalledWith(0);
     expect(content()).toContain("Lecture indisponible.");
     expect(button("Enregistrer le lien")).toBeUndefined();
     await click("Réessayer");
+    expect(onCountChange).toHaveBeenLastCalledWith(1);
     change("Associer une équipe au groupe", "opif");
     await submit("Enregistrer le lien");
     expect(renderer.root.findByProps({ role: "alert" }).children).toContain("Une partie est liée à une autre équipe par un groupe.");
     expect(field("Associer une équipe au groupe").props.value).toBe("opif");
     expect(button("Enregistrer le lien").props.disabled).toBe(false);
+    expect(onCountChange).toHaveBeenLastCalledWith(1);
   });
 
   it("reports a refresh failure without claiming the whole workflow succeeded or losing the saved link", async () => {
