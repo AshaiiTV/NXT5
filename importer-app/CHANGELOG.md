@@ -1,3 +1,8 @@
+# NXT5 Importer 0.3.8
+
+- Correction du refus IPC au démarrage lorsque le chemin du launcher contient un tilde (`~`, notamment dans un chemin court Windows) ou des crochets.
+- Chargement des chemins contenant un pourcentage littéral sans les interpréter comme un autre dossier ; les appels IPC restent réservés au document principal du launcher.
+
 # NXT5 Importer 0.3.7
 
 - Verre violet, reflets cyan/lavande et fond bleu nuit sur les écrans Exporter, Historique et Paramètres.
