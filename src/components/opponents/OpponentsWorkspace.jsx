@@ -178,7 +178,7 @@ function OpponentDossier({ opponent, model, groups, teamId, headingRef, panel, o
   </Surface>;
 }
 
-function TeamOpponents({ teamId, opponentId = "", refreshRevision = 0 }) {
+function TeamOpponents({ teamId, opponentId = "", refreshRevision = 0, onCountChange }) {
   const id = useId();
   const [collection, setCollection] = useState({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], canEdit: false });
   const [loadState, setLoadState] = useState("loading");
@@ -258,6 +258,10 @@ function TeamOpponents({ teamId, opponentId = "", refreshRevision = 0 }) {
     };
   }, [teamId, reload, refreshRevision]);
 
+  useEffect(() => {
+    onCountChange?.(loadState === "ready" ? collection.opponents.length : null);
+  }, [onCountChange, loadState, collection.opponents.length]);
+
   const dossiers = useMemo(() => {
     const bucket = (rows) => { const groups = new Map(); for (const row of rows) { if (!groups.has(row.opponentId)) groups.set(row.opponentId, []); groups.get(row.opponentId).push(row); } return groups; };
     const matches = bucket(collection.opponentMatches), drafts = bucket(collection.drafts), groups = bucket(collection.opponentGroups);
@@ -336,11 +340,11 @@ function TeamOpponents({ teamId, opponentId = "", refreshRevision = 0 }) {
   </div>;
 }
 
-export function OpponentsWorkspace({ selectedTeamId, user, embedded = false, title, opponentId = "", refreshRevision = 0 }) {
+export function OpponentsWorkspace({ selectedTeamId, user, embedded = false, title, opponentId = "", refreshRevision = 0, onCountChange }) {
   useLanguage();
   return <div className="opponents-workspace">
     {!embedded && <PageHeader title={title || t("Adversaires")} subtitle={t("Prépare les prochaines rencontres à partir des parties de tes adversaires.")} />}
-    {selectedTeamId ? <TeamOpponents key={`${selectedTeamId}:${user?.id || ""}`} teamId={selectedTeamId} opponentId={opponentId} refreshRevision={refreshRevision} /> : <Surface><EmptyState icon={Shield} title={t("Choisis une équipe")} text={t("Les fiches adversaires et leurs parties appartiennent à l’équipe sélectionnée.")} /></Surface>}
+    {selectedTeamId ? <TeamOpponents key={`${selectedTeamId}:${user?.id || ""}`} teamId={selectedTeamId} opponentId={opponentId} refreshRevision={refreshRevision} onCountChange={onCountChange} /> : <Surface><EmptyState icon={Shield} title={t("Choisis une équipe")} text={t("Les fiches adversaires et leurs parties appartiennent à l’équipe sélectionnée.")} /></Surface>}
   </div>;
 }
 

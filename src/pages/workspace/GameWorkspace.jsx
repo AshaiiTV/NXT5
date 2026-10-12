@@ -6,7 +6,7 @@ import { assetProxyUrl } from "../../utils/matches.js";
 import { availableNumber } from "../../utils/statistics.js";
 import { buildGamePublicationSnapshot } from "../../../shared/publications/game-publication.js";
 import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumeric, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
-import React, { useEffect, useState, useDeferredValue, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useDeferredValue, useMemo, useRef } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput, ReadingDetails } from "../../components/ui/Core.jsx";
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft, Settings } from "lucide-react";
@@ -1430,6 +1430,28 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const [importBusy, setImportBusy] = useState(false);
   const [importDirty, setImportDirty] = useState(false);
   const [workspaceView, setWorkspaceView] = useState(urlView);
+  const countScope = JSON.stringify([selectedTeamId, user?.id]);
+  const [opponentCount, setOpponentCount] = useState({ scope: "", value: null });
+  const updateOpponentCount = useCallback((value) => {
+    setOpponentCount((current) => current.scope === countScope && current.value === value ? current : { scope: countScope, value });
+  }, [countScope]);
+  const teamCount = opponentCount.scope === countScope ? opponentCount.value : null;
+  useEffect(() => {
+    // The open directory supplies its own count, including live updates and new
+    // profiles. Other library views only need the lightweight profile list.
+    if (!selectedTeamId || workspaceView === "teams" || selectedMatchId || selectedArchiveId) return;
+    const controller = new AbortController();
+    async function loadCount() {
+      try {
+        const result = await apiFetch("opponents-drafts", { method: "POST", body: JSON.stringify({ action: "list-opponents", teamId: selectedTeamId }), signal: controller.signal });
+        if (!controller.signal.aborted) updateOpponentCount(result.opponents.length);
+      } catch {
+        if (!controller.signal.aborted) updateOpponentCount(null);
+      }
+    }
+    loadCount();
+    return () => controller.abort();
+  }, [selectedTeamId, workspaceView, selectedMatchId, selectedArchiveId, data.bootstrapRevision, updateOpponentCount]);
   const [exportingStats, setExportingStats] = useState(false);
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
   const [savingArchive, setSavingArchive] = useState(false);
@@ -1619,11 +1641,11 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
 
     <div hidden={Boolean(selectedMatchId)}>
       <div className="games-library-toolbar">
-        <TabNav idPrefix="games-library" panelId="games-library-panel" label={t("Bibliothèque de parties")} items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }, { id: "teams", label: "Équipes" }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-3" />
+        <TabNav idPrefix="games-library" panelId="games-library-panel" label={t("Bibliothèque de parties")} items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }, { id: "teams", label: "Équipes", meta: teamCount === null ? "—" : String(teamCount) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-3" />
         {workspaceView !== "teams" && baseMatches.length > 0 && <p className="games-team-record"><span>{t("Équipe")}</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)}{t(" % de victoires")}</span></p>}
       </div>
       <div id="games-library-panel" role="tabpanel" aria-labelledby={`games-library-tab-${workspaceView}`} tabIndex={0}>
-      {workspaceView === "teams" && !selectedMatchId && <OpponentsWorkspace selectedTeamId={selectedTeamId} user={user} opponentId={query.get("opponent") || ""} refreshRevision={data.bootstrapRevision} embedded />}
+      {workspaceView === "teams" && !selectedMatchId && <OpponentsWorkspace selectedTeamId={selectedTeamId} user={user} opponentId={query.get("opponent") || ""} refreshRevision={data.bootstrapRevision} onCountChange={updateOpponentCount} embedded />}
       {workspaceView === "groups" && !selectedArchive && <Surface className="mt-4">
         <div className="games-group-heading"><div><h3>{t("Groupes de parties")}</h3><p>{t("Compare les parties d’une session ou d’une série.")}</p></div><Button type="button" variant="ghost" icon={archiveWorkspaceTab === "create" ? X : Plus} disabled={savingArchive} onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab(archiveWorkspaceTab === "create" ? "select" : "create"); }}>{archiveWorkspaceTab === "create" ? t("Fermer") : t("Créer un groupe")}</Button></div>
         {archiveWorkspaceTab === "select" ? <>

@@ -52,6 +52,7 @@ beforeEach(() => {
     if (endpoint === "opponents-drafts") {
       const action = JSON.parse(options.body).action;
       if (action === "list") return { opponents: [], drafts: [], canEdit: true };
+      if (action === "list-opponents") return { opponents: [], canEdit: true };
       if (action === "get-match-opponent") return { opponentId: null, opponents: [], canEdit: true };
       if (action === "get-match-draft") return { draft: null, canEdit: true };
       throw new Error(`Unexpected opponent action: ${action}`);
@@ -99,7 +100,7 @@ function visible(node) {
   return true;
 }
 function buttons(renderer) { return renderer.root.findAllByType("button").filter(visible); }
-function button(renderer, label) { return buttons(renderer).find((node) => node.props["aria-label"] === label || text(node).trim() === label); }
+function button(renderer, label) { return buttons(renderer).find((node) => node.props["aria-label"] === label || text(node).trim() === label || (node.props.role === "tab" && node.findAllByType("span").some((span) => text(span) === label))); }
 async function click(renderer, label) {
   const target = button(renderer, label);
   expect(target, label).toBeTruthy();
@@ -114,8 +115,97 @@ async function browserBack(path) {
     window.dispatchEvent(new Event("popstate"));
   });
 }
+function defer() { let resolve; const promise = new Promise((yes) => { resolve = yes; }); return { promise, resolve }; }
+function opponentCalls(action) {
+  return apiFetch.mock.calls.filter(([endpoint, options]) => endpoint === "opponents-drafts" && JSON.parse(options.body).action === action);
+}
+function mockOpponents(responses) {
+  const original = apiFetch.getMockImplementation();
+  apiFetch.mockImplementation((endpoint, options) => {
+    const body = endpoint === "opponents-drafts" ? JSON.parse(options.body) : {};
+    const response = responses[body.action];
+    return response ? typeof response === "function" ? response(body, options) : Promise.resolve(response) : original(endpoint, options);
+  });
+}
+function teamsCount(renderer) {
+  return renderer.root.findAllByType(TabNav).find((node) => node.props.idPrefix === "games-library").props.items.find((item) => item.id === "teams").meta;
+}
+async function updateProps(renderer, props) {
+  await act(async () => renderer.update(<Suspense fallback="loading"><RouteHarness props={props} /></Suspense>));
+}
 
 describe("unified Games workspace", () => {
+  it("loads the total opponent badge from Parties before the Teams directory is opened", async () => {
+    const pending = defer();
+    const opponents = [{ id: "opif", name: "OPIF" }, { id: "other-opponent", name: "Autre adversaire" }];
+    mockOpponents({ "list-opponents": () => pending.promise, list: { opponents: [...opponents, { id: "new", name: "Nouveau" }], drafts: [], canEdit: true } });
+    const renderer = await mount();
+    expect(teamsCount(renderer)).toBe("—");
+    expect(opponentCalls("list-opponents")).toHaveLength(1); expect(opponentCalls("list")).toHaveLength(0);
+    expect(JSON.parse(opponentCalls("list-opponents")[0][1].body)).toEqual({ action: "list-opponents", teamId: "team" });
+    await act(async () => pending.resolve({ opponents, canEdit: true }));
+    expect(String(teamsCount(renderer))).toBe("2");
+    expect(text(button(renderer, "Équipes"))).toContain("2");
+    await click(renderer, "Équipes");
+    expect(String(teamsCount(renderer))).toBe("3");
+    expect(opponentCalls("list-opponents")).toHaveLength(1); expect(opponentCalls("list")).toHaveLength(1);
+    const search = renderer.root.findAllByType("input").find((node) => node.props.type === "search");
+    await act(async () => search.props.onChange({ target: { value: "OPIF" } }));
+    expect(renderer.root.findAllByProps({ className: "opponent-directory-card" })).toHaveLength(1);
+    expect(String(teamsCount(renderer))).toBe("3");
+  });
+
+  it("renders a real zero and reloads the badge when changing library views or bootstrap revision", async () => {
+    let reads = 0;
+    mockOpponents({ "list-opponents": () => Promise.resolve({ opponents: Array.from({ length: reads++ }, (_, index) => ({ id: `opponent-${index}`, name: `Adversaire ${index}` })) }) });
+    const props = settings(); const renderer = await mount("/games", props);
+    expect(String(teamsCount(renderer))).toBe("0"); expect(text(button(renderer, "Équipes"))).toContain("0");
+    await click(renderer, "Groupes");
+    expect(String(teamsCount(renderer))).toBe("1");
+    await updateProps(renderer, { ...props, data: { ...props.data, bootstrapRevision: "next" } });
+    expect(String(teamsCount(renderer))).toBe("2"); expect(opponentCalls("list-opponents")).toHaveLength(3);
+  });
+
+  it("reloads the opponent badge after returning from a match detail", async () => {
+    let reads = 0;
+    mockOpponents({ "list-opponents": () => Promise.resolve({ opponents: ++reads === 1 ? [{ id: "before" }] : [{ id: "before" }, { id: "created-in-detail" }] }) });
+    const renderer = await mount();
+    expect(String(teamsCount(renderer))).toBe("1");
+    await act(async () => rows(renderer)[0].props.onClick());
+    expect(renderer.root.findAllByType(MatchOpponentPanel)).toHaveLength(1);
+    expect(opponentCalls("list-opponents")).toHaveLength(1);
+    await click(renderer, "Retour aux parties");
+    expect(String(teamsCount(renderer))).toBe("2"); expect(opponentCalls("list-opponents")).toHaveLength(2);
+  });
+
+  it("does not request the lightweight list inside a group and reloads it on return", async () => {
+    const renderer = await mount("/games?archive=block");
+    expect(opponentCalls("list-opponents")).toHaveLength(0);
+    await click(renderer, "Tous les groupes");
+    expect(opponentCalls("list-opponents")).toHaveLength(1); expect(String(teamsCount(renderer))).toBe("0");
+  });
+
+  it.each(["team", "account"])("never carries the old badge or a late response into a changed %s", async (scope) => {
+    const stale = defer(), current = defer(); let reads = 0; let staleSignal;
+    mockOpponents({ "list-opponents": (_body, options) => {
+      reads += 1;
+      if (reads === 1) return Promise.resolve({ opponents: [{ id: "first" }, { id: "second" }] });
+      if (reads === 2) { staleSignal = options.signal; return stale.promise; }
+      return current.promise;
+    } });
+    const props = settings(); const renderer = await mount("/games", props);
+    expect(String(teamsCount(renderer))).toBe("2");
+    const updating = { ...props, data: { ...props.data, bootstrapRevision: 1 } };
+    await updateProps(renderer, updating);
+    const next = scope === "team" ? { ...updating, selectedTeamId: "other", data: { ...updating.data, teams: [...updating.data.teams, { id: "other", name: "Autre équipe", owner_id: "owner" }] } } : { ...updating, user: { id: "another-user" } };
+    await updateProps(renderer, next);
+    expect(staleSignal.aborted).toBe(true); expect(teamsCount(renderer)).toBe("—");
+    await act(async () => stale.resolve({ opponents: [{ id: "stale" }, { id: "private" }, { id: "old" }] }));
+    expect(teamsCount(renderer)).toBe("—");
+    await act(async () => current.resolve({ opponents: [] }));
+    expect(String(teamsCount(renderer))).toBe("0"); expect(opponentCalls("list-opponents")).toHaveLength(3);
+  });
+
   it("opens opponent teams as the third Parties tab without exposing the match list or import action", async () => {
     const renderer = await mount("/games?category=scrim");
     await click(renderer, "Équipes");
