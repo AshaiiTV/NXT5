@@ -100,6 +100,9 @@ export function getHomeContext({ data = {}, currentTeam, currentMember, user, no
   const manager = hasTeam && canManageOnboarding({ currentTeam, currentMember, user });
   const member = sameId(currentMember?.team_id, teamId) && sameId(currentMember?.user_id, user?.id);
   const players = uniqueTeamRows(data.players, teamId);
+  const linkedPlayer = players.find((player) => sameId(player.user_id, user?.id)) || null;
+  const linkedGoals = (goals) => linkedPlayer ? uniqueTeamRows(goals, teamId)
+    .filter((goal) => sameId(goal.player_id, linkedPlayer.id) && goal.status === "active") : [];
   // Import accepts distinct gameplay profiles, including substitutes and inactive
   // gameplay profiles for historical games. Profiles may also be created during import.
   const importPlayers = players.filter((player) => GAMEPLAY_ROLES.has(String(player.role || "").toUpperCase()));
@@ -134,7 +137,8 @@ export function getHomeContext({ data = {}, currentTeam, currentMember, user, no
     manager, canImport: manager, canManageRoster: manager,
     // reports-manage permits every team member to create their own review.
     canReview: Boolean(user?.id && (manager || member)),
-    players, importPlayers, linkedPlayer: players.find((player) => sameId(player.user_id, user?.id)) || null,
+    players, importPlayers, linkedPlayer,
+    playerGoals: linkedGoals(data.playerGoals), botGoals: linkedGoals(data.botGoals),
     rosterReady: importPlayers.length >= ROLES.length, missingImportPlayers: Math.max(0, ROLES.length - importPlayers.length),
     matches, latestMatch, latestMatchAt: homeMatchTimestamp(latestMatch), recentMatches,
     reports, latestReport: reports[0] || null, latestMatchReport: reportForMatch(latestMatch), reportForMatch,

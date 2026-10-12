@@ -44,6 +44,16 @@
 .nxt5-home-section-heading > svg { flex-shrink: 0; color: var(--nxt5-accent); }
 .nxt5-home-section-heading h3 { font-size: 19px; font-weight: 650; letter-spacing: -.02em; line-height: 1.5; }
 .nxt5-home-section-intro { margin-top: 12px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.7; overflow-wrap: anywhere; }
+.nxt5-home-goals { margin-top: 32px; padding: 24px; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-spectrum-soft); }
+.nxt5-home-goals-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 24px; }
+.nxt5-home-goals-heading > div { min-width: 0; }
+.nxt5-home-goals .nxt5-home-section-intro { margin-top: 6px; }
+.nxt5-home-goal-list { margin-top: 20px; padding: 0; list-style: none; }
+.nxt5-home-goal-list li { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 12px 20px; padding-block: 16px; border-top: 1px solid var(--nxt5-border); }
+.nxt5-home-goal-list li:last-child { padding-bottom: 0; }
+.nxt5-home-goal-list li > div { flex: 1 1 260px; min-width: 0; }
+.nxt5-home-goal-list h4 { color: var(--nxt5-text); font-size: var(--nxt5-font-body); font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.nxt5-home-goal-list p { margin-top: 6px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; overflow-wrap: anywhere; }
 .nxt5-home-section > .nxt5-home-text-link { margin-top: 12px; }
 .nxt5-home-session-title { margin-top: 18px; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
 .nxt5-home-games { margin-top: 20px; list-style: none; padding: 0; border-block: 1px solid var(--nxt5-border); }
@@ -107,6 +117,7 @@
   .nxt5-home-shortcut + .nxt5-home-shortcut { border-left: 0; border-top: 1px solid var(--nxt5-border); }
 }
 @media (max-width: 640px) {
+  .nxt5-home-goals { margin-top: 24px; padding: 20px; }
   .nxt5-home-identity { gap: 12px; }
   .nxt5-home-team-mark { flex-basis: 48px; height: 48px; padding: 5px; border-radius: 10px; }
   .nxt5-home-team-image { width: 36px; height: 36px; }
