@@ -113,6 +113,8 @@ const copy = [
   ["Crée ton compte, puis ouvre ou rejoins ton espace équipe.", "Create an account, then set up or join your team workspace.", "Crea tu cuenta y después crea un espacio de equipo o únete a uno."],
   ["Explorer cette séance fictive dans la démo", "Explore this sample session in the demo", "Explorar esta sesión ficticia en la demo"],
   ["Cinq rôles. Une même direction.", "Five roles. One direction.", "Cinco roles. Un mismo rumbo."],
+  ["PARTIES REÇUES", "GAMES RECEIVED", "PARTIDAS RECIBIDAS"],
+  ["{0} parties reçues sur {1}", "{0} games received out of {1}", "{0} partidas recibidas de {1}"],
   ["Cinq rôles.", "Five roles.", "Cinco roles."],
   ["Une même direction.", "One direction.", "Un mismo rumbo."],
   ["Cadre légal", "Legal information", "Información legal"],
