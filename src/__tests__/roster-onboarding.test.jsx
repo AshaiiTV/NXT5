@@ -59,6 +59,7 @@ async function render(settings) {
 }
 const content = (renderer) => JSON.stringify(renderer.toJSON());
 const field = (renderer, label, value) => act(() => renderer.root.findByProps({ label }).props.onChange(value));
+const openManagementTab = (renderer, id) => act(() => renderer.root.findByProps({ id: `team-manager-tab-${id}` }).props.onClick());
 
 describe("team multi OP.GG copy", () => {
   const copyAction = (renderer) => renderer.root.findAllByType(Button).find((button) => button.props.children === "Copier le multi OP.GG");
@@ -302,6 +303,7 @@ describe("first roster setup", () => {
     const settings = { ...props(), managementOnly: true };
     settings.data.players = [player, { ...player, id: "jgl-sub", role: "JGL", roster_status: "SUB" }];
     const { renderer } = await render(settings);
+    act(() => renderer.root.findAllByType(Button).find((button) => button.props.children === "Ajouter un profil").props.onClick({ currentTarget: { focus: vi.fn() } }));
     expect(renderer.root.findByProps({ label: "Poste ou fonction" }).props.value).toBe("JGL");
   });
 
@@ -344,6 +346,7 @@ describe("temporary team invitations", () => {
     vi.stubGlobal("navigator", { clipboard: { writeText: copy } });
     apiFetch.mockResolvedValueOnce({ code: "NXT5-NEW-INVITE" });
     const { renderer } = await render(settings);
+    openManagementTab(renderer, "access");
     await act(async () => action(renderer, "Créer et copier un lien").props.onClick());
     expect(apiFetch).toHaveBeenCalledWith("teams-invite-code", { method: "POST", body: JSON.stringify({ teamId: team.id }) });
     expect(copy).toHaveBeenCalledWith("https://nxt5.test/mon-equipe?invite=NXT5-NEW-INVITE");
@@ -356,6 +359,7 @@ describe("temporary team invitations", () => {
     settings.data.inviteCodes = [{ id: "invitation", team_id: team.id, code: "NXT5-OLD", expires_at: new Date(Date.now() + 60_000).toISOString() }];
     apiFetch.mockResolvedValueOnce({ revoked: true });
     const { renderer } = await render(settings);
+    openManagementTab(renderer, "access");
     await act(async () => action(renderer, "Révoquer les invitations").props.onClick());
     expect(apiFetch).toHaveBeenCalledWith("teams-invite-code", { method: "POST", body: JSON.stringify({ teamId: team.id, action: "revoke" }) });
     expect(settings.refreshAll).toHaveBeenCalledOnce();
@@ -366,6 +370,7 @@ describe("temporary team invitations", () => {
     const settings = { ...props(), managementOnly: true, currentMember: { role: "player" }, user: { id: "player" } };
     settings.data.inviteCodes = [{ id: "expired", team_id: team.id, code: "NXT5-EXPIRED", expires_at: new Date(Date.now() - 60_000).toISOString() }];
     const { renderer } = await render(settings);
+    openManagementTab(renderer, "access");
     expect(content(renderer)).not.toContain("NXT5-EXPIRED");
     expect(action(renderer, "Révoquer les invitations")).toBeUndefined();
     expect(action(renderer, "Créer et copier un lien").props.disabled).toBe(true);
@@ -376,6 +381,7 @@ describe("temporary team invitations", () => {
     settings.data.inviteCodes = [{ id: "active", team_id: team.id, code: "NXT5-ACTIVE", expires_at: new Date(Date.now() + 60_000).toISOString() }];
     apiFetch.mockRejectedValueOnce(new Error("Service indisponible"));
     const { renderer } = await render(settings);
+    openManagementTab(renderer, "access");
     await act(async () => action(renderer, "Révoquer les invitations").props.onClick());
     expect(settings.refreshAll).not.toHaveBeenCalled();
     expect(settings.pushToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Révocation impossible" }));
@@ -414,6 +420,7 @@ it.each(['owner','captain','manager','coach','assistant','analyst','board','play
   expect(panel.props.canManageMembers).toBe(['owner','captain'].includes(role));
   expect(panel.props.canManageRoster).toBe(role !== 'player');
   expect(panel.props.canDeleteTeam).toBe(role === 'owner');
+  openManagementTab(renderer, "access");
   const invite = renderer.root.findAllByType(Button).find(b => b.props.children === 'Créer et copier un lien');
   expect(invite.props.disabled).toBe(!panel.props.canInvite);
   expect(renderer.root.findByProps({ 'aria-label': 'Accès de Member' }).props.disabled).toBe(!panel.props.canManageMembers);
