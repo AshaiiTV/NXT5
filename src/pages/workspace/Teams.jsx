@@ -11,6 +11,8 @@ import { multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus, rost
 import { RoleIcon, TeamAvatar } from "../../components/brand/BrandAssets.jsx";
 import { ROSTER_ROLE_ORDER, canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, lazyNamed, loadNextPhase, TEAM_ACCESS_ROLES, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
+import { canonicalChampion } from "../../../shared/champions.js";
+import { assetProxyUrl } from "../../utils/matches.js";
 import "./Teams.css";
 import { LinkButton } from "../public/PublicPages.jsx";
 
@@ -755,11 +757,20 @@ function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, on
   </Surface>;
 }
 
-function ChampionCircle({ champion }) {
+function ChampionCircle({ champion, detailed = false }) {
   useLanguage();
-  const label = `${championDisplayName(champion.champion)} · ${champion.games} partie${champion.games > 1 ? "s" : ""}`;
-  return <span className="team-roster-champion" role="img" aria-label={t(label)} title={t(label)}>
-    <ChampionPortrait champion={champion.champion} alt={t(label)} />
+  const [failedArtwork, setFailedArtwork] = useState("");
+  const name = championDisplayName(champion.champion);
+  const unit = champion.games > 1 ? t("parties") : t("partie");
+  const label = `${name} · ${champion.games} ${unit}`;
+  const assetId = canonicalChampion(champion.champion);
+  return <span className={cx("team-roster-champion", detailed && "team-roster-champion--detailed")} role="img" aria-label={label} title={label}>
+    <span className="team-roster-champion-art" aria-hidden="true">
+      {detailed && assetId && failedArtwork !== assetId
+        ? <img src={assetProxyUrl(`https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${assetId}_0.jpg`)} alt="" loading="lazy" decoding="async" onError={() => setFailedArtwork(assetId)} />
+        : <ChampionPortrait champion={champion.champion} />}
+    </span>
+    {detailed && <span className="team-roster-champion-caption" aria-hidden="true"><span className="team-roster-champion-name">{name}</span><span className="team-roster-champion-games"><strong>{champion.games}</strong> {unit}</span></span>}
   </span>;
 }
 
@@ -775,9 +786,14 @@ function playerImportedChampionStats(player, matches = []) {
   }, new Map()).values()).sort((a, b) => b.games - a.games || b.wins - a.wins || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion)));
 }
 
-function ImportedChampionBadges({ player, matches = [] }) {
+function ImportedChampionBadges({ player, matches = [], detailed = false }) {
   useLanguage();
   const items = playerImportedChampionStats(player, matches).slice(0, 3);
+  if (detailed) return <span className="team-roster-champion-pool">
+    <span className="team-roster-pool-label">{t("Champions les plus joués")}</span>
+    {items.length ? <span className="team-roster-champions team-roster-champions--detailed">{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} detailed />)}</span>
+      : <span className="team-roster-pool-empty">{t("Aucune partie associée.")}</span>}
+  </span>;
   if (!items.length) return null;
   return <span className="team-roster-champions"><span className="sr-only">{t("Champions les plus joués : ")}</span>{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}</span>;
 }
@@ -806,7 +822,7 @@ function PremiumRosterTable({ roster, matches = [], currentUserId = "", canManag
           }}>
             <span className="team-roster-role"><span aria-hidden="true"><RoleIcon role={player.role} className="h-5 w-5" /></span><span>{t(roleLabel(player.role))}</span></span>
             <span className="team-roster-identity"><span className="team-roster-name"><span className="sr-only">{t("Voir le profil de ")}</span>{player.name}{isMe && <span className="team-roster-me">{t("Toi")}</span>}</span><span className="team-roster-riot">{player.riot_id || t("Riot ID à renseigner")}</span></span>
-            <ImportedChampionBadges player={player} matches={matches} />
+            <ImportedChampionBadges player={player} matches={matches} detailed={title === "Titulaires"} />
             <ArrowRight aria-hidden="true" className="team-roster-arrow" />
           </a>
         </li>;

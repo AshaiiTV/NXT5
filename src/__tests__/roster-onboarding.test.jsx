@@ -167,6 +167,28 @@ describe("readable team roster", () => {
     expect(markedLinks()).toHaveLength(0);
   });
 
+  it("shows the three most played imported champions with counts, keeping the identity when artwork fails", async () => {
+    const settings = props();
+    settings.data.players = [player];
+    settings.data.matches = ["Ornn", "Ornn", "Gnar", "Camille", "Zac"].map((champion, index) => ({
+      id: `match-${index}`, team_id: team.id, result: index === 0 ? "Victoire" : "",
+      participants: [
+        { player_id: player.id, role: "TOP", team_key: "ALLY", champion },
+        { player_id: "other", role: "TOP", team_key: "ALLY", champion: "Aatrox" },
+      ],
+    }));
+    const { renderer } = await render(settings);
+    const [link] = profileLinks(renderer.root);
+    const portraits = link.findAll((node) => node.props.role === "img");
+    expect(portraits.map((node) => node.props["aria-label"])).toEqual(["Ornn · 2 parties", "Camille · 1 partie", "Gnar · 1 partie"]);
+    const artwork = portraits[0].findByType("img");
+    expect(decodeURIComponent(artwork.props.src)).toContain("/loading/Ornn_0.jpg");
+    await act(async () => artwork.props.onError());
+    expect(decodeURIComponent(portraits[0].findByType("img").props.src)).toContain("/img/champion/Ornn.png");
+    expect(portraits[0].props["aria-label"]).toBe("Ornn · 2 parties");
+    expect(portraits[0].findByProps({ className: "team-roster-champion-name" }).children).toEqual(["Ornn"]);
+  });
+
   it("keeps native modified-click navigation and opens the encoded profile on an ordinary click", async () => {
     const settings = props();
     settings.data.players = [{ ...player, id: "player/é #1" }];
