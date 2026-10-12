@@ -14,6 +14,7 @@ import { roleLabel } from "./shell-shared.jsx";
 import { hasTrendTimeline, sortTrendMatches } from "../../utils/trends.js";
 import { TrendEvolution, TrendPeriodFilter } from "../../components/trends/TrendEvolution.jsx";
 import { ProgressionObjectives } from "../../components/trends/ProgressionObjectives.jsx";
+import { PlayerComparison } from "../../components/trends/PlayerComparison.jsx";
 import { TrendNavigation, TrendsOverview } from "../../components/trends/TrendsOverview.jsx";
 import { TrendSourcesDialog, TrendContractsDialog } from "../../components/trends/TrendsDialogs.jsx";
 import "../../components/trends/trends-page.css";
@@ -1025,7 +1026,7 @@ function TrendsPage({ data, selectedTeamId }) {
     {exportState === "done" && <p role="status" className="trends-export-status">{t("La synthèse PNG a été téléchargée.")}</p>}
     {trendPanel !== "comparison" && <div className="trends-filters">
       <div className="trends-filter-controls">
-        <SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes les parties")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
+        {trendPanel !== "ai-objectives" && <SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes les parties")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>}
         <TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} />
       </div>
       <div className="trends-scope"><p aria-live="polite"><strong>{matches.length}{t(matches.length > 1 ? " parties" : " partie")}{t(matches.length > 1 ? " analysées" : " analysée")}</strong>{t(" sur ")}{categoryMatches.length} · {activeTrendCategory?.name || t("Tous les contextes")}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" />{t(" Réinitialiser les filtres")}</button>}</div>
@@ -1040,7 +1041,7 @@ function TrendsPage({ data, selectedTeamId }) {
         {id === "evolution" && <TrendEvolution matches={matches} onOpenMatch={openSourceGame} />}
         {id === "comparison" && <Suspense fallback={<Surface><p className="mb-3 text-sm font-semibold text-slate-300" role="status">{t("Chargement de la comparaison…")}</p><SkeletonRows /></Surface>}><BlockComparisonPanel matches={baseMatches} categories={matchCategories} /></Suspense>}
         {id === "draft" && <DraftTrendsModule key={selectedTeamId} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} detailHref={navigation.detailHref} onNavigateDetail={navigation.onNavigate} />}
-        {id === "ai-objectives" && <Surface><ProgressionObjectives teamObjective={teamAiObjective} roleObjectives={roleAiObjectives} gamesCount={matches.length} onOpenSources={openTrendSources} onOpenContracts={() => setProfileContractsOpen(true)} /></Surface>}
+        {id === "ai-objectives" && <div className="space-y-6"><Surface><PlayerComparison key={selectedTeamId} matches={matches} players={teamProfiles} categories={matchCategories} category={selectedCategoryId} onCategoryChange={setSelectedCategoryId} /></Surface><Surface><ProgressionObjectives teamObjective={teamAiObjective} roleObjectives={roleAiObjectives} gamesCount={matches.length} onOpenSources={openTrendSources} onOpenContracts={() => setProfileContractsOpen(true)} /></Surface></div>}
       </>}
     </div>)}
     </>}

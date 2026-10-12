@@ -10,6 +10,7 @@ import { es as opponents } from './opponents-overrides.js';
 import { es as groupOpponents } from './group-opponents-overrides.js';
 import { es as draftIntelligence } from './draft-intelligence-overrides.js';
 import { es as helpFeatures } from './help-features-overrides.js';
+import { es as playerComparison } from './player-comparison-overrides.js';
 const teamManagement = {
   "Effectif": "Plantilla",
   "Encadrement": "Cuerpo técnico",
@@ -52,4 +53,4 @@ const teamManagement = {
   "Supprimer définitivement l’équipe": "Eliminar equipo definitivamente",
   "Gère l’effectif, les invitations et les informations de ton équipe.": "Gestiona la plantilla, las invitaciones y los datos de tu equipo.",
 };
-export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement };
+export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison };
