@@ -7,13 +7,19 @@ Prototype du 12 octobre 2026. Les fiches adversaires sont dans **Parties > Équi
 Les deux associations sont indépendantes et facultatives : une **partie → équipe adverse**, et une **partie → draft Drafter**. Une partie peut donc avoir les deux, une seule ou aucune de ces associations.
 
 1. Dans **Parties > Équipes**, créer une fiche adversaire avec son nom et, si utile, des notes de préparation. Cet écran présente ses champions et ses parties, sans formulaire Drafter.
-2. Depuis le détail d’une partie, choisir son **Équipe adverse**, ou laisser aucune équipe liée. Ce choix ne dépend pas de la présence d’une draft.
+2. Lors de l’import d’une partie, choisir son **Équipe adverse (facultatif)** dans la liste des fiches enregistrées, ou utiliser **Nouvelle équipe**. Le choix peut aussi être modifié depuis le détail de la partie. Il ne dépend pas de la présence d’une draft.
 3. Dans le bloc distinct **Draft de la partie**, coller si souhaité un lien `https://drafter.lol/draft/…?game=2`, lire l’aperçu des picks/bans et choisir explicitement le côté de notre équipe.
 4. Enregistrer le lien Drafter. Cette action ne crée ni ne sélectionne une fiche adverse. Les noms affichés dans Drafter restent les noms de la source, sans devenir automatiquement des équipes NXT5.
 
 Une réimportation de la même série et de la même game dans la même équipe actualise son instantané sans créer un doublon. Les membres peuvent lire les fiches ; seuls le propriétaire et les rôles de staff peuvent créer une fiche ou importer. Les données restent isolées entre équipes NXT5.
 
 Les picks sont présentés dans leurs emplacements de sélection, pas comme des rôles de jeu confirmés. Les bans absents restent inconnus. L’import d’une draft ne crée pas de partie jouée et ne lui attribue ni résultat ni statistiques de victoire.
+
+### Choisir l’adversaire pendant l’import d’une partie
+
+Après le chargement du fichier et le choix de notre côté, le champ **Équipe adverse (facultatif)** propose les équipes déjà enregistrées, par ordre alphabétique. **Nouvelle équipe** permet de saisir un nom de 1 à 80 caractères. La fiche est créée et rattachée uniquement à la confirmation de l’import ; annuler le formulaire ne crée rien. Un nom déjà enregistré est réutilisé, sans doublon.
+
+La partie, ses participants et son rattachement sont enregistrés dans une même transaction. Si l’import échoue, aucune nouvelle fiche n’est conservée. Laisser le champ **Non renseignée** importe une nouvelle partie sans adversaire ; pour une partie déjà importée, cela conserve l’association existante. Pour retirer cette association, utiliser le détail de la partie. Un échec de chargement de la liste permet de réessayer ou de continuer sans choisir d’adversaire.
 
 ### Lier une draft à une partie
 

@@ -4,6 +4,7 @@ import { assertSessionSecret } from './auth';
 import { TEAM_STAFF_ROLES } from './teams';
 import type { DrafterSnapshot } from './drafter-import';
 import { canonicalChampion } from '../../../shared/champions.js';
+import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
 
 export const OPPONENTS_SCHEMA_VERSION = 'opponents-drafts-20261012-v1';
 export const MATCH_DRAFTS_SCHEMA_VERSION = 'match-drafts-20261012-v1';
@@ -33,6 +34,55 @@ export function opponentInput(name: unknown, notes: unknown = '') {
     throw failure('Les notes doivent contenir au maximum 2 000 caractères.');
   }
   return { name: cleanName, normalizedName: cleanName.toLowerCase(), notes: cleanNotes };
+}
+
+/** Only explicit import-envelope fields carry affiliation authority. */
+export function importOpponentInput(opponentId: unknown, newOpponentName: unknown) {
+  if (opponentId === undefined && newOpponentName === undefined) return null;
+  if (opponentId !== undefined && newOpponentName !== undefined) {
+    throw failure('Choisis une équipe adverse existante ou un nouveau nom, pas les deux.');
+  }
+  if (opponentId !== undefined) return { id: opponentUuid(opponentId), name: null, normalizedName: null };
+  const input = opponentInput(newOpponentName);
+  return { id: null, name: input.name, normalizedName: input.normalizedName };
+}
+
+type ImportOpponentInput = ReturnType<typeof importOpponentInput>;
+
+export async function assertImportOpponentAvailable(teamId: string, input: ImportOpponentInput) {
+  if (!input) return;
+  await assertOpponentsSchemaReady();
+  const existing = await sql`select id from team_opponents where team_id = ${teamId}
+    and (id = ${input.id}::uuid or normalized_name = ${input.normalizedName}) limit 1`;
+  if (existing.length) return;
+  if (input.id) throw failure('Adversaire introuvable dans cette équipe.', 404, 'OPPONENT_NOT_FOUND');
+  const counts = await sql`select count(*)::integer as total from team_opponents where team_id = ${teamId}`;
+  if (counts[0].total >= OPPONENT_LIMITS.opponents) {
+    throw failure(`Ce prototype accepte ${OPPONENT_LIMITS.opponents} adversaires par équipe.`, 409, 'OPPONENT_LIMIT_REACHED');
+  }
+}
+
+/** Append to the existing match transaction AFTER its team lock and final staff
+ * check. A disappearing reference or exhausted quota aborts the entire import,
+ * including a newly created opponent. Omission leaves a reimport untouched. */
+export function importOpponentQueries(tx: NeonQueryFunctionInTransaction<false, false>, teamId: string,
+  userId: string, gameId: string, input: ImportOpponentInput) {
+  if (!input) return [];
+  return [
+    tx`select 1 / case when exists (
+        select id from team_opponents where team_id = ${teamId}
+          and (id = ${input.id}::uuid or normalized_name = ${input.normalizedName}) for key share
+      ) or (${input.id}::uuid is null and (select count(*) from team_opponents where team_id = ${teamId}) < ${OPPONENT_LIMITS.opponents})
+      then 1 else 0 end as opponent_available`,
+    ...(input.id ? [] : [tx`insert into team_opponents(team_id, created_by, name, normalized_name, notes)
+      select ${teamId}::uuid, ${userId}::uuid, ${input.name}, ${input.normalizedName}, ''
+      where not exists(select 1 from team_opponents where team_id = ${teamId} and normalized_name = ${input.normalizedName})
+      on conflict(team_id, normalized_name) do nothing`]),
+    tx`update matches set opponent_id = (
+        select id from team_opponents where team_id = ${teamId}
+          and (id = ${input.id}::uuid or normalized_name = ${input.normalizedName}) for key share
+      ) where team_id = ${teamId} and game_id = ${gameId}`
+  ];
 }
 
 export async function assertOpponentsSchemaReady() {
@@ -99,6 +149,15 @@ function opponentView(row) {
 function draftView(row) {
   return { id: row.id, opponentId: row.match_opponent_id ?? null, matchId: row.match_id || null, allySide: row.ally_side, sourceId: row.source_id,
     gameNumber: row.game_number, sourceUrl: row.source_url, importedAt: new Date(row.imported_at).toISOString(), snapshot: row.snapshot };
+}
+
+export async function listOpponentProfiles(teamId: string) {
+  const rows = await sql`select id, name, notes, created_at from team_opponents where team_id = ${teamId}
+    order by name, id limit ${OPPONENT_LIMITS.opponents + 1}`;
+  if (rows.length > OPPONENT_LIMITS.opponents) {
+    throw failure('La limite de ce prototype est dépassée. Contacte le staff NXT5.', 409, 'OPPONENT_LIMIT_REACHED');
+  }
+  return { opponents: rows.map(opponentView) };
 }
 
 export async function listOpponents(teamId: string) {

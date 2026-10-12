@@ -336,6 +336,53 @@ export function ImportHistoryEditor({ match, categories, roster, editing, editFo
   </form>;
 }
 
+function ImportOpponentField({ teamId, value, onChange, disabled }) {
+  useLanguage();
+  const [opponents, setOpponents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [canEdit, setCanEdit] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const helpId = useId();
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+    setLoading(true);
+    setFailed(false);
+    async function loadOpponents() {
+      try {
+        const result = await apiFetch("opponents-drafts", { method: "POST", signal: controller.signal, body: JSON.stringify({ action: "list-opponents", teamId }) });
+        if (!active) return;
+        setOpponents([...(result?.opponents || [])].sort((left, right) => left.name.localeCompare(right.name, undefined, { sensitivity: "base" })));
+        setCanEdit(Boolean(result?.canEdit));
+      } catch {
+        if (active) setFailed(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+    void loadOpponents();
+    return () => { active = false; controller.abort(); };
+  }, [teamId, attempt]);
+  return <div className="game-import-opponent">
+    <div className="game-import-opponent-controls">
+      {value.creating
+        ? <TextInput label={t("Nom de l’équipe adverse")} aria-label={t("Nom de l’équipe adverse")} value={value.name} onChange={(name) => onChange({ ...value, name })} maxLength={80} required disabled={disabled} aria-describedby={helpId} />
+        : <SelectInput label={t("Équipe adverse (facultatif)")} aria-label={t("Équipe adverse (facultatif)")} value={value.id} onChange={(id) => onChange({ ...value, id })} disabled={disabled || loading || !canEdit} aria-describedby={helpId}>
+          <option value="">{t("Non renseignée")}</option>
+          {opponents.map((opponent) => <option key={opponent.id} value={opponent.id}>{opponent.name}</option>)}
+        </SelectInput>}
+      <Button type="button" variant="ghost" icon={value.creating ? X : Plus} onClick={() => onChange({ ...value, creating: !value.creating, name: "" })} disabled={disabled || loading || !canEdit}>{value.creating ? t("Annuler la création") : t("Nouvelle équipe")}</Button>
+    </div>
+    <p id={helpId}>{value.creating
+      ? t("Cette équipe sera créée et associée à la partie lors de la confirmation de l’import.")
+      : t("Choisis une équipe pour retrouver cette partie dans sa fiche. Sur un réimport, laisser ce champ vide conserve l’équipe déjà associée.")}</p>
+    {loading && <p role="status">{t("Chargement des équipes adverses…")}</p>}
+    {failed && <div className="game-import-opponent-error"><p role="alert">{t("Impossible de charger les équipes adverses. Tu peux continuer l’import sans en choisir.")}</p><Button type="button" variant="ghost" onClick={() => setAttempt((current) => current + 1)} disabled={disabled}>{t("Réessayer")}</Button></div>}
+    {!loading && !failed && !canEdit && <p>{t("Seul le staff peut associer une équipe adverse.")}</p>}
+  </div>;
+}
+
 export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, onImported, onBusyChange, onDirtyChange, currentMember, user }) {
   useLanguage();
   const [laneAssignments, setLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
@@ -344,7 +391,9 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   const [allyTeamSide, setAllyTeamSide] = useState("");
   const [suggestedSide, setSuggestedSide] = useState("");
   const [importDetails, setImportDetails] = useState({ label: "", categoryIds: [] });
+  const [importOpponent, setImportOpponent] = useState({ id: "", name: "", creating: false });
   const [importPreview, setImportPreview] = useState(null);
+  const [previewTeamId, setPreviewTeamId] = useState("");
   const [previewPayload, setPreviewPayload] = useState(null);
   const [importing, setImporting] = useState(false);
   const [createdRoster, setCreatedRoster] = useState([]);
@@ -530,10 +579,12 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   }
   function resetImportDraft() {
     setImportPreview(null);
+    setPreviewTeamId("");
     setPreviewPayload(null);
     setAllyTeamSide("");
     setSuggestedSide("");
     setImportDetails({ label: "", categoryIds: [] });
+    setImportOpponent({ id: "", name: "", creating: false });
     setLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setEnemyLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setPlayerAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
@@ -554,7 +605,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     event?.preventDefault();
     if (importing || creatingProfiles || !importReady || !canImport) return;
     window.clearTimeout(progressTimer.current);
-    const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, categoryIds: importDetails.categoryIds || [] };
+    const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, categoryIds: importDetails.categoryIds || [], ...(importOpponent.creating ? { newOpponentName: importOpponent.name.trim() } : importOpponent.id ? { opponentId: importOpponent.id } : {}) };
     setFileError("");
     setImporting(true);
     setUploadProgress({ active: true, label: "Import final", phase: "upload", percent: 0, loaded: 0, total: 0 });
@@ -590,6 +641,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
       resetImportDraft();
       setPreviewPayload(payload);
       setImportPreview(result.match);
+      setPreviewTeamId(selectedTeamId);
       setImportDetails({
         label: suggestedImportLabel(payload, result.match),
         categoryIds: []
@@ -629,13 +681,15 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   const laneAssignmentsReady = assignmentsReady(allyPreviewTeam, laneAssignments) && playerAssignmentsReady;
   const enemyAssignmentsReady = assignmentsReady(enemyPreviewTeam, enemyLaneAssignments);
   const categoriesReady = hasSelectedMatchCategory(matchCategories, importDetails.categoryIds);
-  const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && enemyAssignmentsReady && importDetails.label.trim() && categoriesReady);
+  const opponentReady = !importOpponent.creating || Boolean(importOpponent.name.trim() && importOpponent.name.trim().length <= 80);
+  const importReady = Boolean(importPreview && allyTeamSide && laneAssignmentsReady && enemyAssignmentsReady && importDetails.label.trim() && categoriesReady && opponentReady);
   const importBlockReason = !allyTeamSide ? "Choisis le côté de ton équipe pour continuer."
     : !playerAssignmentsReady ? "Associe les cinq postes à cinq profils joueurs différents de ton équipe."
     : !laneAssignmentsReady ? "Choisis un champion différent pour chacun des cinq postes de notre équipe."
     : !enemyAssignmentsReady ? "Attribue un poste à chaque champion adverse pour confirmer l’import."
     : !importDetails.label.trim() ? "Donne un nom à la partie pour la retrouver plus facilement."
     : !categoriesReady ? "Ajoute au moins un tag à la partie."
+    : !opponentReady ? "Donne un nom de 1 à 80 caractères à l’équipe adverse, ou annule sa création."
     : "";
   const selectedPreviewParticipant = (team, value) => (team?.participants || []).find((participant) => previewAssignmentValue(participant) === value);
   if (!selectedTeamId || !canImport) return <Surface>
@@ -719,6 +773,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                 {allyTeamSide && <div className="game-import-confirmation-fields">
                   <TextInput label={t("Nom de la partie")} value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder={t("Entraînement contre Otters · Partie 1")} required icon={FileText} />
                   <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} required />
+                  {previewTeamId === selectedTeamId && <ImportOpponentField key={selectedTeamId} teamId={selectedTeamId} value={importOpponent} onChange={setImportOpponent} disabled={importing || fileImporting || creatingProfiles} />}
                 </div>}
                 <footer className="game-import-footer">
                   <div id="game-import-status" role="status" className="game-import-status">

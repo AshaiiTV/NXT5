@@ -403,6 +403,18 @@ describe('independent opponent affiliation of played matches', () => {
 });
 
 describe('opponent draft server', () => {
+  it('lists only opponent profiles without loading draft snapshots or played matches', async () => {
+    const opponent = await create(); await linkedDraft();
+    authenticate.mockResolvedValue({ id: viewer }); query.mockClear();
+    expect(await (await call('list-opponents')).json()).toEqual({ opponents: [opponent], canEdit: false });
+    const statements = query.mock.calls.map(([parts]) => parts.join(' ')).join(' ');
+    expect(statements).not.toMatch(/from\s+(?:opponent_drafts|matches|match_participants)\b/i);
+    authenticate.mockResolvedValue({ id: outsider });
+    expect((await call('list-opponents')).status).toBe(403);
+    authenticate.mockResolvedValue({ id: owner });
+    expect((await (await call('list-opponents')).json()).canEdit).toBe(true);
+  });
+
   it('imports a preview, stores its trusted snapshot and lists the opponent with its chosen ally side', async () => {
     const opponent = await create('  OPIF  ', { notes: 'Préparer la prochaine série.' });
     const imported = await preview();
