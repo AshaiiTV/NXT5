@@ -9,6 +9,7 @@ import "./match-opponent-panel.css";
 function MatchOpponent({ teamId, matchId, onChanged }) {
   const id = useId();
   const [opponents, setOpponents] = useState([]);
+  const [linkedGroups, setLinkedGroups] = useState([]);
   const [savedId, setSavedId] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [canEdit, setCanEdit] = useState(false);
@@ -36,6 +37,7 @@ function MatchOpponent({ teamId, matchId, onChanged }) {
       .then((result) => {
         if (controller.signal.aborted) return;
         setOpponents(result.opponents || []); setSavedId(result.opponentId || ""); setSelectedId(result.opponentId || "");
+        setLinkedGroups(result.linkedGroups || []);
         setCanEdit(result.canEdit === true); setLoad("ready");
       }).catch((failure) => { if (!controller.signal.aborted) { setError(failure.message || t("Impossible de charger l’équipe adverse.")); setLoad("error"); } });
     return () => controller.abort();
@@ -51,23 +53,23 @@ function MatchOpponent({ teamId, matchId, onChanged }) {
 
   async function save(event) {
     event.preventDefault();
-    if (!canEdit || selectedId === savedId || mutation.current) return;
+    if (load !== "ready" || !canEdit || linkedGroups.length || selectedId === savedId || mutation.current) return;
     mutation.current = true; setBusy("save"); setError(""); setNotice("");
     try {
       const result = await request("set-match-opponent", { opponentId: selectedId || null });
       if (!mounted.current) return;
       const nextId = result.opponentId || "";
       setSavedId(nextId); setSelectedId(nextId);
-      setNotice(t(nextId ? "Équipe adverse enregistrée pour cette partie." : "Équipe adverse retirée de cette partie."));
       try { await onChanged?.(); }
-      catch { if (mounted.current) setError(t("La modification est enregistrée. Recharge la page pour actualiser les autres données.")); }
+      catch { if (mounted.current) setError(t("La modification est enregistrée. Recharge la page pour actualiser les autres données.")); return; }
+      if (mounted.current) setNotice(t(nextId ? "Équipe adverse enregistrée pour cette partie." : "Équipe adverse retirée de cette partie."));
     } catch (failure) { if (mounted.current) setError(failure.message || t("Impossible d’enregistrer l’équipe adverse. Réessaie.")); }
     finally { mutation.current = false; if (mounted.current) setBusy(""); }
   }
 
   async function create(event) {
     event.preventDefault();
-    if (!canEdit || !name.trim() || mutation.current) return;
+    if (load !== "ready" || !canEdit || linkedGroups.length || !name.trim() || mutation.current) return;
     mutation.current = true; setBusy("create"); setError(""); setNotice("");
     try {
       const result = await request("create-opponent", { name: name.trim(), notes: "" });
@@ -82,12 +84,16 @@ function MatchOpponent({ teamId, matchId, onChanged }) {
   const savedOpponent = opponents.find((item) => item.id === savedId);
   return <Surface className="match-opponent-panel">
     <section aria-labelledby={`${id}-title`}>
-      <div className="match-opponent-heading"><h3 id={`${id}-title`}>{t("Équipe adverse")}</h3><p>{t("Rattache cette partie à une équipe adverse, même sans lien Drafter.")}</p></div>
+      <div className="match-opponent-heading"><h3 id={`${id}-title`}>{t("Équipe adverse")}</h3><p>{t(linkedGroups.length ? "L’équipe adverse de cette partie est définie par ses groupes." : "Rattache cette partie à une équipe adverse, même sans lien Drafter.")}</p></div>
       {load === "loading" && <p role="status">{t("Chargement de l’équipe adverse…")}</p>}
       {error && <p role="alert" className="match-opponent-error">{t(error)}</p>}
       {load === "error" && <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => setReload((value) => value + 1)}>{t("Réessayer")}</Button>}
       <p role="status" aria-live="polite" aria-atomic="true" className={notice ? "match-opponent-notice" : "sr-only"}>{notice}</p>
-      {load === "ready" && (canEdit ? <>
+      {load === "ready" && linkedGroups.length > 0 && <div className="match-opponent-groups">
+        <p>{t("Pour changer cette équipe, modifie le lien dans les groupes concernés.")}</p>
+        <ul>{linkedGroups.map((group) => <li key={group.id}><a href={`/games?view=groups&archive=${encodeURIComponent(group.id)}&team=${encodeURIComponent(teamId)}`}>{group.name}</a></li>)}</ul>
+      </div>}
+      {load === "ready" && (canEdit && !linkedGroups.length ? <>
         <form onSubmit={save} className="match-opponent-selection">
           <SelectInput label={t("Équipe adverse de cette partie")} value={selectedId} disabled={Boolean(busy)} onChange={(value) => { setSelectedId(value); setNotice(""); setError(""); }}><option value="">{t("Aucune équipe adverse")}</option>{opponents.map((opponent) => <option key={opponent.id} value={opponent.id}>{opponent.name}</option>)}</SelectInput>
           <Button type="submit" icon={busy === "save" ? Loader2 : Check} disabled={Boolean(busy) || selectedId === savedId}>{t(busy === "save" ? "Enregistrement…" : "Enregistrer l’adversaire")}</Button>

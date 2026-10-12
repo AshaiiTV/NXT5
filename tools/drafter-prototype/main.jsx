@@ -16,7 +16,7 @@ function Prototype() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
   const [toast, setToast] = useState(null);
-  const refreshAll = async () => { try { setData(await apiFetch('prototype-data')); setError(''); } catch (failure) { setError(failure.message); } };
+  const refreshAll = async (options = {}) => { try { setData(await apiFetch('prototype-data')); setError(''); } catch (failure) { setError(failure.message); if (options.throwOnError) throw failure; } };
   useEffect(() => { refreshAll(); const update = () => setRoute(readRoute()); window.addEventListener('popstate', update); return () => window.removeEventListener('popstate', update); }, []);
   return <div className="drafter-prototype-shell">
     <header className="drafter-prototype-header"><Nxt5Wordmark className="h-10 w-32" />

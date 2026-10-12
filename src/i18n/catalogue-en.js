@@ -6,4 +6,5 @@ import { en as interfaceCopy } from './overrides-ui.js';
 import { en as showcase } from './showcase-overrides.js';
 import { en as draftAssistance } from './draft-assistance-overrides.js';
 import { en as opponents } from './opponents-overrides.js';
-export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents };
+import { en as groupOpponents } from './group-opponents-overrides.js';
+export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents };

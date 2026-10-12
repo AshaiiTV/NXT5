@@ -58,13 +58,28 @@ if (!(await db.query('select 1 from app_schema_migrations where migration_key=$1
     await tx.query('insert into app_schema_migrations(migration_key) values ($1)', [opponentMatchMigrationKey]);
   });
 }
+const groupOpponentMigrationKey = 'group-opponents-20261012-v1';
+if (!(await db.query('select 1 from app_schema_migrations where migration_key=$1', [groupOpponentMigrationKey])).rows.length) {
+  const migration = await readFile(new URL('database/migrations/20261012_group_opponents.sql', root), 'utf8');
+  await db.transaction(async tx => {
+    await tx.exec(migration);
+    await tx.query('insert into app_schema_migrations(migration_key) values ($1)', [groupOpponentMigrationKey]);
+  });
+}
 export const matchId = '00000000-0000-4000-8000-000000000020';
 await db.query("insert into matches(id,team_id,game_id,opponent,result,created_by,raw) values($1,$2,'DEMO-DRAFTER','OPIF · partie de démonstration','Analyse',$3,$4::jsonb) on conflict(id) do nothing",
   [matchId, teamId, ownerId, JSON.stringify({ nxt5Label: 'OPIF · partie de démonstration' })]);
+export const secondMatchId = '00000000-0000-4000-8000-000000000021';
+await db.query("insert into matches(id,team_id,game_id,opponent,result,created_by,raw) values($1,$2,'DEMO-GROUP-2','OPIF · deuxième partie de démonstration','Analyse',$3,$4::jsonb) on conflict(id) do nothing",
+  [secondMatchId, teamId, ownerId, JSON.stringify({ nxt5Label: 'OPIF · deuxième partie de démonstration' })]);
+export const archiveId = '00000000-0000-4000-8000-000000000040';
+await db.query("insert into match_archives(id,team_id,created_by,name,description,match_ids) values($1,$2,$3,'Scrim de démonstration','Groupe local pour vérifier les associations aux équipes.',$4::jsonb) on conflict(id) do nothing",
+  [archiveId, teamId, ownerId, JSON.stringify([matchId])]);
 export async function getDemoData() {
   return { teams: (await db.query('select * from teams where id=$1', [teamId])).rows,
     matches: (await db.query('select * from matches where team_id=$1 order by created_at desc', [teamId])).rows.map(match => ({ ...match, participants: [] })),
-    teamMembers: [], players: [], reports: [], matchCategories: [], matchArchives: [], championPool: [], bootstrapRevision: 'drafter-independent-v3' };
+    matchArchives: (await db.query('select a.*, o.name as opponent_name, u.name as created_by_name from match_archives a left join team_opponents o on o.team_id=a.team_id and o.id=a.opponent_id left join users u on u.id=a.created_by where a.team_id=$1 order by a.created_at desc', [teamId])).rows,
+    teamMembers: [], players: [], reports: [], matchCategories: [], championPool: [], bootstrapRevision: Date.now() };
 }
 
 const statement = parts => parts.reduce((text, part, index) => text + (index ? `$${index}` : '') + part, '');

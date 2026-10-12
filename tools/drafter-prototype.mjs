@@ -50,6 +50,19 @@ await build({ entryPoints: [resolve(root, 'netlify/functions/match-details.ts')]
   } }],
 });
 const { default: matchHandler } = await import(pathToFileURL(matchOutfile).href);
+const archiveOutfile = resolve(bundleDir, 'match-archives-manage.mjs');
+await build({ entryPoints: [resolve(root, 'netlify/functions/match-archives-manage.ts')], outfile: archiveOutfile,
+  bundle: true, platform: 'node', format: 'esm', packages: 'external',
+  plugins: [{ name: 'local-group-runtime', setup(builder) {
+    builder.onResolve({ filter: /(?:^|\/)(?:auth|db)$/ }, args => {
+      const target = resolve(dirname(args.importer), args.path);
+      if (target === resolve(root, 'netlify/functions/_lib/auth') || target === resolve(root, 'netlify/functions/_lib/db')) {
+        return { path: pathToFileURL(runtimePath).href, external: true };
+      }
+    });
+  } }],
+});
+const { default: archiveHandler } = await import(pathToFileURL(archiveOutfile).href);
 const server = await createServer({
   configFile: false, envFile: false, root, appType: 'mpa', plugins: [react(), {
     name: 'drafter-prototype-api', configureServer(vite) {
@@ -64,7 +77,8 @@ const server = await createServer({
         }
         const routeHandler = pathname === '/.netlify/functions/opponents-drafts' ? handler
           : pathname === '/.netlify/functions/asset-proxy' ? assetHandler
-          : pathname === '/.netlify/functions/match-details' ? matchHandler : null;
+          : pathname === '/.netlify/functions/match-details' ? matchHandler
+          : pathname === '/.netlify/functions/match-archives-manage' ? archiveHandler : null;
         if (!routeHandler) { res.writeHead(404).end(); return; }
         try {
           const chunks = []; let size = 0;

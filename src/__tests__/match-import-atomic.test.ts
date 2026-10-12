@@ -141,6 +141,9 @@ beforeAll(async () => {
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260906_runtime_schema.sql', import.meta.url), 'utf8'));
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260928_team_activation_milestones.sql', import.meta.url), 'utf8'));
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260929_report_source.sql', import.meta.url), 'utf8'));
+  for (const file of ['20261012_opponents_drafts.sql', '20261012_match_drafts.sql', '20261012_match_opponents.sql', '20261012_group_opponents.sql']) {
+    await database.pg.exec(readFileSync(new URL(`../../database/migrations/${file}`, import.meta.url), 'utf8'));
+  }
   await database.pg.exec(`create table if not exists app_schema_migrations (
     migration_key text primary key, applied_at timestamptz not null default now(), checksum text
   ); insert into app_schema_migrations(migration_key) values ('audit-runtime-20260906-v1')`);
@@ -923,6 +926,20 @@ describe('team scoped and paginated match loading', () => {
     expect(body.compositions).toHaveLength(50);
     expect(body.matchArchives).toHaveLength(100);
     expect([...body.compositions, ...body.matchArchives, ...body.players].every((row: any) => row.team_id === teamId)).toBe(true);
+    const archiveId = (await database.pg.query('select id from match_archives where team_id=$1 order by created_at asc,id asc limit 1', [teamId])).rows[0].id;
+    const foreignArchiveId = (await database.pg.query('select id from match_archives where team_id=$1 order by created_at asc,id asc limit 1', [otherTeamId])).rows[0].id;
+    expect(body.matchArchives.some((row: any) => row.id === archiveId)).toBe(false);
+    const opponent = (await database.pg.query("insert into team_opponents(team_id,name,normalized_name) values($1,'History opponent','history opponent') returning id", [teamId])).rows[0];
+    await database.pg.query('update match_archives set opponent_id=$1 where id=$2', [opponent.id, archiveId]);
+    const withArchive = await (await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=1&archive=${archiveId}`), {} as any)).json();
+    expect(withArchive.matchArchives).toHaveLength(101);
+    expect(withArchive.matchArchives.find((row: any) => row.id === archiveId)).toMatchObject({ team_id: teamId, opponent_id: opponent.id, opponent_name: 'History opponent' });
+    expect(withArchive.matchArchives.filter((row: any) => row.id !== archiveId).map((row: any) => row.id)).toEqual(body.matchArchives.map((row: any) => row.id));
+    const alreadyPresent = await (await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=1&archive=${body.matchArchives[0].id}`), {} as any)).json();
+    expect(alreadyPresent.matchArchives).toHaveLength(100);
+    const foreignArchive = await (await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=1&archive=${foreignArchiveId}`), {} as any)).json();
+    expect(foreignArchive.matchArchives).toHaveLength(100);
+    expect(foreignArchive.matchArchives.every((row: any) => row.team_id === teamId)).toBe(true);
     const next = await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=50&offset=50&matchesOnly=1`), {} as any);
     const nextBody = await next.json();
     expect(nextBody.matches).toHaveLength(12);
@@ -953,6 +970,8 @@ describe('team scoped and paginated match loading', () => {
     expect(inaccessible.status).toBe(403);
     const invalid = await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=100000`), {} as any);
     expect(invalid.status).toBe(400);
+    const invalidArchive = await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&archive=not-a-uuid`), {} as any);
+    expect(invalidArchive.status).toBe(400);
   });
 });
 

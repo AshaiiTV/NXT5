@@ -6,8 +6,8 @@ import { importDrafterDraft } from './_lib/drafter-import';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import {
   assertOpponentsSchemaReady, createDraftPreviewToken, createOpponent, listOpponents,
-  getMatchDraft, getMatchOpponent, opponentInput, opponentUuid, readDraftPreviewToken, requireOpponentTeam, saveMatchDraft,
-  saveOpponentDraft, setMatchOpponent, unlinkMatchDraft
+  getMatchDraft, getMatchOpponent, getGroupOpponent, groupOpponentError, opponentInput, opponentUuid, readDraftPreviewToken, requireOpponentTeam, saveMatchDraft,
+  saveOpponentDraft, setMatchOpponent, setGroupOpponent, unlinkMatchDraft
 } from './_lib/opponents';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
@@ -18,17 +18,25 @@ export default async function handler(request: Request, context: Context): Promi
     const action = body.action;
     // Updating a match can enqueue its deferred publication jobs. Apply the
     // same deployment isolation guard as every other match source mutation.
-    if (action === 'set-match-opponent') assertMatchSourceMutationEnvironment(context);
+    if (action === 'set-match-opponent' || action === 'set-group-opponent') assertMatchSourceMutationEnvironment(context);
     const user = await requireAuth(request, context);
-    if (!['list', 'create-opponent', 'preview', 'save-draft', 'get-match-draft', 'save-match-draft', 'unlink-match-draft', 'get-match-opponent', 'set-match-opponent'].includes(action)) {
+    if (!['list', 'create-opponent', 'preview', 'save-draft', 'get-match-draft', 'save-match-draft', 'unlink-match-draft', 'get-match-opponent', 'set-match-opponent', 'get-group-opponent', 'set-group-opponent'].includes(action)) {
       throw Object.assign(new Error('Action inconnue.'), { status: 400, code: 'INVALID_OPPONENT_INPUT' });
     }
     const teamId = opponentUuid(body.teamId);
-    const canEdit = await requireOpponentTeam(teamId, user.id, !['list', 'get-match-draft', 'get-match-opponent'].includes(action));
+    const canEdit = await requireOpponentTeam(teamId, user.id, !['list', 'get-match-draft', 'get-match-opponent', 'get-group-opponent'].includes(action));
     await assertOpponentsSchemaReady();
     if (action === 'list') return json({ ...await listOpponents(teamId), canEdit });
     if (action === 'get-match-draft') return json({ ...await getMatchDraft(teamId, opponentUuid(body.matchId)), canEdit });
     if (action === 'get-match-opponent') return json({ ...await getMatchOpponent(teamId, opponentUuid(body.matchId)), canEdit });
+    if (action === 'get-group-opponent') return json({ ...await getGroupOpponent(teamId, opponentUuid(body.archiveId)), canEdit });
+
+    if (action === 'set-group-opponent') {
+      const archiveId = opponentUuid(body.archiveId);
+      const opponentId = body.opponentId === null ? null : opponentUuid(body.opponentId);
+      await assertSubjectRateLimit('opponents-write-user', user.id, { limit: 30, windowSeconds: 60 });
+      return json(await setGroupOpponent(teamId, user.id, archiveId, opponentId));
+    }
 
     if (action === 'set-match-opponent') {
       const matchId = opponentUuid(body.matchId);
@@ -71,6 +79,6 @@ export default async function handler(request: Request, context: Context): Promi
     if (matchId) return json({ draft: await saveMatchDraft(teamId, user.id, matchId, body.allySide, snapshot) });
     return json({ draft: await saveOpponentDraft(teamId, user.id, opponentId!, body.allySide, snapshot) });
   } catch (error) {
-    return handleError(error);
+    return handleError(groupOpponentError(error));
   }
 }

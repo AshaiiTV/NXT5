@@ -8,6 +8,7 @@ export function useTeamData(planningStore, routeSearch = "") {
   // Bootstrap checks membership before returning anything for this team. Keep
   // the URL intact so the game/review selection survives login and pagination.
   const linkedTeamId = new URLSearchParams(routeSearch).get("team")?.trim() || null;
+  const linkedArchiveId = new URLSearchParams(routeSearch).get("archive")?.trim() || null;
   const [data, setData] = useState(DEFAULT_DATA);
   const [selectedTeamId, setSelectedId] = useState(linkedTeamId);
   const [loading, setLoading] = useState(false);
@@ -53,6 +54,7 @@ export function useTeamData(planningStore, routeSearch = "") {
     try {
       const params = new URLSearchParams({ limit: String(MATCH_BATCH_SIZE), offset: "0" });
       if (teamId) params.set("teamId", teamId);
+      if (linkedArchiveId) params.set("archive", linkedArchiveId);
       const result = await apiFetch(`bootstrap?${params}`, { signal: controller.signal });
       if (!isCurrent()) return;
       const activeTeam = result.selectedTeamId || result.teams?.[0]?.id || null;
@@ -107,10 +109,13 @@ export function useTeamData(planningStore, routeSearch = "") {
         selected.current = null;
         setSelectedId(null);
         setData(DEFAULT_DATA);
-        await refreshAll();
+        await refreshAll({ throwOnError: options.throwOnError });
         return;
       }
       setApiError(error.message || "Impossible de charger toutes les games de cette équipe.");
+      // Mutation panels must distinguish a saved change from a failed refresh.
+      // Background loads retain the existing error-state-only behavior.
+      if (options.throwOnError) throw error;
     } finally {
       if (ticket === generation.current) {
         pendingTeam.current = undefined;
@@ -118,7 +123,7 @@ export function useTeamData(planningStore, routeSearch = "") {
         setBootstrapped(true);
       }
     }
-  }, [planningStore]);
+  }, [planningStore, linkedArchiveId]);
 
   useEffect(() => { refreshAll(); return () => { generation.current += 1; request.current?.abort(); }; }, [refreshAll]);
   useEffect(() => {

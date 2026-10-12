@@ -7,6 +7,7 @@ import { loadMatchPage, matchPageOptions } from './_lib/match-page';
 import { json, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { seedDefaultMatchCategories } from './_lib/match-categories';
+import { opponentUuid } from './_lib/opponents';
 
 function buildDashboard(matches, improvements) {
   const recent = matches.slice(0, 10);
@@ -75,15 +76,21 @@ async function loadInviteCodes(teamIds, userId) {
   }
 }
 
-async function loadMatchArchives(teamIds) {
+async function loadMatchArchives(teamIds, requestedArchiveId: string | null = null) {
   try {
     return await sql`
-      select match_archives.*, users.name as created_by_name
+      with archive_ids as (
+        (select id from match_archives where team_id = any(${teamIds})
+          order by created_at desc, id desc limit 100)
+        union
+        select id from match_archives where team_id = any(${teamIds}) and id = ${requestedArchiveId}::uuid
+      )
+      select match_archives.*, users.name as created_by_name, team_opponents.name as opponent_name
       from match_archives
       left join users on users.id = match_archives.created_by
-      where match_archives.team_id = any(${teamIds})
-      order by match_archives.created_at desc
-      limit 100
+      left join team_opponents on team_opponents.team_id = match_archives.team_id and team_opponents.id = match_archives.opponent_id
+      where match_archives.id in (select id from archive_ids)
+      order by match_archives.created_at desc, match_archives.id desc
     `;
   } catch (err) {
     if (err?.code === '42P01') return [];
@@ -91,7 +98,7 @@ async function loadMatchArchives(teamIds) {
   }
 }
 
-async function loadTeamData(selectedTeamId: string, userId: string) {
+async function loadTeamData(selectedTeamId: string, userId: string, requestedArchiveId: string | null = null) {
   const teamIds = [selectedTeamId];
   // Categories must exist before their rows are read. The other bootstrap
   // groups can run while this initialization and these team queries finish.
@@ -112,7 +119,7 @@ async function loadTeamData(selectedTeamId: string, userId: string) {
             or exists(select 1 from teams t left join team_members tm on tm.team_id=t.id and tm.user_id=${userId}
               where t.id=reports.team_id and (t.owner_id=${userId} or tm.role in ('owner','captain','coach','assistant','analyst','manager','board'))))
         order by reports.created_at desc`,
-    loadMatchArchives(teamIds),
+    loadMatchArchives(teamIds, requestedArchiveId),
     sql`select * from match_categories where team_id = ${selectedTeamId} order by is_default desc, name asc`,
     loadInviteCodes(teamIds, userId), loadAvailability(teamIds), loadProfileCoachingNotes(teamIds),
     sql`select player_goals.*, users.name as created_by_name from player_goals
@@ -131,6 +138,7 @@ export default async function handler(request: Request, context: Context): Promi
     const url = new URL(request.url);
     const pageOptions = matchPageOptions(url);
     const requestedTeamId = String(url.searchParams.get('teamId') || '').trim();
+    const requestedArchiveId = url.searchParams.get('archive') ? opponentUuid(url.searchParams.get('archive')) : null;
     const teams = await sql`
       select distinct teams.*
       from teams
@@ -157,7 +165,7 @@ export default async function handler(request: Request, context: Context): Promi
       matchCategories, inviteCodes, availability, profileCoachingNotes, playerGoals, recentMatches]] = await Promise.all([
       loadMatchPage(selectedTeamId, pageOptions),
       loadBotWorkflows(selectedTeamId, user.id),
-      loadTeamData(selectedTeamId, user.id),
+      loadTeamData(selectedTeamId, user.id, requestedArchiveId),
     ]);
     return json({ dashboard: buildDashboard(recentMatches, improvements), selectedTeamId, ...page, ...botWorkflows,
       teams: teams.map(safeTeam), players, teamMembers, championPool, compositions, improvements, reports,

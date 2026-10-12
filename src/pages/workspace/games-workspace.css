@@ -26,6 +26,10 @@
 .games-group-open > span:first-child > span { color: #dbe8f8; font-size: var(--nxt5-font-small); line-height: 1.5; }
 .games-group-open > span:nth-child(2) { color: #cffafe; white-space: nowrap; font-size: var(--nxt5-font-small); font-variant-numeric: tabular-nums; }
 .games-group-open:hover { background: rgba(255,255,255,.035); }
+.games-group-opponent { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; max-width: 100%; padding: 8px; color: var(--nxt5-accent); font-size: var(--nxt5-font-small); text-decoration: underline; text-underline-offset: 3px; }
+.games-group-opponent > svg { flex-shrink: 0; }
+.games-group-opponent > span { min-width: 0; overflow-wrap: anywhere; }
+.games-group-unlinked { padding: 8px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); }
 .games-group-tools { display: flex; gap: 8px; padding: 8px 0; }
 .games-group-tools .ig-icon-button { border-color: transparent; }
 .games-group-fields { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; padding-block: 20px; border-top: 1px solid var(--nxt5-border); }
