@@ -1,8 +1,8 @@
 # QA locale · Drafts & bans
 
-Ce harness affiche les **vrais `TrendsPage`, `DrafterAnalysis`, `Sidebar` et `Topbar`** avec leurs CSS de production. Le menu développé réserve réellement 264 px à partir de 1 024 px. Les seules données remplacées sont les réponses API et le contenu `data` : tout est fictif, défini dans `fixtures.mjs` et signalé à l’écran.
+Ce harness affiche les **vrais `TrendsPage`, `DrafterAnalysis`, `GameWorkspace`, `Sidebar` et `Topbar`** avec leurs CSS de production. Le menu développé réserve réellement 264 px à partir de 1 024 px. Les seules données remplacées sont les réponses API et le contenu `data` : tout est fictif, défini dans `fixtures.mjs` et signalé à l’écran.
 
-Il ne charge aucun `.env`, n’ouvre aucune base et ne contacte aucune API d’équipe. Le mode par défaut n’effectue aucun appel externe. Les liens sources des drafts restent locaux. Les actions de navigation générales du cadre sont neutralisées ; seuls les filtres et interactions de la page d’analyse sont réels.
+Il ne charge aucun `.env`, n’ouvre aucune base et ne contacte aucune API d’équipe. Le mode par défaut n’effectue aucun appel externe. Les liens sources des drafts restent locaux. Les actions de navigation générales du cadre sont neutralisées ; les filtres et interactions des pages d’analyse et des dossiers adverses sont réels, avec des écritures simulées uniquement en mémoire.
 
 ## Lancer
 
@@ -21,6 +21,28 @@ NXT5_QA_PUBLIC_ASSETS=1 node tools/draft-analysis-qa.mjs
 ```
 
 Ce flag ne permet que la lecture d’images publiques Riot/CommunityDragon ; aucun cookie ni identifiant n’est transmis. Le cache d’images est en mémoire. `NXT5_QA_PORT` permet de changer le port. Le serveur écoute exclusivement sur `127.0.0.1` et refuse les autres en-têtes Host.
+
+## Équipes adverses et dossiers
+
+Le même serveur propose désormais le vrai `GameWorkspace`, sa vue Équipes, les détails de parties et les groupes, avec le même cadre AppChrome :
+
+- Annuaire : <http://127.0.0.1:5192/games?view=teams&qa=full>.
+- Dossier riche Orion : <http://127.0.0.1:5192/games?view=teams&opponent=qa-orion&qa=full>.
+- Nom et notes longs : <http://127.0.0.1:5192/games?view=teams&opponent=qa-long-name&qa=full>.
+- Dossier sans partie : <http://127.0.0.1:5192/games?view=teams&qa=empty-dossier>.
+- Lecture seule : <http://127.0.0.1:5192/games?view=teams&opponent=qa-orion&qa=readonly>.
+- Aucun adversaire : <http://127.0.0.1:5192/games?view=teams&qa=no-opponents>.
+- Erreur, chargement et aucune équipe : remplacer `qa` par `error`, `loading` ou `no-team`.
+
+Les dossiers utilisent six fiches, quatorze parties et six groupes fictifs. Orion comprend neuf parties, dont deux dont les champions viennent de la draft liée et une sans composition exploitable. Trois groupes Orion se chevauchent : les parties communes ne doivent pas gonfler les compteurs du dossier. Des résultats inconnus sont présents. Le dossier sans partie conserve un groupe vide pour vérifier l’état « prochaine rencontre ».
+
+Les réponses de `opponents-drafts` respectent le contrat réel : `opponents`, `drafts`, `opponentMatches`, `opponentGroups` et `canEdit`. Les entrées `opponentMatches` portent `id`, `opponentId`, `gameId`, `label`, `date`, `result`, `enemyPicks` et `enemyPicksComplete`. Les groupes portent `id`, `name`, `opponentId`, `matchIds` et `updatedAt`. `GameWorkspace` reçoit séparément ses enregistrements de parties et groupes au format bootstrap.
+
+Les actions locales `list`, `list-opponents`, `get-match-draft`, `get-match-opponent`, `get-group-opponent` et l’endpoint `match-details` permettent d’ouvrir les sources. La création de fiche est simulée **uniquement en mémoire**, par scénario, avec réutilisation d’un nom déjà créé. Elle reste visible après Actualiser et disparaît au redémarrage du serveur. Le scénario `readonly` la refuse. Les autres écritures répondent explicitement qu’elles ne sont pas simulées ; aucune ne sort du harness.
+
+Le scénario est conservé dans la session locale pendant les liens vers une partie ou un groupe. Le client lui ajoute des en-têtes QA seulement vers les endpoints du serveur local. Un lien contenant `qa=full` permet de revenir explicitement au scénario normal.
+
+Après une modification du runner `.mjs`, redémarrer le serveur ; les changements JSX/fixtures côté navigateur sont pris par Vite. Ne pas arrêter une session de QA d’un autre agent sans coordination.
 
 ## Scénarios
 

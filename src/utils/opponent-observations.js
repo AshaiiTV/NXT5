@@ -47,7 +47,7 @@ export function buildOpponentObservations(opponentId, opponentMatches = [], draf
     const draft = linkedByGame.get(key);
     const draftPicks = draft?.snapshot[`${OTHER[draft.allySide]}Picks`];
     const pickSource = isPlayed(match) ? 'match' : complete(draftPicks) ? 'draft' : 'unknown';
-    return { ...match, picks: champions(pickSource === 'draft' ? draftPicks : match.enemyPicks), pickSource };
+    return { ...match, picks: champions(pickSource === 'draft' ? draftPicks : match.enemyPicks), pickSource, draft: draft || null };
   }).sort((a, b) => (Date.parse(b.date) || 0) - (Date.parse(a.date) || 0));
   const bans = buildDraftAnalysis([...linkedByGame.values()]).enemy;
   return {
