@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
+import { assertTrustedIpcSender } from "./ipc-security.js";
 import {
   StateStore,
   atomicWrite,
@@ -44,12 +45,6 @@ const NXT5_SITE_URL = (() => {
 const catalog = createChampionCatalog();
 let store;
 let mainWindow;
-
-function assertTrustedIpcSender(event) {
-  const senderUrl = event?.senderFrame?.url || event?.sender?.getURL?.() || "";
-  if (senderUrl !== RENDERER_URL || event.sender !== mainWindow?.webContents)
-    throw new Error("IPC sender refused");
-}
 
 async function checkImporterUpdate() {
   try {
@@ -499,7 +494,7 @@ function createWindow() {
     importer.cancel();
     mainWindow = null;
   });
-  mainWindow.loadFile(RENDERER_FILE);
+  mainWindow.loadURL(RENDERER_URL);
 }
 
 const handlers = {
@@ -587,11 +582,11 @@ const handlers = {
 };
 for (const [channel, handler] of Object.entries(handlers))
   ipcMain.handle(channel, (event, value) => {
-    assertTrustedIpcSender(event);
+    assertTrustedIpcSender(event, mainWindow?.webContents, RENDERER_FILE);
     return handler(value);
   });
 ipcMain.handle("generate-import", (event, form) => {
-  assertTrustedIpcSender(event);
+  assertTrustedIpcSender(event, mainWindow?.webContents, RENDERER_FILE);
   return importer.generate(form, (progress) => {
     if (!event.sender.isDestroyed())
       event.sender.send("import-progress", progress);

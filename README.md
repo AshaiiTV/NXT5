@@ -100,7 +100,7 @@ L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. L’[a
 
 ## Application NXT5 Importer
 
-Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.6** pour Windows, Mac Intel et Mac Apple Silicon.
+Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.8** pour Windows, Mac Intel et Mac Apple Silicon.
 
 1. Lance le `.exe` Windows ou ouvre `NXT5 Importer.app` après extraction du zip Mac adapté à ton processeur.
 2. Colle le numéro de la partie ou un ID complet comme `EUW1_7861632138`. Vérifie la région.
