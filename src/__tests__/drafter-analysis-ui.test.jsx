@@ -76,7 +76,10 @@ describe("Drafter analysis interface", () => {
     const bans = renderer.root.findAllByType("section").filter((node) => node.props.className === "drafter-frequency")[1];
     expect(content(bans)).toContain("0 drafts exploitables sur 1");
     expect(content(bans)).not.toContain("Diana"); expect(text()).toContain("Non renseigné");
-    expect(renderer.root.findAllByType("li").filter((node) => node.props["data-side"])).toHaveLength(20);
+    const board = renderer.root.findByProps({ className: "draft-board" });
+    expect(content(board)).toContain("Draft finale");
+    expect(board.findAllByProps({ type: "range" })[0].props.value).toBe(20);
+    expect(board.findAllByType("li").filter((node) => node.props["data-revealed"] === true)).toHaveLength(20);
   });
   it("filters opponent and linked status without carrying an invisible draft", async () => {
     apiFetch.mockResolvedValue(payload); await mount();
@@ -108,7 +111,11 @@ describe("Drafter analysis interface", () => {
   });
   it("does not invent an order for a legacy snapshot", async () => {
     await act(async () => { renderer = TestRenderer.create(<DraftChronology snapshot={{ ...snapshot, orderEvidence: undefined }} allySide="blue" />); });
-    expect(text()).toContain("Ordre de sélection indisponible"); expect(renderer.root.findAllByType("li")).toHaveLength(0);
+    expect(text()).toContain("Ordre de sélection indisponible");
+    expect(text()).toContain("Draft finale");
+    expect(text()).toContain("Aatrox"); expect(text()).toContain("Yunara");
+    expect(renderer.root.findAllByProps({ type: "range" })).toHaveLength(0);
+    expect(renderer.root.findAllByType("li").filter((node) => node.props["data-revealed"] === true)).toHaveLength(20);
   });
   it("distinguishes a skipped ban from an unknown ban", async () => {
     await act(async () => { renderer = TestRenderer.create(<DraftChronology snapshot={{ ...snapshot, blueBans: [null, ...snapshot.blueBans.slice(1)], banStates: { blue: ["skipped", "selected", "selected", "selected", "selected"] } }} allySide="blue" />); });

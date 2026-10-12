@@ -7,19 +7,12 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { buildDraftIntelligence } from "../../utils/draft-intelligence.js";
 import { DraftBanIntelligence, DraftRotations } from "./DraftIntelligence.jsx";
 import { buildDraftAnalysis, normalizeDraftRows } from "../../utils/draft-analysis.js";
-import { draftOrder } from "../../../shared/draft-order.js";
 import { matchDisplayName } from "../../utils/matches.js";
 import { ChampionPortrait, championDisplayName } from "../../pages/workspace/workspace-shared.jsx";
 import { Badge, Button, EmptyState, SelectInput, SkeletonRows, Surface } from "../ui/Core.jsx";
 import { SourceLink } from "../opponents/OpponentsWorkspace.jsx";
+import DraftBoard from "../draft/DraftBoard.jsx";
 import "./drafter-analysis.css";
-
-const phaseGroups = [
-  { phase: 1, kind: "ban", title: "Bans · phase 1" },
-  { phase: 1, kind: "pick", title: "Picks · phase 1" },
-  { phase: 2, kind: "ban", title: "Bans · phase 2" },
-  { phase: 2, kind: "pick", title: "Picks · phase 2" },
-];
 
 function Frequency({ title, entries = [], coverage = 0, total = 0, limit = 8 }) {
   return <section className="drafter-frequency">
@@ -33,25 +26,7 @@ function Frequency({ title, entries = [], coverage = 0, total = 0, limit = 8 }) 
 }
 
 export function DraftChronology({ snapshot, allySide }) {
-  useLanguage();
-  const order = useMemo(() => draftOrder(snapshot), [snapshot]);
-  if (order.status !== "known") return <div className="drafter-order-unavailable">
-    <p>{t("Ordre de sélection indisponible pour cet import.")}</p>
-    <p className="drafter-muted">{t(order.message)}</p>
-  </div>;
-  return <div className="drafter-chronology">
-    <p className="drafter-muted">{t("Ordre reconstitué depuis les emplacements finaux de Drafter. Les corrections pendant la draft ne sont pas un journal d’événements ; les rôles joués restent distincts.")}</p>
-    {phaseGroups.map(({ phase, kind, title }) => <section key={`${phase}-${kind}`} className="drafter-phase">
-      <h4>{t(title)}</h4>
-      <ol>{order.events.filter((event) => event.phase === phase && event.kind === kind).map((event) => <li key={event.order} data-side={event.side} value={event.order}>
-        <div className="drafter-event-heading"><strong>#{event.order}</strong><span>{t(event.side === "blue" ? "Côté bleu" : "Côté rouge")}</span></div>
-        <p className="drafter-event-team">{snapshot[`${event.side}Name`] || t("Équipe sans nom")}</p>
-        <span className="drafter-event-owner">{t(event.side === allySide ? "Notre équipe" : "Adversaire")}</span>
-        <div className="drafter-event-pick">{event.champion && <ChampionPortrait champion={event.champion} className="h-10 w-10 rounded-md object-cover" />}<strong>{event.champion ? championDisplayName(event.champion) : event.valueStatus === "skipped" ? t("Ban non utilisé") : t("Non renseigné")}</strong></div>
-        <span className="drafter-muted">{t(kind === "pick" ? "Pick {0}" : "Ban {0}", [event.slot])}</span>
-      </li>)}</ol>
-    </section>)}
-  </div>;
+  return <DraftBoard snapshot={snapshot} allySide={allySide} />;
 }
 
 function TeamDrafterAnalysis({ teamId, matches, players, championPool }) {
@@ -124,7 +99,7 @@ function TeamDrafterAnalysis({ teamId, matches, players, championPool }) {
     {!drafts.length ? <Surface><EmptyState icon={Shield} title={t("Aucune draft dans cette sélection")} text={t("Change l’adversaire ou la portée pour retrouver les drafts enregistrées.")} /></Surface> : <>
       <DraftBanIntelligence key={scopeKey} model={intelligence} camp={camp} onOpenDraft={inspectDraft} draftLabel={draftLabel} />
       <DraftRotations key={`rotations-${scopeKey}`} model={intelligence} onOpenDraft={inspectDraft} draftLabel={draftLabel} />
-      <Surface><details className="draft-intelligence-disclosure" ref={chronologyRef}>
+      <Surface><details className="draft-intelligence-disclosure" ref={chronologyRef} open={Boolean(typeof window !== "undefined" && new URLSearchParams(window.location.search).get("draft")) || undefined}>
         <summary ref={chronologySummary}>{t("Ordre des picks et des bans")}</summary>
         <div className="drafter-analysis-heading"><h3>{t("Revoir une draft source")}</h3><Badge>{t("Game {0}", [selected.gameNumber])}</Badge></div>
         <SelectInput label={t("Draft à revoir")} value={selected.id} onChange={setSelectedId}>{drafts.map((draft) => <option key={draft.id} value={draft.id}>{draftLabel(draft)}</option>)}</SelectInput>
