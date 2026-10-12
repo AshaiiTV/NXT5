@@ -1,7 +1,7 @@
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import React from "react";
-import { Activity, ArrowRight, AlertTriangle, BookOpen, CalendarDays, Check, ChevronDown, ChevronRight, FileText, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Upload, Users, X } from "lucide-react";
+import { Activity, ArrowRight, AlertTriangle, BookOpen, CalendarDays, Check, ChevronDown, ChevronRight, FileText, LogOut, Menu, Plus, RefreshCw, Settings, ShieldCheck, Trophy, Upload, Users, X } from "lucide-react";
 import { MORE_NAV_IDS, NAV, PRIMARY_NAV_IDS } from "../../app/constants.jsx";
 import { draftViewFromPath, draftViewLabel, pathFromPage, profileViewFromPath, profileViewLabel } from "../../app/routing.js";
 import { cx, profileStatusLabel } from "../../app/helpers.js";
@@ -136,6 +136,7 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
         {!!moreItems.length && <details className="nxt5-sidebar-group nxt5-sidebar-more" open={MORE_NAV_IDS.includes(active) ? true : undefined}><summary title={t("Préparation et partage")}><ChevronDown size={17} aria-hidden="true" /><span className="nxt5-sidebar-label">{t("Préparation et partage")}</span></summary>{moreItems.map((item) => renderNavItem(item, false))}</details>}
       </nav>
       <div className="nxt5-sidebar-footer">
+        {isPlatformAdmin && <a href="https://nexus-rising-admin-nxt5.ashaii.chatgpt.site" target="_blank" rel="noopener noreferrer" aria-label="Nexus Rising" title="Nexus Rising" className="nxt5-sidebar-link nxt5-sidebar-admin"><Trophy size={19} aria-hidden="true" /><span className="nxt5-sidebar-label" translate="no">Nexus Rising</span></a>}
         {isPlatformAdmin && <a href={pageHref("admin")} onClick={(event) => go(event, "admin")} aria-label={t("Administration")} title={t("Administration")} aria-current={["admin", "access-requests", "account-subscriptions"].includes(active) ? "page" : undefined} className={cx("nxt5-sidebar-link nxt5-sidebar-admin", ["admin", "access-requests", "account-subscriptions"].includes(active) && "is-active")}><ShieldCheck size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">{t("Administration")}</span></a>}
         <div className="nxt5-sidebar-account">
           <div className="nxt5-sidebar-account-identity"><span className="nxt5-sidebar-avatar"><RoleIcon role={profileRole} className="h-5 w-5" /></span><div className="nxt5-sidebar-label"><p title={user?.name || t("Coach")}>{user?.name || t("Coach")}</p><span title={linkedPlayer ? `${t(roleLabel(linkedPlayer.role))} · ${linkedPlayer.name}` : t(status)}>{linkedPlayer ? `${t(roleLabel(linkedPlayer.role))} · ${linkedPlayer.name}` : t(status)}</span></div></div>
