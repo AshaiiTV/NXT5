@@ -11,8 +11,13 @@ export function guideSectionForRoute(route = {}) {
   if (page === "profile") {
     return { champions: "player-champions", showcase: "player-showcase", pool: "champion-pool" }[profileViewFromPath(path)] || "player-profile";
   }
-  if (page === "trends") return readTrendsRoute(route).panel === "draft" ? "champion-analysis" : "trends";
-  if (page === "matches") return path === "/integration" || params.get("import") === "1" ? "imports-and-games" : "statistics";
+  if (page === "trends") return { draft: "champion-analysis", drafts: "drafter-analysis" }[readTrendsRoute(route).panel] || "trends";
+  if (page === "matches") {
+    if (!params.get("match") && !params.get("archive") && (path === "/integration" || params.get("import") === "1")) return "imports-and-games";
+    if (params.get("match")) return "statistics";
+    if (path === "/draft/adversaires" || (params.get("view") === "teams" && !params.get("archive"))) return "opponents";
+    return "statistics";
+  }
   return {
     home: "getting-started",
     teams: "teams-and-roster",

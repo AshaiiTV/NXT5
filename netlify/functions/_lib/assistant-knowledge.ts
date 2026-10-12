@@ -137,7 +137,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       "Prépare le fichier .json avec NXT5 Importer. L’aide Pas encore de fichier ? explique comment l’obtenir.",
       "Dans Parties, choisis Importer une partie, puis Choisir mon fichier.",
       "Choisis le côté de ton équipe, vérifie les postes des deux équipes et associe cinq profils différents. Crée les profils manquants depuis l’import si nécessaire.",
-      "Donne un nom à la partie, ajoute une catégorie si utile, puis confirme l’import."
+      "Donne un nom à la partie et sélectionne au moins une catégorie. Équipe adverse (facultatif) permet de choisir une fiche ou Nouvelle équipe ; confirme ensuite l’import."
     ],
     suggestions: [
       "Pourquoi mon import échoue ?",
@@ -145,6 +145,16 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       "Comment retrouver une partie importée ?"
     ],
     faq: [
+      {
+        question: 'Comment choisir une équipe adverse pendant l’import ?',
+        triggers: ['adversaire pendant l’import', 'équipe adverse à l’import', 'nouvelle équipe à l’import', 'réimport adversaire'],
+        answer: 'Après le fichier et le choix de ton côté, utilise Équipe adverse (facultatif) pour sélectionner une fiche ou Nouvelle équipe. La nouvelle fiche et son rattachement sont enregistrés seulement à la confirmation de l’import ; annuler ne crée pas cette fiche adverse. Non renseignée laisse une nouvelle partie sans adversaire et conserve le lien d’une partie réimportée. Si un groupe impose l’adversaire, modifie le lien du groupe pour le changer.'
+      },
+      {
+        question: 'Une catégorie est-elle obligatoire pour importer ?',
+        triggers: ['catégorie obligatoire', 'tag obligatoire', 'sans catégorie', 'sans tag'],
+        answer: 'Oui. Sélectionne au moins une catégorie avant de confirmer l’import, en plus du côté de ton équipe et des cinq profils joueurs distincts. Le choix d’une équipe adverse reste facultatif.'
+      },
       {
         "question": "Pourquoi mon import ne fonctionne pas ?",
         "triggers": [
@@ -173,6 +183,90 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
           "mauvais poste"
         ],
         "answer": "Dans Parties, ouvre la partie puis ses options de gestion. Vérifie le côté, les postes et les joueurs associés avant d’enregistrer. Les bilans et analyses utilisent ensuite ces associations corrigées."
+      }
+    ]
+  },
+  {
+    id: 'opponents',
+    title: 'Préparer les équipes adversaires',
+    path: '/games?view=teams',
+    actionLabel: 'Ouvrir les équipes adversaires',
+    summary: 'Dans Parties → Équipes, chaque fiche adverse propose Vue d’ensemble, Parties et Drafts avec les groupes rattachés, les champions observés et les notes du staff. Une partie ou un groupe peut être associé à une équipe adverse sans draft Drafter.',
+    keywords: ['équipe adverse', 'équipes adversaires', 'fiche adversaire', 'fiches adversaires', 'dossier adversaire', 'rattacher une partie', 'associer un adversaire', 'enregistrer l’adversaire', 'équipe adverse du groupe', 'lien du groupe', 'sans drafter', 'scouting'],
+    steps: [
+      'Sélectionne ton équipe, puis ouvre Parties → Équipes. Le staff peut ajouter une fiche avec un nom et des notes facultatives.',
+      'Dans le détail d’une partie, ouvre Équipe adverse et choisis une fiche existante ou Créer une équipe adverse.',
+      'Clique sur Enregistrer l’adversaire. Pour une séance entière, ouvre le groupe dans Parties → Groupes, choisis Équipe adverse du groupe puis Enregistrer le lien.',
+      'Reviens dans Parties → Équipes : Vue d’ensemble présente les fréquences et leur couverture, Parties les groupes et résultats, Drafts les tableaux à revoir.'
+    ],
+    suggestions: ['Comment rattacher une partie à une équipe adverse ?', 'Faut-il un lien Drafter pour associer un adversaire ?', 'Que comptent les fréquences d’une fiche adversaire ?'],
+    faq: [
+      {
+        question: 'Comment rattacher une partie à une équipe adverse ?',
+        triggers: ['rattacher une partie à une équipe adverse', 'associer un adversaire', 'enregistrer l’adversaire', 'créer une équipe adverse'],
+        answer: 'Dans Parties, ouvre la partie puis Équipe adverse. Choisis une fiche existante ou Créer une équipe adverse, puis clique sur Enregistrer l’adversaire : créer la fiche seul ne rattache pas la partie. Le staff peut modifier ce lien. Pour le retirer, choisis Aucune équipe adverse et enregistre. Si l’adversaire dépend d’un groupe, ouvre les groupes indiqués pour modifier leurs liens. Retrouve ensuite les parties rattachées dans Parties → Équipes.'
+      },
+      {
+        question: 'Faut-il un lien Drafter pour associer un adversaire ?',
+        triggers: ['sans drafter', 'sans lien drafter', 'drafter obligatoire', 'lien drafter pour associer'],
+        answer: 'Non. Dans le détail de la partie, Équipe adverse permet de choisir ou créer une fiche et d’enregistrer l’adversaire sans lien Drafter. Inversement, une draft peut être rattachée à la partie sans fiche adversaire. Les deux associations sont facultatives et indépendantes.'
+      },
+      {
+        question: 'Que comptent les fréquences d’une fiche adversaire ?',
+        triggers: ['fréquences d’une fiche adversaire', 'champions observés', 'bans des drafts liées', 'viennent les champions d’une fiche adverse'],
+        answer: 'Dans Parties → Équipes, chaque partie rattachée compte une fois, même dans plusieurs groupes. Les champions joués viennent des participants ; Choix de draft non confirmés en partie présente séparément les picks d’une draft liée quand les données de champions sont incomplètes. Les fréquences de bans utilisent les drafts liées à ces parties avec leurs cinq bans renseignés ou explicitement non utilisés. Les données manquantes restent exclues du calcul concerné : ouvre Comprendre ces chiffres et les parties sources.'
+      },
+      {
+        question: 'Comment associer une équipe adverse à un groupe ?',
+        triggers: ['adversaire à un groupe', 'équipe adverse du groupe', 'lier un groupe', 'adversaire du scrim'],
+        answer: 'Dans Parties → Groupes, ouvre le groupe puis Équipe adverse du groupe. Le staff choisit une fiche ou crée une équipe, puis clique sur Enregistrer le lien. Créer la fiche seul ne lie pas le groupe. Le lien s’applique aux parties présentes et à celles ajoutées ensuite. Si une partie appartient à plusieurs groupes liés, ils doivent désigner le même adversaire ; un conflit est refusé sans modification partielle.'
+      },
+      {
+        question: 'Que devient l’adversaire des parties si je retire le lien du groupe ?',
+        triggers: ['retirer le lien du groupe', 'supprimer le groupe', 'retirer une partie du groupe', 'adversaire imposé par un groupe'],
+        answer: 'Retirer le lien du groupe, retirer une partie du groupe ou supprimer le groupe conserve l’adversaire déjà associé aux parties. Pour le modifier, vérifie d’abord les autres groupes liés : tant qu’un groupe impose l’adversaire, le détail de la partie renvoie vers ce groupe. Après retrait de ces liens, le staff peut modifier l’adversaire depuis la partie. Le lien Drafter reste indépendant.'
+      },
+      {
+        question: 'Comment parcourir le dossier d’une équipe adverse ?',
+        triggers: ['parcourir le dossier', 'onglets fiche adverse', 'résultats contre un adversaire', 'drafts du dossier'],
+        answer: 'Dans Parties → Équipes, recherche puis ouvre la fiche. Vue d’ensemble présente notre bilan contre eux, leurs champions joués, leurs bans contre nous et les notes du staff. Parties réunit les groupes et les parties avec un filtre sur le résultat de notre équipe. Drafts permet de revoir chaque tableau de picks et bans et de rouvrir sa source ou la partie liée. Ces observations ne prédisent pas la prochaine draft.'
+      }
+    ]
+  },
+  {
+    id: 'match-drafter',
+    title: 'Rattacher une draft Drafter à une partie',
+    path: '/games',
+    actionLabel: 'Ouvrir les parties',
+    summary: 'Le détail d’une partie propose Draft de la partie (facultatif) pour vérifier un lien public Drafter.lol puis enregistrer ses picks et bans. Le staff peut ajouter, remplacer ou détacher cette draft.',
+    keywords: ['lien drafter', 'import drafter', 'importer drafter', 'drafter.lol', 'vérifier la draft', 'rattacher la draft', 'draft de la partie', 'remplacer la draft', 'détacher la draft'],
+    steps: [
+      'Dans Parties, ouvre la partie puis Draft de la partie (facultatif).',
+      'Colle le lien public Drafter.lol de la bonne game, puis clique sur Vérifier la draft.',
+      'Vérifie l’aperçu, le numéro de game, les équipes, les picks et bans, puis choisis le Côté de notre équipe.',
+      'Clique sur Rattacher la draft pour enregistrer. Utilise Analyser cette draft pour consulter Drafts & bans dans Analyses ; la fiche adversaire reste facultative.'
+    ],
+    suggestions: ['Comment importer un lien Drafter dans une partie ?', 'Que devient une draft remplacée ou détachée ?', 'Pourquoi mon lien Drafter ne fonctionne pas ?'],
+    faq: [
+      {
+        question: 'Comment importer un lien Drafter dans une partie ?',
+        triggers: ['importer un lien drafter', 'importer drafter', 'rattacher la draft', 'vérifier la draft'],
+        answer: 'Avec les droits du staff, ouvre la partie dans Parties puis Draft de la partie (facultatif). Colle le lien public Drafter.lol et clique sur Vérifier la draft. Contrôle la bonne game, les équipes et les picks et bans, choisis le Côté de notre équipe puis Rattacher la draft. L’aperçu seul ne sauvegarde rien. Aucune fiche adversaire n’est requise.'
+      },
+      {
+        question: 'Faut-il une équipe adverse pour importer une draft ?',
+        triggers: ['équipe adverse pour importer une draft', 'draft sans équipe adverse', 'fiche adverse obligatoire'],
+        answer: 'Non. Dans Draft de la partie (facultatif), tu peux vérifier le lien Drafter, choisir le côté de ton équipe et rattacher la draft sans créer de fiche adverse. Le bloc Équipe adverse de la partie permet séparément de choisir ou créer une fiche, puis d’enregistrer l’adversaire. Ces deux liens restent facultatifs et indépendants.'
+      },
+      {
+        question: 'Que devient une draft remplacée ou détachée ?',
+        triggers: ['remplacer la draft', 'détacher la draft', 'draft remplacée', 'draft détachée'],
+        answer: 'Depuis la partie, le staff peut choisir Remplacer la draft et vérifier le nouveau lien avant de l’enregistrer, ou Détacher la draft puis confirmer le détachement. L’ancienne draft reste dans l’historique d’Analyses → Drafts & bans, sans lien avec cette partie. Le détachement ne supprime ni la partie ni son association à une équipe adverse.'
+      },
+      {
+        question: 'Pourquoi mon lien Drafter ne fonctionne pas ?',
+        triggers: ['lien drafter ne fonctionne pas', 'lien drafter invalide', 'drafter inaccessible', 'erreur drafter'],
+        answer: 'Vérifie que le lien mène à une draft publique sur Drafter.lol et à la bonne game, puis utilise Vérifier la draft. Une page inaccessible ou une draft dont les données ne sont pas exploitables peut être refusée ; garde le message affiché pour comprendre le problème et réessaie si le service est temporairement indisponible. Après un aperçu valide, choisis le côté de ton équipe et enregistre. NXT5 ne complète pas les picks ou bans manquants par supposition.'
       }
     ]
   },
@@ -288,7 +382,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: "Analyser plusieurs parties",
     path: '/tendances',
     actionLabel: "Ouvrir Analyses",
-    summary: "Analyses rapproche les résultats de plusieurs parties dans Synthèse, Évolution, Comparer, Champions et Objectifs. Les filtres de période et de catégorie définissent les parties étudiées.",
+    summary: "Analyses rapproche les résultats de plusieurs parties dans Synthèse, Évolution, Comparer, Champions et Objectifs. Les filtres de période et de catégorie définissent les parties étudiées. Drafts & bans dispose de ses propres filtres pour les drafts Drafter enregistrées.",
     keywords: ['tendances', 'winrate', 'blue side', 'red side', 'identité', 'pattern', 'rôle moteur', 'bloc', 'contexte', 'filtre', 'game à review', "analyses", "taux de victoire", "côté bleu", "côté rouge", "parties"],
     steps: [
       "Choisis la période et la catégorie de parties à analyser.",
@@ -321,6 +415,53 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       triggers: ['associations alliées', 'prouvent une synergie', 'synergie démontrée'],
       answer: "Les associations alliées décrivent des champions joués ensemble dans la sélection. Elles ne démontrent pas une synergie ni l’effet d’un champion sur le résultat. Ouvre les parties sources et tiens compte du nombre de résultats connus."
     }]
+  },
+  {
+    id: 'drafter-analysis',
+    title: 'Analyser les drafts et les bans',
+    path: '/tendances?rubrique=drafts',
+    actionLabel: 'Ouvrir Drafts & bans',
+    summary: 'Dans Analyses → Drafts & bans, examine les bans contre nous ou nos bans, les options touchées et les rotations de picks. Les drafts Drafter enregistrées restent consultables sans partie liée, avec leur ordre de sélection lorsqu’il est vérifiable.',
+    keywords: ['drafts & bans', 'analyse drafter', 'analyser les drafts', 'ordre des picks', 'ordre des bans', 'ordre de sélection', 'premier pick global', 'phases de bans', 'drafts sans partie', 'fréquences de draft', 'bans contre nous', 'nos bans', 'rôle concerné', 'rotations', 'qui perd des options'],
+    steps: [
+      'Ouvre Analyses → Drafts & bans après avoir rattaché une draft depuis le détail d’une partie.',
+      'Choisis Équipe adverse liée, Bans à analyser (Bans contre nous ou Nos bans) et Côté de notre équipe. Affiner le périmètre filtre les drafts incluses, le patch et le format.',
+      'Filtre les bans par phase, Rôle concerné ou champion, puis ouvre un champion pour lire les observations, les options touchées et les drafts sources avec leur couverture.',
+      'Consulte les rotations de nos picks, puis déplie Ordre des picks et des bans pour choisir une Draft à revoir. Les rangs de sélection ne sont pas les rôles joués.'
+    ],
+    suggestions: ['Comment consulter l’ordre des picks et des bans ?', 'Pourquoi l’ordre de sélection est-il indisponible ?', 'Que signifient les fréquences et le premier pick global ?'],
+    faq: [
+      {
+        question: 'Comment retrouver une draft sans partie liée ?',
+        triggers: ['retrouver une draft sans partie liée', 'drafts sans partie liée', 'draft sans partie'],
+        answer: 'Dans Analyses → Drafts & bans, ouvre Affiner le périmètre puis choisis Sans partie liée dans Drafts incluses. Vérifie aussi le filtre Équipe adverse liée : Toutes les équipes et sans équipe ou Sans équipe liée permet de retrouver cet historique. Déplie Ordre des picks et des bans, choisis la Draft à revoir puis ouvre sa source Drafter. Remplacer ou détacher une draft conserve cet instantané ; aucune partie ni aucun résultat ne sont créés.'
+      },
+      {
+        question: 'Comment consulter l’ordre des picks et des bans ?',
+        triggers: ['ordre des picks', 'ordre des bans', 'chronologie de draft'],
+        answer: 'Dans Analyses → Drafts & bans, déplie Ordre des picks et des bans puis sélectionne une Draft à revoir. L’ordre est reconstitué depuis les emplacements finaux vérifiés de Drafter et le premier camp de sélection. Il ne décrit pas les corrections ni leurs horaires pendant la draft. Les phases de picks et bans sont affichées par côté ; les rôles réellement joués restent distincts. Tu peux rouvrir la source Drafter et la partie liée si elle existe.'
+      },
+      {
+        question: 'Pourquoi l’ordre de sélection est-il indisponible ?',
+        triggers: ['ordre de sélection indisponible', 'ordre indisponible', 'ordre non vérifié'],
+        answer: 'L’ordre reste indisponible si l’import ne contient pas de preuve vérifiée des emplacements, si le format n’est pas pris en charge ou si les picks sont incomplets. Depuis la partie, le staff peut choisir Remplacer la draft, coller le lien puis Vérifier la draft, choisir son côté et enregistrer avec Remplacer la draft liée. L’aperçu seul ne met pas l’historique à jour, et un format inconnu peut rester indisponible. Les picks et bans disponibles restent consultables, sans inventer une chronologie ni déduire l’ordre des rôles joués.'
+      },
+      {
+        question: 'Que signifient les fréquences et le premier pick global ?',
+        triggers: ['premier pick global', 'fréquences de draft', 'phases de bans'],
+        answer: 'Les fréquences de Drafts & bans décrivent uniquement les drafts enregistrées et sélectionnées, avec un nombre de drafts exploitables propre à chaque mesure. Les données incomplètes sont exclues du calcul concerné. Le premier pick global compte seulement les drafts où le camp analysé ouvre la sélection ; les choix n° 1 à 5 désignent ses propres emplacements, pas les rôles. Ces observations ne prouvent ni une préférence durable ni l’efficacité d’un choix.'
+      },
+      {
+        question: 'Comment analyser les bans contre nous et les rôles concernés ?',
+        triggers: ['bans contre nous', 'rôles concernés', 'rôle concerné', 'qui perd des options', 'pression sur les pools'],
+        answer: 'Dans Analyses → Drafts & bans, choisis Bans contre nous ou Nos bans, puis filtre par Phase des bans, Rôle concerné ou champion. Ouvre un champion pour voir les phases, les joueurs et rôles concernés, les choix observés au même poste et les drafts sources. Qui perd des options ? rapproche les bans des pools déclarés actuels, pas de leur état historique. Un rôle provient de parties compatibles ou, pour les bans adverses, des pools actuels ; les données ne prouvent ni l’intention du ban ni un remplacement garanti. Chaque taux garde son propre échantillon.'
+      },
+      {
+        question: 'Comment lire les rotations de picks ?',
+        triggers: ['rotations de picks', 'rotation de sélection', 'notre position dans la sélection', 'picks consécutifs'],
+        answer: 'Dans Analyses → Drafts & bans, À quelle rotation joue-t-on nos champions ? regroupe nos picks consécutifs avant de rendre la main. Choisis Notre position dans la sélection selon que nous avons le premier pick ou que nous y répondons. Les rôles retrouvés exigent une partie liée compatible ; des champions absents ou différents empêchent leur attribution. Vérifier cette rotation ouvre les drafts sources. Les rangs de sélection ne sont pas les rôles joués et ne mesurent pas l’efficacité des choix.'
+      }
+    ]
   },
   {
     id: 'champion-pool',
@@ -400,6 +541,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
         "question": "Comment sont classés les choix de champions ?",
         "triggers": [
           "classés les choix",
+          "classées les suggestions",
           "classement des champions",
           "ordre des suggestions",
           "taux de victoire classe",
@@ -650,8 +792,10 @@ function knownAssistantRoute(value: unknown): string | null {
   if (route === '/equipes') return '/mon-equipe';
   if (route === '/integration' || route === '/statistiques') return '/games';
   if (!ALLOWED_PATH_SET.has(route)) return null;
-  // Preserve this public view selector, never private match/player/filter values.
-  if (route === '/tendances' && new URLSearchParams(search).get('rubrique') === 'draft') return '/tendances?rubrique=draft';
+  // Preserve only documented public views, never private match/player/filter values.
+  const params = new URLSearchParams(search);
+  if (route === '/tendances' && ['draft', 'drafts'].includes(params.get('rubrique') || '')) return `${route}?rubrique=${params.get('rubrique')}`;
+  if (route === '/games' && params.get('view') === 'teams') return '/games?view=teams';
   return route;
 }
 
@@ -661,6 +805,7 @@ export function safeAssistantRoute(value: unknown): string {
 
 export function retrieveAssistantKnowledge(message: unknown, route: unknown, limit = 4, language: AssistantLanguage = 'fr', section: unknown = null): AssistantKnowledgeMatch[] {
   const helpSection = normalizeAssistantSection(section);
+  const normalizedMessage = normalizeAssistantText(message);
   // With an explicit topic, generic help wording must not favour Getting started.
   const query = helpSection
     ? normalizeAssistantText(message).replace(/\b(aide|help|guide|ayuda|guia)\b/g, ' ')
@@ -680,6 +825,8 @@ export function retrieveAssistantKnowledge(message: unknown, route: unknown, lim
         ...(entry.faq || []).flatMap((item) => [item.question, item.triggers.join(' '), item.answer])
       ].join(' '));
       let score = helpSection ? entry.id === helpSection ? 18 : 0 : routeMatches(entry.path, safeRoute) ? 18 : 0;
+      // A documented question is stronger evidence than a shared page or generic nouns.
+      if (entry.faq?.some((faq) => normalizeAssistantText(faq.question) === normalizedMessage)) score += 100;
       for (const token of queryTokens) {
         if (searchable.includes(token)) score += token.length >= 6 ? 4 : 2;
         if (entry.keywords.some((keyword) => normalizeAssistantText(keyword).includes(token))) score += 3;

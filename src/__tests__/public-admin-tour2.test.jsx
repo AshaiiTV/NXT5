@@ -42,7 +42,8 @@ it("E2: describes the actual composition form and filters", () => {
 it("E3: allows loading before profile creation and uses current navigation labels", () => {
   expect(guide("getting-started")).toContain("Les profils peuvent être créés pendant l’import");
   expect(guide("getting-started")).toContain("Revenir à l’accueil");
-  expect(guide("imports-and-games")).toContain("créer les profils manquants depuis le fichier, puis confirmer l’import");
+  expect(guide("imports-and-games")).toContain("créer les profils manquants depuis le fichier");
+  expect(guide("imports-and-games")).toContain("choisir au moins un tag");
   expect(guide("champion-pool")).toContain("Draft, puis Champions des joueurs");
   expect(guide("planning")).toContain("Entraînement, Match ou Débrief");
 });

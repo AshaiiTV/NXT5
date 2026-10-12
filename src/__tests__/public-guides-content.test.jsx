@@ -14,7 +14,7 @@ describe("public guidance and discovery links", () => {
     const html = renderToStaticMarkup(<PublicGuidePage path={path} />);
     expect(html.match(/<h1[ >]/g)).toHaveLength(1);
     expect(html).toContain('<ol class="public-guide-steps">');
-    expect(html).toContain('<time dateTime="2026-10-06">');
+    expect(html).toContain('<time dateTime="2026-10-12">');
     for (const href of ["/fonctionnalites", "/demo", nextPath]) {
       expect(html).toContain(`href="${href}"`);
     }

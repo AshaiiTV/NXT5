@@ -20,10 +20,19 @@ afterEach(() => {
 describe("contextual help", () => {
   it.each([
     ["/accueil", "getting-started"],
+    ["/mon-equipe", "teams-and-roster"],
+    ["/equipes", "teams-and-roster"],
     ["/gestion-equipe?section=roster", "teams-and-roster"],
     ["/games?import=1", "imports-and-games"],
     ["/integration/", "imports-and-games"],
     ["/games?match=example", "statistics"],
+    ["/games?view=teams", "opponents"],
+    ["/games?view=teams&match=example", "statistics"],
+    ["/games?view=teams&archive=example", "statistics"],
+    ["/games?view=teams&import=1", "imports-and-games"],
+    ["/games?view=teams&match=example&import=1", "statistics"],
+    ["/games?view=teams&archive=example&import=1", "statistics"],
+    ["/draft/adversaires/", "opponents"],
     ["/statistiques", "statistics"],
     ["/rapports", "reviews"],
     ["/draft/pool", "champion-pool"],
@@ -35,6 +44,7 @@ describe("contextual help", () => {
     ["/mon-profil/carte", "player-showcase"],
     ["/mon-profil/pool", "champion-pool"],
     ["/tendances?rubrique=draft&periode=10", "champion-analysis"],
+    ["/tendances?rubrique=drafts", "drafter-analysis"],
     ["/tendances/draft/duos", "champion-analysis"],
     ["/tendances?rubrique=evolution", "trends"],
     ["/planning", "planning"],
@@ -53,8 +63,8 @@ describe("contextual help", () => {
     for (const section of GUIDE_SECTIONS) {
       const { pathname: path, search } = new URL(section.path, "https://nxt5.org");
       expect(isAppPath(path), section.id).toBe(true);
-      // Troubleshooting deliberately opens account settings as its recovery destination.
-      const destinationSection = section.id === "troubleshooting" ? "permissions-and-account" : section.id;
+      // These instructions start from a shared page before selecting the relevant control.
+      const destinationSection = { troubleshooting: "permissions-and-account", "match-drafter": "statistics" }[section.id] || section.id;
       expect(guideSectionForRoute({ path, search }), section.id).toBe(destinationSection);
     }
   });
@@ -94,7 +104,7 @@ describe("translated guide data", () => {
 
   it.each(["en", "es"])("translates the assistant suggestions for all guide sections in %s", language => {
     setLanguage(language);
-    expect(GUIDE_SECTIONS).toHaveLength(16);
+    expect(GUIDE_SECTIONS.map(section => section.id)).toEqual(expect.arrayContaining(["opponents", "match-drafter", "drafter-analysis"]));
     for (const section of GUIDE_SECTIONS) {
       const suggestions = suggestionsForRoute({ path: "/guide", search: `?section=${section.id}` });
       expect(suggestions).toHaveLength(3);
@@ -102,11 +112,12 @@ describe("translated guide data", () => {
         expect.soft(Object.hasOwn(messages[language], suggestion), `${language}/${section.id}: ${suggestion}`).toBe(true);
         expect.soft(t(suggestion), `${language}/${section.id}: ${suggestion}`).not.toBe(suggestion);
       }
-      if (section.id !== "troubleshooting") {
+      if (!["troubleshooting", "match-drafter"].includes(section.id)) {
         const { pathname: path, search } = new URL(section.path, "https://nxt5.org");
         expect(suggestionsForRoute({ path, search }), section.id).toEqual(suggestions);
       }
     }
     expect(suggestionsForRoute({ path: "/tendances", search: "?rubrique=draft" })).not.toEqual(suggestionsForRoute({ path: "/tendances" }));
+    expect(suggestionsForRoute({ path: "/tendances", search: "?rubrique=drafts" })).not.toEqual(suggestionsForRoute({ path: "/tendances", search: "?rubrique=draft" }));
   });
 });
