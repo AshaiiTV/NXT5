@@ -457,6 +457,13 @@ function storyTeam(ctx, r, assets) {
   const selected = (member) => selectedId && String(member.id) === selectedId;
   const ordered = [...roster].sort((a, b) => Number(Boolean(selected(b))) - Number(Boolean(selected(a))));
   const displayed = ordered.slice(0, 6);
+  const currentLabel = t("CE PROFIL");
+  ctx.save();
+  ctx.font = "600 21px Inter, Arial, sans-serif";
+  const currentLabelWidth = Math.ceil(ctx.measureText(currentLabel).width);
+  ctx.restore();
+  // Keep the identity marker complete across translations and fallback fonts.
+  const currentNameWidth = 986 - currentLabelWidth - 20 - 254;
   fit(ctx, t("EFFECTIF ACTUEL"), 73, 870, 26, C.cyan, 600, 530);
   fit(ctx, displayed.length < roster.length ? t("{0} / {1} profils affichés", [pngNumber(displayed.length), pngNumber(roster.length)]) : t(roster.length === 1 ? "{0} profil" : "{0} profils", [pngNumber(roster.length)]), 1007, 870, 24, C.secondary, 500, 420, "right");
   displayed.forEach((member, index) => {
@@ -465,8 +472,8 @@ function storyTeam(ctx, r, assets) {
     if (current) pngPanel(ctx, 70, y, 940, 65, { fill: "#10242F", stroke: "#355666", radius: 10 });
     else pngLine(ctx, 74, y + 64, 1007, y + 64, "rgba(198,212,229,.14)");
     fit(ctx, member.role || "—", 92, y + 42, 25, current ? C.cyan : C.violet, 600, 151);
-    fit(ctx, member.name || t("Profil sans nom"), 254, y + 42, 31, C.text, current ? 700 : 500, current ? 594 : 725, "left", 26);
-    if (current) fit(ctx, t("CE PROFIL"), 986, y + 40, 21, C.cyan, 600, 130, "right");
+    fit(ctx, member.name || t("Profil sans nom"), 254, y + 42, 31, C.text, current ? 700 : 500, current ? currentNameWidth : 725, "left", 26);
+    if (current) fit(ctx, currentLabel, 986, y + 40, 21, C.cyan, 600, currentLabelWidth, "right");
   });
   if (!displayed.length) {
     fit(ctx, t("Effectif non renseigné"), 73, 987, 38, C.text, 600, 930);

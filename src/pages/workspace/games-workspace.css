@@ -45,6 +45,9 @@
   .nxt5-games-page > .nxt5-page-header { padding-bottom: 16px; margin-bottom: 16px; }
   .nxt5-games-page .ig-surface { margin-top: 12px; }
   .games-library-toolbar > div { flex-basis: 100%; }
+  .games-library-toolbar .nxt5-tab-nav > div { display: grid; min-width: 0; width: 100%; grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .games-library-toolbar .nxt5-tab-nav button { min-width: 0; justify-content: center; flex-wrap: wrap; gap: 4px; padding-inline: 6px; }
+  .games-library-toolbar .nxt5-tab-count { margin-left: 0; }
   .games-team-record { gap: 4px 12px; }
   .games-detail-toolbar { gap: 12px; }
   .games-detail-actions { width: 100%; }

@@ -7,4 +7,5 @@ import { es as showcase } from './showcase-overrides.js';
 import { es as draftAssistance } from './draft-assistance-overrides.js';
 import { es as opponents } from './opponents-overrides.js';
 import { es as groupOpponents } from './group-opponents-overrides.js';
-export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents };
+import { es as draftIntelligence } from './draft-intelligence-overrides.js';
+export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence };

@@ -15,16 +15,19 @@ describe('opponent game observations', () => {
     const result = model();
     expect(result.total).toBe(1); expect(result.coverage).toEqual({ played: 1, draft: 0, unknown: 0, bans: 0 });
     expect(result.playedPicks).toContainEqual({ champion: 'Jinx', count: 1, total: 1 });
+    expect(result.observations[0].draft).toBeNull();
   });
   it('does not create a game observation from an unattached or stale opponent draft', () => {
     expect(model([], [draft]).total).toBe(0);
     const result = model([game], [{ ...draft, matchId: null }, { ...draft, matchId: 'another' }, { ...draft, opponentId: 'other' }]);
     expect(result.coverage.bans).toBe(0); expect(result.bans).toEqual([]);
+    expect(result.observations[0].draft).toBeNull();
   });
   it('prefers complete played participants to a linked draft', () => {
     const result = model([game], [draft]);
     expect(result.observations[0]).toMatchObject({ pickSource: 'match', picks });
     expect(result.draftPicks).toEqual([]); expect(result.coverage.bans).toBe(1);
+    expect(result.observations[0].draft).toBe(draft);
   });
   it('uses complete linked picks only as a separately labelled fallback', () => {
     const result = model([{ ...game, enemyPicks: ['Jinx'], enemyPicksComplete: false }], [draft]);
@@ -54,6 +57,31 @@ describe('opponent game observations', () => {
   it('chooses the newest draft for one game and uses the opposite of allySide', () => {
     const result = model([{ ...game, enemyPicksComplete: false }], [draft, { ...draft, importedAt: '2026-10-12T13:00:00Z', allySide: 'red', snapshot: { ...draft.snapshot, bluePicks: picks, blueBans: bans } }]);
     expect(result.observations[0].picks).toEqual(picks); expect(result.coverage.bans).toBe(1);
+  });
+  it('exposes the exact latest linked draft even when game deduplication retains another match row', () => {
+    const duplicate = { ...game, id: 'duplicate' };
+    const original = { ...game, enemyPicks: [], enemyPicksComplete: false };
+    const older = { ...draft, id: 'old-draft', matchId: duplicate.id, importedAt: '2026-10-12T11:00:00Z' };
+    const latest = { ...draft, id: 'latest-draft', importedAt: '2026-10-12T13:00:00Z' };
+    for (const input of [[older, latest], [latest, older]]) {
+      const result = model([original, duplicate], input);
+      expect(result.observations).toHaveLength(1);
+      expect(result.observations[0].id).toBe(duplicate.id);
+      expect(result.observations[0].draft).toBe(latest);
+      expect(result.observations[0].pickSource).toBe('match');
+      expect(result.coverage.bans).toBe(1);
+    }
+  });
+  it('does not expose newer detached, foreign, unfinished or invalid-side drafts instead of the valid link', () => {
+    const valid = { ...draft, importedAt: '2026-10-12T10:00:00Z' };
+    const newer = { ...draft, id: 'newer', importedAt: '2026-10-12T15:00:00Z' };
+    const excluded = [
+      { ...newer, matchId: null }, { ...newer, matchId: 'unknown-match' },
+      { ...newer, opponentId: 'other-opponent' }, { ...newer, allySide: 'unknown' },
+      { ...newer, snapshot: { ...newer.snapshot, status: 'in-progress' } },
+    ];
+    expect(model([game], [...excluded, valid]).observations[0].draft).toBe(valid);
+    expect(model([game], excluded).observations[0].draft).toBeNull();
   });
   it('excludes an unknown ban from all global ban counts', () => {
     const result = model([game], [{ ...draft, snapshot: { ...draft.snapshot, redBans: [null, ...bans.slice(1)] } }]);

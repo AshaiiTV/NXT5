@@ -5,6 +5,7 @@ import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { Badge, Button, SelectInput, Surface, TextInput } from "../ui/Core.jsx";
 import { DraftSnapshot, SnapshotContext, SourceLink } from "./OpponentsWorkspace.jsx";
+import DraftBoard from "../draft/DraftBoard.jsx";
 import "./match-drafter-panel.css";
 
 function MatchDraft({ teamId, matchId, onChanged }) {
@@ -130,7 +131,7 @@ function MatchDraft({ teamId, matchId, onChanged }) {
         {draft ? <div className="match-drafter-linked">
           <div className="match-drafter-summary"><div><strong>{draft.snapshot.blueName} / {draft.snapshot.redName}</strong><p>{t("Game {0}", [draft.gameNumber])}</p></div><SourceLink snapshot={draft.snapshot} /></div>
           <a className="opponents-source" href={`/tendances?rubrique=drafts&draft=${encodeURIComponent(draft.id)}`}>{t("Analyser cette draft")}<ArrowRight size={16} aria-hidden="true" /></a>
-          <details className="match-drafter-details"><summary>{t("Voir les picks et bans")}</summary><DraftSnapshot snapshot={draft.snapshot} allySide={draft.allySide} /><SnapshotContext snapshot={draft.snapshot} importedAt={draft.importedAt} /></details>
+          <details className="match-drafter-details"><summary>{t("Voir les picks et bans")}</summary><DraftBoard snapshot={draft.snapshot} allySide={draft.allySide} /><SnapshotContext snapshot={draft.snapshot} importedAt={draft.importedAt} /></details>
           {canEdit && !editorOpen && <div className="match-drafter-actions"><Button type="button" variant="ghost" icon={Link} disabled={mutating} onClick={() => toggleEditor(true)}>{t("Remplacer la draft")}</Button><Button type="button" variant="ghost" icon={Unlink} disabled={mutating} aria-expanded={unlinkOpen} aria-controls={`${id}-unlink`} onClick={() => { setUnlinkOpen((value) => !value); setError(""); }}>{t("Détacher la draft")}</Button></div>}
           {canEdit && unlinkOpen && <div id={`${id}-unlink`} className="match-drafter-unlink"><p>{t("Retirer cette draft de la partie ? Elle restera disponible dans l’historique des analyses.")}</p><div className="match-drafter-actions"><Button type="button" variant="ghost" disabled={mutating} onClick={() => setUnlinkOpen(false)}>{t("Annuler")}</Button><Button type="button" variant="danger" icon={busy === "unlink" ? Loader2 : Unlink} disabled={mutating} onClick={unlink}>{t(busy === "unlink" ? "Détachement…" : "Confirmer le détachement")}</Button></div></div>}
         </div> : !canEdit && <p className="opponents-help">{t("Aucune draft liée à cette partie. Le staff peut en ajouter une.")}</p>}

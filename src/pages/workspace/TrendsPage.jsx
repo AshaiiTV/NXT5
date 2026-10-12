@@ -329,7 +329,7 @@ function TrendsPage({ data, selectedTeamId }) {
     <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Retrouve les priorités de sélection et les bans des drafts importées.")} />
     <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
     {trendPanelOptions.map(([id]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-labelledby={`trend-tab-${id}`} hidden={id !== "drafts"} tabIndex={0}>
-      {id === "drafts" && <DrafterAnalysis key={selectedTeamId} teamId={selectedTeamId} matches={baseMatches} />}
+      {id === "drafts" && <DrafterAnalysis key={selectedTeamId} teamId={selectedTeamId} matches={baseMatches} players={data.players || []} championPool={data.championPool || []} />}
     </div>)}
   </div>;
 
