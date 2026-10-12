@@ -46,9 +46,12 @@ function selectBan(champion) {
 function banDetail() { return renderer.root.findByProps({ className: "draft-ban-detail" }); }
 function sourceButtons(node = renderer.root) { return node.findAllByType("button").filter((button) => button.props.className === "draft-source-button"); }
 function draftCount() {
-  const metric = renderer.root.findByProps({ className: "drafter-metrics" }).findAllByType("div")
-    .find((node) => node.findAllByType("dt").some((title) => content(title) === "Drafts analysées"));
-  return content(metric.findByType("dd"));
+  return content(renderer.root.findByProps({ className: "drafter-sample" }).findByType("strong"));
+}
+function coverageValue(label) {
+  const labelNode = renderer.root.findAllByType("dt").find((node) => content(node) === label);
+  expect(labelNode, `Coverage “${label}” should be available`).toBeDefined();
+  return content(labelNode.parent.findByType("dd"));
 }
 afterEach(() => { act(() => renderer?.unmount()); renderer = undefined; setLanguage("fr", { persist: false }); vi.resetAllMocks(); vi.unstubAllGlobals(); });
 
@@ -65,21 +68,48 @@ describe("Drafter analysis interface", () => {
     apiFetch.mockResolvedValue(payload); await mount();
     const frequencyText = () => renderer.root.findAllByType("section").filter((node) => node.props.className === "drafter-frequency").map(content);
     expect(frequencyText()[0]).toContain("Yunara"); expect(frequencyText()[0]).not.toContain("Aatrox");
-    expect(frequencyText()[2]).toContain("0 drafts exploitables sur 1");
+    expect(frequencyText()[1]).toContain("0 drafts exploitables sur 1");
     choose("Bans à analyser", "ally");
-    expect(frequencyText()[0]).toContain("Aatrox"); expect(frequencyText()[2]).toContain("Aatrox");
+    expect(frequencyText()[0]).toContain("Aatrox"); expect(frequencyText()[1]).toContain("Aatrox");
     expect(renderer.root.findAllByType("a").some((link) => link.props.href === "/games?match=m1")).toBe(true);
   });
   it("keeps a missing ban out of complete-ban statistics while preserving chronology", async () => {
     apiFetch.mockResolvedValue({ ...payload, drafts: [{ ...row, snapshot: { ...snapshot, redBans: ["MonkeyKing", "Poppy", "Thresh", null, "Diana"] } }] });
     await mount();
-    const bans = renderer.root.findAllByType("section").filter((node) => node.props.className === "drafter-frequency")[1];
-    expect(content(bans)).toContain("0 drafts exploitables sur 1");
-    expect(content(bans)).not.toContain("Diana"); expect(text()).toContain("Non renseigné");
+    expect(coverageValue("Bans complets")).toBe("0 / 1");
+    search("Diana");
+    expect(banNames()).toEqual(["Diana"]);
+    expect(content(banButtons()[0])).toContain("Fréquence indisponible");
+    expect(content(banDetail())).toContain("les données sont trop incomplètes pour calculer une fréquence");
+    expect(sourceButtons(banDetail()).length).toBeGreaterThan(0);
+    expect(text()).toContain("Non renseigné");
     const board = renderer.root.findByProps({ className: "draft-board" });
     expect(content(board)).toContain("Draft finale");
     expect(board.findAllByProps({ type: "range" })[0].props.value).toBe(20);
     expect(board.findAllByType("li").filter((node) => node.props["data-revealed"] === true)).toHaveLength(20);
+  });
+  it("keeps complete drafts, linked games and phase coverage distinct in the data details", async () => {
+    const partial = anotherDraft("partial", { matchId: null }, { redBans: ["MonkeyKing", null, "Thresh", "Syndra", "Diana"] });
+    const legacy = anotherDraft("legacy", { matchId: null }, { orderEvidence: undefined });
+    const skipped = anotherDraft("skipped", {}, {
+      redBans: ["MonkeyKing", "Poppy", "Thresh", "Syndra", null],
+      banStates: { red: ["selected", "selected", "selected", "selected", "skipped"] },
+    });
+    apiFetch.mockResolvedValue({ ...payload, drafts: [row, partial, legacy, skipped] }); await mount();
+    expect(draftCount()).toBe("4");
+    expect(coverageValue("Ordre disponible")).toBe("3 / 4");
+    expect(coverageValue("Liées à une partie")).toBe("2 / 4");
+    expect(coverageValue("Bans complets")).toBe("3 / 4");
+    expect(coverageValue("Retraits en phase 2")).toMatch(/^5\s*sur 3 drafts exploitables$/);
+    search("Diana");
+    expect(content(banButtons()[0])).toContain("2/3 drafts exploitables");
+    expect(content(banButtons()[0])).toContain("Phase 1 : 0/2");
+    expect(content(banButtons()[0])).toContain("Phase 2 : 2/3");
+    expect(content(banDetail())).toContain("Bans observés sans phase vérifiée : 1.");
+    expect(sourceButtons(banDetail()).some((button) => content(button).includes("series-partial"))).toBe(true);
+    choose("Bans à analyser", "ally");
+    expect(coverageValue("Bans complets")).toBe("4 / 4");
+    expect(coverageValue("Retraits en phase 2")).toMatch(/^6\s*sur 3 drafts exploitables$/);
   });
   it("filters opponent and linked status without carrying an invisible draft", async () => {
     apiFetch.mockResolvedValue(payload); await mount();
@@ -145,11 +175,11 @@ describe("Drafter analysis interface", () => {
   it("changes the interpretation when inspecting our bans instead of bans against us", async () => {
     apiFetch.mockResolvedValue(payload); await mount();
     selectBan("Poppy");
-    expect(text()).toContain("Ce qu’on nous retire");
+    expect(renderer.root.findAllByType("h3").map(content)).toContain("Bans contre nous");
     expect(content(banDetail())).toContain("Qui peut être concerné ?");
     expect(content(banDetail())).toContain("Préparez un plan sans ce champion");
     choose("Bans à analyser", "ally");
-    expect(text()).toContain("Ce que nous retirons à l’adversaire");
+    expect(renderer.root.findAllByType("h3").map(content)).toContain("Nos bans");
     expect(banNames()).toContain("Jhin"); expect(banNames()).not.toContain("Poppy");
     selectBan("Jhin");
     expect(content(banDetail())).toContain("Quels rôles adverses sont concernés ?");
@@ -232,9 +262,12 @@ describe("Drafter analysis interface", () => {
     const championPool = [
       { id: "pool1", team_id: "team1", player_id: "p1", champion: "Poppy", role: "JGL", source: "manual", status: "lock" },
       { id: "pool2", team_id: "team1", player_id: "p2", champion: "Poppy", role: "SUP", source: "riot_manual", status: "pocket" },
+      { id: "pool3", team_id: "team1", player_id: "p1", champion: "MonkeyKing", role: "JGL", source: "manual", status: "lock" },
       { id: "outside", team_id: "another-team", player_id: "outsider", champion: "Poppy", role: "SUP", source: "manual", status: "lock" },
     ];
     apiFetch.mockResolvedValue(payload); await mount({ players, championPool });
+    const poolSummary = renderer.root.findAllByType("summary").find((node) => content(node).includes("Qui perd des options ?"));
+    expect(content(poolSummary)).toContain("2 joueurs concernés");
     choose("Rôle concerné", "SUP");
     expect(banNames()).toEqual(["Poppy"]);
     expect(content(banDetail())).toContain("NyxJGL · Confiance");
@@ -264,12 +297,21 @@ describe("Drafter analysis interface", () => {
     apiFetch.mockResolvedValue(payload); await mount();
     choose("Phase des bans", "1"); search("Poppy");
     await act(async () => { await setLanguage("en", { persist: false }); });
-    expect(text()).toContain("What opponents ban against us");
+    expect(renderer.root.findAllByType("h3").map(content)).toContain("Bans against us");
+    expect(text()).toContain("Understand the data");
+    expect(text()).toContain("Compare pick priorities");
+    expect(text()).toContain("These lists describe opponents' picks.");
     expect(field("Bans to analyze").findByType("select").props.value).toBe("enemy");
     expect(field("Search for a banned champion").findByType("input").props.value).toBe("Poppy");
     expect(banNames()).toEqual(["Poppy"]);
     expect(text()).not.toContain("Ce qu’on nous retire");
     expect(sourceButtons().some((button) => content(button).includes("OPIF"))).toBe(true);
+    await act(async () => { await setLanguage("es", { persist: false }); });
+    expect(text()).toContain("Entender los datos");
+    expect(text()).toContain("Comparar las prioridades de selección");
+    expect(text()).toContain("Estas listas describen las selecciones rivales.");
+    expect(field("Fase de bloqueos").findByType("select").props.value).toBe("1");
+    expect(banNames()).toEqual(["Poppy"]);
     await act(async () => { await setLanguage("fr", { persist: false }); });
     expect(field("Phase des bans").findByType("select").props.value).toBe("1");
     expect(banNames()).toEqual(["Poppy"]);

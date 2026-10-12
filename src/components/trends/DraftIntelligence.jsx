@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Target } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { ROLES } from "../../../shared/roles.js";
@@ -88,23 +88,15 @@ export function DraftBanIntelligence({ model, camp, onOpenDraft, draftLabel }) {
     focusRequested.current = false;
     focusDetail();
   }, [selected?.champion]);
-  const top = allRows.find((row) => row.count > 0);
-  const phaseTwoCount = allRows.reduce((sum, row) => sum + row.phase2.count, 0);
   const affectedPlayers = new Set(allRows.filter((row) => row.observed > 0).flatMap((row) => row.poolPlayers || []).map((player) => player.id));
   const updateFilter = (setter) => (value) => { setter(value); setSelectedChampion(""); setExpanded(false); };
   return <Surface className="draft-intelligence" glow>
-    <header className="draft-intelligence-brief"><div><p className="drafter-muted">{t("Préparer la prochaine draft")}</p><h3>{t(camp === "enemy" ? "Ce qu’on nous retire" : "Ce que nous retirons à l’adversaire")}</h3><p>{top ? t("Sur l’ensemble du périmètre, {0} est le ban le plus fréquent : {1} drafts sur {2}.", [championDisplayName(top.champion), top.count, top.total]) : t("Lis les bans renseignés, puis vérifie leur phase et les options touchées.")}</p></div><Target aria-hidden="true" size={28} /></header>
-    <dl className="draft-intelligence-kpis"><div><dt>{t("Bans complets")}</dt><dd>{campModel.coverage.bans} / {model.coverage.total}</dd></div><div><dt>{t("Retraits en phase 2")}</dt><dd>{phaseTwoCount}<span>{t("sur {0} drafts exploitables", [campModel.coverage.phase2])}</span></dd></div><div><dt>{t(camp === "enemy" ? "Joueurs aux pools concernés" : "Champions retirés")}</dt><dd>{camp === "enemy" ? model.poolCoverage ? affectedPlayers.size : "—" : allRows.length}</dd></div></dl>
-    {camp === "enemy" && <details className="draft-intelligence-disclosure"><summary>{t("Qui perd des options ?")}</summary><p className="drafter-muted">{t("Rapprochement avec les pools déclarés actuels, pas avec leur état historique. Une draft compte une seule fois par joueur et rôle, même avec plusieurs champions bannis.")}</p>
-      {model.poolPressure?.length ? <ul className="draft-pool-pressure">{model.poolPressure.map((player) => <li key={`${player.id}-${player.role}`}><div><strong>{player.name} · {player.role}</strong><p>{player.champions.map((entry) => championDisplayName(entry.champion)).join(" · ")}</p></div><span>{t("Au moins une option retirée dans {0}/{1} drafts", [player.count, player.total])}</span></li>)}</ul> : <p className="drafter-muted">{t(model.poolCoverage ? "Aucun ban renseigné ne correspond aux pools déclarés dans ce périmètre." : "Déclare les champions préparés par tes joueurs dans Draft & Pool pour mesurer leur exposition aux bans.")}</p>}
-    </details>}
-    <p className="drafter-muted">{t("Phase 1 : avant les picks. Phase 2 : après trois picks de chaque côté. Un ban adverse retire le champion aux deux équipes.")}</p>
+    <header className="draft-intelligence-section-heading"><h3>{t(camp === "enemy" ? "Bans contre nous" : "Nos bans")}</h3><p className="drafter-muted" role="status">{t("{0} champions dans cette vue", [rows.length])}</p></header>
     <div className="draft-intelligence-filters">
       <SelectInput label={t("Phase des bans")} value={phase} onChange={updateFilter(setPhase)}><option value="all">{t("Toutes les phases")}</option><option value="1">{t("Phase 1 · avant les picks")}</option><option value="2">{t("Phase 2 · après trois picks")}</option></SelectInput>
       <SelectInput label={t("Rôle concerné")} value={role} onChange={updateFilter(setRole)}><option value="">{t("Tous les rôles")}</option>{ROLES.map((value) => <option key={value} value={value}>{value}</option>)}</SelectInput>
       <TextInput label={t("Rechercher un champion banni")} value={query} onChange={updateFilter(setQuery)} type="search" />
     </div>
-    <div className="draft-intelligence-section-heading"><h4>{t(camp === "enemy" ? "Bans contre nous" : "Nos bans")}</h4><p className="drafter-muted" role="status">{t("{0} champions dans cette vue", [rows.length])}</p></div>
     {!rows.length ? <p className="draft-insight drafter-muted">{allRows.length ? t("Aucun ban ne correspond à ces filtres. Essaie un autre rôle, champion ou une autre phase.") : t("Aucun champion banni renseigné pour ce camp. Les bans non utilisés ne sont pas des données manquantes.")}</p> : <div className="draft-ban-layout">
       <div><ol className="draft-ban-list">{visibleRows.map((row) => {
         const metric = metricFor(row, phase);
@@ -117,6 +109,9 @@ export function DraftBanIntelligence({ model, camp, onOpenDraft, draftLabel }) {
       })}</ol>{rows.length > 8 && <Button type="button" variant="ghost" onClick={() => setExpanded(!expanded)}>{expanded ? t("Réduire la liste") : t("Voir les {0} champions", [rows.length])}</Button>}<p className="drafter-muted">{t("Les barres montrent la répartition des bans dans les phases exploitables. Chaque taux garde son propre échantillon.")}</p></div>
       {selected && <BanDetail detailRef={detailRef} row={selected} phase={phase} camp={camp} onOpenDraft={onOpenDraft} draftLabel={draftLabel} />}
     </div>}
+    {camp === "enemy" && <details className="draft-intelligence-disclosure"><summary>{t("Qui perd des options ?")}{model.poolCoverage > 0 && <span className="draft-pool-count">{affectedPlayers.size === 1 ? t("1 joueur concerné") : t("{0} joueurs concernés", [affectedPlayers.size])}</span>}</summary><p className="drafter-muted">{t("Rapprochement avec les pools déclarés actuels, pas avec leur état historique. Une draft compte une seule fois par joueur et rôle, même avec plusieurs champions bannis.")}</p>
+      {model.poolPressure?.length ? <ul className="draft-pool-pressure">{model.poolPressure.map((player) => <li key={`${player.id}-${player.role}`}><div><strong>{player.name} · {player.role}</strong><p>{player.champions.map((entry) => championDisplayName(entry.champion)).join(" · ")}</p></div><span>{t("Au moins une option retirée dans {0}/{1} drafts", [player.count, player.total])}</span></li>)}</ul> : <p className="drafter-muted">{t(model.poolCoverage ? "Aucun ban renseigné ne correspond aux pools déclarés dans ce périmètre." : "Déclare les champions préparés par tes joueurs dans Draft & Pool pour mesurer leur exposition aux bans.")}</p>}
+    </details>}
   </Surface>;
 }
 
