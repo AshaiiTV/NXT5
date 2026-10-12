@@ -182,7 +182,7 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
     }
     images.set(championAssetId(row.champion), portrait);
   }));
-  pngBackground(ctx, W, H);
+  pngBackground(ctx, W, H, { variant: "pool" });
   pngHeader(ctx, {
     width: W,
     title: player?.name || "Joueur",
@@ -200,7 +200,8 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
   let sectionY = 390;
   sections.forEach(({ tier, rows: tierRows }) => {
     const height = sectionHeight({ rows: tierRows });
-    pngPanel(ctx, margin, sectionY, width, height);
+    pngPanel(ctx, margin, sectionY, width, height, { material: "reading", accent: tier.tone });
+    pngPanel(ctx, margin + 1, sectionY + 1, width - 2, 62, { stroke: null, radius: 17 });
     fit(t(tier.id === "danger" ? "En entraînement" : POOL_TIER_LABELS[tier.id]), margin + 28, sectionY + 43, 550, { font: "700 27px Inter, Arial, sans-serif", color: pngAccent(tier.tone) });
     const total = (grouped[tier.id] || []).length;
     fit(tierRows.length === total ? `${total} champions` : `${tierRows.length}/${total} champions sur cette page`, W - margin - 28, sectionY + 43, 500, { align: "right", color: PNG_THEME.muted });
@@ -210,6 +211,8 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
       const x = margin + 28 + (index % 2) * (columnWidth + 24);
       const y = sectionY + 82 + Math.floor(index / 2) * 92;
       const name = championDisplayName(row.champion) || "Champion inconnu";
+      pngPanel(ctx, x - 10, y - 8, columnWidth + 12, 76, { stroke: "rgba(196,181,253,0.16)", radius: 12 });
+      pngPanel(ctx, x - 3, y - 3, 62, 62, { stroke: pngAccent(tier.tone), radius: 11 });
       if (!pngImageCover(ctx, images.get(championAssetId(row.champion)), x, y, 56, 56, 8)) {
         fit(name.slice(0, 2).toUpperCase(), x + 28, y + 39, 56, { align: "center", color: pngAccent(tier.tone) });
       }

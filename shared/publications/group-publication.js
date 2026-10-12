@@ -2,7 +2,7 @@
 import { buildGamePublicationSnapshot } from './game-publication.js';
 
 export const GROUP_PUBLICATION_ANALYSIS_VERSION = 'nxt5-group-1';
-export const GROUP_PUBLICATION_TEMPLATE_VERSION = 'nxt5-discord-group-1';
+export const GROUP_PUBLICATION_TEMPLATE_VERSION = 'nxt5-discord-group-2';
 const cleanText = (value, limit) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, limit);
 function matchIds(value) {
   if (typeof value === 'string') {

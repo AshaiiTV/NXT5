@@ -264,7 +264,7 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
     await database.pg.exec(`update publication_snapshots set body=jsonb_set(body,'{templateVersion}','"nxt5-discord-3"')`);
     expect((await processNext()).outcome).toBe('succeeded');
     expect(transport.render).toHaveBeenCalledTimes(2);
-    expect(transport.render.mock.calls[1][0].templateVersion).toBe('nxt5-game-png-4');
+    expect(transport.render.mock.calls[1][0].templateVersion).toBe('nxt5-game-png-5');
     expect(transport.getAsset).not.toHaveBeenCalled();
     expect(transport.send.mock.calls[1][1].files[0].bytes).toEqual((await transport.render.mock.results[1].value).bytes);
   });

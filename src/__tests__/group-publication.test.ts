@@ -112,6 +112,7 @@ describe('Discord group PNG', () => {
     input.matches[1].participants = [];
     const image = await trace(buildGroupPublicationSnapshot(input));
     expect(image.height).toBeLessThanOrEqual(GROUP_PUBLICATION_PNG_MAX_HEIGHT);
+    expect(image.canvas.toBuffer('image/png').byteLength).toBeLessThan(3 * 1024 * 1024);
     for (const match of input.matches) expect(image.text).toContain(`vs ${match.opponent}`);
     expect(image.drawn.filter((entry) => /^Partie \d+$/.test(entry.text)).map((entry) => entry.text)).toEqual(input.matches.map((_, index) => `Partie ${index + 1}`));
     expect(image.text).toContain('Kills : — / —');
