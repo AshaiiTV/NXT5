@@ -1,5 +1,11 @@
 // Reviewed product copy. Keep these source strings aligned with the French UI.
 const copy = [
+  ["Tes objectifs", "Your goals", "Tus objetivos"],
+  ["Les objectifs en cours de ton profil lié.", "Active goals for your linked profile.", "Los objetivos en curso de tu perfil vinculado."],
+  ["Ouvrir mon suivi", "Open my progress", "Abrir mi seguimiento"],
+  ["{0}/{1} parties", "{0}/{1} games", "{0}/{1} partidas"],
+  ["Échéance : {0}", "Due: {0}", "Fecha límite: {0}"],
+  ["Consigne du staff", "Staff instruction", "Indicación del cuerpo técnico"],
   ["Mon équipe présente les titulaires, les remplaçants et l’encadrement. Le responsable ou le staff autorisé gère les profils et les accès dans Gestion de l’équipe.", "My team shows starters, substitutes and staff. The owner or authorized staff manages profiles and access in Team management.", "Mi equipo muestra los titulares, los suplentes y el cuerpo técnico. El responsable o el personal autorizado gestiona los perfiles y los accesos en Gestión del equipo."],
   ["Pour confirmer une nouvelle inscription, connecte-toi avec le mot de passe choisi, puis ouvre le lien de vérification reçu par e-mail dans ce même navigateur.", "To confirm a new registration, sign in with the password you chose, then open the verification email link in the same browser.", "Para confirmar un nuevo registro, inicia sesión con la contraseña que elegiste y abre el enlace de verificación del correo en este mismo navegador."],
   ["Connecte-toi pour vérifier ton e-mail", "Sign in to verify your email", "Inicia sesión para verificar tu correo"],

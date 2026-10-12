@@ -2,7 +2,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import { getLocale } from "../../i18n/locale.js";
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowRight, CalendarDays, FileText, Swords, Upload, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, FileText, Swords, Target, Upload, Users } from "lucide-react";
 import { BeginnerCompass } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PageHeader, Surface } from "../../components/ui/Core.jsx";
 import { RoleIcon, TeamAvatar } from "../../components/brand/BrandAssets.jsx";
@@ -27,6 +27,32 @@ function dateLabel(timestamp, options = {}) {
 
 function sessionDate(event) {
   return dateLabel(event.startsAt, { weekday: "long", hour: "2-digit", minute: "2-digit", ...(event.timezone ? { timeZone: event.timezone, timeZoneName: "short" } : {}) });
+}
+
+const goalMetricLabels = {
+  deaths: "Morts par partie", kp: "Participation aux éliminations (KP)", kda: "Ratio KDA",
+  vision: "Score de vision par partie", cs10: "Sbires et monstres à 10 minutes (CS)",
+};
+
+function HomeGoals({ context, navigate }) {
+  const { linkedPlayer, playerGoals, botGoals } = context;
+  if (!linkedPlayer || !playerGoals.length && !botGoals.length) return null;
+  return <section className="nxt5-home-goals" aria-labelledby="nxt5-home-goals-title">
+    <div className="nxt5-home-goals-heading">
+      <div><div className="nxt5-home-section-heading"><Target size={20} aria-hidden="true" /><h3 id="nxt5-home-goals-title">{t("Tes objectifs")}</h3></div><p className="nxt5-home-section-intro">{t("Les objectifs en cours de ton profil lié.")}</p></div>
+      {context.importPlayers.some(player => player.id === linkedPlayer.id) && <PublicTextLink href={`/mon-profil/coaching?player=${encodeURIComponent(linkedPlayer.id)}`} navigate={navigate} className="nxt5-home-text-link">{t("Ouvrir mon suivi")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>}
+    </div>
+    <ul className="nxt5-home-goal-list">
+      {playerGoals.map(goal => <li key={`player:${goal.id}`}>
+        <div><h4>{goal.title}</h4><p>{t(goalMetricLabels[goal.metric])} {goal.operator === "lte" ? "≤" : "≥"} {new Intl.NumberFormat(getLocale()).format(Number(goal.target_value))}{goal.metric === "kp" ? "%" : ""} · {t("{0}/{1} parties", [goal.required_successes, goal.sample_size])}</p></div>
+        <Badge tone="cyan">{t("Suivi joueur")}</Badge>
+      </li>)}
+      {botGoals.map(goal => {
+        const dueAt = goal.due_at ? homeMatchTimestamp({ date: goal.due_at }) : null;
+        return <li key={`bot:${goal.id}`}><div><h4>{goal.title}</h4>{dueAt !== null && <p>{t("Échéance : {0}", [dateLabel(dueAt)])}</p>}</div><Badge tone="purple">{t("Consigne du staff")}</Badge></li>;
+      })}
+    </ul>
+  </section>;
 }
 
 function homeFocus(context, now) {
@@ -131,6 +157,8 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
         return player ? <PublicTextLink key={role} href={`/mon-profil?player=${encodeURIComponent(player.id)}`} navigate={navigate} className="nxt5-home-lineup-player"><span aria-hidden="true"><RoleIcon role={role} /></span><span><small>{role}</small><strong>{player.name}</strong></span></PublicTextLink> : <span key={role} className="nxt5-home-lineup-player is-empty"><span aria-hidden="true"><RoleIcon role={role} /></span><span><small>{role}</small><strong>—</strong></span></span>;
       })}
     </nav>}
+
+    <HomeGoals context={context} navigate={navigate} />
 
     <div className="nxt5-home-overview">
       <section className="nxt5-home-section" aria-labelledby="nxt5-home-games-title">
