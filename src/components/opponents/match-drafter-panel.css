@@ -1,20 +1,19 @@
-.match-drafter-panel { margin-top: 16px; }
-.match-drafter-content { min-width: 0; }
-.match-drafter-heading { display: flex; align-items: start; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
-.match-drafter-heading h3 { margin: 0 0 8px; font-size: 1.25rem; font-weight: 700; }
-.match-drafter-heading p { color: var(--nxt5-text-secondary); margin: 0; line-height: 1.6; }
+.match-drafter-dialog { width: min(960px, calc(100vw - 32px)); }
+.match-drafter-content { min-width: 0; font-size: var(--nxt5-font-body); }
+.match-drafter-content .opponents-draft-camps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .match-drafter-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .match-drafter-summary strong { overflow-wrap: anywhere; }
 .match-drafter-summary p { margin: 4px 0 0; color: var(--nxt5-text-secondary); font-size: .875rem; }
-.match-drafter-details { margin-top: 12px; border-top: 1px solid var(--nxt5-border); }
-.match-drafter-details > summary { min-height: 48px; padding: 12px 0; font-size: .9375rem; font-weight: 600; cursor: pointer; }
-.match-drafter-details[open] { padding-bottom: 12px; }
+.match-drafter-details { margin-top: 16px; padding-bottom: 12px; }
 .match-drafter-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
 .match-drafter-unlink, .match-drafter-replace { border-top: 1px solid var(--nxt5-border); padding-top: 16px; margin-top: 16px; }
 .match-drafter-unlink p, .match-drafter-replace p { color: var(--nxt5-text-secondary); line-height: 1.6; margin: 0 0 12px; }
 .match-drafter-replace { margin-bottom: 20px; }
-.match-drafter-panel .opponents-notice { margin: 12px 0; }
+.match-drafter-content .opponents-notice { margin: 12px 0; }
 .match-drafter-content .opponents-preview-heading h4 { font-size: 1.125rem; font-weight: 700; }
+@container (max-width: 720px) {
+  .match-drafter-content .opponents-draft-camps { grid-template-columns: minmax(0, 1fr); }
+}
 @container (max-width: 420px) {
   .match-drafter-actions > button { flex: 1 1 100%; }
 }

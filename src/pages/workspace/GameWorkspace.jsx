@@ -1311,7 +1311,7 @@ function GameAnalysisDisclosure({ title, description, children }) {
   </details>;
 }
 
-function MatchDataPanel({ match, teamName, onReview, hasReview = false }) {
+function MatchDataPanel({ match, teamName, onReview, hasReview = false, contextControls }) {
   useLanguage();
   if (!match) return null;
   const ally = teamRows(match, "ALLY");
@@ -1336,6 +1336,7 @@ function MatchDataPanel({ match, teamName, onReview, hasReview = false }) {
         <span>{match.duration ? t("Durée : {0}", [match.duration]) : t("Durée non renseignée")}</span>
         <span>{side === "blue" ? t("Notre équipe : côté bleu") : side === "red" ? t("Notre équipe : côté rouge") : t("Côté non renseigné")}</span>
       </div>
+      {contextControls && <div className="games-match-links">{contextControls}</div>}
     </div>
     <MatchCoachBrief match={match} onReview={onReview} hasReview={hasReview} />
     <section className="games-explore" aria-label={t("Détails de la partie")}>
@@ -1638,9 +1639,10 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {!selectedMatch && <div className="games-detail-title"><h3>{t("Analyse de la partie")}</h3></div>}
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{t("Chargement des statistiques détaillées…")}</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && t(" Les statistiques déjà chargées restent disponibles.")}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>{t("Réessayer")}</Button></Surface>}
-      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} onReview={openReview} hasReview={Boolean(selectedReport)} />}
-      {selectedMatch && <MatchOpponentPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={() => refreshAll({ throwOnError: true })} />}
-      {selectedMatch && <MatchDrafterPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={refreshAll} />}
+      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} onReview={openReview} hasReview={Boolean(selectedReport)} contextControls={<>
+        <MatchOpponentPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={() => refreshAll({ throwOnError: true })} />
+        <MatchDrafterPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={refreshAll} />
+      </>} />}
       {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title={t("Partie introuvable")} text={t("Elle n’est plus disponible dans cette équipe.")} /></Surface>}
     </div>}
 

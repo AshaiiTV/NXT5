@@ -3,8 +3,10 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import MatchDrafterPanel from "../components/opponents/MatchDrafterPanel.jsx";
+import { GameOperationDialog } from "../components/games/GameOperationDialog.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
+vi.mock("../components/games/GameOperationDialog.jsx", () => ({ GameOperationDialog: ({ children, title }) => <div role="dialog" aria-label={title}>{children}</div> }));
 vi.mock("../pages/workspace/workspace-shared.jsx", () => ({ ChampionPortrait: ({ champion }) => <img alt={champion} />, championDisplayName: (champion) => champion }));
 
 const snapshot = {
@@ -30,9 +32,14 @@ function calls(action) { return apiFetch.mock.calls.map(([, options]) => JSON.pa
 function change(label, value) { act(() => field(label).props.onChange({ target: { value } })); }
 async function click(label) { await act(async () => { await button(label).props.onClick?.(); }); }
 async function read() { await act(async () => { await renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }); }); }
-async function mount(overrides = {}) {
+async function mount(overrides = {}, open = true) {
   props = { teamId: "team-1", match: { id: "match-1", team_id: "team-1" }, user: { id: "staff" }, ...overrides };
   await act(async () => { renderer = TestRenderer.create(<MatchDrafterPanel {...props} />); });
+  if (open) await openDraft();
+}
+async function openDraft() {
+  const trigger = button("Voir la draft") || button("Ajouter une draft");
+  if (trigger) await act(async () => trigger.props.onClick());
 }
 async function update(overrides) { props = { ...props, ...overrides }; await act(async () => renderer.update(<MatchDrafterPanel {...props} />)); }
 function defer() { let resolve; const promise = new Promise((yes) => { resolve = yes; }); return { promise, resolve }; }
@@ -51,6 +58,43 @@ function mockApi(overrides = {}) {
 async function preview() { change("Lien Drafter.lol", snapshot.sourceUrl); await read(); }
 
 describe("match Drafter association", () => {
+  it("keeps the draft in a compact control until requested and resets the dialog on match change", async () => {
+    mockApi({ "get-match-draft": { draft, canEdit: true } });
+    await mount({}, false);
+    expect(content()).toContain("Draft liée");
+    expect(renderer.root.findAllByProps({ role: "dialog" })).toHaveLength(0);
+    expect(content()).not.toContain("Yunara");
+    await openDraft();
+    expect(content()).toContain("Yunara");
+    await update({ match: { id: "match-2", team_id: "team-1" } });
+    expect(renderer.root.findAllByProps({ role: "dialog" })).toHaveLength(0);
+  });
+
+  it("discards and aborts an unfinished preview when the dialog is closed", async () => {
+    const pending = defer();
+    let signal;
+    mockApi({ preview: (_body, options) => { signal = options.signal; return pending.promise; } });
+    await mount();
+    change("Lien Drafter.lol", snapshot.sourceUrl);
+    let work;
+    act(() => { work = renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }); });
+    expect(renderer.root.findByType(GameOperationDialog).props.dirty).toBe(true);
+    act(() => renderer.root.findByType(GameOperationDialog).props.onClose());
+    expect(signal.aborted).toBe(true);
+    await act(async () => { pending.resolve({ snapshot, previewToken: "stale" }); await work; });
+    await openDraft();
+    expect(field("Lien Drafter.lol").props.value).toBe("");
+    expect(button("Rattacher la draft")).toBeUndefined();
+  });
+
+  it("does not expose an add action to read-only members without a linked draft", async () => {
+    mockApi({ "get-match-draft": { draft: null, canEdit: false } });
+    await mount({}, false);
+    expect(content()).toContain("Non liée");
+    expect(button("Ajouter une draft")).toBeUndefined();
+    expect(renderer.root.findAllByProps({ role: "dialog" })).toHaveLength(0);
+  });
+
   it("does not call the API without a valid team and match scope", async () => {
     await mount({ teamId: null });
     expect(apiFetch).not.toHaveBeenCalled();
@@ -159,7 +203,7 @@ describe("match Drafter association", () => {
     expect(signal.aborted).toBe(true);
     await act(async () => pending.resolve({ draft, canEdit: true, opponents: [opponent] }));
     expect(content()).not.toContain("OPIF");
-    expect(button("Vérifier la draft")).toBeDefined();
+    expect(button("Ajouter une draft")).toBeDefined();
   });
 
   it("ignores a late save after changing team and match", async () => {
@@ -187,6 +231,7 @@ describe("match Drafter association", () => {
     expect(content()).toContain("Erreur de chargement.");
     expect(button("Vérifier la draft")).toBeUndefined();
     await click("Réessayer");
+    await openDraft();
     expect(button("Vérifier la draft")).toBeDefined();
   });
 });

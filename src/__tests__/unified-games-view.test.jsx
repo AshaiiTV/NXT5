@@ -256,10 +256,14 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType(OpponentsWorkspace)).toHaveLength(1);
   });
 
-  it("loads separate opponent and draft panels for the selected match and removes both on return", async () => {
+  it("integrates opponent and draft controls in the match context and removes both on return", async () => {
     const renderer = await mount("/games?match=one");
     expect(renderer.root.findByType(MatchDrafterPanel).props.match.id).toBe("one");
     expect(renderer.root.findByType(MatchOpponentPanel).props.match.id).toBe("one");
+    const context = renderer.root.findByProps({ className: "games-match-context" });
+    expect(context.findAllByType(MatchOpponentPanel)).toHaveLength(1);
+    expect(context.findAllByType(MatchDrafterPanel)).toHaveLength(1);
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
     const calls = apiFetch.mock.calls.filter(([endpoint]) => endpoint === "opponents-drafts").map(([, options]) => JSON.parse(options.body));
     expect(calls).toEqual([{ action: "get-match-opponent", teamId: "team", matchId: "one" }, { action: "get-match-draft", teamId: "team", matchId: "one" }]);
     await click(renderer, "Retour aux parties");
