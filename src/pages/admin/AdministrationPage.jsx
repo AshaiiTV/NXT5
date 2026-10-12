@@ -105,7 +105,7 @@ export default function AdministrationPage({ route, navigate, user, onLogout }) 
     <a className="administration-skip" href="#administration-content">{t("Aller au contenu")}</a>
     <header className="administration-header">
       <div className="administration-brand"><a href="/admin" aria-label={t("Accueil de l’administration NXT5")} onClick={event => follow(event, "/admin")}><Nxt5Wordmark className="h-9 w-28 object-contain" /></a><h1>{t("Administration")}</h1></div>
-      <div className="administration-header-actions"><LinkButton href="/equipes" navigate={go} variant="ghost" icon={ArrowLeft}>{t("Retour à l’app")}</LinkButton><LanguageSwitcher /></div>
+      <div className="administration-header-actions"><LinkButton href="/mon-equipe" navigate={go} variant="ghost" icon={ArrowLeft}>{t("Retour à l’app")}</LinkButton><LanguageSwitcher /></div>
     </header>
     <div className="administration-layout">
       <aside className="administration-sidebar">

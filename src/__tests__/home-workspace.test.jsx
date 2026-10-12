@@ -69,14 +69,14 @@ describe("adaptive team home", () => {
     expect(button(renderer, "Importer une partie")).toBeUndefined();
     expect(links(renderer).some((link) => link.props.href.includes("import=1"))).toBe(false);
     act(() => button(renderer, "Voir mon équipe").props.onClick());
-    expect(props.navigate).toHaveBeenCalledWith("/equipes");
+    expect(props.navigate).toHaveBeenCalledWith("/mon-equipe");
   });
 
   it("respects the player's permissions after the empty-team guide has been dismissed", async () => {
     const renderer = await render(fixture({ manager: false, dismissed: true }));
     expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(0);
     expect(links(renderer).some((link) => link.props.href.includes("import=1"))).toBe(false);
-    expect(links(renderer).some((link) => link.props.href === "/equipes")).toBe(true);
+    expect(links(renderer).some((link) => link.props.href === "/mon-equipe")).toBe(true);
   });
 
   it("keeps recent team activity visible while an unfinished personal guide is opened and closed", async () => {
@@ -150,7 +150,7 @@ describe("adaptive team home", () => {
       { id: "other", team_id: "other", role: "TOP" },
     ] }));
     expect(text(renderer.toJSON())).toContain("2 joueurs dans l’effectif");
-    const shortcut = links(renderer).find((link) => link.props.className === "nxt5-home-shortcut" && link.props.href === "/equipes");
+    const shortcut = links(renderer).find((link) => link.props.className === "nxt5-home-shortcut" && link.props.href === "/mon-equipe");
     expect(text(shortcut)).toContain("2 joueurs · retrouver l’effectif et le staff");
   });
 

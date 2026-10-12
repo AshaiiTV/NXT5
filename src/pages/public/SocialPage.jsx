@@ -25,7 +25,7 @@ export default function SocialPage({ navigate, user }) {
     <div className="nxt5-information-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
-        <LinkButton href={user ? "/equipes" : "/connexion"} navigate={navigate} variant="ghost">
+        <LinkButton href={user ? "/mon-equipe" : "/connexion"} navigate={navigate} variant="ghost">
           {user ? t("Mon équipe") : t("Se connecter")}
         </LinkButton>
       </SiteHeader>

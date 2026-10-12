@@ -267,7 +267,7 @@ describe('assistant knowledge', () => {
       expect(safeAssistantRoute(path)).toBe(path);
       expect(sanitizeAssistantActions([{ label: 'Ouvrir', path }])).toEqual([{ label: 'Ouvrir', path }]);
     }
-    expect(safeAssistantRoute('/mon-profil/secret')).toBe('/equipes');
+    expect(safeAssistantRoute('/mon-profil/secret')).toBe('/mon-equipe');
     expect(sanitizeAssistantActions([{ label: 'Indisponible', path: '/bot-discord/admin' }])).toEqual([]);
     const matches = retrieveAssistantKnowledge('Quel est mon prochain pas sur l’accueil ?', '/accueil');
     expect(matches[0].id).toBe('getting-started');
@@ -289,8 +289,8 @@ describe('assistant knowledge', () => {
   });
 
   it('falls back to the team page for an unknown route', () => {
-    expect(safeAssistantRoute('/secret')).toBe('/equipes');
-    expect(safeAssistantRoute('https://example.com')).toBe('/equipes');
+    expect(safeAssistantRoute('/secret')).toBe('/mon-equipe');
+    expect(safeAssistantRoute('https://example.com')).toBe('/mon-equipe');
     expect(safeAssistantRoute('/mon-profil/coaching')).toBe('/mon-profil/coaching');
     expect(safeAssistantRoute('/guide')).toBe('/guide');
     expect(safeAssistantRoute('/games?match=private-id')).toBe('/games');

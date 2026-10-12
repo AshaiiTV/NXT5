@@ -5,7 +5,7 @@ import { apiFetch, API_BASE } from "./api/client.js";
 import { NAV } from "./app/constants.jsx";
 import { adminPageFromRoute } from "./app/admin-navigation.js";
 import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/performance.js";
-import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath } from "./app/routing.js";
+import { authModeFromPath, buildLoginRedirect, canonicalAppPath, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath } from "./app/routing.js";
 import CookieConsent from "./components/privacy/CookieConsent.jsx";
 import { reviewDrafts } from "./utils/review-drafts.js";
 import { ToastStack, Surface, Badge, Button } from "./components/ui/Core.jsx";
@@ -127,7 +127,7 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
 
   const navigate = useCallback((path, options = {}) => {
     const method = options.replace ?"replaceState" : "pushState";
-    window.history[method]({}, "", path);
+    window.history[method]({}, "", canonicalAppPath(path));
     startTransition(() => setRoute(readRoute()));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -201,9 +201,15 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
   }, [checkingSession, user, route.path]);
 
   useEffect(() => {
-    if (checkingSession || user || !isAppPath(route.path)) return;
+    if (route.path === "/equipes") {
+      navigate(`${route.path}${route.search}${window.location.hash || ""}`, { replace: true });
+    }
+  }, [route.path, route.search, navigate]);
+
+  useEffect(() => {
+    if (checkingSession || user || route.path === "/equipes" || !isAppPath(route.path)) return;
     const params = new URLSearchParams(route.search);
-    if (route.path === "/equipes" && params.has("invite")) {
+    if (route.path === "/mon-equipe" && params.has("invite")) {
       navigate(`/creer-un-compte?invite=${encodeURIComponent(params.get("invite"))}`, { replace: true });
       return;
     }

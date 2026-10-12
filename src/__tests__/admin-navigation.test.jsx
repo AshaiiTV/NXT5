@@ -258,7 +258,7 @@ describe("administration editor navigation", () => {
     await setFormState("Formulaire modifié");
     const focus = vi.fn();
     document.activeElement = { focus };
-    const back = renderer.root.findAllByType("a").find(node => node.props.href === "/equipes");
+    const back = renderer.root.findAllByType("a").find(node => node.props.href === "/mon-equipe");
     await act(async () => back.props.onClick({ button: 0, preventDefault() {} }));
     expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
     expect(window.history.pushState).not.toHaveBeenCalled();

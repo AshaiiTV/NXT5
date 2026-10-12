@@ -69,7 +69,7 @@ export function PublicGuidePage({ path, navigate, user }) {
   const Icon = guide.icon;
   const isImportGuide = path === "/guides/importer-premier-scrim";
   return <div className="nxt5-entry-page nxt5-public-guide"><AmbientBackground />
-    <SiteHeader navigate={navigate}><PublicTextLink href="/demo" navigate={navigate} className="nxt5-entry-header-link">{t("Démonstration")}</PublicTextLink><LinkButton href={user ? "/equipes" : "/connexion"} navigate={navigate} variant="ghost">{user ? t("Mon équipe") : t("Se connecter")}</LinkButton></SiteHeader>
+    <SiteHeader navigate={navigate}><PublicTextLink href="/demo" navigate={navigate} className="nxt5-entry-header-link">{t("Démonstration")}</PublicTextLink><LinkButton href={user ? "/mon-equipe" : "/connexion"} navigate={navigate} variant="ghost">{user ? t("Mon équipe") : t("Se connecter")}</LinkButton></SiteHeader>
     <main className="nxt5-entry-main"><nav aria-label={t("Fil d’Ariane")} className="nxt5-features-breadcrumb"><PublicTextLink href="/" navigate={navigate}>{t("Accueil")}</PublicTextLink><span aria-hidden="true">/</span><span aria-current="page">{t(guide.label)}</span></nav>
       <header className="nxt5-features-intro"><p className="nxt5-entry-eyebrow"><Icon aria-hidden="true" size={18} />{t(" Guide pratique NXT5")}</p><h1>{t(guide.title)}</h1><p>{t(guide.intro)}</p><div className="public-guide-byline">{t("Documentation de l’équipe NXT5 · Révisée le ")}<time dateTime="2026-10-06">{t("6 octobre 2026")}</time></div></header>
       <div className="public-guide-layout"><article><aside className="public-guide-prerequisite"><h2>{t("Avant de commencer")}</h2><p>{t(guide.prerequisite)}</p></aside><ol className="public-guide-steps">{guide.steps.map(([title, ...paragraphs], index) => <li key={title}><span aria-hidden="true">0{index + 1}</span><div><h2>{t(title)}</h2>{paragraphs.map((paragraph) => <p key={paragraph}>{t(paragraph)}</p>)}</div></li>)}</ol>
@@ -88,7 +88,7 @@ export function PublicGuidePage({ path, navigate, user }) {
         <PublicTextLink href="/demo" navigate={navigate} className="nxt5-entry-text-link">{t("Explorer une séance fictive ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink><p>{t("Sans compte et sans installation. Les filtres et les analyses de la démonstration utilisent les outils NXT5 sur trois parties fictives.")}</p>
       </aside></div>
       <nav aria-label={t("Continuer la découverte")} className="public-guide-next"><BookOpen aria-hidden="true" size={20} /><PublicTextLink href={guide.nextPath} navigate={navigate}>{t(guide.nextLabel)} <ArrowRight aria-hidden="true" size={16} /></PublicTextLink></nav>
-      <section className="nxt5-entry-start"><div><h2>{t("Commence avec ton équipe.")}</h2><p>{t("Accès actuellement gratuit, aucun abonnement activé.")}</p></div><LinkButton href={user ? "/equipes" : "/creer-un-compte"} navigate={navigate} icon={ArrowRight}>{user ? t("Ouvrir mon équipe") : t("Créer mon espace")}</LinkButton></section>
+      <section className="nxt5-entry-start"><div><h2>{t("Commence avec ton équipe.")}</h2><p>{t("Accès actuellement gratuit, aucun abonnement activé.")}</p></div><LinkButton href={user ? "/mon-equipe" : "/creer-un-compte"} navigate={navigate} icon={ArrowRight}>{user ? t("Ouvrir mon équipe") : t("Créer mon espace")}</LinkButton></section>
     </main><LegalLinks navigate={navigate} />
   </div>;
 }

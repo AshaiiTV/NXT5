@@ -21,7 +21,7 @@ export const NXT5_IMPORTER_MAC_INTEL_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platfo
 
 export const NAV = [
   { id: "home", label: "Accueil", hint: "Tes prochaines actions", icon: House, path: "/accueil" },
-  { id: "teams", label: "Équipe", hint: "Retrouver tes joueurs", icon: Users, shortcut: "T", path: "/equipes" },
+  { id: "teams", label: "Mon équipe", hint: "Retrouver tes joueurs", icon: Users, shortcut: "T", path: "/mon-equipe" },
   { id: "matches", label: "Parties", hint: "Importer et revoir une partie", icon: Swords, shortcut: "G", path: "/games" },
   { id: "bot-discord", label: "Bot Discord", hint: "Connexion et publications", icon: Bot, path: "/bot-discord" },
   { id: "trends", label: "Analyses", hint: "Comparer tes parties", icon: Activity, shortcut: "N", path: "/tendances" },

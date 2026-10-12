@@ -218,7 +218,7 @@ export function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate 
       {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/24 bg-rose-400/10 p-3 text-sm font-bold text-rose-100">{t(error)}</div>}
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Button type="button" variant="ghost" onClick={() => acknowledge()} disabled={saving} className="sm:min-w-36">{t("Rester ici")}</Button>
-        <Button type="button" icon={saving ? Loader2 : ArrowRight} onClick={() => acknowledge("/equipes")} disabled={saving} className="sm:min-w-48">{saving ? "Ouverture..." : t("Voir mes équipes")}</Button>
+        <Button type="button" icon={saving ? Loader2 : ArrowRight} onClick={() => acknowledge("/mon-equipe")} disabled={saving} className="sm:min-w-48">{saving ? "Ouverture..." : t("Voir mes équipes")}</Button>
       </div>
   </ModalDialog>;
 }
@@ -302,7 +302,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   }
 
   function openTeamCreation() {
-    navigate("/equipes?setup=1");
+    navigate("/mon-equipe?setup=1");
   }
 
   function openTeamManagement() {

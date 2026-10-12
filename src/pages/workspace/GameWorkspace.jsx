@@ -1510,7 +1510,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   }
   function renderImportAction(variant = "primary") {
     if (selectedMatchId || selectedArchiveId || workspaceView === "teams") return null;
-    if (!selectedTeam) return <div className="games-import-action"><Button type="button" variant={variant} onClick={() => openAppPath("/equipes")}>{t("Choisir une équipe")}</Button><p>{t("Crée ou rejoins une équipe pour y retrouver tes parties.")}</p></div>;
+    if (!selectedTeam) return <div className="games-import-action"><Button type="button" variant={variant} onClick={() => openAppPath("/mon-equipe")}>{t("Choisir une équipe")}</Button><p>{t("Crée ou rejoins une équipe pour y retrouver tes parties.")}</p></div>;
     if (!canImport) return <p className="games-import-help">{t("Le capitaine ou le staff peut importer les parties de ton équipe.")}</p>;
     return <Button type="button" variant={variant} icon={Upload} onClick={() => updateLocation({ import: "1" })}>{t("Importer une partie")}</Button>;
   }

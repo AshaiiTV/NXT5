@@ -209,7 +209,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   function closeSetup() {
     setTeamSetupOpen(false);
     setDismissedCreationId(pendingCreation?.team.id || null);
-    openAppPath("/equipes");
+    openAppPath("/mon-equipe");
     // Return focus to the page heading (a named, focusable landmark) rather than an unnamed container.
     const heading = pageRef.current?.querySelector(".nxt5-page-title");
     if (heading) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
@@ -272,7 +272,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     setSaving(true);
     try {
       const result = await apiFetch("teams-invite-code", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id }) });
-      await navigator.clipboard.writeText(`${window.location.origin}/equipes?invite=${encodeURIComponent(result.code)}`);
+      await navigator.clipboard.writeText(`${window.location.origin}/mon-equipe?invite=${encodeURIComponent(result.code)}`);
       await refreshAll();
       pushToast({ type: "green", title: "Lien d’invitation copié", text: "Valable 1h maximum. Les anciens liens ont été révoqués." });
     } catch (err) {
@@ -509,7 +509,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   if (managementOnly) return <div className="nxt5-data-dense nxt5-teams-page nxt5-team-management-page">
     <PageHeader eyebrow={t("Gestion")} title={t("Gestion de l’équipe")} subtitle={t("Ajoute tes joueurs, puis organise les invitations et les accès de l’équipe.")}>
-      <LinkButton href="/equipes" navigate={openAppPath} variant="ghost" icon={ArrowLeft}>{t("Retour à l’équipe")}</LinkButton>
+      <LinkButton href="/mon-equipe" navigate={openAppPath} variant="ghost" icon={ArrowLeft}>{t("Retour à l’équipe")}</LinkButton>
     </PageHeader>
     {selectedTeam ? <div className="space-y-5">
       <TeamManagementPanel team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} onRevokeInvites={revokeInvites} canManageRoster={canManageRoster} canEditIdentity={canEditIdentity} canInvite={canInvite} canManageMembers={canManageMembers} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onRosterStatusChange={updatePlayerRosterStatus} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} routeSearch={routeSearch} />

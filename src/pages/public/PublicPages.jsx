@@ -288,7 +288,7 @@ export function LegalPage({ route, navigate, user }) {
     <div className="nxt5-information-page">
       <AmbientBackground />
       <SiteHeader navigate={navigate}>
-        {user ? (<LinkButton href="/equipes" navigate={navigate} icon={ArrowRight}>{t("Mon équipe")}</LinkButton>) : (<>
+        {user ? (<LinkButton href="/mon-equipe" navigate={navigate} icon={ArrowRight}>{t("Mon équipe")}</LinkButton>) : (<>
             <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">{t("Se connecter")}</LinkButton>
             <LinkButton href="/creer-un-compte" navigate={navigate}>{t("Créer un compte")}</LinkButton>
           </>)}
@@ -577,7 +577,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
     const destination = isSafeInternalPath(serverDestination) && !/[\\\u0000-\u001f\u007f]/.test(serverDestination)
       ? serverDestination
       : returnContext.invite
-        ? `/equipes?invite=${encodeURIComponent(returnContext.invite)}`
+        ? `/mon-equipe?invite=${encodeURIComponent(returnContext.invite)}`
         : returnContext.next || "/accueil";
     navigate(destination, { replace: true });
     onAuth(nextUser);

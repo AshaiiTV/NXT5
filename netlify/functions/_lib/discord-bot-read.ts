@@ -43,7 +43,7 @@ function link(ctx: BotContext, path: string, params: Row = {}) {
   for (const [key, value] of Object.entries(params)) if (value != null && value !== '') url.searchParams.set(key, String(value));
   return url.toString();
 }
-function message(ctx: BotContext, title: string, description: string, fields: Field[] = [], path = '/equipes', params: Row = {}) {
+function message(ctx: BotContext, title: string, description: string, fields: Field[] = [], path = '/mon-equipe', params: Row = {}) {
   const trimmed = description.slice(0, 3000);
   const kept: Field[] = [];
   let shortened = trimmed.length !== description.length || fields.length > 25;

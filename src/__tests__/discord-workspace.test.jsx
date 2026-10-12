@@ -70,7 +70,7 @@ describe("Discord workspace access and navigation", () => {
 
   it("shows a team entry point when there is no team or the selected team has disappeared", () => {
     render(<DiscordWorkspace {...props("captain")} data={{ teams: [] }} />);
-    expect(renderer.root.findByProps({ href: "/equipes" }).props.children).toBe("Ouvrir mes équipes");
+    expect(renderer.root.findByProps({ href: "/mon-equipe" }).props.children).toBe("Ouvrir mes équipes");
     act(() => renderer.update(<DiscordWorkspace {...props("captain")} selectedTeamId="deleted-team" />));
     expect(renderer.root.findAllByProps({ "data-dashboard": true })).toHaveLength(0);
   });

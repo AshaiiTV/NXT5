@@ -480,7 +480,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     { label: "Sbires à 10 min", value: globalCs.at10 === null ? "—" : `${globalCs.at10} CS`, detail: `Moyenne · ${cs10Values.length} parties renseignées`, explanation: "Les CS comptent les sbires et monstres tués." },
     { label: "Dégâts moyens aux champions", value: meanMetric("damage", 0), detail: `Moyenne · ${metricRows("damage").length} parties renseignées` },
   ];
-  if (!selectedPlayer) return <div className="nxt5-profile-page"><PageHeader eyebrow={t("Équipe")} title={t("Profils joueurs")} subtitle={t("Les résultats, les champions et le suivi de chaque joueur.")} /><Surface><EmptyState icon={Activity} title={t("Aucun profil joueur")} text={t("Ajoute un joueur dans la gestion de l’équipe pour consulter son profil.")} /><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>{t("Voir l’équipe")}</Button></Surface></div>;
+  if (!selectedPlayer) return <div className="nxt5-profile-page"><PageHeader eyebrow={t("Équipe")} title={t("Profils joueurs")} subtitle={t("Les résultats, les champions et le suivi de chaque joueur.")} /><Surface><EmptyState icon={Activity} title={t("Aucun profil joueur")} text={t("Ajoute un joueur dans la gestion de l’équipe pour consulter son profil.")} /><Button type="button" variant="ghost" onClick={() => openAppPath("/mon-equipe")}>{t("Voir l’équipe")}</Button></Surface></div>;
   return <div className="nxt5-data-dense nxt5-profile-page">
     <div className="profile-identity-header">
     <span className="profile-identity-role" aria-hidden="true"><RoleIcon role={selectedPlayer.role} className="profile-identity-icon" /></span>

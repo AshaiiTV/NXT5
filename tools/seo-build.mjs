@@ -33,6 +33,9 @@ export function redirectRules(privatePaths, dynamicPaths) {
     `http://nxt5.netlify.app/* ${SITE_ORIGIN}/:splat 301!`,
     "/index.html / 301!",
     "/inscription /creer-un-compte 301!",
+    // Keep old team bookmarks and invitation queries on the canonical app route.
+    "/equipes /mon-equipe 301!",
+    "/equipes/ /mon-equipe 301!",
     ...Object.keys(PUBLIC_METADATA).filter(path => path !== "/").map(path => `${path}.html ${path} 301!`),
     ...privatePaths.filter(path => path !== "/inscription").flatMap(path => [`${path} /app-shell.html 200`, `${path}/ /app-shell.html 200`]),
     ...dynamicPaths.map(path => `${path}/* /app-shell.html 200`),

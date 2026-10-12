@@ -71,7 +71,7 @@ describe("joining and creating another team", () => {
     expect(renderer.root.findAllByProps({ label: "Nom de l’équipe" })).toHaveLength(0);
     act(() => renderer.root.findAllByType(Button).find((button) => button.props.children === "Fermer les formulaires").props.onClick());
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
-    expect(window.location.pathname).toBe("/equipes");
+    expect(window.location.pathname).toBe("/mon-equipe");
     expect(window.location.search).toBe("");
   });
 

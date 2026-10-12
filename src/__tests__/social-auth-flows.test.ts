@@ -182,6 +182,13 @@ describe('provider discovery and request initiation', () => {
     expect(state.authorize).not.toHaveBeenCalled();
   });
 
+  it.each(['/equipes/?setup=1#roster', '/mon-equipe?setup=1#roster'])('stores canonical team destinations for %s', async (next) => {
+    enabled();
+    const target = browser();
+    await begin(target, { next });
+    expect((await rows('select * from social_auth_flows'))[0].destination).toBe('/mon-equipe?setup=1#roster');
+  });
+
   it('stores hashed correlation values, safe defaults and browser cookie properties', async () => {
     enabled();
     const target = browser();
@@ -193,7 +200,7 @@ describe('provider discovery and request initiation', () => {
     expect(target.set).toHaveBeenCalledWith(expect.objectContaining({ name: SOCIAL_BROWSER_COOKIE, httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 300 }));
     const second = await begin(target, { flow: 'register', rememberMe: false, invite: 'TEAM_valid_123' });
     expect(await rows('select * from social_auth_flows where state_hash=$1', [sha256(value)])).toHaveLength(0);
-    expect((await rows('select * from social_auth_flows where state_hash=$1', [sha256(second)]))[0]).toMatchObject({ remember: false, destination: '/equipes?invite=TEAM_valid_123' });
+    expect((await rows('select * from social_auth_flows where state_hash=$1', [sha256(second)]))[0]).toMatchObject({ remember: false, destination: '/mon-equipe?invite=TEAM_valid_123' });
   });
 });
 
