@@ -110,6 +110,15 @@
 .games-match-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 .games-match-context h3 { color: var(--nxt5-text); font-size: clamp(20px, 2.2vw, 28px); line-height: 1.3; font-weight: 700; overflow-wrap: anywhere; }
 .games-match-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
+.games-match-links { display: flex; flex-wrap: wrap; gap: 4px 28px; margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--nxt5-border); }
+.match-context-control { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; max-width: 100%; min-height: 44px; font-size: var(--nxt5-font-small); line-height: 1.5; }
+.match-context-label { color: var(--nxt5-muted); }
+.match-context-value { color: var(--nxt5-text); font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.match-context-control > span { max-width: 100%; }
+.match-context-error { color: var(--nxt5-danger); overflow-wrap: anywhere; }
+.match-context-control .match-context-trigger { padding: 8px; background: transparent; border-color: transparent; color: var(--nxt5-accent); text-decoration: underline; text-underline-offset: 4px; }
+.match-context-control .match-context-trigger:hover:not(:disabled) { background: var(--nxt5-surface-soft); border-color: var(--nxt5-border); color: var(--nxt5-accent); }
+.match-context-trigger:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 2px; }
 .games-coach-brief { max-width: var(--nxt5-reading-width); }
 .games-brief-signal dt { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); font-weight: 600; line-height: 1.5; }
 .games-brief-signal dd { margin-top: 4px; color: var(--nxt5-text); font-size: clamp(28px, 3vw, 36px); line-height: 1.25; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }

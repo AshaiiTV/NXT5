@@ -3,7 +3,8 @@ import { ArrowRight, Check, Link, Loader2, RefreshCw, Unlink, X } from "lucide-r
 import { apiFetch } from "../../api/client.js";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
-import { Badge, Button, SelectInput, Surface, TextInput } from "../ui/Core.jsx";
+import { Button, SelectInput, TextInput } from "../ui/Core.jsx";
+import { GameOperationDialog } from "../games/GameOperationDialog.jsx";
 import { DraftSnapshot, SnapshotContext, SourceLink } from "./OpponentsWorkspace.jsx";
 import DraftBoard from "../draft/DraftBoard.jsx";
 import "./match-drafter-panel.css";
@@ -14,6 +15,7 @@ function MatchDraft({ teamId, matchId, onChanged }) {
   const [canEdit, setCanEdit] = useState(false);
   const [load, setLoad] = useState("loading");
   const [reload, setReload] = useState(0);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [editorOpen, setEditorOpen] = useState(false);
   const [unlinkOpen, setUnlinkOpen] = useState(false);
   const [url, setUrl] = useState("");
@@ -28,6 +30,10 @@ function MatchDraft({ teamId, matchId, onChanged }) {
   const previewRevision = useRef(0);
   const mutation = useRef(false);
   const previewTitle = useRef(null);
+  const triggerRef = useRef(null);
+  const noticeRef = useRef(null);
+
+  useEffect(() => { if (notice) noticeRef.current?.focus(); }, [notice]);
 
   useEffect(() => {
     mounted.current = true;
@@ -120,18 +126,32 @@ function MatchDraft({ teamId, matchId, onChanged }) {
   const mutating = busy === "save" || busy === "unlink";
   const enemyName = preview && side ? preview.snapshot[side === "blue" ? "redName" : "blueName"] : "";
 
-  return <Surface className="match-drafter-panel">
-    <section className="opponents-workspace match-drafter-content" aria-labelledby={`${id}-title`}>
-      <div className="match-drafter-heading"><div><h3 id={`${id}-title`}>{t("Draft de la partie (facultatif)")}</h3><p>{t("Ajoute un lien Drafter pour retrouver les picks et bans de cette partie.")}</p></div>{draft && <Badge tone="cyan">{t("Draft liée")}</Badge>}</div>
-      {load === "loading" && <p role="status" className="opponents-help">{t("Chargement de la draft liée…")}</p>}
+  function closeDialog() {
+    if (mutating) return;
+    toggleEditor(!draft && canEdit);
+    setDialogOpen(false);
+  }
+
+  return <div className="match-context-control match-drafter-control">
+    <span className="match-context-label">{t(draft ? "Draft liée" : "Draft")}</span>
+    {load === "loading" && <span role="status" className="match-context-value">{t("Chargement de la draft liée…")}</span>}
+    {load === "error" && <>
+      <span role="alert" className="match-context-error">{t(error)}</span>
+      <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => setReload((value) => value + 1)}>{t("Réessayer")}</Button>
+    </>}
+    {load === "ready" && <>
+      <span className="match-context-value">{draft ? t("Game {0}", [draft.gameNumber]) : t("Non liée")}</span>
+      {(draft || canEdit) && <span ref={triggerRef}><Button type="button" variant="ghost" className="match-context-trigger" icon={draft ? ArrowRight : Link} aria-haspopup="dialog" onClick={() => setDialogOpen(true)}>{t(draft ? "Voir la draft" : "Ajouter une draft")}</Button></span>}
+    </>}
+    {dialogOpen && <GameOperationDialog title={t("Draft de la partie")} description={!draft ? t("Ajoute un lien Drafter pour retrouver les picks et bans de cette partie.") : undefined} onClose={closeDialog} busy={mutating} dirty={Boolean(url.trim() || preview)} returnFocusRef={triggerRef} className="match-drafter-dialog">
+    <div className="opponents-workspace match-drafter-content">
       {error && <p role="alert" className="opponents-error">{t(error)}</p>}
-      {load === "error" && <Button type="button" variant="ghost" icon={RefreshCw} onClick={() => setReload((value) => value + 1)}>{t("Réessayer")}</Button>}
-      <p role="status" aria-live="polite" aria-atomic="true" className={notice ? "opponents-notice" : "sr-only"}>{notice}</p>
+      <p ref={noticeRef} tabIndex={-1} role="status" aria-live="polite" aria-atomic="true" className={notice ? "opponents-notice" : "sr-only"}>{notice}</p>
       {load === "ready" && <>
         {draft ? <div className="match-drafter-linked">
           <div className="match-drafter-summary"><div><strong>{draft.snapshot.blueName} / {draft.snapshot.redName}</strong><p>{t("Game {0}", [draft.gameNumber])}</p></div><SourceLink snapshot={draft.snapshot} /></div>
           <a className="opponents-source" href={`/tendances?rubrique=drafts&draft=${encodeURIComponent(draft.id)}`}>{t("Analyser cette draft")}<ArrowRight size={16} aria-hidden="true" /></a>
-          <details className="match-drafter-details"><summary>{t("Voir les picks et bans")}</summary><DraftBoard snapshot={draft.snapshot} allySide={draft.allySide} /><SnapshotContext snapshot={draft.snapshot} importedAt={draft.importedAt} /></details>
+          <div className="match-drafter-details"><DraftBoard snapshot={draft.snapshot} allySide={draft.allySide} /><SnapshotContext snapshot={draft.snapshot} importedAt={draft.importedAt} /></div>
           {canEdit && !editorOpen && <div className="match-drafter-actions"><Button type="button" variant="ghost" icon={Link} disabled={mutating} onClick={() => toggleEditor(true)}>{t("Remplacer la draft")}</Button><Button type="button" variant="ghost" icon={Unlink} disabled={mutating} aria-expanded={unlinkOpen} aria-controls={`${id}-unlink`} onClick={() => { setUnlinkOpen((value) => !value); setError(""); }}>{t("Détacher la draft")}</Button></div>}
           {canEdit && unlinkOpen && <div id={`${id}-unlink`} className="match-drafter-unlink"><p>{t("Retirer cette draft de la partie ? Elle restera disponible dans l’historique des analyses.")}</p><div className="match-drafter-actions"><Button type="button" variant="ghost" disabled={mutating} onClick={() => setUnlinkOpen(false)}>{t("Annuler")}</Button><Button type="button" variant="danger" icon={busy === "unlink" ? Loader2 : Unlink} disabled={mutating} onClick={unlink}>{t(busy === "unlink" ? "Détachement…" : "Confirmer le détachement")}</Button></div></div>}
         </div> : !canEdit && <p className="opponents-help">{t("Aucune draft liée à cette partie. Le staff peut en ajouter une.")}</p>}
@@ -153,8 +173,9 @@ function MatchDraft({ teamId, matchId, onChanged }) {
           </div>}
         </div>}
       </>}
-    </section>
-  </Surface>;
+    </div>
+    </GameOperationDialog>}
+  </div>;
 }
 
 export function MatchDrafterPanel({ teamId, match, user, onChanged }) {

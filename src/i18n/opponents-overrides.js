@@ -1,5 +1,12 @@
 // Opponent dossiers and public Drafter imports, including server feedback.
 const directoryTranslations = {
+  "Ajouter": ["Add", "Añadir"],
+  "Non liée": ["Not linked", "Sin vincular"],
+  "Ajouter une draft": ["Add a draft", "Añadir un draft"],
+  "Non renseignée": ["Not set", "Sin indicar"],
+  "Modifier l’équipe adverse": ["Edit opponent team", "Editar equipo rival"],
+  "Ajouter une équipe adverse": ["Add an opponent team", "Añadir un equipo rival"],
+  "Voir les groupes": ["View groups", "Ver los grupos"],
   "Drafts": ["Drafts", "Drafts"],
   "{0} draft liée": ["{0} linked draft", "{0} draft vinculado"],
   "{0} drafts liées": ["{0} linked drafts", "{0} drafts vinculados"],

@@ -3,8 +3,10 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import MatchOpponentPanel from "../components/opponents/MatchOpponentPanel.jsx";
+import { GameOperationDialog } from "../components/games/GameOperationDialog.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
+vi.mock("../components/games/GameOperationDialog.jsx", () => ({ GameOperationDialog: ({ title, description, children }) => <div role="dialog" aria-label={title}>{description && <p>{description}</p>}{children}</div> }));
 const opponent = { id: "opif", name: "OPIF" };
 let renderer;
 let props;
@@ -19,6 +21,7 @@ function field(label) {
 function calls(action) { return apiFetch.mock.calls.map(([, options]) => JSON.parse(options.body)).filter((call) => call.action === action); }
 function change(label, value) { act(() => field(label).props.onChange({ target: { value } })); }
 async function click(label) { await act(async () => { await button(label).props.onClick?.(); }); }
+async function openEditor() { await click(button("Modifier") ? "Modifier" : "Ajouter"); }
 async function submit(label) {
   let form = button(label);
   while (form.type !== "form") form = form.parent;
@@ -54,6 +57,7 @@ describe("independent match opponent association", () => {
     mockApi();
     const onChanged = vi.fn();
     await mount({ onChanged });
+    await openEditor();
     expect(button("Enregistrer l’adversaire").props.disabled).toBe(true);
     change("Équipe adverse de cette partie", "opif");
     await submit("Enregistrer l’adversaire");
@@ -62,11 +66,14 @@ describe("independent match opponent association", () => {
     expect(onChanged).toHaveBeenCalledOnce();
     expect(content()).toContain("Équipe adverse enregistrée pour cette partie.");
     expect(button("Enregistrer l’adversaire").props.disabled).toBe(true);
+    expect(renderer.root.findByType(GameOperationDialog).props.dirty).toBe(false);
+    expect(button("Modifier")).toBeDefined();
   });
 
   it("removes only the opponent association by saving null", async () => {
     mockApi({ "get-match-opponent": { opponentId: "opif", opponents: [opponent], canEdit: true } });
     await mount();
+    await openEditor();
     expect(field("Équipe adverse de cette partie").props.value).toBe("opif");
     change("Équipe adverse de cette partie", "");
     await submit("Enregistrer l’adversaire");
@@ -78,6 +85,7 @@ describe("independent match opponent association", () => {
   it("creates an opponent first and waits for explicit association confirmation", async () => {
     mockApi({ "get-match-opponent": { opponentId: null, opponents: [], canEdit: true } });
     await mount();
+    await openEditor();
     await click("Créer une équipe adverse");
     change("Nom de l’équipe adverse", " OPIF ");
     await submit("Créer l’équipe");
@@ -95,17 +103,25 @@ describe("independent match opponent association", () => {
     expect(content()).toContain("OPIF");
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
     expect(button("Créer une équipe adverse")).toBeUndefined();
+    expect(renderer.root.findAllByType(GameOperationDialog)).toHaveLength(0);
+    expect(button("Ajouter")).toBeUndefined();
+    expect(button("Modifier")).toBeUndefined();
   });
 
   it.each([true, false])("explains group ownership and links each source without direct controls (canEdit=%s)", async (canEdit) => {
     mockApi({ "get-match-opponent": { opponentId: "opif", opponents: [opponent], canEdit, linkedGroups: [{ id: "group-1", name: "Session du soir" }, { id: "group-2", name: "Préparation" }] } });
     await mount();
     expect(content()).toContain("OPIF");
+    expect(renderer.root.findAllByType(GameOperationDialog)).toHaveLength(0);
+    expect(button("Ajouter")).toBeUndefined();
+    expect(button("Modifier")).toBeUndefined();
+    await click("Voir les groupes");
     expect(content()).toContain("L’équipe adverse de cette partie est définie par ses groupes.");
     expect(renderer.root.findAllByType("a").map((link) => link.props.href)).toEqual(["/games?view=groups&archive=group-1&team=team-1", "/games?view=groups&archive=group-2&team=team-1"]);
     expect(renderer.root.findAllByType("form")).toHaveLength(0);
     expect(button("Créer une équipe adverse")).toBeUndefined();
     expect(calls("set-match-opponent")).toHaveLength(0);
+    expect(calls("create-opponent")).toHaveLength(0);
   });
 
   it("ignores a late load after switching teams and matches", async () => {
@@ -120,6 +136,8 @@ describe("independent match opponent association", () => {
     expect(signal.aborted).toBe(true);
     await act(async () => pending.resolve({ opponentId: "opif", opponents: [opponent], canEdit: true }));
     expect(content()).not.toContain("OPIF");
+    expect(renderer.root.findAllByType(GameOperationDialog)).toHaveLength(0);
+    await openEditor();
     expect(field("Équipe adverse de cette partie").props.value).toBe("");
   });
 
@@ -129,12 +147,15 @@ describe("independent match opponent association", () => {
     const onChanged = vi.fn();
     mockApi({ "set-match-opponent": (_body, options) => { signal = options.signal; return pending.promise; } });
     await mount({ onChanged });
+    await openEditor();
     change("Équipe adverse de cette partie", "opif");
     let work;
     act(() => { work = renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }); });
     await update({ match: { id: "match-2", team_id: "team-1" } });
     expect(signal.aborted).toBe(true);
     await act(async () => { pending.resolve({ opponentId: "opif" }); await work; });
+    expect(renderer.root.findAllByType(GameOperationDialog)).toHaveLength(0);
+    await openEditor();
     expect(field("Équipe adverse de cette partie").props.value).toBe("");
     expect(content()).not.toContain("Équipe adverse enregistrée pour cette partie.");
     expect(onChanged).not.toHaveBeenCalled();
@@ -143,6 +164,7 @@ describe("independent match opponent association", () => {
   it("keeps local association state without refetching when the same match detail refreshes", async () => {
     mockApi();
     await mount();
+    await openEditor();
     change("Équipe adverse de cette partie", "opif");
     await submit("Enregistrer l’adversaire");
     await update({ match: { ...props.match, participants: [{ champion: "Ahri" }] } });
@@ -157,10 +179,75 @@ describe("independent match opponent association", () => {
     expect(content()).toContain("Lecture indisponible.");
     expect(button("Enregistrer l’adversaire")).toBeUndefined();
     await click("Réessayer");
+    await openEditor();
     change("Équipe adverse de cette partie", "opif");
     await submit("Enregistrer l’adversaire");
     expect(content()).toContain("Écriture indisponible.");
     expect(field("Équipe adverse de cette partie").props.value).toBe("opif");
     expect(button("Enregistrer l’adversaire").props.disabled).toBe(false);
+  });
+
+  it("keeps the editor closed until requested while displaying the saved opponent", async () => {
+    mockApi({ "get-match-opponent": { opponentId: "opif", opponents: [opponent], canEdit: true } });
+    await mount();
+    expect(content()).toContain("OPIF");
+    expect(renderer.root.findAllByType("form")).toHaveLength(0);
+    expect(renderer.root.findAllByType(GameOperationDialog)).toHaveLength(0);
+    expect(button("Modifier").props).toMatchObject({ "aria-haspopup": "dialog", "aria-label": "Modifier l’équipe adverse" });
+    await openEditor();
+    expect(renderer.root.findByType(GameOperationDialog).props).toMatchObject({ busy: false, dirty: false, compact: true });
+    expect(renderer.root.findByType(GameOperationDialog).props.returnFocusRef).toBeDefined();
+    expect(field("Équipe adverse de cette partie").props.value).toBe("opif");
+  });
+
+  it("discards unsaved selection and creation when the shared dialog allows closing", async () => {
+    mockApi();
+    await mount();
+    await openEditor();
+    change("Équipe adverse de cette partie", "opif");
+    expect(renderer.root.findByType(GameOperationDialog).props.dirty).toBe(true);
+    await click("Créer une équipe adverse");
+    change("Nom de l’équipe adverse", "Nouvel adversaire");
+    act(() => renderer.root.findByType(GameOperationDialog).props.onClose());
+    expect(renderer.root.findAllByType(GameOperationDialog)).toHaveLength(0);
+    await openEditor();
+    expect(field("Équipe adverse de cette partie").props.value).toBe("");
+    expect(renderer.root.findByType(GameOperationDialog).props.dirty).toBe(false);
+    await click("Créer une équipe adverse");
+    expect(field("Nom de l’équipe adverse").props.value).toBe("");
+    change("Nom de l’équipe adverse", "Un autre adversaire");
+    expect(renderer.root.findByType(GameOperationDialog).props.dirty).toBe(true);
+    expect(calls("get-match-opponent")).toHaveLength(1);
+    expect(calls("set-match-opponent")).toHaveLength(0);
+  });
+
+  it("protects the dialog while an association is being saved", async () => {
+    const pending = defer();
+    mockApi({ "set-match-opponent": () => pending.promise });
+    await mount();
+    await openEditor();
+    change("Équipe adverse de cette partie", "opif");
+    let work;
+    act(() => { work = renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }); });
+    expect(renderer.root.findByType(GameOperationDialog).props.busy).toBe(true);
+    expect(field("Équipe adverse de cette partie").props.disabled).toBe(true);
+    await act(async () => { pending.resolve({ opponentId: "opif" }); await work; });
+    expect(renderer.root.findByType(GameOperationDialog).props.busy).toBe(false);
+    expect(renderer.root.findByType(GameOperationDialog).props.dirty).toBe(false);
+    expect(content()).toContain("Équipe adverse enregistrée pour cette partie.");
+  });
+
+  it("clears a cancelled creation without leaving the dialog dirty", async () => {
+    mockApi();
+    await mount();
+    await openEditor();
+    await click("Créer une équipe adverse");
+    change("Nom de l’équipe adverse", "Équipe à annuler");
+    expect(renderer.root.findByType(GameOperationDialog).props.dirty).toBe(true);
+    await click("Annuler la création");
+    expect(renderer.root.findByType(GameOperationDialog).props.dirty).toBe(false);
+    await click("Créer une équipe adverse");
+    expect(field("Nom de l’équipe adverse").props.value).toBe("");
+    expect(calls("create-opponent")).toHaveLength(0);
   });
 });
