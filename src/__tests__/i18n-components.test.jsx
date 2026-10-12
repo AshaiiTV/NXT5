@@ -146,13 +146,14 @@ describe("language changes in interactive components", () => {
   });
 
   it("translates dynamic loading statuses and punctuated text", async () => {
-    await act(async () => { renderer = TestRenderer.create(<AppLoadingScreen phase="bootstrap" />); });
+    await act(async () => { renderer = TestRenderer.create(<AppLoadingScreen phase="bootstrap" progress={{ loaded: 7, total: 18 }} />); });
     const original = content(renderer.root.findByProps({ role: "status" }));
     for (const language of ["en", "es"]) {
       await act(async () => setLanguage(language));
       expect(content(renderer.root.findByProps({ role: "status" }))).not.toBe(original);
+      expect(content(renderer.toJSON())).toContain(language === "en" ? "GAMES RECEIVED" : "PARTIDAS RECIBIDAS");
     }
-    expect(content(renderer.root.findByType("h1"))).toContain("dirección.");
+    expect(content(renderer.root.findByType("h1"))).toBe("Sincronización en curso");
   });
 
   it("translates provider feedback with its brand name intact", async () => {
