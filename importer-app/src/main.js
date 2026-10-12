@@ -470,7 +470,7 @@ function createWindow() {
     minWidth: 820,
     minHeight: 620,
     title: APP_NAME,
-    backgroundColor: "#0b1015",
+    backgroundColor: "#111827",
     icon: path.join(
       __dirname,
       "..",
