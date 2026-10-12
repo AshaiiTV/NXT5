@@ -1,3 +1,4 @@
+import HomeMotion from "../home/HomeMotion.jsx";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import React, { useEffect, useRef, useState } from "react";
@@ -348,71 +349,7 @@ export function LegalPage({ route, navigate, user }) {
 
 export function HomeScreen({ navigate }) {
   useLanguage();
-  return (
-    <div className="nxt5-entry-page nxt5-home-page">
-      <AmbientBackground />
-      <SiteHeader navigate={navigate} simple>
-        <PublicTextLink href="/fonctionnalites" navigate={navigate} className="nxt5-entry-header-link">{t("Fonctionnalités")}</PublicTextLink>
-        <PublicTextLink href="/demo" navigate={navigate} className="nxt5-entry-header-link">{t("Démonstration")}</PublicTextLink>
-        {SUPPORT_URL && <PublicTextLink href="/soutenir" navigate={navigate} className="nxt5-entry-header-link">{t("Soutenir NXT5")}</PublicTextLink>}
-        <LinkButton href="/connexion" navigate={navigate} variant="ghost">{t("Se connecter")}</LinkButton>
-      </SiteHeader>
-      <main className="nxt5-entry-main">
-        <section className="nxt5-entry-hero" aria-labelledby="home-title">
-          <div className="nxt5-entry-hero-copy">
-            <p className="nxt5-entry-eyebrow">{t("League of Legends · Équipes et coachs")}</p>
-            <h1 id="home-title">{t("Comprends tes parties.")}<br /><span>{t("Prépare la suite.")}</span></h1>
-            <p className="nxt5-entry-lead">{t("NXT5 est l’espace de travail des équipes et coachs League of Legends : analyse les parties, prépare les débriefs et organise les entraînements au même endroit.")}</p>
-            <div className="nxt5-entry-actions">
-              <LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight}>{t("Créer mon espace")}</LinkButton>
-              <LinkButton href="/demo" navigate={navigate} variant="ghost">{t("Essayer la démo")}</LinkButton>
-            </div>
-            <p className="nxt5-entry-hero-note"><strong>{t("Accès actuellement gratuit. Aucun abonnement activé.")}</strong><br />{t("Explore la démo sur tout écran. Pour importer tes parties, utilise un ordinateur Windows ou Mac avec League of Legends ouvert.")}</p>
-          </div>
-          <MarketingPreview navigate={navigate} />
-        </section>
-
-        <section id="features" className="nxt5-entry-features" aria-labelledby="features-title">
-          <div className="nxt5-entry-section-heading">
-            <p className="nxt5-entry-eyebrow">{t("Un espace de travail commun")}</p>
-            <h2 id="features-title">{t("Tes joueurs, tes parties,")}<br />{t("tes prochains entraînements.")}</h2>
-            <p>{t("Partage les statistiques et les décisions de coaching avec les joueurs et l’encadrement.")}</p>
-          </div>
-          <div className="nxt5-entry-feature-list">
-            {[
-              [Users, "Organise l’équipe", "Ajoute les joueurs et leur rôle, puis partage les disponibilités. Chacun retrouve les prochaines séances dans le planning."],
-              [BarChart3, "Comprends tes parties", "Importe une partie pour lire son résultat, les statistiques et les moments clés. Compare ensuite plusieurs parties dans Analyses."],
-              [Target, "Prépare la prochaine séance", "Note les points à travailler dans un débrief. Prépare les choix de champions avec ton équipe dans Draft."],
-            ].map(([Icon, title, text]) => <article className="nxt5-entry-feature" key={title}><div className="nxt5-entry-feature-heading"><Icon aria-hidden="true" size={23} /></div><div><h3>{t(title)}</h3><p>{t(text)}</p></div></article>)}
-          </div>
-          <div className="nxt5-entry-actions"><PublicTextLink href="/fonctionnalites" navigate={navigate} className="nxt5-entry-text-link">{t("Découvrir les outils d’analyse et de coaching")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink></div>
-        </section>
-
-        <section id="workflow" className="nxt5-entry-workflow" aria-labelledby="workflow-title">
-          <div className="nxt5-entry-section-heading">
-            <p className="nxt5-entry-eyebrow">{t("Pour commencer")}</p>
-            <h2 id="workflow-title">{t("De ta première équipe")}<br />{t("au premier débrief.")}</h2>
-            <p>{t("Appuie-toi sur les données des parties pour choisir avec ton équipe les points à travailler.")}</p>
-          </div>
-          <ol className="nxt5-entry-steps">
-            {[
-              ["Ouvre ton équipe", "Crée ton compte, puis crée ou rejoins ton espace équipe."],
-              ["Importe une partie", "Sur Windows ou Mac, NXT5 Importer prépare le fichier JSON. Vérifie les cinq joueurs avant de confirmer."],
-              ["Repère les écarts", "Commence par le résumé, puis ouvre les détails utiles."],
-              ["Prépare un débrief", "Garde vos observations et les points à travailler ensemble."],
-            ].map(([title, text], index) => <li key={title}><span>0{index + 1}</span><div><h3>{t(title)}</h3><p>{t(text)}</p></div></li>)}
-          </ol>
-          <div className="nxt5-entry-actions"><PublicTextLink href="/guides/importer-premier-scrim" navigate={navigate} className="nxt5-entry-text-link">{t("Importer mon premier scrim ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink><PublicTextLink href="/guides/preparer-debrief" navigate={navigate} className="nxt5-entry-text-link">{t("Préparer un débrief utile ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink></div>
-        </section>
-
-        <section className="nxt5-entry-start" aria-labelledby="start-title">
-          <div><p className="nxt5-entry-eyebrow">{t("À toi de commencer")}</p><h2 id="start-title">{t("Retrouve ton équipe sur NXT5.")}</h2><p>{t("Crée ton compte, puis ouvre ou rejoins ton espace équipe.")}</p></div>
-          <LinkButton href="/creer-un-compte" navigate={navigate} icon={ArrowRight}>{t("Créer un compte")}</LinkButton>
-        </section>
-      </main>
-      <LegalLinks navigate={navigate} />
-    </div>
-  );
+  return <HomeMotion navigate={navigate} />;
 }
 
 export function NotFoundPage({ navigate }) {

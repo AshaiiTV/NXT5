@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-12",
+  "atmosphere": {
+    "mode": "edit using the approved mockup as visual reference",
+    "tool": "image_gen.imagegen",
+    "reference": "exec-95981872-f7cc-49b5-b2ea-0c22e1f73613.png",
+    "generatedSource": "exec-b2715f05-fe5b-4efd-ae3c-336c4a90706d.png",
+    "webAsset": "public/assets/home-motion/atmosphere.webp",
+    "prompt": "Use the attached approved NXT5 website mockup ONLY as the visual reference for its cinematic cloud environment. Produce a production-ready panoramic website BACKGROUND PLATE, 16:9. Remove ALL letters N X T and 5, all logo marks, all UI, navigation, buttons, text, symbols. Keep ONLY a high-end dark midnight-blue cloudscape, soft violet distant horizon across the lower middle, photorealistic volumetric blue-lavender clouds low across the frame with quiet reflective dark mist below. The upper half is deep clean navy night sky with very subtle atmospheric gradient, no stars. Subtle cyan light on far left clouds and violet-magenta at the far right, lightly neon yet elegant and controlled. Maintain the same camera viewpoint and exquisitely detailed cloud quality as reference, same overall navy/violet palette. The central and upper region must be very quiet for a separate 3D brand sculpture later. NO object/sculpture, NO typography, NO UI, NO logo, NO lettering, NO planets, NO mountains, NO lightning. Edge-to-edge environment only. Wide 16:9 composition, very high quality cinematic photography/render."
+  },
+  "glassPoster": {
+    "mode": "transparent capture of the implemented Three.js scene at progress 0, refreshed after the contrast revision on 2026-10-12",
+    "source": "artifacts/home-motion/glass-poster.png",
+    "webAsset": "public/assets/home-motion/glass-poster.webp",
+    "purpose": "Stable initial image and fallback for reduced motion or unavailable WebGL."
+  }
+}

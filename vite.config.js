@@ -20,6 +20,9 @@ export default defineConfig(({ mode }) => {
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
+          // The decorative homepage scene must not inflate the shared app vendor.
+          if (id.includes("/three/")) return "vendor-three";
+          if (id.includes("/gsap/")) return "vendor-motion";
           if (id.includes("lucide-react")) return "vendor-icons";
           if (id.includes("react") || id.includes("react-dom")) return "vendor-react";
           return "vendor";
