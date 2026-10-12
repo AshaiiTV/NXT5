@@ -381,7 +381,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
         
 
         <div className="space-y-5">
-          <Surface>
+          <Surface className="nxt5-planning-notes-surface">
             <section aria-labelledby="planning-team-notes-title">
               <div className="nxt5-planning-notes-heading">
                 <div>
@@ -410,7 +410,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
               </div>
             </section>
           </Surface>
-          <Surface className="p-4">
+          <Surface glow className="nxt5-planning-calendar p-4">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
                 <h3 className="text-xl font-black text-white">{editingEvents || (!canEditSelected && canEditEvents) ? t("Ajouter ou modifier une séance") : t("Mes disponibilités")}</h3>
@@ -432,6 +432,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
               {canEditEvents && canEditSelected && <Button type="button" variant="ghost" icon={CalendarDays} aria-pressed={editingEvents} onClick={() => setEditingEvents((active) => !active)} className={editingEvents ? "border-cyan-200/45 bg-cyan-400/10 text-cyan-100" : ""}>{editingEvents ? t("Revenir à mes disponibilités") : t("Ajouter une séance")}</Button>}
               <p className="text-sm leading-6 text-slate-300">{selectedFilledSlots}{t(" créneaux renseignés sur ")}{selectedFilledDays}{t(" jours · ")}{selectedEventCount}{t(selectedEventCount > 1 ? " séances" : " séance")}</p>
             </div>
+            <ul className="nxt5-planning-roster" aria-label={t("Équipe")}>{roleSlots.map(({ role, player }) => <li key={role} data-selected={Boolean(player && String(player.id) === selectedPlayerId)}><span aria-hidden="true"><RoleIcon role={role} /></span><span><small>{role}</small><strong>{player?.name || "—"}</strong></span></li>)}</ul>
             <PlanningAvailabilityGrid rows={planningGridRows} weekDays={weekDays} canEditSelected={canEditSelected} canEditEvents={canEditEvents} editingEvents={editingEvents} draftSlots={draftSlots} onDay={setDaySlots} onTime={setTimeForWeek} onToggle={toggleSlot} onEvent={openPlanningEventMenu} frameTone={frameTone} />
             {canEditSelected && !editingEvents && <details className="nxt5-planning-help"><summary>{t("Remplir plusieurs créneaux à la fois")}</summary><p>{t("Ces raccourcis remplacent tes disponibilités de la semaine affichée. Les séances sont conservées.")}</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("evenings")}>{t("Soirées · 20 h à 23 h")}</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("scrim")}>{t("Entraînement · 19 h à 22 h")}</Button><Button type="button" variant="ghost" onClick={() => applyAvailabilityPreset("weekend")}>{t("Week-end · 20 h à 23 h")}</Button><Button type="button" variant="danger" onClick={() => applyAvailabilityPreset("clear")}>{t("Vider mes disponibilités")}</Button></div></details>}
             <details className="nxt5-planning-help">

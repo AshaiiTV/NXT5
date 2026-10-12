@@ -85,7 +85,7 @@ export default function GuidePage({ route, navigate, onOpenAssistant }) {
   const CurrentIcon = current.icon;
   const selectSection = (id) => navigate?.(`/guide?section=${encodeURIComponent(id)}`);
 
-  return <div className="min-w-0">
+  return <div className="min-w-0 nxt5-guide-page">
     <PageHeader eyebrow={t("Guide NXT5")} title={t("Que veux-tu faire ?")} subtitle={t("Choisis une rubrique pour suivre les étapes et ouvrir la page correspondante.")} />
     <div className="nxt5-guide-layout">
       <nav aria-label={t("Sommaire du guide")} className="nxt5-guide-nav">
@@ -94,10 +94,10 @@ export default function GuidePage({ route, navigate, onOpenAssistant }) {
           {GUIDE_SECTIONS.map((section, index) => { const Icon = section.icon; const active = section.id === current.id; return <button key={section.id} type="button" onClick={() => selectSection(section.id)} aria-current={active ? "page" : undefined} className={cx("nxt5-guide-link group flex items-center gap-3 px-3 text-left font-semibold transition", active ? "is-active text-white" : "text-slate-400 hover:bg-white/[0.04] hover:text-white")}><span className={cx("text-xs tabular-nums", active ? "text-cyan-100" : "text-slate-600")}>{String(index + 1).padStart(2, "0")}</span><Icon className="h-4 w-4 shrink-0" /><span>{t(section.label)}</span></button>; })}
         </div>
       </nav>
-      <section className="min-w-0 p-5 sm:p-7 xl:p-10">
+      <section className="nxt5-guide-reading min-w-0 p-5 sm:p-7 xl:p-10">
         <div className="nxt5-guide-content">
           <div><h3 className="nxt5-guide-section-heading text-2xl font-bold text-white"><CurrentIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-cyan-100" /><span>{t(current.title)}</span></h3><p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t(current.intro)}</p></div>
-          <ol className="mt-8 divide-y divide-white/10 border-y border-white/10">{current.steps.map((step, index) => <li key={step} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 py-4"><span className="font-black tabular-nums text-cyan-100/70">{String(index + 1).padStart(2, "0")}</span><p className="text-sm font-normal leading-6 text-slate-100">{t(step)}</p></li>)}</ol>
+          <ol className="nxt5-guide-steps mt-8 divide-y divide-white/10 border-y border-white/10">{current.steps.map((step, index) => <li key={step} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 py-4"><span className="font-black tabular-nums text-cyan-100/70">{String(index + 1).padStart(2, "0")}</span><p className="text-sm font-normal leading-6 text-slate-100">{t(step)}</p></li>)}</ol>
           <div className="nxt5-guide-actions mt-6 flex flex-wrap gap-2"><Button icon={ArrowRight} onClick={() => navigate?.(current.path)}>{t(current.action)}</Button><Button variant="ghost" icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.(t("Explique-moi la section {0} du guide.", [t(current.label)]))}>{t("Poser une question")}</Button></div>
           {current.id === "getting-started" && <details className="nxt5-guide-vocabulary"><summary>{t("Les mots utiles : roster, draft, review…")}</summary><dl>{FIRST_WORDS.map(([term, meaning]) => <div key={term}><dt>{t(term)}</dt><dd>{t(meaning)}</dd></div>)}</dl></details>}
         </div>

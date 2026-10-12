@@ -53,6 +53,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 
 | Date | Rapport |
 | --- | --- |
+| 2026-10-12 | [Verre violet dans l’ensemble du site](design-glass-sitewide-2026-10-12.md) |
 | 2026-10-07 | [Lecture globale : priorités, actions et détails](lecture-globale-2026-10-07.md) |
 | 2026-10-06 | [Affichage public : hydratation et performance mobile](performance-affichage-public-2026-10-06.md) |
 | 2026-10-06 | [Corrections SEO : chargement public, guides et métadonnées](corrections-seo-2026-10-06.md) |

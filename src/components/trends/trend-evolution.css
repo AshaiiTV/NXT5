@@ -38,8 +38,8 @@
 .trend-period-option[aria-pressed="true"] {
   border-color: rgba(103, 232, 249, .55);
   color: #cffafe;
-  background: rgba(103, 232, 249, .12);
-  box-shadow: inset 0 -2px 0 var(--nxt5-accent);
+  background: linear-gradient(125deg, rgba(103,232,249,.12), rgba(139,92,246,.25));
+  box-shadow: inset 0 -2px 0 var(--nxt5-accent), inset 0 1px var(--nxt5-glass-highlight);
 }
 
 
@@ -58,7 +58,7 @@
 .trend-evolution-description { margin-top: 8px; max-width: 64ch; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.6; }
 .trend-series-metric-control { flex: 0 1 260px; min-width: 0; }
 .trend-series-definition { max-width: 72ch; margin-top: 20px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.65; }
-.trend-series-figure { margin-top: 24px; padding: 20px; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-field); }
+.trend-series-figure { margin-top: 24px; padding: 20px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: radial-gradient(ellipse at 85% 0, rgba(139,92,246,.14), transparent 60%), var(--nxt5-field); box-shadow: inset 0 1px var(--nxt5-glass-highlight); }
 .trend-series-plot-heading { display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; }
 .trend-series-chart { display: flex; gap: 12px; margin-top: 20px; padding-right: 8px; }
 .trend-series-y-axis { position: relative; flex: 0 0 52px; height: 232px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-variant-numeric: tabular-nums; }
@@ -92,7 +92,7 @@
 .trend-series-navigation { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 20px; margin-top: 0; }
 .trend-series-navigation > label { flex: 1 1 280px; min-width: 0; }
 .trend-series-step-controls { display: flex; gap: 8px; }
-.trend-series-selected { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; margin-top: 0; padding: 8px 0 8px 24px; border-left: 2px solid var(--nxt5-accent-2); }
+.trend-series-selected { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px 24px; margin-top: 0; padding: 20px 24px; border: 1px solid var(--nxt5-glass-border); border-left: 2px solid var(--nxt5-accent-2); border-radius: var(--nxt5-radius-control); background: linear-gradient(110deg, rgba(139,92,246,.16), rgba(103,232,249,.05)); }
 .trend-series-selected-content { flex: 1 1 320px; min-width: 0; }
 .trend-series-selected-context { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; }
 .trend-series-selected h4 { margin-top: 10px; font-size: 17px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }

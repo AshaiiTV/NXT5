@@ -8,11 +8,11 @@
   padding: 0;
   overflow: auto;
   overscroll-behavior: contain;
-  border: 1px solid var(--nxt5-border-strong);
+  border: 1px solid var(--nxt5-glass-border);
   border-radius: var(--nxt5-radius-panel);
-  background: var(--nxt5-surface);
+  background: var(--nxt5-glass-background);
   color: var(--nxt5-text);
-  box-shadow: 0 24px 80px rgb(0 0 0 / .5);
+  box-shadow: var(--nxt5-glass-shadow), 0 24px 80px rgb(0 0 0 / .5);
   container-type: inline-size;
 }
 .game-operation-dialog::backdrop { background: rgb(2 6 17 / .8); }
@@ -60,7 +60,7 @@
 .game-import-select { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--nxt5-border-strong); border-radius: 10px; background: var(--nxt5-field); color: var(--nxt5-text); font-size: var(--nxt5-font-body); font-weight: 500; }
 .game-import-select:focus-visible, .game-import-side:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 2px; }
 .game-import-select:disabled { opacity: .5; cursor: not-allowed; }
-.game-operation-dialog-header { position: sticky; top: 0; z-index: 2; padding-bottom: 16px; border-bottom: 1px solid var(--nxt5-border); background: var(--nxt5-surface); }
+.game-operation-dialog-header { position: sticky; top: 0; z-index: 2; padding-block: 12px 16px; border-bottom: 1px solid var(--nxt5-glass-border); background: linear-gradient(120deg, #293247, #27233f 62%, #212b40); }
 .game-operation-dialog-content { min-width: 0; }
 
 /* Import review: one team sheet, with no nested panels around individual fields. */

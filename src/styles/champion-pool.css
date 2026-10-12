@@ -84,9 +84,9 @@
   min-width: 12rem;
   min-height: 4rem;
   padding: 0.75rem;
-  border: 1px solid transparent;
+  border: 1px solid var(--nxt5-glass-border);
   border-radius: 2px;
-  background: transparent;
+  background: linear-gradient(145deg, rgba(167,139,250,.1), rgba(17,27,45,.84));
   color: var(--nxt5-text-secondary);
   text-align: left;
 }
@@ -97,9 +97,9 @@
 }
 
 .nxt5-pool-page button.nxt5-pool-player[aria-pressed="true"] {
-  border-color: var(--nxt5-border);
-  background: var(--nxt5-spectrum-soft);
-  box-shadow: inset 0 -2px var(--nxt5-accent);
+  border-color: rgba(103,232,249,.55);
+  background: linear-gradient(125deg, rgba(103,232,249,.13), rgba(139,92,246,.28) 64%, rgba(232,121,249,.1));
+  box-shadow: inset 0 -2px var(--nxt5-accent), inset 0 1px rgba(226,232,255,.2);
   color: var(--nxt5-text);
 }
 
@@ -213,7 +213,8 @@
   border: 1px solid var(--nxt5-border);
   border-left: 3px solid var(--pool-tier);
   border-radius: var(--nxt5-radius-panel);
-  background: var(--nxt5-surface);
+  background: var(--nxt5-glass-background);
+  box-shadow: inset 0 1px rgba(226,232,255,.12);
 }
 
 .nxt5-pool-tier[data-tier="lock"] {
@@ -240,7 +241,7 @@
   align-self: stretch;
   min-width: 0;
   padding: 1rem 0.875rem;
-  background: var(--pool-tier-surface);
+  background: linear-gradient(140deg, rgba(196,181,253,.12), transparent 80%), var(--pool-tier-surface);
 }
 
 .nxt5-pool-tier-heading h4 {

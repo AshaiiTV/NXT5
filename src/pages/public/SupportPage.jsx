@@ -35,7 +35,7 @@ export function SupportPage({ navigate, user, supportUrl = SUPPORT_URL }) {
             </ul>
           </section>
           <section aria-labelledby="contribute-title" className="nxt5-support-contribute">
-            <Surface className="nxt5-support-card">
+            <Surface variant="scene" glow className="nxt5-support-card">
               <Heart aria-hidden="true" className="nxt5-support-heart" size={28} />
               <h2 id="contribute-title">{t("Contribuer au développement")}</h2>
               <p>{t("Tu choisis le montant et la fréquence de ton soutien.")}</p>

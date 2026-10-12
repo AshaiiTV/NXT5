@@ -78,8 +78,11 @@
 
 .objectives-measure {
   align-self: center;
-  padding-left: 20px;
+  padding: 20px;
   border-left: 2px solid var(--nxt5-accent-2);
+  border-radius: 0 var(--nxt5-radius-control) var(--nxt5-radius-control) 0;
+  background: linear-gradient(110deg, rgba(139,92,246,.2), rgba(103,232,249,.05));
+  box-shadow: inset 0 1px var(--nxt5-glass-highlight);
 }
 
 .objectives-team-target {

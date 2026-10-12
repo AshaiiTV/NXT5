@@ -65,7 +65,7 @@ export default function DiscordAccount({ user }) {
   const initiallyLoading = loading && !state;
   const status = linked ? "Compte lié" : error ? "À vérifier" : request?.prepared ? "À terminer dans Discord" : request ? "À confirmer ici" : "Compte non lié";
 
-  return <Surface className={`discord-account${linked ? " discord-account-linked" : ""}`}>
+  return <Surface glow className={`discord-account${linked ? " discord-account-linked" : ""}`}>
     <div className="discord-account-heading">
       <div className="discord-account-identity">
         <h3 className="discord-account-title"><UserRound size={20} aria-hidden="true" />{t(" Toi sur Discord")}</h3>

@@ -33,9 +33,9 @@ export function TrendsOverview({ objective, plan, roles, briefs, alerts, onOpenS
   useLanguage();
   const open = (item) => onOpenSources({ title: item.label || item.title, subtitle: item.title, games: item.sourceGames });
   return <div className="trends-overview">
-    <Surface className="trends-priority-surface"><section className="trends-priority" aria-labelledby="trend-priority-title">
+    <Surface variant="scene" className="trends-priority-surface"><section className="trends-priority" aria-labelledby="trend-priority-title">
       <div><p className="trends-eyebrow"><Target aria-hidden="true" />{t(" À vérifier en débrief")}</p><h3 id="trend-priority-title">{analysisCopy(objective.title)}</h3><p className="trends-copy">{analysisCopy(objective.why)}</p><Button type="button" className="trends-priority-action" icon={FileText} onClick={() => onOpenSources({ title: "Parties liées à cet objectif", subtitle: objective.title, games: objective.sourceGames })}>{t("Vérifier les parties concernées")}</Button></div>
-      <div className="trends-priority-target"><p>{t("Après vérification, choisis une consigne pour la prochaine session.")}</p><button type="button" className="trends-text-action" onClick={onObjectives}>{t("Voir les objectifs par rôle ")}<ArrowRight aria-hidden="true" /></button></div>
+      <div className="trends-priority-target">{roles.length > 0 && <div className="trends-priority-roster" aria-hidden="true">{[...roles].sort((a, b) => ROSTER_ROLE_ORDER.indexOf(a.role) - ROSTER_ROLE_ORDER.indexOf(b.role)).map((row) => <span key={row.role}><RoleIcon role={row.role} lightweight /></span>)}</div>}<p>{t("Après vérification, choisis une consigne pour la prochaine session.")}</p><button type="button" className="trends-text-action" onClick={onObjectives}>{t("Voir les objectifs par rôle ")}<ArrowRight aria-hidden="true" /></button></div>
     </section></Surface>
 
     <Surface className="trends-plan-surface"><details className="trends-secondary-disclosure">

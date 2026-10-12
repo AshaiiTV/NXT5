@@ -578,7 +578,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       </div>}
 
       {selectedTeam && !showSetup && <div>
-        <Surface className="team-roster-surface">
+        <Surface glow className="team-roster-surface">
           <PremiumRosterTable key={selectedTeam.id} roster={roster} matches={data.matches || []} currentUserId={user?.id} canManage={canManageRoster} />
         </Surface>
       </div>}
@@ -794,7 +794,7 @@ function PremiumRosterTable({ roster, matches = [], currentUserId = "", canManag
   const addPlayer = canManage && <LinkButton href="/gestion-equipe?section=roster" navigate={openAppPath} variant="ghost" icon={Plus}>{t("Ajouter un joueur")}</LinkButton>;
 
   function renderPlayers(items, title) {
-    return <ul className="team-roster-list" aria-label={t(title)}>
+    return <ul className="team-roster-list" data-roster={title === "Titulaires" ? "main" : "secondary"} aria-label={t(title)}>
       {items.map((player) => {
         const href = `/mon-profil?player=${encodeURIComponent(player.id)}`;
         const isMe = Boolean(currentUserId && player.user_id && String(player.user_id) === String(currentUserId));

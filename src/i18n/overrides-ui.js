@@ -1,5 +1,6 @@
 // Reviewed workspace labels and plural forms used at display boundaries.
 const copy = [
+  ["Champion le plus joué", "Most-played champion", "Campeón más jugado"],
   ["partie", "match", "partida"],
   ["parties", "matches", "partidas"],
   ["partie récente", "recent match", "partida reciente"],

@@ -3,7 +3,7 @@
 .drafter-analysis-heading h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; }
 .drafter-muted { color: var(--nxt5-text-secondary); font-size: .875rem; line-height: 1.6; }
 .drafter-filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
-.drafter-metrics { display: flex; flex-wrap: wrap; gap: 24px 48px; margin: 24px 0 16px; }
+.drafter-metrics { display: flex; flex-wrap: wrap; gap: 24px 48px; margin: 24px 0 16px; padding: 20px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-control); background: linear-gradient(110deg, rgba(139,92,246,.14), rgba(103,232,249,.05)); box-shadow: inset 0 1px var(--nxt5-glass-highlight); }
 .drafter-metrics dt { color: var(--nxt5-text-secondary); font-size: .875rem; }
 .drafter-metrics dd { font-size: 1.75rem; font-weight: 700; color: var(--nxt5-text); font-variant-numeric: tabular-nums; }
 .drafter-frequencies { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%, 240px),1fr)); gap: 28px; }

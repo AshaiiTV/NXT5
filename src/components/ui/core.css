@@ -1,7 +1,7 @@
 /* Shared controls. Page-specific composition belongs to the page stylesheet. */
 :where(.nxt5-surface) { padding: 1.25rem; }
-.nxt5-surface-emphasis { border-color: var(--nxt5-border-strong); }
-.nxt5-surface-accent { background: var(--nxt5-spectrum-gradient); opacity: .65; }
+.nxt5-surface.nxt5-surface-emphasis { border-color: rgba(196, 181, 253, .5); box-shadow: var(--nxt5-glass-shadow), 0 0 32px rgba(139, 92, 246, .065); }
+.nxt5-surface-accent { background: var(--nxt5-spectrum-gradient); opacity: .85; }
 .nxt5-surface > .relative { min-width: 0; }
 
 /* Explicit semantic colors also cover opacity values absent from Tailwind's scale. */
@@ -21,7 +21,7 @@
   font-size: var(--nxt5-font-ui);
   line-height: 1.5;
   text-decoration: none;
-  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease;
+  transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 .nxt5-cyber-button:disabled { cursor: not-allowed; opacity: .5; }
 .nxt5-button-primary {
@@ -31,6 +31,11 @@
   font-weight: 750;
 }
 .nxt5-button-primary:hover:not(:disabled) { border-color: #cffafe; }
+.nxt5-button-primary:focus-visible { box-shadow: 0 0 24px var(--nxt5-glow-violet); }
+.nxt5-cyber-button:active:not(:disabled) { box-shadow: inset 0 2px 8px rgba(2, 6, 17, .25); }
+@media (hover: hover) and (pointer: fine) {
+  .nxt5-button-primary:hover:not(:disabled) { box-shadow: 0 0 24px var(--nxt5-glow-violet); }
+}
 .nxt5-button-secondary {
   background: var(--nxt5-surface-soft);
   border-color: var(--nxt5-border-strong);
@@ -68,7 +73,7 @@
   padding: .25rem;
   border: 1px solid var(--nxt5-border);
   border-radius: .5rem;
-  background: var(--nxt5-field);
+  background: linear-gradient(110deg, #141e32, #201c38);
   scrollbar-width: thin;
 }
 .nxt5-tab {
@@ -79,8 +84,9 @@
 }
 .nxt5-tab:hover { background: var(--nxt5-surface-soft); color: var(--nxt5-text); }
 .nxt5-tab:is([aria-selected="true"], [aria-current="page"]) {
-  border-color: rgba(167, 139, 250, .22);
-  background: var(--nxt5-spectrum-gradient) bottom / 100% 2px no-repeat, var(--nxt5-spectrum-soft);
+  border-color: var(--nxt5-glass-border);
+  background: var(--nxt5-spectrum-gradient) bottom / 100% 2px no-repeat, linear-gradient(115deg, rgba(103, 232, 249, .13), rgba(139, 92, 246, .24) 65%, rgba(232, 121, 249, .12));
+  box-shadow: inset 0 1px 0 var(--nxt5-glass-highlight);
   color: #cffafe;
 }
 .nxt5-tab-description { color: var(--nxt5-muted); }
@@ -101,16 +107,30 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 1.25rem 2rem;
-  padding-bottom: 1.5rem;
+  padding: 1.25rem 1.5rem 1.5rem;
   margin-bottom: 1.5rem;
-  border-bottom: 1px solid var(--nxt5-border);
+  border: 1px solid var(--nxt5-glass-border);
+  border-radius: var(--nxt5-radius-panel);
+  background: radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, .22), transparent 58%), linear-gradient(115deg, rgba(103, 232, 249, .045), rgba(34, 30, 66, .7));
+  box-shadow: inset 0 1px 0 rgba(226, 232, 255, .09);
+  isolation: isolate;
+}
+.nxt5-page-header::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: min(42%, 25rem);
+  border-radius: 0 var(--nxt5-radius-panel) var(--nxt5-radius-panel) 0;
+  background: linear-gradient(115deg, transparent 26%, rgba(196, 181, 253, .12) 26.3%, transparent 27%, transparent 52%, rgba(103, 232, 249, .06) 52.3%, transparent 74%);
+  pointer-events: none;
+  z-index: -1;
 }
 .nxt5-page-header::after {
   content: "";
   position: absolute;
-  left: 0;
+  left: 1.5rem;
   bottom: -1px;
-  width: min(12rem, 48%);
+  width: min(22rem, 58%);
   height: 2px;
   background: var(--nxt5-spectrum-gradient);
   opacity: .8;
@@ -138,7 +158,7 @@
 .nxt5-reading-details-body > p + p { margin-top: .75rem; }
 
 .nxt5-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; min-height: 220px; padding: 32px 20px; text-align: center; }
-.nxt5-empty-icon { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 4px; border: 1px solid var(--nxt5-border); border-radius: 16px; background: var(--nxt5-field); color: var(--nxt5-accent); }
+.nxt5-empty-icon { display: grid; place-items: center; width: 64px; height: 64px; margin-bottom: 8px; border: 1px solid var(--nxt5-glass-border); border-radius: 16px; background: var(--nxt5-glass-reflection), var(--nxt5-glass-background); color: var(--nxt5-accent); box-shadow: inset 0 1px 0 var(--nxt5-glass-highlight), 0 8px 32px rgba(139, 92, 246, .12); }
 .nxt5-empty-state h3 { color: var(--nxt5-text); font-size: 20px; font-weight: 700; line-height: 1.4; letter-spacing: -.025em; text-wrap: balance; }
 .nxt5-empty-state > p { max-width: 52ch; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.65; }
 .nxt5-empty-action { margin-top: 8px; max-width: 100%; }
@@ -160,7 +180,8 @@
 
 @media (max-width: 640px) {
   :where(.nxt5-surface) { padding: 1rem; }
-  .nxt5-page-header { padding-bottom: 1.125rem; margin-bottom: 1.25rem; gap: 1rem; }
+  .nxt5-page-header { padding: 1rem; margin-bottom: 1.25rem; gap: 1rem; }
+  .nxt5-page-header::after { left: 1rem; }
   .nxt5-page-actions { width: 100%; }
   .nxt5-page-title { font-size: 1.625rem; }
   .nxt5-tab-nav > div { display: flex; min-width: 100%; width: max-content; }

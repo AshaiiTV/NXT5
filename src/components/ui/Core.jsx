@@ -17,12 +17,14 @@ export function Badge({ children, tone: badgeTone = "slate", pulse = false, clas
   );
 }
 
-export function Surface({ children, className = "", delay = 0, glow = false }) {
+export function Surface({ children, className = "", delay = 0, glow = false, variant = "glass" }) {
   useLanguage();
   return (
     <div
       className={cx(
         "nxt5-panel nxt5-premium-panel nxt5-surface group relative max-w-full overflow-hidden border",
+        variant === "reading" && "nxt5-surface-reading",
+        variant === "scene" && "nxt5-surface-scene",
         glow && "nxt5-surface-emphasis",
         className
       )}
@@ -148,10 +150,10 @@ export function PremiumToggle({ checked, onChange, title, text, disabled = false
   );
 }
 
-export function PageHeader({ eyebrow, title, subtitle, children }) {
+export function PageHeader({ eyebrow, title, subtitle, children, className = "" }) {
   useLanguage();
   return (
-    <div className="nxt5-page-header">
+    <div className={cx("nxt5-page-header", className)}>
       <div className="min-w-0">
         {eyebrow && <p className="nxt5-page-eyebrow">{eyebrow}</p>}
         <h2 className="nxt5-page-title">{title}</h2>
