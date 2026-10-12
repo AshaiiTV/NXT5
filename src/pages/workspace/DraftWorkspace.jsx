@@ -630,7 +630,7 @@ function CompositionCard({ composition, rows, canManage, saving, onEdit, onDupli
   const slotPicks = COMP_ROLES.map((role) => ({ role, pick: rows.find((row) => row.id === slots[role]?.poolId) }));
   const picks = slotPicks.map((slot) => slot.pick).filter(Boolean);
   const identity = compositionIdentity(picks);
-  return <Surface className="nxt5-composition-card group relative overflow-hidden p-0">
+  return <Surface variant="scene" className="nxt5-composition-card group relative overflow-hidden p-0">
         <div className="nxt5-composition-card-content relative z-10">
       <div className="nxt5-composition-card-heading">
         <div className="min-w-0">
@@ -802,7 +802,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
 
       {players.length ? (
         <form onSubmit={saveComposition} className="mt-4">
-          <Surface className="nxt5-composition-editor">
+          <Surface variant="scene" className="nxt5-composition-editor">
             <div className="nxt5-composition-editor-heading">
               <div className="min-w-0">
                 <h3>{t(form.id ? "Modifier la composition" : "Nouvelle composition")}</h3>
@@ -884,7 +884,7 @@ function DraftWorkspace({ data, setData, selectedTeamId, refreshAll, pushToast, 
   const view = draftViewFromPath(route?.path);
   const icons = { pool: Crown, compositions: Sparkles };
   return <div>
-    <TabNav idPrefix="draft" panelId="draft-panel" className="mb-5" label={t("Espace Draft")} items={DRAFT_VIEW_ROUTES.map((item) => ({ ...item, icon: icons[item.id] }))} activeId={view} onChange={(id) => navigate(draftPathFromView(id))} columns="sm:grid-cols-2" />
+    <TabNav idPrefix="draft" panelId="draft-panel" className="nxt5-draft-navigation mb-5" label={t("Espace Draft")} items={DRAFT_VIEW_ROUTES.map((item) => ({ ...item, icon: icons[item.id] }))} activeId={view} onChange={(id) => navigate(draftPathFromView(id))} columns="sm:grid-cols-2" />
     <div id="draft-panel" role="tabpanel" aria-labelledby={`draft-tab-${view}`} tabIndex={0}>
     {view === "compositions" ? <Compositions key={selectedTeamId} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} /> : <Champions data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
     </div>

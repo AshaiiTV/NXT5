@@ -73,6 +73,15 @@
   --nxt5-spectrum-gradient: linear-gradient(105deg, var(--nxt5-spectrum-stops));
   --nxt5-spectrum-soft: linear-gradient(105deg, rgba(103, 232, 249, .07), rgba(139, 92, 246, .12) 62%, rgba(232, 121, 249, .07));
   --nxt5-spectrum-text: linear-gradient(105deg, #a5f3fc, #c4b5fd 55%, #f0abfc);
+  --nxt5-glass-background: linear-gradient(135deg, #263248, #221e42 62%, #1b273c);
+  --nxt5-glass-border: rgba(196, 181, 253, .34);
+  --nxt5-glass-highlight: rgba(226, 232, 255, .22);
+  --nxt5-glass-shadow: inset 0 1px 0 rgba(226, 232, 255, .1), 0 16px 48px rgba(2, 6, 17, .23);
+  --nxt5-glass-reflection: radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, .23), transparent 55%), radial-gradient(ellipse at 0% 0%, rgba(103, 232, 249, .08), transparent 42%);
+  --nxt5-glow-violet: rgba(139, 92, 246, .28);
+  --nxt5-glow-cyan: rgba(103, 232, 249, .16);
+  --nxt5-glow-fuchsia: rgba(232, 121, 249, .14);
+  --nxt5-ease-out: cubic-bezier(.23, 1, .32, 1);
   --nxt5-radius-panel: 1rem;
   --nxt5-radius-control: 0.625rem;
   --nxt5-radius-button: 0.125rem;
@@ -244,8 +253,7 @@ textarea {
   }
 }
 
-/* Shared visual language: no decorative layer or blanket recoloring of children.
-   Status colors and page layouts retain their own intent. */
+/* Violet glass frames the content; semantic colors remain owned by each state. */
 .nxt5-panel {
   clip-path: none;
   border-radius: var(--nxt5-radius-panel);
@@ -253,9 +261,18 @@ textarea {
 }
 .nxt5-premium-panel,
 .nxt5-surface {
-  background: var(--nxt5-surface);
-  box-shadow: var(--nxt5-shadow-panel);
+  background: var(--nxt5-glass-reflection), var(--nxt5-glass-background);
+  border-color: var(--nxt5-glass-border);
+  box-shadow: var(--nxt5-glass-shadow);
   backdrop-filter: none;
+}
+.nxt5-surface.nxt5-surface-reading {
+  background: var(--nxt5-surface);
+  border-color: var(--nxt5-border);
+  box-shadow: var(--nxt5-shadow-panel);
+}
+.nxt5-surface.nxt5-surface-scene {
+  background: radial-gradient(ellipse at 100% 0%, var(--nxt5-glow-violet), transparent 65%), radial-gradient(ellipse at 0% 100%, var(--nxt5-glow-cyan), transparent 50%), var(--nxt5-glass-background);
 }
 .nxt5-panel .nxt5-panel {
   background: var(--nxt5-surface-soft);
@@ -629,10 +646,10 @@ html.nxt5-low-gpu .nxt5-ambient-bg > div {
 
 html.nxt5-low-gpu .nxt5-ambient-bg > div:first-child {
   display: block !important;
-  opacity: 0.34;
+  opacity: 1;
   background:
-    radial-gradient(circle at 18% 12%, rgba(34, 211, 238, 0.12), transparent 34%),
-    radial-gradient(circle at 82% 8%, rgba(217, 70, 239, 0.08), transparent 36%) !important;
+    radial-gradient(ellipse at 12% 0%, rgba(103, 232, 249, .1), transparent 46%),
+    radial-gradient(ellipse at 92% 8%, rgba(139, 92, 246, .23), transparent 58%) !important;
 }
 
 html.nxt5-low-gpu :where([class*="backdrop-blur"], .nxt5-premium-panel, .nxt5-surface, .nxt5-tab-nav, .nxt5-sidebar, .nxt5-topbar, .nxt5-panel .nxt5-panel) {
@@ -649,6 +666,9 @@ html.nxt5-low-gpu :where([class*="shadow-"], .nxt5-premium-panel) {
 }
 
 html.nxt5-low-gpu .nxt5-premium-panel {
+  background: var(--nxt5-glass-background) !important;
+}
+html.nxt5-low-gpu .nxt5-surface-reading {
   background: var(--nxt5-surface) !important;
 }
 

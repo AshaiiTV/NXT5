@@ -150,7 +150,7 @@ function DiscordSettingsContent({ teamId, teamName, canManage, canPublish }) {
     ...(canManage ? [["salons", "Salons", Hash], ["access", "Accès aux commandes", ShieldCheck]] : []),
     ["activity", "Activité", History], ["settings", "Aide et réglages", CircleHelp],
   ];
-  return <Surface className="discord-panel discord-dashboard">
+  return <Surface variant="scene" className="discord-panel discord-dashboard">
     <div className="discord-heading discord-dashboard-status">
       <div className="discord-team-identity"><span className="discord-team-icon"><MessageSquare size={23} aria-hidden="true" /></span><div><p className="discord-eyebrow">{t("Pour l’équipe")}</p><h3>{t("Le bot de ")}{teamName || t("ton équipe")}</h3><p className="discord-server">{t("Serveur : ")}<strong>{!status ? resource.loading ? t("vérification en cours") : t("état indisponible") : connected ? connection.guildName || connection.guildId : t("aucun serveur relié")}</strong></p></div></div>
       <Badge tone={resource.error ? "yellow" : verified ? "green" : connected ? "yellow" : "slate"}>{!status ? resource.loading ? t("Vérification…") : t("Vérification impossible") : !status.configured ? t("Service indisponible") : verified ? t("Serveur relié") : connected ? t("Connexion à vérifier") : t("À installer")}</Badge>

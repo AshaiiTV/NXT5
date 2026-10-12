@@ -5,6 +5,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, CalendarDays, FileText, Swords, Upload, Users } from "lucide-react";
 import { BeginnerCompass } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PageHeader, Surface } from "../../components/ui/Core.jsx";
+import { RoleIcon, TeamAvatar } from "../../components/brand/BrandAssets.jsx";
+import { ROLES } from "../../../shared/roles.js";
+import { rosterPlayersByStatus } from "../../utils/roster.js";
 import { getHomeContext, homeMatchTimestamp } from "../../utils/home-context.js";
 import { matchDisplayName } from "../../utils/matches.js";
 import { LinkButton, PublicTextLink } from "../public/PublicPages.jsx";
@@ -96,6 +99,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   const latestReport = context.latestReport;
   const nextEvent = context.nextEvent;
   const FocusIcon = focus.icon;
+  const mainRoster = rosterPlayersByStatus(context.players, "MAIN");
   const shortcuts = [
     { path: "/games", title: "Parties", text: context.matches.length ? `${countLabel(context.matches.length, "partie")} dans votre historique` : "Retrouver les premières parties importées", icon: Swords },
     { path: "/planning", title: "Planning", text: nextEvent ? "Retrouver vos séances et disponibilités" : "Organiser la prochaine séance", icon: CalendarDays },
@@ -104,11 +108,11 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   ];
 
   return <div className="nxt5-home" data-home-state={focus.kind}>
-    <PageHeader eyebrow={currentTeam.name} title={t(focus.title)} subtitle={t(focus.subtitle)}>
+    <div className="nxt5-home-identity"><span className="nxt5-home-team-mark" aria-hidden="true"><TeamAvatar team={currentTeam} className="nxt5-home-team-image" /></span><PageHeader eyebrow={currentTeam.name} title={t(focus.title)} subtitle={t(focus.subtitle)}>
       {context.canImport && context.matches.length > 0 && focus.kind !== "quiet" && <LinkButton href="/games?import=1" navigate={navigate} icon={Upload} variant="ghost">{t("Importer une partie")}</LinkButton>}
-    </PageHeader>
+    </PageHeader></div>
     {(loading || apiError) && <p className="nxt5-home-data-status" role="status">{loading ? t("Actualisation de l’équipe…") : t("Cet aperçu reprend les dernières données chargées. Réessaie l’actualisation pour le mettre à jour.")}</p>}
-    {startIsPrimary ? <BeginnerCompass steps={steps} manager={context.manager} onNavigate={navigate} onClose={closeStart} /> : <Surface glow className="nxt5-home-ready">
+    {startIsPrimary ? <BeginnerCompass steps={steps} manager={context.manager} onNavigate={navigate} onClose={closeStart} /> : <Surface glow variant="scene" className="nxt5-home-ready">
       <div className="nxt5-home-focus-layout"><div className="nxt5-home-focus-content">
       <p className="nxt5-home-status">{t(focus.label)}</p>
       <h3>{["start", "quiet"].includes(focus.kind) ? t(focus.heading) : focus.heading}</h3>
@@ -121,6 +125,12 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
       <div className="nxt5-home-focus-marker" aria-hidden="true"><FocusIcon strokeWidth={1.25} /></div>
       </div>
     </Surface>}
+    {mainRoster.length > 0 && <nav className="nxt5-home-lineup" aria-label={t("Titulaires")}>
+      {ROLES.map(role => {
+        const player = mainRoster.find(member => String(member.role).toUpperCase() === role);
+        return player ? <PublicTextLink key={role} href={`/mon-profil?player=${encodeURIComponent(player.id)}`} navigate={navigate} className="nxt5-home-lineup-player"><span aria-hidden="true"><RoleIcon role={role} /></span><span><small>{role}</small><strong>{player.name}</strong></span></PublicTextLink> : <span key={role} className="nxt5-home-lineup-player is-empty"><span aria-hidden="true"><RoleIcon role={role} /></span><span><small>{role}</small><strong>—</strong></span></span>;
+      })}
+    </nav>}
 
     <div className="nxt5-home-overview">
       <section className="nxt5-home-section" aria-labelledby="nxt5-home-games-title">

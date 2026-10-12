@@ -1,4 +1,8 @@
 .nxt5-home { max-width: 1160px; margin-inline: auto; container: home-workspace / inline-size; }
+.nxt5-home-identity { display: flex; align-items: flex-start; gap: 22px; }
+.nxt5-home-identity > .nxt5-page-header { flex: 1; min-width: 0; }
+.nxt5-home-team-mark { display: grid; place-items: center; flex: 0 0 78px; height: 78px; padding: 10px; border: 1px solid var(--nxt5-glass-border); border-radius: 16px; background: var(--nxt5-glass-reflection), var(--nxt5-glass-background); box-shadow: inset 0 1px 0 var(--nxt5-glass-highlight), 0 8px 30px rgba(139,92,246,.16); }
+.nxt5-home-team-image { width: 56px; height: 56px; object-fit: contain; object-position: center; }
 .nxt5-start-surface.nxt5-surface { padding: 0; }
 .nxt5-start-meta { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 24px 32px 0; font-size: var(--nxt5-font-small); color: var(--nxt5-text-secondary); }
 .nxt5-start-meta > span:last-child { color: var(--nxt5-muted); font-variant-numeric: tabular-nums; }
@@ -24,7 +28,7 @@
 .nxt5-home-focus-layout { display: grid; grid-template-columns: minmax(0,1fr) 120px; align-items: center; gap: 32px; }
 .nxt5-home-focus-content { min-width: 0; }
 .nxt5-home-ready h3 { max-width: 27ch; font-size: clamp(26px, 3.6cqi, 38px); line-height: 1.16; letter-spacing: -.035em; font-weight: 700; color: var(--nxt5-text); text-wrap: balance; overflow-wrap: anywhere; }
-.nxt5-home-focus-marker { display: grid; place-items: center; width: 120px; height: 120px; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-field); color: var(--nxt5-accent); box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+.nxt5-home-focus-marker { position: relative; display: grid; place-items: center; width: 120px; height: 120px; border: 1px solid rgba(196,181,253,.55); border-radius: 24px 8px 24px 8px; background: linear-gradient(140deg,rgba(103,232,249,.18),rgba(139,92,246,.3) 48%,rgba(17,24,39,.7) 49%,rgba(232,121,249,.14)); color: #e0d5ff; box-shadow: inset 1px 1px 0 rgba(255,255,255,.2), inset -1px -1px 0 rgba(232,121,249,.25), 0 10px 50px rgba(139,92,246,.25); }
 .nxt5-home-focus-marker svg { width: 52px; height: 52px; }
 .nxt5-home[data-home-state="review"] .nxt5-home-focus-marker, .nxt5-home[data-home-state="active"] .nxt5-home-focus-marker { color: var(--nxt5-accent-2); }
 .nxt5-home-ready p { margin-top: 12px; color: var(--nxt5-text-secondary); line-height: 1.7; overflow-wrap: anywhere; }
@@ -72,6 +76,26 @@
 .nxt5-home-shortcut span > span { margin-top: 6px; font-size: var(--nxt5-font-small); line-height: 1.6; }
 .nxt5-home-shortcut:hover strong { color: var(--nxt5-accent); }
 .nxt5-home-guide { display: inline-flex; align-items: center; min-height: 44px; margin-top: 24px; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); text-decoration: underline; text-underline-offset: 4px; }
+.nxt5-home-lineup { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); margin-top: 18px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: linear-gradient(110deg,rgba(103,232,249,.045),rgba(139,92,246,.12),rgba(232,121,249,.07)); overflow: hidden; }
+.nxt5-home-lineup-player { display: flex; align-items: center; min-width: 0; gap: 12px; min-height: 84px; padding: 14px 18px; }
+.nxt5-home-lineup-player + .nxt5-home-lineup-player { border-left: 1px solid var(--nxt5-border); }
+.nxt5-home-lineup-player > span:first-child { flex-shrink: 0; }
+.nxt5-home-lineup-player > span:last-child { min-width: 0; }
+.nxt5-home-lineup-player small { display: block; color: var(--nxt5-accent-2); font-size: var(--nxt5-font-micro); }
+.nxt5-home-lineup-player strong { display: block; margin-top: 3px; overflow-wrap: anywhere; color: var(--nxt5-text); font-size: var(--nxt5-font-small); font-weight: 600; }
+.nxt5-home-lineup-player.is-empty { color: var(--nxt5-muted); opacity: .65; }
+.nxt5-home-lineup-player[href]:hover { background: rgba(196,181,253,.1); }
+.nxt5-home-lineup-player[href]:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: -3px; }
+.nxt5-home-shortcuts { border-color: var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-glass-reflection), linear-gradient(125deg,rgba(34,30,66,.9),rgba(17,24,39,.4)); overflow: hidden; }
+.nxt5-home-shortcut:first-child > svg:first-child { color: var(--nxt5-accent); }
+.nxt5-home-shortcut:nth-child(2) > svg:first-child { color: var(--nxt5-accent-2); }
+.nxt5-home-shortcut:nth-child(3) > svg:first-child { color: #e879f9; }
+.nxt5-home-section-heading > svg { padding: 8px; box-sizing: content-box; border: 1px solid var(--nxt5-glass-border); border-radius: 10px; background: var(--nxt5-glass-background); color: var(--nxt5-accent-2); }
+.nxt5-home-games > li[data-result="win"] { border-left: 2px solid rgba(110,231,183,.5); padding-left: 12px; }
+.nxt5-home-games > li[data-result="loss"] { border-left: 2px solid rgba(253,164,175,.5); padding-left: 12px; }
+@container home-workspace (max-width: 850px) {
+  .nxt5-home-lineup-player { flex-direction: column; align-items: flex-start; padding: 14px 10px; gap: 8px; }
+}
 @container home-workspace (max-width: 740px) {
   .nxt5-home-ready.nxt5-surface { padding: 28px; }
   .nxt5-home-focus-layout { grid-template-columns: minmax(0,1fr); }
@@ -83,6 +107,13 @@
   .nxt5-home-shortcut + .nxt5-home-shortcut { border-left: 0; border-top: 1px solid var(--nxt5-border); }
 }
 @media (max-width: 640px) {
+  .nxt5-home-identity { gap: 12px; }
+  .nxt5-home-team-mark { flex-basis: 48px; height: 48px; padding: 5px; border-radius: 10px; }
+  .nxt5-home-team-image { width: 36px; height: 36px; }
+  .nxt5-home-lineup { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .nxt5-home-lineup-player { min-height: 92px; }
+  .nxt5-home-lineup-player:nth-child(4) { border-left: 0; }
+  .nxt5-home-lineup-player:nth-child(n+4) { border-top: 1px solid var(--nxt5-border); }
   .nxt5-home-overview { grid-template-columns: minmax(0, 1fr); gap: 24px; margin-top: 24px; }
   .nxt5-home-actions { align-items: stretch; flex-direction: column; gap: 8px; }
   .nxt5-home-actions > a:first-child { width: 100%; }

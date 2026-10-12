@@ -28,7 +28,7 @@
 .ig-text-action { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: #cffafe; font-size: var(--nxt5-font-ui); font-weight: 650; text-align: left; text-underline-offset: 4px; }
 .ig-text-action svg { width: 14px; height: 14px; flex-shrink: 0; }
 .ig-text-action:hover { color: #fff; text-decoration: underline; }
-.ig-selection { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 16px 20px; margin: 0 0 16px; border-left: 2px solid var(--nxt5-accent); background: rgba(103,232,249,.055); }
+.ig-selection { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 18px 20px; margin: 0 0 16px; border: 1px solid var(--nxt5-glass-border); border-left: 2px solid var(--nxt5-accent); border-radius: var(--nxt5-radius-control); background: radial-gradient(ellipse at 100% 0, rgba(167,139,250,.23), transparent 70%), linear-gradient(120deg, rgba(103,232,249,.1), rgba(34,30,66,.93)); box-shadow: inset 0 1px rgba(226,232,255,.16); }
 .ig-selection-title { flex: 1 1 240px; min-width: 0; }
 .ig-selection-title h4 { font-weight: 750; font-size: var(--nxt5-font-body); }
 .ig-selection-title > p { margin-top: 4px; color: #dbe8f8; font-size: var(--nxt5-font-body); line-height: 1.5; }
@@ -37,13 +37,12 @@
 .ig-results { scroll-margin-top: 24px; }
 .ig-column-labels { display: none; }
 .ig-list { list-style: none; padding: 0; margin: 0; }
-.ig-game { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; width: 100%; padding: 18px 12px; border-top: 1px solid var(--nxt5-border); text-align: left; transition: background-color 140ms ease; }
+.ig-game { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; width: 100%; padding: 18px 12px; border-top: 1px solid var(--nxt5-border); background: rgba(17,27,45,.56); text-align: left; transition: background-color 140ms ease; }
 .ig-game:hover { background: rgba(255,255,255,.035); }
 .ig-game:focus-visible { z-index: 1; outline-offset: -2px; }
 .ig-game:disabled { cursor: default; }
 .ig-game:disabled:hover { background: transparent; }
-.ig-game[aria-pressed="true"] { background: rgba(103,232,249,.065); box-shadow: inset 3px 0 0 var(--nxt5-accent); }
-.ig-game[aria-pressed="true"]:disabled:hover { background: rgba(103,232,249,.065); }
+.ig-game[aria-pressed="true"], .ig-game[aria-pressed="true"]:disabled:hover { background: linear-gradient(100deg, rgba(103,232,249,.1), rgba(139,92,246,.17) 58%, rgba(232,121,249,.06)); box-shadow: inset 3px 0 0 var(--nxt5-accent), inset 0 1px rgba(196,181,253,.2); }
 .ig-result { display: inline-flex; align-items: center; gap: 8px; grid-column: 1; grid-row: 1; font-size: var(--nxt5-font-small); font-weight: 700; color: #c2d0e3; }
 .ig-result > span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; background: rgba(255,255,255,.055); font-size: var(--nxt5-font-small); }
 .ig-win { color: #a7f3d0; }
@@ -58,7 +57,7 @@
 .ig-composition-enemy { grid-column: 2; }
 .ig-composition-label { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 600; }
 .ig-champions { display: flex; flex-wrap: wrap; gap: 4px; }
-.ig-champion { width: 28px; height: 28px; border: 1px solid var(--nxt5-border); border-radius: 5px; flex-shrink: 0; object-fit: cover; }
+.ig-champion { width: 28px; height: 28px; border: 1px solid rgba(196,181,253,.4); border-radius: 5px; flex-shrink: 0; object-fit: cover; box-shadow: 0 3px 9px rgba(2,6,17,.3); }
 .ig-side, .ig-missing { color: #c2d0e3; font-size: var(--nxt5-font-small); line-height: 1.5; }
 .ig-side-blue { color: #bae6fd; }
 .ig-side-red { color: #fecdd3; }

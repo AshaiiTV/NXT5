@@ -1321,7 +1321,7 @@ function MatchDataPanel({ match, teamName, onReview, hasReview = false }) {
   const side = matchTeamSideKey(match, "ALLY");
   const status = timelineStatus(match);
   const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label={t("Éliminations / morts / assistances")} value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={t("{0} éliminations adverses", [enemyKills])} tone="cyan" /><MetricCard compact icon={Flame} label={t("Écart dégâts")} value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint={t("Notre équipe moins l’adversaire")} tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label={t("Écart or")} value={formatGoldDiff(goldDiff)} hint={t("Or de notre équipe moins l’adversaire")} tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label={t("Écart vision")} value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={t("Score de vision : notre équipe moins l’adversaire")} tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div>;
-  return <Surface className="nxt5-match-panel mt-5">
+  return <Surface variant="scene" className="nxt5-match-panel mt-5">
     <div className="games-match-context">
       <div className="games-match-title">
         <h3 tabIndex={-1}>{matchDisplayName(match)}</h3>

@@ -38,13 +38,15 @@
 
 .nxt5-information-page {
   position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   min-height: 100vh;
   overflow-x: clip;
   color: var(--nxt5-text);
-  background: var(--nxt5-bg);
+  background: radial-gradient(ellipse 65rem 34rem at 80% 0%,rgba(139,92,246,.22),transparent 80%), var(--nxt5-bg);
 }
+.nxt5-information-page > .nxt5-ambient-bg { z-index: -1; }
 
 .nxt5-information-main {
   position: relative;
@@ -76,8 +78,9 @@
 .nxt5-information-nav a[aria-current], .nxt5-information-nav a:hover {
   color: var(--nxt5-accent);
   border-bottom-color: var(--nxt5-accent);
+  background: linear-gradient(0deg,rgba(167,139,250,.12),transparent 80%);
 }
-.nxt5-information-hero { max-width: 58rem; margin-bottom: clamp(2rem, 4vw, 3rem); padding-block: .5rem 1rem; }
+.nxt5-information-hero { max-width: 58rem; margin-bottom: clamp(2rem, 4vw, 3rem); padding: clamp(1.25rem,3vw,2rem); border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: radial-gradient(ellipse at 100% 0%,rgba(232,121,249,.13),transparent 65%),var(--nxt5-glass-background); box-shadow: var(--nxt5-glass-shadow); }
 .nxt5-information-hero h1 {
   margin: 1.125rem 0 0;
   padding-bottom: 0.125rem;
@@ -102,7 +105,7 @@
   align-items: start;
   gap: clamp(1.5rem, 4vw, 3rem);
 }
-.nxt5-document-sidebar { position: sticky; top: 1.5rem; min-width: 0; }
+.nxt5-document-sidebar { position: sticky; top: 1.5rem; min-width: 0; padding: 1.25rem; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-glass-background); box-shadow: inset 0 1px var(--nxt5-glass-highlight); }
 .nxt5-information-label { margin: 0 0 0.75rem; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); font-weight: 600; }
 .nxt5-document-menu > a {
   display: flex;
@@ -118,7 +121,7 @@
 }
 .nxt5-document-menu > a[aria-current], .nxt5-document-menu > a:hover {
   border-left-color: var(--nxt5-accent);
-  background: rgba(103, 232, 249, 0.06);
+  background: linear-gradient(100deg,rgba(103,232,249,.09),rgba(139,92,246,.2));
   color: var(--nxt5-accent);
 }
 .nxt5-document-menu svg, .nxt5-document-help svg, .nxt5-document-resources svg,
@@ -187,6 +190,7 @@
 .nxt5-back-to-top { margin-top: 1rem; }
 
 .nxt5-community-feature { isolation: isolate; }
+.nxt5-information-page .nxt5-community-feature { background: radial-gradient(ellipse at 90% 0%,rgba(167,139,250,.21),transparent 65%),var(--nxt5-glass-background); }
 .nxt5-community-layout {
   display: grid;
   grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
@@ -202,6 +206,8 @@
 .nxt5-community-uses li { display: flex; align-items: flex-start; gap: 1rem; padding-block: 1.25rem; }
 .nxt5-community-uses li + li { border-top: 1px solid var(--nxt5-border); }
 .nxt5-community-uses svg { flex-shrink: 0; margin-top: 0.125rem; color: var(--nxt5-accent); }
+.nxt5-community-uses li:nth-child(2) svg { color: var(--nxt5-accent-2); }
+.nxt5-community-uses li:nth-child(3) svg { color: #f0abfc; }
 .nxt5-community-uses h3 { margin: 0; font-size: var(--nxt5-font-body); font-weight: 700; line-height: 1.6; }
 .nxt5-community-uses p { margin: 0.375rem 0 0; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.8; }
 .nxt5-other-networks { margin-top: 2rem; }
@@ -213,6 +219,7 @@
 .nxt5-network-list strong, .nxt5-network-list a > span > span { display: block; line-height: 1.8; font-size: var(--nxt5-font-body); }
 .nxt5-network-list a > span > span { margin-top: 0.25rem; color: var(--nxt5-text-secondary); }
 .nxt5-network-list a:hover strong { color: var(--nxt5-accent); }
+.nxt5-network-list a:hover { background: linear-gradient(90deg,rgba(139,92,246,.1),transparent); }
 .nxt5-social-link-note { display: flex; align-items: flex-start; gap: 0.5rem; margin: 1rem 0 0; font-size: var(--nxt5-font-small); line-height: 1.7; color: var(--nxt5-muted); }
 .nxt5-social-link-note svg { flex-shrink: 0; margin-top: 0.15rem; }
 .nxt5-contact-section { margin-top: clamp(2rem, 4vw, 3rem); scroll-margin-top: 2rem; }

@@ -322,7 +322,7 @@ export function LegalPage({ route, navigate, user }) {
             </details>
             {!page.contact && <PublicTextLink href="/contact" navigate={navigate} className="nxt5-document-help">{t("Une question ? Contacte l’équipe")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink>}
           </aside>
-          <Surface className="nxt5-document-surface">
+          <Surface variant="reading" className="nxt5-document-surface">
             <article aria-labelledby="document-title" className="nxt5-document-body">
               {page.sections.map(([title, text], index) => (
                 <section id={sectionId(index)} key={title} tabIndex={-1} className="nxt5-document-section">
@@ -362,7 +362,7 @@ export function NotFoundPage({ navigate }) {
         <LinkButton href="/creer-un-compte" navigate={navigate}>{t("Créer un compte")}</LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
-        <Surface className="nxt5-auth-card">
+        <Surface variant="scene" glow className="nxt5-auth-card">
           <Badge tone="red">404</Badge>
           <h1>{t("Page introuvable")}</h1>
           <p className="nxt5-auth-intro">{t("Aucune page NXT5 ne se trouve à cette adresse. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.")}</p>
@@ -413,7 +413,7 @@ export function ForgotPasswordPage({ navigate }) {
         <PublicTextLink href={loginHref} navigate={navigate} className="nxt5-entry-header-link">{t("Retour à la connexion")}</PublicTextLink>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
-        <Surface className="nxt5-auth-card">
+        <Surface variant="scene" glow className="nxt5-auth-card">
           <p className="nxt5-entry-eyebrow">{t("Récupération du compte")}</p>
           <h1>{t("Mot de passe oublié ?")}</h1>
           <p className="nxt5-auth-intro">{t("Entre l’e-mail de ton compte pour recevoir un lien de réinitialisation.")}</p>
@@ -466,7 +466,7 @@ export function ResetPasswordPage({ navigate, onAuth }) {
         <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">{t("Se connecter")}</LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
-        <Surface className="nxt5-auth-card">
+        <Surface variant="scene" glow className="nxt5-auth-card">
           <Badge tone="purple">{t("Nouveau mot de passe")}</Badge>
           <h1>{t("Réinitialiser le mot de passe")}</h1>
           {!token ? (<div className="mt-6 space-y-4"><p role="alert" className="nxt5-auth-notice is-error">{t("Ce lien de réinitialisation est incomplet. Demande un nouveau lien pour retrouver l’accès à ton compte.")}</p><LinkButton href="/mot-de-passe-oublie" navigate={navigate}>{t("Demander un nouveau lien")}</LinkButton></div>) : done ? (<div className="mt-6 space-y-4">
@@ -568,7 +568,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
             {[[Users, "Les joueurs de ton équipe", "Profils, rôles et disponibilités au même endroit."], [BarChart3, "Le détail de tes parties", "Le résumé et les statistiques restent liés à chaque partie."], [FileText, "Les débriefs de ton équipe", "Garde les observations et les prochaines actions de l’équipe."]].map(([Icon, title, text]) => <li key={title}><Icon aria-hidden="true" size={21} /><div><strong>{t(title)}</strong><span>{t(text)}</span></div></li>)}
           </ul>
         </section>
-        <Surface className="nxt5-auth-card">
+        <Surface variant="scene" glow className="nxt5-auth-card">
           <p className="nxt5-entry-eyebrow">{isRegister ? t("Bienvenue sur NXT5") : t("Bon retour sur NXT5")}</p>
           <h1>{isRegister && registrationRequested ? t("Demande reçue") : isSocialComplete ? t("Termine ton inscription") : isRegister ? t("Créer un compte") : t("Connexion")}</h1>
           <p className="nxt5-auth-intro">{isRegister && registrationRequested ? t("Consulte ta messagerie pour la suite de l’inscription.") : isSocialComplete ? t("Confirme tes informations pour créer ton compte NXT5.") : isRegister ? t("Crée ton compte pour ouvrir ou rejoindre un espace équipe. Accès actuellement gratuit, aucun abonnement activé.") : t("Retrouve tes équipes, tes parties et tes débriefs.")}</p>
