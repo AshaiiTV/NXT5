@@ -197,8 +197,9 @@ describe("profile collection rendering", () => {
     expect(markers).toHaveLength(1);
     const current = markers[0];
     expect(current.right).toBeLessThanOrEqual(1010);
-    const memberName = texts.find(({ text, y }) => text.startsWith("UneTrèsLongue") && y > 900);
+    const memberName = texts.find(({ text, y }) => text.startsWith("Une") && y > 900);
     expect(memberName).toBeDefined();
+    expect(longName.startsWith(memberName.text.replace(/…$/, ""))).toBe(true);
     expect(memberName.right).toBeLessThanOrEqual(current.x - 16);
   });
 });
