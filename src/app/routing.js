@@ -7,6 +7,11 @@ export function normalizePath(pathname = "/") {
   return pathname.replace(/\/+$/, "") || "/";
 }
 
+/** Keep bookmarks and in-flight invitation/auth links on the canonical team URL. */
+export function canonicalAppPath(path) {
+  return path.replace(/^\/equipes\/?(?=[?#]|$)/, "/mon-equipe");
+}
+
 export function pageFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
   if (path === "/draft/adversaires") return "matches";
@@ -21,7 +26,7 @@ export function pageFromPath(pathname = window.location.pathname) {
 
 export function pathFromPage(pageId) {
   if (pageId === "stats") return "/games";
-  return NAV.find((item) => item.id === pageId)?.path || "/equipes";
+  return NAV.find((item) => item.id === pageId)?.path || "/mon-equipe";
 }
 
 export function profileViewFromPath(pathname = window.location.pathname) {
@@ -77,6 +82,7 @@ export function isAdminPath(pathname = window.location.pathname) {
 
 export function isAppPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
+  if (path === "/equipes") return true;
   if (adminPageFromRoute({ path }) || path === "/integration" || path === "/statistiques") return true;
   if (isTrendDetailPath(path)) return true;
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return true;
@@ -103,7 +109,7 @@ export function readRoute() {
 }
 
 export function openAppPath(path) {
-  window.history.pushState({}, "", path);
+  window.history.pushState({}, "", canonicalAppPath(path));
   window.dispatchEvent(new Event("popstate"));
   window.scrollTo({ top: 0, behavior: "smooth" });
 }

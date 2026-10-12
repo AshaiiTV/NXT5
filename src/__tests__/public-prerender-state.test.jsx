@@ -147,9 +147,26 @@ describe("public prerender initial state", () => {
     expect(renderer.root.findAllByType("a").some(node => node.props.href === "/connexion")).toBe(true);
     expect(doubles.initializeConsent).not.toHaveBeenCalled();
     await session({ id: "member", email: "member@example.test", email_verified: true });
-    expect(renderer.root.findAllByType("a").some(node => node.props.href === "/equipes")).toBe(true);
+    expect(renderer.root.findAllByType("a").some(node => node.props.href === "/mon-equipe")).toBe(true);
     expect(doubles.initializeConsent).toHaveBeenCalled();
     expect(doubles.privateModule).not.toHaveBeenCalled();
+  });
+
+  it.each(["/equipes?invite=TEAM_valid_123&setup=1#roster", "/equipes/?invite=TEAM_valid_123&setup=1#roster"])("canonicalizes the connected bookmark %s without dropping invitation state", async (url) => {
+    setLocation(url);
+    mount(<App initialApp={AppRouter} />);
+    expect(window.location.pathname + window.location.search + window.location.hash).toBe("/mon-equipe?invite=TEAM_valid_123&setup=1#roster");
+    await session({ id: "member", email_verified: true });
+    expect(renderer.root.findByProps({ "data-private-path": "/mon-equipe" })).toBeTruthy();
+    expect(window.history.pushState).not.toHaveBeenCalled();
+  });
+
+  it.each(["/equipes/?invite=TEAM_valid_123", "/mon-equipe?invite=TEAM_valid_123"])("preserves the anonymous invitation flow from %s", async (url) => {
+    setLocation(url);
+    mount(<App initialApp={AppRouter} />);
+    await session(null);
+    expect(window.location.pathname).toBe("/creer-un-compte");
+    expect(new URLSearchParams(window.location.search).get("invite")).toBe("TEAM_valid_123");
   });
 
   it("preserves the session loader and login redirect for private roots without prerender props", async () => {
@@ -159,7 +176,7 @@ describe("public prerender initial state", () => {
     expect(doubles.privateModule).not.toHaveBeenCalled();
     await session(null);
     expect(window.location.pathname).toBe("/connexion");
-    expect(new URLSearchParams(window.location.search).get("next")).toBe("/equipes?source=bookmark");
+    expect(new URLSearchParams(window.location.search).get("next")).toBe("/mon-equipe?source=bookmark");
     expect(renderer.root.findAll(node => node.props["data-loading"])).toHaveLength(0);
     expect(renderer.root.findByType("h1").children).toEqual(["Connexion"]);
   });

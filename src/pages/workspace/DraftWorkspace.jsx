@@ -430,7 +430,7 @@ function Champions({ data, setData, selectedTeamId, pushToast, currentMember, us
               {canManageSelectedPool && <div className="nxt5-pool-remove-zone" onDragOver={(event) => !saving && event.preventDefault()} onDrop={(event) => !saving && dropOnChampionBase(event)}><Trash2 className="h-3.5 w-3.5" aria-hidden="true" /><span>{t("Glisse un champion ici pour le retirer")}</span></div>}
             </aside>
           </div>}
-        </>) : <Surface><EmptyState icon={Users} title={t("Ajoutez d’abord les joueurs")} text={t("Le responsable ou le staff doit créer les profils joueurs de l’équipe. Chacun pourra ensuite préparer sa liste de champions.")} /><div className="mt-4 flex justify-center"><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>{t("Voir mon équipe")}</Button></div></Surface>}
+        </>) : <Surface><EmptyState icon={Users} title={t("Ajoutez d’abord les joueurs")} text={t("Le responsable ou le staff doit créer les profils joueurs de l’équipe. Chacun pourra ensuite préparer sa liste de champions.")} /><div className="mt-4 flex justify-center"><Button type="button" variant="ghost" onClick={() => openAppPath("/mon-equipe")}>{t("Voir mon équipe")}</Button></div></Surface>}
     </div>
   );
 }
@@ -852,7 +852,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
             <CompositionCounterPanel slots={form.slots} rows={rows} />
             </details>}
           </Surface>
-        </form>) : <Surface><EmptyState icon={Users} title={t("Ajoutez d’abord les joueurs")} text={t("Les profils TOP, JGL, MID, ADC et SUP permettent d’attribuer les champions à chaque rôle.")} /><div className="mt-4 flex justify-center"><Button type="button" variant="ghost" onClick={() => openAppPath("/equipes")}>{t("Voir mon équipe")}</Button></div></Surface>}
+        </form>) : <Surface><EmptyState icon={Users} title={t("Ajoutez d’abord les joueurs")} text={t("Les profils TOP, JGL, MID, ADC et SUP permettent d’attribuer les champions à chaque rôle.")} /><div className="mt-4 flex justify-center"><Button type="button" variant="ghost" onClick={() => openAppPath("/mon-equipe")}>{t("Voir mon équipe")}</Button></div></Surface>}
 
       <CompositionSummaryStrip players={players} rows={rows} compositions={compositions} formPicks={formPicks} />
 

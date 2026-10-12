@@ -37,7 +37,7 @@ export function BeginnerCompass({ steps = [], onNavigate, onClose, manager = tru
         <p className="nxt5-start-eyebrow">{nextStep.disabled ? t("En attendant ton équipe") : t("Ta prochaine action")}</p>
         <h2 id="nxt5-start-title">{nextStep.disabled ? t("Ton espace se prépare") : t(nextStep.title)}</h2>
         <p id="nxt5-start-description">{nextStep.disabled ? t(nextStep.reason) : t(nextStep.description)}</p>
-        <Button type="button" icon={ArrowRight} aria-describedby="nxt5-start-description" onClick={() => onNavigate(nextStep.disabled ? "/equipes" : nextStep.path)}>{nextStep.disabled ? t("Voir mon équipe") : t(nextStep.action)}</Button>
+        <Button type="button" icon={ArrowRight} aria-describedby="nxt5-start-description" onClick={() => onNavigate(nextStep.disabled ? "/mon-equipe" : nextStep.path)}>{nextStep.disabled ? t("Voir mon équipe") : t(nextStep.action)}</Button>
         {!nextStep.disabled && <p className="nxt5-start-detail">{t(nextStep.detail)}</p>}
       </div>
       <div className="nxt5-start-footer">

@@ -60,7 +60,7 @@ export function FeaturesPage({ navigate, user }) {
     <AmbientBackground />
     <SiteHeader navigate={navigate}>
       <PublicTextLink href="/contact" navigate={navigate} className="nxt5-entry-header-link">{t("Contact")}</PublicTextLink>
-      <LinkButton href={user ? "/equipes" : "/connexion"} navigate={navigate} variant="ghost">{user ? t("Mon équipe") : t("Se connecter")}</LinkButton>
+      <LinkButton href={user ? "/mon-equipe" : "/connexion"} navigate={navigate} variant="ghost">{user ? t("Mon équipe") : t("Se connecter")}</LinkButton>
     </SiteHeader>
     <main className="nxt5-entry-main">
       <nav aria-label={t("Fil d’Ariane")} className="nxt5-features-breadcrumb"><PublicTextLink href="/" navigate={navigate}>{t("Accueil")}</PublicTextLink><span aria-hidden="true">/</span><span aria-current="page">{t("Fonctionnalités")}</span></nav>
@@ -68,7 +68,7 @@ export function FeaturesPage({ navigate, user }) {
         <p className="nxt5-entry-eyebrow">{t("Les outils NXT5")}</p>
         <h1>{t("Analyse, coaching et organisation pour ton équipe League of Legends.")}</h1>
         <p>{t("Retrouve les parties et les joueurs de ton équipe dans NXT5. Compare les résultats, note tes observations et prépare les points à travailler à l’entraînement.")}</p>
-        <div className="nxt5-entry-actions"><LinkButton href="/demo" navigate={navigate} icon={ArrowRight}>{t("Essayer la démo")}</LinkButton><LinkButton href={user ? "/equipes" : "/creer-un-compte"} navigate={navigate} variant="ghost">{user ? t("Ouvrir mon équipe") : t("Créer mon espace équipe")}</LinkButton></div>
+        <div className="nxt5-entry-actions"><LinkButton href="/demo" navigate={navigate} icon={ArrowRight}>{t("Essayer la démo")}</LinkButton><LinkButton href={user ? "/mon-equipe" : "/creer-un-compte"} navigate={navigate} variant="ghost">{user ? t("Ouvrir mon équipe") : t("Créer mon espace équipe")}</LinkButton></div>
         <p className="nxt5-features-access">{t("Accès actuellement gratuit, aucun abonnement activé. L’import nécessite Windows ou Mac et League of Legends ouvert ; la démo se consulte sans installation.")}</p>
       </header>
 
@@ -93,7 +93,7 @@ export function FeaturesPage({ navigate, user }) {
 
       <section className="nxt5-features-faq" aria-labelledby="faq-title"><div className="nxt5-entry-section-heading"><p className="nxt5-entry-eyebrow">{t("Avant de commencer")}</p><h2 id="faq-title">{t("Les questions fréquentes.")}</h2></div><div>{QUESTIONS.map(([question, answer]) => <details key={question}><summary>{t(question)}</summary><p>{t(answer)}</p></details>)}</div></section>
 
-      <section className="nxt5-entry-start" aria-labelledby="features-start-title"><div><p className="nxt5-entry-eyebrow">{t("Avec ton équipe")}</p><h2 id="features-start-title">{t("Rassemble ton équipe sur NXT5.")}</h2><p>{t("Un besoin précis pour ton staff ? ")}<PublicTextLink href="/contact" navigate={navigate}>{t("Explique-nous ce dont tu as besoin.")}</PublicTextLink></p></div><LinkButton href={user ? "/equipes" : "/creer-un-compte"} navigate={navigate} icon={Users}>{user ? t("Ouvrir mon équipe") : t("Créer un compte")}</LinkButton></section>
+      <section className="nxt5-entry-start" aria-labelledby="features-start-title"><div><p className="nxt5-entry-eyebrow">{t("Avec ton équipe")}</p><h2 id="features-start-title">{t("Rassemble ton équipe sur NXT5.")}</h2><p>{t("Un besoin précis pour ton staff ? ")}<PublicTextLink href="/contact" navigate={navigate}>{t("Explique-nous ce dont tu as besoin.")}</PublicTextLink></p></div><LinkButton href={user ? "/mon-equipe" : "/creer-un-compte"} navigate={navigate} icon={Users}>{user ? t("Ouvrir mon équipe") : t("Créer un compte")}</LinkButton></section>
     </main>
     <LegalLinks navigate={navigate} />
   </div>;

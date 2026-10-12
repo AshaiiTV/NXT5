@@ -37,7 +37,7 @@ export type AssistantKnowledgeMatch = AssistantKnowledgeEntry & {
 
 export const ALLOWED_ASSISTANT_PATHS = [
   '/accueil',
-  '/equipes',
+  '/mon-equipe',
   '/gestion-equipe',
   '/bot-discord',
   '/games',
@@ -85,10 +85,10 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: "Équipe, joueurs et accès",
     path: '/gestion-equipe',
     actionLabel: 'Gérer l’équipe',
-    summary: "Équipe présente les joueurs et l’encadrement. Gestion de l’équipe permet d’ajouter les profils, de choisir les titulaires et remplaçants, de lier les comptes et de régler les accès.",
+    summary: "Mon équipe présente les joueurs et l’encadrement. Gestion de l’équipe permet d’ajouter les profils, de choisir les titulaires et remplaçants, de lier les comptes et de régler les accès.",
     keywords: ['équipe', 'team', 'roster', 'joueur', 'staff', 'main team', 'sub', 'remplaçant', 'riot id', 'opgg', 'invitation', 'lier compte', 'modifier nom', 'accès', 'santé des données', 'fiabilité', "titulaire", "encadrement", "effectif"],
     steps: [
-      "Ouvre Gestion de l’équipe depuis la page Équipe ou le bouton en haut de l’application.",
+      "Ouvre Gestion de l’équipe depuis la page Mon équipe ou le bouton en haut de l’application.",
       "Ajoute le profil et son poste, puis choisis Titulaire ou Remplaçant dans Effectif.",
       "Associe le bon compte NXT5 au profil joueur lorsque la personne a un compte.",
       "Vérifie le rôle attribué avant de partager un code d’invitation."
@@ -110,7 +110,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
           "opgg roster",
           "opgg titulaires"
         ],
-        "answer": "Dans Équipe, Copier le multi OP.GG réunit les titulaires et les remplaçants disposant d’un Riot ID valide. Le staff n’est pas inclus."
+        "answer": "Dans Mon équipe, Copier le multi OP.GG réunit les titulaires et les remplaçants disposant d’un Riot ID valide. Le staff n’est pas inclus."
       },
       {
         "question": "Pourquoi un joueur a moins de parties ?",
@@ -647,6 +647,7 @@ function knownAssistantRoute(value: unknown): string | null {
   if (typeof value !== 'string') return null;
   const [pathname, search = ''] = value.trim().split('#')[0].split('?');
   const route = pathname.replace(/\/+$/, '');
+  if (route === '/equipes') return '/mon-equipe';
   if (route === '/integration' || route === '/statistiques') return '/games';
   if (!ALLOWED_PATH_SET.has(route)) return null;
   // Preserve this public view selector, never private match/player/filter values.
@@ -655,7 +656,7 @@ function knownAssistantRoute(value: unknown): string | null {
 }
 
 export function safeAssistantRoute(value: unknown): string {
-  return knownAssistantRoute(value) || '/equipes';
+  return knownAssistantRoute(value) || '/mon-equipe';
 }
 
 export function retrieveAssistantKnowledge(message: unknown, route: unknown, limit = 4, language: AssistantLanguage = 'fr', section: unknown = null): AssistantKnowledgeMatch[] {
@@ -728,7 +729,7 @@ function bestFaq(message: unknown, matches: AssistantKnowledgeMatch[]): { faq: A
 
 export function buildFallbackAssistantResponse(message: unknown, matches: AssistantKnowledgeMatch[], language: AssistantLanguage = 'fr') {
   const translations = ASSISTANT_TRANSLATIONS[language];
-  const selected = matches.length ? matches.map((entry) => ({ ...entry, ...translations?.[entry.id] })) : retrieveAssistantKnowledge(message, '/equipes', 3, language);
+  const selected = matches.length ? matches.map((entry) => ({ ...entry, ...translations?.[entry.id] })) : retrieveAssistantKnowledge(message, '/mon-equipe', 3, language);
   const primary = selected[0] || getAssistantKnowledge(language)[0];
   const faq = bestFaq(message, selected);
   const sourcesByRelevance = faq ? [faq.source, ...selected.filter(entry => entry.id !== faq.source.id)] : selected;

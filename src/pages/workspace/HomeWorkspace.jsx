@@ -32,7 +32,7 @@ function homeFocus(context, now) {
     kind: "start", title: "Prépare les premières parties de ton équipe.", subtitle: "Retrouve les parties, les débriefs et le planning de ton équipe.",
     label: "Pour commencer", heading: canImport ? "Ajoute votre première partie" : "Prends tes repères dans l’équipe",
     text: canImport ? "Importe une partie pour retrouver son résumé et préparer votre premier débrief. Tu peux créer les profils joueurs pendant l’import." : "Retrouve les joueurs et le planning. Les parties apparaîtront ici dès leur ajout par le staff.",
-    href: canImport ? "/games?import=1" : linkedPlayer ? `/mon-profil?player=${encodeURIComponent(linkedPlayer.id)}` : "/equipes",
+    href: canImport ? "/games?import=1" : linkedPlayer ? `/mon-profil?player=${encodeURIComponent(linkedPlayer.id)}` : "/mon-equipe",
     action: canImport ? "Importer une partie" : linkedPlayer ? "Ouvrir mon profil" : "Voir mon équipe", icon: canImport ? Upload : Users,
   };
   if (nextEvent && nextEvent.startsAt <= now + 48 * 60 * 60 * 1000) return {
@@ -100,7 +100,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
     { path: "/games", title: "Parties", text: context.matches.length ? `${countLabel(context.matches.length, "partie")} dans votre historique` : "Retrouver les premières parties importées", icon: Swords },
     { path: "/planning", title: "Planning", text: nextEvent ? "Retrouver vos séances et disponibilités" : "Organiser la prochaine séance", icon: CalendarDays },
     context.reports.length ? { path: "/rapports", title: "Débriefs", text: `${countLabel(context.reports.length, "débrief")} pour préparer la suite`, icon: FileText }
-      : { path: "/equipes", title: "Équipe", text: context.importPlayers.length ? `${countLabel(context.importPlayers.length, "joueur")} · retrouver l’effectif et le staff` : "Faire connaissance avec ton équipe", icon: Users },
+      : { path: "/mon-equipe", title: "Mon équipe", text: context.importPlayers.length ? `${countLabel(context.importPlayers.length, "joueur")} · retrouver l’effectif et le staff` : "Faire connaissance avec ton équipe", icon: Users },
   ];
 
   return <div className="nxt5-home" data-home-state={focus.kind}>
@@ -141,7 +141,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
           </ul>
         </> : <>
           <p className="nxt5-home-section-intro">{context.importPlayers.length ? t("{0} dans l’effectif. Les premières parties et leurs débriefs apparaîtront ici.", [t(countLabel(context.importPlayers.length, "joueur"))]) : t("Les joueurs, les parties et les prochaines séances apparaîtront ici après leur ajout.")}</p>
-          <PublicTextLink href={context.canManageRoster ? "/gestion-equipe?section=roster" : "/equipes"} navigate={navigate} className="nxt5-home-text-link">{context.canManageRoster ? t("Compléter l’effectif") : t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
+          <PublicTextLink href={context.canManageRoster ? "/gestion-equipe?section=roster" : "/mon-equipe"} navigate={navigate} className="nxt5-home-text-link">{context.canManageRoster ? t("Compléter l’effectif") : t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
         </>}
       </section>
       <section className="nxt5-home-section" aria-labelledby="nxt5-home-next-title">
@@ -149,7 +149,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
         {focus.kind === "session" ? <>
           <p className="nxt5-home-section-intro">{latestReport ? latestReport.discord_status === "draft" ? t("Un brouillon de débrief attend le staff avant d’être partagé avec l’équipe.") : t("Reprends les points du dernier débrief avant de vous retrouver.") : t("Retrouve les joueurs et vos disponibilités pour cette séance.")}</p>
           {latestReport && <p className="nxt5-home-session-title">{latestReport.title || t("Dernier débrief de l’équipe")}</p>}
-          <PublicTextLink href={latestReport ? reportPath(latestReport) : "/equipes"} navigate={navigate} className="nxt5-home-text-link">{latestReport ? latestReport.discord_status === "draft" ? t("Reprendre le débrief") : t("Relire le débrief") : t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
+          <PublicTextLink href={latestReport ? reportPath(latestReport) : "/mon-equipe"} navigate={navigate} className="nxt5-home-text-link">{latestReport ? latestReport.discord_status === "draft" ? t("Reprendre le débrief") : t("Relire le débrief") : t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
         </> : <>
           {nextEvent ? <><p className="nxt5-home-session-title">{nextEvent.title || t("Séance de l’équipe")}</p><p className="nxt5-home-section-intro">{sessionDate(nextEvent)}</p></> : <p className="nxt5-home-section-intro">{t("Aucune séance à venir dans le planning.")}{context.linkedPlayer ? t(" Renseigne tes disponibilités pour aider l’équipe à se retrouver.") : t(" Ouvre le planning pour retrouver les disponibilités de l’équipe.")}</p>}
           <PublicTextLink href="/planning" navigate={navigate} className="nxt5-home-text-link">{nextEvent ? t("Voir le planning") : context.linkedPlayer ? t("Donner mes disponibilités") : t("Ouvrir le planning")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>

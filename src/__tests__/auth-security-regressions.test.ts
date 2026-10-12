@@ -406,6 +406,7 @@ describe('invitation entropy, rotation and abuse budgets', () => {
     expect(payload.code).toMatch(/^NXT5-[A-F0-9]{32}$/);
     expect(payload.inviteCodes).toHaveLength(1);
     expect((await join(inviteCode)).status).toBe(404);
+    expect((await join(`https://nxt5.test/mon-equipe?invite=${payload.code}`)).status).toBe(200);
     expect((await join(`https://nxt5.test/equipes?invite=${payload.code}`)).status).toBe(200);
     expect((await join(payload.code.toLowerCase())).status).toBe(200);
     const revoked = await manage('revoke');

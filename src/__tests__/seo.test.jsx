@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyDocumentMetadata, getMetadata, PUBLIC_METADATA, renderMetadata, serializeStructuredData, SITE_ORIGIN } from "../seo/metadata.js";
 import { createSeoDocument } from "./helpers/seo-document.js";
 import { dynamicPaths, privatePaths, publicPaths, render } from "../seo/render.jsx";
+import { NAV } from "../app/constants.jsx";
 import { isAppPath, isKnownPath } from "../app/routing.js";
 import { redirectRules, resolveSeoConfig, robotsHeaders, robotsTxt, sitemapXml, withMetadata } from "../../tools/seo-build.mjs";
 
@@ -142,6 +143,43 @@ describe("public SEO and real component rendering", () => {
     }
     expect(resolveSeoConfig({ CONTEXT: "production" }).noindex).toBe(false);
     expect(() => resolveSeoConfig({ PUBLIC_SITE_URL: "https://preview.netlify.app" })).toThrow("canonical production origin");
+  });
+
+  it("derives the private team route from navigation and keeps both slash variants noindex", () => {
+    const teamPath = NAV.find(item => item.id === "teams")?.path;
+    expect(teamPath).toBe("/mon-equipe");
+    expect(privatePaths).toContain(teamPath);
+    expect(privatePaths).not.toContain("/equipes");
+    expect(publicPaths).not.toContain(teamPath);
+
+    const headers = robotsHeaders({ noindex: false }, privatePaths, dynamicPaths);
+    const rules = redirectRules(privatePaths, dynamicPaths).split("\n");
+    for (const path of [teamPath, `${teamPath}/`]) {
+      expect(rules).toContain(`${path} /app-shell.html 200`);
+      expect(headers).toContain(`${path}\n  X-Robots-Tag: noindex, follow\n`);
+      expect(getMetadata(`${path}?invite=private-token`)).toMatchObject({ robots: "noindex, follow", canonical: null, structuredData: null });
+      expect(sitemapXml({ noindex: false })).not.toContain(`<loc>${SITE_ORIGIN}${path}</loc>`);
+    }
+  });
+
+  it("redirects exact legacy team URLs before rewrites without overriding query parameters", () => {
+    const rules = redirectRules(privatePaths, dynamicPaths).split("\n").filter(line => line && !line.startsWith("#"));
+    const legacyRules = rules.filter(line => ["/equipes", "/equipes/"].includes(line.split(/\s+/)[0]));
+    expect(legacyRules).toEqual([
+      "/equipes /mon-equipe 301!",
+      "/equipes/ /mon-equipe 301!",
+    ]);
+    const firstRewrite = rules.findIndex(line => / 200!?$/.test(line));
+    expect(firstRewrite).toBeGreaterThan(-1);
+    for (const rule of legacyRules) {
+      expect(rules.indexOf(rule)).toBeLessThan(firstRewrite);
+      expect(rules.indexOf(rule)).toBeLessThan(rules.indexOf("/* /404.html 404"));
+      // With neither a query matcher nor a query target, Netlify passes through
+      // invitation/auth parameters unchanged to the canonical route.
+      expect(rule.split(/\s+/)).toHaveLength(3);
+      expect(rule).not.toContain("?");
+    }
+    expect(rules).not.toContain("/equipes/* /mon-equipe 301!");
   });
 
   it("has a sitemap consistent with real pages and safe private deep links", () => {

@@ -695,7 +695,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   if (!selectedTeamId || !canImport) return <Surface>
     <h3 className="text-lg font-bold text-white">{!selectedTeamId ? t("Choisis ton équipe") : t("L’import est réservé au staff")}</h3>
     <p className="mt-2 text-sm leading-6 text-slate-300">{!selectedTeamId ? t("Crée ou rejoins une équipe pour y retrouver tes parties.") : t("Demande au capitaine ou au staff d’importer la partie. Tu pourras ensuite consulter son bilan et participer au débrief.")}</p>
-    <div className="mt-4"><LinkButton href={!selectedTeamId ? "/equipes" : "/games"} navigate={openAppPath} variant="ghost">{!selectedTeamId ? t("Ouvrir mon équipe") : t("Retour aux parties")}</LinkButton></div>
+    <div className="mt-4"><LinkButton href={!selectedTeamId ? "/mon-equipe" : "/games"} navigate={openAppPath} variant="ghost">{!selectedTeamId ? t("Ouvrir mon équipe") : t("Retour aux parties")}</LinkButton></div>
   </Surface>;
   return <div className="nxt5-data-dense nxt5-import-page game-import-flow">
         {fileError && <p role="alert" className="mb-4 rounded-xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm text-rose-100">{fileError}</p>}

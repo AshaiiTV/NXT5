@@ -167,7 +167,7 @@ export async function sendPasswordResetEmail({ to, name, resetUrl }) {
 
 export async function sendInactivityReminderEmail({ to, name }) {
   const siteUrl = String(env('PUBLIC_SITE_URL') || 'https://nxt5.org').replace(/\/+$/, '');
-  const workspaceUrl = `${siteUrl}/equipes`;
+  const workspaceUrl = `${siteUrl}/mon-equipe`;
   const settingsUrl = `${siteUrl}/parametres`;
   const safeName = String(name || 'joueur').trim().slice(0, 80) || 'joueur';
   const htmlName = escapeHtml(safeName);

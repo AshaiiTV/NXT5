@@ -169,7 +169,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
         body: JSON.stringify({
           message: content,
           language,
-          route: route?.path || "/equipes",
+          route: route?.path || "/mon-equipe",
           helpSection: guideSectionForRoute(route),
           selectedTeamId: selectedTeamId || null,
           selectedEntity: selectedEntity || null,

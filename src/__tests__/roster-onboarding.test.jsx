@@ -249,7 +249,7 @@ describe("first roster setup", () => {
     const { renderer, update, scrollIntoView, focus } = await render(settings);
     expect(focus).not.toHaveBeenCalled();
     expect(renderer.root.findAllByType("form")[0].props.className).toBe("team-profile-form");
-    expect(renderer.root.findAllByType("a").some((link) => link.props.href === "/equipes")).toBe(true);
+    expect(renderer.root.findAllByType("a").some((link) => link.props.href === "/mon-equipe")).toBe(true);
     const targeted = { ...settings, routeSearch: "?section=roster" };
     await update(targeted);
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "auto", block: "start" });
@@ -324,7 +324,7 @@ describe("temporary team invitations", () => {
     const { renderer } = await render(settings);
     await act(async () => action(renderer, "Créer et copier un lien").props.onClick());
     expect(apiFetch).toHaveBeenCalledWith("teams-invite-code", { method: "POST", body: JSON.stringify({ teamId: team.id }) });
-    expect(copy).toHaveBeenCalledWith("https://nxt5.test/equipes?invite=NXT5-NEW-INVITE");
+    expect(copy).toHaveBeenCalledWith("https://nxt5.test/mon-equipe?invite=NXT5-NEW-INVITE");
     expect(settings.refreshAll).toHaveBeenCalledOnce();
     expect(settings.pushToast).toHaveBeenCalledWith(expect.objectContaining({ title: "Lien d’invitation copié", text: expect.stringContaining("révoqués") }));
   });
