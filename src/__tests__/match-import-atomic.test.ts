@@ -146,7 +146,8 @@ beforeAll(async () => {
   }
   await database.pg.exec(`create table if not exists app_schema_migrations (
     migration_key text primary key, applied_at timestamptz not null default now(), checksum text
-  ); insert into app_schema_migrations(migration_key) values ('audit-runtime-20260906-v1')`);
+  ); insert into app_schema_migrations(migration_key) values ('audit-runtime-20260906-v1'),
+    ('opponents-drafts-20261012-v1'), ('match-drafts-20261012-v1'), ('match-opponents-20261012-v1'), ('group-opponents-20261012-v1')`);
 }, 20_000);
 
 beforeEach(async () => {
@@ -172,6 +173,192 @@ beforeEach(async () => {
 
 afterAll(async () => { await database.pg?.close(); });
 afterEach(() => { vi.unstubAllEnvs(); });
+
+describe('opponent affiliation within the match import transaction', () => {
+  const query = async (sql: string, params: unknown[] = []) => (await database.pg.query(sql, params)).rows;
+  const opponent = async (name = 'OPIF', selectedTeam = teamId) => (await query(
+    'insert into team_opponents(team_id,name,normalized_name,notes) values($1,$2,$3,$4) returning *',
+    [selectedTeam, name, name.toLowerCase(), 'Existing preparation notes']))[0];
+  const groupFor = async (matchId: string, opponentId: string | null = null) => (await query(
+    "insert into match_archives(team_id,created_by,name,match_ids,opponent_id) values($1,$2,'Linked scrim',$3::jsonb,$4) returning *",
+    [teamId, userId, JSON.stringify([matchId]), opponentId]))[0];
+  const submit = (kind: string, body: object) => (kind === 'file' ? importFile : importRiot)(new Request('https://nxt5.example/test', {
+    method: 'POST', headers: { 'content-type': 'application/json', origin: 'https://nxt5.example' }, body: JSON.stringify({ teamId, ...body })
+  }), { deploy: { context: 'dev' } } as any);
+
+  it.each(['file', 'riot'])('attaches an explicitly selected opponent through the %s import endpoint', async kind => {
+    const selected = await opponent(); const args = importArgs();
+    vi.mocked(fetchRiotMatch).mockResolvedValue(args.match);
+    const response = await submit(kind, { ...args, payload: args.match, opponentId: selected.id });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ firstImport: true, match: { opponent_id: selected.id } });
+    const stored = await storedMatch();
+    expect(stored.matches).toHaveLength(1); expect(stored.participants).toHaveLength(10);
+    expect(stored.matches[0].opponent_id).toBe(selected.id);
+    expect(await query('select * from team_opponents')).toEqual([selected]);
+    expect(await query('select * from opponent_drafts')).toEqual([]);
+  });
+
+  it.each(['file', 'riot'])('creates and reuses a normalized opponent from the %s envelope without overwriting its notes', async kind => {
+    const args = importArgs(); vi.mocked(fetchRiotMatch).mockResolvedValue(args.match);
+    const first = await submit(kind, { ...args, payload: args.match, newOpponentName: '  ＯＰＩＦ   Academy  ' });
+    expect(first.status).toBe(200);
+    const opponentId = (await first.json()).match.opponent_id;
+    expect(await query('select id,name,normalized_name from team_opponents')).toEqual([{ id: opponentId, name: 'OPIF Academy', normalized_name: 'opif academy' }]);
+    await query("update team_opponents set notes='Keep scouting' where id=$1", [opponentId]);
+    const nextArgs = importArgs(2);
+    vi.mocked(fetchRiotMatch).mockResolvedValue(nextArgs.match);
+    const next = await submit(kind, { ...nextArgs, payload: nextArgs.match, newOpponentName: 'opif academy' });
+    expect(next.status).toBe(200); expect((await next.json()).match.opponent_id).toBe(opponentId);
+    expect(await query('select id,notes from team_opponents')).toEqual([{ id: opponentId, notes: 'Keep scouting' }]);
+    expect((await storedMatch()).matches).toHaveLength(1);
+  });
+
+  it.each(['file', 'riot'])('preserves affiliation when the %s request omits both explicit fields', async kind => {
+    const selected = await opponent();
+    const first = await persistAnalyzedMatch({ ...importArgs(), opponentId: selected.id });
+    await groupFor(first.id, selected.id);
+    const nextArgs = importArgs(2);
+    // Source metadata has no authority, even if a file names a real foreign ID.
+    const foreign = await opponent('Foreign opponent', otherTeamId);
+    Object.assign(nextArgs.match, { opponentId: foreign.id, newOpponentName: 'Injected file opponent' });
+    Object.assign(nextArgs.match.metadata, { opponentId: foreign.id, newOpponentName: 'Injected metadata' });
+    vi.mocked(fetchRiotMatch).mockResolvedValue(nextArgs.match);
+    const response = await submit(kind, { ...nextArgs, payload: nextArgs.match });
+    expect(response.status).toBe(200);
+    expect((await response.json()).match).toMatchObject({ id: first.id, opponent_id: selected.id });
+    expect(await query('select id from team_opponents where team_id=$1', [teamId])).toEqual([{ id: selected.id }]);
+  });
+
+  it('ignores uploaded opponent names and identifiers when no explicit choice exists on a first file import', async () => {
+    const args = importArgs(); const foreign = await opponent('Foreign', otherTeamId);
+    Object.assign(args.match, { opponentId: foreign.id, newOpponentName: 'Uploaded team' });
+    const response = await submit('file', { ...args, payload: { match: args.match, opponentId: foreign.id, newOpponentName: 'Uploaded wrapper', metadata: { opponentId: foreign.id } } });
+    expect(response.status).toBe(200); expect((await response.json()).match.opponent_id).toBeNull();
+    expect(await query('select id from team_opponents where team_id=$1', [teamId])).toEqual([]);
+  });
+
+  it('changes the opponent only when a new explicit choice accompanies a reimport', async () => {
+    const first = await opponent(); const second = await opponent('Second team');
+    const saved = await persistAnalyzedMatch({ ...importArgs(), opponentId: first.id });
+    const updated = await persistAnalyzedMatch({ ...importArgs(2), opponentId: second.id });
+    expect(updated).toMatchObject({ id: saved.id, opponent_id: second.id, firstImport: false, inserted: false });
+    const created = await persistAnalyzedMatch({ ...importArgs(3), newOpponentName: 'Third team' });
+    expect(created.id).toBe(saved.id); expect(created.opponent_id).not.toBe(second.id);
+    expect(await query('select id from team_opponents')).toHaveLength(3);
+  });
+
+  it.each(['file', 'riot'])('rejects contradictory opponent choices on %s reimports of a linked group without changing the game', async kind => {
+    const selected = await opponent(); const other = await opponent('Other team');
+    const saved = await persistAnalyzedMatch({ ...importArgs(), opponentId: selected.id });
+    await groupFor(saved.id, selected.id);
+    const before = await storedMatch(); const opponentsBefore = await query('select * from team_opponents order by id');
+    const args = importArgs(8); vi.mocked(fetchRiotMatch).mockResolvedValue(args.match);
+    for (const choice of [{ opponentId: other.id }, { newOpponentName: 'Incompatible new team' }]) {
+      const response = await submit(kind, { ...args, payload: args.match, ...choice });
+      expect(response.status).toBe(409);
+      expect(await response.json()).toMatchObject({ code: 'MATCH_OPPONENT_LINKED_GROUP' });
+      expect(await storedMatch()).toEqual(before);
+      expect(await query('select * from team_opponents order by id')).toEqual(opponentsBefore);
+    }
+  });
+
+  it.each(['file', 'riot'])('permits the same opponent ID or normalized name when reimporting a linked group through %s', async kind => {
+    const selected = await opponent();
+    const saved = await persistAnalyzedMatch({ ...importArgs(), opponentId: selected.id });
+    const archive = await groupFor(saved.id, selected.id);
+    const args = importArgs(8); vi.mocked(fetchRiotMatch).mockResolvedValue(args.match);
+    for (const choice of [{ opponentId: selected.id }, { newOpponentName: '  ｏｐｉｆ ' }]) {
+      const response = await submit(kind, { ...args, payload: args.match, ...choice });
+      expect(response.status).toBe(200);
+      expect((await response.json()).match).toMatchObject({ id: saved.id, opponent_id: selected.id });
+    }
+    expect(await query('select * from team_opponents')).toEqual([selected]);
+    expect(await query('select * from match_archives')).toEqual([archive]);
+    expect((await storedMatch()).participants.every((row: any) => row.kills === 8)).toBe(true);
+  });
+
+  it.each(['existing-id', 'new-name'])('rolls back a %s affiliation and all import writes when a group is linked after preflight', async mode => {
+    const selected = await opponent(); const other = await opponent('Other team');
+    const saved = await persistAnalyzedMatch({ ...importArgs(), opponentId: selected.id });
+    const archive = await groupFor(saved.id);
+    const before = await storedMatch(); const opponentsBefore = await query('select * from team_opponents order by id');
+    const poolBefore = await query('select * from champion_pool order by id');
+    const reportsBefore = await query('select * from reports order by id');
+    database.beforeBatch = async () => { await query('update match_archives set opponent_id=$1 where id=$2', [selected.id, archive.id]); };
+    const choice = mode === 'existing-id' ? { opponentId: other.id } : { newOpponentName: 'Must roll back' };
+    await expect(persistAnalyzedMatch({ ...importArgs(8), ...choice })).rejects.toMatchObject({ status: 409, code: 'NXT5_IMPORT_REFERENCE_CHANGED' });
+    expect(await storedMatch()).toEqual(before);
+    expect(await query('select * from team_opponents order by id')).toEqual(opponentsBefore);
+    expect(await query('select * from champion_pool order by id')).toEqual(poolBefore);
+    expect(await query('select * from reports order by id')).toEqual(reportsBefore);
+    expect(await query('select opponent_id from match_archives where id=$1', [archive.id])).toEqual([{ opponent_id: selected.id }]);
+  });
+
+  it('rejects ambiguous or invalid explicit choices before any mutation', async () => {
+    const selected = await opponent(); await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch(); database.statements = [];
+    for (const input of [{ opponentId: selected.id, newOpponentName: 'Ambiguous' }, { opponentId: null },
+      { opponentId: '' }, { opponentId: 'invalid' }, { newOpponentName: null }, { newOpponentName: '' },
+      { newOpponentName: 'x'.repeat(81) }, { newOpponentName: {} }]) {
+      await expect(persistAnalyzedMatch({ ...importArgs(2), ...input })).rejects.toMatchObject({ status: 400 });
+    }
+    expect(database.statements.some(statement => /\b(insert|update|delete)\b/i.test(statement))).toBe(false);
+    expect(await storedMatch()).toEqual(before);
+  });
+
+  it('rejects an existing opponent from another team or an unknown ID without changing the match', async () => {
+    const local = await opponent(); const foreign = await opponent('Foreign', otherTeamId);
+    await persistAnalyzedMatch({ ...importArgs(), opponentId: local.id });
+    const before = await storedMatch();
+    for (const opponentId of [foreign.id, '00000000-0000-4000-8000-000000000098']) {
+      await expect(persistAnalyzedMatch({ ...importArgs(2), opponentId })).rejects.toMatchObject({ status: 404, code: 'OPPONENT_NOT_FOUND' });
+    }
+    expect(await storedMatch()).toEqual(before);
+  });
+
+  it.each([false, true])('rolls back the created opponent and all match data after participant rejection, reimport=%s', async reimport => {
+    if (reimport) await persistAnalyzedMatch({ ...importArgs(), newOpponentName: 'Existing team' });
+    const before = await storedMatch(); const opponentsBefore = await query('select * from team_opponents');
+    await database.pg.exec('alter table match_participants add constraint reject_test_stat check(kills <> 666)');
+    await expect(persistAnalyzedMatch({ ...importArgs(666), newOpponentName: 'Must roll back' })).rejects.toMatchObject({ code: '23514' });
+    expect(await storedMatch()).toEqual(before);
+    expect(await query('select * from team_opponents')).toEqual(opponentsBefore);
+    expect((await query('select first_import_at from teams where id=$1', [teamId]))[0].first_import_at === null).toBe(!reimport);
+  });
+
+  it('enforces the opponent quota while permitting reuse of an existing normalized name at capacity', async () => {
+    const existing = await opponent();
+    await query("insert into team_opponents(team_id,name,normalized_name) select $1,'Team '||n,'team '||n from generate_series(1,99)n", [teamId]);
+    await expect(persistAnalyzedMatch({ ...importArgs(), newOpponentName: 'Over quota' })).rejects.toMatchObject({ status: 409, code: 'OPPONENT_LIMIT_REACHED' });
+    expect((await storedMatch()).matches).toHaveLength(0);
+    expect(await persistAnalyzedMatch({ ...importArgs(), newOpponentName: '  opif ' })).toMatchObject({ opponent_id: existing.id });
+    expect(await query('select id from team_opponents')).toHaveLength(100);
+    expect(await query('select notes from team_opponents where id=$1', [existing.id])).toEqual([{ notes: existing.notes }]);
+  });
+
+  it('rechecks capacity under the team lock if another writer fills the last slot after preflight', async () => {
+    await query("insert into team_opponents(team_id,name,normalized_name) select $1,'Team '||n,'team '||n from generate_series(1,99)n", [teamId]);
+    database.beforeBatch = async () => { await opponent('Last slot'); };
+    await expect(persistAnalyzedMatch({ ...importArgs(), newOpponentName: 'Racing team' })).rejects.toMatchObject({ status: 409, code: 'NXT5_IMPORT_REFERENCE_CHANGED' });
+    expect((await storedMatch()).matches).toHaveLength(0);
+    expect(await query('select id from team_opponents')).toHaveLength(100);
+    expect(await query("select id from team_opponents where normalized_name='racing team'")).toHaveLength(0);
+    expect((await query('select first_import_at from teams where id=$1', [teamId]))[0].first_import_at).toBeNull();
+  });
+
+  it('rechecks opponent existence and staff permission before committing any new affiliation', async () => {
+    const selected = await opponent();
+    database.beforeBatch = async () => { await query('delete from team_opponents where id=$1', [selected.id]); };
+    await expect(persistAnalyzedMatch({ ...importArgs(), opponentId: selected.id })).rejects.toMatchObject({ status: 409, code: 'NXT5_IMPORT_REFERENCE_CHANGED' });
+    expect((await storedMatch()).matches).toHaveLength(0);
+    const otherOwner = '00000000-0000-4000-8000-000000000099';
+    await query("insert into users(id,account_name,name,password_hash) values($1,'other-owner','Owner','disabled')", [otherOwner]);
+    database.beforeBatch = async () => { await query('update teams set owner_id=$1 where id=$2', [otherOwner, teamId]); };
+    await expect(persistAnalyzedMatch({ ...importArgs(), newOpponentName: 'Unauthorized orphan' })).rejects.toMatchObject({ status: 409 });
+    expect((await storedMatch()).matches).toHaveLength(0); expect(await query('select id from team_opponents')).toHaveLength(0);
+  });
+});
 
 describe('atomic match imports against PostgreSQL', () => {
   it.each([

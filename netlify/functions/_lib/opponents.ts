@@ -4,6 +4,7 @@ import { assertSessionSecret } from './auth';
 import { TEAM_STAFF_ROLES } from './teams';
 import type { DrafterSnapshot } from './drafter-import';
 import { canonicalChampion } from '../../../shared/champions.js';
+import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
 
 export const OPPONENTS_SCHEMA_VERSION = 'opponents-drafts-20261012-v1';
 export const MATCH_DRAFTS_SCHEMA_VERSION = 'match-drafts-20261012-v1';
@@ -28,6 +29,11 @@ export function groupOpponentError(error: any) {
   return error;
 }
 
+function linkedGroupOpponentFailure() {
+  return failure('Cette partie appartient à un groupe lié à une équipe adverse. Modifie l’équipe depuis ce groupe ou retire la partie du groupe.',
+    409, 'MATCH_OPPONENT_LINKED_GROUP');
+}
+
 export function opponentUuid(value: unknown): string {
   if (typeof value !== 'string' || !UUID.test(value)) throw failure('Identifiant invalide.');
   return value.toLowerCase();
@@ -44,6 +50,72 @@ export function opponentInput(name: unknown, notes: unknown = '') {
     throw failure('Les notes doivent contenir au maximum 2 000 caractères.');
   }
   return { name: cleanName, normalizedName: cleanName.toLowerCase(), notes: cleanNotes };
+}
+
+/** Only explicit import-envelope fields carry affiliation authority. */
+export function importOpponentInput(opponentId: unknown, newOpponentName: unknown) {
+  if (opponentId === undefined && newOpponentName === undefined) return null;
+  if (opponentId !== undefined && newOpponentName !== undefined) {
+    throw failure('Choisis une équipe adverse existante ou un nouveau nom, pas les deux.');
+  }
+  if (opponentId !== undefined) return { id: opponentUuid(opponentId), name: null, normalizedName: null };
+  const input = opponentInput(newOpponentName);
+  return { id: null, name: input.name, normalizedName: input.normalizedName };
+}
+
+type ImportOpponentInput = ReturnType<typeof importOpponentInput>;
+
+export async function assertImportOpponentAvailable(teamId: string, input: ImportOpponentInput, gameId?: string) {
+  if (!input) return;
+  await assertOpponentsSchemaReady();
+  const existing = await sql`select id from team_opponents where team_id = ${teamId}
+    and (id = ${input.id}::uuid or normalized_name = ${input.normalizedName}) limit 1`;
+  if (!existing.length && input.id) throw failure('Adversaire introuvable dans cette équipe.', 404, 'OPPONENT_NOT_FOUND');
+  if (gameId) {
+    const conflicts = await sql`select a.id from match_archives a
+      join matches m on m.team_id = a.team_id and a.match_ids ? m.id::text
+      where m.team_id = ${teamId} and m.game_id = ${gameId} and a.opponent_id is not null
+        and a.opponent_id is distinct from ${existing[0]?.id || null}::uuid limit 1`;
+    if (conflicts.length) throw linkedGroupOpponentFailure();
+  }
+  if (existing.length) return;
+  const counts = await sql`select count(*)::integer as total from team_opponents where team_id = ${teamId}`;
+  if (counts[0].total >= OPPONENT_LIMITS.opponents) {
+    throw failure(`Ce prototype accepte ${OPPONENT_LIMITS.opponents} adversaires par équipe.`, 409, 'OPPONENT_LIMIT_REACHED');
+  }
+}
+
+/** Append to the existing match transaction AFTER its team lock and final staff
+ * check. A disappearing reference or exhausted quota aborts the entire import,
+ * including a newly created opponent. Group conflicts are rechecked here after
+ * name resolution: a group may have been linked since the preflight read.
+ * Omission leaves a reimport untouched. */
+export function importOpponentQueries(tx: NeonQueryFunctionInTransaction<false, false>, teamId: string,
+  userId: string, gameId: string, input: ImportOpponentInput) {
+  if (!input) return [];
+  return [
+    tx`select 1 / case when exists (
+        select id from team_opponents where team_id = ${teamId}
+          and (id = ${input.id}::uuid or normalized_name = ${input.normalizedName}) for key share
+      ) or (${input.id}::uuid is null and (select count(*) from team_opponents where team_id = ${teamId}) < ${OPPONENT_LIMITS.opponents})
+      then 1 else 0 end as opponent_available`,
+    ...(input.id ? [] : [tx`insert into team_opponents(team_id, created_by, name, normalized_name, notes)
+      select ${teamId}::uuid, ${userId}::uuid, ${input.name}, ${input.normalizedName}, ''
+      where not exists(select 1 from team_opponents where team_id = ${teamId} and normalized_name = ${input.normalizedName})
+      on conflict(team_id, normalized_name) do nothing`]),
+    tx`select 1 / case when not exists (
+        select 1 from match_archives a join matches m on m.team_id = a.team_id and a.match_ids ? m.id::text
+        where m.team_id = ${teamId} and m.game_id = ${gameId} and a.opponent_id is not null
+          and a.opponent_id is distinct from (
+            select id from team_opponents where team_id = ${teamId}
+              and (id = ${input.id}::uuid or normalized_name = ${input.normalizedName})
+          )
+      ) then 1 else 0 end as group_opponent_compatible`,
+    tx`update matches set opponent_id = (
+        select id from team_opponents where team_id = ${teamId}
+          and (id = ${input.id}::uuid or normalized_name = ${input.normalizedName}) for key share
+      ) where team_id = ${teamId} and game_id = ${gameId}`
+  ];
 }
 
 export async function assertOpponentsSchemaReady() {
@@ -110,6 +182,15 @@ function opponentView(row) {
 function draftView(row) {
   return { id: row.id, opponentId: row.match_opponent_id ?? null, matchId: row.match_id || null, allySide: row.ally_side, sourceId: row.source_id,
     gameNumber: row.game_number, sourceUrl: row.source_url, importedAt: new Date(row.imported_at).toISOString(), snapshot: row.snapshot };
+}
+
+export async function listOpponentProfiles(teamId: string) {
+  const rows = await sql`select id, name, notes, created_at from team_opponents where team_id = ${teamId}
+    order by name, id limit ${OPPONENT_LIMITS.opponents + 1}`;
+  if (rows.length > OPPONENT_LIMITS.opponents) {
+    throw failure('La limite de ce prototype est dépassée. Contacte le staff NXT5.', 409, 'OPPONENT_LIMIT_REACHED');
+  }
+  return { opponents: rows.map(opponentView) };
 }
 
 export async function listOpponents(teamId: string) {
@@ -234,9 +315,7 @@ export async function setMatchOpponent(teamId: string, userId: string, matchId: 
   `);
   if (!result.match_exists) throw failure('Partie introuvable dans cette équipe.', 404, 'DRAFT_MATCH_NOT_FOUND');
   if (!result.opponent_exists) throw failure('Adversaire introuvable dans cette équipe.', 404, 'OPPONENT_NOT_FOUND');
-  if (result.group_conflict) throw failure(
-    'Cette partie appartient à un groupe lié à une équipe adverse. Modifie l’équipe depuis ce groupe ou retire la partie du groupe.',
-    409, 'MATCH_OPPONENT_LINKED_GROUP');
+  if (result.group_conflict) throw linkedGroupOpponentFailure();
   return result.opponent_id;
 }
 

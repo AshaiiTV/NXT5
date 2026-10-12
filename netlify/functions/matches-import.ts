@@ -109,7 +109,8 @@ export default async function handler(request: Request, context: Context): Promi
         }
       });
     }
-    const savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label, categoryIds });
+    const savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label, categoryIds,
+      opponentId: body.opponentId, newOpponentName: body.newOpponentName });
     wakeDiscordPublications(context);
 
     await runOptionalImportTask('audit log', () => sql`
@@ -131,6 +132,7 @@ export default async function handler(request: Request, context: Context): Promi
         game_id: savedMatch.game_id,
         team_id: savedMatch.team_id,
         opponent: savedMatch.opponent,
+        opponent_id: savedMatch.opponent_id,
         result: savedMatch.result,
         created_at: savedMatch.created_at
       }

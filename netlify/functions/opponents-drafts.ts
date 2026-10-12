@@ -5,7 +5,7 @@ import { assertSubjectRateLimit } from './_lib/rate-limit';
 import { importDrafterDraft } from './_lib/drafter-import';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import {
-  assertOpponentsSchemaReady, createDraftPreviewToken, createOpponent, listOpponents,
+  assertOpponentsSchemaReady, createDraftPreviewToken, createOpponent, listOpponents, listOpponentProfiles,
   getMatchDraft, getMatchOpponent, getGroupOpponent, groupOpponentError, opponentInput, opponentUuid, readDraftPreviewToken, requireOpponentTeam, saveMatchDraft,
   saveOpponentDraft, setMatchOpponent, setGroupOpponent, unlinkMatchDraft
 } from './_lib/opponents';
@@ -20,13 +20,14 @@ export default async function handler(request: Request, context: Context): Promi
     // same deployment isolation guard as every other match source mutation.
     if (action === 'set-match-opponent' || action === 'set-group-opponent') assertMatchSourceMutationEnvironment(context);
     const user = await requireAuth(request, context);
-    if (!['list', 'create-opponent', 'preview', 'save-draft', 'get-match-draft', 'save-match-draft', 'unlink-match-draft', 'get-match-opponent', 'set-match-opponent', 'get-group-opponent', 'set-group-opponent'].includes(action)) {
+    if (!['list', 'list-opponents', 'create-opponent', 'preview', 'save-draft', 'get-match-draft', 'save-match-draft', 'unlink-match-draft', 'get-match-opponent', 'set-match-opponent', 'get-group-opponent', 'set-group-opponent'].includes(action)) {
       throw Object.assign(new Error('Action inconnue.'), { status: 400, code: 'INVALID_OPPONENT_INPUT' });
     }
     const teamId = opponentUuid(body.teamId);
-    const canEdit = await requireOpponentTeam(teamId, user.id, !['list', 'get-match-draft', 'get-match-opponent', 'get-group-opponent'].includes(action));
+    const canEdit = await requireOpponentTeam(teamId, user.id, !['list', 'list-opponents', 'get-match-draft', 'get-match-opponent', 'get-group-opponent'].includes(action));
     await assertOpponentsSchemaReady();
     if (action === 'list') return json({ ...await listOpponents(teamId), canEdit });
+    if (action === 'list-opponents') return json({ ...await listOpponentProfiles(teamId), canEdit });
     if (action === 'get-match-draft') return json({ ...await getMatchDraft(teamId, opponentUuid(body.matchId)), canEdit });
     if (action === 'get-match-opponent') return json({ ...await getMatchOpponent(teamId, opponentUuid(body.matchId)), canEdit });
     if (action === 'get-group-opponent') return json({ ...await getGroupOpponent(teamId, opponentUuid(body.archiveId)), canEdit });

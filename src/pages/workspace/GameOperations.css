@@ -107,6 +107,13 @@
 .game-import-enemy select { padding-left: 12px; }
 .game-import-confirmation-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; margin-top: 24px; padding: 24px 0; border-top: 1px solid var(--nxt5-border); }
 .game-import-confirmation-fields > * { min-width: 0; }
+.game-import-opponent { grid-column: 1 / -1; display: grid; gap: 8px; }
+.game-import-opponent-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.game-import-opponent-controls > .nxt5-field { flex: 1 1 18rem; min-width: 0; }
+.game-import-opponent-controls > button { min-height: 48px; }
+.game-import-opponent > p, .game-import-opponent-error > p { max-width: var(--nxt5-reading-width); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
+.game-import-opponent-error { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.game-import-opponent-error > p { color: var(--nxt5-danger); }
 .game-import-footer { display: flex; align-items: center; justify-content: space-between; gap: 16px 24px; padding: 16px 0 0; border-top: 1px solid var(--nxt5-border); background: var(--nxt5-surface); }
 .game-import-status { min-width: 0; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; }
 .game-import-status strong { display: flex; align-items: center; gap: 6px; color: var(--nxt5-text); font-weight: 600; }

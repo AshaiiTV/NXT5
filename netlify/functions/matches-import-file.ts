@@ -133,7 +133,9 @@ export default async function handler(request: Request, context: Context): Promi
     const roster = await sql`select * from players where team_id = ${teamId}`;
     if (!roster.length) throw Object.assign(new Error('Ajoute au moins un joueur au roster avant d’importer une game.'), { status: 400 });
 
-    const savedMatch = await persistAnalyzedMatch({ team, gameId: resolvedGameId, match, roster, userId: user.id, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label, categoryIds });
+    // Affiliation comes only from the request envelope, never uploaded metadata.
+    const savedMatch = await persistAnalyzedMatch({ team, gameId: resolvedGameId, match, roster, userId: user.id, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label, categoryIds,
+      opponentId: body.opponentId, newOpponentName: body.newOpponentName });
     wakeDiscordPublications(context);
 
     await runOptionalImportTask('audit log', () => sql`
@@ -155,6 +157,7 @@ export default async function handler(request: Request, context: Context): Promi
         game_id: savedMatch.game_id,
         team_id: savedMatch.team_id,
         opponent: savedMatch.opponent,
+        opponent_id: savedMatch.opponent_id,
         result: savedMatch.result,
         created_at: savedMatch.created_at
       }

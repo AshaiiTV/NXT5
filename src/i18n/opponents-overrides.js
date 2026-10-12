@@ -1,5 +1,16 @@
 // Opponent dossiers and public Drafter imports, including server feedback.
 export const en = {
+  "Nouvelle équipe": "New team",
+  "Choisis une équipe adverse existante ou un nouveau nom, pas les deux.": "Choose an existing opponent team or a new name, not both.",
+  "Les accès, profils, catégories ou équipes adverses ont changé pendant l’import. Recharge l’équipe puis réessaie.": "Access permissions, profiles, categories or opponent teams changed during the import. Reload the team and try again.",
+  "Équipe adverse (facultatif)": "Opponent team (optional)",
+  "Non renseignée": "Not specified",
+  "Cette équipe sera créée et associée à la partie lors de la confirmation de l’import.": "This team will be created and linked to the game when you confirm the import.",
+  "Choisis une équipe pour retrouver cette partie dans sa fiche. Sur un réimport, laisser ce champ vide conserve l’équipe déjà associée.": "Choose a team to find this game in its profile. When importing again, leaving this field empty keeps the existing team link.",
+  "Chargement des équipes adverses…": "Loading opponent teams…",
+  "Impossible de charger les équipes adverses. Tu peux continuer l’import sans en choisir.": "Unable to load opponent teams. You can continue the import without choosing one.",
+  "Seul le staff peut associer une équipe adverse.": "Only staff can link an opponent team.",
+  "Donne un nom de 1 à 80 caractères à l’équipe adverse, ou annule sa création.": "Enter an opponent team name of 1 to 80 characters, or cancel its creation.",
   "Retrouve les équipes adverses, leurs champions et les parties associées.": "Find opponent teams, their champions and linked games.",
   "1 partie exploitable sur {0}": "1 usable game out of {0}",
   "{0} parties exploitables sur {1}": "{0} usable games out of {1}",
@@ -202,6 +213,17 @@ export const en = {
 };
 
 export const es = {
+  "Nouvelle équipe": "Nuevo equipo",
+  "Choisis une équipe adverse existante ou un nouveau nom, pas les deux.": "Elige un equipo rival existente o un nombre nuevo, no ambos.",
+  "Les accès, profils, catégories ou équipes adverses ont changé pendant l’import. Recharge l’équipe puis réessaie.": "Los permisos, perfiles, categorías o equipos rivales han cambiado durante la importación. Recarga el equipo e inténtalo de nuevo.",
+  "Équipe adverse (facultatif)": "Equipo rival (opcional)",
+  "Non renseignée": "Sin especificar",
+  "Cette équipe sera créée et associée à la partie lors de la confirmation de l’import.": "Este equipo se creará y se vinculará a la partida cuando confirmes la importación.",
+  "Choisis une équipe pour retrouver cette partie dans sa fiche. Sur un réimport, laisser ce champ vide conserve l’équipe déjà associée.": "Elige un equipo para encontrar esta partida en su ficha. Al volver a importar, dejar este campo vacío conserva el equipo ya vinculado.",
+  "Chargement des équipes adverses…": "Cargando equipos rivales…",
+  "Impossible de charger les équipes adverses. Tu peux continuer l’import sans en choisir.": "No se pueden cargar los equipos rivales. Puedes continuar la importación sin elegir uno.",
+  "Seul le staff peut associer une équipe adverse.": "Solo el staff puede vincular un equipo rival.",
+  "Donne un nom de 1 à 80 caractères à l’équipe adverse, ou annule sa création.": "Introduce un nombre de entre 1 y 80 caracteres para el equipo rival, o cancela su creación.",
   "Retrouve les équipes adverses, leurs champions et les parties associées.": "Consulta los equipos rivales, sus campeones y las partidas vinculadas.",
   "1 partie exploitable sur {0}": "1 partida utilizable de {0}",
   "{0} parties exploitables sur {1}": "{0} partidas utilizables de {1}",
