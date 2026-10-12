@@ -130,6 +130,19 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType(OpponentsWorkspace)).toHaveLength(0);
   });
 
+  it("reloads opponent observations after the shared match snapshot changes without leaving the Teams tab", async () => {
+    const props = settings();
+    props.data.bootstrapRevision = 1;
+    const renderer = await mount("/games?view=teams", props);
+    const listRequests = () => apiFetch.mock.calls.filter(([path, options]) => path === "opponents-drafts" && JSON.parse(options.body).action === "list");
+    expect(listRequests()).toHaveLength(1);
+    const next = { ...props, data: { ...props.data, matches: [...history, game("imported")], bootstrapRevision: 2 } };
+    await act(async () => renderer.update(<Suspense fallback="loading"><RouteHarness props={next} /></Suspense>));
+    expect(listRequests()).toHaveLength(2);
+    expect(renderer.root.findByType(TabNav).props.activeId).toBe("teams");
+    expect(button(renderer, "Actualiser")).toBeUndefined();
+  });
+
   it("redirects old draft opponent links to the Teams library without leaving a dead Draft tab", async () => {
     const renderer = await mount("/draft/adversaires");
     expect(window.history.replaceState).toHaveBeenCalledWith({}, "", "/games?view=teams");

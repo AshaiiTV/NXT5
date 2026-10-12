@@ -178,7 +178,7 @@ function OpponentDossier({ opponent, model, groups, teamId, headingRef, panel, o
   </Surface>;
 }
 
-function TeamOpponents({ teamId, opponentId = "" }) {
+function TeamOpponents({ teamId, opponentId = "", refreshRevision = 0 }) {
   const id = useId();
   const [collection, setCollection] = useState({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], canEdit: false });
   const [loadState, setLoadState] = useState("loading");
@@ -196,6 +196,8 @@ function TeamOpponents({ teamId, opponentId = "" }) {
   const [notice, setNotice] = useState("");
   const requests = useRef(new Set());
   const mutationRef = useRef(false);
+  const readRequest = useRef(null);
+  const hasCollection = useRef(false);
   const mounted = useRef(true);
   const pendingFocus = useRef(null);
   const dossierHeading = useRef(null);
@@ -210,17 +212,51 @@ function TeamOpponents({ teamId, opponentId = "" }) {
     return () => { mounted.current = false; for (const request of pending) request.abort(); pending.clear(); };
   }, []);
   useEffect(() => {
-    const controller = new AbortController();
-    setLoadState("loading"); setLoadError("");
-    apiFetch("opponents-drafts", { method: "POST", body: JSON.stringify({ action: "list", teamId }), signal: controller.signal })
-      .then((result) => { if (!controller.signal.aborted) {
-        setCollection({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], ...result });
-        setSelectedId((current) => result.opponents.some((item) => item.id === current) ? current : "");
-        setLoadState("ready");
-      } })
-      .catch((error) => { if (!controller.signal.aborted) { setLoadError(error.message || t("Impossible de charger les adversaires.")); setLoadState("error"); } });
-    return () => controller.abort();
-  }, [teamId, reload]);
+    let disposed = false;
+    const load = () => {
+      // One read at a time; creation owns the collection until it finishes.
+      if (disposed || mutationRef.current || readRequest.current) return;
+      const controller = new AbortController();
+      readRequest.current = controller;
+      if (!hasCollection.current) setLoadState("loading");
+      setLoadError("");
+      apiFetch("opponents-drafts", { method: "POST", body: JSON.stringify({ action: "list", teamId }), signal: controller.signal })
+        .then((result) => { if (!disposed && !controller.signal.aborted) {
+          hasCollection.current = true;
+          setCollection({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], ...result });
+          setSelectedId((current) => result.opponents.some((item) => item.id === current) ? current : "");
+          setLoadState("ready");
+        } })
+        .catch((error) => { if (!disposed && !controller.signal.aborted) {
+          if (error.status === 401 || error.status === 403) {
+            hasCollection.current = false;
+            setCollection({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], canEdit: false });
+            setSelectedId("");
+          }
+          setLoadError(error.message || t("Impossible de charger les adversaires."));
+          setLoadState(hasCollection.current ? "ready" : "error");
+        } })
+        .finally(() => { if (readRequest.current === controller) readRequest.current = null; });
+    };
+    const doc = typeof document === "undefined" ? null : document;
+    const win = typeof window === "undefined" ? null : window;
+    const loadVisible = () => { if (doc?.visibilityState !== "hidden") load(); };
+    load();
+    // Remote edits are checked only while this workspace is open and visible.
+    const timer = globalThis.setInterval(loadVisible, 30_000);
+    doc?.addEventListener?.("visibilitychange", loadVisible);
+    win?.addEventListener?.("focus", loadVisible);
+    win?.addEventListener?.("online", loadVisible);
+    return () => {
+      disposed = true;
+      readRequest.current?.abort();
+      readRequest.current = null;
+      globalThis.clearInterval(timer);
+      doc?.removeEventListener?.("visibilitychange", loadVisible);
+      win?.removeEventListener?.("focus", loadVisible);
+      win?.removeEventListener?.("online", loadVisible);
+    };
+  }, [teamId, reload, refreshRevision]);
 
   const dossiers = useMemo(() => {
     const bucket = (rows) => { const groups = new Map(); for (const row of rows) { if (!groups.has(row.opponentId)) groups.set(row.opponentId, []); groups.get(row.opponentId).push(row); } return groups; };
@@ -250,6 +286,7 @@ function TeamOpponents({ teamId, opponentId = "" }) {
     event.preventDefault();
     if (!canEdit || !name.trim() || mutationRef.current) return;
     mutationRef.current = true;
+    readRequest.current?.abort();
     const controller = new AbortController(); requests.current.add(controller);
     setCreating(true); setCreateError(""); setNotice("");
     try {
@@ -260,17 +297,18 @@ function TeamOpponents({ teamId, opponentId = "" }) {
       setSelectedId(opponent.id); setPanel("overview"); setCreateOpen(false); setName(""); setNotes("");
       setNotice(t("Fiche adversaire créée."));
     } catch (error) { if (mounted.current && !controller.signal.aborted) setCreateError(error.message || t("Impossible de créer cet adversaire.")); }
-    finally { requests.current.delete(controller); mutationRef.current = false; if (mounted.current) setCreating(false); }
+    finally { requests.current.delete(controller); mutationRef.current = false; if (mounted.current) { setCreating(false); setReload((value) => value + 1); } }
   }
 
   return <div className="opponent-browser">
     <div role="status" aria-live="polite" aria-atomic="true" className={notice ? "opponents-notice" : "sr-only"}>{notice && <Check size={18} aria-hidden="true" />}{notice}</div>
+    {loadError && loadState === "ready" && <Surface><p role="alert">{t("Les données n’ont pas pu être actualisées")} · {t(loadError)}</p><Button type="button" variant="ghost" icon={RefreshCw} onClick={refresh}>{t("Réessayer")}</Button></Surface>}
     {loadState === "loading" ? <Surface><p role="status">{t("Chargement des adversaires…")}</p><SkeletonRows count={3} /></Surface> : loadState === "error" ? <Surface><p role="alert">{t(loadError)}</p><Button type="button" variant="ghost" icon={RefreshCw} onClick={refresh}>{t("Réessayer")}</Button></Surface> : <>
       {selected ? <>
-        <div ref={dossierTop} className="opponent-browser-toolbar"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={backToDirectory}>{t("Toutes les équipes")}</Button><Button type="button" variant="ghost" icon={RefreshCw} onClick={refresh}>{t("Actualiser")}</Button></div>
+        <div ref={dossierTop} className="opponent-browser-toolbar"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={backToDirectory}>{t("Toutes les équipes")}</Button></div>
         <OpponentDossier key={selectedId} opponent={selected.opponent} model={selected.model} groups={selected.groups} teamId={teamId} headingRef={dossierHeading} panel={panel} onPanel={setPanel} />
       </> : <Surface className="opponents-directory">
-        <div className="opponent-directory-heading"><div><p className="opponent-eyebrow">{t("Préparer une rencontre")}</p><h2 ref={directoryHeading} tabIndex={-1}>{t("Équipes adverses")}</h2><p>{t("Retrouve un adversaire, puis ouvre sa fiche pour préparer la prochaine rencontre.")}</p></div><div className="opponent-directory-actions"><Button type="button" variant="ghost" icon={RefreshCw} disabled={creating} onClick={refresh} aria-label={t("Actualiser")} />{canEdit && <Button type="button" icon={Plus} disabled={creating} aria-expanded={createOpen} aria-controls={`${id}-create`} onClick={() => setCreateOpen((open) => !open)}>{t("Ajouter un adversaire")}</Button>}</div></div>
+        <div className="opponent-directory-heading"><div><p className="opponent-eyebrow">{t("Préparer une rencontre")}</p><h2 ref={directoryHeading} tabIndex={-1}>{t("Équipes adverses")}</h2><p>{t("Retrouve un adversaire, puis ouvre sa fiche pour préparer la prochaine rencontre.")}</p></div><div className="opponent-directory-actions">{canEdit && <Button type="button" icon={Plus} disabled={creating} aria-expanded={createOpen} aria-controls={`${id}-create`} onClick={() => setCreateOpen((open) => !open)}>{t("Ajouter un adversaire")}</Button>}</div></div>
         {canEdit && createOpen && <form id={`${id}-create`} className="opponents-create" onSubmit={createOpponent}>
           <div><h3>{t("Nouvelle fiche adverse")}</h3><p className="opponents-help">{t("Le nom permet de retrouver cette équipe et de lui rattacher des parties.")}</p></div>
           <TextInput label={t("Nom de l’adversaire")} value={name} onChange={setName} maxLength={80} required disabled={creating} autoComplete="off" autoFocus />
@@ -298,11 +336,11 @@ function TeamOpponents({ teamId, opponentId = "" }) {
   </div>;
 }
 
-export function OpponentsWorkspace({ selectedTeamId, user, embedded = false, title, opponentId = "" }) {
+export function OpponentsWorkspace({ selectedTeamId, user, embedded = false, title, opponentId = "", refreshRevision = 0 }) {
   useLanguage();
   return <div className="opponents-workspace">
     {!embedded && <PageHeader title={title || t("Adversaires")} subtitle={t("Prépare les prochaines rencontres à partir des parties de tes adversaires.")} />}
-    {selectedTeamId ? <TeamOpponents key={`${selectedTeamId}:${user?.id || ""}`} teamId={selectedTeamId} opponentId={opponentId} /> : <Surface><EmptyState icon={Shield} title={t("Choisis une équipe")} text={t("Les fiches adversaires et leurs parties appartiennent à l’équipe sélectionnée.")} /></Surface>}
+    {selectedTeamId ? <TeamOpponents key={`${selectedTeamId}:${user?.id || ""}`} teamId={selectedTeamId} opponentId={opponentId} refreshRevision={refreshRevision} /> : <Surface><EmptyState icon={Shield} title={t("Choisis une équipe")} text={t("Les fiches adversaires et leurs parties appartiennent à l’équipe sélectionnée.")} /></Surface>}
   </div>;
 }
 

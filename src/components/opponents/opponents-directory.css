@@ -8,7 +8,6 @@
 .opponent-eyebrow { color: var(--nxt5-accent); font-size: 14px; font-weight: 600; margin: 0 0 6px; }
 .opponent-directory-heading h2 { font-size: 26px; font-weight: 750; line-height: 1.2; }
 .opponent-directory-heading > div > p:last-child:not(.opponent-eyebrow) { color: var(--nxt5-text-secondary); margin-top: 10px; font-size: 15px; }
-.opponent-directory-actions > button:first-child { padding: 0; width: 44px; height: 44px; }
 .opponent-directory-filters { display: grid; grid-template-columns: minmax(0,1fr) minmax(220px,.4fr); gap: 16px; margin: 28px 0 12px; }
 .opponent-directory-count { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 44px; margin-bottom: 16px; color: var(--nxt5-text-secondary); }
 .opponent-directory-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,270px),1fr)); align-items: stretch; gap: 16px; list-style: none; padding: 0; margin: 0; }
