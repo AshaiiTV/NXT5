@@ -105,27 +105,46 @@ export function LegalLinks({ navigate }) {
   useLanguage();
   return (
     <footer className="nxt5-footer">
-      <div className="nxt5-footer-main">
-        <div className="nxt5-footer-project">
-          <p className="nxt5-footer-signature">{t("Cinq rôles. Une même direction.")}</p>
-          {SUPPORT_URL && <PublicTextLink href="/soutenir" navigate={navigate} className="nxt5-footer-support"><Heart aria-hidden="true" size={16} />{t("Soutenir NXT5")}</PublicTextLink>}
+      <div className="nxt5-footer-panel">
+        <div className="nxt5-footer-main">
+          <div className="nxt5-footer-project">
+            <PublicTextLink href="/" navigate={navigate} aria-label={t("Accueil NXT5")} className="nxt5-footer-brand">
+              <Nxt5Wordmark className="nxt5-footer-wordmark" sizes="144px" />
+            </PublicTextLink>
+            <p className="nxt5-footer-signature">{t("Cinq rôles. Une même direction.")}</p>
+            {SUPPORT_URL && <LinkButton href="/soutenir" navigate={navigate} variant="ghost" icon={Heart} className="nxt5-footer-support">{t("Soutenir NXT5")}</LinkButton>}
+          </div>
+          <div className="nxt5-footer-navigation">
+            <nav aria-label={t("Découvrir NXT5")} className="nxt5-footer-group">
+              <h2>{t("Découvrir NXT5")}</h2>
+              <ul>
+                <li><PublicTextLink href="/fonctionnalites" navigate={navigate}>{t("Fonctionnalités")}</PublicTextLink></li>
+                <li><PublicTextLink href="/demo" navigate={navigate}>{t("Démonstration")}</PublicTextLink></li>
+              </ul>
+            </nav>
+            <nav aria-label={t("Guides pratiques")} className="nxt5-footer-group">
+              <h2>{t("Guides pratiques")}</h2>
+              <ul>
+                <li><PublicTextLink href="/guides/importer-premier-scrim" navigate={navigate}>{t("Guide d’import")}</PublicTextLink></li>
+                <li><PublicTextLink href="/guides/preparer-debrief" navigate={navigate}>{t("Guide de débrief")}</PublicTextLink></li>
+              </ul>
+            </nav>
+            <nav aria-label={t("Informations et contact")} className="nxt5-footer-group nxt5-footer-information">
+              <h2>{t("Informations")}</h2>
+              <ul>
+                <li><PublicTextLink href="/reseaux" navigate={navigate}>{t("La communauté")}</PublicTextLink></li>
+                <li><PublicTextLink href="/contact" navigate={navigate}>{t("Contacter l’équipe")}</PublicTextLink></li>
+                <li><PublicTextLink href="/mentions-legales" navigate={navigate}>{t("Cadre légal")}</PublicTextLink></li>
+                <li><PublicTextLink href="/confidentialite" navigate={navigate}>{t("Données & cookies")}</PublicTextLink></li>
+              </ul>
+            </nav>
+          </div>
         </div>
-        <div className="min-w-0">
-          <nav aria-label={t("Découvrir NXT5")}>
-            <PublicTextLink href="/fonctionnalites" navigate={navigate}>{t("Fonctionnalités")}</PublicTextLink>
-            <PublicTextLink href="/demo" navigate={navigate}>{t("Démonstration")}</PublicTextLink>
-            <PublicTextLink href="/guides/importer-premier-scrim" navigate={navigate}>{t("Guide d’import")}</PublicTextLink>
-            <PublicTextLink href="/guides/preparer-debrief" navigate={navigate}>{t("Guide de débrief")}</PublicTextLink>
-          </nav>
-          <nav aria-label={t("Informations et contact")}>
-            {INFORMATION_GROUPS.map(({ href, label }) => (
-              <PublicTextLink key={href} href={href} navigate={navigate}>{t(label)}</PublicTextLink>
-            ))}
-            <button type="button" onClick={openCookieSettings} aria-haspopup="dialog" className="inline-flex min-h-11 items-center text-left text-xs font-semibold text-slate-100 hover:text-cyan-200 hover:underline hover:underline-offset-[5px]">{t("Gérer mes cookies")}</button>
-          </nav>
+        <div className="nxt5-footer-bottom">
+          <p className="nxt5-footer-disclaimer">{t("NXT5 n’est pas affilié à Riot Games.")}</p>
+          <button type="button" onClick={openCookieSettings} aria-haspopup="dialog" className="nxt5-footer-cookies">{t("Gérer mes cookies")}</button>
         </div>
       </div>
-      <p className="nxt5-footer-disclaimer">{t("NXT5 n’est pas affilié à Riot Games.")}</p>
     </footer>
   );
 }

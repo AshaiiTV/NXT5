@@ -1,5 +1,7 @@
 // Reviewed product copy. Keep these source strings aligned with the French UI.
 const copy = [
+  ["Guides pratiques", "Practical guides", "Guías prácticas"],
+  ["Informations", "Information", "Información"],
   ["Tes objectifs", "Your goals", "Tus objetivos"],
   ["Les objectifs en cours de ton profil lié.", "Active goals for your linked profile.", "Los objetivos en curso de tu perfil vinculado."],
   ["Ouvrir mon suivi", "Open my progress", "Abrir mi seguimiento"],
