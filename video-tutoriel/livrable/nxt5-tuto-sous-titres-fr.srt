@@ -1,0 +1,63 @@
+1
+00:00:03,300 --> 00:00:08,580
+Bienvenue sur NXT5, l’espace de travail des équipes et coachs League of Legends.
+
+2
+00:00:08,600 --> 00:00:13,730
+Le principe : comprendre tes parties pour préparer la suite.
+
+3
+00:00:14,650 --> 00:00:20,330
+NXT5 couvre tout le cycle d’entraînement : analyse, draft et planning.
+
+4
+00:00:20,650 --> 00:00:25,930
+La démo se consulte sans compte. Toutes ses données sont fictives.
+
+5
+00:00:28,417 --> 00:00:33,780
+Cherche une partie par champion ou par résultat, par exemple « Jinx défaite ».
+
+6
+00:00:34,933 --> 00:00:37,347
+Clique sur une partie pour ouvrir son bilan.
+
+7
+00:00:37,767 --> 00:00:43,047
+Le bilan réunit le résultat, les compositions et l’écart d’or final.
+
+8
+00:00:43,567 --> 00:00:48,697
+Chaque chiffre lance la discussion. Ce n’est pas un verdict.
+
+9
+00:00:50,800 --> 00:00:56,080
+Analyses : suis une mesure partie après partie, comme l’écart d’or.
+
+10
+00:00:56,500 --> 00:01:02,063
+Repère les pics et les creux avant de choisir quoi travailler.
+
+11
+00:01:04,050 --> 00:01:08,930
+Débrief : un fait observé, puis une question à vérifier…
+
+12
+00:01:08,950 --> 00:01:13,463
+… et une action concrète pour la prochaine séance.
+
+13
+00:01:13,483 --> 00:01:18,763
+Dans ton espace, chaque membre de l’équipe écrit ses propres observations.
+
+14
+00:01:19,283 --> 00:01:24,380
+Pour commencer, crée ton espace équipe. L’accès est actuellement gratuit.
+
+15
+00:01:24,400 --> 00:01:29,480
+Importe tes parties avec NXT5 Importer, sur Windows ou Mac.
+
+16
+00:01:29,500 --> 00:01:34,580
+Invite tes joueurs, puis analysez et débriefez ensemble.
