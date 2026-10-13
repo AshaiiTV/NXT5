@@ -104,62 +104,84 @@
 .nxt5-toggle[aria-checked="true"] .nxt5-toggle-thumb { transform: translateX(18px); }
 
 .nxt5-page-header {
-  --nxt5-header-art-space: 7rem;
+  --nxt5-header-art-space: 12rem;
   position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 1.25rem 2rem;
-  padding: 1.5rem calc(1.5rem + var(--nxt5-header-art-space)) 1.5rem 1.5rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid var(--nxt5-glass-border);
-  border-radius: var(--nxt5-radius-panel);
-  background: linear-gradient(125deg, rgba(226, 232, 255, .045), transparent 35%), radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, .2), transparent 58%), linear-gradient(115deg, rgba(26, 43, 62, .84), rgba(34, 30, 66, .88));
-  box-shadow: inset 0 1px 0 rgba(226, 232, 255, .13), inset 0 -1px 0 rgba(196, 181, 253, .035), 0 10px 28px rgba(2, 6, 17, .1);
+  gap: 1.5rem 2rem;
+  min-height: 13rem;
+  padding: 2rem calc(1.5rem + var(--nxt5-header-art-space)) 2rem 0;
+  margin-bottom: 2rem;
+  border: 0;
+  border-bottom: 1px solid rgba(196, 181, 253, .24);
+  border-radius: 0;
+  background: var(--nxt5-scene-background);
+  box-shadow: none;
   isolation: isolate;
 }
 .nxt5-page-header::before {
   content: "";
   position: absolute;
-  inset: .5rem .625rem .5rem auto;
+  inset: .25rem .25rem .75rem auto;
   width: var(--nxt5-header-art-space);
   background: url("/assets/home-motion/glass-poster.webp") center / contain no-repeat;
-  opacity: .85;
+  opacity: .94;
   pointer-events: none;
   z-index: -1;
 }
 .nxt5-page-header::after {
   content: "";
   position: absolute;
-  left: 1.5rem;
+  left: 0;
   bottom: -1px;
-  width: min(12rem, 48%);
-  height: 2px;
-  background: var(--nxt5-spectrum-gradient);
-  opacity: .8;
+  width: min(34rem, 78%);
+  height: 1px;
+  background: var(--nxt5-edge-gradient);
   pointer-events: none;
 }
 .nxt5-page-header > :first-child { flex: 1 1 20rem; min-width: 0; }
-.nxt5-page-eyebrow { margin: 0 0 .5rem; font-size: var(--nxt5-font-micro); font-weight: 700; line-height: 1.5; letter-spacing: .1em; text-transform: uppercase; color: var(--nxt5-accent); }
-.nxt5-page-title { margin: 0; max-width: 50rem; font-size: clamp(1.625rem, 2.3vw, 2.125rem); line-height: 1.15; font-weight: 800; letter-spacing: -.035em; color: var(--nxt5-text); text-wrap: balance; overflow-wrap: anywhere; }
-.nxt5-page-subtitle { margin: .625rem 0 0; max-width: var(--nxt5-reading-width); font-size: var(--nxt5-font-body); line-height: 1.7; font-weight: 400; color: var(--nxt5-text-secondary); }
+.nxt5-page-eyebrow { margin: 0 0 .75rem; font-size: var(--nxt5-font-micro); font-weight: 700; line-height: 1.5; letter-spacing: .15em; text-transform: uppercase; color: var(--nxt5-accent); }
+.nxt5-page-title { margin: 0; max-width: 50rem; font-size: clamp(2rem, 3.5vw, 3.125rem); line-height: 1.08; font-weight: 800; letter-spacing: -.045em; color: var(--nxt5-text); text-wrap: balance; overflow-wrap: anywhere; }
+.nxt5-page-subtitle { margin: 1rem 0 0; max-width: 58ch; font-size: var(--nxt5-font-body); line-height: 1.7; font-weight: 400; color: var(--nxt5-text-secondary); }
 .nxt5-page-actions { display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: .5rem; max-width: 100%; }
 
-/* Reserve the sculpture's column even in the custom team-management header.
-   Identity headers that supply their own artwork keep their local composition. */
+/* A header is an open scene, never another data card. Keep the artwork's
+   column reserved when an older page supplies its own padding or background. */
+.nxt5-team-management-page > .nxt5-page-header.nxt5-page-header {
+  border: 0;
+  border-bottom: 1px solid rgba(196, 181, 253, .24);
+  border-radius: 0;
+  background: var(--nxt5-scene-background);
+  box-shadow: none;
+}
+.team-identity-header > .nxt5-page-header,
+.profile-identity-header > .nxt5-page-header,
+.nxt5-home-identity > .nxt5-page-header { --nxt5-header-mobile-art-height: 0px; min-height: 0; }
 @media (min-width: 768px) {
-  .nxt5-team-management-page > .nxt5-page-header.nxt5-page-header { padding-inline-end: calc(1.5rem + var(--nxt5-header-art-space)); }
+  .nxt5-team-management-page > .nxt5-page-header.nxt5-page-header { padding: 2rem calc(1.5rem + var(--nxt5-header-art-space)) 2rem 0; }
 }
 @media (min-width: 1280px) {
-  .nxt5-page-header { --nxt5-header-art-space: 9rem; }
+  .nxt5-page-header { --nxt5-header-art-space: 15rem; }
 }
 @media (max-width: 767px) {
-  .nxt5-page-header { --nxt5-header-art-space: 0px; padding-inline: 1rem; }
-  .nxt5-page-header::before { inset: .625rem .5rem auto auto; width: 3.25rem; height: 3rem; opacity: .8; }
-  .nxt5-page-header > :first-child { padding-inline-end: var(--nxt5-header-mobile-art-space, 2.75rem); }
+  .nxt5-page-header { --nxt5-header-art-space: 0px; min-height: 0; padding: 1.5rem 0; margin-bottom: 1.5rem; gap: 1.25rem; }
+  .nxt5-page-header::before { inset: 1.375rem 0 auto auto; width: 4.5rem; height: 4.75rem; opacity: .9; }
+  .nxt5-page-header > :first-child { padding-inline-end: var(--nxt5-header-mobile-art-space, 5rem); }
+  .nxt5-page-title { font-size: clamp(1.75rem, 5.5vw, 2.25rem); }
+  .nxt5-page-header > :first-child > .nxt5-page-title:first-child { min-height: max(0px, calc(var(--nxt5-header-mobile-art-height, 4.75rem) - .875rem)); }
+  .nxt5-page-subtitle { margin-top: .875rem; margin-inline-end: calc(-1 * var(--nxt5-header-mobile-art-space, 5rem)); }
+  .nxt5-team-management-page > .nxt5-page-header.nxt5-page-header { padding: 1.5rem 0; }
   .team-identity-header > .nxt5-page-header, .profile-identity-header > .nxt5-page-header { --nxt5-header-mobile-art-space: 0px; }
 }
+
+/* Static mode retains the sculpture and horizon color without decoding the
+   atmosphere behind each shared introduction. Reduced motion needs no override:
+   these scenes never animate. */
+html.nxt5-low-gpu .nxt5-page-header { background: linear-gradient(110deg, transparent 35%, rgba(139, 92, 246, .12)); }
+html.nxt5-low-gpu .nxt5-team-management-page > .nxt5-page-header.nxt5-page-header { background: linear-gradient(110deg, transparent 35%, rgba(139, 92, 246, .12)); }
+html.nxt5-low-gpu :is(.team-identity-header, .profile-identity-header, .nxt5-home-identity) > .nxt5-page-header { background: none; }
 
 .nxt5-reading-details { min-width: 0; border-block: 1px solid var(--nxt5-border); }
 .nxt5-reading-details + .nxt5-reading-details { border-top: 0; }
@@ -199,10 +221,7 @@
 
 @media (max-width: 640px) {
   :where(.nxt5-surface) { padding: 1rem; }
-  .nxt5-page-header { padding: 1rem; margin-bottom: 1.25rem; gap: 1rem; }
-  .nxt5-page-header::after { left: 1rem; }
   .nxt5-page-actions { width: 100%; }
-  .nxt5-page-title { font-size: 1.625rem; }
   .nxt5-tab-nav > div { display: flex; min-width: 100%; width: max-content; }
   .nxt5-tab { flex: 1 0 auto; }
   .nxt5-field .nxt5-input-shell { font-size: 16px; min-height: 48px; }

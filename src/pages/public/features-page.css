@@ -4,18 +4,15 @@
 .nxt5-features-intro h1 { margin: 1rem 0 0; max-width: 60rem; font-size: clamp(2.25rem, 4.5vw, 3.75rem); line-height: 1.1; letter-spacing: -.05em; font-weight: 700; text-wrap: balance; }
 .nxt5-features-intro-copy { position: relative; min-width: 0; z-index: 1; }
 .nxt5-features-intro-copy > p:not(.nxt5-entry-eyebrow) { max-width: 42rem; margin-top: 1.5rem; color: var(--nxt5-text-secondary); font-size: 1.0625rem; line-height: 1.8; }
-.nxt5-features-page .nxt5-features-intro { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: clamp(2rem, 4vw, 4rem); align-items: center; max-width: none; padding-block: 2.5rem 4.5rem; }
-.nxt5-features-page .nxt5-features-intro h1 { font-size: clamp(2.35rem, 3.9vw, 3.5rem); }
+.nxt5-features-page .nxt5-features-intro { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: clamp(2rem, 4vw, 4rem); align-items: center; max-width: none; padding-block: 3.5rem 6rem; }
+.nxt5-features-page .nxt5-features-intro h1 { font-size: clamp(2.6rem, 4.6vw, 4.15rem); line-height: 1.06; letter-spacing: -.055em; }
 .nxt5-features-page .nxt5-entry-actions { gap: .8rem; }
-.nxt5-features-sculpture { position: relative; justify-self: center; width: 100%; max-width: 31rem; aspect-ratio: 1; isolation: isolate; }
-.nxt5-features-sculpture::before { content: ""; position: absolute; inset: -7% -4% 4%; background: radial-gradient(ellipse at 52% 42%, rgba(139,92,246,.32), transparent 60%); pointer-events: none; z-index: -1; }
-.nxt5-features-glass { position: absolute; inset: -2% 0 auto; display: block; width: 100%; height: auto; transform: rotate(-7deg); filter: drop-shadow(0 24px 32px rgba(22,9,55,.6)); }
-.nxt5-features-sculpture-orbit { position: absolute; inset: auto 7% 12%; height: 17%; border: 1px solid rgba(196,181,253,.24); border-radius: 50%; background: radial-gradient(ellipse, rgba(139,92,246,.14), transparent 70%); transform: rotate(-8deg); box-shadow: 0 0 28px rgba(139,92,246,.08), inset 0 0 24px rgba(103,232,249,.04); }
-.nxt5-features-role-dock { position: absolute; inset: auto 5% 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: .85rem .5rem; border: 1px solid rgba(196,181,253,.3); border-radius: var(--nxt5-radius-panel); background: linear-gradient(150deg, rgba(53,36,95,.96), rgba(14,13,34,.98)); box-shadow: inset 0 1px rgba(233,224,255,.17), 0 18px 40px rgba(2,6,17,.3); }
+.nxt5-public-scene.nxt5-features-sculpture { justify-self: center; max-width: 35rem; }
+.nxt5-features-role-dock { position: absolute; z-index: 2; inset: 100% 3% auto; margin-top: .75rem; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 1rem .5rem; border-top: 1px solid rgba(196,181,253,.3); background: linear-gradient(90deg, transparent, #251d458c 30% 70%, transparent); }
 .nxt5-features-role-dock > div { display: flex; flex-direction: column; align-items: center; gap: .65rem; min-width: 0; color: #c9bde9; font-size: .65rem; font-weight: 600; letter-spacing: .12em; }
 .nxt5-features-role-dock > div + div { border-left: 1px solid rgba(196,181,253,.13); }
 .nxt5-features-role-icon { display: block; width: 1.65rem; height: 1.65rem; object-fit: contain; }
-.nxt5-features-index { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; padding: .75rem; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-glass-background); box-shadow: var(--nxt5-glass-shadow); }
+.nxt5-features-index { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; padding: .75rem 0; border-block: 1px solid var(--nxt5-glass-border); background: linear-gradient(90deg, #30214960, #1e293b20); }
 .nxt5-features-index a { display: flex; align-items: center; gap: .625rem; min-height: 48px; padding: .625rem; border-radius: var(--nxt5-radius-button); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 600; line-height: 1.55; }
 .nxt5-features-index a svg { flex-shrink: 0; color: var(--nxt5-accent-2); }
 .nxt5-features-index a svg:last-child { margin-left: auto; }
@@ -37,14 +34,15 @@
 .nxt5-features-faq details p { padding-bottom: 1.5rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.8; max-width: var(--nxt5-reading-width); }
 .nxt5-features-page .nxt5-entry-start p a { color: var(--nxt5-accent); text-decoration: underline; text-underline-offset: 4px; }
 .nxt5-features-intro-copy > p.nxt5-features-access { max-width: 41rem; padding-left: 1rem; border-left: 1px solid rgba(196,181,253,.35); font-size: var(--nxt5-font-small); line-height: 1.8; }
-.nxt5-features-example { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: clamp(2rem, 5vw, 4rem); margin-bottom: 3rem; padding: clamp(1.5rem,3vw,2.5rem); border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: radial-gradient(ellipse at 0% 0%,rgba(103,232,249,.08),transparent 50%), linear-gradient(125deg,rgba(139,92,246,.13),rgba(17,24,39,.8)); }
+.nxt5-features-example { position: relative; display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: center; gap: clamp(2rem, 5vw, 4rem); margin-bottom: 4rem; padding: clamp(2rem,4vw,3.5rem) 0; border-block: 1px solid var(--nxt5-glass-border); background: radial-gradient(ellipse at 75% 50%, #7047ac26, transparent 62%); }
+.nxt5-features-example::before { content: ""; position: absolute; top: -1px; left: 0; width: 34%; height: 1px; background: var(--nxt5-spectrum-gradient); }
 .nxt5-features-example h2 { margin-top: 1rem; max-width: 22ch; font-size: clamp(1.65rem, 2.6vw, 2.3rem); font-weight: 650; line-height: 1.3; }
 .nxt5-features-example > div > p:not(.nxt5-entry-eyebrow) { margin-top: 1.25rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.8; }
 .nxt5-features-example .nxt5-entry-text-link { margin-top: 1rem; }
 .nxt5-features-sections { display: block; }
-.nxt5-features-sections .nxt5-feature-section { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: clamp(2rem, 6vw, 6rem); padding: 3rem 1.5rem; border-bottom-color: var(--nxt5-glass-border); }
-.nxt5-feature-section-heading { position: relative; padding-left: 3.75rem; }
-.nxt5-feature-chapter { position: absolute; top: .2rem; left: 0; color: #9b87c2; font-size: 2.25rem; line-height: 1; font-weight: 400; letter-spacing: -.07em; font-variant-numeric: tabular-nums; }
+.nxt5-features-sections .nxt5-feature-section { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(2rem, 6vw, 6rem); padding: 4rem 0; border-bottom-color: var(--nxt5-glass-border); }
+.nxt5-feature-section-heading { position: relative; padding-left: 4.75rem; }
+.nxt5-feature-chapter { position: absolute; top: 0; left: 0; color: #b5a1e1; font-size: 3.25rem; line-height: 1; font-weight: 400; letter-spacing: -.07em; font-variant-numeric: tabular-nums; }
 .nxt5-features-sections .nxt5-feature-section-heading .nxt5-entry-eyebrow svg { width: 2rem; height: 2rem; border: 0; border-radius: 0; background: none; box-shadow: none; padding: .25rem; }
 .nxt5-features-sections .nxt5-feature-section:nth-child(even) { background: radial-gradient(ellipse at 0% 50%,rgba(139,92,246,.12),transparent 65%); }
 .nxt5-features-sections .nxt5-feature-section:target { background: linear-gradient(100deg,rgba(139,92,246,.14),rgba(103,232,249,.035)); }
@@ -53,22 +51,25 @@
 .nxt5-feature-section-body details { margin-top: 1rem; }
 .nxt5-feature-section-body summary { display: list-item; min-height: 44px; padding-block: .5rem; color: var(--nxt5-accent); cursor: pointer; font-size: var(--nxt5-font-ui); }
 .nxt5-feature-section-body details p { margin-top: .75rem; }
+.nxt5-features-page :where(a, summary):focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 4px; }
+.nxt5-demo-intro { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); align-items: center; gap: 3rem; max-width: none; padding-block: 2.5rem 4.5rem; }
+.nxt5-demo-intro h1 { max-width: 17ch; font-size: clamp(2.5rem, 4.7vw, 4.25rem); }
+.nxt5-public-scene.nxt5-demo-sculpture { max-width: 26rem; justify-self: end; }
 @media (max-width: 1100px) {
   .nxt5-features-index { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .nxt5-features-page .nxt5-features-intro { gap: 1.5rem; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); }
-  .nxt5-feature-section-heading { padding-left: 2.75rem; }
-  .nxt5-feature-chapter { font-size: 1.75rem; }
+  .nxt5-feature-section-heading { padding-left: 3.5rem; }
+  .nxt5-feature-chapter { font-size: 2.5rem; }
 }
 @media (max-width: 767px) {
   .nxt5-features-page .nxt5-entry-header-link { display: none; }
   .nxt5-features-intro { padding-block: 1.5rem 2rem; }
-  .nxt5-features-page .nxt5-features-intro { grid-template-columns: minmax(0, 1fr); gap: 0; padding-block: .75rem 2.5rem; }
-  .nxt5-features-intro-copy > .nxt5-entry-eyebrow { display: flex; align-items: center; min-height: 5rem; padding-right: 7rem; }
-  .nxt5-features-page .nxt5-features-intro h1 { font-size: clamp(2rem, 7.8vw, 2.85rem); }
+  .nxt5-features-page .nxt5-features-intro { grid-template-columns: minmax(0, 1fr); gap: .5rem; padding-block: .75rem 2.5rem; }
+  .nxt5-features-intro-copy > .nxt5-entry-eyebrow { min-height: 0; padding-right: 0; }
+  .nxt5-features-page .nxt5-features-intro h1 { font-size: clamp(2.15rem, 8.5vw, 3.25rem); }
   .nxt5-features-intro-copy > p:not(.nxt5-entry-eyebrow) { font-size: var(--nxt5-font-body); }
   .nxt5-features-intro-copy > p.nxt5-features-access { font-size: var(--nxt5-font-small); }
-  .nxt5-features-sculpture { position: absolute; top: 0; right: 0; width: 6.5rem; height: 6.5rem; aspect-ratio: 1; pointer-events: none; }
-  .nxt5-features-glass { width: 100%; left: 0; top: -2%; filter: none; }
+  .nxt5-public-scene.nxt5-features-sculpture { grid-row: 1; justify-self: center; width: min(68%, 15rem); height: auto; margin-block: -.25rem 1rem; }
   .nxt5-features-role-dock { display: none; }
   .nxt5-features-index { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .25rem; padding: .5rem; }
   .nxt5-features-index a { font-size: var(--nxt5-font-small); }
@@ -76,7 +77,9 @@
   .nxt5-feature-section, .nxt5-features-faq { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; padding-block: 2.5rem; }
   .nxt5-features-routine { padding-block: 2.5rem; }
   .nxt5-features-example, .nxt5-features-sections .nxt5-feature-section { grid-template-columns: minmax(0, 1fr); }
-  .nxt5-features-example { margin-bottom: 1.5rem; padding: 1.25rem; }
+  .nxt5-features-example { margin-bottom: 1.5rem; padding: 2rem 0; }
   .nxt5-features-sections .nxt5-feature-section { gap: .75rem; padding: 2rem .25rem; }
+  .nxt5-demo-intro { grid-template-columns: minmax(0, 1fr); gap: .5rem; padding-block: 1rem 2.5rem; }
+  .nxt5-demo-intro h1 { max-width: 20ch; font-size: clamp(2.15rem, 8.5vw, 3.25rem); }
+  .nxt5-public-scene.nxt5-demo-sculpture { grid-row: 1; justify-self: end; width: min(45%, 10rem); margin-block: -1rem 0; }
 }
-html.nxt5-low-gpu .nxt5-features-glass { filter: none; }

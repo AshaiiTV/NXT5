@@ -115,7 +115,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
   const SectionHeading = embedded ? "h3" : "h2";
 
   return (
-    <div className={embedded ? "nxt5-pricing min-w-0 text-white" : "nxt5-pricing relative min-h-screen overflow-hidden text-white"}>
+    <div className={embedded ? "nxt5-pricing nxt5-pricing--embedded min-w-0 text-white" : "nxt5-pricing relative min-h-screen overflow-hidden text-white"}>
       {!embedded && <>
         <AmbientBackground />
         <SiteHeader navigate={navigate} />

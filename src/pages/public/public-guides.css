@@ -1,15 +1,13 @@
 .nxt5-public-guide .nxt5-entry-eyebrow { display: flex; align-items: center; gap: .5rem; }
-.nxt5-public-guide .public-guide-intro { display: grid; grid-template-columns: minmax(0, 1fr) 16rem; align-items: center; gap: 3rem; max-width: none; padding-block: 2rem 3rem; }
+.nxt5-public-guide .public-guide-intro { display: grid; grid-template-columns: minmax(0, 1fr) minmax(14rem, .38fr); align-items: center; gap: 3rem; max-width: none; padding-block: 2.5rem 4rem; }
+.nxt5-public-guide .public-guide-intro h1 { font-size: clamp(2.25rem, 4.1vw, 3.75rem); }
 .public-guide-intro-copy { min-width: 0; }
 .public-guide-intro-copy > p:not(.nxt5-entry-eyebrow) { max-width: 48rem; margin-top: 1.5rem; color: var(--nxt5-text-secondary); font-size: 1.0625rem; line-height: 1.8; }
-.public-guide-cover { position: relative; aspect-ratio: 1; isolation: isolate; }
-.public-guide-cover::before { content: ""; position: absolute; inset: 9% -4%; z-index: -1; border: 1px solid rgba(196,181,253,.17); border-radius: 50%; background: radial-gradient(ellipse,rgba(139,92,246,.2),transparent 70%); transform: rotate(-24deg) scaleY(.8); }
-.public-guide-cover img { display: block; width: 100%; height: auto; transform: rotate(-8deg); }
-.public-guide-cover > span { display: grid; place-items: center; position: absolute; bottom: 6%; right: 3%; width: 4.5rem; height: 4.5rem; border: 1px solid rgba(196,181,253,.4); border-radius: 1rem; color: #ddd2ff; background: linear-gradient(135deg,#463371,#17152f); box-shadow: inset 0 1px rgba(236,227,255,.22),0 12px 24px rgba(2,6,17,.3); transform: rotate(8deg); }
+.public-guide-cover { max-width: 22rem; justify-self: end; }
 .public-guide-byline { margin-top: 1.25rem; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); line-height: 1.8; }
 .public-guide-layout { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); align-items: start; gap: clamp(2rem, 5vw, 4rem); padding-bottom: 3rem; }
 .public-guide-layout > *, .public-guide-steps > li > div { min-width: 0; }
-.public-guide-prerequisite { padding: 1.5rem; border: 1px solid var(--nxt5-glass-border); border-left: 2px solid var(--nxt5-accent-2); border-radius: 0 var(--nxt5-radius-panel) var(--nxt5-radius-panel) 0; background: var(--nxt5-glass-background); box-shadow: inset 0 1px var(--nxt5-glass-highlight); }
+.public-guide-prerequisite { padding: 1.5rem; border: 1px solid var(--nxt5-glass-border); border-left: 2px solid var(--nxt5-accent-2); border-radius: 0 var(--nxt5-radius-panel) var(--nxt5-radius-panel) 0; background: var(--nxt5-surface); box-shadow: inset 0 1px var(--nxt5-glass-highlight); }
 .public-guide-prerequisite h2 { font-size: 1.125rem; font-weight: 650; }
 .public-guide-prerequisite p, .public-guide-steps p, .public-guide-example > p { margin-top: .75rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.8; max-width: var(--nxt5-reading-width); }
 .public-guide-steps { padding: 0; list-style: none; margin-top: 2rem; }
@@ -48,6 +46,7 @@
   .public-guide-cover { display: none; }
 }
 @media (max-width: 767px) {
-  .nxt5-public-guide .public-guide-intro { padding-block: 1.5rem 2rem; }
+  .nxt5-public-guide .public-guide-intro { padding-block: 1.5rem 2.5rem; }
+  .nxt5-public-guide .public-guide-intro h1 { font-size: clamp(2rem, 8.2vw, 3rem); }
   .public-guide-intro-copy > p:not(.nxt5-entry-eyebrow) { font-size: var(--nxt5-font-body); }
 }

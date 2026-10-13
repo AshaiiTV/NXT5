@@ -1,0 +1,82 @@
+/* Scene intensity: open horizons and the original volume, away from reading areas. */
+.nxt5-public-intro {
+  position: relative;
+  isolation: isolate;
+}
+.nxt5-public-intro::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: 0;
+  bottom: -3rem;
+  width: 100vw;
+  transform: translateX(-50%);
+  pointer-events: none;
+  mask-image: linear-gradient(180deg, transparent, #000 9% 85%, transparent);
+  background:
+    linear-gradient(180deg, #111827 0%, #11182700 23%, #11182700 60%, #111827 98%),
+    linear-gradient(90deg, #111827f5 5%, #111827d4 37%, #11182720 73%, #11182745),
+    url("/assets/home-motion/atmosphere.webp") center 58% / cover no-repeat;
+}
+.nxt5-public-scene {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1.08;
+  pointer-events: none;
+}
+.nxt5-public-scene::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: -12%;
+  background: radial-gradient(ellipse at 52% 45%, #9771ef4d, #59399914 47%, transparent 70%);
+}
+.nxt5-public-scene-glass {
+  position: absolute;
+  z-index: 1;
+  inset: -4% -2% auto;
+  display: block;
+  width: 104%;
+  height: auto;
+  transform: rotate(-7deg);
+  filter: drop-shadow(0 25px 32px #07041670);
+}
+.nxt5-public-scene-plane {
+  position: absolute;
+  z-index: 0;
+  inset: 19% -8% 5% 17%;
+  clip-path: polygon(52% 0, 100% 39%, 65% 100%, 0 69%);
+  background: linear-gradient(155deg, #c4b5fd40, #7558ad20 35%, #281b4440 62%, #67e8f94f);
+}
+.nxt5-public-scene-plane--edge {
+  inset: 22% -8% 5% 18%;
+  clip-path: polygon(100% 37%, 65% 100%, 0 69%, 65% 98%);
+  background: linear-gradient(130deg, #a78bfa, #a5f3fc 75%, #e879f9);
+  opacity: .65;
+}
+.nxt5-public-scene-horizon {
+  position: absolute;
+  inset: auto -16% 6%;
+  height: 21%;
+  border-top: 1px solid #c4b5fd80;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 0, #a78bfa38, transparent 68%);
+  transform: rotate(-8deg) scaleY(.65);
+  mask-image: linear-gradient(90deg, transparent, #000 20% 75%, transparent);
+}
+@media (max-width: 767px) {
+  .nxt5-public-intro::before {
+    top: 0;
+    bottom: -1rem;
+    background:
+      linear-gradient(180deg, #111827a8, #11182780 22%, #111827ec 60%, #111827 96%),
+      url("/assets/home-motion/atmosphere.webp") 68% top / auto 30rem no-repeat;
+  }
+  .nxt5-public-scene-glass { filter: none; }
+}
+html.nxt5-low-gpu .nxt5-public-scene-glass { filter: none; }
+html.nxt5-low-gpu .nxt5-public-scene::before { display: none; }
+html.nxt5-low-gpu .nxt5-public-intro::before { background: linear-gradient(110deg, #111827, #252044 72%, #172537); }

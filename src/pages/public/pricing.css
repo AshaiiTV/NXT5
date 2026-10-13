@@ -1,10 +1,19 @@
 .nxt5-pricing { container: pricing / inline-size; }
 .nxt5-pricing .pricing-intro {
+  position: relative;
+  isolation: isolate;
   display: grid;
   gap: 2rem;
-  align-items: end;
-  padding: 2rem 0 1rem;
+  align-items: start;
+  margin-top: 2rem;
+  padding: clamp(1.5rem, 3vw, 3rem);
+  border-block: 1px solid var(--nxt5-glass-border);
+  background: linear-gradient(90deg, #111827f0, #111827d9 52%, #11182750), url("/assets/home-motion/atmosphere.webp") center 65% / cover;
 }
+.nxt5-pricing .pricing-intro::before { content: ""; position: absolute; inset: -1px auto auto 0; height: 1px; width: 36%; background: var(--nxt5-spectrum-gradient); pointer-events: none; }
+.nxt5-pricing .pricing-intro > * { min-width: 0; }
+.nxt5-pricing--embedded .pricing-intro { padding: 1rem 0 2rem; border-top: 0; background: none; }
+.nxt5-pricing--embedded .pricing-intro::before { display: none; }
 
 .nxt5-pricing .pricing-launch-note {
   border: 1px solid var(--nxt5-glass-border);
@@ -163,7 +172,7 @@
   }
 }
 
-.nxt5-pricing .pricing-title { margin-top: 1rem; max-width: 28ch; font-size: clamp(1.75rem, 2.8vw, 2.75rem); line-height: 1.12; font-weight: 700; letter-spacing: -.03em; }
+.nxt5-pricing .pricing-title { margin-top: 1rem; max-width: 28ch; font-size: clamp(2rem, 3.4vw, 3.25rem); line-height: 1.08; font-weight: 700; letter-spacing: -.045em; text-wrap: balance; }
 .nxt5-pricing .pricing-intro-description { max-width: var(--nxt5-reading-width); margin-top: 1.25rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.75; }
 .nxt5-pricing .pricing-plan-title { font-size: 1.5rem; font-weight: 650; margin-top: .5rem; }
 .nxt5-pricing .pricing-price { font-size: clamp(2.5rem, 4vw, 3rem); font-weight: 650; letter-spacing: -.04em; line-height: 1.15; font-variant-numeric: tabular-nums; margin-top: 1.5rem; }
@@ -179,9 +188,12 @@
   .nxt5-pricing .pricing-launch-note { max-width: var(--nxt5-reading-width); }
 }
 @container pricing (max-width: 700px) {
+  .nxt5-pricing .pricing-intro { padding: 1.5rem 1rem; }
   .nxt5-pricing .pricing-plans { grid-template-columns: minmax(0, 1fr); }
   .nxt5-pricing .pricing-form-row { grid-template-columns: minmax(0, 1fr); }
   .nxt5-pricing .pricing-plan { padding: 1rem; }
   .nxt5-pricing .pricing-plan-description, .nxt5-pricing .pricing-plan-terms { min-height: 0; }
   .nxt5-pricing .pricing-title { font-size: 1.875rem; }
 }
+html.nxt5-low-gpu .nxt5-pricing .pricing-intro { background: linear-gradient(110deg, #111827, #252044 78%, #172537); }
+html.nxt5-low-gpu .nxt5-pricing--embedded .pricing-intro { background: none; }

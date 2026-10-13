@@ -17,12 +17,13 @@ export function Badge({ children, tone: badgeTone = "slate", pulse = false, clas
   );
 }
 
-export function Surface({ children, className = "", delay = 0, glow = false, variant = "glass" }) {
+export function Surface({ children, className = "", delay = 0, glow = false, variant = "frame" }) {
   useLanguage();
   return (
     <div
       className={cx(
         "nxt5-panel nxt5-premium-panel nxt5-surface group relative max-w-full overflow-hidden border",
+        (variant === "frame" || variant === "glass") && "nxt5-surface-frame",
         variant === "reading" && "nxt5-surface-reading",
         variant === "scene" && "nxt5-surface-scene",
         glow && "nxt5-surface-emphasis",

@@ -6,6 +6,7 @@ import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { LegalLinks, LinkButton, PublicTextLink, SiteHeader } from "./PublicPages.jsx";
 import { DemoMatchSummary } from "./DemoMatchSummary.jsx";
+import { PublicScene } from "./PublicScene.jsx";
 import "./features-page.css";
 
 const FEATURES = [
@@ -65,7 +66,7 @@ export function FeaturesPage({ navigate, user }) {
     </SiteHeader>
     <main className="nxt5-entry-main">
       <nav aria-label={t("Fil d’Ariane")} className="nxt5-features-breadcrumb"><PublicTextLink href="/" navigate={navigate}>{t("Accueil")}</PublicTextLink><span aria-hidden="true">/</span><span aria-current="page">{t("Fonctionnalités")}</span></nav>
-      <header className="nxt5-features-intro">
+      <header className="nxt5-features-intro nxt5-public-intro">
         <div className="nxt5-features-intro-copy">
         <p className="nxt5-entry-eyebrow">{t("Les outils NXT5")}</p>
         <h1>{t("Analyse, coaching et organisation pour ton équipe League of Legends.")}</h1>
@@ -73,11 +74,9 @@ export function FeaturesPage({ navigate, user }) {
         <div className="nxt5-entry-actions"><LinkButton href="/demo" navigate={navigate} icon={ArrowRight}>{t("Essayer la démo")}</LinkButton><LinkButton href={user ? "/mon-equipe" : "/creer-un-compte"} navigate={navigate} variant="ghost">{user ? t("Ouvrir mon équipe") : t("Créer mon espace équipe")}</LinkButton></div>
         <p className="nxt5-features-access">{t("Accès actuellement gratuit, aucun abonnement activé. L’import nécessite Windows ou Mac et League of Legends ouvert ; la démo se consulte sans installation.")}</p>
         </div>
-        <div className="nxt5-features-sculpture" aria-hidden="true">
-          <div className="nxt5-features-sculpture-orbit" />
-          <img className="nxt5-features-glass" src="/assets/home-motion/glass-poster.webp" width="729" height="665" alt="" decoding="async" draggable="false" />
+        <PublicScene className="nxt5-features-sculpture" imageClassName="nxt5-features-glass">
           <div className="nxt5-features-role-dock">{["TOP", "JGL", "MID", "ADC", "SUP"].map((role) => <div key={role}><RoleIcon role={role} className="nxt5-features-role-icon" /><span>{role}</span></div>)}</div>
-        </div>
+        </PublicScene>
       </header>
 
       <section className="nxt5-features-example" aria-labelledby="feature-example-title"><div><p className="nxt5-entry-eyebrow">{t("Un exemple, du résultat à l’action")}</p><h2 id="feature-example-title">{t("Préparer un débrief à partir des statistiques.")}</h2><p>{t("Un avantage de vision ne suffit pas à expliquer une victoire. À partir du bilan, l’équipe vérifie le contexte et choisit les points à travailler.")}</p><PublicTextLink href="/demo" navigate={navigate} className="nxt5-entry-text-link">{t("Ouvrir les trois parties fictives ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink></div><DemoMatchSummary compact /></section>
