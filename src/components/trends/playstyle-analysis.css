@@ -67,6 +67,8 @@
 .playstyle-analysis button { overflow-wrap: anywhere; }
 @container (min-width: 760px) {
   .playstyle-axes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .playstyle-axis:last-child { grid-column: 1 / -1; }
+  .playstyle-axis:last-child .playstyle-measurements { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .playstyle-role .playstyle-measurements { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @container (max-width: 360px) {
