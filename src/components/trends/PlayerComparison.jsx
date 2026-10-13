@@ -141,7 +141,7 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
                 <div><strong>{playerName(row)}</strong><span>{t(roleLabel(row.role))}</span></div>
               </div>
               <div className="player-comparison-track" aria-hidden="true">
-                <svg viewBox="0 0 100 12" preserveAspectRatio="none" focusable="false"><defs><linearGradient id={fillId} x1="0" x2="1" y1="0" y2="0"><stop offset="0" stopColor="var(--player-bar)" stopOpacity=".55" /><stop offset="1" stopColor="var(--player-bar)" /></linearGradient></defs><rect width={width} height="12" rx="0.5" fill={`url(#${fillId})`} /></svg>
+                <svg viewBox="0 0 100 12" preserveAspectRatio="none" focusable="false"><defs><linearGradient id={fillId} x1="0" x2="1" y1="0" y2="0"><stop offset="0" stopColor="var(--player-bar)" stopOpacity=".7" /><stop offset="1" stopColor="var(--player-bar)" /></linearGradient></defs><rect width={width} height="12" rx="0.5" fill={`url(#${fillId})`} /></svg>
               </div>
               <div className="player-comparison-value">
                 <strong>{format(measurement.value)}</strong>
