@@ -127,6 +127,10 @@
 }
 
 @container team-manager (max-width: 560px) {
+  .team-manager .team-data-health-summary { display: grid; grid-template-columns: 44px minmax(0, 1fr) 20px; align-items: start; gap: 12px; }
+  .team-manager .team-data-health-copy { grid-column: 2; grid-row: 1; }
+  .team-manager .team-data-health-score { grid-column: 2 / -1; grid-row: 2; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; text-align: left; }
+  .team-manager .team-data-health-summary > svg { grid-column: 3; grid-row: 1; }
   .team-manager-identity { gap: 14px; padding: 18px; }
   .team-manager-surface.nxt5-surface { padding: 18px; }
   .team-manager-tabs .nxt5-tab { flex-direction: column; gap: 5px; padding: 10px 5px; }

@@ -1,4 +1,5 @@
 import { useLanguage } from "../../i18n/useLanguage.js";
+import { SortButton } from "../../components/ui/SortButton.jsx";
 import { t } from "../../i18n/translate.js";
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Activity, ArrowDownRight, ArrowLeft, ArrowUpRight, BarChart3, CalendarDays, ChevronLeft, ChevronRight, Clock3, Download, Globe2, Info, Loader2, Monitor, MousePointer2, RefreshCw, Search, ShieldCheck, Target, Users } from "lucide-react";
@@ -93,12 +94,17 @@ function PopularPages({ rows, total }) {
   useLanguage();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("views");
+  const [direction, setDirection] = useState("descending");
+  const selectSort = (next) => {
+    setDirection(next === sort ? direction === "descending" ? "ascending" : "descending" : next === "path" ? "ascending" : "descending");
+    setSort(next); setPage(1);
+  };
   const [page, setPage] = useState(1);
-  const filtered = useMemo(() => selectAudiencePages(rows, { search, sort }), [rows, search, sort]);
+  const filtered = useMemo(() => selectAudiencePages(rows, { search, sort, direction }), [rows, search, sort, direction]);
   const safePage = Math.min(page, Math.max(1, Math.ceil(filtered.length / 10)));
   return <Section title={t("Pages consultées")} icon={MousePointer2} description={t("Vues, navigateurs distincts et temps actif. Les chemins sont normalisés pour protéger les données personnelles.")} action={<Badge tone="cyan">{n(rows.length)}{t(" pages")}</Badge>}>
-    <div className="audience-table-toolbar"><div className="audience-search-field"><TextInput label={t("Rechercher une page")} icon={Search} type="search" placeholder={t("Rechercher un chemin…")} value={search} onChange={(value) => { setSearch(value); setPage(1); }} /></div><SelectInput label={t("Trier par")} aria-label={t("Trier les pages")} value={sort} onChange={(value) => { setSort(value); setPage(1); }}><option value="views">{t("Pages vues")}</option><option value="visitors">{t("Navigateurs")}</option><option value="avgDurationSeconds">{t("Temps actif")}</option><option value="exits">{t("Sorties")}</option><option value="path">{t("Chemin A → Z")}</option></SelectInput></div>
-    {filtered.length ? <div className="audience-table-scroll nxt5-responsive-scroll" tabIndex={0} role="region" aria-label={t("Classement des pages")}><table className="audience-table audience-pages-table"><thead><tr><th scope="col">{t("Page")}</th><th scope="col">{t("Vues")}</th><th scope="col">{t("Navigateurs")}</th><th scope="col">{t("Temps actif / vue")}</th><th scope="col">{t("Sorties")}</th></tr></thead><tbody>{filtered.slice((safePage - 1) * 10, safePage * 10).map((row) => <tr key={row.path}><th scope="row"><span className="audience-page-path">{row.path}</span><span className="audience-page-bar" aria-hidden="true"><span style={{ width: `${audienceShare(row.views, total)}%` }} /></span></th><td><strong>{n(row.views)}</strong><small>{percent(audienceShare(row.views, total))}</small></td><td>{n(row.visitors)}</td><td>{duration(row.avgDurationSeconds)}</td><td>{n(row.exits)}</td></tr>)}</tbody></table></div> : <Note>{rows.length ? t("Aucune page ne correspond à cette recherche.") : t("Aucune page vue sur cette période.")}{search && <button className="audience-text-button" type="button" onClick={() => { setSearch(""); setPage(1); }}>{t("Effacer la recherche")}</button>}</Note>}
+    <div className="audience-table-toolbar"><div className="audience-search-field"><TextInput label={t("Rechercher une page")} icon={Search} type="search" placeholder={t("Rechercher un chemin…")} value={search} onChange={(value) => { setSearch(value); setPage(1); }} /></div></div>
+    {filtered.length ? <div className="audience-table-scroll nxt5-responsive-scroll" tabIndex={0} role="region" aria-label={t("Classement des pages")}><table className="audience-table audience-pages-table"><thead><tr>{[["path", "Page"], ["views", "Vues"], ["visitors", "Navigateurs"], ["avgDurationSeconds", "Temps actif / vue"], ["exits", "Sorties"]].map(([key, label]) => <th key={key} scope="col" aria-sort={sort === key ? direction : "none"}><SortButton label={label} active={sort === key} direction={sort === key ? direction : key === "path" ? "ascending" : "descending"} onClick={() => selectSort(key)} /></th>)}</tr></thead><tbody>{filtered.slice((safePage - 1) * 10, safePage * 10).map((row) => <tr key={row.path}><th scope="row"><span className="audience-page-path">{row.path}</span><span className="audience-page-bar" aria-hidden="true"><span style={{ width: `${audienceShare(row.views, total)}%` }} /></span></th><td><strong>{n(row.views)}</strong><small>{percent(audienceShare(row.views, total))}</small></td><td>{n(row.visitors)}</td><td>{duration(row.avgDurationSeconds)}</td><td>{n(row.exits)}</td></tr>)}</tbody></table></div> : <Note>{rows.length ? t("Aucune page ne correspond à cette recherche.") : t("Aucune page vue sur cette période.")}{search && <button className="audience-text-button" type="button" onClick={() => { setSearch(""); setPage(1); }}>{t("Effacer la recherche")}</button>}</Note>}
     <Pagination page={safePage} setPage={setPage} total={filtered.length} label={t("Pages consultées")} />
   </Section>;
 }

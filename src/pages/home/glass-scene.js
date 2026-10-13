@@ -1,9 +1,11 @@
+import { GLASS_QUALITY, GLASS_VIEW, getGlassPose, glassCameraFraming, glassDamping, glassPixelRatio } from "../../components/brand/glass-motion.js";
+
 /**
  * The sculptural 5 is deliberately authored as geometry, not a font glyph.
  * Everything needed by the scene is local; the studio is baked once into an
- * environment texture and the renderer sleeps whenever the pose is settled.
+ * environment texture. Idle motion runs only while this sculpture is visible.
  */
-export async function createGlassScene({ canvas, onReady, onError } = {}) {
+export async function createGlassScene({ canvas, onReady, onError, signal } = {}) {
   const idleController = {
     setProgress() {},
     setPointer() {},
@@ -11,7 +13,7 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
     resize() {},
     dispose() {},
   };
-  if (!canvas || typeof window === "undefined") return idleController;
+  if (!canvas || typeof window === "undefined" || signal?.aborted) return idleController;
 
   let renderer;
   let environmentTarget;
@@ -24,12 +26,16 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
   let observer;
   let resizeObserver;
   let releaseListeners = () => {};
+  let releasePending;
+  const cancelled = new Promise((resolve) => { releasePending = resolve; });
   const geometries = new Set();
   const materials = new Set();
   const textures = new Set();
   const cleanup = () => {
     if (disposed) return;
     disposed = true;
+    releasePending(null);
+    signal?.removeEventListener?.("abort", abort);
     cancelAnimationFrame(frame);
     observer?.disconnect();
     resizeObserver?.disconnect();
@@ -41,9 +47,12 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
     scene?.clear();
     renderer?.dispose();
   };
+  const abort = () => cleanup();
+  signal?.addEventListener?.("abort", abort, { once: true });
 
   try {
-    const THREE = await import("three");
+    const THREE = await Promise.race([import("three"), cancelled]);
+    if (disposed || !THREE) return idleController;
     const ownGeometry = (geometry) => {
       geometries.add(geometry);
       return geometry;
@@ -62,6 +71,7 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
     let targetX = 0;
     let targetY = 0;
     let lastTime = 0;
+    let elapsed = 0;
     let ready = false;
     let warmupFrames = 3;
 
@@ -72,15 +82,23 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
       powerPreference: "high-performance",
       preserveDrawingBuffer: false,
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.setClearColor(0x111827, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.02;
 
+    // Transmission uses render targets too, so honor the strictest GPU limit.
+    let maxDimension = renderer.capabilities?.maxTextureSize || 4096;
+    try {
+      const gl = renderer.getContext();
+      const limits = [maxDimension, gl.getParameter(gl.MAX_RENDERBUFFER_SIZE), gl.getParameter(gl.MAX_TEXTURE_SIZE), ...gl.getParameter(gl.MAX_VIEWPORT_DIMS)]
+        .filter((value) => Number.isFinite(value) && value > 0);
+      maxDimension = Math.min(...limits);
+    } catch { /* The renderer capability remains a conservative fallback. */ }
+
     scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 70);
-    camera.position.set(0, 0.08, 9.4);
+    const camera = new THREE.PerspectiveCamera(GLASS_VIEW.fov, GLASS_VIEW.aspect, 0.1, 70);
+    camera.position.set(0, 0.08, GLASS_VIEW.distance);
     camera.lookAt(0, 0.08, 0);
 
     // Large luminous cards produce broad, photographic reflections. These
@@ -105,7 +123,8 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
     lightCard("#315DBD", 1.5, [0, -1, -5], [8, 7, 1], [0, 0, 0]);
     const pmrem = new THREE.PMREMGenerator(renderer);
     try {
-      environmentTarget = pmrem.fromScene(studio, 0.035, 0.1, 100);
+      const size = Math.min(GLASS_QUALITY.environmentSize, 2 ** Math.floor(Math.log2(maxDimension / 3)));
+      environmentTarget = pmrem.fromScene(studio, 0.035, 0.1, 100, { size });
       scene.environment = environmentTarget.texture;
       scene.environmentIntensity = 0.85;
     } finally {
@@ -147,7 +166,7 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
         bevelEnabled: true,
         bevelThickness: 0.105,
         bevelSize: 0.085,
-        bevelSegments: 3,
+        bevelSegments: 6,
         curveSegments: 1,
       }),
     );
@@ -227,14 +246,17 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
     // refraction. No plane or rectangular background is rendered outside it.
     let atmosphere;
     try {
-      atmosphere = await new THREE.TextureLoader().loadAsync(
-        "/assets/home-motion/atmosphere.webp",
-      );
-      atmosphere.colorSpace = THREE.SRGBColorSpace;
-      textures.add(atmosphere);
+      const loading = new THREE.TextureLoader().loadAsync("/assets/home-motion/atmosphere.webp").then((texture) => {
+        if (disposed) { texture.dispose(); return null; }
+        texture.colorSpace = THREE.SRGBColorSpace;
+        textures.add(texture);
+        return texture;
+      });
+      atmosphere = await Promise.race([loading, cancelled]);
     } catch {
       // Missing optional artwork still leaves the physical sculpture intact.
     }
+    if (disposed) return idleController;
     if (atmosphere) {
       const coreGeometry = ownGeometry(new THREE.ShapeGeometry(shape));
       coreGeometry.translate(0, 0, -0.24);
@@ -464,12 +486,9 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
       inView &&
       !document.hidden;
     const applyPose = () => {
-      sculpture.rotation.set(
-        -0.055 + progress * 0.12 + pointerY * 0.045,
-        -0.31 + progress * 0.49 + pointerX * 0.09,
-        -0.018 + progress * 0.025,
-      );
-      sculpture.position.set(progress * 0.08, progress * 0.19, progress * 0.28);
+      const pose = getGlassPose({ elapsed, progress, pointerX, pointerY, reduced: isReduced });
+      sculpture.rotation.set(...pose.rotation);
+      sculpture.position.set(...pose.position);
     };
     const schedule = () => {
       if (canRender() && !frame) frame = requestAnimationFrame(render);
@@ -479,7 +498,8 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
       if (!canRender()) return;
       const delta = Math.min((time - (lastTime || time - 16)) / 1000, 0.08);
       lastTime = time;
-      const damping = 1 - Math.exp(-delta * 9);
+      const damping = glassDamping(delta);
+      if (!isReduced) elapsed += delta * 1000;
       const desiredProgress = isReduced ? 0 : targetProgress;
       const desiredX = isReduced ? 0 : targetX;
       const desiredY = isReduced ? 0 : targetY;
@@ -504,7 +524,7 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
         return;
       }
       if (
-        Math.abs(desiredProgress - progress) +
+        !isReduced || Math.abs(desiredProgress - progress) +
           Math.abs(desiredX - pointerX) +
           Math.abs(desiredY - pointerY) >
         0.0003
@@ -517,13 +537,12 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
       const bounds = canvas.getBoundingClientRect();
       const width = Math.max(1, Math.round(bounds.width));
       const height = Math.max(1, Math.round(bounds.height));
-      camera.aspect = width / height;
-      camera.position.z =
-        Math.max(5.25, 4.72 / camera.aspect) /
-          (2 * Math.tan(THREE.MathUtils.degToRad(18))) +
-        0.35;
+      const framing = glassCameraFraming(width / height);
+      camera.aspect = framing.aspect;
+      camera.fov = framing.fov;
+      camera.position.z = framing.distance;
       camera.updateProjectionMatrix();
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+      renderer.setPixelRatio(glassPixelRatio({ width, height, devicePixelRatio: window.devicePixelRatio || 1, maxDimension }));
       renderer.setSize(width, height, false);
       schedule();
     };
@@ -538,7 +557,10 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
     };
     const motionChanged = () => {
       isReduced = reducedMotion.matches;
-      if (isReduced) progress = pointerX = pointerY = 0;
+      if (isReduced) {
+        progress = pointerX = pointerY = elapsed = 0;
+        stop();
+      }
       schedule();
     };
     const lost = (event) => {
@@ -604,7 +626,7 @@ export async function createGlassScene({ canvas, onReady, onError } = {}) {
     };
   } catch (error) {
     cleanup();
-    onError?.(error);
+    if (!signal?.aborted) onError?.(error);
     return idleController;
   }
 }

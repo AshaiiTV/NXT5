@@ -267,8 +267,7 @@ describe("personal home debrief", () => {
     const details = panel.findAllByType("details");
     expect(details).toHaveLength(2);
     expect(text(details[0].findByType("summary"))).toContain("Notes de l’équipe");
-    expect(details[0].props.open).toBe(true);
-    expect(details[1].props.open).toBe(false);
+    expect(details.map(detail => Boolean(detail.props.open))).toEqual([false, false]);
     const action = panel.findByType("a");
     expect(action.props.href).toBe("/rapports?report=team-report");
     follow(action);

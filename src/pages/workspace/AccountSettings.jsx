@@ -1,7 +1,7 @@
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Check, ChevronDown, Loader2, Lock, Mail, Settings, Shield, ShieldCheck, UserPlus } from "lucide-react";
+import { AlertTriangle, Check, ChevronDown, Loader2, Lock, Mail, Shield, ShieldCheck, UserPlus } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { configurePerformanceMode, currentPerformanceMode, setStoredPerformanceMode } from "../../app/performance.js";
 import { Badge, Button, PageHeader, PremiumToggle, Surface, TextInput } from "../../components/ui/Core.jsx";
@@ -147,7 +147,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
     <PageHeader eyebrow={t("Ton compte")} title={t("Paramètres")} subtitle={t("Gère tes informations, tes moyens de connexion et les e-mails que tu reçois.")} />
     <div className="nxt5-account-sections">
       <Surface glow className="nxt5-account-identity p-5">
-        <div className="flex items-start justify-between gap-3"><div><h3 className="text-xl font-semibold text-white">{t("Pseudo et e-mail")}</h3><p className="mt-2 text-sm font-normal leading-6 text-slate-300">{t("Ces informations servent à te reconnaître dans NXT5 et à récupérer ton compte.")}</p></div><Settings className="h-5 w-5 shrink-0 text-cyan-100" /></div>
+        <div><h3 className="text-xl font-semibold text-white">{t("Pseudo et e-mail")}</h3><p className="mt-2 text-sm font-normal leading-6 text-slate-300">{t("Ces informations servent à te reconnaître dans NXT5 et à récupérer ton compte.")}</p></div>
         {user?.email && (user?.email_verified ? <div className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-3 py-2 text-xs font-semibold text-emerald-100"><Check className="h-4 w-4" />{t("E-mail vérifié")}</div> : <div className="mt-4 rounded-2xl border border-amber-300/25 bg-amber-400/10 p-4"><div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />{t("Ton e-mail n’est pas vérifié.")}</p><p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">{t("Les notifications sont désactivées jusqu'à validation de ton adresse.")}</p></div><Button type="button" variant="ghost" icon={resendingVerify ? Loader2 : Mail} onClick={resendVerificationEmail} disabled={resendingVerify}>{resendingVerify ? "Envoi..." : t("Renvoyer l'email de vérification")}</Button></div></div>)}
         <form onSubmit={saveProfile} className="mt-5 space-y-4">
           <TextInput label={t("Pseudo")} value={profileForm.name} onChange={(name) => setProfileForm((current) => ({ ...current, name }))} placeholder={t("Ton pseudo NXT5")} required icon={UserPlus} />

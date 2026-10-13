@@ -4,7 +4,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { SocialAccounts, SocialLogin, SocialNotice, SocialSignup, socialReturnContext } from "../components/account/SocialAccounts.jsx";
-import { AuthPage, ResetPasswordPage } from "../pages/public/PublicPages.jsx";
+import { AuthPage, ForgotPasswordPage, ResetPasswordPage } from "../pages/public/PublicPages.jsx";
 import { AccountSettings } from "../pages/workspace/AccountSettings.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -38,6 +38,38 @@ afterEach(() => {
 });
 
 describe("social account entry and completion", () => {
+  it("preserves invitation recovery after an expired social signup and keeps existing-account recovery separate", async () => {
+    window.location.search = "?social=complete&invite=team-token&next=%2Frapports";
+    apiFetch.mockRejectedValueOnce(new Error("Cette inscription a expiré."));
+    const renderer = await render(<AuthPage mode="register" navigate={vi.fn()} onAuth={vi.fn()} pushToast={vi.fn()} />);
+    const signup = renderer.root.findByType(SocialSignup);
+    const destination = new URL(signup.props.loginHref, "https://nxt5.test");
+    expect(destination.searchParams.get("invite")).toBe("team-token");
+    expect(destination.searchParams.get("next")).toBe("/rapports");
+    expect(signup.props.existingAccountHref).toBe("/connexion?next=%2Fparametres");
+    expect(renderer.root.findAllByType("a").find(link => content(link).trim() === "Revenir à la connexion").props.href).toBe(signup.props.loginHref);
+  });
+
+  it.each(["request", "reset"])("sends only one password %s when the form is submitted again before the response", async (kind) => {
+    window.location.search = "?token=test-token";
+    const renderer = await render(kind === "request" ? <ForgotPasswordPage navigate={vi.fn()} /> : <ResetPasswordPage navigate={vi.fn()} />);
+    if (kind === "request") edit(renderer, "E-mail du compte", "audit@example.test");
+    else {
+      edit(renderer, "Nouveau mot de passe", "valid-password");
+      edit(renderer, "Confirmer", "valid-password");
+    }
+    let resolveRequest;
+    apiFetch.mockImplementationOnce(() => new Promise(resolve => { resolveRequest = resolve; }));
+    await act(async () => {
+      const first = submit(renderer);
+      const second = submit(renderer);
+      expect(apiFetch).toHaveBeenCalledTimes(1);
+      resolveRequest({ ok: true });
+      await Promise.all([first, second]);
+    });
+    expect(content(renderer.root)).toContain(kind === "request" ? "un lien de réinitialisation vient d’être envoyé" : "Mot de passe mis à jour");
+  });
+
   it("keeps a password registration neutral, unauthenticated and preserves the invitation for login", async () => {
     window.location.search = "?invite=team-token&next=%2Frapports";
     const navigate = vi.fn();

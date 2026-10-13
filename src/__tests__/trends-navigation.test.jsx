@@ -2,7 +2,7 @@ import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { isAppPath, isKnownPath, pageFromPath } from "../app/routing.js";
-import { DRAFT_DETAIL_IDS, readTrendsRoute, trendsPath } from "../app/trends-navigation.js";
+import { DRAFT_DETAIL_IDS, TREND_PANEL_IDS, readTrendsRoute, trendsPath } from "../app/trends-navigation.js";
 import { useTrendsNavigation } from "../hooks/useTrendsNavigation.js";
 
 let renderer;
@@ -31,6 +31,54 @@ function mount(url, team = "team-1") {
     switchTeam: (next) => act(() => renderer.update(<Harness selectedTeam={next} />)),
   };
 }
+
+describe("Analysis panel navigation", () => {
+  it.each(["statistics", "playstyle", "comparison"])("opens %s directly with its category and period intact", (panel) => {
+    const scope = { detail: "", panel, category: "scrims & review/équipe", period: "10" };
+    const url = new URL(trendsPath(scope), "https://nxt5.test");
+    expect(url.searchParams.get("rubrique")).toBe(panel);
+    expect(readTrendsRoute({ path: url.pathname, search: url.search })).toEqual(scope);
+    const app = mount(`${url.pathname}${url.search}`);
+    expect(app.nav).toMatchObject(scope);
+  });
+
+  it("keeps old objective bookmarks readable and emits the canonical playstyle URL", () => {
+    const app = mount("/tendances?rubrique=ai-objectives&contexte=scrim&periode=5");
+    expect(app.nav).toMatchObject({ panel: "playstyle", category: "scrim", period: "5" });
+    expect(TREND_PANEL_IDS).toContain("statistics");
+    expect(TREND_PANEL_IDS).toContain("playstyle");
+    expect(TREND_PANEL_IDS).not.toContain("ai-objectives");
+    expect(trendsPath({ panel: "ai-objectives", category: "scrim", period: "5" })).toBe("/tendances?rubrique=playstyle&contexte=scrim&periode=5");
+    act(() => app.nav.setPeriod("20"));
+    expect(window.location.search).toBe("?rubrique=playstyle&contexte=scrim&periode=20");
+    expect(app.nav).toMatchObject({ panel: "playstyle", category: "scrim", period: "20" });
+  });
+
+  it("retains the selected scope when moving between statistics, playstyle and block comparison", () => {
+    const app = mount("/tendances?rubrique=statistics&contexte=scrim&periode=5");
+    for (const panel of ["playstyle", "comparison", "statistics"]) {
+      act(() => app.nav.setPanel(panel));
+      expect(app.nav).toMatchObject({ panel, category: "scrim", period: "5", detail: "" });
+      expect(window.location.search).toBe(`?rubrique=${panel}&contexte=scrim&periode=5`);
+    }
+  });
+
+  it("restores the new panels and their filters through browser back and forward", () => {
+    const app = mount("/tendances?rubrique=statistics&contexte=official&periode=10");
+    act(() => app.nav.onNavigate({ button: 0, preventDefault: vi.fn() }, "duos"));
+    act(() => app.nav.setPanel("playstyle"));
+    expect(app.nav).toMatchObject({ panel: "playstyle", detail: "", category: "official", period: "10" });
+    act(() => app.history.back());
+    expect(app.nav).toMatchObject({ panel: "statistics", detail: "", category: "official", period: "10" });
+    act(() => app.history.forward());
+    expect(app.nav).toMatchObject({ panel: "playstyle", detail: "", category: "official", period: "10" });
+  });
+
+  it("keeps Draft detail paths authoritative over a legacy panel query", () => {
+    expect(readTrendsRoute({ path: "/tendances/draft/duos", search: "?rubrique=ai-objectives&contexte=scrim&periode=5" })).toEqual({ detail: "duos", panel: "draft", category: "scrim", period: "5" });
+    expect(trendsPath({ detail: "duos", panel: "playstyle", category: "scrim", period: "5" })).toBe("/tendances/draft/duos?contexte=scrim&periode=5");
+  });
+});
 
 describe("Draft detail navigation", () => {
   it("recognizes every detail as a private Trends page, including trailing slash", () => {

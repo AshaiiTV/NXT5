@@ -4,7 +4,7 @@
 .profile-identity-role { display: grid; place-items: center; flex: 0 0 80px; width: 80px; height: 80px; margin-top: 2px; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-surface); }
 .profile-identity-icon { width: 38px; height: 38px; object-fit: contain; }
 .profile-identity-header { align-items: center; margin-bottom: 20px; padding: 24px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: radial-gradient(ellipse at 90% 15%,rgba(232,121,249,.14),transparent 50%), radial-gradient(ellipse at 5% 100%,rgba(103,232,249,.08),transparent 50%), var(--nxt5-glass-background); box-shadow: var(--nxt5-glass-shadow); }
-.profile-identity-header > .nxt5-page-header { margin-bottom: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.profile-identity-header > .nxt5-page-header { align-items: center; margin-bottom: 0; padding: 0; border: 0; background: none; box-shadow: none; }
 .profile-identity-header > .nxt5-page-header::before, .profile-identity-header > .nxt5-page-header::after { display: none; }
 .profile-identity-role { border-color: rgba(196,181,253,.5); background: linear-gradient(135deg,rgba(103,232,249,.11),rgba(139,92,246,.25) 60%,rgba(17,24,39,.7)); box-shadow: inset 1px 1px 0 var(--nxt5-glass-highlight), 0 8px 32px rgba(139,92,246,.18); }
 .profile-signature { display: flex; align-items: center; flex: 0 1 235px; gap: 14px; min-width: 0; padding-left: 22px; border-left: 1px solid var(--nxt5-glass-border); }

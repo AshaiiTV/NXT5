@@ -48,7 +48,7 @@ export function LinkButton({ href, children, icon: Icon, variant = "primary", cl
   };
 
   function go(event) {
-    if (!navigate || !isSafeInternalPath(href) || target === "_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    if (event.defaultPrevented || !navigate || !isSafeInternalPath(href) || target === "_blank" || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault();
     navigate(href);
   }
@@ -59,7 +59,7 @@ export function LinkButton({ href, children, icon: Icon, variant = "primary", cl
 export function SiteHeader({ children, navigate, simple = false }) {
   useLanguage();
   function goHome(event) {
-    if (!navigate) return;
+    if (event.defaultPrevented || !navigate || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
     event.preventDefault();
     navigate("/");
   }
@@ -404,11 +404,14 @@ export function ForgotPasswordPage({ navigate }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const submittingRef = useRef(false);
   const context = new URLSearchParams(socialReturnContext());
   const loginHref = `/connexion${context.size ? `?${context.toString()}` : ""}`;
 
   async function submit(event) {
     event.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setMessage("");
     setError("");
@@ -423,6 +426,7 @@ export function ForgotPasswordPage({ navigate }) {
         setError(err.message || "Demande impossible.");
       }
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }
@@ -438,8 +442,8 @@ export function ForgotPasswordPage({ navigate }) {
           <p className="nxt5-entry-eyebrow">{t("Récupération du compte")}</p>
           <h1>{t("Mot de passe oublié ?")}</h1>
           <p className="nxt5-auth-intro">{t("Entre l’e-mail de ton compte pour recevoir un lien de réinitialisation.")}</p>
-          <form onSubmit={submit} className="nxt5-auth-form">
-            <TextInput label={t("E-mail du compte")} value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" autoComplete="email" required icon={Mail} />
+          <form onSubmit={submit} className="nxt5-auth-form" aria-busy={loading}>
+            <TextInput label={t("E-mail du compte")} name="email" value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" autoComplete="email" required icon={Mail} />
             {message && <div role="status" className="nxt5-auth-notice is-success">{t(message)}</div>}
             {error && <div role="alert" className="nxt5-auth-notice is-error">{t(error)}</div>}
             <Button type="submit" disabled={loading || !email.trim()} icon={loading ? Loader2 : Mail} className="nxt5-auth-submit">{loading ? t("Envoi…") : t("Envoyer le lien")}</Button>
@@ -459,14 +463,17 @@ export function ResetPasswordPage({ navigate, onAuth }) {
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
+  const submittingRef = useRef(false);
 
   async function submit(event) {
     event.preventDefault();
+    if (submittingRef.current) return;
     setError("");
     if (form.nextPassword !== form.confirmPassword) {
       setError("Les deux mots de passe ne correspondent pas.");
       return;
     }
+    submittingRef.current = true;
     setLoading(true);
     try {
       await apiFetch("auth-reset-password", { method: "POST", body: JSON.stringify({ token, nextPassword: form.nextPassword }) });
@@ -476,6 +483,7 @@ export function ResetPasswordPage({ navigate, onAuth }) {
     } catch (err) {
       setError(err.message || "Réinitialisation impossible.");
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   }
@@ -493,10 +501,10 @@ export function ResetPasswordPage({ navigate, onAuth }) {
           {!token ? (<div className="mt-6 space-y-4"><p role="alert" className="nxt5-auth-notice is-error">{t("Ce lien de réinitialisation est incomplet. Demande un nouveau lien pour retrouver l’accès à ton compte.")}</p><LinkButton href="/mot-de-passe-oublie" navigate={navigate}>{t("Demander un nouveau lien")}</LinkButton></div>) : done ? (<div className="mt-6 space-y-4">
               <div role="status" className="nxt5-auth-notice is-success">{t("Mot de passe mis à jour. Connecte-toi avec ton e-mail et ce mot de passe, puis associe à nouveau tes comptes externes dans Paramètres.")}</div>
               <LinkButton href="/connexion" navigate={navigate} icon={Lock}>{t("Se connecter")}</LinkButton>
-            </div>) : (<form onSubmit={submit} className="nxt5-auth-form">
+            </div>) : (<form onSubmit={submit} className="nxt5-auth-form" aria-busy={loading}>
               <p className="text-sm leading-6 text-slate-300">{t("La réinitialisation ferme tes sessions et dissocie tous tes comptes externes. Tu pourras les associer à nouveau après t’être connecté avec ton nouveau mot de passe.")}</p>
-              <TextInput label={t("Nouveau mot de passe")} value={form.nextPassword} onChange={(nextPassword) => setForm((current) => ({ ...current, nextPassword }))} placeholder={t("8 caractères minimum")} type="password" required icon={Shield} />
-              <TextInput label={t("Confirmer")} value={form.confirmPassword} onChange={(confirmPassword) => setForm((current) => ({ ...current, confirmPassword }))} placeholder={t("Répète le nouveau mot de passe")} type="password" required icon={Check} />
+              <TextInput label={t("Nouveau mot de passe")} name="new-password" autoComplete="new-password" minLength={8} maxLength={128} value={form.nextPassword} onChange={(nextPassword) => setForm((current) => ({ ...current, nextPassword }))} placeholder={t("8 caractères minimum")} type="password" required icon={Shield} />
+              <TextInput label={t("Confirmer")} name="confirm-password" autoComplete="new-password" minLength={8} maxLength={128} value={form.confirmPassword} onChange={(confirmPassword) => setForm((current) => ({ ...current, confirmPassword }))} placeholder={t("Répète le nouveau mot de passe")} type="password" required icon={Check} />
               {error && <div role="alert" className="nxt5-auth-notice is-error">{t(error)}</div>}
               <Button type="submit" disabled={loading || !form.nextPassword || !form.confirmPassword} icon={loading ?Loader2 : Shield} className="nxt5-auth-submit">{loading ? t("Mise à jour...") : t("Changer le mot de passe")}</Button>
             </form>)}
@@ -595,7 +603,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
           <p className="nxt5-auth-intro">{isRegister && registrationRequested ? t("Consulte ta messagerie pour la suite de l’inscription.") : isSocialComplete ? t("Confirme tes informations pour créer ton compte NXT5.") : isRegister ? t("Crée ton compte pour ouvrir ou rejoindre un espace équipe. Accès actuellement gratuit, aucun abonnement activé.") : t("Retrouve tes équipes, tes parties et tes débriefs.")}</p>
           {isRegister && !registrationRequested && <p className="nxt5-auth-intro">{t("L’import de tes parties nécessite NXT5 Importer sur Windows ou Mac avec League of Legends ouvert. ")}<PublicTextLink href="/demo" navigate={navigate}>{t("Tu peux d’abord essayer la démo sans compte.")}</PublicTextLink></p>}
           {socialStatus && <div className="mt-4"><SocialNotice status={socialStatus} /></div>}
-          {isRegister && registrationRequested ? <div className="nxt5-registration-confirmation"><p ref={registrationStatusRef} tabIndex={-1} role="status" className="nxt5-auth-notice is-success">{t("Si cette adresse peut être utilisée, tu recevras un e-mail de vérification. Si tu as déjà un compte, connecte-toi ou réinitialise ton mot de passe.")}</p><p>{t("Pour confirmer une nouvelle inscription, connecte-toi avec le mot de passe choisi, puis ouvre le lien de vérification reçu par e-mail dans ce même navigateur.")}</p><p>{t("Vérifie aussi tes courriers indésirables. Aucun abonnement n’a été activé.")}</p><LinkButton href={`/connexion${querySuffix}`} navigate={navigate} icon={ArrowRight}>{t("Se connecter")}</LinkButton><PublicTextLink href={`/mot-de-passe-oublie${querySuffix}`} navigate={navigate} className="nxt5-entry-text-link">{t("Réinitialiser mon mot de passe")}</PublicTextLink></div> : isSocialComplete ? <SocialSignup onComplete={completeAuth} loginHref="/connexion?next=%2Fparametres" /> : <>
+          {isRegister && registrationRequested ? <div className="nxt5-registration-confirmation"><p ref={registrationStatusRef} tabIndex={-1} role="status" className="nxt5-auth-notice is-success">{t("Si cette adresse peut être utilisée, tu recevras un e-mail de vérification. Si tu as déjà un compte, connecte-toi ou réinitialise ton mot de passe.")}</p><p>{t("Pour confirmer une nouvelle inscription, connecte-toi avec le mot de passe choisi, puis ouvre le lien de vérification reçu par e-mail dans ce même navigateur.")}</p><p>{t("Vérifie aussi tes courriers indésirables. Aucun abonnement n’a été activé.")}</p><LinkButton href={`/connexion${querySuffix}`} navigate={navigate} icon={ArrowRight}>{t("Se connecter")}</LinkButton><PublicTextLink href={`/mot-de-passe-oublie${querySuffix}`} navigate={navigate} className="nxt5-entry-text-link">{t("Réinitialiser mon mot de passe")}</PublicTextLink></div> : isSocialComplete ? <SocialSignup onComplete={completeAuth} loginHref={`/connexion${querySuffix}`} existingAccountHref="/connexion?next=%2Fparametres" /> : <>
           <SocialLogin flow={isRegister ? "register" : "login"} rememberMe={rememberMe} disabled={loading} />
           <form onSubmit={submit} className="nxt5-auth-form">
             <TextInput label={isRegister ? t("E-mail") : t("E-mail ou ancien pseudo")} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : t("joueur@exemple.com ou ancien pseudo")} type={isRegister ? "email" : "text"} autoComplete={isRegister ? "email" : "username"} required icon={Mail} />

@@ -150,7 +150,7 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
   </>;
 }
 
-export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam, onHelp }) {
+export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCreateTeam, onManageTeam, onHelp, assistantLauncher }) {
   useLanguage();
   const nav = NAV.find((item) => item.id === active) || NAV[0];
   const PageIcon = nav.icon;
@@ -192,6 +192,7 @@ export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCr
         </div>}
       </div>
       {onHelp && <button type="button" onClick={onHelp} className="nxt5-topbar-help" aria-label={t("Besoin d’aide ?")}><BookOpen size={18} aria-hidden="true" /><span>{t("Aide")}</span></button>}
+      {assistantLauncher}
       {currentTeam && !["home", "team-management"].includes(active) && <button type="button" onClick={onManageTeam} aria-label={t("Gestion de l’équipe")} title={t("Gestion de l’équipe")} className="nxt5-chrome-icon-button"><Settings size={18} aria-hidden="true" /></button>}
     </div>}
       <LanguageSwitcher />

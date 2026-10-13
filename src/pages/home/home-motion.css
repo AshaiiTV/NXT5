@@ -177,26 +177,9 @@
   will-change: transform, opacity;
   transform-origin: 55% 58%;
 }
-.hm-canvas {
+.hm-glass-scene {
   width: 100%;
   height: 100%;
-  display: block;
-  opacity: 0;
-  transition: opacity 0.7s;
-}
-.hm-glass-fallback {
-  position: absolute;
-  inset: 6% 5%;
-  width: 90%;
-  height: 88%;
-  filter: drop-shadow(0 0 20px #8b5cf645);
-  transition: opacity 0.6s;
-}
-.hm-glass-wrap.is-ready .hm-canvas {
-  opacity: 1;
-}
-.hm-glass-wrap.is-ready .hm-glass-fallback {
-  opacity: 0;
 }
 .hm-clouds-front {
   position: absolute;
@@ -352,27 +335,6 @@
   line-height: 1.7;
   opacity: 0;
 }
-.hm-footer {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-  padding: 30px var(--hm-gutter) 75px;
-  color: var(--nxt5-muted);
-  font-size: 12px;
-}
-.hm-footer img {
-  width: 95px;
-  height: auto;
-  filter: none;
-}
-.hm-footer > span {
-  margin-left: auto;
-}
-.hm-footer a {
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-}
 .hm-motion-toggle.nxt5-cyber-button {
   position: fixed;
   right: 18px;
@@ -404,12 +366,6 @@
 }
 .hm-reduced .hm-manifesto {
   display: none;
-}
-.hm-reduced .hm-canvas {
-  display: none;
-}
-.hm-reduced .hm-glass-fallback {
-  opacity: 1;
 }
 .hm-reduced .hm-page a,
 .hm-reduced a {
@@ -472,9 +428,6 @@
     top: 7%;
     width: 56%;
     right: -5%;
-  }
-  .hm-footer {
-    gap: 20px;
   }
 }
 @media (max-width: 700px) {
@@ -609,25 +562,6 @@
     margin-top: 28px !important;
     max-width: 275px;
   }
-  .hm-footer {
-    padding: 25px 24px 75px;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .hm-footer img {
-    width: 80px;
-  }
-  .hm-footer > p {
-    font-size: 10px;
-  }
-  .hm-footer > span {
-    margin-left: 0;
-    width: calc(100% - 70px);
-    font-size: 10px;
-  }
-  .hm-footer > a {
-    font-size: 12px;
-  }
   .hm-motion-toggle.nxt5-cyber-button {
     font-size: 9px !important;
     min-height: 44px !important;
@@ -697,17 +631,11 @@
   }
 }
 /* Keep the sculptural 5 close to the wordmark while exposing the T. */
-.hm-glass-fallback {
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: none;
-}
 .hm-glass-wrap {
   right: -5%;
   top: 7%;
   height: 74%;
+  margin-right: 0;
 }
 @media (min-width: 1800px) {
   .hm-glass-wrap {
@@ -718,7 +646,7 @@
 }
 @media (min-width: 701px) and (max-width: 1000px) {
   .hm-glass-wrap {
-    right: -10%;
+    right: -4%;
     top: 10%;
     height: 66%;
   }
@@ -729,14 +657,15 @@
   }
   .hm-outline-wrap {
     left: 3%;
-    width: 73%;
+    width: 65%;
     top: 31%;
   }
   .hm-glass-wrap {
-    width: 46%;
+    width: 40%;
     right: 0%;
     top: 13%;
     height: 49%;
+    margin-right: 0;
   }
   .hm-scroll-cue {
     bottom: 4.5%;
