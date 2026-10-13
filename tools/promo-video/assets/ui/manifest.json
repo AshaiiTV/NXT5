@@ -1,0 +1,107 @@
+[
+  {
+    "file": "ui-home-hero.png",
+    "width": 3200,
+    "height": 1800,
+    "shows": "Home hero (viewport 1600x900 @2x, header visible): giant outlined 'NXT' plus glossy 3D violet '5' over a purple dusk cloudscape, tagline 'JOUE. ANALYSE. RECOMMENCE.', headline 'Comprends tes parties. Prépare la suite.', cyan-to-fuchsia CTA 'Créer mon espace' and nav (Fonctionnalités, Connexion, Essayer la démo, FR).",
+    "bestFor": "intro & marque (ouverture / clôture)"
+  },
+  {
+    "file": "ui-match-timeline.png",
+    "width": 1918,
+    "height": 2024,
+    "shows": "Home 'Review d’équipe' card: Scrim 3 · Faille de l’invocateur, Horizon contre Aurore, Victoire, five champion icons (TOP/JGL/MID/ADC/SUP), eliminations 21 vs 12, '+1 300 or' at 21:00, gold-gap curve (cyan to pink) with Dragon and Nashor markers, time chips 12:00 Premier écart / 21:00 Retour dans la partie (selected) / 33:45 Fin de partie, and the prompt 'Avions-nous la même information ?'.",
+    "bestFor": "analyse de parties"
+  },
+  {
+    "file": "ui-match-timeline-1200.png",
+    "width": 1918,
+    "height": 2024,
+    "shows": "Same Review card with the cursor on 12:00 'Premier écart': '+250 or', cursor line early on the curve, 12:00 chip highlighted, prompt 'Qui récupère la prochaine vague ?' (use as a keyframe to animate the scrub).",
+    "bestFor": "analyse de parties"
+  },
+  {
+    "file": "ui-match-timeline-3345.png",
+    "width": 1918,
+    "height": 2024,
+    "shows": "Same Review card with the cursor on 33:45 'Fin de partie': '+4 000 or · Écart final avec l’adversaire', cursor at the curve peak after Nashor, 33:45 chip highlighted, prompt 'Qu’est-ce qu’on garde pour la suite ?'.",
+    "bestFor": "analyse de parties"
+  },
+  {
+    "file": "ui-draft.png",
+    "width": 1918,
+    "height": 1552,
+    "shows": "Home 'Draft & pool' card: 'Horizon · Composition de travail', 'Cinq picks. Une intention.', Côté bleu, five champion splash-art cards TOP Gnar / JGL Vi / MID Ahri (highlighted) / ADC Jinx / SUP Braum, 'Pool MID': Ahri (Confiance) and Orianna (En entraînement), and the staff note 'Jouer les déplacements Ahri–Vi ensemble. Poser la vision avant de chercher le pick.'",
+    "bestFor": "draft & champions"
+  },
+  {
+    "file": "ui-planning.png",
+    "width": 1918,
+    "height": 1762,
+    "shows": "Home 'Le rendez-vous du cinq' card: 'Semaine du 12 octobre · La semaine de l’équipe.', day tiles 14 Mer. Scrim (selected) / 15 Jeu. Débrief / 18 Dim. Scrim, the 20:00–22:00 event 'Horizon contre Aurore · Scrim d’équipe · Joueurs et staff', 'Objectif de séance: Préparer les objectifs ensemble', agenda 20:00 Brief & draft / 20:15 Bloc de scrims / 21:45 Débrief à chaud, and '5 / 5 disponibles' with TOP JGL MID ADC SUP all checked.",
+    "bestFor": "planning"
+  },
+  {
+    "file": "ui-team-debrief.png",
+    "width": 3200,
+    "height": 1428,
+    "shows": "Full-width home section: headline 'Cinq points de vue. Une équipe.' on the left; on the right a TOP/JGL/MID/ADC/SUP role selector (MID active) wired into the 'Le débrief de l’équipe' card: 'MID · Priorité et rotations — Comment annoncer notre prochaine rotation ?' and 'Les joueurs et le staff, dans le même espace.'",
+    "bestFor": "débriefs"
+  },
+  {
+    "file": "ui-demo-matches.png",
+    "width": 2688,
+    "height": 1646,
+    "shows": "/demo '1. Parties' panel: 'Les trois scrims de l’équipe Horizon · 3 parties', search box, filters (Trier par Plus récentes, Résultat, Débrief, Côté) and a table of Victoire Scrim 3 · Aurore (23 sept. 2026, 20:00 · 33:45), Victoire Scrim 2 · Orbite (22 sept., 32:30) and Défaite Scrim 1 · Aurore (21 sept., 31:15), each with allied and enemy 5-champion compositions, Côté bleu/rouge and Débrief 'Terminé'.",
+    "bestFor": "démo"
+  },
+  {
+    "file": "ui-match-summary.png",
+    "width": 1952,
+    "height": 1352,
+    "shows": "/demo match detail card (opened from Scrim 3): 'Données fictives · Lecture seule', Scrim 3 · Aurore, Équipe Horizon · fictive · 33 min, Victoire badge, a big '+4 000 or' Écart d’or final, 'La question du débrief: La vision a-t-elle facilité nos décisions, ou reflète-t-elle surtout notre avance ?', gradient 'Lire le débrief' button and the collapsed 'Statistiques et joueurs' row.",
+    "bestFor": "analyse de parties"
+  },
+  {
+    "file": "ui-match-stats.png",
+    "width": 1952,
+    "height": 2438,
+    "shows": "The same match card with 'Statistiques et joueurs' expanded: +4 000 or, Écart de vision +20 points, Morts de l’équipe 12, and five player rows with role icons and K/D/A: Horizon TOP Gnar 3/2/5, JGL Vi 4/3/9, MID Ahri 6/2/7, ADC Jinx 7/2/8, SUP Braum 1/3/16.",
+    "bestFor": "analyse de parties"
+  },
+  {
+    "file": "ui-analyses.png",
+    "width": 2688,
+    "height": 2130,
+    "shows": "/demo '2. Analyses' panel: 'Trajectoire de l’équipe · Une mesure, partie après partie', 'Mesure à suivre: Écart d’or', a cyan line chart across Partie 1/2/3 (21–23 sept. 2026) rising from about −3.5 k to +4 k gold, a 'Partie à examiner' selector with Précédente/Suivante, and the highlight card 'Partie 3 sur 3 · Victoire · Scrim 3 · Aurore · Écart d’or +4 000 or · Ouvrir cette partie'.",
+    "bestFor": "analyse de parties"
+  },
+  {
+    "file": "ui-debrief.png",
+    "width": 1952,
+    "height": 1514,
+    "shows": "/demo '3. Débrief' panel: 'Exemple rédigé pour la démonstration — Préparer la prochaine séance — Scrim 3 · Aurore' with three numbered steps: 1. Le fait observé (4 000 or de plus, vision +20), 2. La question à vérifier, 3. L’action pour la prochaine séance (revoir le contexte d’un objectif dans le replay), plus a 'Revoir la partie source' button.",
+    "bestFor": "débriefs"
+  },
+  {
+    "file": "ui-features-list.png",
+    "width": 2720,
+    "height": 2944,
+    "shows": "/fonctionnalites overview: nav strip (Analyse de parties, Coaching et débriefs, Draft et champions, Équipe et planning, Exports et Discord) above five numbered sections 01 'Examiner les résultats des parties.', 02 'Noter les actions à travailler.', 03 'Préparer les cinq choix ensemble.', 04 'Retrouver qui joue et quand.', 05 'Partager un bilan lisible.' (tall, suited to a vertical pan).",
+    "bestFor": "vue d’ensemble des 5 fonctionnalités"
+  },
+  {
+    "file": "ui-routine.png",
+    "width": 2720,
+    "height": 1106,
+    "shows": "/fonctionnalites 'Un usage concret — Préparer le prochain entraînement.' with four steps: 01 Réunir les parties, 02 Choisir les faits utiles, 03 Préparer le débrief, 04 Organiser la suite.",
+    "bestFor": "débriefs & planning (récap du parcours)"
+  },
+  {
+    "file": "ui-discord.png",
+    "width": 1248,
+    "height": 1120,
+    "shows": "/fonctionnalites section '05 Exports et Discord — Partager un bilan lisible.' (720 px layout, details expanded): exporting stats as PNG or posting match summaries to chosen Discord channels via the bot, with bullets 'Exports PNG des parties et des analyses', 'Bilans dans les salons Discord choisis' and 'Aperçu et confirmation du partage manuel'. Text only, because the public site has no Discord UI mock-up.",
+    "bestFor": "discord & exports"
+  }
+]

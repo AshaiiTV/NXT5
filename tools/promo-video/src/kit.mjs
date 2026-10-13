@@ -2,7 +2,7 @@
 // Every helper is a pure function of its arguments (no hidden frame state), so frames can be
 // rendered in any order and in parallel processes.
 import { GlobalFonts, createCanvas } from '@napi-rs/canvas';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
@@ -913,20 +913,20 @@ export function renderCards(ctx, f, cards, opts = {}) {
 // ------------------------------------------------------------------ real NXT5 UI screenshots (assets/ui)
 const UI_DIR = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'assets', 'ui');
 const uiCache = new Map();
-/** Loads assets/ui/<name> (sync, cached). Returns an Image or null if missing. */
-export function uiImage(name) {
-  if (!uiCache.has(name)) {
-    let img = null;
-    try {
-      const { Image } = globalThis.__canvasMod;
-      img = new Image();
-      img.src = readFileSync(path.join(UI_DIR, name));
-    } catch {
-      img = null;
-    }
-    uiCache.set(name, img);
+/** Decodes every assets/ui/*.png once (await before drawing; decoding is asynchronous). */
+export async function preloadUI() {
+  const { loadImage } = globalThis.__canvasMod;
+  let files = [];
+  try {
+    files = readdirSync(UI_DIR).filter((f) => f.endsWith('.png'));
+  } catch {
+    return;
   }
-  return uiCache.get(name);
+  await Promise.all(files.map(async (f) => uiCache.set(f, await loadImage(readFileSync(path.join(UI_DIR, f))))));
+}
+/** A preloaded assets/ui/<name> image, or null. */
+export function uiImage(name) {
+  return uiCache.get(name) || null;
 }
 
 /**

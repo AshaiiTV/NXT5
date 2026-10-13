@@ -11,6 +11,7 @@ const { W, H, C, F, rgba } = K;
 const OUT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'out');
 mkdirSync(OUT, { recursive: true });
 K.loadEvents(path.join(OUT, 'music.events.json'));
+await K.preloadUI();
 
 function draw(variant) {
   const c = Canvas.createCanvas(W, H);
@@ -63,6 +64,28 @@ function draw(variant) {
   ctx.beginPath();
   ctx.ellipse(W * 0.2, H * 0.62 - 170, 95, 110, -0.25, Math.PI * 1.05, Math.PI * 1.75);
   ctx.stroke();
+  // gaming headset: band over the head + ear cup + mic boom
+  ctx.save();
+  ctx.translate(W * 0.2, H * 0.62 - 170);
+  ctx.rotate(-0.25);
+  ctx.strokeStyle = '#2a0710';
+  ctx.lineWidth = 22;
+  ctx.beginPath();
+  ctx.arc(0, 10, 118, Math.PI * 1.08, Math.PI * 1.92);
+  ctx.stroke();
+  ctx.fillStyle = '#16030a';
+  ctx.strokeStyle = C.red;
+  ctx.lineWidth = 5;
+  ctx.shadowColor = C.red;
+  ctx.shadowBlur = 25;
+  K.roundRect(ctx, -140, -10, 50, 92, 18);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-110, 70);
+  ctx.quadraticCurveTo(-90, 140, -10, 135);
+  ctx.stroke();
+  ctx.restore();
   ctx.shadowBlur = 0;
 
   // big headline
@@ -71,8 +94,8 @@ function draw(variant) {
   K.text(ctx, headline[1], W * 0.71, H * 0.53, { size: 230, font: F.anton, stroke: 24, strokeColor: C.ink, emph: headline[1], glow: 40 });
 
   // the real UI as proof (falls back to a placeholder panel if the screenshot is missing)
-  const img = K.uiImage('ui-match-timeline.png');
-  if (img) K.screen(ctx, 'ui-match-timeline.png', W * 0.72, H * 0.83, 760, { h: 270, tilt: -0.05, frame: C.cyan, glare: 0.3 });
+  const img = K.uiImage('ui-match-timeline-3345.png');
+  if (img) K.screen(ctx, 'ui-match-timeline-3345.png', W * 0.71, H * 0.82, 820, { src: [90, 600, 1740, 660], tilt: -0.04, frame: C.cyan, glare: 0.25 });
   else K.panel(ctx, W * 0.5, H * 0.7, 760, 250, { header: 'ANALYSE DE PARTIE', tilt: -0.05 });
 
   // arrow to "TOI"

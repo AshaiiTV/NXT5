@@ -34,6 +34,7 @@ if (!existsSync(eventsFile)) {
   process.exit(1);
 }
 const EV = loadEvents(eventsFile);
+await K.preloadUI();
 const TOTAL = EV.duration;
 
 // ------------------------------------------------------------------ scenes
