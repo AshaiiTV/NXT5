@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "NXT5 Loading Display";
+  font-style: italic;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/assets/fonts/chakra-petch/chakra-petch-latin-600-italic.woff2') format('woff2');
+}
+
 .nxt5-sync-screen {
   position: relative;
   isolation: isolate;
@@ -48,7 +56,7 @@
 .nxt5-sync-role-name { color: var(--sync-color); font-size: 10px; font-weight: 500; letter-spacing: .14em; }
 .nxt5-sync-loading { position: relative; min-width: 0; width: 100%; max-width: 470px; margin-top: -25px; padding-block: 24px; }
 .nxt5-sync-status { min-width: 0; }
-.nxt5-sync-status h1 { margin: 0; max-width: 11ch; font-size: clamp(38px, 4.4vw, 64px); font-weight: 500; letter-spacing: -.055em; line-height: 1.06; text-wrap: balance; overflow-wrap: break-word; }
+.nxt5-sync-status h1 { margin: 0; max-width: 13ch; font-family: "NXT5 Loading Display", Inter, sans-serif; font-style: italic; font-size: clamp(38px, 4.4vw, 64px); font-weight: 600; letter-spacing: -.02em; line-height: 1.1; text-wrap: balance; overflow-wrap: break-word; }
 .nxt5-sync-status p { margin: 22px 0 0; max-width: 29ch; color: #b6c0d4; font-size: 16px; line-height: 1.65; }
 .nxt5-sync-progress-caption { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; min-height: 32px; margin-top: 44px; }
 .nxt5-sync-progress-caption > span { color: #b3bdd2; font-size: 11px; line-height: 1.5; letter-spacing: .03em; }
