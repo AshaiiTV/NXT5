@@ -409,6 +409,12 @@ async function encodeRange(t0, t1, file, { scale = 1, audio = false } = {}) {
     }
     const data = src.getContext('2d').getImageData(0, 0, ow, oh).data;
     if (!ff.stdin.write(Buffer.from(data.buffer, data.byteOffset, data.byteLength))) await new Promise((r) => ff.stdin.once('drain', r));
+    // pixel buffers live in native memory that V8 does not see: collect explicitly or RSS grows ~8 MB/frame
+    // napi finalizers only run when the event loop turns: yield regularly so freed frames are released
+    if (fr % 8 === 0) {
+      globalThis.gc?.();
+      await new Promise((r) => setImmediate(r));
+    }
     if (process.send && fr % 30 === 0) process.send({ fr });
   }
   ff.stdin.end();
@@ -482,13 +488,13 @@ await Promise.all(
     const part = path.join(OUT, `part-${process.pid}-${i}.mp4`);
     parts.push(part);
     return new Promise((res, rej) => {
-      const child = fork(fileURLToPath(import.meta.url), ['--worker', `${a}:${b}`, '--out', part, '--scale', String(scale)]);
+      const child = fork(fileURLToPath(import.meta.url), ['--worker', `${a}:${b}`, '--out', part, '--scale', String(scale)], { execArgv: ['--expose-gc'] });
       child.on('message', (m) => {
         progress[i] = m.fr - a;
         const tot = progress.reduce((x, y) => x + y, 0);
         if (i === 0) process.stdout.write(`\r${tot}/${f1 - f0} frames`);
       });
-      child.on('exit', (c) => (c ? rej(new Error(`worker ${i} exited ${c}`)) : res()));
+      child.on('exit', (c, sig) => (c || sig ? rej(new Error(`worker ${i} exited ${c ?? sig}`)) : res()));
     });
   }),
 );
@@ -499,6 +505,15 @@ await new Promise((res, rej) => {
     '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '320k', '-movflags', '+faststart', '-shortest', outFile], { stdio: 'inherit' });
   ff.on('close', (c) => (c ? rej(new Error('mux failed')) : res()));
 });
-parts.forEach((p) => unlinkSync(p));
+for (const p of parts) {
+  const n = await new Promise((res) => {
+    const pr = spawn('ffprobe', ['-v', 'error', '-count_packets', '-select_streams', 'v', '-show_entries', 'stream=nb_read_packets', '-of', 'csv=p=0', p]);
+    let o = '';
+    pr.stdout.on('data', (d) => (o += d));
+    pr.on('close', () => res(Number(o.trim())));
+  });
+  console.log(`\n${path.basename(p)}: ${n} frames`);
+}
+if (!process.env.KEEP_PARTS) parts.forEach((p) => unlinkSync(p));
 unlinkSync(list);
 console.log(`\n${outFile}  (${((Number(process.hrtime.bigint() - started) / 1e9)).toFixed(1)}s)`);
