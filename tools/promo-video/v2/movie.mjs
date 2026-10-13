@@ -177,9 +177,10 @@ async function drop(ctx, t, frameIndex) {
     ctx.drawImage(g, 1510 - gw / 2 + out * 120, 560 - gh / 2, gw, gh);
     ctx.restore();
   }
+  const textOut = ease.in(seg(t, 19.45, 19.7));
   ctx.save();
-  ctx.globalAlpha *= 1 - out;
-  ctx.translate(-out * 120, 0);
+  ctx.globalAlpha *= 1 - textOut;
+  ctx.translate(-textOut * 80, 0);
   F.revealLine(ctx, seg(t, 16.12, 16.55), 0, 470, 88, () => F.text(ctx, 'Comprends tes parties.', 150, 470, { size: 88, weight: 700 }));
   F.revealLine(ctx, seg(t, 16.35, 16.8), 0, 580, 88, () => F.text(ctx, 'Prépare la suite.', 150, 580, { size: 88, weight: 700, spectrum: 'Prépare la suite.' }));
   F.text(ctx, 'L’espace de travail des équipes et coachs League of Legends', 154, 660, { size: 32, weight: 500, color: C.text2, alpha: ease.out(seg(t, 16.6, 17)) });
@@ -194,18 +195,18 @@ const FEATURES = [
   { eyebrow: 'DRAFT', l1: 'Cinq picks.', l2: 'Une intention.', sub: ['Champions par rôle', 'et compositions à cinq.'], ui: 'ui-draft.png', crop: [0, 100, 1918, 900], w: 1000 },
   { eyebrow: 'PLANNING', l1: 'Le cinq au', l2: 'rendez-vous.', sub: ['Dispos, scrims et débriefs', 'de la semaine.'], ui: 'ui-planning.png', crop: [0, 130, 1918, 1480], w: 780 },
 ];
-function feature(ctx, t) {
-  const i = clamp(Math.floor((t - 20) / 2), 0, 3);
+/** One feature (panel + text). Enters just before its downbeat so it lands on the kick, and its
+ * exit overlaps the next entrance (cross-dissolve, never an empty frame on the beat). */
+function featureLayer(ctx, t, i) {
   const f = FEATURES[i];
   const lt = t - (20 + i * 2);
-  F.backdrop(ctx, t, { dim: 0.45, img: 'clouds' });
-  F.glow(ctx, 1300, 560, 720, '#8B5CF6', 0.22 + env('kick', t, 9) * 0.05);
-  F.glow(ctx, 1800, 300, 420, '#E879F9', 0.08);
-  const enter = ease.outQuint(seg(lt, 0, 0.55));
-  const exit = i < 3 ? ease.in(seg(lt, 1.7, 2)) : ease.in(seg(lt, 1.75, 2));
+  const enter = ease.outQuint(seg(lt, -0.4, 0.15));
+  const exit = i < 3 ? ease.in(seg(lt, 1.65, 2.1)) : ease.in(seg(lt, 1.7, 2.05));
+  // text hands over cleanly (never two headlines on top of each other); only the panels cross-dissolve
+  const textExit = ease.in(seg(lt, 1.48, 1.68));
+  if (enter <= 0 || exit >= 1) return;
   const alpha = enter * (1 - exit);
-  // panel
-  const sh = ((f.w * f.crop[3]) / f.crop[2]);
+  const sh = (f.w * f.crop[3]) / f.crop[2];
   const px = 1310 - f.w / 2;
   const py = 540 - sh / 2 - 20;
   withCamera(ctx, 1 + 0.025 * seg(lt, 0, 2), () => {
@@ -216,26 +217,32 @@ function feature(ctx, t) {
     F.fictiveTag(ctx, px, py + sh + 40, alpha);
     ctx.restore();
   }, 1310, 540);
-  // text
   ctx.save();
-  ctx.globalAlpha *= 1 - exit;
-  ctx.translate(-exit * 60, 0);
-  F.text(ctx, f.eyebrow, 150, 380, { size: 28, weight: 700, color: C.cyan, tracking: 6, alpha: ease.out(seg(lt, 0, 0.3)) });
-  F.revealLine(ctx, seg(lt, 0.05, 0.45), 0, 480, 84, () => F.text(ctx, f.l1, 150, 480, { size: 84, weight: 700 }));
-  F.revealLine(ctx, seg(lt, 0.18, 0.6), 0, 580, 84, () => F.text(ctx, f.l2, 150, 580, { size: 84, weight: 700, spectrum: f.l2 }));
-  f.sub.forEach((s, k) => F.text(ctx, s, 152, 660 + k * 44, { size: 32, weight: 500, color: C.text2, alpha: ease.out(seg(lt, 0.35 + k * 0.08, 0.75 + k * 0.08)) }));
+  ctx.globalAlpha *= 1 - textExit;
+  ctx.translate(-textExit * 40, 0);
+  F.text(ctx, f.eyebrow, 150, 380, { size: 28, weight: 700, color: C.cyan, tracking: 6, alpha: ease.out(seg(lt, -0.28, 0.1)) });
+  F.revealLine(ctx, seg(lt, -0.28, 0.2), 0, 480, 84, () => F.text(ctx, f.l1, 150, 480, { size: 84, weight: 700 }));
+  F.revealLine(ctx, seg(lt, -0.12, 0.35), 0, 580, 84, () => F.text(ctx, f.l2, 150, 580, { size: 84, weight: 700, spectrum: f.l2 }));
+  f.sub.forEach((s, k) => F.text(ctx, s, 152, 660 + k * 44, { size: 32, weight: 500, color: C.text2, alpha: ease.out(seg(lt, 0.1 + k * 0.08, 0.5 + k * 0.08)) }));
   ctx.restore();
+}
+function feature(ctx, t) {
+  F.backdrop(ctx, t, { dim: 0.45, img: 'clouds' });
+  F.glow(ctx, 1300, 560, 720, '#8B5CF6', 0.22 + env('kick', t, 9) * 0.05);
+  F.glow(ctx, 1800, 300, 420, '#E879F9', 0.08);
+  for (let i = 0; i < FEATURES.length; i++) featureLayer(ctx, t, i);
 }
 
 // ------------------------------------------------------------------ 28-32 s: the whole team, one place
 function recap(ctx, t) {
   const lt = t - 28;
   F.backdrop(ctx, t, { dim: 0.4 });
+  featureLayer(ctx, t, 3);
   F.glow(ctx, W / 2, 700, 900, '#8B5CF6', 0.22 + seg(t, 30, 31.8) * 0.2);
   const out = ease.in(seg(t, 31.6, 32));
   ctx.save();
   ctx.globalAlpha *= 1 - out;
-  F.revealLine(ctx, seg(lt, 0, 0.4), 0, 250, 96, () => F.text(ctx, 'Toute l’équipe.', W / 2, 250, { size: 96, weight: 700, align: 'center' }));
+  F.revealLine(ctx, seg(lt, -0.1, 0.3), 0, 250, 96, () => F.text(ctx, 'Toute l’équipe.', W / 2, 250, { size: 96, weight: 700, align: 'center' }));
   F.revealLine(ctx, seg(lt, 0.5, 0.9), 0, 360, 96, () => F.text(ctx, 'Au même endroit.', W / 2, 360, { size: 96, weight: 700, align: 'center', spectrum: 'même endroit.' }));
   const w = 410;
   withCamera(ctx, 1 + 0.04 * seg(t, 29.5, 32), () => {
@@ -245,7 +252,7 @@ function recap(ctx, t) {
       const sh = Math.min(300, (w * f.crop[3]) / f.crop[2]);
       const crop = [f.crop[0], f.crop[1], f.crop[2], Math.min(f.crop[3], (f.crop[2] * sh) / w)];
       const x = 95 + i * (w + 30);
-      const y = 520 + (1 - k) * 120 + (i % 2) * 24;
+      const y = 520 + (1 - k) * 120;
       F.uiShot(ctx, f.ui, x, y, w, crop, { alpha: k, pad: 12 });
       F.text(ctx, f.eyebrow, x, y + sh + 62, { size: 24, weight: 700, color: C.cyan, tracking: 5, alpha: k });
     });
@@ -306,7 +313,10 @@ export async function drawFrame(ctx, t, frameIndex) {
   ctx.save();
   if (t < 8) hook(ctx, t);
   else if (t < 16) build(ctx, t);
-  else if (t < 20) await drop(ctx, t, frameIndex - Math.round(GLASS_FROM * F.FPS));
+  else if (t < 20) {
+    await drop(ctx, t, frameIndex - Math.round(GLASS_FROM * F.FPS));
+    featureLayer(ctx, t, 0);
+  }
   else if (t < 28) feature(ctx, t);
   else if (t < 32) recap(ctx, t);
   else end(ctx, t);
