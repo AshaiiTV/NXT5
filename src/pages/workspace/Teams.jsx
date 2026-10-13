@@ -106,7 +106,7 @@ function opggUrlFromRiotId(riotId, region) {
   return `https://www.op.gg/lol/summoners/${String(region || "EUW").toLowerCase()}/${slug}`;
 }
 
-function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast, user, managementOnly = false, setupOnly = false, teamCreation = {} }) {
+function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMember, routeSearch = "", pushToast, user, managementOnly = false, setupOnly = false, teamCreation = {}, onLoadHistory, historyLoading = false, historyError = "" }) {
   useLanguage();
   const [teamForm, setTeamForm] = useState({ name: "", tag: "", region: "EUW", multiOpgg: "" });
   const pendingCreation = teamCreation.pending;
@@ -147,6 +147,11 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const canManageMembers = owner || ["owner", "captain"].includes(accessRole);
   const canDeleteTeam = owner;
   const riotCooldownSeconds = Math.max(0, Math.ceil((riotCooldownUntil - nowTick) / 1000));
+  const historyComplete = data.historyComplete !== false && !data.pagination?.hasMore;
+  const historyControls = !historyComplete && <Surface className="mb-4 p-4 sm:p-5">
+    <p role={historyError ? "alert" : "status"} className="text-sm font-semibold text-slate-300">{t(historyLoading ? "Chargement de toutes les games…" : historyError ? "L’historique complet n’a pas pu être chargé." : "Historique complet à charger")}</p>
+    <Button type="button" variant="ghost" icon={historyLoading ? Loader2 : ArrowRight} disabled={historyLoading || !onLoadHistory} className="mt-3" onClick={() => { void onLoadHistory?.().catch(() => {}); }}>{t(historyError ? "Réessayer" : "Charger les analyses de l’équipe")}</Button>
+  </Surface>;
 
   useEffect(() => {
     if (!selectedTeamId && data.teams[0]?.id) setSelectedTeamId(data.teams[0].id);
@@ -510,7 +515,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
             <LinkButton href="/bot-discord" navigate={openAppPath} variant="ghost" icon={ArrowRight} className="min-h-11 shrink-0">{t("Configurer le bot Discord")}</LinkButton>
           </div>
         </Surface>
-        <TeamDataHealthPanel team={selectedTeam} players={data.players || []} matches={data.matches || []} />
+        {historyComplete ? <TeamDataHealthPanel team={selectedTeam} players={data.players || []} matches={data.matches || []} /> : historyControls}
       </TeamManagementPanel>
     </div> : <Surface glow><EmptyState icon={Users} title={t("Aucune équipe")} text={t("Crée ou rejoins une équipe avant d’ouvrir la gestion.")} /></Surface>}
   </div>;
@@ -570,8 +575,9 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       </div>}
 
       {selectedTeam && !showSetup && <div>
+        {historyControls}
         <Surface glow className="team-roster-surface">
-          <PremiumRosterTable key={selectedTeam.id} roster={roster} matches={data.matches || []} currentUserId={user?.id} canManage={canManageRoster} />
+          <PremiumRosterTable key={selectedTeam.id} roster={roster} matches={data.matches || []} currentUserId={user?.id} canManage={canManageRoster} historyComplete={historyComplete} />
         </Surface>
       </div>}
     </div>
@@ -620,7 +626,7 @@ function ImportedChampionBadges({ player, matches = [], detailed = false }) {
   return <span className="team-roster-champions"><span className="sr-only">{t("Champions les plus joués : ")}</span>{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}</span>;
 }
 
-function PremiumRosterTable({ roster, matches = [], currentUserId = "", canManage = false }) {
+function PremiumRosterTable({ roster, matches = [], currentUserId = "", canManage = false, historyComplete = true }) {
   useLanguage();
   const sortRoster = (items) => [...items].sort((a, b) => rosterRoleIndex(a.role) - rosterRoleIndex(b.role) || String(a.name || "").localeCompare(String(b.name || "")));
   const players = roster.filter((item) => !isStaffRole(item.role));
@@ -644,7 +650,7 @@ function PremiumRosterTable({ roster, matches = [], currentUserId = "", canManag
           }}>
             <span className="team-roster-role"><span aria-hidden="true"><RoleIcon role={player.role} className="h-5 w-5" /></span><span>{t(roleLabel(player.role))}</span></span>
             <span className="team-roster-identity"><span className="team-roster-name"><span className="sr-only">{t("Voir le profil de ")}</span>{player.name}{isMe && <span className="team-roster-me">{t("Toi")}</span>}</span><span className="team-roster-riot">{player.riot_id || t("Riot ID à renseigner")}</span></span>
-            <ImportedChampionBadges player={player} matches={matches} detailed={title === "Titulaires"} />
+            {historyComplete ? <ImportedChampionBadges player={player} matches={matches} detailed={title === "Titulaires"} /> : <span className="team-roster-champion-pool"><span className="team-roster-pool-empty">{t("Historique complet à charger")}</span></span>}
             <ArrowRight aria-hidden="true" className="team-roster-arrow" />
           </a>
         </li>;

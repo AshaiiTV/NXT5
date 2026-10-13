@@ -79,7 +79,7 @@ function HomePlayerDebrief({ context, navigate }) {
   </section>;
 }
 
-function homeFocus(context, now) {
+function homeFocus(context, now, historyComplete) {
   const { matches, latestMatch, latestMatchAt, recentMatches, unreviewedRecentMatches, nextEvent, canImport, canReview, linkedPlayer } = context;
   if (!matches.length) return {
     kind: "start", title: "Prépare les premières parties de ton équipe.", subtitle: "Retrouve les parties, les débriefs et le planning de ton équipe.",
@@ -96,7 +96,7 @@ function homeFocus(context, now) {
   const pending = unreviewedRecentMatches[0];
   if (pending) return {
     kind: "review", title: canReview ? "Place au débrief." : "Retrouve les dernières parties de ton équipe.",
-    subtitle: `${countLabel(unreviewedRecentMatches.length, "partie récente", "parties récentes")} sans débrief enregistré.`,
+    subtitle: historyComplete ? `${countLabel(unreviewedRecentMatches.length, "partie récente", "parties récentes")} sans débrief enregistré.` : "Retrouve les parties, les débriefs et le planning de ton équipe.",
     label: canReview ? "Votre prochain débrief" : "Votre dernière activité", heading: matchDisplayName(pending, "Partie de l’équipe"),
     text: canReview ? "Reprends cette partie, note un point à garder et une action à travailler ensemble." : "Ouvre le résumé pour retrouver le résultat et les points à discuter avec l’équipe.",
     href: canReview ? reviewPath(pending) : matchPath(pending), action: canReview ? "Préparer le débrief" : "Voir la partie", icon: canReview ? FileText : Swords,
@@ -141,7 +141,12 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   const now = suppliedNow == null ? clock : homeMatchTimestamp({ date: suppliedNow }) ?? clock;
   const context = getHomeContext({ data, currentTeam, currentMember, user, now });
   if (!currentTeam) return null;
-  const focus = homeFocus(context, now);
+  const historyComplete = data.historyComplete !== false && !data.pagination?.hasMore;
+  const focus = homeFocus(context, now, historyComplete);
+  // The first page is enough for the latest activity. The historical count is
+  // supplied by the server and must not shrink to the currently loaded page.
+  const serverTotal = data.selectedTeamId === currentTeam.id ? data.totals?.games ?? data.pagination?.total : null;
+  const totalMatches = Number.isSafeInteger(Number(serverTotal)) && Number(serverTotal) >= context.matches.length ? Number(serverTotal) : context.matches.length;
   const unfinished = steps.some(step => !step.done);
   const showStart = unfinished && ((!context.matches.length && !onboarding.dismissed) || guideKey === contextKey);
   const startIsPrimary = showStart && !context.matches.length;
@@ -151,7 +156,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   const FocusIcon = focus.icon;
   const mainRoster = rosterPlayersByStatus(context.players, "MAIN");
   const shortcuts = [
-    { path: "/games", title: "Parties", text: context.matches.length ? `${countLabel(context.matches.length, "partie")} dans votre historique` : "Retrouver les premières parties importées", icon: Swords },
+    { path: "/games", title: "Parties", text: totalMatches ? `${countLabel(totalMatches, "partie")} dans votre historique` : "Retrouver les premières parties importées", icon: Swords },
     { path: "/planning", title: "Planning", text: nextEvent ? "Retrouver vos séances et disponibilités" : "Organiser la prochaine séance", icon: CalendarDays },
     context.reports.length ? { path: "/rapports", title: "Débriefs", text: `${countLabel(context.reports.length, "débrief")} pour préparer la suite`, icon: FileText }
       : { path: "/mon-equipe", title: "Mon équipe", text: context.importPlayers.length ? `${countLabel(context.importPlayers.length, "joueur")} · retrouver l’effectif et le staff` : "Faire connaissance avec ton équipe", icon: Users },
@@ -196,7 +201,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
       <section className="nxt5-home-section" aria-labelledby="nxt5-home-games-title">
         <div className="nxt5-home-section-heading"><Swords size={20} aria-hidden="true" /><h3 id="nxt5-home-games-title">{context.matches.length ? t("Dernières parties") : t("Les premières parties de ton équipe")}</h3></div>
         {context.matches.length ? <>
-          <p className="nxt5-home-section-intro">{t(countLabel(context.recentMatches.length, "partie"))}{t(" sur les 14 derniers jours")}</p>
+          {historyComplete && <p className="nxt5-home-section-intro">{t(countLabel(context.recentMatches.length, "partie"))}{t(" sur les 14 derniers jours")}</p>}
           <ul className="nxt5-home-games">
             {context.matches.slice(0, 3).map(match => {
               const report = context.reportForMatch(match);

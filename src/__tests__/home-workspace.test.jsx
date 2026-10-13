@@ -88,6 +88,18 @@ async function render(props, options) {
 }
 
 describe("adaptive team home", () => {
+  it.each(["totals", "pagination"])("uses the server's historical total from %s when only the latest page is loaded", async (source) => {
+    const props = fixture({ matches: [match()] });
+    props.data.historyComplete = false;
+    props.data[source] = source === "totals" ? { games: 1000 } : { total: 1000, hasMore: true };
+    const renderer = await render(props);
+    const shortcut = links(renderer).find((link) => link.props.className === "nxt5-home-shortcut" && link.props.href === "/games");
+    expect(text(shortcut)).toContain("1000 parties dans votre historique");
+    expect(text(renderer.toJSON())).not.toContain("sur les 14 derniers jours");
+    expect(text(renderer.toJSON())).not.toContain("1 partie récente sans débrief enregistré.");
+    expect(text(renderer.toJSON())).toContain("Scrim Equinox");
+  });
+
   it("starts an empty team with its role-aware onboarding and a real import action", async () => {
     const props = fixture();
     const renderer = await render(props);

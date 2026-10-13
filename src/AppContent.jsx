@@ -38,6 +38,16 @@ const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.
 const AdministrationPage = lazy(() => import("./pages/admin/AdministrationPage.jsx"));
 
 const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
+const HISTORY_PAGES = new Set(["matches", "reports", "trends", "profile", "draft"]);
+
+function HistoryLoadingState({ error, loading, onRetry }) {
+  return <Surface className="p-5 sm:p-6">
+    <div role={error ? "alert" : "status"} aria-live="polite" aria-busy={loading}>
+      <p className="text-base font-semibold text-white">{t(error ? "L’historique complet n’a pas pu être chargé." : "Chargement de toutes les games…")}</p>
+      {error ? <Button type="button" variant="ghost" icon={RefreshCw} onClick={onRetry} disabled={loading} className="mt-4">{t("Réessayer")}</Button> : <div className="mt-4"><SkeletonRows count={4} /></div>}
+    </div>
+  </Surface>;
+}
 
 export function MissingEmailModal({ user, onUserUpdate, pushToast, onLogout }) {
   useLanguage();
@@ -287,7 +297,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
     onError: (error) => pushToast({ type: "red", title: "Enregistrement impossible", text: error.message }),
   }));
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
-  const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore, route.search);
+  const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll, ensureHistory, historyLoading, historyError } = useTeamData(planningStore, route.search, { requireHistory: HISTORY_PAGES.has(active) });
   const teamCreation = useTeamCreation({ setSelectedTeamId, refreshAll, pushToast });
   const independentAccountPage = active === "account-settings";
   const waitingForBootstrap = !independentAccountPage && !bootstrapReady && (!bootstrapped || loading);
@@ -331,11 +341,18 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   const isTeamSetup = active === "teams" && (["create", "setup", "join"].some(key => setupParams.get(key) === "1") || setupParams.has("invite"));
   const teamSetupOnly = workspaceLocked && isTeamSetup;
   const workspacePage = ["home", "teams", "team-management", "bot-discord", "matches", "reports", "trends", "planning", "draft", "profile"].includes(active) && !teamSetupOnly;
+  const requiresHistory = HISTORY_PAGES.has(active);
+  const historyComplete = data.historyComplete !== false && !data.pagination?.hasMore;
+  const waitingForHistory = requiresHistory && !historyComplete;
+  useEffect(() => {
+    if (!requiresHistory || !bootstrapReady || workspaceLocked || historyComplete || historyLoading || historyError || data.selectedTeamId !== selectedTeamId) return;
+    void ensureHistory?.().catch(() => {});
+  }, [requiresHistory, bootstrapReady, workspaceLocked, historyComplete, historyLoading, historyError, data.selectedTeamId, selectedTeamId, ensureHistory]);
 
   const page = useMemo(() => {
     if (active === "bot-discord") return <DiscordWorkspace data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} />;
-    if (active === "teams") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} setupOnly={teamSetupOnly} />;
-    if (active === "team-management") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
+    if (active === "teams") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} setupOnly={teamSetupOnly} onLoadHistory={ensureHistory} historyLoading={historyLoading} historyError={historyError} />;
+    if (active === "team-management") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly onLoadHistory={ensureHistory} historyLoading={historyLoading} historyError={historyError} />;
     if (active === "matches" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} planningStore={planningStore} currentMember={currentMember} user={user} refreshAll={refreshAll} />;
@@ -344,7 +361,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
     return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamSetupOnly, teamCreation]);
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamSetupOnly, teamCreation, ensureHistory, historyLoading, historyError]);
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const onboardingReady = Boolean(bootstrapReady && currentTeam && data.selectedTeamId === currentTeam.id && !workspaceLocked && !apiError);
   const onboarding = useOnboarding({ user, currentTeam, data, route, ready: onboardingReady });
@@ -352,7 +369,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   const nextStep = onboardingSteps.find(step => !step.done && !step.disabled);
   const showStartReturn = onboardingReady && !onboarding.dismissed && onboardingSteps.some(step => !step.done) && !isTeamSetup && ["teams", "team-management", "matches", "reports", "planning", "profile"].includes(active);
   const helpSection = guideSectionForRoute(route);
-  const currentPage = active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} loading={loading} apiError={apiError} /> : page;
+  const currentPage = waitingForHistory ? <HistoryLoadingState error={historyError} loading={historyLoading} onRetry={() => { void ensureHistory?.().catch(() => {}); }} /> : active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} loading={loading} apiError={apiError} /> : page;
   const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{currentPage}</PassFeatureGate> : currentPage;
   const assistantWidget = !workspaceLocked && <>
     {active !== "home" && data.teams.length > 0 && <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? t("Fermer l'assistant NXT5") : t("Ouvrir l'assistant NXT5")} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher", assistantOpen && "is-open")}>
@@ -368,7 +385,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   if (!bootstrapReady && !independentAccountPage) return <div className="relative min-h-screen text-white">
     <AmbientBackground />
     <main className="relative z-10 mx-auto max-w-3xl px-4 py-12">
-      <p role="status" className="mb-4 font-semibold">{loading ? t("Chargement de toutes les games…") : t("L’historique complet n’a pas pu être chargé.")}</p>
+      <p role="status" className="mb-4 font-semibold">{loading ? t("Chargement de l’équipe…") : t("Les données n’ont pas pu être actualisées")}</p>
       <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
       <Button variant="ghost" icon={LogOut} onClick={logout}>{t("Déconnexion")}</Button>
     </main>
