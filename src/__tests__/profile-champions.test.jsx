@@ -38,11 +38,12 @@ describe("champion profile reading flow", () => {
 
   it("sorts by observed result rate and places unknown results last", () => {
     const renderer = render(<ProfileChampionsView championStats={sample} />);
-    const winrateSort = () => renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Victoires");
+    const winrateSort = () => renderer.root.findByProps({ "data-champion-sort": "winrate" });
     act(() => winrateSort().props.onClick());
+    act(() => renderer.root.findByProps({ "data-champion-sort": "games" }).props.onClick());
     expect(renderer.root.findAllByProps({ className: "profile-champion-row" }).map((row) => row.props["data-champion"])).toEqual(["Lux", "Ahri", "Annie"]);
-    expect(winrateSort().props).toMatchObject({ active: true, direction: "descending" });
-    act(() => winrateSort().props.onClick());
+    expect(winrateSort().props["aria-pressed"]).toBe(true);
+    act(() => renderer.root.findByType(SelectInput).props.onChange("asc"));
     expect(renderer.root.findAllByProps({ className: "profile-champion-row" }).map((row) => row.props["data-champion"])).toEqual(["Ahri", "Lux", "Annie"]);
     act(() => renderer.root.findByType("input").props.onChange({ target: { value: "inconnu" } }));
     expect(renderer.root.findAllByProps({ className: "profile-champion-row" })).toHaveLength(0);
@@ -56,17 +57,72 @@ describe("champion profile reading flow", () => {
       { champion: "Annie", games: 3, rows: [{ kills: null, assists: 3, deaths: 2 }] },
     ];
     const renderer = render(<ProfileChampionsView championStats={stats} />);
-    const sort = () => renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Ratio KDA");
+    const sort = () => renderer.root.findByProps({ "data-champion-sort": "kda" });
     const order = () => renderer.root.findAllByProps({ className: "profile-champion-row" }).map((row) => row.props["data-champion"]);
     expect(order()).toEqual(["Annie", "Ahri", "Lux"]);
     act(() => sort().props.onClick());
+    act(() => renderer.root.findByProps({ "data-champion-sort": "games" }).props.onClick());
     expect(order()).toEqual(["Lux", "Ahri", "Annie"]);
     act(() => renderer.root.findAllByProps({ className: "profile-champion-row" })[0].props.onClick());
     act(() => renderer.root.findAllByType(Button).find((button) => button.props.className === "profile-champions-back").props.onClick());
     expect(order()).toEqual(["Lux", "Ahri", "Annie"]);
-    act(() => sort().props.onClick());
+    act(() => renderer.root.findByType(SelectInput).props.onChange("asc"));
     expect(order()).toEqual(["Ahri", "Lux", "Annie"]);
-    expect(renderer.root.findAllByType(SelectInput)).toHaveLength(0);
+    expect(renderer.root.findByType(SelectInput).props.value).toBe("asc");
+  });
+
+  it("combines criteria and preserves their context scores through search and detail navigation", () => {
+    const results = (wins, losses) => [...Array(wins).fill("Victoire"), ...Array(losses).fill("Défaite")];
+    const context = [stat("Annie", results(6, 24)), stat("Ahri", results(16, 4)), stat("Lux", results(4, 0))];
+    const renderer = render(<ProfileChampionsView championStats={context} />);
+    const names = () => renderer.root.findAllByProps({ className: "profile-champion-row" }).map((row) => row.props["data-champion"]);
+    const criterion = (id) => renderer.root.findByProps({ "data-champion-sort": id });
+    const score = () => renderer.root.findByProps({ "data-champion": "Ahri" }).findAll((node) => node.type === "span" && node.props.className?.split(" ").includes("profile-champion-mini")).at(-1).findByType("strong").children.join("");
+    expect(names()).toEqual(["Annie", "Ahri", "Lux"]);
+    act(() => criterion("winrate").props.onClick());
+    expect(criterion("games").props["aria-pressed"]).toBe(true);
+    expect(criterion("winrate").props["aria-pressed"]).toBe(true);
+    expect(names()).toEqual(["Ahri", "Annie", "Lux"]);
+    expect(score()).toBe("73,3");
+    expect(renderer.root.findByProps({ "data-champion": "Ahri" }).props["aria-label"]).toBeUndefined();
+    act(() => renderer.root.findByType("input").props.onChange({ target: { value: "Ahri" } }));
+    expect(score()).toBe("73,3");
+    act(() => renderer.root.findByProps({ "data-champion": "Ahri" }).props.onClick());
+    act(() => renderer.root.findAllByType(Button).find((button) => button.props.className === "profile-champions-back").props.onClick());
+    expect(renderer.root.findByType("input").props.value).toBe("Ahri");
+    expect(criterion("winrate").props["aria-pressed"]).toBe(true);
+    expect(score()).toBe("73,3");
+    act(() => renderer.root.findByType("input").props.onChange({ target: { value: "" } }));
+    act(() => renderer.root.findByType(SelectInput).props.onChange("asc"));
+    expect(names()).toEqual(["Lux", "Annie", "Ahri"]);
+    act(() => criterion("games").props.onClick());
+    act(() => renderer.root.findByType(SelectInput).props.onChange("desc"));
+    expect(names()).toEqual(["Lux", "Ahri", "Annie"]);
+    expect(JSON.stringify(renderer.toJSON())).toContain("4 victoires · 0 défaite");
+  });
+
+  it("preserves both alphabetical directions and can select numerical criteria again", () => {
+    const renderer = render(<ProfileChampionsView championStats={sample} />);
+    const nameSort = () => renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Nom du champion");
+    const names = () => renderer.root.findAllByProps({ className: "profile-champion-row" }).map((row) => row.props["data-champion"]);
+    act(() => nameSort().props.onClick());
+    expect(nameSort().props).toMatchObject({ active: true, direction: "ascending" });
+    expect(names()).toEqual(["Ahri", "Annie", "Lux"]);
+    act(() => nameSort().props.onClick());
+    expect(nameSort().props).toMatchObject({ active: true, direction: "descending" });
+    expect(names()).toEqual(["Lux", "Annie", "Ahri"]);
+    act(() => renderer.root.findByProps({ "data-champion-sort": "kda" }).props.onClick());
+    expect(nameSort().props.active).toBe(false);
+    expect(renderer.root.findByProps({ "data-champion-sort": "kda" }).props["aria-pressed"]).toBe(true);
+    act(() => renderer.root.findByProps({ "data-champion-sort": "kda" }).props.onClick());
+    expect(nameSort().props.active).toBe(true);
+  });
+
+  it("shows wins and losses even for small samples and all unknown results", () => {
+    const renderer = render(<ProfileChampionsView championStats={sample} />);
+    expect(JSON.stringify(renderer.toJSON())).toContain("1 victoire · 0 défaite");
+    expect(JSON.stringify(renderer.toJSON())).toContain("0 victoire · 0 défaite");
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("Peu de parties");
   });
 
   it("keeps unknown results and missing KDA or averages unavailable", () => {

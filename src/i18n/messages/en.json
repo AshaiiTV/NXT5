@@ -7777,5 +7777,12 @@
   "Charger la suite": "Load more",
   "Chargement de l’historique pour appliquer les filtres et le tri…": "Loading history to apply filters and sorting…",
   "Les résultats seront affichés une fois l’historique complet chargé.": "Results will appear once the full history has loaded.",
-  "Charger l’historique complet": "Load full history"
+  "Charger l’historique complet": "Load full history",
+  "Décroissant": "Descending",
+  "Croissant": "Ascending",
+  "Critères du classement": "Ranking criteria",
+  "Score combiné sur 100 : moyenne des critères sélectionnés, à poids égal.": "Combined score out of 100: an equally weighted average of the selected criteria.",
+  "Sélectionne plusieurs critères pour combiner le nombre de parties, le WR et le KDA.": "Select multiple criteria to combine games played, win rate and KDA.",
+  "Pour le classement combiné, les parties et le KDA sont divisés par leur maximum dans le contexte sélectionné, puis convertis sur 100. Le WR reste son pourcentage. Le score est la moyenne des critères cochés. La recherche ne change pas ces références. Une donnée manquante place le champion en fin de liste, quel que soit le sens du tri.": "For the combined ranking, games played and KDA are divided by their maximum in the selected context, then converted to a scale of 100. Win rate keeps its percentage. The score is the average of the selected criteria. Searching does not change these reference values. A missing value places the champion at the end of the list, in either sort direction.",
+  "Score / 100": "Score / 100"
 }

@@ -4,7 +4,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { matchSideLabel } from "../../utils/statistics.js";
 import React, { useEffect, useRef, useState } from "react";
 import { DiscordProgressionGoals } from "../../components/discord/DiscordWorkflows.jsx";
-import { Activity, AlertTriangle, Check, Clipboard, Crown, Download, Eye, FileText, Flame, Gauge, Loader2, Shield, Swords, Target, Trophy, ArrowRight, ChevronDown, ChevronRight, RefreshCw, Search, ShieldCheck, BookOpen, BarChart3 } from "lucide-react";
+import { Activity, AlertTriangle, Check, Clipboard, Crown, Download, Eye, FileText, Flame, Gauge, Loader2, Shield, Swords, Target, Trophy, ArrowRight, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, RefreshCw, Search, ShieldCheck, BookOpen, BarChart3 } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { profilePathFromView, profileViewFromPath, openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TabNav } from "../../components/ui/Core.jsx";
@@ -13,6 +13,7 @@ import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { cx, tone } from "../../app/helpers.js";
 import { matchDisplayName, matchHasCategory, opponentRoleRow, assetProxyUrl } from "../../utils/matches.js";
 import { csAtMinute } from "../../utils/match-timeline.js";
+import { rankChampionMetrics } from "../../utils/champion-ranking.js";
 import { useMatchDetails } from "../../hooks/useMatchDetails.js";
 import { championDisplayName, championPortraitSources, sortPlayersByRole, canStaffManage, isGameplayRole, formatPoints, normalizeProfileRole, playerIntegratedRows, matchCategoryTone, CategoryFilter, itemSlots, parsePercent, teamRows, shareOfTeam, lazyNamed, loadNextPhase, COMP_ROLES, normalizeProfileKey, ChampionPortrait, matchImportDateLabel, ChampionBackdrop, championStyleTags, championStyleTone, tagLabel, formatGoldDiff, itemIconSources, statValue, creepScore, sumRows, HudIcon, summonerSpellIconSources, summonerSpellIds, trinketItemId, formatCountdown, matchTimelineFrames, rowParticipantId, DDRAGON_FALLBACK_VERSIONS, championKey, championAssetId, exportChampionTierListPng, championPoolStatus, CHAMPION_TIERS, championTierFrame, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championPoolStatusLabel, championPoolStatusTone } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
@@ -570,26 +571,22 @@ function CoachReferenceMetric({ item }) {
 function ProfileChampionsView({ championStats = [], selectedChampion, onSelectChampion, selectedPlayer, selectedCategoryId, teamId, userId, navigate, bootstrapRevision }) {
   useLanguage();
   const [query, setQuery] = useState("");
-  const [sortMode, setSortMode] = useState("volume");
-  const [sortDirection, setSortDirection] = useState("descending");
-  const selectSort = (next) => {
-    setSortDirection(next === sortMode ? sortDirection === "descending" ? "ascending" : "descending" : next === "name" ? "ascending" : "descending");
-    setSortMode(next);
+  const [sortCriteria, setSortCriteria] = useState(["games"]);
+  const [sortDirection, setSortDirection] = useState("desc");
+  const selectNameSort = () => {
+    setSortDirection(!sortCriteria.length && sortDirection === "asc" ? "desc" : "asc");
+    setSortCriteria([]);
   };
   const [openedChampion, setOpenedChampion] = useState("");
   const rootRef = React.useRef(null);
   const focusTarget = React.useRef("");
   const totalGames = championStats.reduce((total, stat) => total + Number(stat.games || 0), 0);
   const activeStat = championStats.find((stat) => stat.champion === openedChampion) || null;
-  const sortedStats = championStats.filter((stat) => championDisplayName(stat.champion).toLocaleLowerCase("fr").includes(query.trim().toLocaleLowerCase("fr"))).slice().sort((a, b) => {
-    const ascending = sortDirection === "ascending";
-    const nameOrder = championDisplayName(a.champion).localeCompare(championDisplayName(b.champion), getLocale());
-    if (sortMode === "name") return (ascending ? 1 : -1) * nameOrder;
-    const value = (stat) => sortMode === "wr" ? profileChampionResults(stat.rows).rate : sortMode === "kda" ? profileChampionKda(stat.rows).ratio : stat.games;
-    const av = value(a), bv = value(b);
-    if (av === null || bv === null) return av === bv ? b.games - a.games || nameOrder : av === null ? 1 : -1;
-    return (ascending ? av - bv : bv - av) || b.games - a.games || nameOrder;
-  });
+  const rankingStats = championStats.map((stat) => ({ ...stat, winrate: profileChampionResults(stat.rows).rate, kda: profileChampionKda(stat.rows).ratio }));
+  const rankedStats = sortCriteria.length ? rankChampionMetrics(rankingStats, sortCriteria, sortDirection) : rankingStats.sort((a, b) => (sortDirection === "asc" ? 1 : -1) * championDisplayName(a.champion).localeCompare(championDisplayName(b.champion), getLocale()));
+  const sortedStats = rankedStats.filter((stat) => championDisplayName(stat.champion).toLocaleLowerCase(getLocale()).includes(query.trim().toLocaleLowerCase(getLocale())));
+  const combinedRanking = sortCriteria.length > 1;
+  const toggleSortCriterion = (criterion) => setSortCriteria((current) => current.includes(criterion) ? current.filter((item) => item !== criterion) : [...current, criterion]);
   useEffect(() => {
     setOpenedChampion("");
     setQuery("");
@@ -626,17 +623,23 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
       </header>
       <div className="profile-champions-toolbar">
         <label className="profile-champions-search"><span>{t("Rechercher un champion")}</span><div><Search aria-hidden="true" className="h-4 w-4" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("Nom du champion")} /></div></label>
+        <SelectInput label={t("Trier les champions")} value={sortDirection} onChange={setSortDirection}><option value="desc">{t("Décroissant")}</option><option value="asc">{t("Croissant")}</option></SelectInput>
       </div>
+      <p className="profile-champions-sort-hint">{combinedRanking ? t("Score combiné sur 100 : moyenne des critères sélectionnés, à poids égal.") : t("Sélectionne plusieurs critères pour combiner le nombre de parties, le WR et le KDA.")}</p>
       <p className="profile-champions-meta" role="status">{sortedStats.length}{t(sortedStats.length > 1 ? " champions" : " champion")}{t(sortedStats.length > 1 ? " affichés" : " affiché")}</p>
       <div className="profile-champions-list">
-        <div className="profile-champions-sort" role="group" aria-label={t("Trier les champions")}>
-          <SortButton label="Nom du champion" active={sortMode === "name"} direction={sortMode === "name" ? sortDirection : "ascending"} onClick={() => selectSort("name")} />
-          <div className="profile-champion-row-metrics">{[["volume", "Parties"], ["wr", "Victoires"], ["kda", "Ratio KDA"]].map(([key, label]) => <SortButton key={key} label={label} active={sortMode === key} direction={sortMode === key ? sortDirection : "descending"} onClick={() => selectSort(key)} />)}</div>
+        <div className="profile-champions-sort" role="group" aria-label={t("Critères du classement")}>
+          <SortButton label="Nom du champion" active={!sortCriteria.length} direction={!sortCriteria.length && sortDirection === "desc" ? "descending" : "ascending"} onClick={selectNameSort} />
+          <div className={cx("profile-champion-row-metrics", combinedRanking && "profile-champion-row-metrics-combined")}>{[["games", t("Parties")], ["winrate", t("Victoires")], ["kda", t("Ratio KDA")]].map(([criterion, label]) => {
+            const selected = sortCriteria.includes(criterion);
+            const Icon = selected ? sortDirection === "asc" ? ArrowUp : ArrowDown : ArrowUpDown;
+            return <button key={criterion} type="button" className="nxt5-sort-button" data-champion-sort={criterion} aria-pressed={selected} onClick={() => toggleSortCriterion(criterion)}><span>{label}</span><Icon size={14} aria-hidden="true" /></button>;
+          })}{combinedRanking && <span className="profile-champion-ranking-heading">{t("Score / 100")}</span>}</div>
           <span aria-hidden="true" />
         </div>
-        {sortedStats.length ? sortedStats.map((stat) => <ProfileChampionCommandCard key={stat.champion} stat={stat} onClick={() => openChampion(stat.champion)} active={selectedChampion === stat.champion} />) : <p className="profile-champions-empty">{t("Aucun champion ne correspond à « ")}{query} ».</p>}
+        {sortedStats.length ? sortedStats.map((stat) => <ProfileChampionCommandCard key={stat.champion} stat={stat} combinedRanking={combinedRanking} onClick={() => openChampion(stat.champion)} active={selectedChampion === stat.champion} />) : <p className="profile-champions-empty">{t("Aucun champion ne correspond à « ")}{query} ».</p>}
       </div>
-      <details className="profile-champions-help"><summary>{t("Comment lire ces résultats ?")}</summary><p>{t("Le taux de victoire porte sur les parties dont le résultat est connu. Le ratio KDA vaut (kills + assists) ÷ morts, avec un diviseur de 1 si le total des morts est nul. Les résultats décrivent les parties importées ; quelques parties ne suffisent pas à établir la maîtrise d’un champion ni à choisir un champion.")}</p></details>
+      <details className="profile-champions-help"><summary>{t("Comment lire ces résultats ?")}</summary><p>{t("Le taux de victoire porte sur les parties dont le résultat est connu. Le ratio KDA vaut (kills + assists) ÷ morts, avec un diviseur de 1 si le total des morts est nul. Les résultats décrivent les parties importées ; quelques parties ne suffisent pas à établir la maîtrise d’un champion ni à choisir un champion.")}</p><p>{t("Pour le classement combiné, les parties et le KDA sont divisés par leur maximum dans le contexte sélectionné, puis convertis sur 100. Le WR reste son pourcentage. Le score est la moyenne des critères cochés. La recherche ne change pas ces références. Une donnée manquante place le champion en fin de liste, quel que soit le sens du tri.")}</p></details>
     </Surface>}
   </div>;
 }
@@ -688,12 +691,12 @@ function profileChampionStatusMeta() {
   return { label: "Résultats observés", toneName: "cyan", text: "À interpréter selon le nombre de parties" };
 }
 
-function ProfileChampionCommandCard({ stat, onClick }) {
+function ProfileChampionCommandCard({ stat, onClick, combinedRanking = false }) {
   useLanguage();
   const results = profileChampionResults(stat.rows);
-  return <button type="button" onClick={onClick} data-champion={stat.champion} className="profile-champion-row" aria-label={t("Voir {0}, {1} parties", [championDisplayName(stat.champion), stat.games])}>
-    <span className="profile-champion-identity"><ChampionPortrait champion={stat.champion} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /><span><strong>{championDisplayName(stat.champion)}</strong><span className="profile-champions-meta">{stat.games < 5 ? t("Peu de parties : à confirmer") : t("{0} victoire{1} · {2} défaite{3}", [results.wins, results.wins > 1 ? "s" : "", results.losses, results.losses > 1 ? "s" : ""])}</span></span></span>
-    <span className="profile-champion-row-metrics"><ProfileChampionMini label={t("Parties")} value={stat.games} /><ProfileChampionMini label={t("Victoires")} value={results.rate === null ? "—" : `${profileChampionNumber(results.rate)} %`} /><ProfileChampionMini label={t("Ratio KDA")} value={profileChampionNumber(profileChampionKda(stat.rows).ratio, 2)} /></span>
+  return <button type="button" onClick={onClick} data-champion={stat.champion} className="profile-champion-row">
+    <span className="profile-champion-identity"><ChampionPortrait champion={stat.champion} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" /><span><strong>{championDisplayName(stat.champion)}</strong><span className="profile-champions-meta">{t("{0} victoire{1} · {2} défaite{3}", [results.wins, results.wins > 1 ? "s" : "", results.losses, results.losses > 1 ? "s" : ""])}</span></span></span>
+    <span className={cx("profile-champion-row-metrics", combinedRanking && "profile-champion-row-metrics-combined")}><ProfileChampionMini label={t("Parties")} value={stat.games} /><ProfileChampionMini label={t("Victoires")} value={results.rate === null ? "—" : `${profileChampionNumber(results.rate)} %`} /><ProfileChampionMini label={t("Ratio KDA")} value={profileChampionNumber(profileChampionKda(stat.rows).ratio, 2)} />{combinedRanking && <ProfileChampionMini label={t("Score / 100")} value={profileChampionNumber(stat.rankingScore, 1)} />}</span>
     <span className="profile-champion-row-action">{t("Voir le détail")}<ArrowRight aria-hidden="true" className="h-4 w-4" /></span>
   </button>;
 }

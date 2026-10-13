@@ -7777,5 +7777,12 @@
   "Charger la suite": "Cargar más",
   "Chargement de l’historique pour appliquer les filtres et le tri…": "Cargando el historial para aplicar los filtros y el orden…",
   "Les résultats seront affichés une fois l’historique complet chargé.": "Los resultados aparecerán cuando se haya cargado todo el historial.",
-  "Charger l’historique complet": "Cargar todo el historial"
+  "Charger l’historique complet": "Cargar todo el historial",
+  "Décroissant": "Descendente",
+  "Croissant": "Ascendente",
+  "Critères du classement": "Criterios de clasificación",
+  "Score combiné sur 100 : moyenne des critères sélectionnés, à poids égal.": "Puntuación combinada sobre 100: media de los criterios seleccionados, con el mismo peso.",
+  "Sélectionne plusieurs critères pour combiner le nombre de parties, le WR et le KDA.": "Selecciona varios criterios para combinar las partidas jugadas, el porcentaje de victorias y el KDA.",
+  "Pour le classement combiné, les parties et le KDA sont divisés par leur maximum dans le contexte sélectionné, puis convertis sur 100. Le WR reste son pourcentage. Le score est la moyenne des critères cochés. La recherche ne change pas ces références. Une donnée manquante place le champion en fin de liste, quel que soit le sens du tri.": "Para la clasificación combinada, las partidas y el KDA se dividen por su máximo en el contexto seleccionado y se convierten a una escala de 100. El porcentaje de victorias se mantiene. La puntuación es la media de los criterios seleccionados. La búsqueda no cambia estos valores de referencia. Si falta un dato, el campeón aparece al final de la lista, en ambos sentidos de ordenación.",
+  "Score / 100": "Puntos / 100"
 }
