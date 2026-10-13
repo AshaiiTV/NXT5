@@ -1,25 +1,15 @@
-# Fiche YouTube — Tuto NXT5
+# Fiche YouTube — Tuto NXT5 (version courte)
 
 ## Titre
-Tuto NXT5 : analyse tes parties League of Legends en équipe (démo express)
+NXT5 en 40 secondes : analyse et débriefe tes parties League of Legends en équipe
 
 ## Description
-Découvre NXT5, l’espace de travail des équipes et coachs League of Legends : bilan des parties, analyses de tendances et débriefs pour préparer le prochain entraînement.
+NXT5, l’espace de travail des équipes et coachs League of Legends : retrouve tes parties, ouvre leur bilan, suis tes analyses et prépare tes débriefs pour la prochaine séance.
 
 Toutes les données montrées viennent de la démo publique : elles sont fictives et en lecture seule.
 
 ▶ Essayer la démo, sans compte : https://nxt5.org/demo
 ▶ Créer ton espace équipe : https://nxt5.org
-
-Chapitres
-0:00 Introduction
-0:04 L’accueil de NXT5
-0:27 La démo : rechercher une partie
-0:45 Le bilan d’une partie
-0:58 Les analyses
-1:12 Le débrief
-1:28 Créer son espace et importer ses parties
-1:44 Conclusion
 
 #LeagueOfLegends #Coaching #Esport
 
@@ -29,25 +19,15 @@ NXT5, League of Legends, LoL, coaching LoL, analyse de parties, débrief, scrim,
 ## Paramètres conseillés
 - Langue : français, catégorie « Jeux vidéo », audience « Non conçue pour les enfants ».
 - Miniature : nxt5-tuto-miniature.jpg (1280×720).
-- Les sous-titres sont incrustés dans la vidéo. Le fichier .srt est facultatif (sous-titres activables, traduction automatique).
-- Voix off ElevenLabs (voix française native « Léo », modèle multilingue v2). Une musique douce peut être ajoutée depuis l’onglet « Audio » de YouTube Studio, à bas volume.
+- Pas de chapitres : YouTube les réserve aux vidéos où chaque chapitre dure au moins 10 secondes.
+- Sous-titres incrustés ; le fichier .srt est facultatif (sous-titres activables, traduction automatique).
+- Voix off ElevenLabs : voix française native « Léo ». « NXT5 » est prononcé « Next five ».
 
 ## Texte de la voix off
-- 0:00 — Découvre N X T 5 en moins de deux minutes.
-- 0:04 — Bienvenue sur N X T 5, l’espace de travail des équipes et des coachs League of Legends.
-- 0:11 — Le principe est simple : comprendre tes parties, pour mieux préparer la suite.
-- 0:18 — N X T 5 couvre tout le cycle d’entraînement : l’analyse, la draft, et le planning.
-- 0:27 — Commençons par la démo. Elle se consulte sans compte, et toutes ses données sont fictives.
-- 0:35 — Tu peux chercher une partie par champion ou par résultat. Par exemple : Jinx, défaite.
-- 0:42 — Clique ensuite sur une partie pour ouvrir son bilan.
-- 0:46 — Le bilan réunit le résultat, les compositions, et l’écart d’or final.
-- 0:52 — Chaque chiffre sert à lancer la discussion. Ce n’est pas un verdict.
-- 0:59 — Dans l’onglet Analyses, tu suis une mesure partie après partie, comme l’écart d’or.
-- 1:05 — Repère les pics et les creux, avant de choisir ce que l’équipe va travailler.
-- 1:12 — Vient ensuite le débrief : un fait observé, puis une question à vérifier…
-- 1:17 — … et enfin, une action concrète pour la prochaine séance.
-- 1:22 — Dans ton espace, chaque membre de l’équipe écrit ses propres observations.
-- 1:29 — Pour commencer, crée ton espace équipe, en quelques clics.
-- 1:33 — Importe ensuite tes parties avec N X T 5 Importer, sur Windows ou sur Mac.
-- 1:40 — Invite tes joueurs… puis analysez, et débriefez ensemble.
-- 1:45 — À toi de jouer ! Essaie la démo, ou crée ton espace, sur N X T 5 point org.
+- 0:01 — Next Five, c’est l’espace de travail des équipes League of Legends.
+- 0:05 — Dans la démo, cherche une partie. Par exemple : Jinx, défaite.
+- 0:11 — Ouvre son bilan : le résultat, les compositions, l’écart d’or.
+- 0:18 — Suis tes analyses, partie après partie.
+- 0:23 — Puis débriefe : un fait, une question… et une action pour la prochaine séance.
+- 0:29 — Crée ton espace équipe, et importe tes parties.
+- 0:33 — À toi de jouer, sur Next Five point org !

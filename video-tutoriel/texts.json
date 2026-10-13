@@ -15,7 +15,13 @@
   "c13": "Dans ton espace, chaque membre de l’équipe écrit ses propres observations.",
   "c14": "Pour commencer, crée ton <b>espace équipe</b> en quelques clics.",
   "c15": "Importe tes parties avec <b>NXT5 Importer</b>, sur Windows ou Mac.",
-  "c16": "Invite tes joueurs, puis analysez et débriefez ensemble."
+  "c16": "Invite tes joueurs, puis analysez et débriefez ensemble.",
+  "k1": "<b>NXT5</b>, l’espace de travail des équipes <b>League of Legends</b>.",
+  "k2": "Dans la démo, cherche une partie : « Jinx défaite ».",
+  "k3": "Ouvre son <b>bilan</b> : résultat, compositions, écart d’or.",
+  "k4": "Suis tes <b>analyses</b> partie après partie.",
+  "k5": "Puis <b>débriefe</b> : un fait, une question, une action.",
+  "k6": "Crée ton <b>espace équipe</b> et importe tes parties."
  },
  "steps": {
   "s1": "La démo",

@@ -8,7 +8,7 @@ await p.route("**/__t", r => r.fulfill({ contentType: "text/html; charset=utf-8"
 <div style="position:absolute;inset:0;background:linear-gradient(90deg,#0b1120 38%,rgba(11,17,32,.2) 75%,transparent)"></div>
 <div style="position:absolute;left:64px;top:70px;width:640px">
 <img src="http://localhost:5173/assets/nxt5-wordmark.png?v=3" style="width:300px;filter:drop-shadow(0 0 20px rgba(34,211,238,.45))">
-<div style="margin-top:28px;display:inline-block;padding:10px 22px;border-radius:999px;background:linear-gradient(to right,#22d3ee,#3b82f6,#d946ef);color:#020611;font-weight:800;font-size:30px">TUTO EXPRESS</div>
+<div style="margin-top:28px;display:inline-block;padding:10px 22px;border-radius:999px;background:linear-gradient(to right,#22d3ee,#3b82f6,#d946ef);color:#020611;font-weight:800;font-size:30px">TUTO · 40 S</div>
 <h1 style="margin:26px 0 0;font-size:84px;line-height:1.02;font-weight:800;color:#f1f5f9;letter-spacing:-.02em">Analyse tes parties <span style="background:linear-gradient(105deg,#a5f3fc,#c4b5fd 55%,#f0abfc);-webkit-background-clip:text;color:transparent">LoL</span> en équipe</h1>
 <p style="margin-top:22px;font-size:30px;color:#cbd5e1;font-weight:600">Bilan · Analyses · Débrief</p></div></body></html>` }));
 await p.goto("http://localhost:5173/__t"); await p.waitForTimeout(1500);

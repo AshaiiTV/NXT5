@@ -24,7 +24,6 @@ await shot("demo", { ...tabs, search: p.getByPlaceholder(/Rechercher|Adversaire/
 const search = p.getByPlaceholder(/Rechercher|Adversaire/).first();
 const Q = "Jinx défaite"; for (let i = 0; i < Q.length; i++) { const s = Q.slice(0, i + 1); if (s.endsWith(" ")) continue; { await search.fill(s); await p.waitForTimeout(500); await p.screenshot({ path: `cap/demo_type${i + 1}.png`, fullPage: true }); } }
 meta.demo_jinx = { row1: await rect("r", p.locator(".ig-game")) };
-await search.fill(""); await p.waitForTimeout(500);
 await p.locator(".ig-game").first().click(); await p.waitForTimeout(1500);
 await shot("detail", { ...tabs, gold: p.getByText("Écart d’or final"), stats: p.getByText("Statistiques et joueurs") });
 await tabs.t2.click(); await p.waitForTimeout(1500);

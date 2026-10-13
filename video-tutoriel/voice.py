@@ -4,7 +4,7 @@ import json, os, subprocess, sys, urllib.request
 KEY = os.environ.get("ELEVENLABS_API_KEY") or sys.exit("ELEVENLABS_API_KEY manquante")
 VOICE = os.environ.get("ELEVENLABS_VOICE_ID", "AfbuxQ9DVtS4azaxN1W7")  # Léo : voix française native, rassurante et dynamique
 MODEL = os.environ.get("ELEVENLABS_MODEL", "eleven_multilingual_v2")
-N = json.load(open("narration.json")); os.makedirs("voice", exist_ok=True)
+N = json.load(open(os.environ.get("NARRATION", "narration.json"))); os.makedirs("voice", exist_ok=True)
 keys = list(N); prev_ids = []; durs = {}
 for i, k in enumerate(keys):
     body = {"text": N[k], "model_id": MODEL, "language_code": "fr",

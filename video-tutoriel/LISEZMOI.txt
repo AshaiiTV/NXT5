@@ -5,3 +5,9 @@ Prérequis : Python 3 + Pillow (pip install pillow), ffmpeg.
 2. Lancer :  sh build.sh   (ou les 3 commandes python qu'il contient)
 Résultat : nxt5-tuto-voix.mp4 — la vidéo est recalée sur la durée réelle de chaque phrase.
 Texte lu : narration.json (modifiable avant de lancer).
+
+Version courte (≈ 40 s, recommandée) :
+  NARRATION=narration_court.json python3 voice.py
+  python3 render_court.py tuto_court_muet.mp4
+  python3 mix.py tuto_court_muet.mp4 nxt5-tuto-court.mp4
+« NXT5 » est écrit « Next Five » dans la narration pour être prononcé « Next five ».
