@@ -4,7 +4,7 @@ import { importedGameSide } from "../../utils/imported-games.js";
 import { resultSummary, resultLabel, winrateLabel, sideLabel, sideResults, comparableSides, matchSideLabel } from "../../utils/statistics.js";
 import { MILESTONE_TOLERANCE_MS } from '../../../shared/timeline-milestones.js';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, AlertTriangle, ArrowLeft, Crown, Eye, Flame, Gauge, Image as ImageIcon, RefreshCw, Shield, Target, Trophy, Upload } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, BarChart3, Compass, Crown, Eye, Flame, Gauge, Image as ImageIcon, RefreshCw, Shield, Target, Trophy, Upload } from "lucide-react";
 import { openAppPath } from "../../app/routing.js";
 import { Button, EmptyState, SkeletonRows, Surface, PageHeader, SelectInput } from "../../components/ui/Core.jsx";
 import { matchDisplayName, matchHasCategory } from "../../utils/matches.js";
@@ -13,7 +13,7 @@ import { championAssetId, championPortraitSources, championDisplayName, composit
 import { roleLabel } from "./shell-shared.jsx";
 import { hasTrendTimeline, sortTrendMatches } from "../../utils/trends.js";
 import { TrendEvolution, TrendPeriodFilter } from "../../components/trends/TrendEvolution.jsx";
-import { ProgressionObjectives } from "../../components/trends/ProgressionObjectives.jsx";
+import { PlaystyleAnalysis } from "../../components/trends/PlaystyleAnalysis.jsx";
 import { PlayerComparison } from "../../components/trends/PlayerComparison.jsx";
 import { TrendNavigation, TrendsOverview } from "../../components/trends/TrendsOverview.jsx";
 import { TrendSourcesDialog, TrendContractsDialog } from "../../components/trends/TrendsDialogs.jsx";
@@ -232,7 +232,7 @@ function TrendsPage({ data, selectedTeamId }) {
   const detailHeading = useRef(null);
   const [trendSourceModal, setTrendSourceModal] = useState(null);
 
-  const focusObjectives = useRef(false);
+  const focusPlaystyle = useRef(false);
   const [profileContractsOpen, setProfileContractsOpen] = useState(false);
   const [exportState, setExportState] = useState("");
   const categoryMatches = useMemo(() => sortTrendMatches(selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches), [baseMatches, selectedCategoryId]);
@@ -256,9 +256,9 @@ function TrendsPage({ data, selectedTeamId }) {
     target?.scrollIntoView({ block: draftDetail ? "start" : "center", behavior: "instant" });
   }, [draftDetail]);
   useEffect(() => {
-    if (trendPanel === "ai-objectives" && focusObjectives.current) {
-      document.getElementById("trend-panel-ai-objectives")?.focus();
-      focusObjectives.current = false;
+    if (trendPanel === "playstyle" && focusPlaystyle.current) {
+      document.getElementById("trend-panel-playstyle")?.focus();
+      focusPlaystyle.current = false;
     }
   }, [trendPanel]);
   const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
@@ -327,16 +327,17 @@ function TrendsPage({ data, selectedTeamId }) {
   }), [matches]);
   const detailHeader = detailSection && <>
     <nav aria-label={t("Retour aux analyses")} className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" />{t(" Retour aux choix des champions")}</a></nav>
-    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow={t("Analyses · Choix des champions")} title={detailSection.title} subtitle={detailSection.description} /></div>
+    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={t(detailSection.title)}><PageHeader eyebrow={t("Analyses · Choix des champions")} title={t(detailSection.title)} subtitle={detailSection.description} /></div>
   </>;
 
   const trendPanelOptions = [
     ["coach", "Synthèse", Gauge, "Préparer le débrief"],
     ["evolution", "Évolution", Activity, "Suivre partie après partie"],
     ["comparison", "Comparer", RefreshCw, "Voir ce qui a changé"],
+    ["statistics", "Statistiques", BarChart3, "Comparer les joueurs"],
     ["draft", "Champions", Crown, "Choix et compositions"],
     ["drafts", "Drafts & bans", Shield, "Priorités et ordre de sélection"],
-    ["ai-objectives", "Objectifs", Target, "Cibles équipe et joueurs"],
+    ["playstyle", "Style de jeu", Compass, "Habitudes et pistes de travail"],
   ];
 
   if (trendPanel === "drafts") return <div className="nxt5-data-dense nxt5-trends-page">
@@ -979,12 +980,13 @@ function TrendsPage({ data, selectedTeamId }) {
     setExportState("done");
     } catch { setExportState("error"); }
   };
-  const openTrendSources = ({ title, subtitle, metrics, games }) => {
+  const openTrendSources = ({ title, subtitle, metrics, games, playstyle = false }) => {
     const scopedGames = games ?? sourceGames;
     const resultGames = scopedGames.filter((game) => ["Victoire", "Défaite"].includes(game.result));
     setTrendSourceModal({
       title,
       subtitle,
+      playstyle,
       metrics: metrics || [
         { label: "Contexte", value: activeTrendCategory?.name || "Toutes" },
         { label: "Games sources", value: String(scopedGames.length) },
@@ -1013,9 +1015,9 @@ function TrendsPage({ data, selectedTeamId }) {
     return "Partie utile pour comparer les décisions, le moment des objectifs et la contribution des rôles.";
   };
   const staffAlerts = buildStaffAlerts(matches, (data.players || []).filter((player) => player.team_id === selectedTeamId));
-  const showObjectives = () => {
-    focusObjectives.current = true;
-    setTrendPanel("ai-objectives");
+  const showPlaystyle = () => {
+    focusPlaystyle.current = true;
+    setTrendPanel("playstyle");
   };
 
   return <div className="nxt5-data-dense nxt5-trends-page">
@@ -1026,7 +1028,7 @@ function TrendsPage({ data, selectedTeamId }) {
     {exportState === "done" && <p role="status" className="trends-export-status">{t("La synthèse PNG a été téléchargée.")}</p>}
     {trendPanel !== "comparison" && <div className="trends-filters">
       <div className="trends-filter-controls">
-        {trendPanel !== "ai-objectives" && <SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes les parties")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>}
+        {trendPanel !== "statistics" && <SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes les parties")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>}
         <TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} />
       </div>
       <div className="trends-scope"><p aria-live="polite"><strong>{matches.length}{t(matches.length > 1 ? " parties" : " partie")}{t(matches.length > 1 ? " analysées" : " analysée")}</strong>{t(" sur ")}{categoryMatches.length} · {activeTrendCategory?.name || t("Tous les contextes")}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" />{t(" Réinitialiser les filtres")}</button>}</div>
@@ -1037,15 +1039,16 @@ function TrendsPage({ data, selectedTeamId }) {
     <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
     {trendPanelOptions.map(([id, label]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-label={t(label)} tabIndex={0} hidden={trendPanel !== id} className="trends-tab-content">
       {trendPanel === id && <>
-        {id === "coach" && <TrendsOverview objective={teamAiObjective} plan={primaryTeamModelCard} roles={roleSystemRows} briefs={coachBriefs} alerts={staffAlerts} onOpenSources={openTrendSources} onObjectives={showObjectives} />}
+        {id === "coach" && <TrendsOverview objective={teamAiObjective} plan={primaryTeamModelCard} roles={roleSystemRows} briefs={coachBriefs} alerts={staffAlerts} onOpenSources={openTrendSources} onPlaystyle={showPlaystyle} />}
         {id === "evolution" && <TrendEvolution matches={matches} onOpenMatch={openSourceGame} />}
         {id === "comparison" && <Suspense fallback={<Surface><p className="mb-3 text-sm font-semibold text-slate-300" role="status">{t("Chargement de la comparaison…")}</p><SkeletonRows /></Surface>}><BlockComparisonPanel matches={baseMatches} categories={matchCategories} /></Suspense>}
         {id === "draft" && <DraftTrendsModule key={selectedTeamId} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} detailHref={navigation.detailHref} onNavigateDetail={navigation.onNavigate} />}
-        {id === "ai-objectives" && <div className="space-y-6"><Surface><PlayerComparison key={selectedTeamId} matches={matches} players={teamProfiles} categories={matchCategories} category={selectedCategoryId} onCategoryChange={setSelectedCategoryId} /></Surface><Surface><ProgressionObjectives teamObjective={teamAiObjective} roleObjectives={roleAiObjectives} gamesCount={matches.length} onOpenSources={openTrendSources} onOpenContracts={() => setProfileContractsOpen(true)} /></Surface></div>}
+        {id === "statistics" && <Surface><PlayerComparison key={selectedTeamId} matches={matches} players={teamProfiles} categories={matchCategories} category={selectedCategoryId} onCategoryChange={setSelectedCategoryId} /></Surface>}
+        {id === "playstyle" && <PlaystyleAnalysis matches={matches} players={teamProfiles} sourceGames={sourceGames} onOpenSources={openTrendSources} onOpenContracts={() => setProfileContractsOpen(true)} />}
       </>}
     </div>)}
     </>}
-    <details className="trends-reading-help"><summary>{t("Comment lire ces informations ?")}</summary><div><p>{t("Les filtres s’appliquent à toutes les rubriques sauf Comparer, qui possède ses propres sélections sur l’historique de l’équipe. Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des parties : une valeur par partie dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.")}</p><p>{t("KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.")}</p><p>{t("Les plans de jeu et objectifs sont des pistes à vérifier dans les parties sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.")}</p></div></details>
+    <details className="trends-reading-help"><summary>{t("Comment lire ces informations ?")}</summary><div><p>{t("La catégorie et la période d’analyse sont communes à Synthèse, Évolution, Statistiques, Champions et Style de jeu. Comparer et Drafts & bans ont leurs propres sélections.")}</p><p>{t("Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des parties : une valeur par partie dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.")}</p><p>{t("KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.")}</p><p>{t("Les plans de jeu et objectifs sont des pistes à vérifier dans les parties sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.")}</p></div></details>
     {profileContractsOpen && <TrendContractsDialog objectives={profileAiObjectives} onClose={() => setProfileContractsOpen(false)} onOpenSources={openTrendSources} />}
     {trendSourceModal && <TrendSourcesDialog source={trendSourceModal} onClose={() => setTrendSourceModal(null)} onOpenGame={openSourceGame} signals={sourceGameSignals} read={sourceGameRead} />}
   </div>;

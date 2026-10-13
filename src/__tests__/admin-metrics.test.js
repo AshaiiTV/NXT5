@@ -28,6 +28,8 @@ describe("admin import metrics", () => {
     expect(selectTeams(teams, { referenceDate }).map((row) => row.id)).toEqual(["recent", "old", "new"]);
     expect(selectTeams(teams, { sort: "volume", referenceDate }).map((row) => row.id)).toEqual(["old", "recent", "new"]);
     expect(teams.map((row) => row.id)).toEqual(["old", "recent", "new"]);
+    expect(selectTeams(teams, { sort: "volume", direction: "ascending", referenceDate }).map((row) => row.id)).toEqual(["new", "recent", "old"]);
+    expect(selectTeams(teams, { sort: "latest", direction: "ascending", referenceDate }).map((row) => row.id)).toEqual(["old", "recent", "new"]);
   });
   it("does not invent a percentage when no population exists", () => {
     expect(rate(0, 0)).toBe("—");

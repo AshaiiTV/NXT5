@@ -46,17 +46,6 @@
   pointer-events: none;
 }
 .nxt5-auth-glass-scene { position: absolute; inset: -12% -8% -7%; }
-.nxt5-auth-glass-poster, .nxt5-auth-glass-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  transition: opacity 550ms ease;
-}
-.nxt5-auth-glass-canvas { opacity: 0; }
-.nxt5-auth-glass-scene.is-ready .nxt5-auth-glass-canvas { opacity: 1; }
-.nxt5-auth-glass-scene.is-ready .nxt5-auth-glass-poster { opacity: 0; }
 .nxt5-auth-horizon {
   position: absolute;
   z-index: -1;
@@ -131,9 +120,5 @@
   .nxt5-auth-immersive .nxt5-entry-header-actions { grid-row: 1; grid-column: 2; }
   .nxt5-auth-immersive .nxt5-entry-header-link { font-size: .8125rem; text-align: center; line-height: 1.35; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .nxt5-auth-glass-poster, .nxt5-auth-glass-canvas { transition: none; }
-}
-html.nxt5-low-gpu .nxt5-auth-glass-poster, html.nxt5-low-gpu .nxt5-auth-glass-canvas { transition: none; }
 html.nxt5-low-gpu .nxt5-auth-immersive .nxt5-auth-card { box-shadow: inset 0 1px #eff3ff26; }
 html.nxt5-low-gpu .nxt5-auth-immersive::before { background: linear-gradient(115deg, #0d1424, #272044 48%, #0d1424); }

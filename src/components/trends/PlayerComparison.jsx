@@ -8,6 +8,7 @@ import { RoleIcon } from "../brand/BrandAssets.jsx";
 import { SelectInput } from "../ui/Core.jsx";
 import { roleLabel } from "../../pages/workspace/shell-shared.jsx";
 import "./player-comparison.css";
+import { SortButton } from "../ui/SortButton.jsx";
 
 const EMPTY = [];
 const METRICS = [
@@ -100,14 +101,9 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
         <SelectInput label="Statistique" value={metric.id} onChange={setMetricId}>
           {visibleMetrics.map((item) => <option key={item.id} value={item.id}>{t(item.label)}</option>)}
         </SelectInput>
-        <SelectInput label="Ordre des joueurs" value={order} onChange={setOrder}>
-          <option value="roster">{t("Par rôle")}</option>
-          <option value="descending">{t("Valeur décroissante")}</option>
-          <option value="ascending">{t("Valeur croissante")}</option>
-        </SelectInput>
         </>}
       </div>}
-      {onCategoryChange && <p id={`${id}-category-help`} className="player-comparison-filter-help">{t("La catégorie et la période d’analyse s’appliquent au comparatif et aux objectifs ci-dessous.")}</p>}
+      {onCategoryChange && <p id={`${id}-category-help`} className="player-comparison-filter-help">{t("La catégorie et la période d’analyse définissent les parties comparées.")}</p>}
     {!model.players.length ? <p className="player-comparison-empty">{t("Les joueurs apparaîtront ici lorsque les participants des parties seront identifiés.")}</p> : <>
       <div className="player-comparison-shortcuts" role="group" aria-label={t(themeId === "all" ? "Statistiques principales" : "Statistiques du thème")}>
         {shortcuts.map((key) => <button key={key} type="button" aria-pressed={metric.id === key} aria-controls={`${id}-chart`} onClick={() => setMetricId(key)}>{t(METRICS.find((item) => item.id === key).label)}</button>)}
@@ -115,8 +111,8 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
 
       <figure id={`${id}-chart`} className="player-comparison-chart" aria-labelledby={`${id}-metric`} aria-describedby={`${id}-description`}>
         <figcaption className="player-comparison-caption">
-          <h4 id={`${id}-metric`}>{t(metric.label)}<span>{t(metric.unit)}</span></h4>
-          <p>{t("Échelle de 0 à {0}", [format(ceiling)])}</p>
+          <h4 id={`${id}-metric`}><SortButton label={metric.label} active={order !== "roster"} direction={order === "ascending" ? "ascending" : "descending"} onClick={() => setOrder(order === "descending" ? "ascending" : "descending")} /><span>{t(metric.unit)}</span></h4>
+          <div className="player-comparison-order"><button type="button" className="nxt5-sort-button" aria-pressed={order === "roster"} onClick={() => setOrder("roster")}>{t("Par rôle")}</button><p>{t("Échelle de 0 à {0}", [format(ceiling)])}</p></div>
         </figcaption>
         <p id={`${id}-description`} className="player-comparison-description">{t(metric.description)}</p>
         {!measured.length && <p className="player-comparison-empty" role="status">{t("Aucune donnée disponible pour cette statistique dans la sélection.")}</p>}

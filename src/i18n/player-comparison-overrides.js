@@ -16,7 +16,7 @@ const copy = [
   ["Économie", "Economy", "Economía"],
   ["Statistiques du thème", "Statistics in this theme", "Estadísticas del tema"],
   ["Voir les statistiques de ce thème", "View statistics for this theme", "Ver las estadísticas de este tema"],
-  ["La catégorie et la période d’analyse s’appliquent au comparatif et aux objectifs ci-dessous.", "The category and analysis period apply to the comparison and the objectives below.", "La categoría y el periodo de análisis se aplican a la comparación y a los objetivos de abajo."],
+  ["La catégorie et la période d’analyse définissent les parties comparées.", "The category and analysis period define which games are compared.", "La categoría y el periodo de análisis definen las partidas que se comparan."],
   ["Ordre des joueurs", "Player order", "Orden de los jugadores"],
   ["Par rôle", "By role", "Por rol"],
   ["Valeur décroissante", "Highest value first", "Valor de mayor a menor"],

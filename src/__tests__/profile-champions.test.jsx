@@ -2,6 +2,7 @@ import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Button, SelectInput } from "../components/ui/Core.jsx";
+import { SortButton } from "../components/ui/SortButton.jsx";
 import { ChampionProfileDetail, ChampionVisualMetric, PlayerUltimateProfile, ProfileChampionsView } from "../pages/workspace/PlayerUltimateProfile.jsx";
 
 const cleanups = [];
@@ -37,11 +38,35 @@ describe("champion profile reading flow", () => {
 
   it("sorts by observed result rate and places unknown results last", () => {
     const renderer = render(<ProfileChampionsView championStats={sample} />);
-    act(() => renderer.root.findByType(SelectInput).props.onChange("wr"));
+    const winrateSort = () => renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Victoires");
+    act(() => winrateSort().props.onClick());
     expect(renderer.root.findAllByProps({ className: "profile-champion-row" }).map((row) => row.props["data-champion"])).toEqual(["Lux", "Ahri", "Annie"]);
+    expect(winrateSort().props).toMatchObject({ active: true, direction: "descending" });
+    act(() => winrateSort().props.onClick());
+    expect(renderer.root.findAllByProps({ className: "profile-champion-row" }).map((row) => row.props["data-champion"])).toEqual(["Ahri", "Lux", "Annie"]);
     act(() => renderer.root.findByType("input").props.onChange({ target: { value: "inconnu" } }));
     expect(renderer.root.findAllByProps({ className: "profile-champion-row" })).toHaveLength(0);
     expect(JSON.stringify(renderer.toJSON())).toContain("Aucun champion ne correspond");
+  });
+
+  it("sorts measured KDA including zero, keeps missing values last, and retains the order on detail return", () => {
+    const stats = [
+      { champion: "Ahri", games: 2, rows: [{ kills: 0, assists: 0, deaths: 2 }] },
+      { champion: "Lux", games: 1, rows: [{ kills: 7, assists: 3, deaths: 0 }] },
+      { champion: "Annie", games: 3, rows: [{ kills: null, assists: 3, deaths: 2 }] },
+    ];
+    const renderer = render(<ProfileChampionsView championStats={stats} />);
+    const sort = () => renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Ratio KDA");
+    const order = () => renderer.root.findAllByProps({ className: "profile-champion-row" }).map((row) => row.props["data-champion"]);
+    expect(order()).toEqual(["Annie", "Ahri", "Lux"]);
+    act(() => sort().props.onClick());
+    expect(order()).toEqual(["Lux", "Ahri", "Annie"]);
+    act(() => renderer.root.findAllByProps({ className: "profile-champion-row" })[0].props.onClick());
+    act(() => renderer.root.findAllByType(Button).find((button) => button.props.className === "profile-champions-back").props.onClick());
+    expect(order()).toEqual(["Lux", "Ahri", "Annie"]);
+    act(() => sort().props.onClick());
+    expect(order()).toEqual(["Ahri", "Lux", "Annie"]);
+    expect(renderer.root.findAllByType(SelectInput)).toHaveLength(0);
   });
 
   it("keeps unknown results and missing KDA or averages unavailable", () => {

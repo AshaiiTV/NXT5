@@ -5,6 +5,7 @@ import { apiFetch } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import { ImportedGames } from "../components/games/ImportedGames.jsx";
 import { SelectInput } from "../components/ui/Core.jsx";
+import { SortButton } from "../components/ui/SortButton.jsx";
 import { Statistics } from "../pages/workspace/GameWorkspace.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), apiUploadJson: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -73,6 +74,12 @@ function select(renderer, label) {
   return renderer.root.findAllByType(SelectInput).find((node) => node.props.label === label).findByType("select");
 }
 async function filter(renderer, label, value) {
+  if (label === "Trier par") {
+    const dateSort = () => renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Date");
+    if (!dateSort().props.active) await act(async () => dateSort().props.onClick());
+    if ((dateSort().props.direction === "ascending") !== (value === "oldest")) await act(async () => dateSort().props.onClick());
+    return;
+  }
   await act(async () => select(renderer, label).props.onChange({ target: { value } }));
 }
 
@@ -138,7 +145,7 @@ describe("imported games interactions", () => {
     await act(async () => reset.props.onClick());
     expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("");
     expect(select(renderer, "Résultat").props.value).toBe("");
-    expect(select(renderer, "Trier par").props.value).toBe("oldest");
+    expect(renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Date").props).toMatchObject({ active: true, direction: "ascending" });
     expect(rows(renderer)).toHaveLength(25);
     expect(rowLabels(renderer)[0]).toMatch(/EUW1_1$/);
   });
@@ -278,7 +285,7 @@ describe("imported games in Statistics", () => {
     expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("Club 03");
     expect(select(renderer, "Résultat").props.value).toBe("Victoire");
     expect(select(renderer, "Catégorie").props.value).toBe("scrim");
-    expect(select(renderer, "Trier par").props.value).toBe("oldest");
+    expect(renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Date").props).toMatchObject({ active: true, direction: "ascending" });
     expect(rows(renderer).filter(visible)).toHaveLength(1);
     expect(rowLabels(renderer)[0]).toContain("EUW1_3");
     expect(requests()).toEqual(expectedRequests);

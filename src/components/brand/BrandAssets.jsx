@@ -7,7 +7,7 @@ import "./brand.css";
 
 export function ResponsiveImage({ src, sources = [], alt, className = "", fetchPriority, sizes, ...props }) {
   useLanguage();
-  const priorityProps = fetchPriority ? { fetchpriority: fetchPriority } : {};
+  const priorityProps = fetchPriority ? { fetchPriority } : {};
   return (
     <picture>
       {sources.map((source) => <source key={source.srcSet} type={source.type || "image/webp"} media={source.media} srcSet={source.srcSet} sizes={source.sizes || sizes} />)}

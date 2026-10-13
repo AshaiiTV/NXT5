@@ -2,7 +2,8 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import React from "react";
 import { Check } from "lucide-react";
-import { Nxt5Wordmark, ResponsiveImage, RoleIcon } from "../brand/BrandAssets.jsx";
+import { Nxt5Wordmark, RoleIcon } from "../brand/BrandAssets.jsx";
+import GlassScene from "../brand/GlassScene.jsx";
 import "./AppLoadingScreen.css";
 
 const ROLES = [
@@ -31,20 +32,7 @@ function GlassStage() {
       </div>
       <div className="nxt5-sync-refraction"><span /><span /></div>
       <div className="nxt5-sync-core">
-        <div className="nxt5-sync-core-arrival">
-          <div className="nxt5-sync-core-float">
-            <ResponsiveImage
-              src="/assets/home-motion/glass-poster.webp"
-              alt=""
-              width="729"
-              height="665"
-              loading="eager"
-              fetchPriority="high"
-              decoding="async"
-            />
-            <div className="nxt5-sync-glass-light"><span /></div>
-          </div>
-        </div>
+        <GlassScene className="nxt5-sync-glass-scene" />
       </div>
       <div className="nxt5-sync-roles">
         {ROLES.map((role) => (

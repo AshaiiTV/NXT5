@@ -95,6 +95,8 @@ function historyPayload(messages) {
 }
 
 export default function AssistantPanel({ open, onClose, route, selectedTeamId, selectedEntity = null, initialPrompt = "", navigate }) {
+  const panelRef = useRef(null);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia("(max-width: 639px)").matches);
   const language = useLanguage();
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
@@ -112,6 +114,48 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return undefined;
+    const media = window.matchMedia("(max-width: 639px)");
+    const update = () => setIsMobile(media.matches);
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    const panel = panelRef.current;
+    if (!open || !isMobile || !panel) return undefined;
+    // The mobile sheet covers the page. Keep its background out of keyboard
+    // and screen-reader navigation while preserving the desktop side panel.
+    const background = [];
+    for (let branch = panel.parentElement; branch && branch !== document.body; branch = branch.parentElement) {
+      for (const sibling of branch.parentElement?.children || []) {
+        if (sibling !== branch) background.push([sibling, sibling.inert]);
+      }
+    }
+    background.forEach(([element]) => { element.inert = true; });
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    // Wait until the open effect has remembered the triggering control.
+    const focusTimer = window.setTimeout(() => {
+      if (!panel.contains(document.activeElement)) inputRef.current?.focus({ preventScroll: true });
+    }, 0);
+    const trapFocus = (event) => {
+      if (event.key !== "Tab") return;
+      const controls = [...panel.querySelectorAll('button:not(:disabled), a[href], textarea:not(:disabled), [tabindex="0"]')].filter(element => element.getClientRects().length);
+      const first = controls[0], last = controls.at(-1);
+      if (!panel.contains(document.activeElement) || (!event.shiftKey && document.activeElement === last)) { event.preventDefault(); first?.focus(); }
+      else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+    };
+    document.addEventListener("keydown", trapFocus);
+    return () => {
+      background.forEach(([element, inert]) => { element.inert = inert; });
+      document.body.style.overflow = previousOverflow;
+      window.clearTimeout(focusTimer);
+      document.removeEventListener("keydown", trapFocus);
+    };
+  }, [open, isMobile]);
 
   useEffect(() => {
     if (open && initialPrompt) setDraft(String(initialPrompt).slice(0, 800));
@@ -221,6 +265,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
   function openInternalPath(path) {
     if (!isSafeInternalPath(path)) return;
     navigate?.(path);
+    if (isMobile) onClose?.();
   }
 
   function openGuide(sectionId = guideSectionForRoute(route)) {
@@ -239,7 +284,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
   return (
     <div className="pointer-events-none fixed inset-0 z-[90] isolate">
       <button type="button" aria-label={t("Fermer l'assistant")} onClick={onClose} className="pointer-events-auto absolute inset-0 cursor-default bg-black/65 backdrop-blur-[3px] sm:hidden" />
-      <aside role="dialog" aria-modal="false" aria-labelledby="nxt5-assistant-title" className="nxt5-assistant-panel nxt5-enter-fast pointer-events-auto absolute inset-x-2 bottom-2 isolate flex h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-cyan-200/24 bg-[var(--nxt5-surface)] text-white shadow-2xl sm:inset-x-auto sm:bottom-20 sm:right-4 sm:h-[min(42rem,calc(100dvh-6.5rem))] sm:w-[min(28rem,calc(100vw-2rem))] lg:right-6">
+      <aside ref={panelRef} role="dialog" aria-modal={isMobile ? "true" : "false"} aria-labelledby="nxt5-assistant-title" className="nxt5-assistant-panel nxt5-enter-fast pointer-events-auto absolute inset-x-2 bottom-2 isolate flex h-[calc(100dvh-1rem)] flex-col overflow-hidden border border-cyan-200/24 bg-[var(--nxt5-surface)] text-white shadow-2xl sm:inset-x-auto sm:bottom-20 sm:right-4 sm:h-[min(42rem,calc(100dvh-6.5rem))] sm:w-[min(28rem,calc(100vw-2rem))] lg:right-6">
         <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-cyan-100/12 bg-[var(--nxt5-surface-raised)] px-4 py-4 sm:px-5">
           <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/10 text-cyan-100"><MessageCircleQuestion className="h-5 w-5" /></span>

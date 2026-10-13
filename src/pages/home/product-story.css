@@ -1098,13 +1098,11 @@
   height: 540px;
   top: -80px;
   right: 17%;
-  transform: rotate(-12deg);
   pointer-events: none;
-  background: url("/assets/home-motion/glass-poster.webp") center / contain
-    no-repeat;
   opacity: 0.38;
   mask-image: linear-gradient(#000 45%, transparent 98%);
 }
+.ps-final-glass { width: 100%; height: 100%; }
 @keyframes ps-copy-in {
   from {
     opacity: 0.25;

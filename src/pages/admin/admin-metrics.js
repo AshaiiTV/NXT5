@@ -11,7 +11,7 @@ export function importStatus(team, referenceDate) {
   return { id: "quiet", label: "Sans import depuis 30 j", tone: "yellow", days };
 }
 
-export function selectTeams(teams, { search = "", filter = "all", sort = "latest", referenceDate }) {
+export function selectTeams(teams, { search = "", filter = "all", sort = "latest", direction = sort === "name" ? "ascending" : "descending", referenceDate }) {
   const normalized = (value) => String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr");
   const query = normalized(search.trim());
   return teams.filter((team) => {
@@ -19,9 +19,13 @@ export function selectTeams(teams, { search = "", filter = "all", sort = "latest
     const matchesFilter = filter === "all" || (filter === "empty" ? !Number(team.players) : importStatus(team, referenceDate).id === filter);
     return matchesQuery && matchesFilter;
   }).sort((a, b) => {
-    if (sort === "name") return String(a.name).localeCompare(String(b.name), "fr");
-    if (sort === "volume") return Number(b.matches || 0) - Number(a.matches || 0) || String(a.name).localeCompare(String(b.name), "fr");
-    return (Date.parse(b.lastActivityAt) || 0) - (Date.parse(a.lastActivityAt) || 0) || String(a.name).localeCompare(String(b.name), "fr");
+    const sign = direction === "ascending" ? 1 : -1;
+    const nameOrder = String(a.name).localeCompare(String(b.name), "fr");
+    if (sort === "name") return sign * nameOrder;
+    if (sort === "volume") return sign * (Number(a.matches || 0) - Number(b.matches || 0)) || nameOrder;
+    const av = Date.parse(a.lastActivityAt), bv = Date.parse(b.lastActivityAt);
+    if (!Number.isFinite(av) || !Number.isFinite(bv)) return Number.isFinite(av) ? -1 : Number.isFinite(bv) ? 1 : nameOrder;
+    return sign * (av - bv) || nameOrder;
   });
 }
 

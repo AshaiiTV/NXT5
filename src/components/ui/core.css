@@ -104,30 +104,29 @@
 .nxt5-toggle[aria-checked="true"] .nxt5-toggle-thumb { transform: translateX(18px); }
 
 .nxt5-page-header {
-  --nxt5-header-art-space: 12rem;
+  --nxt5-header-art-space: 0px;
   position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1.5rem 2rem;
-  min-height: 13rem;
-  padding: 2rem calc(1.5rem + var(--nxt5-header-art-space)) 2rem 0;
+  min-height: 0;
+  padding: 1.25rem 0 1.75rem;
   margin-bottom: 2rem;
   border: 0;
   border-bottom: 1px solid rgba(196, 181, 253, .24);
   border-radius: 0;
-  background: var(--nxt5-scene-background);
+  background: none;
   box-shadow: none;
   isolation: isolate;
 }
 .nxt5-page-header::before {
   content: "";
   position: absolute;
-  inset: .25rem .25rem .75rem auto;
-  width: var(--nxt5-header-art-space);
-  background: url("/assets/home-motion/glass-poster.webp") center / contain no-repeat;
-  opacity: .94;
+  inset: -.5rem 0 0 auto;
+  width: min(60%, 30rem);
+  background: radial-gradient(ellipse at center, rgba(139, 92, 246, .17), transparent 70%);
   pointer-events: none;
   z-index: -1;
 }
@@ -143,45 +142,35 @@
 }
 .nxt5-page-header > :first-child { flex: 1 1 20rem; min-width: 0; }
 .nxt5-page-eyebrow { margin: 0 0 .75rem; font-size: var(--nxt5-font-micro); font-weight: 700; line-height: 1.5; letter-spacing: .15em; text-transform: uppercase; color: var(--nxt5-accent); }
-.nxt5-page-title { margin: 0; max-width: 50rem; font-size: clamp(2rem, 3.5vw, 3.125rem); line-height: 1.08; font-weight: 800; letter-spacing: -.045em; color: var(--nxt5-text); text-wrap: balance; overflow-wrap: anywhere; }
+.nxt5-page-title { margin: 0; max-width: 50rem; font-size: clamp(1.625rem, 2.3vw, 2.125rem); line-height: 1.15; font-weight: 700; letter-spacing: -.035em; color: var(--nxt5-text); text-wrap: balance; overflow-wrap: anywhere; }
 .nxt5-page-subtitle { margin: 1rem 0 0; max-width: 58ch; font-size: var(--nxt5-font-body); line-height: 1.7; font-weight: 400; color: var(--nxt5-text-secondary); }
 .nxt5-page-actions { display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: .5rem; max-width: 100%; }
 
-/* A header is an open scene, never another data card. Keep the artwork's
-   column reserved when an older page supplies its own padding or background. */
+/* Tool headings share light and material with the surrounding frame. The
+   large sculpture stays in the home scene, leaving actions and copy room. */
 .nxt5-team-management-page > .nxt5-page-header.nxt5-page-header {
   border: 0;
   border-bottom: 1px solid rgba(196, 181, 253, .24);
   border-radius: 0;
-  background: var(--nxt5-scene-background);
+  background: none;
   box-shadow: none;
 }
 .team-identity-header > .nxt5-page-header,
 .profile-identity-header > .nxt5-page-header,
 .nxt5-home-identity > .nxt5-page-header { --nxt5-header-mobile-art-height: 0px; min-height: 0; }
 @media (min-width: 768px) {
-  .nxt5-team-management-page > .nxt5-page-header.nxt5-page-header { padding: 2rem calc(1.5rem + var(--nxt5-header-art-space)) 2rem 0; }
-}
-@media (min-width: 1280px) {
-  .nxt5-page-header { --nxt5-header-art-space: 15rem; }
+  .nxt5-team-management-page > .nxt5-page-header.nxt5-page-header { padding: 1.25rem 0 1.75rem; }
 }
 @media (max-width: 767px) {
   .nxt5-page-header { --nxt5-header-art-space: 0px; min-height: 0; padding: 1.5rem 0; margin-bottom: 1.5rem; gap: 1.25rem; }
-  .nxt5-page-header::before { inset: 1.375rem 0 auto auto; width: 4.5rem; height: 4.75rem; opacity: .9; }
-  .nxt5-page-header > :first-child { padding-inline-end: var(--nxt5-header-mobile-art-space, 5rem); }
-  .nxt5-page-title { font-size: clamp(1.75rem, 5.5vw, 2.25rem); }
-  .nxt5-page-header > :first-child > .nxt5-page-title:first-child { min-height: max(0px, calc(var(--nxt5-header-mobile-art-height, 4.75rem) - .875rem)); }
-  .nxt5-page-subtitle { margin-top: .875rem; margin-inline-end: calc(-1 * var(--nxt5-header-mobile-art-space, 5rem)); }
+  .nxt5-page-header > :first-child { padding-inline-end: 0; }
+  .nxt5-page-title { font-size: clamp(1.625rem, 5vw, 2.125rem); }
+  .nxt5-page-subtitle { margin-top: .875rem; }
   .nxt5-team-management-page > .nxt5-page-header.nxt5-page-header { padding: 1.5rem 0; }
   .team-identity-header > .nxt5-page-header, .profile-identity-header > .nxt5-page-header { --nxt5-header-mobile-art-space: 0px; }
 }
 
-/* Static mode retains the sculpture and horizon color without decoding the
-   atmosphere behind each shared introduction. Reduced motion needs no override:
-   these scenes never animate. */
-html.nxt5-low-gpu .nxt5-page-header { background: linear-gradient(110deg, transparent 35%, rgba(139, 92, 246, .12)); }
-html.nxt5-low-gpu .nxt5-team-management-page > .nxt5-page-header.nxt5-page-header { background: linear-gradient(110deg, transparent 35%, rgba(139, 92, 246, .12)); }
-html.nxt5-low-gpu :is(.team-identity-header, .profile-identity-header, .nxt5-home-identity) > .nxt5-page-header { background: none; }
+/* Heading light is static and inexpensive in all performance modes. */
 
 .nxt5-reading-details { min-width: 0; border-block: 1px solid var(--nxt5-border); }
 .nxt5-reading-details + .nxt5-reading-details { border-top: 0; }

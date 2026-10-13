@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUpRight, Pause, Play } from "lucide-react";
 import { Nxt5Wordmark } from "../../components/brand/BrandAssets.jsx";
 import { Button } from "../../components/ui/Core.jsx";
 import ProductStory from "./ProductStory.jsx";
+import GlassScene from "../../components/brand/GlassScene.jsx";
 import { LegalLinks, PublicTextLink } from "../public/PublicPages.jsx";
 import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 
@@ -39,34 +40,15 @@ function OutlineMark() {
   );
 }
 
-function GlassFallback() {
-  return (
-    <img
-      className="hm-glass-fallback"
-      src="/assets/home-motion/glass-poster.webp"
-      width="729"
-      height="665"
-      alt=""
-      decoding="async"
-      fetchPriority="high"
-    />
-  );
-}
-
 export default function HomeMotion({ navigate }) {
   useLanguage();
   const pageRef = useRef(null);
-  const canvasRef = useRef(null);
-  const sceneRef = useRef(null);
-  const progressRef = useRef(0);
   const motionPositionRef = useRef(null);
   const [paused, setPaused] = useState(false);
   const [systemReduced, setSystemReduced] = useState(false);
   const [shortViewport, setShortViewport] = useState(false);
   const [lowGpu, setLowGpu] = useState(false);
   const [motionConfigured, setMotionConfigured] = useState(false);
-  const [sceneReady, setSceneReady] = useState(false);
-  const [sceneFailed, setSceneFailed] = useState(false);
   const [motionUnavailable, setMotionUnavailable] = useState(false);
   const reduced = paused || systemReduced || lowGpu || motionUnavailable;
 
@@ -97,70 +79,6 @@ export default function HomeMotion({ navigate }) {
   }, []);
 
   useEffect(() => {
-    if (!motionConfigured || !pageRef.current || !canvasRef.current || reduced || sceneFailed) return;
-    let cancelled = false;
-    let scene;
-    let intersection;
-    let visible = true;
-    const visibility = () => scene?.setActive(visible && !document.hidden);
-    const move = (event) => {
-      if (event.pointerType === "touch") return;
-      scene?.setPointer(
-        (event.clientX / window.innerWidth) * 2 - 1,
-        (event.clientY / window.innerHeight) * 2 - 1,
-      );
-    };
-    const leave = () => scene?.setPointer(0, 0);
-    import("./glass-scene.js")
-      .then(async ({ createGlassScene }) => {
-        if (cancelled) return;
-        scene = await createGlassScene({
-          canvas: canvasRef.current,
-          onReady: () => {
-            if (!cancelled) setSceneReady(true);
-          },
-          onError: () => {
-            if (!cancelled) {
-              setSceneReady(false);
-              setSceneFailed(true);
-            }
-          },
-        });
-        if (cancelled) {
-          scene?.dispose();
-          return;
-        }
-        sceneRef.current = scene;
-        scene?.setProgress(progressRef.current);
-        intersection = new IntersectionObserver(([entry]) => {
-          visible = entry.isIntersecting;
-          visibility();
-        });
-        intersection.observe(pageRef.current.querySelector(".hm-journey"));
-        document.addEventListener("visibilitychange", visibility);
-        pageRef.current.addEventListener("pointermove", move, {
-          passive: true,
-        });
-        pageRef.current.addEventListener("pointerleave", leave);
-        visibility();
-      })
-      .catch(() => {
-        if (!cancelled) setSceneFailed(true);
-      });
-    const page = pageRef.current;
-    return () => {
-      cancelled = true;
-      intersection?.disconnect();
-      document.removeEventListener("visibilitychange", visibility);
-      page.removeEventListener("pointermove", move);
-      page.removeEventListener("pointerleave", leave);
-      scene?.dispose();
-      sceneRef.current = null;
-      setSceneReady(false);
-    };
-  }, [motionConfigured, reduced, sceneFailed]);
-
-  useEffect(() => {
     const page = pageRef.current;
     if (!motionConfigured || !page) return;
     const header = page.querySelector(".hm-header");
@@ -184,8 +102,6 @@ export default function HomeMotion({ navigate }) {
     if (reduced || shortViewport) {
       introActions.inert = false;
       scrollCue.inert = false;
-      progressRef.current = 0;
-      sceneRef.current?.setProgress(0);
       return () => {
         window.removeEventListener("scroll", updateHeader);
         window.removeEventListener("resize", updateHeader);
@@ -217,8 +133,6 @@ export default function HomeMotion({ navigate }) {
               value: 1,
               duration: 1,
               onUpdate: () => {
-                progressRef.current = driver.value;
-                sceneRef.current?.setProgress(driver.value);
                 const fading = driver.value > 0.05;
                 if (
                   fading &&
@@ -373,7 +287,7 @@ export default function HomeMotion({ navigate }) {
   function toggleMotion() {
     const page = pageRef.current;
     const anchor = [
-      ...page.querySelectorAll(".ps-product, .ps-team, .ps-final, .hm-footer, .nxt5-footer"),
+      ...page.querySelectorAll(".ps-product, .ps-team, .ps-final, .nxt5-footer"),
     ].find((element) => {
       const bounds = element.getBoundingClientRect();
       return bounds.bottom > 110 && bounds.top < window.innerHeight;
@@ -431,11 +345,10 @@ export default function HomeMotion({ navigate }) {
               <OutlineMark />
             </div>
             <div
-              className={`hm-glass-wrap${sceneReady ? " is-ready" : ""}`}
+              className="hm-glass-wrap"
               aria-hidden="true"
             >
-              <GlassFallback />
-              <canvas ref={canvasRef} className="hm-canvas" />
+              <GlassScene className="hm-glass-scene" motionEnabled={!reduced} />
             </div>
             <div className="hm-clouds-front" aria-hidden="true" />
             <div className="hm-ground-shade" aria-hidden="true" />
@@ -488,13 +401,8 @@ export default function HomeMotion({ navigate }) {
           </div>
         </section>
 
-        <ProductStory reduced={reduced || shortViewport} navigate={navigate} />
+        <ProductStory reduced={reduced || shortViewport} motionEnabled={!reduced} navigate={navigate} />
       </main>
-      <div className="hm-footer">
-        <Nxt5Wordmark />
-        <p>{t("Joue. Analyse. Recommence.")}</p>
-        <PublicTextLink href="/contact" navigate={navigate}>{t("Contact")}</PublicTextLink>
-      </div>
       <LegalLinks navigate={navigate} />
       <Button
         className="hm-motion-toggle"

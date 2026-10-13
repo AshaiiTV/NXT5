@@ -132,7 +132,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     },
     trends: {
       title: 'Analysing several games', actionLabel: 'Open Analyses',
-      summary: 'Analyses brings together results from several games in Overview, Evolution, Compare, Champions and Goals. Period and category filters define the games studied. Drafts & bans has separate filters for saved Drafter drafts.',
+      summary: 'Analyses brings together results from several games in Summary, Evolution, Compare, Statistics, Champions, Drafts & bans and Playstyle. Statistics compares players. Playstyle connects observed habits with areas to work on. Period and category filters define the games studied. Drafts & bans has separate filters for saved Drafter drafts.',
       keywords: ['trends', 'winrate', 'win rate', 'blue side', 'red side', 'identity', 'pattern', 'role', 'block', 'context', 'filter', 'game to review', 'analyses', 'games'],
       steps: ['Choose the period and category of games to analyse.', 'Start with the overview, then examine the details relevant to your question.', 'Compare blue and red side results alongside the number of games played.', 'Open the associated games before drawing a conclusion.'],
       suggestions: ['How do I read win rate by side?', 'How do I choose games to analyse?', 'How do I find the game behind a metric?'],
@@ -439,7 +439,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     },
     trends: {
       title: 'Analizar varias partidas', actionLabel: 'Abrir Análisis',
-      summary: 'Análisis reúne los resultados de varias partidas en Resumen, Evolución, Comparar, Campeones y Objetivos. Los filtros de periodo y categoría definen las partidas estudiadas. Drafts y bloqueos tiene filtros propios para los drafts de Drafter guardados.',
+      summary: 'Análisis reúne los resultados de varias partidas en Resumen, Evolución, Comparar, Estadísticas, Campeones, Drafts y bloqueos y Estilo de juego. Estadísticas compara a los jugadores. Estilo de juego relaciona los hábitos observados con los aspectos a trabajar. Los filtros de periodo y categoría definen las partidas estudiadas. Drafts y bloqueos tiene filtros propios para los drafts de Drafter guardados.',
       keywords: ['tendencias', 'winrate', 'tasa de victorias', 'lado azul', 'lado rojo', 'identidad', 'patrón', 'rol', 'bloque', 'contexto', 'filtro', 'partida para revisar', 'análisis', 'partidas'],
       steps: ['Elige el periodo y la categoría de partidas que analizar.', 'Empieza por el resumen y consulta los detalles relacionados con tu pregunta.', 'Compara los resultados de los lados azul y rojo junto con el número de partidas jugadas.', 'Abre las partidas asociadas antes de sacar una conclusión.'],
       suggestions: ['¿Cómo leo la tasa de victorias por lado?', '¿Cómo elijo las partidas que analizar?', '¿Cómo encuentro la partida detrás de un indicador?'],
