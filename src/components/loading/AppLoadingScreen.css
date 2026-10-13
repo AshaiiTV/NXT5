@@ -47,8 +47,6 @@
 .nxt5-sync-role .nxt5-sync-role-icon { width: 25px; height: 25px; opacity: .9; }
 .nxt5-sync-role-name { color: var(--sync-color); font-size: 10px; font-weight: 500; letter-spacing: .14em; }
 .nxt5-sync-loading { position: relative; min-width: 0; width: 100%; max-width: 470px; margin-top: -25px; padding-block: 24px; }
-.nxt5-sync-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 24px; color: #c4b5fd; font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; }
-.nxt5-sync-eyebrow > span { width: 5px; height: 5px; border-radius: 50%; background: #c4b5fd; box-shadow: 0 0 12px #a78bfa7a; }
 .nxt5-sync-status { min-width: 0; }
 .nxt5-sync-status h1 { margin: 0; max-width: 11ch; font-size: clamp(38px, 4.4vw, 64px); font-weight: 500; letter-spacing: -.055em; line-height: 1.06; text-wrap: balance; overflow-wrap: break-word; }
 .nxt5-sync-status p { margin: 22px 0 0; max-width: 29ch; color: #b6c0d4; font-size: 16px; line-height: 1.65; }
@@ -112,7 +110,6 @@
   .nxt5-sync-role .nxt5-sync-role-icon { width: 19px; height: 19px; }
   .nxt5-sync-role-name { font-size: 8px; }
   .nxt5-sync-loading { max-width: 420px; margin-top: 26px; padding: 0; }
-  .nxt5-sync-eyebrow { margin-bottom: 12px; font-size: 10px; }
   .nxt5-sync-status h1 { max-width: 16ch; font-size: clamp(31px, 8vw, 40px); line-height: 1.08; text-wrap: initial; }
   .nxt5-sync-status p { max-width: 31ch; margin-top: 12px; font-size: 14px; line-height: 1.6; }
   .nxt5-sync-progress-caption { margin-top: 23px; min-height: 23px; }
@@ -140,7 +137,6 @@
   .nxt5-sync-art { height: 29svh; min-height: 175px; }
   .nxt5-sync-loading { margin-top: 18px; }
   .nxt5-sync-status h1 { font-size: 29px; }
-  .nxt5-sync-eyebrow { margin-bottom: 9px; }
   .nxt5-sync-status p { margin-top: 10px; }
   .nxt5-sync-progress-caption { margin-top: 16px; }
   .nxt5-sync-footer { padding-top: 14px; }
@@ -160,7 +156,6 @@
   .nxt5-sync-role .nxt5-sync-role-icon { width: 18px; height: 18px; }
   .nxt5-sync-role-name { font-size: 8px; }
   .nxt5-sync-loading { margin: 0; padding: 0; }
-  .nxt5-sync-eyebrow { margin-bottom: 12px; font-size: 10px; }
   .nxt5-sync-status h1 { max-width: 16ch; font-size: clamp(27px, 4vw, 38px); }
   .nxt5-sync-status p { margin-top: 12px; font-size: 13px; }
   .nxt5-sync-progress-caption { margin-top: 20px; }

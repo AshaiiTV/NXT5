@@ -87,7 +87,6 @@ export default function AppLoadingScreen({ phase = "app", progress = null }) {
         <main className="nxt5-sync-main">
           {glassStage}
           <section className="nxt5-sync-loading" aria-label={t("Chargement de ton espace")}>
-            <div className="nxt5-sync-eyebrow" aria-hidden="true"><span />{t(current.label)}</div>
             <div className="nxt5-sync-status" role="status" aria-live="polite" aria-atomic="true">
               <h1>{t(current.status)}</h1>
               <p>{t(current.detail)}</p>
