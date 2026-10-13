@@ -1020,7 +1020,7 @@ function TrendsPage({ data, selectedTeamId }) {
     setTrendPanel("playstyle");
   };
 
-  return <div className="nxt5-data-dense nxt5-trends-page">
+  return <div className="nxt5-data-dense nxt5-trends-page" data-statistics={trendPanel === "statistics"}>
     {detailHeader || <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.")}>
       {trendPanel !== "comparison" && <Button type="button" variant="ghost" icon={ImageIcon} disabled={exportState === "loading"} onClick={exportTrends}>{exportState === "loading" ? t("Export en cours…") : t("Exporter la synthèse")}</Button>}
     </PageHeader>}
@@ -1043,7 +1043,7 @@ function TrendsPage({ data, selectedTeamId }) {
         {id === "evolution" && <TrendEvolution matches={matches} onOpenMatch={openSourceGame} />}
         {id === "comparison" && <Suspense fallback={<Surface><p className="mb-3 text-sm font-semibold text-slate-300" role="status">{t("Chargement de la comparaison…")}</p><SkeletonRows /></Surface>}><BlockComparisonPanel matches={baseMatches} categories={matchCategories} /></Suspense>}
         {id === "draft" && <DraftTrendsModule key={selectedTeamId} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} detailHref={navigation.detailHref} onNavigateDetail={navigation.onNavigate} />}
-        {id === "statistics" && <Surface><PlayerComparison key={selectedTeamId} matches={matches} players={teamProfiles} categories={matchCategories} category={selectedCategoryId} onCategoryChange={setSelectedCategoryId} /></Surface>}
+        {id === "statistics" && <Surface className="player-comparison-surface"><PlayerComparison key={selectedTeamId} matches={matches} players={teamProfiles} categories={matchCategories} category={selectedCategoryId} onCategoryChange={setSelectedCategoryId} /></Surface>}
         {id === "playstyle" && <PlaystyleAnalysis matches={matches} players={teamProfiles} sourceGames={sourceGames} onOpenSources={openTrendSources} onOpenContracts={() => setProfileContractsOpen(true)} />}
       </>}
     </div>)}
