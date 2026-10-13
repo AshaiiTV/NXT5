@@ -478,7 +478,7 @@ await Promise.all(
     const a = f0 + i * chunk;
     const b = Math.min(f1, a + chunk);
     if (a >= b) return null;
-    const part = path.join(OUT, `part-${i}.mp4`);
+    const part = path.join(OUT, `part-${process.pid}-${i}.mp4`);
     parts.push(part);
     return new Promise((res, rej) => {
       const child = fork(fileURLToPath(import.meta.url), ['--worker', `${a}:${b}`, '--out', part, '--scale', String(scale)]);
@@ -491,7 +491,7 @@ await Promise.all(
     });
   }),
 );
-const list = path.join(OUT, 'parts.txt');
+const list = path.join(OUT, `parts-${process.pid}.txt`);
 writeFileSync(list, parts.map((p) => `file '${p}'`).join('\n'));
 await new Promise((res, rej) => {
   const ff = spawn('ffmpeg', ['-y', '-v', 'error', '-f', 'concat', '-safe', '0', '-i', list, '-ss', t0.toFixed(4), '-t', (t1 - t0).toFixed(4), '-i', musicWav,
