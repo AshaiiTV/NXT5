@@ -45,9 +45,28 @@ const rowName = (row) => text(row.findByProps({ className: "player-comparison-id
 const row = (name) => rows().find((item) => rowName(item) === name);
 const value = (name) => text(row(name).findByProps({ className: "player-comparison-value" }).findByType("strong"));
 const sample = (name) => text(row(name).findByProps({ className: "player-comparison-value" }).findByType("span"));
-const width = (name) => row(name).findByType("rect").props.width;
+const tower = (name) => row(name).findByProps({ className: "player-comparison-tower" });
+const height = (name) => tower(name).props["data-height"];
+const headerSample = () => renderer.root.findByProps({ className: "player-comparison-sample" }).findAllByType("span").map(text);
 const shortcut = (label) => renderer.root.findAllByType("button").find((node) => text(node) === label);
 const click = (node) => act(() => node.props.onClick());
+
+// Measure the actual straight SVG segments, independently of data-height.
+function pathYCoordinates(path) {
+  let y;
+  const coordinates = [];
+  for (const [, command, argumentsText] of path.matchAll(/([MLHVZ])([^MLHVZ]*)/g)) {
+    const numbers = argumentsText.match(/-?\d*\.?\d+(?:e[+-]?\d+)?/gi)?.map(Number) || [];
+    if (command === "M" || command === "L") {
+      for (let index = 1; index < numbers.length; index += 2) coordinates.push(y = numbers[index]);
+    } else if (command === "V") {
+      for (const nextY of numbers) coordinates.push(y = nextY);
+    } else if (command === "H") {
+      coordinates.push(y);
+    }
+  }
+  return coordinates;
+}
 
 beforeEach(() => setLanguage("fr"));
 afterEach(() => {
@@ -76,7 +95,7 @@ describe("player comparison", () => {
     expect(shortcuts.length).toBeGreaterThan(0);
     expect(shortcuts.every((button) => labels.includes(text(button)))).toBe(true);
     expect(text(renderer.root.findByType("summary"))).toBe("Voir les statistiques de ce thème");
-    expect(text(renderer.root.findByProps({ className: "player-comparison-sample" }))).toBe("4 joueurs · 2 parties sélectionnées");
+    expect(headerSample()).toEqual(["4 joueurs", "2 parties sélectionnées"]);
   });
 
   it("keeps a compatible metric and falls back to the theme's first metric when needed", () => {
@@ -152,7 +171,7 @@ describe("player comparison", () => {
     mount();
     expect(rows().map(rowName)).toEqual(["Atlas", "Brume", "Nova", "Echo"]);
     expect(value("Atlas")).toBe("20,0");
-    expect(width("Atlas")).toBe(40);
+    expect(height("Atlas")).toBe(40);
     expect(text(renderer.root.findByProps({ className: "player-comparison-note" }))).toContain("ne constituent pas un classement de performance");
     click(shortcut("Kills"));
     expect(control("Statistique").props.value).toBe("kills");
@@ -179,18 +198,47 @@ describe("player comparison", () => {
     expect(rows().map(rowName)).toEqual(["Atlas", "Brume", "Nova", "Echo"]);
   });
 
-  it("distinguishes measured zero from missing statistics without giving zero a visible bar", () => {
+  it("distinguishes measured zero from missing statistics without giving either a visible tower", () => {
     mount();
     expect(value("Nova")).toBe("0,0");
-    expect(width("Nova")).toBe(0);
+    expect(height("Nova")).toBe(0);
+    expect(row("Nova").props["data-unmeasured"]).toBe(false);
+    expect(tower("Nova").findAllByProps({ className: "player-comparison-tower-volume" })).toHaveLength(0);
     expect(sample("Nova")).toBe("2 / 2 parties mesurées");
     expect(value("Brume")).toBe("—");
-    expect(width("Brume")).toBe(0);
+    expect(height("Brume")).toBe(0);
+    expect(row("Brume").props["data-unmeasured"]).toBe(true);
+    expect(tower("Brume").findAllByProps({ className: "player-comparison-tower-volume" })).toHaveLength(0);
     expect(sample("Brume")).toBe("0 / 1 partie mesurée");
     expect(renderer.root.findAllByProps({ role: "status" })).toHaveLength(0);
     change("Statistique", "gold");
     expect(text(renderer.root.findByProps({ role: "status" }))).toBe("Aucune donnée disponible pour cette statistique dans la sélection.");
-    expect(rows().every((item) => item.findByType("rect").props.width === 0)).toBe(true);
+    expect(rows().every((item) => item.findByProps({ className: "player-comparison-tower" }).props["data-height"] === 0)).toBe(true);
+    expect(renderer.root.findAllByProps({ className: "player-comparison-tower-volume" })).toHaveLength(0);
+  });
+
+  it.each([[20, 40], [50, 100], [.5, 1], [.00005, .0001]])("keeps every face and reflection inside the measured tower height for vision %s", (vision, expectedHeight) => {
+    mount({ matches: [{ id: "geometry", participants: [participant("atlas", { vision }), participant("brume", { vision: 50 })] }] });
+    expect(height("Atlas")).toBeCloseTo(expectedHeight, 10);
+    const svg = tower("Atlas");
+    expect(svg.props).toMatchObject({ viewBox: "0 0 100 100", preserveAspectRatio: "none", focusable: "false" });
+    expect(row("Atlas").findByProps({ className: "player-comparison-track" }).props["aria-hidden"]).toBe("true");
+    const volume = svg.findByProps({ className: "player-comparison-tower-volume" });
+    const ys = volume.findAllByType("path").flatMap((path) => pathYCoordinates(path.props.d));
+    expect(ys.every(Number.isFinite)).toBe(true);
+    expect(Math.min(...ys)).toBeCloseTo(100 - expectedHeight, 10);
+    expect(Math.max(...ys)).toBe(100);
+    expect(Math.max(...ys) - Math.min(...ys)).toBeCloseTo(expectedHeight, 10);
+  });
+
+  it("keeps five distinct axis labels when the maximum is one CS over thirty minutes", () => {
+    mount({ matches: [{ id: "tiny-farm", duration: "30:00", participants: [participant("atlas", { cs: 1 }), participant("brume", { cs: 0 })] }] });
+    change("Statistique", "csPerMin");
+    const labels = renderer.root.findByProps({ className: "player-comparison-axis" }).findAllByType("span").map(text);
+    expect(labels).toEqual(["0,0333", "0,0250", "0,0167", "0,0083", "0,0000"]);
+    expect(new Set(labels).size).toBe(5);
+    expect(height("Atlas")).toBe(100);
+    expect(height("Brume")).toBe(0);
   });
 
   it("provides all metrics and their own sample sizes in an optional accessible table", () => {
@@ -228,7 +276,7 @@ describe("player comparison", () => {
     expect(value("Brume")).toBe("—");
     expect(sample("Atlas")).toBe("1 / 1 partie mesurée");
     expect(sample("Brume")).toBe("0 / 0 parties mesurées");
-    expect(text(renderer.root.findByProps({ className: "player-comparison-sample" }))).toBe("4 joueurs · 1 partie sélectionnée");
+    expect(headerSample()).toEqual(["4 joueurs", "1 partie sélectionnée"]);
   });
 
   it("explains an unidentified selection and keeps an unplayed roster visibly unmeasured", () => {
@@ -237,7 +285,8 @@ describe("player comparison", () => {
     expect(renderer.root.findAllByType("select")).toHaveLength(0);
     act(() => renderer.update(<PlayerComparison matches={[]} players={players} />));
     expect(rows()).toHaveLength(4);
-    expect(rows().every((item) => item.findByType("rect").props.width === 0)).toBe(true);
+    expect(rows().every((item) => item.findByProps({ className: "player-comparison-tower" }).props["data-height"] === 0)).toBe(true);
+    expect(renderer.root.findAllByProps({ className: "player-comparison-tower-volume" })).toHaveLength(0);
     expect(value("Atlas")).toBe("—");
     expect(sample("Atlas")).toBe("0 / 0 parties mesurées");
     expect(renderer.root.findAllByProps({ role: "status" })).toHaveLength(1);

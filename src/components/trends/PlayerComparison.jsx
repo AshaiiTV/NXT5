@@ -1,5 +1,5 @@
-import React, { useId, useMemo, useState } from "react";
-import { BarChart3, ChevronDown, Eye, Flame, HandCoins, Info, ListFilter, Swords, Table2, UsersRound, Wheat } from "lucide-react";
+import React, { useEffect, useId, useMemo, useRef, useState } from "react";
+import { ArrowLeftRight, BarChart3, ChevronDown, Eye, Flame, HandCoins, Info, ListFilter, Swords, Table2, UsersRound, Wheat } from "lucide-react";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { getLocale } from "../../i18n/locale.js";
 import { t } from "../../i18n/translate.js";
@@ -45,6 +45,46 @@ function metricValue(metric, value, locale) {
   }).format(metric.percent ? value / 100 : value);
 }
 
+// The entire prism stays inside the measured height, including its bevel.
+// A zero has no volume; an unknown measurement is styled separately.
+function GlassTower({ amount, id }) {
+  const top = 100 - amount;
+  const bevel = Math.min(3, amount / 3);
+  const faceTop = top + bevel;
+  const front = `M12 ${faceTop} H72 V100 H12 Z`;
+  return <svg className="player-comparison-tower" viewBox="0 0 100 100" preserveAspectRatio="none" focusable="false" data-height={amount}>
+    <defs>
+      <linearGradient id={`${id}-front`} x1="0" x2="1" y1="0" y2=".2">
+        <stop offset="0" stopColor="var(--player-bar)" stopOpacity=".85" />
+        <stop offset=".08" stopColor="var(--player-bar)" stopOpacity=".46" />
+        <stop offset=".45" stopColor="#3d277e" stopOpacity=".85" />
+        <stop offset=".78" stopColor="var(--player-bar)" stopOpacity=".64" />
+        <stop offset="1" stopColor="#39266b" />
+      </linearGradient>
+      <linearGradient id={`${id}-roof`} x1="0" x2="1" y1="0" y2="1">
+        <stop stopColor="#f1efff" /><stop offset=".5" stopColor="var(--player-bar)" /><stop offset="1" stopColor="#7c63cb" />
+      </linearGradient>
+      <linearGradient id={`${id}-side`} x1="0" x2="1">
+        <stop stopColor="#30205d" /><stop offset=".75" stopColor="#57418c" /><stop offset="1" stopColor="var(--player-bar)" stopOpacity=".8" />
+      </linearGradient>
+      <linearGradient id={`${id}-shine`} x1="0" x2=".7" y1="0" y2="1">
+        <stop stopColor="#f1f5f9" stopOpacity=".55" /><stop offset=".5" stopColor="#c4b5fd" stopOpacity=".04" /><stop offset="1" stopColor="#f1f5f9" stopOpacity=".22" />
+      </linearGradient>
+      <clipPath id={`${id}-clip`}><path d={front} /></clipPath>
+    </defs>
+    {amount > 0 && <g className="player-comparison-tower-volume">
+      <path className="player-comparison-tower-front" d={front} fill={`url(#${id}-front)`} />
+      <path d={`M72 ${faceTop} L84 ${top} V${100 - bevel} L72 100 Z`} fill={`url(#${id}-side)`} />
+      <path d={`M12 ${faceTop} L24 ${top} H84 L72 ${faceTop} Z`} fill={`url(#${id}-roof)`} />
+      <g clipPath={`url(#${id}-clip)`}>
+        <path className="player-comparison-tower-reflection" d={`M12 ${faceTop} H53 L12 ${Math.min(100, faceTop + amount * .66)} Z M72 ${faceTop + amount * .28} V100 H27 Z`} fill={`url(#${id}-shine)`} />
+        <path d={`M14 ${faceTop} V100 M70 ${faceTop} V100`} stroke="var(--player-bar)" strokeOpacity=".68" strokeWidth=".8" vectorEffect="non-scaling-stroke" />
+      </g>
+      <path d={`M12 ${faceTop} H72 L84 ${top} H24 Z M72 ${faceTop} V100 L84 ${100 - bevel} V${top}`} fill="none" stroke="var(--player-bar)" strokeOpacity=".8" strokeWidth=".8" vectorEffect="non-scaling-stroke" />
+    </g>}
+  </svg>;
+}
+
 export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories = EMPTY, category = "", onCategoryChange }) {
   useLanguage();
   const locale = getLocale();
@@ -53,6 +93,8 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
   const [themeId, setThemeId] = useState("all");
   const [order, setOrder] = useState("roster");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const plotRef = useRef(null);
+  const [plotOverflows, setPlotOverflows] = useState(false);
   const model = useMemo(() => buildPlayerComparison(matches, players), [matches, players]);
   const theme = THEMES.find((item) => item.id === themeId) || THEMES[0];
   const visibleMetrics = METRICS.filter((item) => theme.metrics.includes(item.id));
@@ -80,8 +122,22 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
   // All players share a zero-based scale, including an all-zero selection.
   const ceiling = metric.percent ? 100 : max > 0 ? max : 1;
   const format = (value) => metricValue(metric, value, locale);
+  const tickDigits = Math.max(metric.digits, Math.min(10, 1 - Math.floor(Math.log10(ceiling / 4))));
+  const formatTick = (value) => metricValue({ ...metric, digits: tickDigits }, value, locale);
   const playerName = (row) => row.name || t("Joueur sans pseudo {0}", [model.players.indexOf(row) + 1]);
   const coverage = (count, games) => t(games === 1 ? "{0} / {1} partie mesurée" : "{0} / {1} parties mesurées", [count, games]);
+
+  useEffect(() => {
+    const plot = plotRef.current;
+    if (!plot) return;
+    const update = () => setPlotOverflows(plot.scrollWidth > plot.clientWidth + 1);
+    update();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(update);
+    observer.observe(plot);
+    if (plot.firstElementChild) observer.observe(plot.firstElementChild);
+    return () => observer.disconnect();
+  }, [model.players.length]);
 
   return <section className="player-comparison" aria-labelledby={`${id}-title`}>
     <header className="player-comparison-heading">
@@ -89,7 +145,7 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
         <h3 id={`${id}-title`}><span className="player-comparison-heading-icon"><BarChart3 aria-hidden="true" /></span>{t("Comparer les joueurs")}</h3>
         <p>{t("Vision, combat et farm : les contributions de chacun sur la sélection actuelle.")}</p>
       </div>
-      <span className="player-comparison-sample"><UsersRound aria-hidden="true" /><span>{t(model.players.length === 1 ? "{0} joueur" : "{0} joueurs", [model.players.length])} · {t(model.games === 1 ? "{0} partie sélectionnée" : "{0} parties sélectionnées", [model.games])}</span></span>
+      <div className="player-comparison-sample"><span><UsersRound aria-hidden="true" />{t(model.players.length === 1 ? "{0} joueur" : "{0} joueurs", [model.players.length])}</span><span>{t(model.games === 1 ? "{0} partie sélectionnée" : "{0} parties sélectionnées", [model.games])}</span></div>
     </header>
 
     <div className="player-comparison-layout">
@@ -130,6 +186,10 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
         </figcaption>
         <p id={`${id}-description`} className="player-comparison-description">{t(metric.description)}</p>
         {!measured.length && <p className="player-comparison-empty" role="status">{t("Aucune donnée disponible pour cette statistique dans la sélection.")}</p>}
+        {plotOverflows && <p className="player-comparison-scroll-hint"><ArrowLeftRight aria-hidden="true" />{t("Fais défiler pour voir les autres joueurs.")}</p>}
+        <div className="player-comparison-plot">
+        <div className="player-comparison-axis" aria-hidden="true">{[1, .75, .5, .25, 0].map((part) => <span key={part}>{formatTick(ceiling * part)}</span>)}</div>
+        <div ref={plotRef} className="player-comparison-plot-scroll" role="region" tabIndex={0} aria-label={t("Valeurs par joueur")}>
         <ul className="player-comparison-bars" aria-label={t("Valeurs par joueur")}>
           {rows.map((row, index) => {
             const measurement = row.metrics[metric.id];
@@ -141,7 +201,7 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
                 <div><strong>{playerName(row)}</strong><span>{t(roleLabel(row.role))}</span></div>
               </div>
               <div className="player-comparison-track" aria-hidden="true">
-                <svg viewBox="0 0 100 12" preserveAspectRatio="none" focusable="false"><defs><linearGradient id={fillId} x1="0" x2="1" y1="0" y2="0"><stop offset="0" stopColor="var(--player-bar)" stopOpacity=".7" /><stop offset="1" stopColor="var(--player-bar)" /></linearGradient></defs><rect width={width} height="12" rx="0.5" fill={`url(#${fillId})`} /></svg>
+                <GlassTower amount={width} id={fillId} />
               </div>
               <div className="player-comparison-value">
                 <strong>{format(measurement.value)}</strong>
@@ -150,6 +210,8 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
             </li>;
           })}
         </ul>
+        </div>
+        </div>
         <p className="player-comparison-scale">{t("Échelle de 0 à {0}", [format(ceiling)])}</p>
       </figure>
       <p className="player-comparison-note"><Info aria-hidden="true" /><span>{t("Les rôles ont des contributions différentes. Compare les chiffres avec leur contexte ; ils ne constituent pas un classement de performance.")}</span></p>
