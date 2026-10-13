@@ -56,16 +56,29 @@ function HomeGoals({ context, navigate }) {
   </section>;
 }
 
-function HomePlayerDebrief({ context, navigate }) {
+function groupHistoryAvailable(group, matches, historyComplete) {
+  if (historyComplete || !group) return true;
+  let matchIds = group.match_ids;
+  if (typeof matchIds === "string") {
+    try { matchIds = JSON.parse(matchIds); } catch { return false; }
+  }
+  const loaded = new Set(matches.map(match => String(match.id)));
+  return Array.isArray(matchIds) && matchIds.length > 0 && matchIds.every(id => id != null && loaded.has(String(id).trim()));
+}
+
+function HomePlayerDebrief({ context, navigate, historyComplete }) {
   const { linkedPlayer, playerDebrief } = context;
   const { group, report, sections = [] } = playerDebrief || {};
-  const orderedSections = [...sections].sort((a, b) => Number(a.source === "analysis") - Number(b.source === "analysis"));
+  // Saved group/report metadata is complete at bootstrap. Identity attribution
+  // also needs every game in that group, including older participant aliases.
+  const groupHistoryComplete = groupHistoryAvailable(group, context.matches, historyComplete);
+  const orderedSections = groupHistoryComplete ? [...sections].sort((a, b) => Number(a.source === "analysis") - Number(b.source === "analysis")) : [];
   return <section className="nxt5-home-section nxt5-home-player-debrief" aria-labelledby="nxt5-home-player-debrief-title">
     <div className="nxt5-home-section-heading"><FileText size={20} aria-hidden="true" /><h3 id="nxt5-home-player-debrief-title">{t("Ton dernier débrief")}</h3></div>
     {linkedPlayer ? <>
       <p className="nxt5-home-debrief-player">{t("Pour {0}", [linkedPlayer.name || linkedPlayer.riot_id || linkedPlayer.role])}</p>
       {group && <p className="nxt5-home-debrief-group">{t("Dernier groupe : {0}", [group.name || t("Groupe de parties")])}</p>}
-      {orderedSections.length ? <div className="nxt5-home-debrief-sections">
+      {!groupHistoryComplete ? <p className="nxt5-home-section-intro">{t("Historique complet à charger")}</p> : orderedSections.length ? <div className="nxt5-home-debrief-sections">
         {orderedSections.map((section, index) => <details key={`${report.id}:${index}`} className="nxt5-home-debrief-section" open={index === 0}>
           <summary><span><small>{section.source === "analysis" ? t("Analyse enregistrée") : t("Notes de l’équipe")}</small><strong>{section.heading}</strong></span></summary>
           <ul>{section.lines.map((line, lineIndex) => <li key={lineIndex}>{line}</li>)}</ul>
@@ -93,10 +106,18 @@ function homeFocus(context, now, historyComplete) {
     subtitle: "Retrouve le programme et les derniers repères de l’équipe.", label: nextEvent.inProgress ? "En ce moment" : "Dans les prochaines 48 heures",
     heading: nextEvent.title || "Séance de l’équipe", text: sessionDate(nextEvent), href: "/planning", action: "Ouvrir le planning", icon: CalendarDays,
   };
+  // Bootstrap follows import order, which can differ from played dates. A
+  // partial page cannot establish the latest game or the absence of recent play.
+  if (!historyComplete) return {
+    kind: "active", title: "Ton espace équipe", subtitle: "Retrouve les parties, les débriefs et le planning de ton équipe.",
+    label: "Parties", heading: matchDisplayName(latestMatch, "Partie de l’équipe"),
+    text: "Ouvre le résumé pour retrouver le résultat et les points à discuter avec l’équipe.",
+    href: matchPath(latestMatch), action: "Voir la partie", icon: Swords,
+  };
   const pending = unreviewedRecentMatches[0];
   if (pending) return {
     kind: "review", title: canReview ? "Place au débrief." : "Retrouve les dernières parties de ton équipe.",
-    subtitle: historyComplete ? `${countLabel(unreviewedRecentMatches.length, "partie récente", "parties récentes")} sans débrief enregistré.` : "Retrouve les parties, les débriefs et le planning de ton équipe.",
+    subtitle: `${countLabel(unreviewedRecentMatches.length, "partie récente", "parties récentes")} sans débrief enregistré.`,
     label: canReview ? "Votre prochain débrief" : "Votre dernière activité", heading: matchDisplayName(pending, "Partie de l’équipe"),
     text: canReview ? "Reprends cette partie, note un point à garder et une action à travailler ensemble." : "Ouvre le résumé pour retrouver le résultat et les points à discuter avec l’équipe.",
     href: canReview ? reviewPath(pending) : matchPath(pending), action: canReview ? "Préparer le débrief" : "Voir la partie", icon: canReview ? FileText : Swords,
@@ -143,8 +164,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   if (!currentTeam) return null;
   const historyComplete = data.historyComplete !== false && !data.pagination?.hasMore;
   const focus = homeFocus(context, now, historyComplete);
-  // The first page is enough for the latest activity. The historical count is
-  // supplied by the server and must not shrink to the currently loaded page.
+  // Keep the server's historical count while only one import page is loaded.
   const serverTotal = data.selectedTeamId === currentTeam.id ? data.totals?.games ?? data.pagination?.total : null;
   const totalMatches = Number.isSafeInteger(Number(serverTotal)) && Number(serverTotal) >= context.matches.length ? Number(serverTotal) : context.matches.length;
   const unfinished = steps.some(step => !step.done);
@@ -199,7 +219,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
 
     <div className={`nxt5-home-overview${context.showPlayerDebrief ? "" : " nxt5-home-overview--wide"}`}>
       <section className="nxt5-home-section" aria-labelledby="nxt5-home-games-title">
-        <div className="nxt5-home-section-heading"><Swords size={20} aria-hidden="true" /><h3 id="nxt5-home-games-title">{context.matches.length ? t("Dernières parties") : t("Les premières parties de ton équipe")}</h3></div>
+        <div className="nxt5-home-section-heading"><Swords size={20} aria-hidden="true" /><h3 id="nxt5-home-games-title">{context.matches.length ? t(historyComplete ? "Dernières parties" : "Parties") : t("Les premières parties de ton équipe")}</h3></div>
         {context.matches.length ? <>
           {historyComplete && <p className="nxt5-home-section-intro">{t(countLabel(context.recentMatches.length, "partie"))}{t(" sur les 14 derniers jours")}</p>}
           <ul className="nxt5-home-games">
@@ -219,7 +239,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
           <PublicTextLink href={context.canManageRoster ? "/gestion-equipe?section=roster" : "/mon-equipe"} navigate={navigate} className="nxt5-home-text-link">{context.canManageRoster ? t("Compléter l’effectif") : t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
         </>}
       </section>
-      {context.showPlayerDebrief && <HomePlayerDebrief context={context} navigate={navigate} />}
+      {context.showPlayerDebrief && <HomePlayerDebrief context={context} navigate={navigate} historyComplete={historyComplete} />}
     </div>
 
     {unfinished && !startIsPrimary && <div className="nxt5-home-learning">

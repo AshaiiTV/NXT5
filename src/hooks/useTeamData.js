@@ -14,9 +14,10 @@ function appendMatches(matches, page, teamId) {
   }
 }
 
-function initialSnapshot(result, teamId, ticket) {
+function initialSnapshot(result, teamId, ticket, cached = false) {
   const total = Number(result.pagination?.total ?? result.matches?.length ?? 0);
-  if (!Number.isSafeInteger(total) || total < 0 || Number(result.pagination?.offset || 0) !== 0) {
+  const offset = Number(result.pagination?.offset || 0);
+  if (!Number.isSafeInteger(total) || total < 0 || !Number.isSafeInteger(offset) || offset < 0 || (!cached && offset !== 0)) {
     throw new Error("Le nombre de games reçu est invalide. Réessaie.");
   }
   const matches = new Map();
@@ -24,14 +25,18 @@ function initialSnapshot(result, teamId, ticket) {
   if (matches.size > total || (!result.pagination?.hasMore && matches.size !== total)) {
     throw new Error("L’historique est incomplet. Réessaie pour analyser toutes les games.");
   }
+  if (result.pagination?.hasMore && (Number(result.pagination.nextOffset) !== matches.size || matches.size >= total)) {
+    throw new Error("La suite de l’historique reçue est invalide. Réessaie.");
+  }
   return { teamId, ticket, total, matches, pagination: result.pagination, complete: matches.size === total, failed: false };
 }
 
-async function completeHistory(snapshot, signal, isCurrent, onProgress) {
-  // Follow-up pages stay private until the complete analysis is validated.
+async function completeHistory(snapshot, signal, isCurrent, onProgress, pageLimit = Infinity) {
+  // Full analyses publish atomically; a manual list request publishes one page.
   const matches = new Map(snapshot.matches);
   let pagination = snapshot.pagination;
-  while (pagination?.hasMore) {
+  let pages = 0;
+  while (pagination?.hasMore && pages < pageLimit) {
     const offset = Number(pagination.nextOffset);
     if (!snapshot.teamId || !Number.isSafeInteger(offset) || offset !== matches.size || offset >= snapshot.total) {
       throw new Error("Impossible de charger l’historique complet. Réessaie.");
@@ -47,10 +52,14 @@ async function completeHistory(snapshot, signal, isCurrent, onProgress) {
     }
     appendMatches(matches, page, snapshot.teamId);
     if (matches.size > snapshot.total) throw new Error("La suite de l’historique reçue est invalide. Réessaie.");
-    onProgress({ loaded: matches.size, total: snapshot.total });
     pagination = page.pagination;
+    if (pagination?.hasMore && (Number(pagination.nextOffset) !== matches.size || matches.size >= snapshot.total)) {
+      throw new Error("La suite de l’historique reçue est invalide. Réessaie.");
+    }
+    pages += 1;
+    onProgress({ loaded: matches.size, total: snapshot.total });
   }
-  if (matches.size !== snapshot.total) throw new Error("L’historique est incomplet. Réessaie pour analyser toutes les games.");
+  if (!pagination?.hasMore && matches.size !== snapshot.total) throw new Error("L’historique est incomplet. Réessaie pour analyser toutes les games.");
   return { matches: [...matches.values()], pagination };
 }
 
@@ -74,13 +83,17 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
   const generation = useRef(0);
   const pendingTeam = useRef(undefined);
   const request = useRef(null);
+  const bootstrapTask = useRef(null);
   const snapshot = useRef(null);
   const historyTask = useRef(null);
   const historyDemanded = useRef(false);
+  const historyDemandRevision = useRef(0);
   const refresh = useRef(null);
 
   const cancelRequests = useCallback(() => {
     request.current?.abort();
+    bootstrapTask.current?.finish(false);
+    bootstrapTask.current = null;
     historyTask.current?.controller.abort();
     historyTask.current = null;
     setHistoryLoading(false);
@@ -99,7 +112,7 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
       setLoadingProgress(null);
       setLoading(Boolean(id && latestData.current.selectedTeamId !== id));
       snapshot.current = id && latestData.current.selectedTeamId === id && latestData.current.historyComplete === false
-        ? { ...initialSnapshot(latestData.current, id, generation.current), baseData: latestData.current }
+        ? { ...initialSnapshot(latestData.current, id, generation.current, true), baseData: latestData.current }
         : null;
     }
     if (!id) { snapshot.current = null; setData(DEFAULT_DATA); }
@@ -109,24 +122,35 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
     if (linkedTeamId && linkedTeamId !== selected.current) setSelectedTeamId(linkedTeamId);
   }, [linkedTeamId, setSelectedTeamId]);
 
-  const startHistory = useCallback((target) => {
-    if (historyTask.current?.ticket === target.ticket) return historyTask.current.promise;
+  const startHistory = useCallback((target, nextOnly = false) => {
+    const active = historyTask.current;
+    if (active?.ticket === target.ticket) {
+      if (!nextOnly && active.nextOnly) {
+        return active.promise.then(() => {
+          if (generation.current !== target.ticket || selected.current !== target.teamId) throw interrupted();
+          return startHistory(target);
+        });
+      }
+      return active.promise;
+    }
+    if (target.complete) return Promise.resolve(true);
     const controller = new AbortController();
-    const task = { ticket: target.ticket, controller, promise: null };
+    const task = { ticket: target.ticket, controller, promise: null, nextOnly };
     const isCurrent = () => generation.current === target.ticket && selected.current === target.teamId;
     setHistoryLoading(true);
     setHistoryError("");
     historyTask.current = task;
     task.promise = (async () => {
       try {
-        const complete = await completeHistory(target, controller.signal, isCurrent, setLoadingProgress);
+        const complete = await completeHistory(target, controller.signal, isCurrent, setLoadingProgress, nextOnly ? 1 : Infinity);
         if (!isCurrent() || controller.signal.aborted) throw interrupted();
-        target.complete = true;
+        target.complete = complete.matches.length === target.total;
+        target.failed = false;
         target.matches = new Map(complete.matches.map(match => [match.id, match]));
         target.pagination = complete.pagination;
         setData(current => {
           const base = current.bootstrapRevision === target.ticket ? current : target.baseData;
-          return { ...base, ...complete, historyComplete: true,
+          return { ...base, ...complete, historyComplete: target.complete,
             availability: planningStore.mergeAvailability(base.availability || [], base.players || []) };
         });
         return true;
@@ -153,10 +177,14 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
   const refreshAll = useCallback(async (refreshOptions = {}) => {
     const teamId = refreshOptions.teamId ?? selected.current;
     const loadFull = refreshOptions.history ?? (requireHistory.current || historyDemanded.current);
+    const demandRevision = historyDemandRevision.current;
     const ticket = ++generation.current;
     cancelRequests();
     const controller = new AbortController();
     request.current = controller;
+    const bootstrap = { ticket, finish: null, promise: null };
+    bootstrap.promise = new Promise(resolve => { bootstrap.finish = resolve; });
+    bootstrapTask.current = bootstrap;
     pendingTeam.current = teamId;
     setLoading(true);
     setLoadingProgress(null);
@@ -181,13 +209,16 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
       setSelectedId(activeTeam);
       // A mutation refresh retains its previous complete analysis atomically.
       // A first visit becomes usable after one bounded page.
-      const preserveComplete = loadFull && latestData.current.selectedTeamId === activeTeam && latestData.current.historyComplete === true && !next.complete;
+      const loadHistoryAfterBootstrap = loadFull || historyDemandRevision.current !== demandRevision;
+      const preserveComplete = loadHistoryAfterBootstrap && latestData.current.selectedTeamId === activeTeam && latestData.current.historyComplete === true && !next.complete;
       if (!preserveComplete) setData(next.baseData);
       setLoadingProgress({ loaded: next.matches.size, total: next.total });
       setLoading(false);
       setBootstrapped(true);
       initialReady = true;
-      if (loadFull && !next.complete) { historyDemanded.current = true; await startHistory(next); }
+      bootstrap.finish(true);
+      if (bootstrapTask.current === bootstrap) bootstrapTask.current = null;
+      if (loadHistoryAfterBootstrap && !next.complete) { historyDemanded.current = true; await startHistory(next); }
       return true;
     } catch (error) {
       if (ticket !== generation.current || controller.signal.aborted) return false;
@@ -205,6 +236,8 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
       if (refreshOptions.throwOnError) throw error;
       return false;
     } finally {
+      bootstrap.finish(false);
+      if (bootstrapTask.current === bootstrap) bootstrapTask.current = null;
       if (ticket === generation.current) { pendingTeam.current = undefined; setLoading(false); setBootstrapped(true); }
     }
   }, [planningStore, linkedArchiveId, cancelRequests, startHistory]);
@@ -212,6 +245,9 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
 
   const ensureHistory = useCallback(() => {
     historyDemanded.current = true;
+    historyDemandRevision.current += 1;
+    const pending = bootstrapTask.current;
+    if (pending?.ticket === generation.current) return pending.promise.then(ready => ready ? ensureHistory() : false);
     if (latestData.current.selectedTeamId === selected.current && latestData.current.historyComplete === true) return Promise.resolve(true);
     const target = snapshot.current;
     if (!target || target.ticket !== generation.current || target.teamId !== selected.current) return Promise.resolve(false);
@@ -219,9 +255,22 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
     return startHistory(target);
   }, [startHistory]);
 
+  const loadNextPage = useCallback(async () => {
+    let target = snapshot.current;
+    if (!target || target.ticket !== generation.current || target.teamId !== selected.current) return false;
+    if (target.failed) {
+      const teamId = target.teamId;
+      const reloaded = await refresh.current({ history: false, throwOnError: true });
+      if (!reloaded || selected.current !== teamId) return false;
+      target = snapshot.current;
+      if (!target || target.ticket !== generation.current || target.teamId !== teamId) return false;
+    }
+    return startHistory(target, true);
+  }, [startHistory]);
+
   useEffect(() => {
     refreshAll();
-    return () => { generation.current += 1; request.current?.abort(); historyTask.current?.controller.abort(); };
+    return () => { generation.current += 1; request.current?.abort(); bootstrapTask.current?.finish(false); historyTask.current?.controller.abort(); };
   }, [refreshAll]);
   useEffect(() => {
     if (selectedTeamId && data.selectedTeamId !== selectedTeamId && pendingTeam.current !== selectedTeamId) refreshAll({ teamId: selectedTeamId });
@@ -229,5 +278,5 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
 
   return { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped,
     bootstrapReady: data.bootstrapRevision !== undefined && data.selectedTeamId === selectedTeamId,
-    apiError, refreshAll, historyLoading, historyError, ensureHistory };
+    apiError, refreshAll, historyLoading, historyError, ensureHistory, loadNextPage };
 }

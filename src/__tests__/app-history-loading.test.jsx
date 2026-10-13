@@ -15,7 +15,7 @@ vi.mock("../components/layout/AppChrome.jsx", () => ({
 vi.mock("../pages/public/PublicPages.jsx", () => ({ LegalLinks: () => null, SiteHeader: () => null }));
 vi.mock("../pages/workspace/HomeWorkspace.jsx", () => ({ default: ({ data }) => <section data-history-page="home" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));
 vi.mock("../pages/workspace/Teams.jsx", () => ({ Teams: () => <section data-history-page="teams" /> }));
-vi.mock("../pages/workspace/GameWorkspace.jsx", () => ({ GameWorkspace: ({ data }) => <section data-history-page="games" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));
+vi.mock("../pages/workspace/GameWorkspace.jsx", () => ({ GameWorkspace: ({ data, loadNextPage }) => <section data-history-page="games" data-games={data.matches.length} data-team={data.selectedTeamId}><button data-history-next onClick={() => { void loadNextPage?.().catch(() => {}); }}>Charger la suite</button></section> }));
 vi.mock("../pages/workspace/TrendsPage.jsx", () => ({ TrendsPage: ({ data }) => <section data-history-page="trends" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));
 vi.mock("../pages/workspace/PlayerUltimateProfile.jsx", () => ({ PlayerUltimateProfile: ({ data }) => <section data-history-page="profile" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));
 vi.mock("../pages/workspace/DraftWorkspace.jsx", () => ({ DraftWorkspace: ({ data }) => <section data-history-page="draft" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));
@@ -65,13 +65,15 @@ afterEach(() => {
 });
 
 async function update(path) {
-  props = { ...props, route: { path, search: "" } };
+  const url = new URL(path, "https://nxt5.test");
+  props = { ...props, route: { path: url.pathname, search: url.search } };
   await act(async () => renderer.update(<Suspense fallback="module"><MainApp {...props} /></Suspense>));
   await act(async () => { await vi.dynamicImportSettled(); });
 }
 
 async function open(path = "/accueil") {
-  props.route = { path, search: "" };
+  const url = new URL(path, "https://nxt5.test");
+  props.route = { path: url.pathname, search: url.search };
   await act(async () => { renderer = TestRenderer.create(<Suspense fallback="module"><MainApp {...props} /></Suspense>); });
   expect(requests).toHaveLength(1);
 }
@@ -92,7 +94,25 @@ describe("on-demand complete history in the workspace", () => {
     expect(requests).toHaveLength(1);
   });
 
-  it.each([["/games", "games"], ["/rapports", "games"], ["/tendances", "trends"], ["/mon-profil", "profile"], ["/draft/pool", "draft"]])("keeps %s behind the complete-history gate with navigation available", async (path, page) => {
+  it("opens the default games list immediately and appends only one page per explicit request", async () => {
+    await open("/games?team=a");
+    await resolve(0, snapshot());
+    shell();
+    expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "games", "data-games": 100 });
+    expect(requests).toHaveLength(1);
+    await act(async () => renderer.root.findByProps({ "data-history-next": true }).props.onClick());
+    expect(requests).toHaveLength(2);
+    expect(requests[1].url).toContain("offset=100");
+    await resolve(1, snapshot({ offset: 100 }));
+    expect(renderedPages()[0].props["data-games"]).toBe(200);
+    expect(requests).toHaveLength(2);
+    await act(async () => renderer.root.findByProps({ "data-history-next": true }).props.onClick());
+    await resolve(2, snapshot({ offset: 200 }));
+    expect(renderedPages()[0].props["data-games"]).toBe(201);
+    expect(requests).toHaveLength(3);
+  });
+
+  it.each([["/games?match=a-0", "games"], ["/games?archive=group", "games"], ["/games?import=1", "games"], ["/games?view=groups", "games"], ["/games?view=teams", "games"], ["/draft/adversaires", "games"], ["/rapports", "games"], ["/tendances", "trends"], ["/mon-profil", "profile"], ["/draft/pool", "draft"]])("keeps %s behind the complete-history gate with navigation available", async (path, page) => {
     await open(path);
     await resolve(0, snapshot());
     shell();

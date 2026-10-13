@@ -39,28 +39,37 @@ function GameComposition({ participants, teamKey, side, id }) {
   </span>;
 }
 
-export function ImportedGames({ matches = [], categories = [], selectedMatchId, selectedMatch, selectedReport, onSelectMatch, onCreateReview, onOpenReview, onViewStats, onResetScope, scopeName = "", history = false, dateTimeZone, headerActions, categoryManager, selectionActions, selectionDetails, selectionLocked = false, showSelection = true, showCategoryFilter = history, allowImportSort = history, title, description, emptyAction }) {
+export function ImportedGames({ matches = [], categories = [], selectedMatchId, selectedMatch, selectedReport, onSelectMatch, onCreateReview, onOpenReview, onViewStats, onResetScope, scopeName = "", history = false, dateTimeZone, headerActions, categoryManager, selectionActions, selectionDetails, selectionLocked = false, showSelection = true, showCategoryFilter = history, allowImportSort = history, title, description, emptyAction, historyComplete = true, historyLoading = false, historyError = "", totalMatches, onLoadMore, onLoadHistory }) {
   const language = useLanguage();
   const locale = getLocale(language);
   const { dateFormat, timeFormat } = useMemo(() => ({
     dateFormat: new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: dateTimeZone }),
     timeFormat: new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", timeZone: dateTimeZone }),
   }), [dateTimeZone, locale]);
-  const [filters, setFilters] = useState(() => ({ ...initialFilters, sort: history ? "import-newest" : "newest" }));
+  const [filters, setFilters] = useState(() => ({ ...initialFilters, sort: history || (!historyComplete && allowImportSort) ? "import-newest" : "newest" }));
   const titleId = useId();
   const searchId = useId();
   const searchRef = useRef(null);
   const resultsRef = useRef(null);
   const deferredQuery = useDeferredValue(filters.query);
-  const results = useMemo(() => filterImportedGames(matches, { ...filters, query: deferredQuery }, categories), [matches, categories, deferredQuery, filters.result, filters.review, filters.side, filters.category, filters.sort, locale]);
+  const hasFilters = Boolean(filters.query.trim() || filters.result || filters.review || filters.side || filters.category);
+  const awaitingHistory = !historyComplete && (hasFilters || deferredQuery.trim() || filters.sort !== "import-newest");
+  const knownTotal = totalMatches != null && Number.isFinite(Number(totalMatches)) ? Math.max(matches.length, Number(totalMatches)) : null;
+  const loadedSummary = knownTotal === null ? t("{0} parties chargées", [matches.length]) : t("{0} parties chargées sur {1}", [matches.length, knownTotal]);
+  const results = useMemo(() => awaitingHistory ? [] : filterImportedGames(matches, { ...filters, query: deferredQuery }, categories), [awaitingHistory, matches, categories, deferredQuery, filters.result, filters.review, filters.side, filters.category, filters.sort, locale]);
   const pageCount = Math.max(1, Math.ceil(results.length / filters.pageSize));
   const page = Math.min(filters.page, pageCount);
   const start = (page - 1) * filters.pageSize;
   const visibleMatches = results.slice(start, start + filters.pageSize);
-  const hasFilters = Boolean(filters.query.trim() || filters.result || filters.review || filters.side || filters.category);
   const selectionVisible = visibleMatches.some((match) => String(match.id) === String(selectedMatchId));
   const selectionInScope = matches.some((match) => String(match.id) === String(selectedMatchId));
-  const setFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value, page: 1 }));
+  const loadHistory = () => { Promise.resolve(onLoadHistory?.()).catch(() => {}); };
+  const loadMore = () => { Promise.resolve(onLoadMore?.()).catch(() => {}); };
+  const setFilter = (key, value) => {
+    const next = { ...filters, [key]: value, page: 1 };
+    setFilters(next);
+    if (!historyComplete && (next.query.trim() || next.result || next.review || next.side || next.category || next.sort !== "import-newest")) loadHistory();
+  };
   const resetFilters = () => setFilters((current) => ({ ...initialFilters, sort: current.sort, pageSize: current.pageSize }));
   const clearSearch = () => { setFilter("query", ""); searchRef.current?.focus(); };
   const revealSelection = () => {
@@ -80,7 +89,7 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
         <div className="ig-heading-copy">
           <div className="ig-heading-title">
             <h3 id={titleId}>{title || (history ? t("Historique des imports") : t("Parties importées"))}</h3>
-            <p className="ig-total"><strong>{matches.length}</strong>{t(pluralCount(matches.length) ? " parties" : " partie")}</p>
+            <p className="ig-total"><strong>{knownTotal ?? matches.length}</strong>{t(pluralCount(knownTotal ?? matches.length) ? " parties" : " partie")}</p>
           </div>
           {scopeName && <p className="ig-scope-name">{scopeName}</p>}
           <p className="ig-description">{description || (history ? t("Retrouve tes imports, classe tes parties et vérifie les joueurs associés.") : t("Retrouve une partie, consulte son bilan et prépare son débrief."))}</p>
@@ -122,7 +131,7 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
       </div>
       </div>
       <div className="ig-results-summary">
-        <p role="status" aria-live="polite">{deferredQuery !== filters.query ? t("Recherche en cours…") : hasFilters ? t(pluralCount(results.length) ? "{0} parties sur {1}" : "{0} partie sur {1}", [results.length, matches.length]) : t(pluralCount(results.length) ? "{0} parties disponibles" : "{0} partie disponible", [results.length])}</p>
+        <p role="status" aria-live="polite">{awaitingHistory && historyLoading ? t("Chargement de l’historique pour appliquer les filtres et le tri…") : !historyComplete ? loadedSummary : deferredQuery !== filters.query ? t("Recherche en cours…") : hasFilters ? t(pluralCount(results.length) ? "{0} parties sur {1}" : "{0} partie sur {1}", [results.length, matches.length]) : t(pluralCount(results.length) ? "{0} parties disponibles" : "{0} partie disponible", [results.length])}</p>
         {hasFilters ? <button type="button" className="ig-text-action" onClick={resetFilters}><X aria-hidden="true" />{t(" Réinitialiser les filtres")}</button> : <p className="ig-search-hint">{t("Essaie « Jinx défaite »")}</p>}
       </div>
 
@@ -143,9 +152,11 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
       </div>}
       {selectedMatch && selectionDetails}
 
-      <div ref={resultsRef} className="ig-results" tabIndex={-1} aria-label={t("Liste des parties")} aria-busy={deferredQuery !== filters.query}>
+      {!historyComplete && historyError && <div className="ig-results-summary"><p role="alert">{t(historyError)}</p><Button type="button" variant="ghost" disabled={historyLoading} onClick={awaitingHistory ? loadHistory : loadMore}>{historyLoading ? t("Chargement…") : t("Réessayer")}</Button></div>}
+
+      <div ref={resultsRef} className="ig-results" tabIndex={-1} aria-label={t("Liste des parties")} aria-busy={Boolean(awaitingHistory && historyLoading) || deferredQuery !== filters.query}>
         <div className="ig-column-labels" aria-hidden="true"><span>{t("Résultat")}</span><span>{t("Partie")}</span><span>{t("Composition alliée")}</span><span>{t("Composition ennemie")}</span><span>{history ? t("Import / durée") : t("Date / durée")}</span><span>{t("Débrief")}</span><span /></div>
-        {visibleMatches.length ? <ul className="ig-list">{visibleMatches.map((match) => {
+        {awaitingHistory ? <div className="ig-empty"><p>{t("Les résultats seront affichés une fois l’historique complet chargé.")}</p>{!historyLoading && !historyError && onLoadHistory && <Button type="button" variant="ghost" onClick={loadHistory}>{t("Charger l’historique complet")}</Button>}</div> : visibleMatches.length ? <ul className="ig-list">{visibleMatches.map((match) => {
           const active = String(match.id) === String(selectedMatchId);
           const won = match.result === "Victoire";
           const lost = match.result === "Défaite";
@@ -165,7 +176,7 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
               <span className="ig-open" aria-hidden="true">{active ? <Check /> : <ChevronRight />}</span>
             </button>
           </li>;
-        })}</ul> : <div className="ig-empty">
+        })}</ul> : !historyComplete ? <div className="ig-empty"><p>{loadedSummary}</p></div> : <div className="ig-empty">
           <Search aria-hidden="true" />
           <h4>{hasFilters ? t("Aucune partie ne correspond") : history ? t("Aucune partie importée") : t("Aucune partie dans cette sélection")}</h4>
           <p>{hasFilters ? t("Essaie moins de mots ou élargis tes filtres.") : emptyAction ? t("Importe une première partie pour retrouver ici son bilan.") : history ? t("Importe une première partie pour alimenter ton historique et tes statistiques.") : t("Choisis une autre catégorie pour retrouver tes parties.")}</p>
@@ -177,6 +188,7 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
         <label className="ig-page-size">{t("Par page ")}<select value={filters.pageSize} onChange={(event) => setFilter("pageSize", Number(event.target.value))}>{[10, 25, 50].map((size) => <option key={size} value={size}>{size}</option>)}</select></label>
         <nav aria-label={t("Pagination des parties")}><button type="button" className="ig-icon-button" aria-label={t("Page précédente")} disabled={page === 1} onClick={() => changePage(page - 1)}><ChevronLeft aria-hidden="true" /></button><span>{t("Page ")}{page} / {pageCount}</span><button type="button" className="ig-icon-button" aria-label={t("Page suivante")} disabled={page === pageCount} onClick={() => changePage(page + 1)}><ChevronRight aria-hidden="true" /></button></nav>
       </footer>}
+      {!historyComplete && !awaitingHistory && onLoadMore && <div className="ig-pagination"><p>{loadedSummary}</p><Button type="button" variant="ghost" disabled={historyLoading} onClick={loadMore}>{historyLoading ? t("Chargement…") : t("Charger la suite")}</Button></div>}
     </section>
   </Surface>;
 }

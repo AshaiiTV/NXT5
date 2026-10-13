@@ -133,7 +133,156 @@ function demand(app) {
   return promise;
 }
 
+function more(app) {
+  let promise;
+  act(() => { promise = app.state.loadNextPage().catch(error => error); });
+  return promise;
+}
+
 describe("progressive team history lifecycle in React", () => {
+  it("appends one requested page at a time, deduplicates clicks and stops at the end", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 205);
+    await app.resolve(0, page("a", history));
+    const first = more(app), duplicate = more(app);
+    expect(app.requests).toHaveLength(2);
+    await app.resolve(1, page("a", history, 100));
+    expect(await first).toBe(true);
+    expect(await duplicate).toBe(true);
+    expect(app.state.data.matches).toEqual(history.slice(0, 200));
+    expect(app.state.data.historyComplete).toBe(false);
+    expect(app.state.historyLoading).toBe(false);
+    expect(app.requests).toHaveLength(2);
+    const last = more(app);
+    await app.resolve(2, page("a", history, 200));
+    expect(await last).toBe(true);
+    expect(app.state.data.matches).toEqual(history);
+    expect(app.state.data.historyComplete).toBe(true);
+    expect(await more(app)).toBe(true);
+    expect(app.requests).toHaveLength(3);
+  });
+
+  it("chains a complete analysis after an in-flight manual page without duplicate requests", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 305);
+    await app.resolve(0, page("a", history));
+    const next = more(app), full = demand(app), duplicate = demand(app);
+    await app.resolve(1, page("a", history, 100));
+    expect(await next).toBe(true);
+    expect(app.state.data.matches).toHaveLength(200);
+    expect(app.state.data.historyComplete).toBe(false);
+    expect(app.requests).toHaveLength(3);
+    expectRequest(app.requests[2], { offset: 200, teamId: "a", matchesOnly: true });
+    await app.resolve(2, page("a", history, 200));
+    expect(app.state.data.matches).toHaveLength(200);
+    await app.resolve(3, page("a", history, 300));
+    expect(await full).toBe(true);
+    expect(await duplicate).toBe(true);
+    expect(app.state.data.matches).toEqual(history);
+    expect(app.requests).toHaveLength(4);
+  });
+
+  it("keeps mutation refreshes bounded after manual list pagination", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 205);
+    await app.resolve(0, page("a", history));
+    const next = more(app);
+    await app.resolve(1, page("a", history, 100));
+    await next;
+    app.refresh();
+    await app.resolve(2, page("a", history));
+    expect(app.requests).toHaveLength(3);
+    expect(app.state.data.matches).toHaveLength(100);
+    expect(app.state.historyLoading).toBe(false);
+  });
+
+  it("reuses cached partial pages after cancelling a team switch", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 205);
+    await app.resolve(0, page("a", history));
+    const next = more(app);
+    await app.resolve(1, page("a", history, 100));
+    await next;
+    app.select("b");
+    app.select("a");
+    expect(app.requests[2].options.signal.aborted).toBe(true);
+    const last = more(app);
+    expectRequest(app.requests[3], { offset: 200, teamId: "a", matchesOnly: true });
+    await app.resolve(3, page("a", history, 200));
+    expect(await last).toBe(true);
+    expect(app.state.data.matches).toEqual(history);
+    await app.resolve(2, page("b", games("b", 1)));
+    expect(app.state.data.matches).toEqual(history);
+  });
+
+  it("retries a failed manual page from a fresh snapshot and still stops after one page", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 305), updated = games("a", 306, "updated");
+    await app.resolve(0, page("a", history));
+    const failed = more(app);
+    await app.reject(1);
+    expect(await failed).toBeInstanceOf(Error);
+    expect(app.state.historyError).toBeTruthy();
+    const retry = more(app);
+    await app.resolve(2, page("a", updated));
+    await app.resolve(3, page("a", updated, 100));
+    expect(await retry).toBe(true);
+    expect(app.state.data.matches).toEqual(updated.slice(0, 200));
+    expect(app.state.data.historyComplete).toBe(false);
+    expect(app.state.historyError).toBe("");
+    expect(app.requests).toHaveLength(4);
+  });
+
+  it("aborts a manual page and an analysis queued behind it when changing teams", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 305);
+    await app.resolve(0, page("a", history));
+    const next = more(app), full = demand(app);
+    app.select("b");
+    await app.resolve(2, page("b", games("b", 1)));
+    await app.resolve(1, page("a", history, 100));
+    expect(await next).toHaveProperty("name", "AbortError");
+    expect(await full).toHaveProperty("name", "AbortError");
+    expect(app.state.data.selectedTeamId).toBe("b");
+    expect(app.requests).toHaveLength(3);
+  });
+
+  it("awaits a complete analysis requested during a manual retry bootstrap", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 305), fresh = games("a", 306, "fresh");
+    await app.resolve(0, page("a", history));
+    const failed = more(app);
+    await app.reject(1);
+    await failed;
+    const retry = more(app), full = demand(app);
+    let finished = false;
+    full.then(() => { finished = true; });
+    expect(app.requests).toHaveLength(3);
+    await app.resolve(2, page("a", fresh));
+    expect(finished).toBe(false);
+    await app.resolve(3, page("a", fresh, 100));
+    expect(finished).toBe(false);
+    expect(app.state.data.matches).toHaveLength(100);
+    await app.resolve(4, page("a", fresh, 200));
+    await app.resolve(5, page("a", fresh, 300));
+    expect(await retry).toBe(true);
+    expect(await full).toBe(true);
+    expect(app.state.data.matches).toEqual(fresh);
+    expect(app.state.data.historyComplete).toBe(true);
+    expect(app.requests).toHaveLength(6);
+  });
+
+  it("settles a complete request queued during bootstrap when changing teams", async () => {
+    const app = mount("?team=a");
+    const obsolete = demand(app);
+    app.select("b");
+    expect(await obsolete).toBe(false);
+    await app.resolve(1, page("b", games("b", 1)));
+    await app.resolve(0, page("a", games("a", 1)));
+    expect(app.state.data.selectedTeamId).toBe("b");
+    expect(app.requests).toHaveLength(2);
+  });
+
   it("opens the workspace after one bounded page without fetching old games", async () => {
     const app = mount("?team=a");
     const history = games("a", 205);

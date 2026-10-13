@@ -7771,5 +7771,11 @@
   "Pistes de lecture": "Pistas para revisar",
   "Les situations à questionner.": "Situaciones para analizar.",
   "Replace les morts dans leur contexte, puis confronte la composition au plan de jeu de cette partie.": "Sitúa las muertes en su contexto y contrasta la composición con el plan de juego de esta partida.",
-  "Contexte des morts et composition jouée dans cette partie.": "Contexto de las muertes y composición jugada en esta partida."
+  "Contexte des morts et composition jouée dans cette partie.": "Contexto de las muertes y composición jugada en esta partida.",
+  "{0} parties chargées": "{0} partidas cargadas",
+  "{0} parties chargées sur {1}": "{0} partidas cargadas de {1}",
+  "Charger la suite": "Cargar más",
+  "Chargement de l’historique pour appliquer les filtres et le tri…": "Cargando el historial para aplicar los filtros y el orden…",
+  "Les résultats seront affichés une fois l’historique complet chargé.": "Los resultados aparecerán cuando se haya cargado todo el historial.",
+  "Charger l’historique complet": "Cargar todo el historial"
 }

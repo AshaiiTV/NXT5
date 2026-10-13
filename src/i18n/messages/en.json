@@ -7771,5 +7771,11 @@
   "Pistes de lecture": "Review pointers",
   "Les situations à questionner.": "Situations to discuss.",
   "Replace les morts dans leur contexte, puis confronte la composition au plan de jeu de cette partie.": "Put deaths in context, then compare the composition with the game plan for this match.",
-  "Contexte des morts et composition jouée dans cette partie.": "Death context and the composition played in this match."
+  "Contexte des morts et composition jouée dans cette partie.": "Death context and the composition played in this match.",
+  "{0} parties chargées": "{0} matches loaded",
+  "{0} parties chargées sur {1}": "{0} matches loaded out of {1}",
+  "Charger la suite": "Load more",
+  "Chargement de l’historique pour appliquer les filtres et le tri…": "Loading history to apply filters and sorting…",
+  "Les résultats seront affichés une fois l’historique complet chargé.": "Results will appear once the full history has loaded.",
+  "Charger l’historique complet": "Load full history"
 }

@@ -230,6 +230,29 @@ describe("adaptive team home", () => {
     expect(links(renderer).some((link) => link.props.href === "/games?match=match")).toBe(true);
   });
 
+  it("does not infer inactivity from old games on a partial page ordered by import date", async () => {
+    const props = fixture({ matches: [match({ game_date: "2026-09-01T18:00:00Z", created_at: NOW.toISOString() })] });
+    props.data.historyComplete = false;
+    const renderer = await render(props);
+    expect(homeState(renderer)).toBe("active");
+    expect(text(renderer.toJSON())).not.toContain("Aucune partie récente");
+    expect(text(renderer.toJSON())).not.toContain("Revoir la dernière partie");
+    expect(text(renderer.root.findByProps({ id: "nxt5-home-games-title" }))).toBe("Parties");
+    expect(links(renderer).find((link) => text(link) === "Voir la partie").props.href).toBe("/games?match=match");
+    await act(async () => renderer.update(<HomeWorkspace {...props} data={{ ...props.data, historyComplete: true }} />));
+    expect(homeState(renderer)).toBe("quiet");
+    expect(text(renderer.toJSON())).toContain("Aucune partie récente dans l’espace de l’équipe sur les 14 derniers jours.");
+  });
+
+  it("does not present a loaded recent game's review as the team's latest review before history is complete", async () => {
+    const props = fixture({ matches: [match()], reports: [{ id: "report", team_id: "team", title: "Débrief enregistré", match_ids: ["match"] }] });
+    props.data.historyComplete = false;
+    const renderer = await render(props);
+    expect(text(renderer.toJSON())).not.toContain("Reprends le dernier débrief de ton équipe.");
+    expect(text(renderer.toJSON())).not.toContain("Retrouve le débrief de votre dernière partie");
+    expect(text(renderer.toJSON())).toContain("Ton espace équipe");
+  });
+
   it("updates time-sensitive priorities while the home remains open", async () => {
     const props = fixture({ matches: [match()], botEvents: [{ id: "event", team_id: "team", title: "Prochaine séance", status: "scheduled", starts_at: new Date(NOW.getTime() + 48 * 60 * 60 * 1000 + 30_000).toISOString(), duration_minutes: 60 }] });
     const renderer = await render(props);
@@ -263,6 +286,29 @@ describe("adaptive team home", () => {
 });
 
 describe("personal home debrief", () => {
+  it.each([[false, 2], [true, 2], [false, 101]])("withholds personal attribution when a group game is outside the loaded page (serialized: %s, games: %s)", async (serialized, count) => {
+    const props = personalFixture();
+    props.data.historyComplete = false;
+    const originalGame = props.data.matches[0];
+    const groupIds = [originalGame.id, ...Array.from({ length: count - 1 }, (_, index) => `older-group-game-${index}`)];
+    const groupGames = groupIds.map(id => ({ ...originalGame, id }));
+    props.data.matches = groupGames.slice(0, -1);
+    props.data.matchArchives[0].match_ids = serialized ? JSON.stringify(groupIds) : groupIds;
+    props.data.reports[0].match_ids = groupIds;
+    const renderer = await render(props);
+    let panel = personalDebrief(renderer);
+    expect(text(panel)).toContain("Historique complet à charger");
+    expect(text(panel)).not.toContain("Annonce ton reset avant le dragon.");
+    expect(text(panel)).not.toContain("Ce débrief ne contient pas encore de passage attribuable à ton profil.");
+    expect(panel.findAllByType("details")).toHaveLength(0);
+    expect(panel.findByType("a").props.href).toBe("/rapports?report=team-report");
+    // The rest of the team history may remain partial once this group is whole.
+    await act(async () => renderer.update(<HomeWorkspace {...props} data={{ ...props.data, matches: groupGames }} />));
+    panel = personalDebrief(renderer);
+    expect(text(panel)).toContain("Annonce ton reset avant le dragon.");
+    expect(text(panel)).not.toContain("Historique complet à charger");
+  });
+
   it("shows only the linked player's saved observations and notes, with their source and group", async () => {
     const props = personalFixture();
     const renderer = await render(props);
