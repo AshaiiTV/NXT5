@@ -16,6 +16,7 @@ vi.mock("three", async (importOriginal) => {
         this.setPixelRatio = vi.fn();
         this.setClearColor = vi.fn();
         this.setSize = vi.fn();
+        this.resetState = vi.fn();
         this.dispose = vi.fn();
         this.history = [];
         this.render = vi.fn((scene, camera) => {
@@ -230,6 +231,8 @@ describe("physical glass renderer lifecycle", () => {
     const disposal = [...resources].map((resource) => vi.spyOn(resource, "dispose"));
     signal.abort(); scene.dispose();
     expect(renderer.dispose).toHaveBeenCalledOnce(); expect(gpu.environments[0].dispose).toHaveBeenCalledOnce();
+    expect(renderer.resetState).toHaveBeenCalledOnce();
+    expect(renderer.resetState.mock.invocationCallOrder[0]).toBeLessThan(renderer.dispose.mock.invocationCallOrder[0]);
     expect(gpu.texture.dispose).toHaveBeenCalledOnce(); disposal.forEach((spy) => expect(spy).toHaveBeenCalledOnce());
     expect(frames.size).toBe(0); expect(canvas.listeners.size).toBe(0); expect(windowTarget.listeners.size).toBe(0); expect(documentTarget.listeners.size).toBe(0); expect(reduced.listeners.size).toBe(0);
     expect(intersections[0].disconnect).toHaveBeenCalledOnce(); expect(resizes[0].disconnect).toHaveBeenCalledOnce();

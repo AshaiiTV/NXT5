@@ -45,6 +45,9 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
     for (const texture of textures) texture.dispose();
     environmentTarget?.dispose();
     scene?.clear();
+    // A later renderer can reuse this canvas' context. Restore unpack defaults
+    // before Three initializes its empty 3D textures on the next setup.
+    renderer?.resetState?.();
     renderer?.dispose();
   };
   const abort = () => cleanup();
