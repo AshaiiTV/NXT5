@@ -1,9 +1,9 @@
 import React, { useId, useMemo } from "react";
-import { ArrowUpRight, ChevronDown, Compass, Crosshair, Eye, FileText, Flag, Sprout, Users } from "lucide-react";
+import { ArrowUpRight, ChevronDown, Compass, Crosshair, Eye, FileText, Flag, Users } from "lucide-react";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { getLocale } from "../../i18n/locale.js";
 import { t } from "../../i18n/translate.js";
-import { buildPlaystyleAnalysis, repeatedPlaystyle } from "../../utils/playstyle-analysis.js";
+import { buildPlaystyleAnalysis } from "../../utils/playstyle-analysis.js";
 import { matchDisplayName } from "../../utils/matches.js";
 import { RoleIcon } from "../brand/BrandAssets.jsx";
 import { Surface } from "../ui/Core.jsx";
@@ -175,13 +175,6 @@ export function PlaystyleAnalysis({ matches = EMPTY, players = EMPTY, sourceGame
     </section>
 
     <div className="playstyle-axes">
-      <Axis id={`${id}-early`} icon={Sprout} title="Début de partie" entries={[entry("gold10")]} sourceProps={sourceProps}
-        method="L’or à 10 min exige un relevé de chronologie entre 10:00 et 10:05 et les dix joueurs renseignés. Une partie plus courte ou un relevé absent ne compte pas."
-        review="Comparer les trois premières vagues, le premier retour à la base et les déplacements visibles avant 10 min.">
-        {m.gold10.count ? <><p className="playstyle-finding">{t("Avance dans {0} / {1} parties mesurées, retard dans {2} / {1}.", [m.gold10.positive, m.gold10.count, m.gold10.negative])}</p>
-          <p>{repeatedPlaystyle(m.gold10.positive, m.gold10.count) ? t("Point d’appui à confirmer : une avance apparaît régulièrement à 10 min dans les parties mesurées.") : repeatedPlaystyle(m.gold10.negative, m.gold10.count) ? t("Point à revoir : le retard à 10 min se répète dans les parties mesurées.") : t("Les observations restent trop peu nombreuses ou partagées pour décrire un début de partie habituel.")}</p></>
-          : <p>{t("La chronologie disponible ne permet pas de comparer l’or à 10 min.")}</p>}
-      </Axis>
       <Axis id={`${id}-resources`} icon={Users} title="Ressources et contributions" entries={resourceEntries} sourceEntries={allResourceEntries} sourceProps={sourceProps}
         method="Les parts sont calculées par partie puis moyennées. Elles exigent cinq alliés et toutes les valeurs connues. Les ex æquo ne désignent aucun rôle le plus alimenté."
         review="Comparer le plan de ressources annoncé, les vagues reçues et les positions en combat. La part des dégâts ne mesure pas le rendement de l’or ni la valeur d’un rôle.">

@@ -266,10 +266,10 @@ const mount = (props) => { act(() => { renderer = TestRenderer.create(<Playstyle
 afterEach(() => { act(() => renderer?.unmount()); renderer = null; vi.restoreAllMocks(); });
 
 describe("playstyle progressive reading", () => {
-  it("separates four factual axes, one experiment and closed role/method details", () => {
+  it("separates three factual axes, one experiment and closed role/method details", () => {
     const root = mount({ matches: [match("1"), match("2"), match("3")] });
     expect(text(renderer.toJSON())).toContain("Tester la préparation des dix premières minutes");
-    expect(root.findAllByProps({ className: "playstyle-axis" }).map((section) => text(section.findByType("h4")))).toEqual(["Début de partie", "Ressources et contributions", "Combats et vision", "Objectifs pris"]);
+    expect(root.findAllByProps({ className: "playstyle-axis" }).map((section) => text(section.findByType("h4")))).toEqual(["Ressources et contributions", "Combats et vision", "Objectifs pris"]);
     expect(root.findAllByType("details").every((detail) => !detail.props.open)).toBe(true);
     expect(root.findAllByProps({ className: "playstyle-role playstyle-disclosure" }).map((detail) => detail.props["data-role"])).toEqual(ROLES);
     expect(text(renderer.toJSON())).toContain("3 / 3 parties mesurées");
@@ -279,9 +279,8 @@ describe("playstyle progressive reading", () => {
   it("shows a small sample as a limited observation rather than a habitual strength", () => {
     const root = mount({ matches: [match("1", { early: 5000 })] });
     expect(text(root.findByProps({ className: "playstyle-sample" }))).toContain("Moins de 3 parties");
-    const early = root.findAllByProps({ className: "playstyle-axis" })[0];
-    expect(text(early)).not.toContain("Point d’appui à confirmer");
-    expect(text(early)).toContain("1 / 1 partie mesurée");
+    const resources = root.findAllByProps({ className: "playstyle-axis" })[0];
+    expect(text(resources)).toContain("1 / 1 partie mesurée");
     expect(text(renderer.toJSON())).toContain("Construire un point de comparaison sur trois parties");
   });
 
@@ -303,18 +302,18 @@ describe("playstyle progressive reading", () => {
   });
 
   it("opens only the exact measured source matches with per-game evidence and safe modality", () => {
-    const a = match("a"); const missing = match("missing"); missing.raw.timeline.info.frames = [];
+    const a = match("a"); const missing = match("missing"); missing.participants = [];
     const sourceGames = deepFreeze([{ id: "a", match: a, title: "Partie test", topRoleDetail: "legacy" }, { id: "missing", match: missing, title: "Partie sans chronologie" }]);
     const onOpenSources = vi.fn();
     const root = mount({ matches: [a, missing], sourceGames, onOpenSources });
-    const firstAxis = root.findAllByProps({ className: "playstyle-axis" })[0];
-    act(() => firstAxis.findByType("button").props.onClick());
+    const combat = root.findAllByProps({ className: "playstyle-axis" })[1];
+    act(() => combat.findByType("button").props.onClick());
     const payload = onOpenSources.mock.calls[0][0];
     expect(payload.playstyle).toBe(true);
     expect(payload.games).toHaveLength(1);
     expect(payload.games[0].match).toBe(a);
     expect(payload.games[0].title).toBe("Partie test");
-    expect(payload.games[0].playstyleEvidence).toEqual([{ label: "Écart d’or à 10 min", value: "-1 000 or" }]);
+    expect(payload.games[0].playstyleEvidence).toContainEqual({ label: "Morts de l’équipe / partie", value: "15,0" });
     expect(payload.games[0].playstyleRead).toContain("Mesures de cette partie");
     expect(sourceGames[0]).not.toHaveProperty("playstyleEvidence");
   });
@@ -323,7 +322,7 @@ describe("playstyle progressive reading", () => {
     const selected = match(); selected.participants[3].gold = 10000;
     const onOpenSources = vi.fn();
     const root = mount({ matches: [selected], onOpenSources });
-    const resources = root.findAllByProps({ className: "playstyle-axis" })[1];
+    const resources = root.findAllByProps({ className: "playstyle-axis" })[0];
     expect(resources.findByType("button").props.disabled).toBe(false);
     act(() => resources.findByType("button").props.onClick());
     expect(onOpenSources.mock.calls[0][0].games[0].playstyleEvidence).toHaveLength(10);
@@ -334,8 +333,8 @@ describe("playstyle progressive reading", () => {
     const a = match(""); const b = match("", { early: 500 });
     const onOpenSources = vi.fn();
     const root = mount({ matches: [a, b], sourceGames: [{ match: a, title: "Import A" }, { match: b, title: "Import B" }], onOpenSources });
-    const early = root.findAllByProps({ className: "playstyle-axis" })[0];
-    act(() => early.findByType("button").props.onClick());
+    const resources = root.findAllByProps({ className: "playstyle-axis" })[0];
+    act(() => resources.findByType("button").props.onClick());
     expect(onOpenSources.mock.calls[0][0].games.map((game) => game.title)).toEqual(["Import A", "Import B"]);
     expect(onOpenSources.mock.calls[0][0].games.map((game) => game.match)).toEqual([a, b]);
   });
@@ -343,7 +342,7 @@ describe("playstyle progressive reading", () => {
   it("includes the actual mortality comparison supporting the combat finding in sources", () => {
     const selected = match(); const onOpenSources = vi.fn();
     const root = mount({ matches: [selected], onOpenSources });
-    const combat = root.findAllByProps({ className: "playstyle-axis" })[2];
+    const combat = root.findAllByProps({ className: "playstyle-axis" })[1];
     act(() => combat.findByType("button").props.onClick());
     expect(onOpenSources.mock.calls[0][0].games[0].playstyleEvidence).toContainEqual({ label: "Écart de morts / partie", value: "+5,0" });
   });
