@@ -19,6 +19,38 @@ const PHASES = [
   { id: "bootstrap", label: "Synchronisation", status: "Synchronisation en cours", detail: "Chargement des joueurs, parties et débriefs." },
 ];
 
+const GLASS_FACETS = [
+  { x: "14%", y: "24%", size: "13px", turn: "-24deg", delay: "-1.3s", duration: "7.2s" },
+  { x: "79%", y: "19%", size: "10px", turn: "28deg", delay: "-4.6s", duration: "8.4s" },
+  { x: "7%", y: "47%", size: "8px", turn: "14deg", delay: "-3.1s", duration: "7.8s" },
+  { x: "88%", y: "48%", size: "15px", turn: "-32deg", delay: "-.8s", duration: "9.2s" },
+  { x: "23%", y: "69%", size: "9px", turn: "38deg", delay: "-5.4s", duration: "8.8s" },
+  { x: "76%", y: "71%", size: "8px", turn: "-12deg", delay: "-2.5s", duration: "7.6s" },
+];
+
+function GlassOrbit({ front = false }) {
+  const gradientId = React.useId();
+  const path = front
+    ? "M 71 335 C 102 393 236 417 369 386 C 479 361 547 312 524 274"
+    : "M 547 282 A 247 100 0 1 1 53 282 A 247 100 0 1 1 547 282";
+  return <svg className={`nxt5-sync-energy ${front ? "is-front" : "is-rear"}`} viewBox="0 0 600 560" fill="none" focusable="false">
+    <defs>
+      <linearGradient id={gradientId} x1="70" y1="180" x2="510" y2="400" gradientUnits="userSpaceOnUse">
+        <stop stopColor="#67e8f9" />
+        <stop offset=".46" stopColor="#e4dbff" />
+        <stop offset=".72" stopColor="#bda0ff" />
+        <stop offset="1" stopColor="#e879f9" />
+      </linearGradient>
+    </defs>
+    <g transform={front ? "rotate(9 300 320)" : "rotate(-21 300 282)"} stroke={`url(#${gradientId})`}>
+      <path className="nxt5-sync-energy-track" d={path} />
+      <path className="nxt5-sync-energy-glow" d={path} pathLength="100" />
+      <path className="nxt5-sync-energy-trail" d={path} pathLength="100" />
+      <path className="nxt5-sync-energy-glint" d={path} pathLength="100" />
+    </g>
+  </svg>;
+}
+
 function GlassStage() {
   return (
     <div className="nxt5-sync-art" aria-hidden="true">
@@ -28,6 +60,13 @@ function GlassStage() {
         <div className="nxt5-sync-orbit is-outer" />
         <div className="nxt5-sync-orbit is-inner" />
         <div className="nxt5-sync-stage-reflection" />
+      </div>
+      <GlassOrbit />
+      <div className="nxt5-sync-facets">
+        {GLASS_FACETS.map((facet, index) => <span key={index} className="nxt5-sync-facet" style={{
+          "--facet-x": facet.x, "--facet-y": facet.y, "--facet-size": facet.size,
+          "--facet-turn": facet.turn, "--facet-delay": facet.delay, "--facet-duration": facet.duration,
+        }} />)}
       </div>
       <div className="nxt5-sync-core">
         <div className="nxt5-sync-core-arrival">
@@ -44,6 +83,7 @@ function GlassStage() {
           </div>
         </div>
       </div>
+      <GlassOrbit front />
       <div className="nxt5-sync-roles">
         {ROLES.map((role) => (
           <div key={role.name} className="nxt5-sync-role" style={{ "--sync-color": role.color }}>
