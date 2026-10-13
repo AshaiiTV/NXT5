@@ -1,0 +1,17 @@
+{
+  "name": "nxt5-promo-video",
+  "private": true,
+  "type": "module",
+  "description": "Procedural motion-design promo video for NXT5 (canvas + ffmpeg, original synthesized music).",
+  "scripts": {
+    "music": "python3 music.py out/music.wav",
+    "stills": "node src/render.mjs --stills",
+    "render": "node src/render.mjs"
+  },
+  "dependencies": {
+    "@fontsource/anton": "5.3.0",
+    "@fontsource/bebas-neue": "5.3.0",
+    "@fontsource/russo-one": "5.3.0",
+    "@napi-rs/canvas": "1.0.9"
+  }
+}
