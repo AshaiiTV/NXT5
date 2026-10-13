@@ -1429,9 +1429,12 @@ function GameWorkspace(props) {
     : <Statistics key={props.selectedTeamId} {...props} />;
 }
 
-function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember, user, route }) {
+function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember, user, route, ensureHistory, loadNextPage, historyLoading = false, historyError = "" }) {
   useLanguage();
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
+  const historyComplete = data.historyComplete !== false && !data.pagination?.hasMore;
+  const serverTotal = data.selectedTeamId === selectedTeamId ? data.totals?.games ?? data.pagination?.total : null;
+  const totalMatches = Number.isSafeInteger(Number(serverTotal)) && Number(serverTotal) >= baseMatches.length ? Number(serverTotal) : baseMatches.length;
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
   const selectedTeam = (data.teams || []).find((team) => String(team.id) === String(selectedTeamId));
@@ -1664,8 +1667,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
 
     <div hidden={Boolean(selectedMatchId)}>
       <div className="games-library-toolbar">
-        <TabNav idPrefix="games-library" panelId="games-library-panel" label={t("Bibliothèque de parties")} items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }, { id: "teams", label: "Équipes", meta: teamCount === null ? "—" : String(teamCount) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-3" />
-        {workspaceView !== "teams" && baseMatches.length > 0 && <p className="games-team-record"><span>{t("Équipe")}</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)}{t(" % de victoires")}</span></p>}
+        <TabNav idPrefix="games-library" panelId="games-library-panel" label={t("Bibliothèque de parties")} items={[{ id: "games", label: "Parties", meta: String(totalMatches) }, { id: "groups", label: "Groupes", meta: String(archives.length) }, { id: "teams", label: "Équipes", meta: teamCount === null ? "—" : String(teamCount) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-3" />
+        {historyComplete && workspaceView !== "teams" && baseMatches.length > 0 && <p className="games-team-record"><span>{t("Équipe")}</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)}{t(" % de victoires")}</span></p>}
       </div>
       <div id="games-library-panel" role="tabpanel" aria-labelledby={`games-library-tab-${workspaceView}`} tabIndex={0}>
       {workspaceView === "teams" && !selectedMatchId && <OpponentsWorkspace selectedTeamId={selectedTeamId} user={user} opponentId={query.get("opponent") || ""} refreshRevision={data.bootstrapRevision} onCountChange={updateOpponentCount} embedded />}
@@ -1714,6 +1717,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       <div ref={listRef} hidden={workspaceView === "teams" || (workspaceView === "groups" && !selectedArchive)}>
         <ImportedGames
           matches={scopedMatches} categories={matchCategories} selectedMatchId={selectedMatchId} selectedMatch={selectedMatch}
+          historyComplete={historyComplete} historyLoading={historyLoading} historyError={historyError}
+          totalMatches={selectedArchive ? scopedMatches.length : totalMatches} onLoadMore={loadNextPage} onLoadHistory={ensureHistory}
           onSelectMatch={selectMatch} showSelection={false} showCategoryFilter allowImportSort
           title={selectedArchive ? t("Parties du groupe") : t("Toutes les parties")}
           description={t("Recherche une partie pour lire son résumé, puis ses statistiques.")}
