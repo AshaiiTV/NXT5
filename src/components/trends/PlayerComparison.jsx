@@ -1,5 +1,5 @@
 import React, { useId, useMemo, useState } from "react";
-import { BarChart3, ChevronDown } from "lucide-react";
+import { BarChart3, ChevronDown, Eye, Flame, HandCoins, Info, ListFilter, Swords, Table2, UsersRound, Wheat } from "lucide-react";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { getLocale } from "../../i18n/locale.js";
 import { t } from "../../i18n/translate.js";
@@ -27,6 +27,7 @@ const METRICS = [
   { id: "goldPerMin", label: "Or / min", unit: "Par minute", digits: 0, description: "Or gagné divisé par la durée de chaque partie, puis moyenné." },
 ];
 const QUICK_METRICS = ["vision", "kills", "csPerMin", "damagePerMin", "kp"];
+const METRIC_ICONS = { vision: Eye, visionPerMin: Eye, kills: Swords, deaths: Swords, assists: UsersRound, kda: Swords, kp: UsersRound, cs: Wheat, csPerMin: Wheat, damage: Flame, damagePerMin: Flame, gold: HandCoins, goldPerMin: HandCoins };
 const THEMES = [
   { id: "all", label: "Tous les thèmes", metrics: METRICS.map((metric) => metric.id) },
   { id: "vision", label: "Vision", metrics: ["vision", "visionPerMin"] },
@@ -51,11 +52,13 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
   const [metricId, setMetricId] = useState("vision");
   const [themeId, setThemeId] = useState("all");
   const [order, setOrder] = useState("roster");
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const model = useMemo(() => buildPlayerComparison(matches, players), [matches, players]);
   const theme = THEMES.find((item) => item.id === themeId) || THEMES[0];
   const visibleMetrics = METRICS.filter((item) => theme.metrics.includes(item.id));
   const shortcuts = themeId === "all" ? QUICK_METRICS : theme.metrics;
   const metric = METRICS.find((item) => item.id === metricId) || METRICS[0];
+  const MetricIcon = METRIC_ICONS[metric.id];
   const changeTheme = (nextId) => {
     const nextTheme = THEMES.find((item) => item.id === nextId);
     if (!nextTheme) return;
@@ -82,13 +85,18 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
 
   return <section className="player-comparison" aria-labelledby={`${id}-title`}>
     <header className="player-comparison-heading">
-      <div>
-        <h3 id={`${id}-title`}><BarChart3 aria-hidden="true" />{t("Comparer les joueurs")}</h3>
+      <div className="player-comparison-heading-copy">
+        <h3 id={`${id}-title`}><span className="player-comparison-heading-icon"><BarChart3 aria-hidden="true" /></span>{t("Comparer les joueurs")}</h3>
         <p>{t("Vision, combat et farm : les contributions de chacun sur la sélection actuelle.")}</p>
       </div>
-      <span className="player-comparison-sample">{t(model.players.length === 1 ? "{0} joueur" : "{0} joueurs", [model.players.length])} · {t(model.games === 1 ? "{0} partie sélectionnée" : "{0} parties sélectionnées", [model.games])}</span>
+      <span className="player-comparison-sample"><UsersRound aria-hidden="true" /><span>{t(model.players.length === 1 ? "{0} joueur" : "{0} joueurs", [model.players.length])} · {t(model.games === 1 ? "{0} partie sélectionnée" : "{0} parties sélectionnées", [model.games])}</span></span>
     </header>
 
+    <div className="player-comparison-layout">
+    <div className="player-comparison-toolbox">
+    {(onCategoryChange || model.players.length > 0) && <button type="button" className="player-comparison-filter-toggle" aria-expanded={filtersOpen} aria-controls={`${id}-filters`} onClick={() => setFiltersOpen((open) => !open)}><ListFilter aria-hidden="true" /><span>{t("Filtres de comparaison")}</span><ChevronDown aria-hidden="true" /></button>}
+    {onCategoryChange && <p className="player-comparison-mobile-scope">{categories.find((item) => item.id === category)?.name || t("Toutes les parties")}</p>}
+    <div id={`${id}-filters`} className="player-comparison-filter-panel" data-expanded={filtersOpen}>
     {(onCategoryChange || model.players.length > 0) && <div className="player-comparison-controls">
         {onCategoryChange && <SelectInput label="Catégorie" value={category} onChange={onCategoryChange} aria-describedby={`${id}-category-help`}>
           <option value="">{t("Toutes les parties")}</option>
@@ -104,29 +112,36 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
         </>}
       </div>}
       {onCategoryChange && <p id={`${id}-category-help`} className="player-comparison-filter-help">{t("La catégorie et la période d’analyse définissent les parties comparées.")}</p>}
+    </div>
+      {model.players.length > 0 && <div className="player-comparison-shortcuts" role="group" aria-label={t(themeId === "all" ? "Statistiques principales" : "Statistiques du thème")}>
+        {shortcuts.map((key) => {
+          const Icon = METRIC_ICONS[key];
+          return <button key={key} type="button" aria-pressed={metric.id === key} aria-controls={`${id}-chart`} onClick={() => setMetricId(key)}><Icon aria-hidden="true" /><span>{t(METRICS.find((item) => item.id === key).label)}</span></button>;
+        })}
+      </div>}
+    </div>
+    <div className="player-comparison-results">
     {!model.players.length ? <p className="player-comparison-empty">{t("Les joueurs apparaîtront ici lorsque les participants des parties seront identifiés.")}</p> : <>
-      <div className="player-comparison-shortcuts" role="group" aria-label={t(themeId === "all" ? "Statistiques principales" : "Statistiques du thème")}>
-        {shortcuts.map((key) => <button key={key} type="button" aria-pressed={metric.id === key} aria-controls={`${id}-chart`} onClick={() => setMetricId(key)}>{t(METRICS.find((item) => item.id === key).label)}</button>)}
-      </div>
 
       <figure id={`${id}-chart`} className="player-comparison-chart" aria-labelledby={`${id}-metric`} aria-describedby={`${id}-description`}>
         <figcaption className="player-comparison-caption">
-          <h4 id={`${id}-metric`}><SortButton label={metric.label} active={order !== "roster"} direction={order === "ascending" ? "ascending" : "descending"} onClick={() => setOrder(order === "descending" ? "ascending" : "descending")} /><span>{t(metric.unit)}</span></h4>
-          <div className="player-comparison-order"><button type="button" className="nxt5-sort-button" aria-pressed={order === "roster"} onClick={() => setOrder("roster")}>{t("Par rôle")}</button><p>{t("Échelle de 0 à {0}", [format(ceiling)])}</p></div>
+          <h4 id={`${id}-metric`}><MetricIcon aria-hidden="true" /><SortButton label={metric.label} active={order !== "roster"} direction={order === "ascending" ? "ascending" : "descending"} onClick={() => setOrder(order === "descending" ? "ascending" : "descending")} /><span>{t(metric.unit)}</span></h4>
+          <div className="player-comparison-order"><button type="button" className="nxt5-sort-button" aria-pressed={order === "roster"} onClick={() => setOrder("roster")}><ListFilter aria-hidden="true" />{t("Par rôle")}</button></div>
         </figcaption>
         <p id={`${id}-description`} className="player-comparison-description">{t(metric.description)}</p>
         {!measured.length && <p className="player-comparison-empty" role="status">{t("Aucune donnée disponible pour cette statistique dans la sélection.")}</p>}
         <ul className="player-comparison-bars" aria-label={t("Valeurs par joueur")}>
-          {rows.map((row) => {
+          {rows.map((row, index) => {
             const measurement = row.metrics[metric.id];
             const width = measurement.value == null ? 0 : Math.min(100, measurement.value / ceiling * 100);
-            return <li key={row.id} className="player-comparison-row" data-role={row.role}>
+            const fillId = `${id}-bar-${index}`;
+            return <li key={row.id} className="player-comparison-row" data-role={row.role} data-unmeasured={measurement.value == null}>
               <div className="player-comparison-identity">
                 <span aria-hidden="true"><RoleIcon role={row.role} className="player-comparison-role-icon" lightweight /></span>
                 <div><strong>{playerName(row)}</strong><span>{t(roleLabel(row.role))}</span></div>
               </div>
               <div className="player-comparison-track" aria-hidden="true">
-                <svg viewBox="0 0 100 12" preserveAspectRatio="none" focusable="false"><rect width={width} height="12" rx="0.5" /></svg>
+                <svg viewBox="0 0 100 12" preserveAspectRatio="none" focusable="false"><defs><linearGradient id={fillId} x1="0" x2="1" y1="0" y2="0"><stop offset="0" stopColor="var(--player-bar)" stopOpacity=".7" /><stop offset="1" stopColor="var(--player-bar)" /></linearGradient></defs><rect width={width} height="12" rx="0.5" fill={`url(#${fillId})`} /></svg>
               </div>
               <div className="player-comparison-value">
                 <strong>{format(measurement.value)}</strong>
@@ -135,11 +150,12 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
             </li>;
           })}
         </ul>
+        <p className="player-comparison-scale">{t("Échelle de 0 à {0}", [format(ceiling)])}</p>
       </figure>
-      <p className="player-comparison-note">{t("Les rôles ont des contributions différentes. Compare les chiffres avec leur contexte ; ils ne constituent pas un classement de performance.")}</p>
+      <p className="player-comparison-note"><Info aria-hidden="true" /><span>{t("Les rôles ont des contributions différentes. Compare les chiffres avec leur contexte ; ils ne constituent pas un classement de performance.")}</span></p>
 
       <details className="player-comparison-details">
-        <summary>{t(themeId === "all" ? "Voir toutes les statistiques" : "Voir les statistiques de ce thème")}<ChevronDown aria-hidden="true" /></summary>
+        <summary><span><Table2 aria-hidden="true" />{t(themeId === "all" ? "Voir toutes les statistiques" : "Voir les statistiques de ce thème")}</span><ChevronDown aria-hidden="true" /></summary>
         <p>{t("Chaque cellule indique la valeur et le nombre de parties mesurées. Une donnée absente reste « — ».")}</p>
         <div className="player-comparison-table-scroll nxt5-responsive-scroll" role="region" tabIndex={0} aria-label={t("Tableau comparatif des joueurs")}>
           <table>
@@ -155,5 +171,7 @@ export function PlayerComparison({ matches = EMPTY, players = EMPTY, categories 
         <p>{t("CS : sbires et monstres tués. Les mesures par minute utilisent une durée connue ou un ratio enregistré. KDA : ratio global sur les parties complètes en kills, morts et assists.")}</p>
       </details>
     </>}
+    </div>
+    </div>
   </section>;
 }
