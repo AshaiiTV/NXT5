@@ -136,6 +136,24 @@ async function updateProps(renderer, props) {
 }
 
 describe("unified Games workspace", () => {
+  it("opens the partial library with its server total and forwards explicit history actions", async () => {
+    const props = { ...settings(), loadNextPage: vi.fn().mockResolvedValue(true), ensureHistory: vi.fn().mockResolvedValue(true) };
+    props.data = { ...props.data, selectedTeamId: "team", historyComplete: false, totals: { games: 1000 }, pagination: { total: 1000, hasMore: true } };
+    const renderer = await mount("/games", props);
+    const list = renderer.root.findByType(ImportedGames);
+    expect(list.props).toMatchObject({ historyComplete: false, totalMatches: 1000, historyLoading: false, historyError: "" });
+    expect(list.props.onLoadMore).toBe(props.loadNextPage);
+    expect(list.props.onLoadHistory).toBe(props.ensureHistory);
+    expect(renderer.root.findByType(TabNav).props.items.find(item => item.id === "games").meta).toBe("1000");
+    expect(renderer.root.findAllByProps({ className: "games-team-record" })).toHaveLength(0);
+    expect(rows(renderer)).toHaveLength(2);
+    expect(props.ensureHistory).not.toHaveBeenCalled();
+    expect(props.loadNextPage).not.toHaveBeenCalled();
+    await click(renderer, "Charger la suite");
+    expect(props.loadNextPage).toHaveBeenCalledOnce();
+    expect(props.ensureHistory).not.toHaveBeenCalled();
+  });
+
   it("loads the total opponent badge from Parties before the Teams directory is opened", async () => {
     const pending = defer();
     const opponents = [{ id: "opif", name: "OPIF" }, { id: "other-opponent", name: "Autre adversaire" }];

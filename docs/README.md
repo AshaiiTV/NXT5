@@ -27,6 +27,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 
 ### Produit
 
+- [Chargement des historiques et garanties des analyses](chargement-historique.md)
 - [Internationalisation : français, anglais et espagnol](internationalisation.md)
 - [Carnets de matchups](carnets-matchups.md)
 - [Aide au choix des champions](draft-assistance.md)
@@ -53,6 +54,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 
 | Date | Rapport |
 | --- | --- |
+| 2026-10-13 | [Historique : chargement progressif et retest de capacité](bench-history/capacity-2026-10-13.md) |
 | 2026-10-12 | [Écran de chargement en verre violet](design-glass-loading-2026-10-12.md) |
 | 2026-10-12 | [Verre violet dans tous les exports visuels](design-glass-exports-2026-10-12.md) |
 | 2026-10-12 | [Verre violet dans l’ensemble du site](design-glass-sitewide-2026-10-12.md) |
