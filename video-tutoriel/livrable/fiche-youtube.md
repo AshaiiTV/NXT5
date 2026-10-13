@@ -21,7 +21,7 @@ NXT5, League of Legends, LoL, coaching LoL, analyse de parties, débrief, scrim,
 - Miniature : nxt5-tuto-miniature.jpg (1280×720).
 - Pas de chapitres : YouTube les réserve aux vidéos où chaque chapitre dure au moins 10 secondes.
 - Sous-titres incrustés ; le fichier .srt est facultatif (sous-titres activables, traduction automatique).
-- Voix off ElevenLabs : voix française native « Léo ». « NXT5 » est prononcé « Next five ».
+- Voix off ElevenLabs : voix française native « Léo ». « NXT5 » est prononcé « Next five » ; l’adresse n’est pas lue, elle est affichée à l’écran.
 
 ## Texte de la voix off
 - 0:01 — Next Five, c’est l’espace de travail des équipes League of Legends.
@@ -30,4 +30,4 @@ NXT5, League of Legends, LoL, coaching LoL, analyse de parties, débrief, scrim,
 - 0:18 — Suis tes analyses, partie après partie.
 - 0:23 — Puis débriefe : un fait, une question… et une action pour la prochaine séance.
 - 0:29 — Crée ton espace équipe, et importe tes parties.
-- 0:33 — À toi de jouer, sur Next Five point org !
+- 0:33 — À toi de jouer ! Retrouve Next Five avec le lien à l’écran.

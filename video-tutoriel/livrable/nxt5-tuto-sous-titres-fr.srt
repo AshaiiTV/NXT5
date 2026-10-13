@@ -23,5 +23,5 @@ Puis débriefe : un fait, une question, une action.
 Crée ton espace équipe et importe tes parties.
 
 7
-00:00:33,483 --> 00:00:35,704
-À toi de jouer, sur nxt5.org !
+00:00:33,483 --> 00:00:36,827
+À toi de jouer ! Retrouve NXT5 avec le lien à l’écran.
