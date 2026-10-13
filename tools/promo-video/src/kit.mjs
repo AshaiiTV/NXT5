@@ -309,7 +309,7 @@ export function jaggedText(ctx, str, x, y, opts = {}) {
 
 /** Text slamming in from huge scale with ghost trails. p 0..1. */
 export function slamText(ctx, str, x, y, opts = {}) {
-  const { size = 160, p = 1, font = F.anton, color = C.text, emph = '', glow = 30, ghosts = 3, angle = 0 } = opts;
+  const { size = 160, p = 1, font = F.anton, color = C.text, emph = '', emphColor = null, glow = 30, ghosts = 3, angle = 0 } = opts;
   const e = E.outExpo(clamp(p));
   ctx.save();
   ctx.translate(x, y);
@@ -319,7 +319,7 @@ export function slamText(ctx, str, x, y, opts = {}) {
     const s = lerp(3.2, 1, ge);
     ctx.save();
     ctx.scale(s, s);
-    text(ctx, str, 0, 0, { size, font, color, emph, glow: g ? 0 : glow, alpha: g ? 0.12 * (1 - e) : clamp(p * 4) });
+    text(ctx, str, 0, 0, { size, font, color, emph, emphColor, glow: g ? 0 : glow, alpha: g ? 0.12 * (1 - e) : clamp(p * 4) });
     ctx.restore();
   }
   ctx.restore();
@@ -341,7 +341,7 @@ export function typeText(ctx, str, x, y, opts = {}) {
 
 /** Rubber stamp: rotated rectangle frame + text, slamming down. p 0..1. */
 export function stamp(ctx, str, x, y, opts = {}) {
-  const { size = 90, p = 1, color = C.red, angle = -0.14, font = F.anton } = opts;
+  const { size = 90, p = 1, color = C.fuchsia2, angle = -0.14, font = F.bebas } = opts;
   const e = clamp(p);
   const s = lerp(2.2, 1, E.outExpo(e));
   ctx.save();
@@ -849,12 +849,13 @@ export function icon(ctx, kind, x, y, s, opts = {}) {
  * opts: x, y, size, subSize, maxW, styleOverride. Styles: slam | jagged | type | calm | stamp | giant | stack.
  */
 export function renderCards(ctx, f, cards, opts = {}) {
-  const { x = W / 2, y = H / 2, size = 150, subSize = 40, maxW = W * 0.86 } = opts;
+  const { x = W / 2, y = H / 2, size = 150, subSize = 54, maxW = W * 0.86, emphColor = null, skip = null } = opts;
   for (const [i, c] of cards.entries()) {
     const t0 = f.at(c.bar, c.beat);
     const d = c.durBeats * BEAT;
     const lt = f.lt - t0;
     if (lt < 0 || lt > d) continue;
+    if (c.sceneDrawn || (skip && skip(c, i))) continue;
     const pIn = lt / Math.min(d, BEAT * 1.0);
     const out = seg(lt, d - BEAT * 0.25, d); // quick exit
     const style = opts.styleOverride || c.style;
@@ -873,11 +874,11 @@ export function renderCards(ctx, f, cards, opts = {}) {
       case 'calm': {
         const e = E.brand(clamp(pIn));
         ctx.globalAlpha *= e;
-        text(ctx, c.text, x, cy + (1 - e) * 30, { size: sz, font: (px) => F.display(px, 900), emph: c.emph, glow: 20 });
+        text(ctx, c.text, x, cy + (1 - e) * 30, { size: sz, font: (px) => F.display(px, 900), emph: c.emph, emphColor, glow: 20 });
         break;
       }
       case 'stamp':
-        stamp(ctx, c.text, x, cy, { size: sz * 0.6, p: clamp(lt / (BEAT * 0.5)), color: C.red });
+        stamp(ctx, c.text, x, cy, { size: sz * 0.6, p: clamp(lt / (BEAT * 0.5)), color: c.color || C.fuchsia2 });
         break;
       case 'stack': {
         const words = c.text.split(' ');
@@ -892,7 +893,7 @@ export function renderCards(ctx, f, cards, opts = {}) {
       case 'giant':
       case 'slam':
       default:
-        slamText(ctx, c.text, x, cy, { size: sz, p: clamp(pIn * 1.4), emph: c.emph });
+        slamText(ctx, c.text, x, cy, { size: sz, p: clamp(pIn * 1.4), emph: c.emph, emphColor });
         break;
     }
     if (c.sub) {

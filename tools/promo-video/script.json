@@ -1,0 +1,596 @@
+{
+ "concept": "« PAS LE JUNGLE. » A 79.8 s retention-first promo cut to the fixed 150 BPM track. It opens on the blame sentence from title #1, then turns it back on the viewer within 3 s (« …VRAIMENT ? », then « TOI : 0/4 À 8 MIN. »). The pain then becomes a vicious LOOP RING, JOUE · PERDS · OUBLIE. On the build-1 downbeats its nodes flip into the official signature JOUE · ANALYSE · RECOMMENCE, and a 5-4-3-2-1 countdown follows (the « 5 » is the 5 of NXT5). DROP 1 is the proof: logo splash, a dissected game, the debrief tied to its game, then a 10-pick draft locked one pick per beat. The breakdown slows to Persona jazz-funk for team life (roster, planning, 5/5 available, the Discord bot). The stripped bars hold a mid-video re-hook: « Tu débriefes vraiment tes scrims ? ». BUILD 2 swallows the excuses into an orb, answers with « PRÊTS ? », then gives a silent beat. DROP 2 answers « GO. » and moves from chaos (screens, spreadsheets, lost DMs) to one team space, the Importer, and four feature panels with subs. The stutter carries the CTA funnel: « Gratuit en ce moment. », then « Essaie la démo. », then « Crée ton espace. », then the callback « Arrête d'accuser le jungle. ». The outro rebuilds the logo from shards under a giant « ANALYSE. », which slides into the end card: logo, « Joue. Analyse. Recommence. », nxt5.org, and the action line « Essaie la démo · Crée ton espace ».\n\nOPEN LOOPS AND PAYOFFS\n- « Scrim perdu. Aucun débrief. » at 4.8 s is answered by the stamp « Scrim perdu ? Débrief. » at 24 s.\n- « Même erreur demain. » at 6.4 s is answered at 60.8 s, after a 0.5-beat ghost of the old line is slashed: « Même erreur ? Notée. Suivie. ».\n- « Et si tu savais pourquoi ? » at 12.8 s is answered by the logo and « Comprends tes parties. » at 19.2 s.\n- « Tu débriefes vraiment tes scrims ? » at 41.6 s is answered by the teammate bubble 'go 21h' and the clipboard filling.\n- JGL TOKEN running gag. A violet hexagon labelled 'JGL' is blamed with '?' pings in S01 and S02. It is the last fragment the orb swallows in S08. Its pings are zapped into cyan sparks in S11. In S12 it gets a gold ring and a 'gg' bubble.\n- LOOP RING. It is fuchsia (vicious) in S01–S02, flips to spectrum in S03, and returns as a faint spectrum ring behind the end-card logo.\n\nTRUTH GUARDRAILS\n- Mock UIs show no numbers, no names and no invented stats.\n- There is no radar chart and no 'top suggestion' crown; pick help filters and never ranks.\n- The assistant is only shown helping people use NXT5.\n- The Importer reads games from the local LoL client on Windows/Mac and produces a file that is imported into Parties.\n- Free access is always written « Gratuit en ce moment » / « Aucun abonnement », with no price.\n- The end card carries 'NXT5 n'est pas affilié à Riot Games.'\n- No Riot art, emblems or Victory-screen lookalikes, no Discord, OS or Google/Apple logos, and no 'hextech' wording on screen. Every glyph, map, crest and silhouette is original canvas geometry.\n\nPALETTE\n- Night #070B17 and bg #111827, surface #1e293b, text #f1f5f9, text2 #cbd5e1.\n- Cyan #67e8f9 / #22d3ee, blue #3b82f6, indigo #818cf8, violet #a78bfa / #c4b5fd, fuchsia #e879f9 / #d946ef.\n- Spectrum gradient: K.linearSpectrum, or #22d3ee→#3b82f6→#d946ef.\n- NO #ff3b5c red anywhere. Blame, stamps and strike-throughs use fuchsia #d946ef; small error accents use danger #fda4af.\n- Gold #F5C66B appears only as a tiny accent: the S08 orb ring and the S12 JGL redemption ring.\n- Session colours: Scrim fuchsia, Match cyan, Débrief violet.\n\nFONTS\n- Anton: slam and giant cards.\n- Bebas Neue: stamps and map labels.\n- Russo One: UI labels, counters and nxt5.org.\n- Inter Display 900: calm cards. Inter 700: subs.\n\nFRENCH TYPOGRAPHY\n- Use the typographic apostrophe ’ (U+2019).\n- Put a no-break space U+00A0 before ? ! : and inside « ».\n- This keeps '?' glued to its word and keeps the strings matching their emph.\n\nKIT CHANGES REQUIRED (small, do them first)\n1. renderCards: the stamp colour becomes c.color || C.fuchsia2 (it is hardcoded to C.red at kit.mjs:880).\n2. renderCards: accept an opts.emphColor and pass it to text/slam.\n3. render.mjs: remove the global 1.4 s fade-out, or let the last scene return fx.noFadeOut, so the end card holds to 79.8 s. Fallback if this is not done: the lock-up is fully legible 74.4→78.4 s, which is 4 s, still at least 3 s.\n4. Optional: in music.py, skip the bar-11 beat-3 snares as is done in bar 31. The S03 timing below is written for the CURRENT events, where snares still sound at 11.3.0, 11.3.125, 11.3.25 and 11.3.375.\n\nCARD RULES (all scenes)\n- Every scene calls K.renderCards with opts {subSize:54, size:150, maxW:1500 unless stated}. Subs are 54 px or larger.\n- PLACEMENT RULE:\n  - CENTRE (960,540) when a card stands alone.\n  - LOWER THIRD (card y=870, sub pill bottom ≤1026) when UI fills the frame. All UI then stays above y=720.\n  - LEFT COLUMN (x=470, maxW 760) in S06 and S07.\n- A card with a sub is always at least 4 beats long. 2-beat cards have no sub.\n- No 'stack' style is used anywhere, which avoids the stack-sub overlap and emph-token bugs.\n- No card text equals 'NXT5'. The logo is always drawn with K.logo.\n- Cards marked 'scene-drawn' are filtered out of renderCards and drawn by the scene with the kit primitives as described.\n\nFX BUDGET\n- The renderer already adds, on every impact, 26 px shake + 22 px RGB split + a 0.55 flash, and during drops it adds 8 px of shake per kick and 7 px RGB per snare.\n- Scenes add NO extra kick shake in drops (scene shake 0–3 px). Total shake stays ≤10 px while a sub is on screen.\n- Return fx {auto:false} with soft custom values at:\n  - the bar-20 breakdown entry\n  - the stutter bars 40–41\n  - the 46.2 end-card hit\n- Full-frame luminance or colour swaps happen at most 3 per second. The stutter changes bands, poses and angles over a constant dark field. There are no inversions and no slice strobes.\n- Snare-roll strobes are thin outlines only.\n\nEVENTS NOT IN music.events.json, which the scenes compute with K.barT:\n- heartbeat sub on beats 1 and 1.75 of bars 0–7\n- the 16th arp from bar 4\n- crashes at 16, 24, 28, 36 and 40\n- the octave lead in bars 32–39\n- the brass stab at bar 4 beat 0 (it is in the events; bar 6 beat 0 is too)\nHats are 8ths in bars 4–7 and 26–27, and 16ths in the drops and in bars 20–25. There are no kicks before bar 6.\n\nALWAYS-ON LAYERS\n- K.background plus 3-layer K.particles. The renderer adds the vignette, grain and scanlines; do not double them.\n- A BRAND BUG: K.logo at (1772,62), width 150, alpha 0.55, gentle glow.\n  - Visible from the bar-4 impact (6.4 s) to bar 44.\n  - Hidden during the two silence frames (11.3.5–12.0 and 31.3–32.0) and in S12, where the big logo takes over.\n- Every scene must draw a clean initial state when f.lt < 0, because transitions call the next scene up to 0.4 s early.\n- Thumbnail still: 2.4 s (stamp « …VRAIMENT ? » over the ghost hook).",
+ "scenes": [
+  {
+   "id": "S01",
+   "startBar": 0,
+   "endBar": 4,
+   "name": "Le procès du jungle (hook)",
+   "visual": "BASE\n- K.background night #070B17, 3-layer K.particles drifting slowly upward.\n- TEXT BUDGET: one card + at most one sub on screen. No chat lines, scoreboard, timer or vote bar.\n\nLOOP RING (the film's spine) at (960,560)\n- 3 concentric rings: r=360/290/220, 2px fuchsia #d946ef stroke at 35% alpha, plus a 1px cyan #67e8f9 inner hairline at 15%.\n- Tick marks: 60/36/24 ticks, 8–14px long.\n- Draw-on by arc length (easeInOutCubic): outer ring over bar 0, middle ring over bar 1, inner ring over bars 2–3.\n- Rotation: +3°/s, −5°/s, +8°/s. No labels yet.\n\nFRAME 0 = IMPACT\n- Card 1 is scene-drawn with K.slamText starting at p=0.6, so it is already legible on frame 0. It settles to scale 1 by 0.1s.\n- Text: Anton ~170px white, 'JUNGLE' in spectrum, centred at y=560.\n- Backing: a jagged black 'chat shard', an irregular 7-point polygon ~1500×260, #0b0f1e fill, 4px fuchsia #d946ef edge, rotated −4°.\n- K.shockwave at (960,560): cyan, r 0→1400 over 1 beat, 12 spark lines. The renderer's auto impact FX apply.\n\nGLITCH (bar 0 b3 → bar 1 b1)\n- RGB-split ramp on the hook: cyan/fuchsia copies offset 0→14px, 6 horizontal slices displaced ±40px.\n\nSTAMP (bar 1 b1)\n- '…VRAIMENT ?' in FUCHSIA #d946ef (not kit red), −8°, scale 2.2→1, 14 ink droplets plus a small halftone splash.\n- Behind it the hook remains as a 25% desaturated ghost. A 6px fuchsia strike line draws across the ghost left→right in 0.25 beat.\n\nBAR 2 (choir)\n- A violet god-ray descends behind the ring: a 500px-wide vertical gradient, #a78bfa 0→18%, fading in over 1 bar.\n- JGL TOKEN appears on the top of the middle ring at (960,240):\n  - pointy-top hexagon r=46, fill #1e1b4b, 3px violet #a78bfa outline\n  - label 'JGL' in Russo One 24px #c4b5fd\n  - rises from y=300 with easeOutBack over 0.5 beat\n- On each heartbeat of bars 2–3 (4 in total), a fuchsia '?' ping flies into the token:\n  - ping = circle r=34 + Anton '?' at 40px, 4-frame RGB split\n  - spawns at a screen edge and flies in over 0.3s (easeInCubic)\n  - each ping adds one stacked blame ring around the token (r 60/72/84/96, 2px fuchsia)\n- Card 3 is jagged at the centre, y=600.\n\nBAR 3\n- The background dims 15%.\n- The token cracks: 3 white 2px crack polylines, one each on b1, b1.75 and b2.\n- Card 4 slams at the centre, y=600.",
+   "sync": "HEARTBEAT (computed at K.barT(bar,1) and K.barT(bar,1.75); not in the events)\n- Ring scale 1→1.035→1 over 0.15s.\n- Ring alpha +40%.\n- Vignette-style dark radial breath.\n- Scene fx.shake 3px.\n\n0.0 IMPACT\n- Hook slam, shockwave, auto shake and flash.\n\nRING DRAW-ON\n- Each ring finishes on a downbeat: bars 1, 2 and 4.\n\n0.3 → 1.1\n- The glitch ramps.\n\n1.1 (2.0s, heartbeat)\n- The stamp lands, with scene fx.shake 10 and fx.rgb 8 for 0.15s.\n\n2.0 (choir entry)\n- God-ray in, token rises.\n- Jagged card: letters pop over 1.2 beats.\n- Ping 1 at 2.1, ping 2 at 2.1.75.\n\n3.0\n- Slam card 4.\n- Ping 3 at 3.1, ping 4 at 3.1.75.\n- The token cracks on 3.1, 3.1.75 and 3.2.\n\n3.3.5\n- The renderer's slash launches (pre 0.5 beat) and covers the frame on the bar-4 impact + brass stab.",
+   "transitionOut": "slash",
+   "cards": [
+    {
+     "bar": 0,
+     "beat": 0,
+     "durBeats": 5,
+     "text": "C’EST LA FAUTE DU JUNGLE.",
+     "emph": "JUNGLE",
+     "sub": "",
+     "style": "slam"
+    },
+    {
+     "bar": 1,
+     "beat": 1,
+     "durBeats": 3,
+     "text": "…VRAIMENT ?",
+     "emph": "VRAIMENT",
+     "sub": "",
+     "style": "stamp"
+    },
+    {
+     "bar": 2,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "TOI : 0/4 À 8 MIN.",
+     "emph": "0/4",
+     "sub": "Le jungle a bon dos.",
+     "style": "jagged"
+    },
+    {
+     "bar": 3,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Scrim perdu. Aucun débrief.",
+     "emph": "Aucun débrief.",
+     "sub": "",
+     "style": "slam"
+    }
+   ]
+  },
+  {
+   "id": "S02",
+   "startBar": 4,
+   "endBar": 8,
+   "name": "La boucle perdante",
+   "visual": "CARD ANCHOR\n- Top third: card y=190, maxW 1400, sub pill under it at ~y 285. The board stays below y=360.\n\nISO BOARD (original schematic, no Riot map art)\n- A diamond with vertices T(960,380), R(1540,670), B(960,960), L(380,670).\n- Fill #0b1224, 1px #1e293b grid of 12×12 iso cells, 30% cyan edge glow.\n- Ally base: cyan hexagon r=34 at B. Enemy base: fuchsia hexagon r=34 at T.\n- Lanes are 8px polylines, slate #334155 until lit:\n  - top: B→L→T\n  - mid: B→T\n  - bot: B→R→T\n- Lit lanes turn cyan #22d3ee with an 18px glow. Highlight dashes travel along them, lineDashOffset stepped on every 16th of the arp.\n- River: a soft bezier from L to R, 26px wide, blue #3b82f6 at 40%, with shimmering dashes.\n- The JGL token (r=30 here) patrols the river on a sine path.\n\nFORESHADOW PANEL\n- An ignored dim panel at x1480–1840, y760–960: K.panel, #1e293b at 60%, 1px cyan border at 20%.\n- It holds a slow pulsing cyan sparkline: the facts, waiting.\n\nBAR 4\n- The board punches in, scale 1.2→1 (easeOutExpo).\n- Lanes ignite top, mid, bot on b0, b1, b2.\n- 'Same mistake' marks on mid lane at 60%:\n  - a fuchsia X (two 10px bars, 48px) stamps on b0\n  - an RGB-split ghost X lands on the exact same spot on b2\n  - a third on b3\n- A circular loop arrow (270° arc r=60 + triangle head, 3px fuchsia) spins around the X marks once per bar.\n\nBAR 5\n- Enemy pings (fuchsia circle + Russo '!' + expanding ring 0→80px, 6px RGB split) pop on the 8th hats, one per hat, max 8, scattered on the lanes.\n- Each pop also sends a small '?' to the JGL token.\n\nBAR 6 (brass, kicks every beat)\n- The board tilts: y-scale ×0.85, rotation +3° (easeInOutCubic over 1 bar).\n- On each kick, one cluster of 2 pings freezes, desaturates to slate #64748b and turns into small cyan squares (8px).\n- The squares fly on arcs into the foreshadow panel and build an 8×4 data grid there: chaos becoming data.\n\nBAR 7\n- At 7.0 the board flips away (scaleY 1→0, easeInExpo, 0.25 beat).\n- The LOOP RING returns at (960,640), r=230, fuchsia #d946ef, 4px stroke, with 3 arrowheads along it.\n- 3 nodes at −90°/30°/150°: small filled circles r=14 with labels JOUE / PERDS / OUBLIE in Bebas Neue 52px #e879f9.\n- The foreshadow panel stays lit bottom-right, glowing cyan.",
+   "sync": "4.0 IMPACT + BRASS STAB\n- Slash lands, board punch, top lane ignites, X mark 1. Auto impact FX.\n\n16th ARP (computed)\n- Lane dashes step.\n\n8th HATS\n- Grid dots twinkle; bar-5 pings spawn.\n\nHEARTBEATS (b1, b1.75)\n- Both base hexes pulse 1→1.15.\n\n4.2 / 4.3\n- Ghost X marks.\n\n5.0\n- Jagged card.\n\n6.0 BRASS STAB\n- Tilt starts; slam card with sub.\n\nKICKS 6.0–6.3\n- One ping cluster → data squares per kick.\n- Board plate punches down 6px; scene shake 4px; energy is below 0.9, so no auto kick shake.\n\n7.0–7.3 KICKS\n- The loop ring steps +30° per kick (easeOutExpo, 0.15s each).\n- The node labels pulse.\n\n7.3.5\n- Zoom transition (pre 0.5 beat) dives into the ring centre.",
+   "transitionOut": "zoom",
+   "cards": [
+    {
+     "bar": 4,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Même erreur demain.",
+     "emph": "Même erreur",
+     "sub": "Et le jour d’après.",
+     "style": "slam"
+    },
+    {
+     "bar": 5,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Le tilt parle.",
+     "emph": "tilt",
+     "sub": "",
+     "style": "jagged"
+    },
+    {
+     "bar": 6,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Les faits, eux, attendent.",
+     "emph": "faits",
+     "sub": "Le score ne raconte pas tout.",
+     "style": "slam"
+    },
+    {
+     "bar": 7,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Joue. Perds. Oublie.",
+     "emph": "Oublie.",
+     "sub": "Et ça recommence.",
+     "style": "slam"
+    }
+   ]
+  },
+  {
+   "id": "S03",
+   "startBar": 8,
+   "endBar": 12,
+   "name": "La boucle se retourne (build 1)",
+   "visual": "LOOP RING at (960,440)\n- r=250, nodes JOUE / PERDS / OUBLIE.\n- Fuchsia 4px stroke at the start, with a slow push-in (scale 1→1.2 over 4 bars, easeInCubic).\n- Rotation doubles each bar: 20, 40, 80, 160 °/s.\n- A thin cyan scanner beam (30° arc, 2px) orbits the ring once per beat.\n\nSPEED LINES (K.speedLines)\n- Radial streaks from the centre: 2px, white or cyan, 200–700px long, alpha 0.6, decaying over 0.15s.\n- One burst per snare hit, so density follows the roll.\n\nRISER\n- The background lifts from #070B17 to #1e1b4b at the centre.\n- Particles reverse into an accelerating inward vacuum.\n- A cyan horizon hairline at y=540 grows 0→1920px wide and 1→4px thick.\n- Halftone (K.halftone, −18°, two bands, alpha 0.06) flashes on each snare.\n\nCARD PLACEMENT\n- Bar 8 card: lower third, y=870.\n- Giant word cards: centre, y=560. The ring dims to 35% while a giant word is on.\n\nNODE FLIPS (scaleX 1→0→1 over 0.25 beat, plus K.shockwave r 0→120 at the node)\n- 9.0: JOUE turns cyan (#67e8f9 label, cyan node).\n- 9.2: PERDS glitches (RGB split, 0.25 beat) and flips to 'ANALYSE' in spectrum.\n- 10.0: OUBLIE flips to 'RECOMMENCE'. The whole ring stroke becomes the spectrum gradient and its arrowheads glow.\n\nCOUNTDOWN (10.2 → 11.2), scene-drawn\n- Each digit: full-height Anton ~900px, centred, cropped by the frame, white 10px outline.\n- Each digit sits on its own −18° diagonal split. The upper-left half is tinted at 35% alpha, never full brightness: violet for 5, cyan for 4, indigo for 3, fuchsia for 2, blue for 1.\n- '5' is filled with the brand spectrum (the 5 of NXT5). The other digits are filled #f1f5f9.\n- Each digit enters with scale 1.3→1 and a 3-frame RGB split.\n- The ring stays visible behind at 30%.\n\nSILENCE AND FREEZE (timing follows the current music data)\n- The last 4 snares (11.3.0 / .125 / .25 / .375) each draw one white 3px crack segment radiating from the ring centre through the '1'.\n- From 11.3.5 (19.0s), HARD FREEZE:\n  - all motion, particles and speed lines stop on that frame\n  - the frame desaturates 40%\n  - no audio-reactive motion\n- The '1' stays frozen on screen; it is scene-drawn with no exit fade.",
+   "sync": "SNARE ROLL\n- One speed-line burst per hit, plus ring tick flashes.\n- Quarters on bar 8, 8ths on bar 9, 16ths on bar 10, 32nds on bar 11 until 11.3.375.\n\nKICKS\n- Quarters in bars 8–9: ring pulse 1→1.03, scene shake 3px.\n- 8ths in bar 10: zoom-pump 1→1.03 per 8th, 4px.\n- Bar 11: kicks on b0, b1, b2 only.\n\nTEXT CADENCE (accelerates with the roll)\n- 1 card in bar 8.\n- 2 in bar 9 (Joue. on 9.0, Analyse. on 9.2), node flips locked to them.\n- 3 in bar 10 (Recommence. on 10.0, then '5' on 10.2 and '4' on 10.3, both kicks).\n- 3 in bar 11 ('3' on 11.0, '2' on 11.1, '1' on 11.2; the last kick before the gap).\n\nRISERS\n- Global brightness +40% and glow blur 12→32px across bars 8–11.5.\n\nSILENCE\n- 11.3.0–11.3.375: crack segments.\n- 11.3.5: freeze, absolute stillness. The brand bug is hidden.\n\n12.0\n- The renderer shatter breaks the frozen frame (80 shards, white flash).",
+   "transitionOut": "shatter",
+   "cards": [
+    {
+     "bar": 8,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Et si tu savais pourquoi ?",
+     "emph": "pourquoi",
+     "sub": "",
+     "style": "jagged"
+    },
+    {
+     "bar": 9,
+     "beat": 0,
+     "durBeats": 2,
+     "text": "Joue.",
+     "emph": "",
+     "sub": "",
+     "style": "giant"
+    },
+    {
+     "bar": 9,
+     "beat": 2,
+     "durBeats": 2,
+     "text": "Analyse.",
+     "emph": "Analyse.",
+     "sub": "",
+     "style": "giant"
+    },
+    {
+     "bar": 10,
+     "beat": 0,
+     "durBeats": 2,
+     "text": "Recommence.",
+     "emph": "Recommence.",
+     "sub": "",
+     "style": "giant"
+    },
+    {
+     "bar": 10,
+     "beat": 2,
+     "durBeats": 1,
+     "text": "5",
+     "emph": "5",
+     "sub": "",
+     "style": "giant"
+    },
+    {
+     "bar": 10,
+     "beat": 3,
+     "durBeats": 1,
+     "text": "4",
+     "emph": "",
+     "sub": "",
+     "style": "giant"
+    },
+    {
+     "bar": 11,
+     "beat": 0,
+     "durBeats": 1,
+     "text": "3",
+     "emph": "",
+     "sub": "",
+     "style": "giant"
+    },
+    {
+     "bar": 11,
+     "beat": 1,
+     "durBeats": 1,
+     "text": "2",
+     "emph": "",
+     "sub": "",
+     "style": "giant"
+    },
+    {
+     "bar": 11,
+     "beat": 2,
+     "durBeats": 2,
+     "text": "1",
+     "emph": "",
+     "sub": "",
+     "style": "giant"
+    }
+   ]
+  },
+  {
+   "id": "S04",
+   "startBar": 12,
+   "endBar": 16,
+   "name": "DROP 1 — NXT5, la preuve",
+   "visual": "P5 SPLASH (under the renderer's shards)\n- The frame is split on a −18° diagonal through the centre.\n- Upper-left: night with a cyan K.halftone at 10%.\n- Lower-right: a fuchsia #d946ef → violet #a78bfa gradient with ink halftone dots (16px pitch, radius 2 + 6·f.kick).\n- A 40px ink band runs along the cut.\n- Two thin white sweep lines race along the cut every 2 beats.\n\nBAR 12: LOGO\n- K.logo at (960,370), width 1000, 14px spectrum stroke, 30px glow.\n- Slams scale 2.5→1 in 0.25s (easeOutExpo); strokes dash-draw over 2 beats.\n- Double K.shockwave (cyan + white, r 0→1400, 12 sparks).\n- Card: lower third, y=820.\n\nBAR 13: MATCH PANEL\n- Opens with a scene-internal slash band (fuchsia, cyan edge, −18°, 0.2 bar) launched at 12.3.2.\n- Panel: K.panel x260–1660, y110–700, r28, #1e293b, 1px #334155 border.\n- Header tabs 'ÉQUIPE | JOUEUR' in Russo 26px at 60% alpha.\n- Left 55%: 5 vertical team bars (cyan→blue gradient, no numbers) shoot up with easeOutBack. Bebas 26px labels TOP JGL MID ADC SUP at 60% alpha underneath.\n- Right 45%: the JOUEUR tab activates (cyan underline slides). 5 horizontal player rows draw, each with:\n  - a role glyph (circle, triangle, diamond, square, hexagon)\n  - a grey name pill\n  - a cyan bar\n- NO radar chart.\n\nBAR 14: TIMELINE\n- The panel content morphs into a timeline: track y=420 from x330 to x1590, ticks every 120px.\n- A playhead sweeps left→right across the bar (linear).\n- Objective markers: cyan hexagons r=18. Fight markers: fuchsia crossed-bars glyphs.\n- Each marker spawns a mini shockwave (r 0→80) and a short vertical light beam.\n\nBAR 15: DEBRIEF\n- The panel shrinks to a 'PARTIE' tile (scale 0.45, centre (560,360), easeOutExpo) that keeps the mini timeline.\n- A DEBRIEF CLIPBOARD (420×520, violet #a78bfa header 'DÉBRIEF' Russo 26px) slides in from the right to (1300,380).\n- It holds 3 wordless note rows (grey 14px bars) with checkboxes. Ticks are cyan check strokes drawn in 0.1s, with sparks.\n- A cyan bezier CONNECTOR then draws from the clipboard to one fuchsia fight marker on the PARTIE tile. A small chain-link glyph sits at its midpoint, and light pulses run along it.\n\nCARD PLACEMENT\n- Bars 13–15: lower third, y=870. All UI stays above 720.\n- Background throughout: −18° stripes scroll in reese 8th steps; particles streak left.",
+   "sync": "12.0 IMPACT + CRASH\n- Shatter reveal, logo slam, shockwave. Auto impact FX.\n\nKICK PATTERN (auto 8px kick shake; the scene adds none)\n- Even bars: 0, 1, 2, 2.5, 3. Odd bars: 0, 1.5, 2, 2.75.\n- The logo glow pulses on bar-12 kicks.\n\nSNARE + CLAP (b1, b3)\n- Halftone dots spike; a thin 30% white −18° slash flash (≤0.08s).\n\nBAR 13\n- Team bars pop on 13.0, 13.1, 13.1.5, 13.2 and 13.2.75.\n- The JOUEUR tab and player rows draw on the 13.3 snare.\n\nBAR 14\n- Objective hexes on the kicks at 14.0, 14.2 and 14.3.\n- Fight glyphs on 14.1 and 14.2.5.\n\nBAR 15\n- The panel shrinks and the clipboard slides in on 15.0.\n- Checks tick on 15.1 (snare), 15.2 (kick) and 15.3 (snare).\n- The connector draws on the 15.2.75 kick.\n- The stamp card lands on 15.0.\n\n15.3.5\n- The renderer slash lands on the bar-16 crash.",
+   "transitionOut": "slash",
+   "cards": [
+    {
+     "bar": 12,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Comprends tes parties.",
+     "emph": "parties",
+     "sub": "Prépare la suite.",
+     "style": "slam"
+    },
+    {
+     "bar": 13,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Ta game, décortiquée.",
+     "emph": "décortiquée",
+     "sub": "Stats d’équipe et détail par joueur.",
+     "style": "slam"
+    },
+    {
+     "bar": 14,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Objectifs. Combats.",
+     "emph": "Combats.",
+     "sub": "Selon les données importées.",
+     "style": "jagged"
+    },
+    {
+     "bar": 15,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Scrim perdu ? Débrief.",
+     "emph": "Débrief.",
+     "sub": "Points à travailler, liés à la partie.",
+     "style": "stamp"
+    }
+   ]
+  },
+  {
+   "id": "S05",
+   "startBar": 16,
+   "endBar": 20,
+   "name": "DROP 1 — Draft lock-in",
+   "visual": "VS TEAR\n- A vertical zigzag polygon at x=960, full height: 12 vertices, ±40px amplitude.\n- 3px white core with a 24px violet glow. It rips open from a 0 to a 90px gap.\n- The left half is tinted cyan #22d3ee at 7%, the right half fuchsia #d946ef at 7%.\n- 'VS' in Russo One 120px #f1f5f9 at 40% alpha sits in the gap at y=420.\n\n10 HEX SLOTS (K.hexPath, pointy-top, r=54, fill #0f172a, 4px stroke)\n- Allies: cyan, x=400. Enemies: fuchsia, x=1520.\n- Both columns at y = 140 / 270 / 400 / 530 / 660, all UI above 720.\n- Each slot has a slow-rotating dashed inner ring.\n\nLOCKS (pro snake order: A1, E1, E2, A2, A3, E3, E4, A4, A5, E5)\n- A white→team-colour fill flash (100%→0 over 0.5 beat).\n- An original rune glyph (seeded 3–5 primitive strokes: chevrons, bars, circle-dot, diamond; never champion art) draws inside in 0.2s with easeOutBack.\n- A mini K.shockwave (r 0→160) and 4 spark ticks.\n- The stroke thickens 4→7px.\n\nBAR 18 b2: POOL\n- Each ally hex sprouts 3 small pool hexes (r=24) fanning toward the tear at x=480/540/600.\n- Each pool hex carries 1–3 cyan mastery pips (r=4) underneath: declared mastery.\n- The enemy column dims to 35%.\n\nBAR 19: FILTERS\n- Three rounded filter chips at top centre (y=70, h=48, Russo 26px): 'Rôle', 'Champion adverse', 'Patch'.\n- Each toggles to a cyan fill. On each toggle, 1–2 ally pool hexes dim to 20%: filtered out. Nothing is crowned or ranked.\n- A cyan targeting reticle (4 rotating bracket corners) snaps onto enemy hex E3.\n\nCARDS\n- Lower third, y=870, centred over the tear on an ink −18° parallelogram (1500×200, #020611 at 85%).\n- Background: K.halftone on a −18° band; reese-stepped stripes.",
+   "sync": "16.0 CRASH (computed)\n- The VS tear rips open (gap 0→90px in 0.25 beat).\n- 20% white edge flash; jagged card.\n\nLOCKS, one per beat, every one on a kick or snare\n- 16.0 A1, 16.1 E1, 16.2 E2, 16.3 A2, 17.0 A3, 17.1 E3, 17.2 E4, 17.3 A4, 18.0 A5, 18.1 E5.\n\nSNARE + CLAP (b1, b3)\n- The tear flares to 2× glow width.\n\nKICKS\n- Column micro-bounce of 3px; auto shake only.\n\nBAR 18\n- Card 2 on 18.0.\n- Pool rows pop one role per 16th: 18.2.0, 18.2.25, 18.2.5, 18.2.75, 18.3.0.\n\nBAR 19\n- Chips toggle on the kicks at 19.0, 19.1.5 and 19.2.\n- The reticle snaps on 19.2.75.\n- 19.3.25: the renderer star wipe (pre 0.75 beat) grows from the centre and lands on the bar-20 impact.",
+   "transitionOut": "star",
+   "cards": [
+    {
+     "bar": 16,
+     "beat": 0,
+     "durBeats": 8,
+     "text": "Cinq picks. Une intention.",
+     "emph": "intention",
+     "sub": "Compos à cinq, préparées ensemble.",
+     "style": "jagged"
+    },
+    {
+     "bar": 18,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Ton pool, par rôle.",
+     "emph": "pool",
+     "sub": "Champions et maîtrise déclarée.",
+     "style": "slam"
+    },
+    {
+     "bar": 19,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Contre qui ? Quel patch ?",
+     "emph": "patch",
+     "sub": "Filtre : rôle, champion adverse, patch.",
+     "style": "slam"
+    }
+   ]
+  },
+  {
+   "id": "S06",
+   "startBar": 20,
+   "endBar": 24,
+   "name": "Breakdown — L'équipe et le planning",
+   "visual": "MOOD\n- Calm Persona jazz-funk with NO shake.\n- Background #111827 with 25 bokeh circles (r 20–120, alpha 5–12%, cyan/violet/fuchsia) drifting up at 10px/s.\n- One slow −18° halftone band at the top-right, 6% alpha.\n- The camera drifts −30px on x over the 4 bars (inOutSine).\n\nCARD LAYOUT\n- Left column: x=470, y=540, maxW 760, calm fade-ups.\n- All UI sits in the right half, x 900–1820.\n\nBARS 20–21: ROSTER BOARD (x 960–1800, y 150–760)\n- 3 column headers in Bebas 28px #94a3b8: TITULAIRES / REMPLAÇANTS / STAFF.\n- 15 slots: 5 rows × 3 columns, 110×110, r16, #1e293b, 1px #334155.\n- Each slot fills with a geometric avatar (circle head r=22 + shoulder arc) and a small wordless role dot: Joueur cyan, Coach violet, Analyste fuchsia, Manager indigo.\n- Bar 21: a shield icon (pentagon + check) at the board's top-right pulses. Small lock glyphs on each column header toggle from open to closed: roles and permissions.\n\nBAR 22: PLANNING\n- The roster board shrinks to scale 0.45 and slides to the top-right corner (1600,190); easeInOutCubic, 0.5 beat.\n- A CALENDAR (x 900–1800, y 300–640) assembles:\n  - 7 columns with headers L M M J V S D in Inter Display 600 24px #94a3b8\n  - 3 rows of tiles, 116×90, r14, #1e293b\n  - tiles flip in (scaleY 0→1, easeOutBack) in a diagonal wave, one diagonal per 16th\n- Session blocks drop into tiles with a bounce: fuchsia #e879f9 'Scrim', cyan #67e8f9 'Match', violet #a78bfa 'Débrief'. Labels in Russo 20px, dark ink text.\n\nAVAILABILITY ROW (y=720, x 960–1640)\n- 5 avatars (r=30, #475569 outline) and a Russo One 40px counter '0 / 5'.\n- Each avatar lights cyan with a ring pulse while the counter ticks up.\n- At 5/5: a spectrum line links the avatars and the calendar gets a soft cyan rim light.",
+   "sync": "20.0 IMPACT\n- Scene returns fx {auto:false, shake:0, flash:0.12, rgb:4}.\n- The star wipe lands; a soft shockwave at 30% alpha; bokeh bloom.\n\nBAR 20\n- 15 roster slots fill one per 16th hat, 20.0.25 → 20.3.75 (exactly 15 hats).\n\nHALFTIME GROOVE\n- Kicks on b0 and b2.5: board or grid scale pulse 1→1.01.\n- Snare on b2: the halftone band flashes and the newest session block glows.\n\nE-PIANO CHORD (each bar start)\n- Bokeh brightness +30%.\n\nBAR 21\n- The shield pulses on 21.0.\n- Locks toggle on 21.2 and 21.2.5.\n\nBAR 22\n- 22.0: the board shrinks; card 2.\n- Tiles flip on the 16th hats.\n- Scrim drops on the 22.0 kick, Match on the 22.2 snare, Débrief on the 22.2.5 kick. More sessions on 23.0, 23.2 and 23.2.5.\n\nAVATARS\n- Light on 22.0, 22.2, 22.2.5, 22.3 and 23.0.\n- The counter reaches '5 / 5' exactly as card 3 lands on 23.0.\n\n23.3.4\n- The renderer iris (pre 0.6 beat) opens from the centre into S07.",
+   "transitionOut": "iris",
+   "cards": [
+    {
+     "bar": 20,
+     "beat": 0,
+     "durBeats": 8,
+     "text": "Cinq points de vue.",
+     "emph": "points de vue",
+     "sub": "Titulaires, remplaçants, staff : jusqu’à 15.",
+     "style": "calm"
+    },
+    {
+     "bar": 22,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Qui joue. Et quand.",
+     "emph": "quand.",
+     "sub": "Dispos partagées. Scrims, matchs, débriefs.",
+     "style": "calm"
+    },
+    {
+     "bar": 23,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Le cinq au rendez-vous.",
+     "emph": "cinq",
+     "sub": "5 / 5 disponibles",
+     "style": "calm"
+    }
+   ]
+  },
+  {
+   "id": "S07",
+   "startBar": 24,
+   "endBar": 28,
+   "name": "Discord, le moment humain",
+   "visual": "BOKEH WORLD\n- The same bokeh world as S06.\n- From bar 24 the choir adds 3 soft god-ray beams from the top (white, 6% alpha).\n\nCHAT PANEL (generic dark chat UI; no Discord logo or chrome)\n- K.panel x880–1800, y100–700, r24, #0f172a, 2px violet border, tilted −4°.\n- Left channel strip lists '# scrims' and '# résultats' (Inter 24px, 60% alpha).\n- Bot avatar: a cyan hexagon with '5'.\n- Input bar at the panel bottom shows a blinking caret only. The typed command lives in the card; do not type it twice.\n\nCARDS\n- Bars 24–25: left column, x=470, y=540, maxW 760.\n- Bars 26–27: lower third, y=870.\n\nBAR 24\n- Card 1 is scene-drawn with K.typeText (Inter 800, ~80px): '/nxt voir' typed 2 characters per 16th, complete at 24.1.25, with '/nxt' in cyan.\n- From 24.3.0, 7 autocomplete chips fan up from the input bar, one per 16th (Russo 22px pills): derniere · bilan · stats · planning · objectifs · reviews · draft.\n\nBAR 25\n- The 'derniere' chip highlights cyan.\n- A bot embed slides up in '# résultats':\n  - 6px cyan left border\n  - title 'Résumé de partie' (Russo 26px)\n  - 5 mini bars filling on the hats\n  - 5 role-glyph rows, no numbers\n- A small segmented toggle 'Auto | Manuel' at the embed's top-right shows Auto on.\n\nBARS 26–27 (stripped, hats only)\n- The camera pulls back: scale 1→0.85 (inOutSine).\n- The panel slides to x 300–1000 at 60% alpha with a 3px blur.\n- On the right at (1420,380): a large EMPTY CLIPBOARD outline (300×380, dashed violet #a78bfa 4px stroke). Its marching-ants dash offset steps on each 8th hat and it breathes at scale 1↔1.02: the debrief nobody wrote.\n- Teammate bubbles pop beside the panel (white/indigo rounded rects with jagged tails, Inter 28px, ≤3 words): 'gg', 'débrief ce soir ?', 'go 21h'.\n- On 'go 21h' the clipboard's dashes turn solid violet and its first note line draws: the answer.\n- From 27.2 particles start drifting to the screen centre.",
+   "sync": "24.0 CHOIR ENTRY\n- God-rays fade in over 1 bar.\n- Typing 24.0–24.1.25, 2 characters per 16th.\n- Chips fan up 24.3.0–24.3.75 on the 16th hats.\n\n25.0 KICK\n- 'derniere' highlights; the embed pops (easeOutBack); card 2.\n\n25.2 SNARE\n- The embed rows reveal.\n\n25.2.5 KICK\n- The Auto toggle pulses.\n\nBARS 26–27 (8th hats only)\n- No kick, snare, shake or pump. 26.0: pull-back and card 3 (calm fade over 1 beat).\n- Marching ants step on each 8th hat.\n- Bubbles: 'gg' at 26.2, 'débrief ce soir ?' at 27.0, 'go 21h' at 27.2.\n- The clipboard turns solid on 27.2.5.\n\n27.3.5\n- The renderer zoom implodes the frame into S08's orb. S08 draws its orb at f.lt < 0.",
+   "transitionOut": "zoom",
+   "cards": [
+    {
+     "bar": 24,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "/nxt voir",
+     "emph": "/nxt",
+     "sub": "Ton équipe, depuis Discord.",
+     "style": "type"
+    },
+    {
+     "bar": 25,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Ta partie, résumée sur Discord.",
+     "emph": "résumée",
+     "sub": "Auto ou manuel, dans tes salons.",
+     "style": "calm"
+    },
+    {
+     "bar": 26,
+     "beat": 0,
+     "durBeats": 8,
+     "text": "Tu débriefes vraiment tes scrims ?",
+     "emph": "vraiment",
+     "sub": "",
+     "style": "calm"
+    }
+   ]
+  },
+  {
+   "id": "S08",
+   "startBar": 28,
+   "endBar": 32,
+   "name": "Build 2 — Prêts ?",
+   "visual": "CENTRE ORB at (960,440)\n- Radial gradient: white core → #67e8f9 → #a78bfa → transparent.\n- Radius grows 60→180 over the 4 bars, with additive bloom.\n\nFRAGMENTS\n- ~40 UI fragments from S04–S07 (mini panels, hex chips, calendar tiles, chat bubbles) spiral into the orb on staggered polar paths: radius shrinking, angle increasing, easeInCubic.\n- The JGL token is the LAST one swallowed, at 28.2, with a tiny violet pop.\n\nRINGS\n- Gold #F5C66B dashed ring: r=orb+60, 3px, 24 dashes, clockwise.\n- Cyan ticked ring: r=orb+120, 2px, 36 ticks, counter-clockwise.\n- Both double their speed every bar.\n\nHEX STROBE (outlines only, photosafe)\n- Every snare hit spawns a K.hexPath outline at r=80 that expands to r=1300 over 0.6s (easeOutCubic).\n- 3px stroke cycling cyan / fuchsia / violet, fading out.\n\nCAMERA AND SPEED LINES\n- Tilt oscillates with amplitude 1°→3°; zoom 1→1.12 (inCubic).\n- Inward speed lines, the reverse of S03.\n- The riser white overlay is capped at 20% and drawn BENEATH the text layer.\n\nCARDS\n- Bars 28–30: lower third, y=870, on an ink −18° band (1500×190).\n- At 28.3 a 10px fuchsia #d946ef strike-through draws across '« jgl diff »' in 0.15s.\n- 31.0: 'PRÊTS ?' is a giant at the centre: Anton ~380px, fuchsia fill, 8px white outline, dark backing disc. Its RGB split grows 0→18px across the 64ths.\n\nSILENCE (31.3, 50.8s)\n- Hard cut to pure #070B17. The orb collapses to a single 6px white dot at (960,440) in 0.1s (easeInExpo).\n- No particles, no glow, no brand bug for the whole beat.",
+   "sync": "SNARE ROLL = STROBE RATE\n- 8ths on bar 28, 16ths on bar 29, 32nds on bar 30, 64ths on bar 31 (until 31.2.9375).\n\nKICK QUARTERS (28.0–31.2)\n- Orb radius +6% pulse, scene shake 3px.\n\nRISERS\n- Orb glow and ring speed rise exponentially.\n\nCHOIR\n- Gold ring glow; soft white bloom.\n\nCARD CADENCE (follows the roll)\n- 1 card in bar 28 (28.0).\n- 2 per bar in bar 29 (29.0, 29.2) and bar 30 (30.0, 30.2).\n- A giant on 31.0.\n\n28.2\n- JGL token swallowed.\n\n28.3\n- Strike-through.\n\n31.3\n- Black + dot; absolute stillness.\n\n32.0\n- The renderer flash transition (white 0.06s pre / 0.25s post) detonates the dot into S09.",
+   "transitionOut": "flash",
+   "cards": [
+    {
+     "bar": 28,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Fini le « jgl diff ».",
+     "emph": "jgl diff",
+     "sub": "",
+     "style": "jagged"
+    },
+    {
+     "bar": 29,
+     "beat": 0,
+     "durBeats": 2,
+     "text": "Pas de la chance.",
+     "emph": "chance.",
+     "sub": "",
+     "style": "slam"
+    },
+    {
+     "bar": 29,
+     "beat": 2,
+     "durBeats": 2,
+     "text": "Du travail.",
+     "emph": "travail.",
+     "sub": "",
+     "style": "slam"
+    },
+    {
+     "bar": 30,
+     "beat": 0,
+     "durBeats": 2,
+     "text": "Zéro excuse.",
+     "emph": "Zéro",
+     "sub": "",
+     "style": "slam"
+    },
+    {
+     "bar": 30,
+     "beat": 2,
+     "durBeats": 2,
+     "text": "C’est ton tour.",
+     "emph": "ton tour.",
+     "sub": "",
+     "style": "slam"
+    },
+    {
+     "bar": 31,
+     "beat": 0,
+     "durBeats": 3,
+     "text": "PRÊTS ?",
+     "emph": "PRÊTS",
+     "sub": "",
+     "style": "giant"
+    }
+   ]
+  },
+  {
+   "id": "S09",
+   "startBar": 32,
+   "endBar": 36,
+   "name": "DROP 2 — GO. Chaos → un seul espace → Importer",
+   "visual": "ALL-OUT ATTACK BACKGROUND\n- Three parallel −18° bands cross the frame: 300/160/80px wide, fuchsia #d946ef / cyan #22d3ee / violet #a78bfa, at 70% alpha.\n- Each band is filled with ink K.halftone dots and steps 40px along its axis on every 16th.\n- The bands cover ≤40% of the frame over a night field, so luminance stays constant.\n- A spectrum light streak races along the top band on every 8th (the octave lead).\n\nBAR 32: GO\n- 'GO.' giant at the centre: Anton ~460px white with a spectrum outline.\n- 5 player SILHOUETTES leap from the bottom-left (200,1100) to the top-right on parabolic arcs, staggered 1/8 beat apart:\n  - ink fill with a 3px cyan rim light\n  - ≤40% of the frame height\n  - 5 authored key poses: head circle, torso trapezoid, limbs as rotated rounded rects\n  - 6-copy motion trails, alpha 0.5→0\n  - they freeze in a victory row along the top edge (y 60–300)\n\n32.2: CHAOS\n- A CHAOS COLLAGE tumbles in: ~20 tilted desaturated slate rects at ±25°:\n  - fake screenshot cards (tiny mountain triangle)\n  - 6×4 spreadsheet grids\n  - DM chat-bubble scraps\n  - a few small fuchsia '?' badges\n- The pieces jitter ±6px (K.noise1) on every 16th.\n\nBAR 33: ORDER\n- A scene-internal slash band sweeps left→right. The pieces snap (easeOutExpo, staggered) into a clean 3×2 WORKSPACE GRID:\n  - panels 400×190, r20, #1e293b, gap 28, spanning x 340–1580, y 170–590, with a cyan rim glow\n  - K.icon in each: graph PARTIES, users ÉQUIPE, clipboard DÉBRIEFS, hex DRAFT, calendar PLANNING, chat DISCORD\n  - labels in Russo 26px\n- The silhouettes shrink into 5 avatar dots along the grid's top edge.\n\nBAR 34: IMPORTER\n- A DESKTOP WINDOW: x160–1060, y130–690, r20, #0f172a.\n- Title bar with 3 dots and the label 'NXT5 Importer' (Russo 26px).\n- A status pill 'Client LoL détecté' with a pulsing cyan dot.\n- A spectrum progress bar (700×20) steps on every 16th.\n- 5 generic game rows (result strip + 2 grey bars, no numbers) tick in with cyan checks.\n- A 'PARTIES' panel on the right: x1280–1760, y170–650.\n\nBAR 35: FILE\n- A JSON FILE icon pops out of the window: a 110×140 rect with a folded corner and '{ }' in Russo 44px.\n- It flies on a bezier arc (easeInOutCubic, 30-spark trail) into PARTIES, which flashes and gains a row whose bars shoot up.\n- Text pills 'Windows' and 'Mac' (Russo 26px) pop under the window, with no OS logos.\n\nCARD PLACEMENT\n- Bar 32: centre.\n- Bars 33–35: lower third, y=870.",
+   "sync": "32.0 IMPACT + BRASS\n- The flash transition resolves into the splash; 'GO.'. Auto impact FX.\n- Silhouettes launch on 32.0, 32.0.5, 32.1, 32.1.5 and 32.2 (one per 8th).\n\nBRASS STABS (even bars, b0 and b1.5)\n- 12% white edge glow (not full frame), a halftone burst, a band-order swap.\n\nKICK PATTERN\n- Auto 8px shake only.\n- Snare + clap (b1, b3): halftone pulse and a thin white slash.\n\n32.2\n- The chaos drops in; the stamp-like slam card. Chaos jolts on kicks 32.2.5 and 32.3.\n\nBAR 33\n- The sweep and snap on 33.0.\n- The 6 grid panels pop on the 6 hits: 33.0, 33.1, 33.1.5, 33.2, 33.2.75, 33.3.\n\nBAR 34\n- The window slams on the 34.0 brass.\n- The 5 game rows tick on the 5 kicks: 34.0, 34.1, 34.2, 34.2.5, 34.3.\n\nBAR 35\n- The file launches on the 35.0 kick and lands on the 35.2 kick (PARTIES flash).\n- 'Windows' pill on 35.0, 'Mac' pill on 35.1.5.\n\n35.3.5\n- The renderer slash lands on the bar-36 crash + brass.",
+   "transitionOut": "slash",
+   "cards": [
+    {
+     "bar": 32,
+     "beat": 0,
+     "durBeats": 2,
+     "text": "GO.",
+     "emph": "GO.",
+     "sub": "",
+     "style": "giant"
+    },
+    {
+     "bar": 32,
+     "beat": 2,
+     "durBeats": 2,
+     "text": "Screens, tableurs, MP perdus ?",
+     "emph": "perdus",
+     "sub": "",
+     "style": "slam"
+    },
+    {
+     "bar": 33,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Toute l’équipe. Au même endroit.",
+     "emph": "même endroit.",
+     "sub": "",
+     "style": "slam"
+    },
+    {
+     "bar": 34,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "NXT5 Importer",
+     "emph": "Importer",
+     "sub": "Lit tes parties depuis ton client LoL.",
+     "style": "slam"
+    },
+    {
+     "bar": 35,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Windows et Mac.",
+     "emph": "Mac.",
+     "sub": "Un fichier à importer dans Parties.",
+     "style": "jagged"
+    }
+   ]
+  },
+  {
+   "id": "S10",
+   "startBar": 36,
+   "endBar": 40,
+   "name": "DROP 2 — Quatre features, une par mesure",
+   "visual": "FORMAT\n- 4 Persona menu panels, ONE PER BAR, each with a 4-beat card and sub. No 2-beat sub cards.\n- Panel: a parallelogram (skewX −18°, 1240×440) centred at (960,380), above y=720.\n  - #0f172a fill at 92%\n  - 6px jagged edge alternating cyan / fuchsia\n  - 18px ink offset shadow\n- Panels enter alternately from the left and right (x ±1400→0, easeOutExpo, 0.25 beat).\n- The outgoing panel whips off-screen with 4 ghost copies.\n- A 240px primitive ICON sits inside, centred.\n- Background: drifting −18° halftone bands, horizontal speed lines streaking left on the 16ths, the spectrum lead streak on the top edge.\n- Brass: spectrum spark bursts, 30 sparks.\n\nBAR 36: VUE COACH\n- Two polylines (cyan, fuchsia) draw left→right through 6 points on a faint grid.\n- A segmented control '5 | 10 | 20' (Russo 26px) at the panel's top-right; a cyan pill slides between its options and the lines morph to a new shape each time.\n- Two wordless chips pop below.\n\nBAR 37: CARTE JOUEUR\n- A 260×380 player card flips in (scaleX through cos(π·p)):\n  - spectrum border\n  - geometric avatar\n  - role tag 'MID'\n  - 3 unnumbered stat bars\n- A diagonal holo sheen sweeps across it.\n- 3 'récap' story panels (180×320) fan out to its right at −8° / 0° / +8°, each with one big icon (graph, star, hex).\n\nBAR 38: PAYOFF\n- First, a callback ghost from 37.3.5 to 38.0 (0.5 beat): 'MÊME ERREUR DEMAIN.' in Anton 150px at 50% alpha flashes at the centre, and a fuchsia 12px slash crosses it out.\n- Panel content: a target (3 concentric circles, cyan/violet) with an arrow thunking into the centre, plus 5 small player objective rings that fill to different levels.\n- Two violet coach-note bubbles with wordless lines pop above rings 2 and 4.\n\nBAR 39: ASSISTANT\n- K.icon chat bubble with a 4-point sparkle. A prompt line 'Que veux-tu faire ?' (Inter 28px, 70% alpha) sits inside it.\n- 3 typing dots bounce on the 16ths.\n- A small 'NXT5' page sketch (3 grey rects) beside the bubble gets a cyan highlight ring: help using the app, not game analysis.\n\nCARDS\n- Lower third, y=870.",
+   "sync": "36.0 CRASH + BRASS\n- The Vue coach panel slams; spark burst.\n- 36.1.5 brass: a second burst.\n- The toggle moves 5→10 on the 36.1 kick and 10→20 on the 36.2 kick. The lines morph on the 36.3 kick.\n\n37.0 KICK\n- The card flips.\n- The sheen sweeps on the kicks at 37.1.5 and 37.2.75.\n- The récap fan opens on 37.2.\n\n37.3.5\n- The ghost line flashes, slashed on 37.3.75.\n\n38.0 BRASS\n- The stamp card; the arrow hits with a mini shockwave (r 0→300).\n- The 5 objective rings fill one per kick: 38.0, 38.1, 38.2, 38.2.5, 38.3.\n- Coach bubbles on the snares at 38.1 and 38.3.\n- 38.1.5 brass: spark burst.\n\n39.0 KICK\n- The assistant panel.\n- The highlight ring lands on the 39.2 kick; the sparkle twinkles on the 39.1 and 39.3 snares.\n\nAUTO FX\n- Auto drop FX only; the scene adds a 1.02 panel punch on kicks.\n\n40.0\n- Hard cut on the stab.",
+   "transitionOut": "cut",
+   "cards": [
+    {
+     "bar": 36,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Vue coach.",
+     "emph": "coach.",
+     "sub": "Évolution, comparaison, tendances de draft.",
+     "style": "slam"
+    },
+    {
+     "bar": 37,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Ta carte joueur.",
+     "emph": "carte joueur.",
+     "sub": "Et ton récap façon Wrapped.",
+     "style": "slam"
+    },
+    {
+     "bar": 38,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Même erreur ? Notée. Suivie.",
+     "emph": "Notée. Suivie.",
+     "sub": "Objectifs et notes coach, par joueur.",
+     "style": "stamp"
+    },
+    {
+     "bar": 39,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Assistant NXT5",
+     "emph": "Assistant",
+     "sub": "Il t’aide à utiliser NXT5.",
+     "style": "jagged"
+    }
+   ]
+  },
+  {
+   "id": "S11",
+   "startBar": 40,
+   "endBar": 44,
+   "name": "Stutter — Gratuit, démo, ton espace, le jungle",
+   "visual": "BARS 40–41 STUTTER (photosafe)\n- A CONSTANT dark night field (#070B17 → #111827 radial). Nothing ever swaps the whole frame.\n- On each stab the composition hard-cuts:\n  - one wide −18°/+12°/−30° band (cycling angles), 220px wide, fuchsia / cyan / violet at 60%, with ink halftone, covering ≤30% of the frame\n  - the 5 S09 silhouettes (ink, 3px rim light, ≤40% of frame height) snap to a new stop-motion pose from the 5 authored poses\n  - a small K.shockwave (r 0→400) at a pose-dependent point\n- The card text never moves: only a 1.0→1.04 scale punch per stab.\n\nBAR 40\n- Card at the centre, y=500: Anton ~170px, 'Gratuit' in spectrum.\n- The sub pill sits under it.\n\nBAR 41\n- 3 DEMO TILES (300×190, #1e293b, labels 'PARTIE 1/2/3' in Russo 24px) slam in from the left to a row at y=260.\n- They flip (scaleX) to show mini dashboards: 5 bars + timeline, no numbers.\n- The card sits in the lower third, y=870.\n- 41.3 fill: the tiles vibrate 3px, inward speed lines converge, and everything scales 1→0.9 toward the centre. NO slice strobe.\n\nBAR 42: CREST (original angular NXT5-style crest; no gold winged banner, no Victory-screen look)\n- A hexagon shield r=120 at (960,300) with '5' in Russo 120px inside.\n- 5 angular blade quads per side unfold one pair per kick (easeOutBack). Stroke is the spectrum gradient with an inner glow.\n- A nameplate under it at y=480 (420×70) types 'TON ÉQUIPE' (Russo 34px).\n- A burst of 200 particles: 90% cyan/violet/fuchsia, 10% gold, radial 400–1200px/s, gravity 900px/s², fading over 1 bar.\n- A diagonal white light sweep at 35% crosses the crest on 42.2.\n- Card: lower third.\n\nBAR 43: CALLBACK\n- The crest recedes to (960,170), scale 0.55.\n- The JGL token (r=46) at (960,430) is surrounded by 8 fuchsia '?' blame pings in a ring, r=180.\n- The pings get ZAPPED: a cyan lightning polyline from the token turns each ping into a burst of cyan sparks.\n- Card: lower third.",
+   "sync": "BARS 40–41\n- The scene returns fx {auto:false, shake: 4·f.stab, rgb: 6·f.stab, flash: 0}. Total stays ≤6px while subs show.\n- Stabs + kicks on 0, .75, 1.5, 2.5, 3 and 3.5 bring a composition cut and a text punch: 12 cuts in 3.2s, but the luminance never swaps.\n- Snare on b2: the halftone dots pulse ×1.5.\n\nBAR 41\n- Demo tiles slam on the stabs at 41.0, 41.0.75 and 41.1.5, and flip on 41.2.5 and 41.3.\n- 41.3–41.3.875: 32nd snare fill + riser = vibration and convergence.\n\n42.0 IMPACT\n- Auto FX on. Crest, particle burst, card 'Crée ton espace.'.\n- Blade pairs unfold on the kicks at 42.0, 42.1, 42.2, 42.2.5 and 42.3.\n- The brass stab at 42.1.5 flares the crest.\n- The nameplate types over 42.1–42.2.5.\n\nBAR 43\n- Pings appear on 43.0.\n- Zaps, 8 pings in total: 2 on 43.1, 1 on 43.1.5, 2 on 43.2, 1 on 43.2.75, 2 on 43.3.\n- The hat fill at 43.3.25–43.3.75 makes the token glow.\n\n44.0\n- The renderer shatter.",
+   "transitionOut": "shatter",
+   "cards": [
+    {
+     "bar": 40,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Gratuit en ce moment.",
+     "emph": "Gratuit",
+     "sub": "Aucun abonnement. Pour toute l’équipe.",
+     "style": "slam"
+    },
+    {
+     "bar": 41,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Essaie la démo.",
+     "emph": "démo.",
+     "sub": "3 parties fictives, sans installation.",
+     "style": "slam"
+    },
+    {
+     "bar": 42,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Crée ton espace.",
+     "emph": "ton espace.",
+     "sub": "Connexion Google, Discord ou Apple.",
+     "style": "slam"
+    },
+    {
+     "bar": 43,
+     "beat": 0,
+     "durBeats": 4,
+     "text": "Arrête d’accuser le jungle.",
+     "emph": "jungle.",
+     "sub": "",
+     "style": "slam"
+    }
+   ]
+  },
+  {
+   "id": "S12",
+   "startBar": 44,
+   "endBar": 50,
+   "name": "Outro — Analyse. End card",
+   "visual": "BACKGROUND\n- Deep night #070B17 with a slow, wide spectrum aurora: a blurred cyan→violet→fuchsia band, 18% alpha, drifting.\n- Sparse drifting particles. The brand bug is OFF.\n\nBAR 44 (renderer shatter flying OUT)\n- S12 draws its OWN 40 brand shards: cyan / indigo / violet / fuchsia triangles with 2px light edges.\n- They fly IN from beyond the frame edges in 8 waves of 5, one wave per kick (easeOutExpo, 0.3 beat each).\n- They snap into the NXT5 outline logo: K.logo at (960,300), width 820. The logo is complete on 45.3 and then gets its gradient stroke + 25% fill glow.\n- A thin spectrum LOOP RING (r=300, 2px, 25% alpha) draws behind the logo, rotating slowly: the virtuous loop, home.\n- Card 1 is scene-drawn: 'ANALYSE.' Anton ~300px in spectrum at y=720. It slams with scale 1.3→1, no RGB split.\n\nBAR 45\n- The JGL token slides in to the right of 'ANALYSE.' at (1560,720).\n- Its outline turns gold #F5C66B, and a tiny cyan 'gg' bubble pops: the gag is redeemed.\n\nBAR 46: LOCK-UP\n- The token fades.\n- The logo eases to (960,210), width 560 (inOutCubic, 0.5 beat).\n- 'ANALYSE.' shrinks and flies into the middle-word slot of the tagline.\n- The tagline card is scene-drawn, centred at y=400: Inter Display 900, 92px, #f1f5f9, 'Analyse.' in spectrum.\n- nxt5.org (the card's sub, scene-drawn big, NOT the 54px pill): Russo One 130px, cyan #67e8f9, 24px glow, centred at y=560.\n- Under it, 'Lien en description' with a ▼ chevron: Inter 700 40px #cbd5e1 at y=650.\n- ACTION LINE at y=750: 'Essaie la démo · Crée ton espace'. Inter Display 800, 64px, #f1f5f9, with 'Essaie la démo' in cyan; inside a 2px spectrum-bordered pill.\n- Footer, left-aligned at x=96:\n  - 'Gratuit en ce moment · Équipes & coachs': Inter 600 34px #cbd5e1, y=990\n  - 'NXT5 n’est pas affilié à Riot Games.': Inter 22px at 55% alpha, y=1035\n- QUIET ZONE: x1300–1880, y820–1000 stays empty for the YouTube end screen.\n\nHOLD\n- Everything holds still to 79.8s. Only a 4s breathing glow on the logo and drifting particles move.\n- No fade to black, which requires the renderer change. The card has no exit, because durBeats 16 runs past 79.8s.",
+   "sync": "44.0 BIGGEST IMPACT + HUGE CHORD\n- Auto impact FX.\n- 'ANALYSE.' slams; shard wave 1.\n\nKICKS\n- On 44.0–44.3 and 45.0–45.3: one shard wave per kick, 8 waves.\n- Each kick also pulses the loop ring and the logo glow (scale 1→1.03).\n\nTOKEN\n- Arrives on 45.0; gold ring and 'gg' on 45.2.\n\n46.0 PAD ENTRY\n- 'ANALYSE.' morphs into the tagline; the logo moves up.\n- Calm fade-up of the rest of the tagline over 0.5 beat.\n\n46.2 LAST IMPACT (74.4s)\n- The scene returns fx {auto:false, shake:2, flash:0.08, rgb:3}.\n- 'nxt5.org' stamps in: scale 1.4→1 in 4 frames, with a soft cyan K.shockwave (alpha 0.35, r 0→1200 over 2 beats).\n- 'Lien en description' and the action line fade up over 46.2–46.3.\n- The footer fades in on 46.3.\n\nHOLD\n- Logo + tagline + nxt5.org + CTA are fully legible from 74.6s to 79.8s, about 5.2s.\n- Fallback without the renderer change: 74.6→78.4s.",
+   "transitionOut": "cut",
+   "cards": [
+    {
+     "bar": 44,
+     "beat": 0,
+     "durBeats": 8,
+     "text": "ANALYSE.",
+     "emph": "ANALYSE.",
+     "sub": "",
+     "style": "giant"
+    },
+    {
+     "bar": 46,
+     "beat": 0,
+     "durBeats": 16,
+     "text": "Joue. Analyse. Recommence.",
+     "emph": "Analyse.",
+     "sub": "nxt5.org",
+     "style": "calm"
+    }
+   ]
+  }
+ ]
+}

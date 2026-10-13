@@ -290,7 +290,7 @@ for bar in range(8, 12):
     place(music, b2t(bar), reese(ROOT[c] + 12, BAR), 0.5)
     div = [1, 2, 4, 8][bar - 8]
     for i in range(4 * div):
-        if bar == 11 and i >= 4 * div - 4:   # 1-beat gap before the drop
+        if bar == 11 and i >= 4 * div - div:   # 1-beat gap before the drop
             continue
         sn(bar, i / div, g=0.15 + 0.32 * (bar - 8 + i / (4 * div)) / 4, withclap=False)
     for b in range(4 if bar < 11 else 3):
@@ -412,6 +412,15 @@ idx = np.searchsorted(kt, t, side='right') - 1
 since = np.where(idx >= 0, t - kt[np.clip(idx, 0, None)], 10)
 duck = 1 - 0.72 * np.exp(-since * 11)
 music *= duck
+# true silence on the last beat before each drop (only the reverse cymbal breathes in)
+for gb in (11, 31):
+    a, b = int(b2t(gb, 3) * SR), int(b2t(gb + 1) * SR)
+    g = np.ones(N)
+    g[a:b] = 0
+    r = int(0.012 * SR)
+    g[a - r:a] = np.linspace(1, 0, r)
+    music *= g
+    send[:, a:b] *= 0.2
 
 ir_t = np.arange(int(2.6 * SR)) / SR
 ir = np.vstack([rng.standard_normal(len(ir_t)), rng.standard_normal(len(ir_t))]) * np.exp(-ir_t * 2.4)

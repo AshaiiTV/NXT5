@@ -29,8 +29,8 @@ function draw(variant) {
   ctx.lineTo(0, H);
   ctx.closePath();
   const red = ctx.createLinearGradient(0, 0, W * 0.4, H);
-  red.addColorStop(0, '#3a0816');
-  red.addColorStop(1, '#12040a');
+  red.addColorStop(0, '#2c0a3a');
+  red.addColorStop(1, '#0d0518');
   ctx.fillStyle = red;
   ctx.fill();
   ctx.restore();
@@ -44,9 +44,9 @@ function draw(variant) {
   // tilted player silhouette (head + shoulders over a monitor), red rim light
   ctx.save();
   ctx.translate(W * 0.2, H * 0.62);
-  ctx.shadowColor = C.red;
+  ctx.shadowColor = C.fuchsia2;
   ctx.shadowBlur = 60;
-  ctx.fillStyle = '#05010a';
+  ctx.fillStyle = '#06020c';
   ctx.beginPath();
   ctx.ellipse(0, -170, 95, 110, -0.25, 0, Math.PI * 2);
   ctx.fill();
@@ -57,9 +57,9 @@ function draw(variant) {
   ctx.closePath();
   ctx.fill();
   ctx.restore();
-  ctx.strokeStyle = C.red;
+  ctx.strokeStyle = C.fuchsia;
   ctx.lineWidth = 6;
-  ctx.shadowColor = C.red;
+  ctx.shadowColor = C.fuchsia2;
   ctx.shadowBlur = 30;
   ctx.beginPath();
   ctx.ellipse(W * 0.2, H * 0.62 - 170, 95, 110, -0.25, Math.PI * 1.05, Math.PI * 1.75);
@@ -68,15 +68,15 @@ function draw(variant) {
   ctx.save();
   ctx.translate(W * 0.2, H * 0.62 - 170);
   ctx.rotate(-0.25);
-  ctx.strokeStyle = '#2a0710';
+  ctx.strokeStyle = '#24082e';
   ctx.lineWidth = 22;
   ctx.beginPath();
   ctx.arc(0, 10, 118, Math.PI * 1.08, Math.PI * 1.92);
   ctx.stroke();
-  ctx.fillStyle = '#16030a';
-  ctx.strokeStyle = C.red;
+  ctx.fillStyle = '#12041a';
+  ctx.strokeStyle = C.fuchsia;
   ctx.lineWidth = 5;
-  ctx.shadowColor = C.red;
+  ctx.shadowColor = C.fuchsia2;
   ctx.shadowBlur = 25;
   K.roundRect(ctx, -140, -10, 50, 92, 18);
   ctx.fill();
@@ -99,7 +99,7 @@ function draw(variant) {
   else K.panel(ctx, W * 0.5, H * 0.7, 760, 250, { header: 'ANALYSE DE PARTIE', tilt: -0.05 });
 
   // arrow to "TOI"
-  K.stamp(ctx, 'TOI ?', W * 0.15, H * 0.17, { size: 110, color: C.red, angle: -0.12 });
+  K.stamp(ctx, 'TOI ?', W * 0.15, H * 0.17, { size: 130, color: C.fuchsia, angle: -0.12 });
   K.logo(ctx, W * 0.87, H * 0.08, 330, { fill: 1, glow: 30 });
 
   const out = Canvas.createCanvas(1280, 720);

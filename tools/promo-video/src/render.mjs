@@ -368,7 +368,8 @@ function renderFrame(canvas, t) {
   ctx.fillStyle = 'rgba(0,0,0,0.06)';
   for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 1);
   // fade in from black at the very start, fade out at the end
-  const fadeOut = clamp((t - (TOTAL - 1.4)) / 1.4);
+  // the end card holds to the last frame unless the scene asks for a fade (fx.fadeOut 0..1)
+  const fadeOut = clamp(fx.fadeOut ?? 0);
   if (fadeOut > 0) {
     ctx.fillStyle = `rgba(2,6,17,${fadeOut})`;
     ctx.fillRect(0, 0, W, H);
