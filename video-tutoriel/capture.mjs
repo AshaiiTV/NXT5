@@ -4,6 +4,7 @@ const BASE = "http://localhost:5173";
 const b = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome" });
 const ctx = await b.newContext({ viewport: { width: 1536, height: 864 }, deviceScaleFactor: 1.25, locale: "fr-FR", timezoneId: "Europe/Paris", reducedMotion: "reduce" });
 await ctx.addInitScript(() => { const s = document.createElement("style"); s.textContent = ".nxt5-cookie-banner,.nxt5-cookie-settings,div.fixed.bottom-5.right-4,[class*=cookie]{display:none!important} *{caret-color:transparent!important}"; document.addEventListener("DOMContentLoaded", () => document.head.appendChild(s)); });
+await ctx.addInitScript(() => { const hide = () => { for (const el of document.querySelectorAll("p,span,li,small")) { if (/actuellement gratuit|aucun abonnement/i.test(el.textContent) && ![...el.children].some(c => /actuellement gratuit|aucun abonnement/i.test(c.textContent))) el.style.setProperty("display", "none", "important"); } }; document.addEventListener("DOMContentLoaded", () => { hide(); new MutationObserver(hide).observe(document.body, { childList: true, subtree: true, characterData: true }); }); });
 const p = await ctx.newPage();
 const meta = {};
 async function rect(name, loc) { const r = await loc.first().evaluate(e => { const b = e.getBoundingClientRect(); return [b.left + scrollX, b.top + scrollY, b.width, b.height]; }); return r.map(v => v * 1.25); }

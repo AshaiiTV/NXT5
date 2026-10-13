@@ -51,13 +51,13 @@ Débrief : un fait observé, puis une question à vérifier…
 Dans ton espace, chaque membre de l’équipe écrit ses propres observations.
 
 14
-00:01:26,033 --> 00:01:31,547
-Pour commencer, crée ton espace équipe. L’accès est actuellement gratuit.
+00:01:26,033 --> 00:01:30,497
+Pour commencer, crée ton espace équipe en quelques clics.
 
 15
-00:01:31,567 --> 00:01:39,713
+00:01:30,517 --> 00:01:38,663
 Importe tes parties avec NXT5 Importer, sur Windows ou Mac.
 
 16
-00:01:39,733 --> 00:01:44,630
+00:01:38,683 --> 00:01:43,580
 Invite tes joueurs, puis analysez et débriefez ensemble.

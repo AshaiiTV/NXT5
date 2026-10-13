@@ -19,7 +19,7 @@ Chapitres
 0:56 Les analyses
 1:10 Le débrief
 1:25 Créer son espace et importer ses parties
-1:44 Conclusion
+1:43 Conclusion
 
 #LeagueOfLegends #Coaching #Esport
 
@@ -48,7 +48,7 @@ NXT5, League of Legends, LoL, coaching LoL, analyse de parties, débrief, scrim,
 - 1:10 — Vient ensuite le débrief : un fait observé, puis une question à vérifier…
 - 1:15 — … et enfin, une action concrète pour la prochaine séance.
 - 1:20 — Dans ton espace, chaque membre de l’équipe écrit ses propres observations.
-- 1:26 — Pour commencer, crée ton espace équipe. L’accès est actuellement gratuit.
-- 1:31 — Importe ensuite tes parties avec N X T 5 Importer, sur Windows ou sur Mac.
-- 1:39 — Invite tes joueurs… puis analysez, et débriefez ensemble.
-- 1:45 — À toi de jouer ! Essaie la démo, ou crée ton espace, sur N X T 5 point org.
+- 1:26 — Pour commencer, crée ton espace équipe, en quelques clics.
+- 1:30 — Importe ensuite tes parties avec N X T 5 Importer, sur Windows ou sur Mac.
+- 1:38 — Invite tes joueurs… puis analysez, et débriefez ensemble.
+- 1:44 — À toi de jouer ! Essaie la démo, ou crée ton espace, sur N X T 5 point org.

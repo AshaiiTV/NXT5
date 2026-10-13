@@ -13,9 +13,15 @@
   "c11": "<b>Débrief</b> : un fait observé, puis une question à vérifier…",
   "c12": "… et une action concrète pour la prochaine séance.",
   "c13": "Dans ton espace, chaque membre de l’équipe écrit ses propres observations.",
-  "c14": "Pour commencer, crée ton <b>espace équipe</b>. L’accès est actuellement gratuit.",
+  "c14": "Pour commencer, crée ton <b>espace équipe</b> en quelques clics.",
   "c15": "Importe tes parties avec <b>NXT5 Importer</b>, sur Windows ou Mac.",
   "c16": "Invite tes joueurs, puis analysez et débriefez ensemble."
  },
- "steps": { "s1": "La démo", "s2": "Le bilan", "s3": "Les analyses", "s4": "Le débrief", "s5": "Ton espace" }
+ "steps": {
+  "s1": "La démo",
+  "s2": "Le bilan",
+  "s3": "Les analyses",
+  "s4": "Le débrief",
+  "s5": "Ton espace"
+ }
 }
