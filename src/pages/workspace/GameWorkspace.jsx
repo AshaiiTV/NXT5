@@ -16,6 +16,7 @@ import { ImportGameFlow, GameActions, GameCategoryManager, GameOperationDialog, 
 import "./games-workspace.css";
 import "./match-timeline-reading.css";
 import "./match-deep-reading.css";
+import { MatchDrafting as DraftImpactPanel } from "../../components/games/MatchDrafting.jsx";
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
 import OpponentsWorkspace from "../../components/opponents/OpponentsWorkspace.jsx";
 import MatchDrafterPanel from "../../components/opponents/MatchDrafterPanel.jsx";
@@ -1017,38 +1018,6 @@ function DeathContextPanel({ match }) {
   </section>;
 }
 
-function DraftImpactPanel({ match }) {
-  useLanguage();
-  const ally = teamRows(match, "ALLY");
-  const identity = compositionIdentity(ally);
-  const tags = identity.tags.slice(0, 4);
-  const identityText = identity.primary === "frontline"
-    ? t("Une première ligne pour absorber la pression et protéger les joueurs qui infligent les dégâts.")
-    : ["engage", "scaling", "front-to-back", "poke", "siege", "side", "pick"].includes(identity.primary)
-      ? t(identity.text)
-      : t("Repérez qui peut ouvrir le combat, protéger l’équipe et maintenir la pression avec ces champions.");
-  const physical = deepReadingTotal(ally, "physicalDamageDealtToChampions");
-  const magic = deepReadingTotal(ally, "magicDamageDealtToChampions");
-  const trueDamage = deepReadingTotal(ally, "trueDamageDealtToChampions");
-  const damageComplete = [physical, magic, trueDamage].every((value) => value !== null);
-  const total = damageComplete ? physical + magic + trueDamage : null;
-  const hasDamage = total !== null && total > 0;
-  const damage = [["Physiques", physical, "physical"], ["Magiques", magic, "magic"], ["Bruts", trueDamage, "true"]];
-  const warnings = [
-    hasDamage && Math.abs(magic - physical) / total >= 0.45 && (magic > physical ? t("Les dégâts magiques dominent : comment l’adversaire a-t-il adapté ses résistances ?") : t("Les dégâts physiques dominent : comment l’adversaire a-t-il adapté ses résistances ?")),
-    ally.length > 0 && !identity.tags.some(([tag]) => ["frontline", "tank"].includes(tag)) && t("Qui peut tenir la première ligne dans les combats ?"),
-    ally.length > 0 && !identity.tags.some(([tag]) => ["engage", "pick"].includes(tag)) && t("Qui ouvre le combat et qui peut suivre l’initiation ?"),
-  ].filter(Boolean);
-  return <section className="games-analysis-section match-reading-chapter match-reading-draft">
-    <DeepReadingHeading number="02" title={t("La composition, en situation")} description={t("Les champions indiquent des possibilités. Les dégâts montrent ce qui a été joué dans cette partie.")} />
-    <div className="match-draft-reading">
-      <div className="match-draft-identity"><p className="match-reading-eyebrow">{t("Profil suggéré par les champions")}</p><h5>{ally.length ? t(tagLabel(identity.primary)) : t("Composition incomplète")}</h5><p>{ally.length && identity.primary !== "standard" ? identityText : t("Les champions renseignés ne suffisent pas à proposer une lecture de la composition.")}</p><dl className="match-draft-tags">{tags.map(([tag, count]) => <div key={tag}><dt>{t(tagLabel(tag))}</dt><dd>{t("{0} champions", [count])}</dd></div>)}</dl><p className="match-reading-note">{t("Catégories indicatives ; elles ne mesurent pas la qualité de la draft.")}</p></div>
-      <div className="match-draft-damage"><p className="match-reading-eyebrow">{t("Dégâts infligés aux champions")}</p>{hasDamage ? <><strong className="match-draft-damage-total">{formatPoints(total)}</strong><div className="match-damage-bar" aria-hidden="true">{damage.map(([label, value, kind]) => <span key={label} data-kind={kind} style={{ width: `${value / total * 100}%` }} />)}</div><dl className="match-damage-legend">{damage.map(([label, value, kind]) => <div key={label} data-kind={kind}><dt>{t(label)}</dt><dd><strong>{Math.round(value / total * 100)}%</strong><span>{formatPoints(value)}</span></dd></div>)}</dl><p className="match-reading-note">{t("Répartition réelle sur cette partie, tous nos joueurs réunis.")}</p></> : <p className="match-reading-empty">{t(damageComplete ? "Les cinq joueurs ont 0 dégât renseigné : aucune répartition en pourcentage ne peut être calculée." : "La répartition des dégâts n’est pas disponible pour les cinq joueurs. Aucun pourcentage n’est estimé.")}</p>}</div>
-    </div>
-    {warnings.length > 0 && <div className="match-draft-questions"><h5><Search aria-hidden="true" />{t("À confirmer ensemble")}</h5><ul>{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
-  </section>;
-}
-
 function MatchReadingIntro() {
   useLanguage();
   return <section className="games-analysis-section match-reading-intro">
@@ -1404,10 +1373,8 @@ function MatchDataPanel({ match, teamName, onReview, hasReview = false, contextC
             {match.patch && <p>{t("Version du jeu : ")}{match.patch}</p>}
           </section>}
         </GameAnalysisDisclosure>
-        <GameAnalysisDisclosure title={t("Points à approfondir")} description={t("Contexte des morts et composition jouée dans cette partie.")}>
-          <MatchReadingIntro />
-          <DeathContextPanel match={match} />
-          <DraftImpactPanel match={match} />
+        <GameAnalysisDisclosure title={t("Drafting")} description={t("La leur / La nôtre")}>
+          <DraftImpactPanel match={match} teamName={teamName} />
         </GameAnalysisDisclosure>
         <GameAnalysisDisclosure title={t("Chronologie de la partie")} description={`${t(status.label)} · ${t(status.detail)}`}>
           <MatchTimelineReview match={match} teamName={teamName} />
@@ -1462,9 +1429,12 @@ function GameWorkspace(props) {
     : <Statistics key={props.selectedTeamId} {...props} />;
 }
 
-function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember, user, route }) {
+function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember, user, route, ensureHistory, loadNextPage, historyLoading = false, historyError = "" }) {
   useLanguage();
   const baseMatches = (data.matches || []).filter((match) => match.team_id === selectedTeamId);
+  const historyComplete = data.historyComplete !== false && !data.pagination?.hasMore;
+  const serverTotal = data.selectedTeamId === selectedTeamId ? data.totals?.games ?? data.pagination?.total : null;
+  const totalMatches = Number.isSafeInteger(Number(serverTotal)) && Number(serverTotal) >= baseMatches.length ? Number(serverTotal) : baseMatches.length;
   const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
   const archives = (data.matchArchives || []).filter((archive) => archive.team_id === selectedTeamId);
   const selectedTeam = (data.teams || []).find((team) => String(team.id) === String(selectedTeamId));
@@ -1697,8 +1667,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
 
     <div hidden={Boolean(selectedMatchId)}>
       <div className="games-library-toolbar">
-        <TabNav idPrefix="games-library" panelId="games-library-panel" label={t("Bibliothèque de parties")} items={[{ id: "games", label: "Parties", meta: String(baseMatches.length) }, { id: "groups", label: "Groupes", meta: String(archives.length) }, { id: "teams", label: "Équipes", meta: teamCount === null ? "—" : String(teamCount) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-3" />
-        {workspaceView !== "teams" && baseMatches.length > 0 && <p className="games-team-record"><span>{t("Équipe")}</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)}{t(" % de victoires")}</span></p>}
+        <TabNav idPrefix="games-library" panelId="games-library-panel" label={t("Bibliothèque de parties")} items={[{ id: "games", label: "Parties", meta: String(totalMatches) }, { id: "groups", label: "Groupes", meta: String(archives.length) }, { id: "teams", label: "Équipes", meta: teamCount === null ? "—" : String(teamCount) }]} activeId={workspaceView} onChange={selectView} columns="sm:grid-cols-3" />
+        {historyComplete && workspaceView !== "teams" && baseMatches.length > 0 && <p className="games-team-record"><span>{t("Équipe")}</span><strong>{wins} V · {losses} D</strong><span>{Math.round(wins / baseMatches.length * 100)}{t(" % de victoires")}</span></p>}
       </div>
       <div id="games-library-panel" role="tabpanel" aria-labelledby={`games-library-tab-${workspaceView}`} tabIndex={0}>
       {workspaceView === "teams" && !selectedMatchId && <OpponentsWorkspace selectedTeamId={selectedTeamId} user={user} opponentId={query.get("opponent") || ""} refreshRevision={data.bootstrapRevision} onCountChange={updateOpponentCount} embedded />}
@@ -1747,6 +1717,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       <div ref={listRef} hidden={workspaceView === "teams" || (workspaceView === "groups" && !selectedArchive)}>
         <ImportedGames
           matches={scopedMatches} categories={matchCategories} selectedMatchId={selectedMatchId} selectedMatch={selectedMatch}
+          historyComplete={historyComplete} historyLoading={historyLoading} historyError={historyError}
+          totalMatches={selectedArchive ? scopedMatches.length : totalMatches} onLoadMore={loadNextPage} onLoadHistory={ensureHistory}
           onSelectMatch={selectMatch} showSelection={false} showCategoryFilter allowImportSort
           title={selectedArchive ? t("Parties du groupe") : t("Toutes les parties")}
           description={t("Recherche une partie pour lire son résumé, puis ses statistiques.")}

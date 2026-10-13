@@ -238,7 +238,7 @@ function DraftTrendTable({ title, rows = [], empty, onSources, variant = "archet
         </li>;
       })}</ul>
       {onSources && <p className="draft-footnote">{t("Sélectionne une ligne pour voir ses parties sources.")}</p>}
-    </> : <p className="draft-empty">{empty}</p>}
+    </> : <p className="draft-empty">{t(empty)}</p>}
   </section>;
 }
 

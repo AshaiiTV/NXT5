@@ -382,7 +382,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: "Analyser plusieurs parties",
     path: '/tendances',
     actionLabel: "Ouvrir Analyses",
-    summary: "Analyses rapproche les résultats de plusieurs parties dans Synthèse, Évolution, Comparer, Champions et Objectifs. Les filtres de période et de catégorie définissent les parties étudiées. Drafts & bans dispose de ses propres filtres pour les drafts Drafter enregistrées.",
+    summary: "Analyses rapproche les résultats de plusieurs parties dans Synthèse, Évolution, Comparer, Statistiques, Champions, Drafts & bans et Style de jeu. Statistiques compare les joueurs. Style de jeu relie les habitudes observées aux pistes de travail. Les filtres de période et de catégorie définissent les parties étudiées. Drafts & bans dispose de ses propres filtres pour les drafts Drafter enregistrées.",
     keywords: ['tendances', 'winrate', 'blue side', 'red side', 'identité', 'pattern', 'rôle moteur', 'bloc', 'contexte', 'filtre', 'game à review', "analyses", "taux de victoire", "côté bleu", "côté rouge", "parties"],
     steps: [
       "Choisis la période et la catégorie de parties à analyser.",
@@ -782,6 +782,7 @@ function tokens(value: unknown): string[] {
 
 function routeMatches(entryPath: string, route: string): boolean {
   if (entryPath === route) return true;
+  if (entryPath === '/tendances' && ['/tendances?rubrique=statistics', '/tendances?rubrique=playstyle'].includes(route)) return true;
   return entryPath === '/mon-profil' && route.startsWith('/mon-profil/');
 }
 
@@ -794,7 +795,10 @@ function knownAssistantRoute(value: unknown): string | null {
   if (!ALLOWED_PATH_SET.has(route)) return null;
   // Preserve only documented public views, never private match/player/filter values.
   const params = new URLSearchParams(search);
-  if (route === '/tendances' && ['draft', 'drafts'].includes(params.get('rubrique') || '')) return `${route}?rubrique=${params.get('rubrique')}`;
+  if (route === '/tendances') {
+    const panel = params.get('rubrique') === 'ai-objectives' ? 'playstyle' : params.get('rubrique');
+    if (['draft', 'drafts', 'statistics', 'playstyle'].includes(panel || '')) return `${route}?rubrique=${panel}`;
+  }
   if (route === '/games' && params.get('view') === 'teams') return '/games?view=teams';
   return route;
 }

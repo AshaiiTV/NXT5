@@ -119,7 +119,7 @@ export function SocialLogin({ flow = "login", rememberMe = false, disabled = fal
   </section>;
 }
 
-export function SocialSignup({ onComplete, loginHref }) {
+export function SocialSignup({ onComplete, loginHref, existingAccountHref = loginHref }) {
   useLanguage();
   const [emailRequested, setEmailRequested] = useState(false);
   const [emailToken] = useState(() => new URLSearchParams((window.location.hash || "").replace(/^#/, "")).get("email_token") || "");
@@ -179,7 +179,7 @@ export function SocialSignup({ onComplete, loginHref }) {
           {(!pending.emailVerified || form.email.trim().toLowerCase() !== pending.email?.toLowerCase()) && <p className="nxt5-social-help">{t("Nous t’enverrons un lien pour vérifier cette adresse et protéger la récupération de ton compte.")}</p>}
           <LegalConsent checked={legalAccepted} onChange={setLegalAccepted} />
           {error && <Feedback>{t(error)}</Feedback>}
-          {collision && <a href={loginHref} className="block text-sm font-black text-cyan-200 underline underline-offset-4">{t("Me connecter à mon compte existant")}</a>}
+          {collision && <a href={existingAccountHref} className="block text-sm font-black text-cyan-200 underline underline-offset-4">{t("Me connecter à mon compte existant")}</a>}
           <Button type="submit" disabled={saving || !legalAccepted || !form.displayName.trim() || !form.email.trim()} icon={saving ? Loader2 : UserPlus} className="nxt5-auth-submit">{saving ? t("Création…") : t("Créer mon compte NXT5")}</Button>
         </fieldset>
       </form></>}

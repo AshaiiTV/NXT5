@@ -18,7 +18,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
     const body = JSON.parse(options.body);
     async function execute(connection: any, statement: any) {
       database.statements.push(statement.query);
-      if (statement.query.includes('to_jsonb(matches)')) database.matchQuery = statement;
+      if (statement.query.includes('from match_page matches')) database.matchQuery = statement;
       const result = await connection.query(statement.query, statement.params);
       return {
         fields: result.fields,
@@ -1072,6 +1072,43 @@ describe('team scoped and paginated match loading', () => {
     expect(empty.pagination).toEqual({ limit: 50, offset: 100, total: 62, hasMore: false, nextOffset: null });
   });
 
+  it('preserves every non-raw typed column, including nullable and newly added columns', async () => {
+    await seedHistory();
+    await database.pg.exec(`alter table matches add column future_summary_value jsonb;
+      alter table match_participants add column future_summary_value numeric`);
+    try {
+      await database.pg.query(`update matches set future_summary_value = '{"kept":[1,true,null]}'::jsonb,
+        raw = raw || jsonb_build_object('unusedLargeSource', repeat('timeline payload', 20000))
+        where id in (select id from matches where team_id = $1 order by created_at desc,id desc limit 2)`, [teamId]);
+      await database.pg.exec(`update match_participants set future_summary_value = 12.5,
+        raw = raw || jsonb_build_object('unusedLargeSource', repeat('participant payload', 20000))
+        where match_id in (select id from matches where future_summary_value is not null)`);
+      const page = await loadMatchPage(teamId, { limit: 2, offset: 0 });
+      const ids = page.matches.map(match => match.id);
+      const expectedMatches = (await database.pg.query(`select id, to_jsonb(matches) - 'raw' as summary
+        from matches where id = any($1::uuid[])`, [ids])).rows;
+      const expectedParticipants = (await database.pg.query(`select id, to_jsonb(match_participants) - 'raw' as summary
+        from match_participants where match_id = any($1::uuid[])`, [ids])).rows;
+      for (const match of page.matches) {
+        const { raw, participants, created_by_name, created_by_account, ...summary } = match;
+        expect(summary).toEqual(expectedMatches.find((row: any) => row.id === match.id).summary);
+        expect(summary.future_summary_value).toEqual({ kept: [1, true, null] });
+        expect(summary.reviewed_at).toBeNull();
+        expect(raw.unusedLargeSource).toBeUndefined();
+        for (const participant of participants) {
+          const { raw: participantRaw, ...participantSummary } = participant;
+          expect(participantSummary).toEqual(expectedParticipants.find((row: any) => row.id === participant.id).summary);
+          expect(participantSummary.future_summary_value).toBe(12.5);
+          expect(participantSummary.player_id).toBeNull();
+          expect(participantRaw.unusedLargeSource).toBeUndefined();
+        }
+      }
+    } finally {
+      await database.pg.exec(`alter table matches drop column future_summary_value;
+        alter table match_participants drop column future_summary_value`);
+    }
+  });
+
   it('projects JSON only for the returned deep page and preserves the previous SQL result', async () => {
     await seedHistory();
     await database.pg.exec('analyze matches');
@@ -1080,7 +1117,8 @@ describe('team scoped and paginated match loading', () => {
     const actual = (await database.pg.query(statement.query, statement.params)).rows;
     // Reconstruct the previous query with exactly the same projection. This
     // checks every summary/raw field, not just the IDs used by pagination.
-    const legacyQuery = statement.query.slice(statement.query.indexOf('select to_jsonb(matches)'))
+    const legacyQuery = statement.query.slice(statement.query.indexOf('select to_jsonb('))
+      .replace(`to_jsonb(jsonb_populate_record(matches, '{"raw":null}'::jsonb))`, 'to_jsonb(matches)')
       .replace('from match_page matches', 'from matches')
       .replace('order by matches.created_at desc, matches.id desc',
         'where matches.team_id = $1 order by matches.created_at desc, matches.id desc limit $2 offset $3');

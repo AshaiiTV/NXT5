@@ -1,3 +1,4 @@
+import GlassScene from "../../components/brand/GlassScene.jsx";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import { getLocale } from "../../i18n/locale.js";
@@ -607,7 +608,7 @@ function TeamScene() {
   );
 }
 
-export default function ProductStory({ reduced = false, navigate }) {
+export default function ProductStory({ reduced = false, motionEnabled = true, navigate }) {
   useLanguage();
   const [selected, setSelected] = useState("analyse");
   const [keyboardChange, setKeyboardChange] = useState(false);
@@ -680,7 +681,9 @@ export default function ProductStory({ reduced = false, navigate }) {
       </section>
       <TeamScene />
       <section className="ps-final" aria-labelledby="ps-final-title">
-        <div className="ps-final-track" aria-hidden="true" />
+        <div className="ps-final-track" aria-hidden="true">
+          <GlassScene className="ps-final-glass" motionEnabled={motionEnabled} />
+        </div>
         <div>
           <p>{t("La prochaine partie vous attend.")}</p>
           <h2 id="ps-final-title">

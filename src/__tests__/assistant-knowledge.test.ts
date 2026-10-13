@@ -132,6 +132,30 @@ describe('assistant knowledge', () => {
   });
 
   it.each([
+    ['statistics', 'statistics'],
+    ['playstyle', 'playstyle'],
+    ['ai-objectives', 'playstyle'],
+  ])('preserves the %s analysis action and canonicalises old objective links', (panel, canonical) => {
+    const route = `/tendances?rubrique=${panel}&contexte=private-category&periode=5&team=private-team#private-anchor`;
+    const expected = `/tendances?rubrique=${canonical}`;
+    expect(safeAssistantRoute(route)).toBe(expected);
+    expect(sanitizeAssistantActions([{ label: 'Ouvrir', path: route }])).toEqual([{ label: 'Ouvrir', path: expected }]);
+    for (const language of ['fr', 'en', 'es'] as const) {
+      expect(retrieveAssistantKnowledge('Comment utiliser cette page ?', route, 4, language)[0].id).toBe('trends');
+    }
+  });
+
+  it.each([
+    ['fr', 'Statistiques', 'Style de jeu'],
+    ['en', 'Statistics', 'Playstyle'],
+    ['es', 'Estadísticas', 'Estilo de juego'],
+  ] as const)('describes the statistics and playstyle panels in %s', (language, statistics, playstyle) => {
+    const summary = getAssistantKnowledge(language).find(entry => entry.id === 'trends')?.summary;
+    expect(summary).toContain(statistics);
+    expect(summary).toContain(playstyle);
+  });
+
+  it.each([
     ['/games?view=teams&team=private-team&match=private-match#private-anchor', '/games?view=teams', 'opponents'],
     ['/tendances?rubrique=drafts&draft=private-draft&opponent=private-opponent', '/tendances?rubrique=drafts', 'drafter-analysis'],
   ])('preserves the public view and strips private context from %s', (route, expected, section) => {
@@ -148,6 +172,8 @@ describe('assistant knowledge', () => {
     }
     expect(safeAssistantRoute('/tendances?rubrique=drafter&draft=private')).toBe('/tendances');
     expect(safeAssistantRoute('/tendances?rubrique=drafts-private')).toBe('/tendances');
+    expect(safeAssistantRoute('/tendances?rubrique=playstyle-private')).toBe('/tendances');
+    expect(safeAssistantRoute('/tendances?rubrique=statistics-private')).toBe('/tendances');
     expect(safeAssistantRoute('/games?view=teams-private')).toBe('/games');
     expect(sanitizeAssistantActions([{ label: 'Drafter', path: 'https://drafter.lol/draft/private' }])).toEqual([]);
   });

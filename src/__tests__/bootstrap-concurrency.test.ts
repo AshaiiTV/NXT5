@@ -191,16 +191,30 @@ describe('bootstrap independent data loading', () => {
     expect(mocks.seedDefaultMatchCategories).not.toHaveBeenCalled();
   });
 
-  it.each(['authentication', 'membership', 'schema'] as const)('starts no data group when %s fails', async gate => {
+  it.each([
+    ['authentication', false], ['membership', false], ['schema', false],
+    ['authentication', true], ['membership', true], ['schema', true],
+  ] as const)('starts no data group when %s fails, matchesOnly=%s', async (gate, matchesOnly) => {
     if (gate === 'authentication') mocks.requireAuth.mockRejectedValue(Object.assign(new Error('Unauthorized'), { status: 401 }));
     if (gate === 'schema') mocks.assertSchemaReady.mockRejectedValue(Object.assign(new Error('Not ready'), { status: 503 }));
-    const result = await request(gate === 'membership' ? 'teamId=foreign-team' : undefined);
+    const query = new URLSearchParams({ teamId: gate === 'membership' ? 'foreign-team' : teamId });
+    if (matchesOnly) query.set('matchesOnly', '1');
+    const result = await request(query.toString());
     expect(result.status).toBe({ authentication: 401, membership: 403, schema: 503 }[gate]);
     expect(await result.json()).not.toHaveProperty('matches');
     expectNoDataGroups();
     expect(mocks.sql).toHaveBeenCalledTimes(gate === 'authentication' ? 0 : 1);
     expect(mocks.assertSchemaReady).toHaveBeenCalledTimes(gate === 'schema' ? 1 : 0);
   });
+
+  it.each(['limit=0', 'limit=101', 'limit=1.5', 'offset=-1', 'offset=9007199254740992'])
+    ('rejects invalid pagination %s before loading any team data', async pagination => {
+      const result = await request(`teamId=${teamId}&matchesOnly=1&${pagination}`);
+      expect(result.status).toBe(400);
+      expectNoDataGroups();
+      expect(mocks.sql).not.toHaveBeenCalled();
+      expect(mocks.assertSchemaReady).not.toHaveBeenCalled();
+    });
 
   it('returns the empty-team response without starting any data group', async () => {
     mocks.sql.mockResolvedValue([]);

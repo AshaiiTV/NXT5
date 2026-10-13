@@ -1,8 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
+import { subscribeGlassPointer } from "./glass-pointer.js";
 import "./glass-scene.css";
 
-/** The shared glass sculpture, enhanced only when the device permits motion. */
-export default function GlassScene({ className = "", pointerTargetRef, pointerStrength = 0.55, posterClassName = "", canvasClassName = "" }) {
+let engineModule;
+const loadEngine = () => engineModule ??= import("../../pages/home/glass-scene.js").catch(error => {
+  engineModule = undefined;
+  throw error;
+});
+
+/** One sculpture and motion system for every NXT5 scene, at every viewport size. */
+export default function GlassScene({ className = "", posterClassName = "", canvasClassName = "", motionEnabled = true }) {
   const sceneRef = useRef(null);
   const canvasRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -10,56 +17,73 @@ export default function GlassScene({ className = "", pointerTargetRef, pointerSt
   useEffect(() => {
     const element = sceneRef.current;
     const canvas = canvasRef.current;
-    const pointerTarget = pointerTargetRef?.current || element;
     if (!element || !canvas || typeof window === "undefined" || typeof window.matchMedia !== "function") return;
 
-    const desktop = window.matchMedia("(min-width: 1024px)");
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
     let disposed = false;
     let failed = false;
+    let visible = typeof IntersectionObserver === "undefined";
     let controller = null;
     let attempt = null;
+    let currentRequest = null;
+    let pointer = [0, 0];
     setReady(false);
 
-    const canEnhance = () =>
-      !disposed &&
-      !failed &&
-      desktop.matches &&
-      !reduced.matches &&
-      !document.documentElement.classList.contains("nxt5-low-gpu");
+    const savedLow = () => {
+      try { return window.localStorage?.getItem("nxt5-performance-mode") === "low"; }
+      catch { return false; }
+    };
+    let performanceLow = savedLow();
+    const permitted = () => !disposed && !failed && motionEnabled && !reduced.matches &&
+      !performanceLow && !document.documentElement.classList.contains("nxt5-low-gpu");
+    const active = () => permitted() && visible && !document.hidden;
+    const cancelAttempt = () => attempt?.abort.abort();
 
     const update = () => {
       if (disposed) return;
-      if (!canEnhance()) {
-        if (attempt) attempt.cancelled = true;
+      performanceLow = savedLow();
+      if (!permitted()) {
+        currentRequest?.abort.abort();
         controller?.dispose();
         controller = null;
         setReady(false);
         return;
       }
-      if (controller || attempt) return;
+      if (!active()) {
+        cancelAttempt();
+        pointer = [0, 0];
+        controller?.setPointer(0, 0);
+        controller?.setActive(false);
+        return;
+      }
+      if (controller) {
+        controller.setActive(true);
+        return;
+      }
+      if (attempt) return;
 
-      // The shared engine loads its texture asynchronously. Keep one request
-      // at a time so a viewport/preference change cannot reuse a live canvas.
-      const request = { cancelled: false };
+      // Complete cancellation before letting another setup own this canvas.
+      const request = { abort: new AbortController() };
       attempt = request;
-      const isCurrent = () => !request.cancelled && canEnhance();
+      currentRequest = request;
+      const isCurrent = () => !request.abort.signal.aborted && active();
       const fallback = () => {
-        if (!isCurrent()) return;
+        // A context loss also needs a visible fallback when reported offscreen.
+        if (disposed || currentRequest !== request || request.abort.signal.aborted) return;
         failed = true;
+        request.abort.abort();
         setReady(false);
         controller?.dispose();
         controller = null;
       };
 
-      import("../../pages/home/glass-scene.js")
+      loadEngine()
         .then(async ({ createGlassScene }) => {
           if (!isCurrent()) return;
           const scene = await createGlassScene({
             canvas,
-            onReady: () => {
-              if (isCurrent()) setReady(true);
-            },
+            signal: request.abort.signal,
+            onReady: () => { if (isCurrent()) setReady(true); },
             onError: fallback,
           });
           if (!isCurrent()) {
@@ -67,72 +91,54 @@ export default function GlassScene({ className = "", pointerTargetRef, pointerSt
             return;
           }
           controller = scene;
+          if (pointer[0] || pointer[1]) controller.setPointer(...pointer);
+          controller.setActive(true);
         })
         .catch(fallback)
         .finally(() => {
           attempt = null;
-          // A new eligible state may have arrived while setup was pending.
           if (!disposed) update();
         });
     };
 
-    const move = (event) => {
-      if (!controller || event.pointerType === "touch") return;
-      const bounds = pointerTarget.getBoundingClientRect();
-      if (!bounds.width || !bounds.height) return;
-      controller.setPointer(
-        ((event.clientX - bounds.left) / bounds.width * 2 - 1) * pointerStrength,
-        ((event.clientY - bounds.top) / bounds.height * 2 - 1) * pointerStrength,
-      );
-    };
-    const leave = () => controller?.setPointer(0, 0);
-    const preferences = new MutationObserver(update);
-    preferences.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
+    const unsubscribePointer = subscribeGlassPointer((x, y) => {
+      if (active()) {
+        pointer = [x, y];
+        controller?.setPointer(x, y);
+      }
     });
-    desktop.addEventListener("change", update);
+    const preferences = new MutationObserver(update);
+    preferences.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    const intersection = typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver(([entry]) => {
+      visible = entry.isIntersecting;
+      update();
+    });
+    intersection?.observe(element);
     reduced.addEventListener("change", update);
-    pointerTarget.addEventListener("pointermove", move, { passive: true });
-    pointerTarget.addEventListener("pointerleave", leave);
-    pointerTarget.addEventListener("pointercancel", leave);
+    window.addEventListener("storage", update);
+    document.addEventListener("visibilitychange", update);
     update();
 
     return () => {
       disposed = true;
-      if (attempt) attempt.cancelled = true;
+      currentRequest?.abort.abort();
+      unsubscribePointer();
       preferences.disconnect();
-      desktop.removeEventListener("change", update);
+      intersection?.disconnect();
       reduced.removeEventListener("change", update);
-      pointerTarget.removeEventListener("pointermove", move);
-      pointerTarget.removeEventListener("pointerleave", leave);
-      pointerTarget.removeEventListener("pointercancel", leave);
+      window.removeEventListener("storage", update);
+      document.removeEventListener("visibilitychange", update);
       controller?.dispose();
     };
-  }, [pointerTargetRef, pointerStrength]);
+  }, [motionEnabled]);
 
   return (
-    <div
-      ref={sceneRef}
-      className={`nxt5-glass-scene ${className}${ready ? " is-ready" : ""}`}
-      aria-hidden="true"
-    >
-      <img
-        className={`nxt5-glass-poster ${posterClassName}`}
-        src="/assets/home-motion/glass-poster.webp"
-        width="729"
-        height="665"
-        alt=""
-        decoding="async"
-        fetchPriority="high"
-        draggable="false"
-      />
-      <canvas
-        ref={canvasRef}
-        className={`nxt5-glass-canvas ${canvasClassName}`}
-        width="729"
-        height="665"
-      />
+    <div ref={sceneRef} className={`nxt5-glass-scene ${className}${ready ? " is-ready" : ""}`} aria-hidden="true">
+      <img className={`nxt5-glass-poster ${posterClassName}`} src="/assets/home-motion/glass-poster.webp"
+        srcSet="/assets/home-motion/glass-poster.webp 729w, /assets/home-motion/glass-poster@2x.webp 1458w, /assets/home-motion/glass-poster@3x.webp 2187w"
+        sizes="(max-width: 760px) 90vw, (max-width: 1600px) 50vw, 900px"
+        width="729" height="665" alt="" decoding="async" draggable="false" />
+      <canvas ref={canvasRef} className={`nxt5-glass-canvas ${canvasClassName}`} width="729" height="665" />
     </div>
   );
 }

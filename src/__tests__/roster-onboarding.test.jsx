@@ -133,6 +133,28 @@ describe("readable team roster", () => {
   const profileLinks = (node) => node.findAllByType("a").filter((link) => link.props.href?.startsWith("/mon-profil?player="));
   const playerIds = (node) => profileLinks(node).map((link) => new URL(link.props.href, window.location).searchParams.get("player"));
 
+  it("keeps the roster usable and loads historical champion statistics only on request", async () => {
+    const settings = { ...props(), onLoadHistory: vi.fn().mockResolvedValue(true) };
+    settings.data = { ...settings.data, historyComplete: false, players: [player], matches: [{
+      id: "latest", team_id: team.id, participants: [{ player_id: player.id, role: "TOP", team_key: "ALLY", champion: "Ornn" }],
+    }] };
+    const { renderer, update } = await render(settings);
+    expect(playerIds(renderer.root)).toEqual([player.id]);
+    expect(content(renderer)).not.toContain("Champions les plus joués");
+    expect(content(renderer)).toContain("Historique complet à charger");
+    expect(settings.onLoadHistory).not.toHaveBeenCalled();
+    const load = () => renderer.root.findAllByType(Button).find((button) => button.props.children === "Charger les analyses de l’équipe");
+    await act(async () => load().props.onClick());
+    expect(settings.onLoadHistory).toHaveBeenCalledOnce();
+    await update({ ...settings, historyLoading: true });
+    expect(load().props.disabled).toBe(true);
+    expect(content(renderer)).not.toContain("Champions les plus joués");
+    await update({ ...settings, data: { ...settings.data, historyComplete: true } });
+    expect(content(renderer)).toContain("Champions les plus joués");
+    expect(content(renderer)).toContain("Ornn · 1 partie");
+    expect(load()).toBeUndefined();
+  });
+
   it("shows each profile once in role order, retains inactive profiles in details and keeps staff non-interactive", async () => {
     const settings = props();
     settings.data.players = [

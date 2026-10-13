@@ -7,6 +7,7 @@ import { BeginnerCompass } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PageHeader } from "../../components/ui/Core.jsx";
 import { RoleIcon, TeamAvatar } from "../../components/brand/BrandAssets.jsx";
 import GlassScene from "../../components/brand/GlassScene.jsx";
+import SessionCountdown from "../../components/home/SessionCountdown.jsx";
 import { ROLES } from "../../../shared/roles.js";
 import { rosterPlayersByStatus } from "../../utils/roster.js";
 import { getHomeContext, homeMatchTimestamp } from "../../utils/home-context.js";
@@ -56,17 +57,30 @@ function HomeGoals({ context, navigate }) {
   </section>;
 }
 
-function HomePlayerDebrief({ context, navigate }) {
+function groupHistoryAvailable(group, matches, historyComplete) {
+  if (historyComplete || !group) return true;
+  let matchIds = group.match_ids;
+  if (typeof matchIds === "string") {
+    try { matchIds = JSON.parse(matchIds); } catch { return false; }
+  }
+  const loaded = new Set(matches.map(match => String(match.id)));
+  return Array.isArray(matchIds) && matchIds.length > 0 && matchIds.every(id => id != null && loaded.has(String(id).trim()));
+}
+
+function HomePlayerDebrief({ context, navigate, historyComplete }) {
   const { linkedPlayer, playerDebrief } = context;
   const { group, report, sections = [] } = playerDebrief || {};
-  const orderedSections = [...sections].sort((a, b) => Number(a.source === "analysis") - Number(b.source === "analysis"));
+  // Saved group/report metadata is complete at bootstrap. Identity attribution
+  // also needs every game in that group, including older participant aliases.
+  const groupHistoryComplete = groupHistoryAvailable(group, context.matches, historyComplete);
+  const orderedSections = groupHistoryComplete ? [...sections].sort((a, b) => Number(a.source === "analysis") - Number(b.source === "analysis")) : [];
   return <section className="nxt5-home-section nxt5-home-player-debrief" aria-labelledby="nxt5-home-player-debrief-title">
     <div className="nxt5-home-section-heading"><FileText size={20} aria-hidden="true" /><h3 id="nxt5-home-player-debrief-title">{t("Ton dernier débrief")}</h3></div>
     {linkedPlayer ? <>
       <p className="nxt5-home-debrief-player">{t("Pour {0}", [linkedPlayer.name || linkedPlayer.riot_id || linkedPlayer.role])}</p>
       {group && <p className="nxt5-home-debrief-group">{t("Dernier groupe : {0}", [group.name || t("Groupe de parties")])}</p>}
-      {orderedSections.length ? <div className="nxt5-home-debrief-sections">
-        {orderedSections.map((section, index) => <details key={`${report.id}:${index}`} className="nxt5-home-debrief-section" open={index === 0}>
+      {!groupHistoryComplete ? <p className="nxt5-home-section-intro">{t("Historique complet à charger")}</p> : orderedSections.length ? <div className="nxt5-home-debrief-sections">
+        {orderedSections.map((section, index) => <details key={`${report.id}:${index}`} className="nxt5-home-debrief-section">
           <summary><span><small>{section.source === "analysis" ? t("Analyse enregistrée") : t("Notes de l’équipe")}</small><strong>{section.heading}</strong></span></summary>
           <ul>{section.lines.map((line, lineIndex) => <li key={lineIndex}>{line}</li>)}</ul>
         </details>)}
@@ -79,7 +93,7 @@ function HomePlayerDebrief({ context, navigate }) {
   </section>;
 }
 
-function homeFocus(context, now) {
+function homeFocus(context, now, historyComplete) {
   const { matches, latestMatch, latestMatchAt, recentMatches, unreviewedRecentMatches, nextEvent, canImport, canReview, linkedPlayer } = context;
   if (!matches.length) return {
     kind: "start", title: "Prépare les premières parties de ton équipe.", subtitle: "Retrouve les parties, les débriefs et le planning de ton équipe.",
@@ -89,9 +103,17 @@ function homeFocus(context, now) {
     action: canImport ? "Importer une partie" : linkedPlayer ? "Ouvrir mon profil" : "Voir mon équipe", icon: canImport ? Upload : Users,
   };
   if (nextEvent && nextEvent.startsAt <= now + 48 * 60 * 60 * 1000) return {
-    kind: "session", title: nextEvent.inProgress ? "Votre séance est en cours." : "Votre prochaine séance approche.",
-    subtitle: "Retrouve le programme et les derniers repères de l’équipe.", label: nextEvent.inProgress ? "En ce moment" : "Dans les prochaines 48 heures",
+    kind: "session", title: nextEvent.inProgress ? "Ta séance est en cours." : "Ta prochaine séance approche.",
+    subtitle: "Retrouve le programme et les derniers repères de l’équipe.",
     heading: nextEvent.title || "Séance de l’équipe", text: sessionDate(nextEvent), href: "/planning", action: "Ouvrir le planning", icon: CalendarDays,
+  };
+  // Bootstrap follows import order, which can differ from played dates. A
+  // partial page cannot establish the latest game or the absence of recent play.
+  if (!historyComplete) return {
+    kind: "active", title: "Ton espace équipe", subtitle: "Retrouve les parties, les débriefs et le planning de ton équipe.",
+    label: "Parties", heading: matchDisplayName(latestMatch, "Partie de l’équipe"),
+    text: "Ouvre le résumé pour retrouver le résultat et les points à discuter avec l’équipe.",
+    href: matchPath(latestMatch), action: "Voir la partie", icon: Swords,
   };
   const pending = unreviewedRecentMatches[0];
   if (pending) return {
@@ -129,7 +151,6 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   const [clock, setClock] = useState(() => Date.now());
   const [guideKey, setGuideKey] = useState(null);
   const guideTrigger = useRef(null);
-  const heroRef = useRef(null);
   useEffect(() => {
     if (suppliedNow != null) return undefined;
     const timer = setInterval(() => setClock(Date.now()), 60_000);
@@ -141,7 +162,11 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   const now = suppliedNow == null ? clock : homeMatchTimestamp({ date: suppliedNow }) ?? clock;
   const context = getHomeContext({ data, currentTeam, currentMember, user, now });
   if (!currentTeam) return null;
-  const focus = homeFocus(context, now);
+  const historyComplete = data.historyComplete !== false && !data.pagination?.hasMore;
+  const focus = homeFocus(context, now, historyComplete);
+  // Keep the server's historical count while only one import page is loaded.
+  const serverTotal = data.selectedTeamId === currentTeam.id ? data.totals?.games ?? data.pagination?.total : null;
+  const totalMatches = Number.isSafeInteger(Number(serverTotal)) && Number(serverTotal) >= context.matches.length ? Number(serverTotal) : context.matches.length;
   const unfinished = steps.some(step => !step.done);
   const showStart = unfinished && ((!context.matches.length && !onboarding.dismissed) || guideKey === contextKey);
   const startIsPrimary = showStart && !context.matches.length;
@@ -151,14 +176,14 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   const FocusIcon = focus.icon;
   const mainRoster = rosterPlayersByStatus(context.players, "MAIN");
   const shortcuts = [
-    { path: "/games", title: "Parties", text: context.matches.length ? `${countLabel(context.matches.length, "partie")} dans votre historique` : "Retrouver les premières parties importées", icon: Swords },
+    { path: "/games", title: "Parties", text: totalMatches ? `${countLabel(totalMatches, "partie")} dans votre historique` : "Retrouver les premières parties importées", icon: Swords },
     { path: "/planning", title: "Planning", text: nextEvent ? "Retrouver vos séances et disponibilités" : "Organiser la prochaine séance", icon: CalendarDays },
     context.reports.length ? { path: "/rapports", title: "Débriefs", text: `${countLabel(context.reports.length, "débrief")} pour préparer la suite`, icon: FileText }
       : { path: "/mon-equipe", title: "Mon équipe", text: context.importPlayers.length ? `${countLabel(context.importPlayers.length, "joueur")} · retrouver l’effectif et le staff` : "Faire connaissance avec ton équipe", icon: Users },
   ];
 
   return <div className="nxt5-home" data-home-state={focus.kind}>
-    <div ref={heroRef} className="nxt5-home-hero">
+    <div className="nxt5-home-hero">
       <div className="nxt5-home-identity">
         <div className="nxt5-home-team-brand">
           <span className="nxt5-home-team-mark" aria-hidden="true"><TeamAvatar team={currentTeam} className="nxt5-home-team-image" /></span>
@@ -166,7 +191,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
         </div>
         <PageHeader title={t(focus.title)} subtitle={t(focus.subtitle)} />
         {!startIsPrimary && <section className="nxt5-home-ready" aria-labelledby="nxt5-home-focus-title">
-          <p className="nxt5-home-status"><FocusIcon size={18} aria-hidden="true" />{t(focus.label)}</p>
+          <p className="nxt5-home-status"><FocusIcon size={18} aria-hidden="true" />{focus.kind === "session" ? <SessionCountdown startsAt={nextEvent.startsAt} now={suppliedNow == null ? undefined : now} onStart={setClock} /> : t(focus.label)}</p>
           <h3 id="nxt5-home-focus-title">{["start", "quiet"].includes(focus.kind) ? t(focus.heading) : focus.heading}</h3>
           <p className="nxt5-home-focus-description">{t(focus.text)}</p>
           <div className="nxt5-home-actions">
@@ -177,7 +202,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
       </div>
       <div className="nxt5-home-hero-art" aria-hidden="true">
         <span className="nxt5-home-hero-orbit" />
-        <GlassScene className="nxt5-home-glass-scene" pointerTargetRef={heroRef} pointerStrength={1} />
+        <GlassScene className="nxt5-home-glass-scene" />
         <div className="nxt5-home-hero-roles">{ROLES.map(role => <span key={role}><RoleIcon role={role} className="nxt5-home-hero-role-icon" /><span>{role}</span></span>)}</div>
       </div>
     </div>
@@ -194,9 +219,9 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
 
     <div className={`nxt5-home-overview${context.showPlayerDebrief ? "" : " nxt5-home-overview--wide"}`}>
       <section className="nxt5-home-section" aria-labelledby="nxt5-home-games-title">
-        <div className="nxt5-home-section-heading"><Swords size={20} aria-hidden="true" /><h3 id="nxt5-home-games-title">{context.matches.length ? t("Dernières parties") : t("Les premières parties de ton équipe")}</h3></div>
+        <div className="nxt5-home-section-heading"><Swords size={20} aria-hidden="true" /><h3 id="nxt5-home-games-title">{context.matches.length ? t(historyComplete ? "Dernières parties" : "Parties") : t("Les premières parties de ton équipe")}</h3></div>
         {context.matches.length ? <>
-          <p className="nxt5-home-section-intro">{t(countLabel(context.recentMatches.length, "partie"))}{t(" sur les 14 derniers jours")}</p>
+          {historyComplete && <p className="nxt5-home-section-intro">{t(countLabel(context.recentMatches.length, "partie"))}{t(" sur les 14 derniers jours")}</p>}
           <ul className="nxt5-home-games">
             {context.matches.slice(0, 3).map(match => {
               const report = context.reportForMatch(match);
@@ -214,7 +239,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
           <PublicTextLink href={context.canManageRoster ? "/gestion-equipe?section=roster" : "/mon-equipe"} navigate={navigate} className="nxt5-home-text-link">{context.canManageRoster ? t("Compléter l’effectif") : t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
         </>}
       </section>
-      {context.showPlayerDebrief && <HomePlayerDebrief context={context} navigate={navigate} />}
+      {context.showPlayerDebrief && <HomePlayerDebrief context={context} navigate={navigate} historyComplete={historyComplete} />}
     </div>
 
     {unfinished && !startIsPrimary && <div className="nxt5-home-learning">

@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight, BarChart3, ChevronLeft, ChevronRight, Loader2, M
 import { apiFetch } from "../../api/client.js";
 import { Badge, Button, PageHeader, ReadingDetails, SelectInput, SkeletonRows, Surface, TextInput } from "../../components/ui/Core.jsx";
 import { importStatus, rate, selectTeams } from "./admin-metrics.js";
+import { SortButton } from "../../components/ui/SortButton.jsx";
 import "./admin-dashboard.css";
 
 const number = () => new Intl.NumberFormat(getLocale());
@@ -116,22 +117,29 @@ function TeamDirectory({ dashboard, initialFilter = "all", revision }) {
   const [selectedTeamId, setSelectedTeamId] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("latest");
+  const [direction, setDirection] = useState("descending");
+  const selectSort = (next) => {
+    setDirection(next === sort ? direction === "descending" ? "ascending" : "descending" : next === "name" ? "ascending" : "descending");
+    setSort(next);
+  };
   const [page, setPage] = useState(1);
   const directory = dashboard.teamDirectory || [];
-  const teams = selectTeams(directory, { search, filter, sort, referenceDate: dashboard.generatedAt });
+  const teams = selectTeams(directory, { search, filter, sort, direction, referenceDate: dashboard.generatedAt });
   const safePage = Math.min(page, Math.max(1, Math.ceil(teams.length / 10)));
   const title = useRef(null);
   const returnFocus = useRef(false);
   useEffect(() => { setFilter(initialFilter); setSelectedTeamId(""); }, [initialFilter]);
-  useEffect(() => { setPage(1); }, [search, filter, sort]);
+  useEffect(() => { setPage(1); }, [search, filter, sort, direction]);
   useEffect(() => { if (!selectedTeamId && returnFocus.current) { title.current?.focus(); returnFocus.current = false; } }, [selectedTeamId]);
   if (selectedTeamId) return <TeamDetail teamId={selectedTeamId} revision={revision} onBack={() => { returnFocus.current = true; setSelectedTeamId(""); }} />;
   return <Section title={<span tabIndex={-1} ref={t(title)}>{t("Comprendre chaque équipe")}</span>} description={t("Repère les équipes qui importent, celles qui n’ont pas commencé et celles dont les imports se sont arrêtés.")}>
-    <div className="admin-toolbar"><SearchField label={t("Rechercher une équipe")} placeholder={t("Nom, tag ou région…")} value={search} onChange={setSearch} /><SelectInput label={t("Trier par")} value={sort} onChange={setSort}><option value="latest">{t("Dernier import")}</option><option value="volume">{t("Nombre total de parties")}</option><option value="name">{t("Nom de l’équipe")}</option></SelectInput></div>
+    <div className="admin-toolbar"><SearchField label={t("Rechercher une équipe")} placeholder={t("Nom, tag ou région…")} value={search} onChange={setSearch} /></div>
     <div className="admin-filters" role="group" aria-label={t("Filtrer les équipes")}>{FILTERS.map(([id, label]) => <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{t(label)}</button>)}</div>
     <p className="admin-caption">{t("« Import récent » = au moins une partie ajoutée sur les 30 derniers jours. Ce n’est pas une mesure des connexions ni de toute l’activité de l’équipe.")}</p>
     {directory.length < Number(dashboard.totals?.teams) && <Message>{t("La recherche et les filtres portent sur les ")}{n(directory.length)}{t(" équipes les plus récemment créées ou ayant importé, sur ")}{n(dashboard.totals.teams)}{t(" au total.")}</Message>}
-    <p className="admin-result-count" role="status">{n(teams.length)}{t(" équipe")}{teams.length > 1 ? "s" : ""}{search || filter !== "all" ? t(" correspondant aux filtres") : t(" dans le répertoire")}</p><div className="admin-team-list">{teams.slice((safePage - 1) * 10, safePage * 10).map((team) => {
+    <p className="admin-result-count" role="status">{n(teams.length)}{t(" équipe")}{teams.length > 1 ? "s" : ""}{search || filter !== "all" ? t(" correspondant aux filtres") : t(" dans le répertoire")}</p>
+    <div className="admin-team-sort" role="group" aria-label={t("Trier par")}>{[["name", "Nom de l’équipe"], ["latest", "Dernier import"], ["volume", "Parties"]].map(([key, label]) => <SortButton key={key} label={label} active={sort === key} direction={sort === key ? direction : key === "name" ? "ascending" : "descending"} onClick={() => selectSort(key)} />)}</div>
+    <div className="admin-team-list">{teams.slice((safePage - 1) * 10, safePage * 10).map((team) => {
       const status = importStatus(team, dashboard.generatedAt);
       return <button key={team.id} type="button" className="admin-team-row" onClick={() => setSelectedTeamId(team.id)} aria-label={t("Voir les données de {0}", [team.name])}><div className="admin-team-identity"><strong>{team.name}</strong><span>{team.tag || t("Sans tag")} · {team.region || t("Région non renseignée")}</span></div><div><Badge tone={status.tone}>{t(status.label)}</Badge><small>{t("Dernier import : ")}{date(team.lastActivityAt)}</small></div><div className="admin-team-volume"><strong>{n(team.matches)}{t(" parties")}</strong><small>{n(team.players)}{t(" profils")}</small></div><ChevronRight size={18} aria-hidden="true" /></button>;
     })}</div>

@@ -155,10 +155,10 @@ export function TeamDataHealthPanel({ team, players = [], matches = [] }) {
   const checks = 4 + ROLES.length;
   const score = Math.round(((checks - Math.min(checks, issues.length)) / checks) * 100);
   return <Panel>
-    <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="flex w-full items-center gap-4 p-4 text-left sm:p-5">
+    <button type="button" aria-expanded={open} onClick={() => setOpen((value) => !value)} className="team-data-health-summary flex w-full items-center gap-4 p-4 text-left sm:p-5">
       <span className={cx("grid h-11 w-11 shrink-0 place-items-center rounded-xl border", issues.length ? "border-amber-300/25 bg-amber-300/10 text-amber-100" : "border-emerald-300/25 bg-emerald-300/10 text-emerald-100")}><ShieldCheck className="h-5 w-5" /></span>
-      <span className="min-w-0 flex-1"><span className="block text-sm font-black text-white">{t("Vérification des données")}</span><span className="mt-1 block text-xs font-semibold text-slate-400">{issues.length ? t("{0} point{1} à vérifier avant de tirer des conclusions.", [issues.length, issues.length > 1 ? "s" : ""]) : t("Aucun problème détecté dans l’effectif, les profils et les imports.")}</span></span>
-      <span className="text-right"><span className={cx("block text-2xl font-black", score === 100 ? "text-emerald-200" : "text-amber-100")}>{score}%</span><span className="block text-xs font-semibold text-slate-500">{t("contrôles réussis")}</span></span>
+      <span className="team-data-health-copy min-w-0 flex-1"><span className="block text-sm font-black text-white">{t("Vérification des données")}</span><span className="mt-1 block text-xs font-semibold text-slate-400">{issues.length ? t("{0} point{1} à vérifier avant de tirer des conclusions.", [issues.length, issues.length > 1 ? "s" : ""]) : t("Aucun problème détecté dans l’effectif, les profils et les imports.")}</span></span>
+      <span className="team-data-health-score text-right"><span className={cx("block text-2xl font-black", score === 100 ? "text-emerald-200" : "text-amber-100")}>{score}%</span><span className="block text-xs font-semibold text-slate-500">{t("contrôles réussis")}</span></span>
       <ChevronRight className={cx("h-5 w-5 shrink-0 text-slate-400 transition", open && "rotate-90")} />
     </button>
     {open && <div className="border-t border-white/10 px-4 py-2 sm:px-5">

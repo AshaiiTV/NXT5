@@ -28,5 +28,7 @@
  .nxt5-guide-mobile-label select { width: 100%; min-height: 48px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control); background: var(--nxt5-bg); color: var(--nxt5-text); padding: .625rem .75rem; font-size: 1rem; }
 }
 @media (max-width: 480px) {
+ .nxt5-guide-section-heading { align-items: flex-start; font-size: 1.25rem; gap: .625rem; }
+ .nxt5-guide-section-heading > svg { width: 20px; height: 20px; padding: 6px; align-self: flex-start; border-radius: 8px; }
  .nxt5-guide-actions button { width: 100%; }
 }

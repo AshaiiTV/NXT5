@@ -4,6 +4,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { PlayerComparison } from "../components/trends/PlayerComparison.jsx";
 import { SelectInput } from "../components/ui/Core.jsx";
+import { SortButton } from "../components/ui/SortButton.jsx";
 import { setLanguage } from "../i18n/locale.js";
 import { t } from "../i18n/translate.js";
 
@@ -32,7 +33,13 @@ let renderer;
 const text = (node) => node == null ? "" : typeof node === "string" || typeof node === "number" ? String(node) : Array.isArray(node) ? node.map(text).join("") : text(node.children);
 const mount = (props = {}) => act(() => { renderer = TestRenderer.create(<PlayerComparison matches={matches} players={players} {...props} />); });
 const control = (label) => renderer.root.findAllByType(SelectInput).find((node) => node.props.label === label);
-const change = (label, value) => act(() => control(label).props.onChange(value));
+const change = (label, value) => {
+  if (label !== "Ordre des joueurs") return act(() => control(label).props.onChange(value));
+  if (value === "roster") return act(() => renderer.root.findAllByType("button").find(node => text(node) === "Par rôle").props.onClick());
+  const sort = () => renderer.root.findByType(SortButton);
+  if (!sort().props.active) act(() => sort().props.onClick());
+  if (sort().props.direction !== value) act(() => sort().props.onClick());
+};
 const rows = () => renderer.root.findAllByProps({ className: "player-comparison-row" });
 const rowName = (row) => text(row.findByProps({ className: "player-comparison-identity" }).findByType("strong"));
 const row = (name) => rows().find((item) => rowName(item) === name);
@@ -214,7 +221,7 @@ describe("player comparison", () => {
     change("Ordre des joueurs", "descending");
     act(() => renderer.update(<PlayerComparison matches={[matches[1]]} players={players} />));
     expect(control("Statistique").props.value).toBe("csPerMin");
-    expect(control("Ordre des joueurs").props.value).toBe("descending");
+    expect(renderer.root.findByType(SortButton).props).toMatchObject({ active: true, direction: "descending" });
     expect(rows().map(rowName)).toEqual(["Atlas", "Nova", "Echo", "Brume"]);
     expect(value("Atlas")).toBe("4,00");
     expect(value("Nova")).toBe("3,00");

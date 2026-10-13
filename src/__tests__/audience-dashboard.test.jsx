@@ -3,6 +3,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { Button, SelectInput } from "../components/ui/Core.jsx";
+import { SortButton } from "../components/ui/SortButton.jsx";
 import AudiencePage, { AudienceChart, AudienceHeatmap } from "../pages/admin/AudiencePage.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
@@ -114,6 +115,13 @@ describe("audience dashboard", () => {
     apiFetch.mockResolvedValueOnce(result());
     const renderer = await render();
     const search = renderer.root.findAllByType("input").find((node) => node.props.type === "search");
+    const viewsSort = () => renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Vues");
+    const paths = () => renderer.root.findAllByProps({ className: "audience-page-path" }).map(node => node.children.join(""));
+    expect(paths()).toEqual(["/tarifs", "/"]);
+    act(() => viewsSort().props.onClick());
+    expect(paths()).toEqual(["/", "/tarifs"]);
+    expect(viewsSort().props).toMatchObject({ active: true, direction: "ascending" });
+    expect(renderer.root.findAllByType("th").filter(node => node.props["aria-sort"] === "ascending")).toHaveLength(1);
     act(() => search.props.onChange({ target: { value: "TARIFS" } }));
     const table = renderer.root.findByProps({ className: "audience-table audience-pages-table" });
     expect(table.findAllByType("tbody")[0].findAllByType("tr")).toHaveLength(1);
