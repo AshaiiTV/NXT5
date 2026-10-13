@@ -2,6 +2,8 @@
 
 L’écran de chargement anime la lumière du verre : un reflet de studio suit la silhouette du 5, deux voiles de réfraction passent derrière la sculpture et des caustiques effilées éclairent le sol. Le titre de phase et la progression conservent leur zone de lecture. Aucun anneau ni éclat flottant ne détourne l’attention de la sculpture.
 
+Le surtitre répétant le nom de la phase est retiré : « Synchronisation en cours » porte seul le message principal, sans « Synchronisation » juste au-dessus. La même simplification s’applique à l’ouverture et à la connexion ; la liste des étapes reste sous la progression.
+
 Les effets sont réalisés dans `AppLoadingScreen.jsx` et `AppLoadingScreen.css`, en CSS local. Ils ne nécessitent aucun package, moteur WebGL ou téléchargement supplémentaire. Le poster original et les cinq rôles sont conservés. L’animation ne conditionne pas la fin du chargement : le contenu apparaît dès que les données sont prêtes, sans durée minimale ni progression inventée.
 
 Les décorations restent ignorées par les technologies d’assistance et ne capturent pas le pointeur. Le masque alpha reprend exactement le poster existant ; seul son gradient intérieur bouge, sans déplacer la silhouette. Si le masque n’est pas pris en charge, le poster reste visible seul. Sur mobile, un seul voile et une seule caustique sont conservés. Les modes mouvement réduit et performance conservent une scène fixe simplifiée.
