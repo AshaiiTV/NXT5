@@ -1,7 +1,7 @@
 Kit voix off ElevenLabs — tuto NXT5
 Prérequis : Python 3 + Pillow (pip install pillow), ffmpeg.
 1. Définir la clé :  export ELEVENLABS_API_KEY=...   (Windows PowerShell : $env:ELEVENLABS_API_KEY="...")
-   Voix utilisée : Chris (ELEVENLABS_VOICE_ID=iP95p4xoKVk53GoZ742B, ELEVENLABS_MODEL=eleven_v3). Par défaut : Brian, modèle multilingue v2.
+   Voix utilisée : Léo, voix française native (par défaut dans voice.py, modèle multilingue v2 ; nécessite une offre ElevenLabs payante). Autre voix : ELEVENLABS_VOICE_ID=...
 2. Lancer :  sh build.sh   (ou les 3 commandes python qu'il contient)
 Résultat : nxt5-tuto-voix.mp4 — la vidéo est recalée sur la durée réelle de chaque phrase.
 Texte lu : narration.json (modifiable avant de lancer).

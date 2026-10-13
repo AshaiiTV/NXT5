@@ -13,13 +13,13 @@ Toutes les données montrées viennent de la démo publique : elles sont fictive
 
 Chapitres
 0:00 Introduction
-0:03 L’accueil de NXT5
-0:23 La démo : rechercher une partie
-0:43 Le bilan d’une partie
-0:56 Les analyses
-1:10 Le débrief
-1:25 Créer son espace et importer ses parties
-1:43 Conclusion
+0:04 L’accueil de NXT5
+0:27 La démo : rechercher une partie
+0:45 Le bilan d’une partie
+0:58 Les analyses
+1:12 Le débrief
+1:28 Créer son espace et importer ses parties
+1:44 Conclusion
 
 #LeagueOfLegends #Coaching #Esport
 
@@ -30,25 +30,24 @@ NXT5, League of Legends, LoL, coaching LoL, analyse de parties, débrief, scrim,
 - Langue : français, catégorie « Jeux vidéo », audience « Non conçue pour les enfants ».
 - Miniature : nxt5-tuto-miniature.jpg (1280×720).
 - Les sous-titres sont incrustés dans la vidéo. Le fichier .srt est facultatif (sous-titres activables, traduction automatique).
-- Voix off ElevenLabs (voix « Chris », modèle v3). Une musique douce peut être ajoutée depuis l’onglet « Audio » de YouTube Studio, à bas volume.
-- Offre ElevenLabs gratuite : l’usage commercial impose de créditer ElevenLabs (ajouter « Voix : ElevenLabs » à la description) ; un abonnement payant lève cette obligation.
+- Voix off ElevenLabs (voix française native « Léo », modèle multilingue v2). Une musique douce peut être ajoutée depuis l’onglet « Audio » de YouTube Studio, à bas volume.
 
 ## Texte de la voix off
 - 0:00 — Découvre N X T 5 en moins de deux minutes.
 - 0:04 — Bienvenue sur N X T 5, l’espace de travail des équipes et des coachs League of Legends.
-- 0:10 — Le principe est simple : comprendre tes parties, pour mieux préparer la suite.
-- 0:16 — N X T 5 couvre tout le cycle d’entraînement : l’analyse, la draft, et le planning.
-- 0:24 — Commençons par la démo. Elle se consulte sans compte, et toutes ses données sont fictives.
-- 0:32 — Tu peux chercher une partie par champion ou par résultat. Par exemple : Jinx, défaite.
-- 0:40 — Clique ensuite sur une partie pour ouvrir son bilan.
-- 0:43 — Le bilan réunit le résultat, les compositions, et l’écart d’or final.
-- 0:50 — Chaque chiffre sert à lancer la discussion. Ce n’est pas un verdict.
-- 0:57 — Dans l’onglet Analyses, tu suis une mesure partie après partie, comme l’écart d’or.
-- 1:03 — Repère les pics et les creux, avant de choisir ce que l’équipe va travailler.
-- 1:10 — Vient ensuite le débrief : un fait observé, puis une question à vérifier…
-- 1:15 — … et enfin, une action concrète pour la prochaine séance.
-- 1:20 — Dans ton espace, chaque membre de l’équipe écrit ses propres observations.
-- 1:26 — Pour commencer, crée ton espace équipe, en quelques clics.
-- 1:30 — Importe ensuite tes parties avec N X T 5 Importer, sur Windows ou sur Mac.
-- 1:38 — Invite tes joueurs… puis analysez, et débriefez ensemble.
-- 1:44 — À toi de jouer ! Essaie la démo, ou crée ton espace, sur N X T 5 point org.
+- 0:11 — Le principe est simple : comprendre tes parties, pour mieux préparer la suite.
+- 0:18 — N X T 5 couvre tout le cycle d’entraînement : l’analyse, la draft, et le planning.
+- 0:27 — Commençons par la démo. Elle se consulte sans compte, et toutes ses données sont fictives.
+- 0:35 — Tu peux chercher une partie par champion ou par résultat. Par exemple : Jinx, défaite.
+- 0:42 — Clique ensuite sur une partie pour ouvrir son bilan.
+- 0:46 — Le bilan réunit le résultat, les compositions, et l’écart d’or final.
+- 0:52 — Chaque chiffre sert à lancer la discussion. Ce n’est pas un verdict.
+- 0:59 — Dans l’onglet Analyses, tu suis une mesure partie après partie, comme l’écart d’or.
+- 1:05 — Repère les pics et les creux, avant de choisir ce que l’équipe va travailler.
+- 1:12 — Vient ensuite le débrief : un fait observé, puis une question à vérifier…
+- 1:17 — … et enfin, une action concrète pour la prochaine séance.
+- 1:22 — Dans ton espace, chaque membre de l’équipe écrit ses propres observations.
+- 1:29 — Pour commencer, crée ton espace équipe, en quelques clics.
+- 1:33 — Importe ensuite tes parties avec N X T 5 Importer, sur Windows ou sur Mac.
+- 1:40 — Invite tes joueurs… puis analysez, et débriefez ensemble.
+- 1:45 — À toi de jouer ! Essaie la démo, ou crée ton espace, sur N X T 5 point org.
