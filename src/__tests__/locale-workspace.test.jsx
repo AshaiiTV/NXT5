@@ -8,7 +8,7 @@ import { analysisCopy } from "../components/trends/analysis-copy.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import HomeWorkspace from "../pages/workspace/HomeWorkspace.jsx";
 import { PlayerUltimateProfile } from "../pages/workspace/PlayerUltimateProfile.jsx";
-import { MatchDataPanel, GameMetricSignals, GameSummaryPanel } from "../pages/workspace/GameWorkspace.jsx";
+import { MatchDataPanel, DeathContextPanel, DraftImpactPanel, MatchReadingIntro } from "../pages/workspace/GameWorkspace.jsx";
 import { DraftTrendsModule, buildDraftTrendModel } from "../components/trends/DraftTrends.jsx";
 import { DraftTrendDetails } from "../components/trends/DraftTrendDetails.jsx";
 import { ProgressionObjectives } from "../components/trends/ProgressionObjectives.jsx";
@@ -44,8 +44,9 @@ describe("translated workspace rendering", () => {
       home: renderToStaticMarkup(<HomeWorkspace {...props} onboarding={{ dismissed: true }} now="2026-10-07T12:00:00Z" />),
       profile: renderToStaticMarkup(<PlayerUltimateProfile {...props} selectedTeamId="team" route={{ path: "/mon-profil", search: "?player=p2" }} />),
       match: renderToStaticMarkup(<MatchDataPanel match={props.matches[0]} teamName={props.currentTeam.name} />),
-      signals: renderToStaticMarkup(<GameMetricSignals match={props.matches[0]} />),
-      summary: renderToStaticMarkup(<GameSummaryPanel match={props.matches[0]} />),
+      deaths: renderToStaticMarkup(<DeathContextPanel match={props.matches[0]} />),
+      composition: renderToStaticMarkup(<DraftImpactPanel match={props.matches[0]} />),
+      reading: renderToStaticMarkup(<MatchReadingIntro />),
       draft: renderToStaticMarkup(<DraftTrendsModule model={model} />),
       details: renderToStaticMarkup(<DraftTrendDetails sectionId="roles" model={model} />),
       objectives: renderToStaticMarkup(<ProgressionObjectives teamObjective={{ title: "Vision", why: "À vérifier", target: "Vision diff positive sur le prochain bloc", current: "-5", sourceGames: [] }} roleObjectives={[]} gamesCount={3} />),
@@ -59,7 +60,7 @@ describe("translated workspace rendering", () => {
     expect(outputs.objectives).toContain(t("Objectifs de la prochaine session"));
     expect(text(outputs.details)).toContain(t("champions"));
     expect(text(outputs.home)).toContain(language === "en" ? "3 recent matches" : "3 partidas recientes");
-    expect(text(outputs.signals)).toContain(language === "en" ? "2 deaths · Ornn" : "2 muertes · Ornn");
+    expect(text(outputs.deaths)).toContain(t("Ce qui entoure les morts"));
     expect(resultLabel({ wins: 3, losses: 1, unknown: 2 })).toBe(language === "en" ? "3 wins · 1 loss · 2 results unavailable" : "3 victorias · 1 derrota · 2 resultados no disponibles");
     for (const html of Object.values(outputs)) {
       expect(html).not.toMatch(/matchs\b|campeóns\b|jugadors\b/);

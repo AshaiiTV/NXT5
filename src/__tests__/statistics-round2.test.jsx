@@ -70,15 +70,15 @@ describe("Tour 2 — statistiques", () => {
     expect(text(panel)).toContain("15 parties");
   });
 
-  it("D4 — keeps late events after eighteen early moments and labels each phase display limit", () => {
+  it("D4 — keeps late events after eighteen early moments and makes every phase event readable", () => {
     const match = game([...Array.from({ length: 19 }, (_, i) => monster((i + 1) * 30000)), monster(25 * 60000)]);
     const events = timelineMilestones(match);
     expect(events.some((e) => e.timestamp === 25 * 60000)).toBe(true);
     const structures = game(Array.from({ length: 8 }, (_, i) => ({ type: "BUILDING_KILL", buildingType: "INHIBITOR_BUILDING", teamId: 200, killerId: 0, timestamp: (i + 20) * 60000 })));
     expect(timelineMilestones(structures).some((e) => e.timestamp === 27 * 60000)).toBe(true);
     const r = mount(<TimelinePhaseColumn phase={{ id: "early", label: "Early", events: events.slice(0, 19) }} kills={[]} match={match} />);
-    expect(text(r.toJSON())).toContain("6 moments affichés sur 19");
-    expect(r.root.findAllByType("article")).toHaveLength(6);
+    expect(r.root.findAllByType("article")).toHaveLength(19);
+    expect(text(r.toJSON())).toContain(events[18].time);
   });
 
   it("D5 — compact and partial gold frames remain unavailable; observed zero remains zero", () => {
@@ -143,6 +143,26 @@ describe("Tour 2 — statistiques", () => {
     expect(text(li)).toContain("—");
     expect(text(li)).not.toMatch(/Bleu|Rouge/);
     expect(li.findAll((n) => n.props.className?.includes("text-slate-300")).length).toBeGreaterThan(0);
+  });
+
+  it("keeps both teams' objective totals in the 5v5 view without repeating the timeline or dragon order", () => {
+    const match = game([
+      monster(600000, { monsterSubType: "FIRE_DRAGON" }),
+      monster(720000, { monsterSubType: "WATER_DRAGON", killerId: 6 }),
+      monster(900000, { monsterType: "RIFTHERALD" }),
+    ]);
+    const compact = mount(<ObjectiveHud match={match} compact />);
+    const totals = compact.root.findAllByType("dl").map((list) => list.findAllByType("dd").map(text));
+    expect(totals).toEqual([["1", "0", "1", "0", "0"], ["1", "0", "0", "0", "0"]]);
+    expect(compact.root.findAllByProps({ "aria-label": "Prises d’objectifs dans le temps" })).toHaveLength(0);
+    expect(compact.root.findAllByType("time")).toHaveLength(0);
+    expect(text(compact.toJSON())).not.toMatch(/10:00|12:00|15:00/);
+
+    const complete = mount(<ObjectiveHud match={match} />);
+    expect(complete.root.findAllByProps({ "aria-label": "Prises d’objectifs dans le temps" })).toHaveLength(1);
+    expect(complete.root.findAllByType("time").map(text)).toEqual(["10:00", "12:00", "15:00"]);
+    expect(complete.root.findAllByType("section").map(text).some((value) => value.includes("10:00"))).toBe(true);
+    expect(complete.root.findAllByType("section").map(text).some((value) => value.includes("12:00"))).toBe(true);
   });
 
   it.each([1, 2, 20])("D12 — the objective horizon stays at three future games after %i past games", (gamesCount) => {

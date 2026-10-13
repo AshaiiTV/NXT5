@@ -14,6 +14,8 @@ import { apiFetch } from "../../api/client.js";
 import { trackAudienceEvent } from "../../app/audience-client.js";
 import { ImportGameFlow, GameActions, GameCategoryManager, GameOperationDialog, matchImportTitle, matchCategoriesForMatch, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor } from "./GameOperations.jsx";
 import "./games-workspace.css";
+import "./match-timeline-reading.css";
+import "./match-deep-reading.css";
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
 import OpponentsWorkspace from "../../components/opponents/OpponentsWorkspace.jsx";
 import MatchDrafterPanel from "../../components/opponents/MatchDrafterPanel.jsx";
@@ -472,7 +474,7 @@ function objectiveSummaryHasData(data) {
   return Boolean(data && (data.dragonCount || data.grubs || data.heralds || data.barons || data.towers || data.dragons?.length));
 }
 
-function ObjectiveTeamCard({ match, teamKey, side, title, data: providedData }) {
+function ObjectiveTeamCard({ match, teamKey, side, title, data: providedData, showTimeline = true }) {
   useLanguage();
   const data = providedData || objectiveTeamSummary(match, teamKey);
   const isRed = side === "RED";
@@ -500,7 +502,7 @@ function ObjectiveTeamCard({ match, teamKey, side, title, data: providedData }) 
         <dd className="mt-1 text-lg font-black tabular-nums text-white">{value}</dd>
       </div>)}
     </dl>
-    {data.dragons.length > 0 && <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
+    {showTimeline && data.dragons.length > 0 && <div className="mt-2.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5">
       <p className="shrink-0 text-xs font-semibold text-slate-400">{t("Dragons")}</p>
       <div className="flex min-w-0 flex-wrap gap-1.5">
         {data.dragons.map((event, index) => <span key={`${teamKey}-dragon-${event.timestamp}-${index}`} className={cx("inline-flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-xs font-black text-white", tone(objectiveEventTone(event)))}>
@@ -530,10 +532,10 @@ function ObjectiveHud({ match, compact = false }) {
       {events.length > 0 && <p className="text-xs font-semibold text-slate-400"><span className="text-white">{events.length}</span>{t(" prises enregistrées")}</p>}
     </div>
     <div className="grid overflow-hidden rounded-2xl border border-white/[0.08] bg-black/10 xl:grid-cols-2">
-      <ObjectiveTeamCard match={match} teamKey={blueTeamKey} side="BLUE" title={t("Côté bleu")} data={blueData} />
-      <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title={t("Côté rouge")} data={redData} />
+      <ObjectiveTeamCard match={match} teamKey={blueTeamKey} side="BLUE" title={t("Côté bleu")} data={blueData} showTimeline={!compact} />
+      <ObjectiveTeamCard match={match} teamKey={redTeamKey} side="RED" title={t("Côté rouge")} data={redData} showTimeline={!compact} />
     </div>
-    {events.length ? <>
+    {!compact && events.length ? <>
       <div className="nxt5-objective-timeline mt-2 overflow-x-auto overflow-y-hidden border-t border-white/[0.07] pt-2 pb-1" role="region" aria-label={t("Prises d’objectifs dans le temps")} tabIndex={0}>
         <ol className="flex w-max min-w-full items-stretch px-2 py-1">
           {events.map((event, index) => {
@@ -784,215 +786,278 @@ function timelineMilestones(match, teamName) {
 
 function MatchTimelineReview({ match, teamName }) {
   useLanguage();
+  const [selectedPhase, setSelectedPhase] = useState("all");
+  const chartId = React.useId();
+  useEffect(() => { setSelectedPhase("all"); }, [match?.id]);
   const status = timelineStatus(match);
-  const objectives = objectiveContext(match);
   const kills = championKillEvents(match);
-  const fights = fightWindows(match);
   const events = timelineMilestones(match, teamName);
-  const ally = teamRows(match, "ALLY");
-  const enemy = teamRows(match, "ENEMY");
-  const finalGoldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
-  const allyObjectives = objectives.filter((event) => event.teamKey === "ALLY").length;
-  const enemyObjectives = objectives.filter((event) => event.teamKey === "ENEMY").length;
-  const allyFights = fights.filter((event) => event.teamKey === "ALLY").length;
-  const enemyFights = fights.filter((event) => event.teamKey === "ENEMY").length;
+  const ownName = timelineTeamLabel("ALLY", teamName);
   const goldMarks = [10, 15, 20].map((minute) => {
-    const allyGold = teamGoldAtMinute(match, "ALLY", minute);
-    const enemyGold = teamGoldAtMinute(match, "ENEMY", minute);
-    return { minute, diff: Number.isFinite(allyGold) && Number.isFinite(enemyGold) ? allyGold - enemyGold : null };
+    const own = teamGoldAtMinute(match, "ALLY", minute);
+    const other = teamGoldAtMinute(match, "ENEMY", minute);
+    return { minute, diff: Number.isFinite(own) && Number.isFinite(other) ? own - other : null };
   });
   const phases = [
-    { id: "early", label: "Early", range: "0-14", toneName: "cyan" },
-    { id: "mid", label: "Mid game", range: "14-24", toneName: "purple" },
-    { id: "late", label: "Late", range: "24+", toneName: "yellow" },
+    { id: "early", label: "Début de partie", range: "0–14", toneName: "cyan" },
+    { id: "mid", label: "Milieu de partie", range: "14–24", toneName: "purple" },
+    { id: "late", label: "Fin de partie", range: "24+", toneName: "yellow" },
   ].map((phase) => ({ ...phase, events: events.filter((event) => timelinePhaseMeta(event.timestamp).id === phase.id) }));
-  const highlight = events.find((event) => event.teamKey === "ENEMY" && ["objective", "fight"].includes(event.kind)) || events.find((event) => event.teamKey === "ALLY" && ["objective", "fight"].includes(event.kind)) || events[0];
-  return <div className="games-timeline-content">
-    <div className="games-timeline-heading">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap gap-2"><Badge tone="cyan">{t("Déroulé coach")}</Badge><Badge tone={status.toneName}>{t(status.label)}</Badge><Badge tone="purple">{kills.length}{t(" kills")}</Badge><Badge tone="slate">{events.length}{t(" moments")}</Badge></div>
-          <h4 className="mt-3 text-2xl font-black text-white">{t("Lecture chronologique")}</h4>
-          <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{highlight ? `${highlight.time} · ${timelineTeamLabel(highlight.teamKey, teamName)} · ${highlight.title}` : t("Aucun moment clé détecté dans la chronologie importée.")}</p>
-        </div>
-        <div className="grid w-full gap-2 sm:grid-cols-3 xl:w-[34rem]">
+  // Preserve missing frames as breaks in the chart instead of implying continuous data.
+  const goldReadings = storedTimelineFrames(match).filter((frame) => Number.isFinite(frame.timestamp))
+    .slice().sort((a, b) => a.timestamp - b.timestamp).map((frame) => {
+      const own = frameTeamGold(match, "ALLY", frame);
+      const other = frameTeamGold(match, "ENEMY", frame);
+      return { timestamp: frame.timestamp, diff: own !== null && other !== null ? own - other : null };
+    });
+  const validReadings = goldReadings.filter((reading) => reading.diff !== null);
+  const canDrawChart = new Set(validReadings.map((reading) => reading.timestamp)).size > 1;
+  const firstTimestamp = goldReadings[0]?.timestamp || 0;
+  const lastTimestamp = goldReadings[goldReadings.length - 1]?.timestamp || 0;
+  const goldScale = Math.max(1000, Math.ceil(Math.max(...validReadings.map((reading) => Math.abs(reading.diff)), 0) / 1000) * 1000);
+  const pointX = (timestamp) => 8 + (timestamp - firstTimestamp) / Math.max(1, lastTimestamp - firstTimestamp) * 704;
+  const pointY = (diff) => 100 - diff / goldScale * 88;
+  const chartSegments = [];
+  goldReadings.forEach((reading, index) => {
+    if (reading.diff === null) return;
+    const previous = goldReadings[index - 1];
+    if (!previous || previous.diff === null || reading.timestamp - previous.timestamp > 120000) chartSegments.push([]);
+    chartSegments[chartSegments.length - 1].push(reading);
+  });
+  const formatReadingTime = (timestamp) => formatCountdown(Math.floor(timestamp / 1000));
+  return <div className="games-timeline-content match-timeline-reading">
+    <header className="match-timeline-intro">
+      <div>
+        <p className="match-timeline-eyebrow">{t("Lecture chronologique")}</p>
+        <h4>{t("Le fil de la partie")}</h4>
+        <p className="match-timeline-lead">{t("Suis l’économie, puis replace chaque moment dans le déroulé du match.")}</p>
+      </div>
+      <div className="match-timeline-source"><span className={`match-timeline-status is-${status.toneName}`} />
+        <div><strong>{t(status.label)}</strong><span>{t(status.detail)}</span></div>
+      </div>
+    </header>
+
+    <section className="match-timeline-economy" aria-label={t("Lecture de l’économie")}>
+      <div className="match-timeline-economy-heading">
+        <div><span className="match-timeline-section-index" aria-hidden="true">01</span><h5>{t("L’équilibre économique")}</h5></div>
+        <p>{t("Écart d’or : {0} − Adversaire", [ownName])}</p>
+      </div>
+      <div className="match-timeline-gold-layout">
+        <figure className="match-timeline-chart">
+          <figcaption className="match-timeline-chart-legend"><span><i className="is-positive" />{t("Au-dessus de 0 : avantage {0}", [ownName])}</span><span><i className="is-negative" />{t("Sous 0 : avantage adverse")}</span></figcaption>
+          {canDrawChart ? <>
+            <div className="match-timeline-plot">
+              <div className="match-timeline-y-axis" aria-hidden="true"><span>+{formatPoints(goldScale)}</span><span>0</span><span>−{formatPoints(goldScale)}</span></div>
+              <svg viewBox="0 0 720 200" preserveAspectRatio="none" role="img" aria-label={t("Évolution de l’écart d’or sur {0} relevés. Les valeurs détaillées suivent le graphique.", [validReadings.length])}>
+                <defs><clipPath id={`${chartId}-positive`}><rect width="720" height="100" /></clipPath><clipPath id={`${chartId}-negative`}><rect y="100" width="720" height="100" /></clipPath></defs>
+                {[12, 56, 144, 188].map((y) => <line key={y} x1="8" x2="712" y1={y} y2={y} className="match-timeline-grid-line" />)}
+                <line x1="8" x2="712" y1="100" y2="100" className="match-timeline-zero-line" />
+                {[10, 15, 20].filter((minute) => minute * 60000 >= firstTimestamp && minute * 60000 <= lastTimestamp).map((minute) => <line key={minute} x1={pointX(minute * 60000)} x2={pointX(minute * 60000)} y1="12" y2="188" className="match-timeline-marker-line" />)}
+                {chartSegments.map((segment, index) => {
+                  const path = segment.map((reading, pointIndex) => `${pointIndex ? "L" : "M"}${pointX(reading.timestamp)},${pointY(reading.diff)}`).join(" ");
+                  const area = `${path} L${pointX(segment[segment.length - 1].timestamp)},100 L${pointX(segment[0].timestamp)},100 Z`;
+                  return <g key={index}><path d={area} clipPath={`url(#${chartId}-positive)`} className="match-timeline-area is-positive" /><path d={area} clipPath={`url(#${chartId}-negative)`} className="match-timeline-area is-negative" /><path d={path} clipPath={`url(#${chartId}-positive)`} className="match-timeline-line is-positive" /><path d={path} clipPath={`url(#${chartId}-negative)`} className="match-timeline-line is-negative" />{segment.map((reading) => <circle key={reading.timestamp} cx={pointX(reading.timestamp)} cy={pointY(reading.diff)} r="2.5" className={reading.diff >= 0 ? "match-timeline-dot is-positive" : "match-timeline-dot is-negative"} />)}</g>;
+                })}
+              </svg>
+              <div className="match-timeline-x-axis" aria-hidden="true"><span>{formatReadingTime(firstTimestamp)}</span><span>{formatReadingTime(lastTimestamp)}</span>{[10, 15, 20].filter((minute) => pointX(minute * 60000) > 75 && pointX(minute * 60000) < 645).map((minute) => <span className="match-timeline-axis-mark" key={minute} style={{ left: `${pointX(minute * 60000) / 720 * 100}%` }}>{formatReadingTime(minute * 60000)}</span>)}</div>
+            </div>
+            <p className="match-timeline-chart-note">{t("La ligne relie les relevés disponibles ; les interruptions signalent des données manquantes.")}</p>
+          </> : <div className="match-timeline-chart-empty"><BarChart3 aria-hidden="true" /><strong>{t("Courbe indisponible")}</strong><p>{t("Il faut au moins deux relevés complets d’or pour comparer les dix joueurs dans le temps.")}</p></div>}
+        </figure>
+        <div className="match-timeline-checkpoints" aria-label={t("Écart d’or aux repères de partie")}>
           {goldMarks.map((item) => <TimelineGoldCheckpoint key={item.minute} minute={item.minute} diff={item.diff} />)}
+          <p>{t("Un tiret indique un relevé absent, pas un écart nul.")}</p>
         </div>
       </div>
-      <div className="mt-4 grid gap-2 sm:grid-cols-3">
-        <TimelineReadoutCard icon={Gauge} label={t("Économie finale")} value={formatSignedShort(finalGoldDiff)} detail={finalGoldDiff >= 0 ? t("Avantage {0}", [timelineTeamLabel("ALLY", teamName)]) : t("Avantage adverse")} toneName={diffTone(finalGoldDiff)} />
-        <TimelineReadoutCard icon={Target} label={t("Objectifs neutres")} value={`${allyObjectives}-${enemyObjectives}`} detail={t("{0} · Adversaire", [timelineTeamLabel("ALLY", teamName)])} toneName={allyObjectives >= enemyObjectives ? "cyan" : "red"} />
-        <TimelineReadoutCard icon={Swords} label={t("Fights détectés")} value={`${allyFights}-${enemyFights}`} detail={t("Fenêtres multi-kills")} toneName={allyFights >= enemyFights ? "green" : "red"} />
+      {goldReadings.length > 0 && <details className="match-timeline-readings"><summary>{t("Voir les relevés d’or")}<ChevronDown aria-hidden="true" /></summary><div className="match-timeline-readings-list"><dl>{goldReadings.map((reading, index) => <div key={`${reading.timestamp}-${index}`}><dt>{formatReadingTime(reading.timestamp)}</dt><dd className={reading.diff === null ? "is-missing" : reading.diff > 0 ? "is-positive" : reading.diff < 0 ? "is-negative" : ""}>{reading.diff === null ? t("Indisponible") : t("{0} or", [formatSignedShort(reading.diff)])}</dd></div>)}</dl></div></details>}
+    </section>
+
+    <section className="match-timeline-journal">
+      <div className="match-timeline-journal-heading"><div><span className="match-timeline-section-index" aria-hidden="true">02</span><h5>{t("Les moments à relire")}</h5></div><span>{t("{0} moments clés", [events.length])}</span></div>
+      <p className="match-timeline-journal-lead">{t("Objectifs, structures importantes et échanges d’éliminations marquants, dans l’ordre du match.")}</p>
+      <div className="match-timeline-filters" role="group" aria-label={t("Filtrer les moments par phase")}>
+        <button type="button" aria-pressed={selectedPhase === "all"} onClick={() => setSelectedPhase("all")}><span>{t("Toute la partie")}</span><span>{events.length}</span></button>
+        {phases.map((phase) => <button key={phase.id} type="button" aria-pressed={selectedPhase === phase.id} onClick={() => setSelectedPhase(phase.id)}><span>{t(phase.label)}</span><span>{phase.range}{t(" min")}</span></button>)}
       </div>
-    </div>
-    {events.length ? <div className="grid gap-3 p-4 xl:grid-cols-3">
-      {phases.map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} teamName={teamName} />)}
-    </div> : <p className="m-4 rounded-2xl border border-dashed border-white/10 bg-black/20 p-4 text-sm font-semibold text-slate-300">{t("Ce fichier JSON ne contient pas de chronologie exploitable pour afficher les moments clés.")}</p>}
+      <div className="match-timeline-perspective"><span className="match-timeline-team is-ally">{ownName}</span><span className="match-timeline-team is-enemy">{t("Adversaire")}</span><p>{t("Les scores et écarts se lisent toujours dans cet ordre.")}</p></div>
+      <div className="match-timeline-phases" aria-live="polite" aria-atomic="false">
+        {events.length ? phases.filter((phase) => selectedPhase === "all" || phase.id === selectedPhase).map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} teamName={teamName} />) : <div className="match-timeline-empty"><Shield aria-hidden="true" /><div><strong>{t("Aucun moment clé exploitable")}</strong><p>{t("Ce fichier ne permet pas de reconstituer les moments clés de la partie. Les statistiques finales restent consultables au-dessus.")}</p></div></div>}
+      </div>
+      <aside className="match-timeline-method"><AlertTriangle aria-hidden="true" /><div><strong>{t("Des repères, à confirmer en replay")}</strong><p>{t("Les échanges regroupent des éliminations espacées de 24 secondes au maximum. Ils peuvent réunir des actions éloignées : ils ne prouvent ni un combat collectif ni sa cause.")}</p><p>{t("Le journal retient les objectifs, certaines structures et les échanges de 3 éliminations ou plus, ou avec un écart d’au moins 2. L’or provient du dernier relevé antérieur disponible, pas de la seconde exacte de l’action.")}</p></div></aside>
+    </section>
   </div>;
 }
 
 function TimelineGoldCheckpoint({ minute, diff }) {
   useLanguage();
-  const missing = diff === null;
-  return <div className={cx("rounded-2xl border px-3 py-2", missing ? tone("slate") : tone(diffTone(diff)))}>
-    <p className="text-xs font-semibold opacity-80">{minute}{t(" min")}</p>
-    <p className="mt-1 text-lg font-black leading-none text-white">{missing ? "—" : formatSignedShort(diff)}</p>
-    <p className="mt-1 break-words text-xs font-semibold opacity-75">{t("écart or")}</p>
-  </div>;
-}
-
-function TimelineReadoutCard({ icon: Icon, label, value, detail, toneName }) {
-  useLanguage();
-  return <div className="games-stat-block">
-    <div className="flex items-center justify-between gap-3">
-      <p className="break-words text-xs font-semibold text-slate-300">{t(label)}</p>
-      <div className={cx("rounded-xl border p-2", tone(toneName))}><Icon className="h-4 w-4" /></div>
-    </div>
-    <p className="mt-2 break-words text-2xl font-black text-white">{value}</p>
-    <p className="break-words text-xs font-semibold text-slate-300">{t(detail)}</p>
+  const missing = !Number.isFinite(diff);
+  return <div className="match-timeline-checkpoint">
+    <p>{t("À {0} minutes", [minute])}</p>
+    <strong className={missing ? "is-missing" : diff > 0 ? "is-positive" : diff < 0 ? "is-negative" : ""}>{missing ? "—" : formatSignedShort(diff)}{!missing && <span>{t(" or")}</span>}</strong>
+    <span>{missing ? t("Relevé indisponible") : diff === 0 ? t("Égalité") : t("Écart entre les équipes")}</span>
   </div>;
 }
 
 function TimelineEventGlyph({ event }) {
   useLanguage();
   if (event.kind === "objective") return <ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-8 w-8" />;
-  if (event.kind === "fight") return <Swords className="h-4 w-4" />;
-  return <Shield className="h-4 w-4" />;
+  if (event.kind === "fight") return <Swords aria-hidden="true" />;
+  return <Shield aria-hidden="true" />;
+}
+
+function readingObjectiveLabel(event) {
+  const dragons = { FIRE_DRAGON: "Dragon infernal", WATER_DRAGON: "Dragon des océans", AIR_DRAGON: "Dragon des nuages", EARTH_DRAGON: "Dragon des montagnes", HEXTECH_DRAGON: "Dragon Hextech", CHEMTECH_DRAGON: "Dragon techno-chimique", ELDER_DRAGON: "Dragon ancestral" };
+  const monsters = { BARON_NASHOR: "Baron Nashor", RIFTHERALD: "Héraut de la Faille", HORDE: "Larves du Néant", ATAKHAN: "Atakhan" };
+  return t(event.monsterType === "DRAGON" ? dragons[event.monsterSubType] || "Dragon" : monsters[event.monsterType] || event.title || event.label);
 }
 
 function TimelineEventCard({ event, index, kills, match, teamName }) {
   useLanguage();
-  const toneName = event.toneName || timelineTeamTone(event.teamKey);
   const score = killScoreAtTimestamp(kills, event.timestamp);
+  const hasKillSource = kills.length > 0 || storedTimelineFrames(match).some((frame) => Array.isArray(frame.events));
+  const hasKnownScore = hasKillSource && kills.filter((kill) => kill.timestamp <= event.timestamp).every((kill) => !kill.killerId || ["ALLY", "ENEMY"].includes(kill.killerTeam));
   const gold = timelineGoldDiff(match, event.timestamp);
-  const enemy = event.teamKey === "ENEMY";
-  const unknown = !["ALLY", "ENEMY", "NEUTRAL"].includes(event.teamKey);
-  const neutral = event.teamKey === "NEUTRAL";
-  const frame = unknown ? "border-white/10 bg-white/[0.025]" : neutral ? "border-amber-200/18 bg-amber-300/[0.055]" : enemy ? "border-rose-300/18 bg-rose-500/[0.055]" : "border-cyan-300/18 bg-cyan-400/[0.055]";
-  const rail = unknown ? "bg-slate-400" : neutral ? "bg-amber-200" : enemy ? "bg-rose-200" : "bg-cyan-200";
-  const kindLabel = event.kind === "objective" ? "Objectif" : event.kind === "fight" ? "Fight" : "Structure";
-  return <article className={cx("games-timeline-event", frame)}>
-    <div className={cx("absolute inset-y-3 left-0 w-1 rounded-r-full ", rail)} />
-    <div className="flex items-start gap-3 pl-1">
-      <div className={cx("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border", tone(toneName))}><TimelineEventGlyph event={event} /></div>
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge tone={toneName}>{event.time}</Badge>
-          <Badge tone="slate">#{index + 1}</Badge>
-          <Badge tone={toneName}>{timelineTeamLabel(event.teamKey, teamName)}</Badge>
-        </div>
-        <p className="mt-2 break-words text-sm font-black text-white">{t(event.title)}</p>
-        <p className="mt-1 text-xs leading-5 text-slate-300">{t(event.context || event.detail || kindLabel)}</p>
-        {event.detail && event.detail !== event.context && <p className="mt-1 text-xs leading-5 text-slate-400">{t(event.detail)}</p>}
-        <div className="mt-3 grid grid-cols-3 gap-1.5">
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">{t("Kills")}</span><span className="text-xs font-black text-white">{score.ally}-{score.enemy}</span></span>
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">{t("Gold")}</span><span className={cx("text-xs font-black", gold === null ? "text-slate-300" : gold >= 0 ? "text-emerald-100" : "text-rose-100")}>{gold === null ? "—" : formatSignedShort(gold)}</span></span>
-          <span className="min-w-0 rounded-lg border border-white/10 bg-black/24 px-2 py-1"><span className="block text-xs font-semibold text-slate-400">{t("Type")}</span><span className="break-words text-xs font-black text-white">{t(kindLabel)}</span></span>
-        </div>
-      </div>
+  const knownTeam = ["ALLY", "ENEMY", "NEUTRAL"].includes(event.teamKey);
+  const kindLabel = event.kind === "objective" ? t("Objectif") : event.kind === "fight" ? t("Échange déduit") : t("Structure");
+  const towerLabels = { OUTER_TURRET: "Tour extérieure", INNER_TURRET: "Tour intérieure", BASE_TURRET: "Tour d’inhibiteur", NEXUS_TURRET: "Tour de Nexus" };
+  const laneLabels = { TOP_LANE: "Voie du haut", MID_LANE: "Voie du milieu", BOT_LANE: "Voie du bas" };
+  const buildingTitle = event.buildingType === "INHIBITOR_BUILDING" ? "Inhibiteur détruit" : event.buildingType === "NEXUS_BUILDING" ? "Nexus détruit" : towerLabels[event.towerType] || "Tour détruite";
+  const title = event.kind === "fight" ? t("Échange d’éliminations") : event.kind === "tower" ? t(buildingTitle) : readingObjectiveLabel(event);
+  const teamLabel = !knownTeam ? t("Équipe non identifiée") : event.teamKey === "NEUTRAL" ? t("Échange équilibré") : timelineTeamLabel(event.teamKey, teamName);
+  const eventDescription = event.kind === "fight" ? t("{0} – {1} éliminations sur cette fenêtre", [event.allyKills, event.enemyKills]) : t(event.context || event.detail || kindLabel);
+  const detail = event.kind === "tower" ? t(laneLabels[event.laneType] || "") : event.detail?.startsWith("Morts:") ? t("Champions éliminés : {0}", [event.detail.replace(/^Morts:\s*/, "")]) : event.detail && event.detail !== event.context ? t(event.detail) : "";
+  return <article className={`match-timeline-event is-${knownTeam ? event.teamKey.toLowerCase() : "unknown"}`}>
+    <div className="match-timeline-event-time"><span className="match-timeline-event-dot" aria-hidden="true" /><time>{event.time}</time><span>{kindLabel}</span></div>
+    <div className="match-timeline-event-body">
+      <span className="match-timeline-event-glyph" aria-hidden="true"><TimelineEventGlyph event={event} /></span>
+      <div><p className="match-timeline-event-team">{teamLabel}</p><h6>{title}</h6><p className="match-timeline-event-context">{eventDescription}</p>{detail && <p className="match-timeline-event-detail">{detail}</p>}</div>
     </div>
+    <dl className="match-timeline-event-stats"><div><dt>{t("Écart d’or")}</dt><dd className={gold === null ? "is-missing" : gold > 0 ? "is-positive" : gold < 0 ? "is-negative" : ""}>{gold === null ? "—" : formatSignedShort(gold)}</dd></div><div><dt>{t("Éliminations relevées")}</dt><dd>{hasKnownScore ? `${score.ally} – ${score.enemy}` : "—"}</dd></div></dl>
   </article>;
 }
 
 function TimelinePhaseColumn({ phase, kills, match, teamName }) {
   useLanguage();
-  return <section className="games-timeline-phase">
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <div className="min-w-0">
-        <p className="break-words text-sm font-black text-white">{t(phase.label)}</p>
-        <p className="mt-0.5 text-xs font-semibold text-slate-400">{phase.range}{t(" min")}</p>
-      </div>
-      <Badge tone={phase.toneName}>{phase.events.length}</Badge>
-    </div>
-    {phase.events.length > 6 && <p className="mb-2 text-xs text-slate-400">{t("6 moments affichés sur ")}{phase.events.length}{t(" dans cette phase.")}</p>}
-    <div className="space-y-2">
-      {phase.events.length ? phase.events.slice(0, 6).map((event, index) => <TimelineEventCard key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`} event={event} index={index} kills={kills} match={match} teamName={teamName} />) : <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-4 text-sm font-semibold leading-6 text-slate-400">{t("Aucun moment majeur détecté.")}</div>}
-    </div>
+  return <section className={`match-timeline-phase is-${phase.id}`} aria-label={t(phase.label)}>
+    <header><h6>{t(phase.label)}</h6><span>{phase.range}{t(" min")}</span><span>{t("{0} moments", [phase.events.length])}</span></header>
+    {phase.events.length ? <ol>{phase.events.map((event, index) => <li key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`}><TimelineEventCard event={event} index={index} kills={kills} match={match} teamName={teamName} /></li>)}</ol> : <p className="match-timeline-phase-empty">{t("Aucun moment clé dans les données de cette phase.")}</p>}
   </section>;
 }
 
-function RoleDiffPanel({ match }) {
-  useLanguage();
-  const rows = roleDiffRows(match);
-  return <section className="games-analysis-section"><h4 className="games-section-heading">{t("Écarts par rôle")}</h4><div className="grid gap-1.5 lg:grid-cols-5">{rows.map((item) => <div key={item.role} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-2"><Badge tone={diffTone(item.goldDiff)}>{t(roleLabel(item.role))}</Badge><span className={cx("text-xs font-black", item.goldDiff >= 0 ? "text-emerald-200" : "text-rose-200")}>{formatGoldDiff(item.goldDiff)}</span></div><p className="mt-2 break-words text-xs font-semibold text-slate-300">{t("CS10 ")}{item.cs10Diff === null ? "N/A" : `${item.cs10Diff >= 0 ? "+" : ""}${item.cs10Diff}`}{t(" · Dégâts ")}{(item.damageDiff >= 0 ? "+" : "") + formatPoints(item.damageDiff)}</p><p className="mt-1 break-words text-xs font-semibold text-slate-400">{t("Écart morts ")}{item.deathsDiff >= 0 ? "+" : ""}{item.deathsDiff}</p></div>)}</div></section>;
+// Presentation reads preserve missing values instead of turning them into zero.
+function deepReadingStat(row, key) {
+  if (!row) return null;
+  let raw = row.raw || {};
+  if (typeof raw === "string") { try { raw = JSON.parse(raw); } catch { raw = {}; } }
+  const alias = { gold: "goldEarned", damage: "totalDamageDealtToChampions", vision: "visionScore" }[key] || key;
+  for (const source of [row, raw?.participant, raw?.stats, raw]) {
+    for (const field of [key, alias]) {
+      const value = availableNumber(source?.[field]);
+      if (value !== null && value >= 0) return value;
+    }
+  }
+  if (key === "cs") {
+    for (const source of [row, raw?.participant, raw?.stats, raw]) {
+      const lane = availableNumber(source?.totalMinionsKilled);
+      const jungle = availableNumber(source?.neutralMinionsKilled);
+      if (lane !== null && jungle !== null) return lane + jungle;
+    }
+  }
+  return null;
+}
+
+function deepReadingTotal(rows, key) {
+  const values = rows.map((row) => deepReadingStat(row, key));
+  return values.length === 5 && values.every((value) => value !== null) ? values.reduce((sum, value) => sum + value, 0) : null;
+}
+
+function DeepReadingHeading({ number, title, description }) {
+  return <header className="match-reading-heading">
+    <span className="match-reading-number" aria-hidden="true">{number}</span>
+    <div><h4>{title}</h4>{description && <p>{description}</p>}</div>
+  </header>;
 }
 
 function DeathContextPanel({ match }) {
   useLanguage();
   const data = deathContext(match);
+  const totalDeaths = deepReadingTotal(teamRows(match, "ALLY"), "deaths");
+  const hasEvents = data.allyDeaths.length > 0 || (totalDeaths === 0 && matchTimelineFrames(match).length > 0);
+  const shutdownKnown = hasEvents && data.allyDeaths.every((death) => death.shutdown !== null);
+  const isolationKnown = hasEvents && data.allyDeaths.every((death) => Array.isArray(death.assistingParticipantIds));
   const topRepeated = data.repeated[0];
-  const cards = [
-    [AlertTriangle, "Avant objectif", data.beforeObjectives.length, "Mort < 90s avant objectif", data.beforeObjectives.length ? "red" : "green"],
-    [Shield, "Isolées déduites", data.isolated.length, "Sans trade proche détecté", data.isolated.length ? "yellow" : "green"],
-    [Flame, "Shutdowns donnés", data.shutdowns.length, "Bounty timeline", data.shutdowns.length ? "red" : "slate"],
-    [Target, "Focus deaths", topRepeated?.deaths || 0, topRepeated ? `${topRepeated.name} · ${championDisplayName(topRepeated.champion)}` : "Aucun profil exposé", topRepeated?.deaths >= 5 ? "red" : "cyan"],
-  ];
-  return <section className="games-analysis-section"><h4 className="games-section-heading">{t("Contexte des morts")}</h4><div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, value, detail, metricTone]) => <div key={label} className="rounded-xl bg-white/[0.03] p-3"><div className="flex items-center justify-between gap-3"><p className="text-xs font-semibold text-slate-300">{t(label)}</p><div className={cx("rounded-xl p-2", tone(metricTone))}><Icon className="h-4 w-4" /></div></div><p className="mt-2 text-xl font-black text-white">{value}</p><p className="break-words text-xs font-semibold text-slate-300">{t(detail)}</p></div>)}</div>{data.beforeObjectives.length > 0 && <div className="mt-2 grid gap-1.5 xl:grid-cols-2">{data.beforeObjectives.slice(0, 4).map((death, index) => <div key={`${death.timestamp}-${index}`} className="rounded-xl border border-rose-300/12 bg-rose-500/[0.045] px-3 py-2 text-xs font-semibold text-slate-200"><span className="font-black text-white">{death.time}</span> · {death.victim?.summoner_name || death.victim?.riot_id || t("Joueur")}{t(" meurt avant objectif")}</div>)}</div>}</section>;
+  const objectives = objectiveEvents(match);
+  return <section className="games-analysis-section match-reading-chapter match-reading-deaths">
+    <DeepReadingHeading number="01" title={t("Ce qui entoure les morts")} description={t("Relie le moment, le joueur et l’objectif. La chronologie donne des indices, pas la cause d’une mort.")} />
+    <div className="match-death-reading">
+      <div className="match-death-observed">
+        <p className="match-reading-eyebrow"><Eye aria-hidden="true" />{t("Observé dans les événements")}</p>
+        <dl className="match-death-figures">
+          <div><dd>{hasEvents ? data.beforeObjectives.length : "—"}</dd><dt>{t("morts dans les 90 s avant un objectif")}</dt></div>
+          <div><dd>{shutdownKnown || data.shutdowns.length > 0 ? data.shutdowns.length : "—"}</dd><dt>{t("primes de 300 or ou plus données")}</dt></div>
+        </dl>
+        <p className="match-reading-note">{hasEvents ? t("{0} morts alliées retrouvées dans les événements disponibles.", [data.allyDeaths.length]) : t("Événements de morts indisponibles : ces compteurs ne peuvent pas être établis.")}{totalDeaths !== null && <> {t("Total final de l’équipe : {0} morts.", [totalDeaths])}</>}</p>
+        {topRepeated && <p className="match-death-focus"><Target aria-hidden="true" /><span><strong>{topRepeated.name}</strong> · {t("{0} morts · {1}", [topRepeated.deaths, championDisplayName(topRepeated.champion)])}<span>{t("Joueur le plus souvent retrouvé dans ces événements.")}</span></span></p>}
+      </div>
+      <aside className="match-death-hypothesis">
+        <p className="match-reading-eyebrow"><Search aria-hidden="true" />{t("Hypothèse à vérifier")}</p>
+        <strong className="match-death-hypothesis-value">{isolationKnown ? data.isolated.length : "—"}</strong>
+        <h5>{t("Morts potentiellement isolées")}</h5>
+        {!isolationKnown && <p>{t("Détail des assistances indisponible : hypothèse non chiffrée.")}</p>}
+        <p>{t("Aucune élimination alliée détectée dans les 15 s avant ou après, avec au plus une assistance adverse.")}</p>
+        <p className="match-reading-note">{t("Ce repère ne prouve ni l’isolement sur la carte, ni une erreur du joueur. Vérifie la position et le plan collectif.")}</p>
+      </aside>
+    </div>
+    {data.beforeObjectives.length > 0 && <ReadingDetails className="match-reading-details" title={t("Revoir les morts avant objectif ({0})", [data.beforeObjectives.length])} description={t("Objectif pris par l’un ou l’autre camp ; proximité temporelle, sans lien de causalité établi.")}>
+      <ol className="match-death-events">{data.beforeObjectives.map((death, index) => {
+        const objective = objectives.find((event) => event.timestamp > death.timestamp && event.timestamp - death.timestamp <= 90000);
+        return <li key={`${death.timestamp}-${index}`}><time>{death.time}</time><div><strong>{death.victim?.summoner_name || death.victim?.riot_id || t("Joueur")}</strong><span>{objective ? t("{0} à {1} · {2} s après", [readingObjectiveLabel(objective), objective.time, Math.round((objective.timestamp - death.timestamp) / 1000)]) : t("Objectif dans les 90 s suivantes")}</span></div><span className="match-event-team">{timelineTeamLabel(objective?.teamKey)}</span></li>;
+      })}</ol>
+    </ReadingDetails>}
+  </section>;
 }
 
 function DraftImpactPanel({ match }) {
   useLanguage();
   const ally = teamRows(match, "ALLY");
   const identity = compositionIdentity(ally);
-  const physical = ally.reduce((total, row) => total + Number(row.raw?.physicalDamageDealtToChampions || 0), 0);
-  const magic = ally.reduce((total, row) => total + Number(row.raw?.magicDamageDealtToChampions || 0), 0);
-  const trueDamage = ally.reduce((total, row) => total + Number(row.raw?.trueDamageDealtToChampions || 0), 0);
-  const total = Math.max(1, physical + magic + trueDamage);
-  const apRatio = Math.round((magic / total) * 100);
-  const adRatio = Math.round((physical / total) * 100);
   const tags = identity.tags.slice(0, 4);
+  const identityText = identity.primary === "frontline"
+    ? t("Une première ligne pour absorber la pression et protéger les joueurs qui infligent les dégâts.")
+    : ["engage", "scaling", "front-to-back", "poke", "siege", "side", "pick"].includes(identity.primary)
+      ? t(identity.text)
+      : t("Repérez qui peut ouvrir le combat, protéger l’équipe et maintenir la pression avec ces champions.");
+  const physical = deepReadingTotal(ally, "physicalDamageDealtToChampions");
+  const magic = deepReadingTotal(ally, "magicDamageDealtToChampions");
+  const trueDamage = deepReadingTotal(ally, "trueDamageDealtToChampions");
+  const damageComplete = [physical, magic, trueDamage].every((value) => value !== null);
+  const total = damageComplete ? physical + magic + trueDamage : null;
+  const hasDamage = total !== null && total > 0;
+  const damage = [["Physiques", physical, "physical"], ["Magiques", magic, "magic"], ["Bruts", trueDamage, "true"]];
   const warnings = [
-    Math.abs(apRatio - adRatio) >= 45 && `Dégâts ${apRatio > adRatio ? "AP" : "AD"} très dominants.`,
-    !tags.some(([tag]) => ["frontline", "tank"].includes(tag)) && "Première ligne peu visible dans la draft.",
-    !tags.some(([tag]) => ["engage", "pick"].includes(tag)) && "Initiation ou catch à confirmer.",
+    hasDamage && Math.abs(magic - physical) / total >= 0.45 && (magic > physical ? t("Les dégâts magiques dominent : comment l’adversaire a-t-il adapté ses résistances ?") : t("Les dégâts physiques dominent : comment l’adversaire a-t-il adapté ses résistances ?")),
+    ally.length > 0 && !identity.tags.some(([tag]) => ["frontline", "tank"].includes(tag)) && t("Qui peut tenir la première ligne dans les combats ?"),
+    ally.length > 0 && !identity.tags.some(([tag]) => ["engage", "pick"].includes(tag)) && t("Qui ouvre le combat et qui peut suivre l’initiation ?"),
   ].filter(Boolean);
-  return <div className="games-analysis-section"><div className="flex flex-wrap items-start justify-between gap-3"><div><Badge tone={championStyleTone(identity.primary)}>{t("Lecture draft")}</Badge><h4 className="mt-3 text-xl font-black text-white">{t(tagLabel(identity.primary))}</h4><p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-300">{t(identity.text)}</p></div><div className="flex flex-wrap gap-2"><Badge tone="cyan">{t("Magique ")}{apRatio}%</Badge><Badge tone="yellow">{t("Physique ")}{adRatio}%</Badge><Badge tone="slate">{t("Brut ")}{Math.round((trueDamage / total) * 100)}%</Badge></div></div><div className="mt-4 flex flex-wrap gap-2">{tags.length ? tags.map(([tag, count]) => <Badge key={tag} tone={championStyleTone(tag)}>{t(tagLabel(tag))} x{count}</Badge>) : <Badge tone="slate">{t("Tags insuffisants")}</Badge>}{warnings.map((warning) => <Badge key={warning} tone="yellow">{warning}</Badge>)}</div></div>;
+  return <section className="games-analysis-section match-reading-chapter match-reading-draft">
+    <DeepReadingHeading number="02" title={t("La composition, en situation")} description={t("Les champions indiquent des possibilités. Les dégâts montrent ce qui a été joué dans cette partie.")} />
+    <div className="match-draft-reading">
+      <div className="match-draft-identity"><p className="match-reading-eyebrow">{t("Profil suggéré par les champions")}</p><h5>{ally.length ? t(tagLabel(identity.primary)) : t("Composition incomplète")}</h5><p>{ally.length && identity.primary !== "standard" ? identityText : t("Les champions renseignés ne suffisent pas à proposer une lecture de la composition.")}</p><dl className="match-draft-tags">{tags.map(([tag, count]) => <div key={tag}><dt>{t(tagLabel(tag))}</dt><dd>{t("{0} champions", [count])}</dd></div>)}</dl><p className="match-reading-note">{t("Catégories indicatives ; elles ne mesurent pas la qualité de la draft.")}</p></div>
+      <div className="match-draft-damage"><p className="match-reading-eyebrow">{t("Dégâts infligés aux champions")}</p>{hasDamage ? <><strong className="match-draft-damage-total">{formatPoints(total)}</strong><div className="match-damage-bar" aria-hidden="true">{damage.map(([label, value, kind]) => <span key={label} data-kind={kind} style={{ width: `${value / total * 100}%` }} />)}</div><dl className="match-damage-legend">{damage.map(([label, value, kind]) => <div key={label} data-kind={kind}><dt>{t(label)}</dt><dd><strong>{Math.round(value / total * 100)}%</strong><span>{formatPoints(value)}</span></dd></div>)}</dl><p className="match-reading-note">{t("Répartition réelle sur cette partie, tous nos joueurs réunis.")}</p></> : <p className="match-reading-empty">{t(damageComplete ? "Les cinq joueurs ont 0 dégât renseigné : aucune répartition en pourcentage ne peut être calculée." : "La répartition des dégâts n’est pas disponible pour les cinq joueurs. Aucun pourcentage n’est estimé.")}</p>}</div>
+    </div>
+    {warnings.length > 0 && <div className="match-draft-questions"><h5><Search aria-hidden="true" />{t("À confirmer ensemble")}</h5><ul>{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>}
+  </section>;
 }
 
-function GameSummaryPanel({ match }) {
+function MatchReadingIntro() {
   useLanguage();
-  const deaths = deathContext(match);
-  const objectives = objectiveContext(match);
-  const ally = teamRows(match, "ALLY");
-  const enemy = teamRows(match, "ENEMY");
-  const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
-  const damageLeader = ally.slice().sort((a, b) => statValue(b, "damage") - statValue(a, "damage"))[0];
-  const weakRole = roleDiffRows(match).slice().sort((a, b) => a.goldDiff - b.goldDiff)[0];
-  const firstObjectiveIssue = objectives.find((event) => event.teamKey === "ENEMY" && event.alliedDeathBefore);
-  const lines = [
-    firstObjectiveIssue ? `Moment à revoir: ${firstObjectiveIssue.time}, ${firstObjectiveIssue.label} adverse après une mort alliée.` : `Économie finale: ${formatGoldDiff(goldDiff)} or, ${goldDiff >= 0 ? "avantage exploitable" : "retard à expliquer"}.`,
-    damageLeader ? `Plus gros impact dégâts sur cette partie: ${damageLeader.summoner_name || damageLeader.riot_id || roleLabel(damageLeader.role)} avec ${formatPoints(damageLeader.damage)} sur ${championDisplayName(damageLeader.champion)}.` : "Impact dégâts: données joueurs insuffisantes.",
-    weakRole ? `Écart à revoir : ${roleLabel(weakRole.role)} (${formatGoldDiff(weakRole.goldDiff)} or face au rôle adverse, ${deaths.beforeObjectives.length} mort${deaths.beforeObjectives.length > 1 ? "s" : ""} avant objectif côté équipe).` : "Rôles à confirmer dans les données importées.",
-  ];
-  return <div className="games-analysis-section games-summary"><div className="flex flex-wrap items-center gap-2"><Badge tone="green">{t("Repères à examiner")}</Badge><Badge tone={timelineStatus(match).toneName}>{t(timelineStatus(match).label)}</Badge></div><div className="mt-3 grid gap-2 xl:grid-cols-3">{lines.map((line, index) => <div key={line} className="games-summary-point"><p className="text-xs font-semibold text-emerald-100">{t(["Moment clé", "Dégâts", "Écart par rôle"][index])}</p><p className="mt-2 text-sm font-semibold leading-5 text-white">{t(line)}</p></div>)}</div></div>;
+  return <section className="games-analysis-section match-reading-intro">
+    <p className="match-reading-eyebrow">{t("Pistes de lecture")}</p>
+    <h4>{t("Les situations à questionner.")}</h4>
+    <p className="match-reading-intro-copy">{t("Replace les morts dans leur contexte, puis confronte la composition au plan de jeu de cette partie.")}</p>
+    <p className="match-reading-source">{t("Observations automatiques à confirmer en débrief.")}</p>
+  </section>;
 }
-
-function GameMetricSignals({ match }) {
-  useLanguage();
-  const ally = teamRows(match, "ALLY");
-  const enemy = teamRows(match, "ENEMY");
-  const strongest = ally.slice().sort((a, b) => roleScore(b) - roleScore(a))[0];
-  const exposed = ally.slice().sort((a, b) => statValue(b, "deaths") - statValue(a, "deaths"))[0];
-  const damageLead = ally.slice().sort((a, b) => statValue(b, "damage") - statValue(a, "damage"))[0];
-  const visionLead = ally.slice().sort((a, b) => statValue(b, "vision") - statValue(a, "vision"))[0];
-  const csDiff = sumRows(ally, "cs") - sumRows(enemy, "cs");
-  const deaths = sumRows(ally, "deaths");
-  const enemyDeaths = sumRows(enemy, "deaths");
-	  const cards = [
-	    [Crown, "Meilleure game", strongest, strongest ? `${championDisplayName(strongest.champion)} · ${strongest.kda ?? `${strongest.kills ?? "—"}/${strongest.deaths ?? "—"}/${strongest.assists ?? "—"}`}` : "Aucune donnée", "cyan"],
-	    [AlertTriangle, "Morts", exposed, exposed ? t("{0} morts · {1}", [exposed.deaths || 0, championDisplayName(exposed.champion)]) : "Aucune donnée", exposed?.deaths >= 6 ? "red" : "yellow"],
-	    [Flame, "Dégâts", damageLead, damageLead ? t("{0} dégâts", [formatPoints(damageLead.damage)]) : "Aucune donnée", "purple"],
-	    [Eye, "Vision", visionLead, visionLead ? `${visionLead.vision || 0} vision` : "Aucune donnée", "green"],
-	  ];
-	  const comparisonCards = [
-	    [Gauge, "Écart CS", (csDiff >= 0 ? "+" : "") + formatPoints(csDiff), "Alliés vs adversaires", diffTone(csDiff)],
-	    [Swords, "Morts équipe", `${deaths} / ${enemyDeaths}`, "Alliés vs adversaires", deaths <= enemyDeaths ? "green" : "red"],
-	  ];
-	  return <section className="games-analysis-section"><h4 className="games-section-heading">{t("Signaux individuels")}</h4>
-	    <div className="grid gap-1.5 md:grid-cols-2 xl:grid-cols-4">{cards.map(([Icon, label, row, detail, metricTone]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(metricTone))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-xs font-semibold text-slate-300">{t(label)}</p><p className="mt-1 break-words text-sm font-black text-white">{row?.summoner_name || row?.riot_id || "N/A"}</p><p className="break-words text-xs font-semibold text-slate-300">{t(detail)}</p></div></div></div>)}</div>
-	    <div className="mt-1.5 grid gap-1.5 md:grid-cols-2">{comparisonCards.map(([Icon, label, value, detail, metricTone]) => <div key={label} className="min-w-0 rounded-xl bg-white/[0.03] p-3"><div className="flex min-w-0 items-center gap-3"><div className={cx("shrink-0 rounded-xl p-2", tone(metricTone))}><Icon className="h-4 w-4" /></div><div className="min-w-0"><p className="text-xs font-semibold text-slate-300">{t(label)}</p><p className="mt-1 break-words text-sm font-black text-white">{value}</p><p className="break-words text-xs font-semibold text-slate-300">{t(detail)}</p></div></div></div>)}</div>
-	  </section>;
-	}
 
 function VersusPlayerMini({ row, side, opponent, align = "left" }) {
   useLanguage();
@@ -1273,19 +1338,6 @@ function MatchCoachBrief({ match, onReview, hasReview = false }) {
   </section>;
 }
 
-function CoachDebriefPrompts({ match }) {
-  useLanguage();
-  const snapshot = matchCoachSnapshot(match);
-  return <section className="games-analysis-section">
-    <h4 className="games-section-heading">{t("Autres pistes pour le débrief")}</h4>
-    <dl className="games-brief-prompts">
-      {[["À garder", snapshot.keep], ["Prochaine action", snapshot.action]].map(([label, value]) => <div key={label}>
-        <dt>{t(label)}</dt><dd>{t(plainCoachText(value))}</dd>
-      </div>)}
-    </dl>
-  </section>;
-}
-
 function CoachSupportingMetrics({ match }) {
   useLanguage();
   const snapshot = matchCoachSnapshot(match);
@@ -1352,11 +1404,8 @@ function MatchDataPanel({ match, teamName, onReview, hasReview = false, contextC
             {match.patch && <p>{t("Version du jeu : ")}{match.patch}</p>}
           </section>}
         </GameAnalysisDisclosure>
-        <GameAnalysisDisclosure title={t("Points à approfondir")} description={t("Contributions par rôle, contexte des morts et composition de champions (draft).")}>
-          <CoachDebriefPrompts match={match} />
-          <GameSummaryPanel match={match} />
-          <GameMetricSignals match={match} />
-          <RoleDiffPanel match={match} />
+        <GameAnalysisDisclosure title={t("Points à approfondir")} description={t("Contexte des morts et composition jouée dans cette partie.")}>
+          <MatchReadingIntro />
           <DeathContextPanel match={match} />
           <DraftImpactPanel match={match} />
         </GameAnalysisDisclosure>
@@ -2364,4 +2413,4 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   );
 }
 
-export { renderStatsPng, exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelineReadoutCard, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, RoleDiffPanel, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, GameSummaryPanel, GameMetricSignals, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
+export { renderStatsPng, exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, MatchReadingIntro, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
