@@ -33,7 +33,7 @@
 .player-comparison-description { max-width: 72ch; margin-top: 14px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
 .player-comparison-scroll-hint { display: flex; align-items: center; gap: 8px; margin-top: 18px; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); }
 .player-comparison-scroll-hint svg { flex: 0 0 18px; width: 18px; height: 18px; color: var(--nxt5-accent); }
-.player-comparison-plot { --tower-height: 280px; --value-height: 60px; display: grid; grid-template-columns: minmax(36px, max-content) minmax(0, 1fr); column-gap: 8px; }
+.player-comparison-plot { --tower-height: 280px; --tower-width: 80px; --value-height: 60px; display: grid; grid-template-columns: minmax(36px, max-content) minmax(0, 1fr); column-gap: 8px; }
 .player-comparison-axis { display: grid; grid-template-rows: repeat(4, 1fr) 0; align-items: start; justify-items: end; height: var(--tower-height); margin-top: calc(26px + var(--value-height)); color: var(--nxt5-muted); font-size: 12px; line-height: 1; font-variant-numeric: tabular-nums; }
 .player-comparison-axis span { transform: translateY(-50%); }
 .player-comparison-plot-scroll { min-width: 0; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: thin; scrollbar-color: #8074b2 #171c32; margin-top: 22px; padding: 4px 0 10px; }
@@ -50,8 +50,8 @@
 .player-comparison-identity strong { display: block; font-size: var(--nxt5-font-body); font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
 .player-comparison-identity div > span { display: block; margin-top: 4px; color: var(--player-bar); font-size: var(--nxt5-font-small); }
 .player-comparison-track { position: relative; display: flex; justify-content: center; grid-column: 1; grid-row: 2; height: var(--tower-height); border-bottom: 1px solid #c4b5fd8c; background: repeating-linear-gradient(to top, transparent 0, transparent calc(25% - 1px), #b5c8e11f calc(25% - 1px), #b5c8e11f 25%); }
-.player-comparison-track::after { content: ""; position: absolute; left: 12%; right: 12%; top: 100%; height: 20px; background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--player-bar) 22%, transparent), transparent 70%); pointer-events: none; }
-.player-comparison-tower { display: block; width: min(100%, 144px); height: 100%; overflow: visible; }
+.player-comparison-track::after { content: ""; position: absolute; left: 50%; width: min(100%, var(--tower-width)); transform: translateX(-50%); top: 100%; height: 20px; background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--player-bar) 22%, transparent), transparent 70%); pointer-events: none; }
+.player-comparison-tower { display: block; width: min(100%, var(--tower-width)); height: 100%; overflow: visible; }
 .player-comparison-tower-reflection { opacity: .85; transition: opacity 180ms var(--nxt5-ease-out); }
 .player-comparison-row[data-unmeasured="true"] .player-comparison-track::before { content: ""; position: absolute; inset: 0 25%; background: repeating-linear-gradient(135deg, #c4b5fd0f 0 1px, transparent 1px 8px); border-inline: 1px dashed #c4b5fd29; }
 .player-comparison-row[data-unmeasured="true"] .player-comparison-track::after { display: none; }
@@ -117,7 +117,7 @@ html.nxt5-low-gpu .player-comparison :is(button, .player-comparison-tower-reflec
   .player-comparison-results { padding: 0 10px 20px; }
   .player-comparison-chart { padding: 24px 16px 16px; }
   .player-comparison-caption h4 { font-size: 26px; }
-  .player-comparison-plot { --tower-height: 220px; --value-height: 52px; grid-template-columns: minmax(28px, max-content) minmax(0, 1fr); column-gap: 4px; }
+  .player-comparison-plot { --tower-height: 220px; --tower-width: 64px; --value-height: 52px; grid-template-columns: minmax(28px, max-content) minmax(0, 1fr); column-gap: 4px; }
   .player-comparison-bars { grid-auto-columns: 124px; }
   .player-comparison-value strong { font-size: 26px; }
   .player-comparison-note, .player-comparison-details { margin-inline: 10px; }
