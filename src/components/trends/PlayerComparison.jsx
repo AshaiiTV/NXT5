@@ -1,10 +1,11 @@
 import React, { useEffect, useId, useMemo, useRef, useState } from "react";
-import { ArrowLeftRight, BarChart3, ChevronDown, Eye, Flame, HandCoins, Info, ListFilter, Swords, Table2, UsersRound, Wheat } from "lucide-react";
+import { ArrowLeftRight, BarChart3, ChevronDown, Eye, Flame, HandCoins, Info, ListFilter, Swords, Table2, UsersRound } from "lucide-react";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { getLocale } from "../../i18n/locale.js";
 import { t } from "../../i18n/translate.js";
 import { buildPlayerComparison } from "../../utils/player-comparison.js";
 import { RoleIcon } from "../brand/BrandAssets.jsx";
+import { MinionIcon } from "../brand/MinionIcon.jsx";
 import { SelectInput } from "../ui/Core.jsx";
 import { roleLabel } from "../../pages/workspace/shell-shared.jsx";
 import "./player-comparison.css";
@@ -27,7 +28,7 @@ const METRICS = [
   { id: "goldPerMin", label: "Or / min", unit: "Par minute", digits: 0, description: "Or gagné divisé par la durée de chaque partie, puis moyenné." },
 ];
 const QUICK_METRICS = ["vision", "kills", "csPerMin", "damagePerMin", "kp"];
-const METRIC_ICONS = { vision: Eye, visionPerMin: Eye, kills: Swords, deaths: Swords, assists: UsersRound, kda: Swords, kp: UsersRound, cs: Wheat, csPerMin: Wheat, damage: Flame, damagePerMin: Flame, gold: HandCoins, goldPerMin: HandCoins };
+const METRIC_ICONS = { vision: Eye, visionPerMin: Eye, kills: Swords, deaths: Swords, assists: UsersRound, kda: Swords, kp: UsersRound, cs: MinionIcon, csPerMin: MinionIcon, damage: Flame, damagePerMin: Flame, gold: HandCoins, goldPerMin: HandCoins };
 const THEMES = [
   { id: "all", label: "Tous les thèmes", metrics: METRICS.map((metric) => metric.id) },
   { id: "vision", label: "Vision", metrics: ["vision", "visionPerMin"] },
