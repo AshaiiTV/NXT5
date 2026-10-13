@@ -12,6 +12,9 @@ for i, k in enumerate(keys):
             "previous_text": N[keys[i - 1]] if i else None, "next_text": N[keys[i + 1]] if i + 1 < len(keys) else None,
             "previous_request_ids": prev_ids[-3:]}
     if MODEL.startswith("eleven_multilingual_v2"): body.pop("language_code")
+    if MODEL.startswith("eleven_v3"):  # v3 : pas d'enchaînement de requêtes, stabilité 0 / 0,5 / 1
+        for k2 in ("previous_text", "next_text", "previous_request_ids"): body.pop(k2)
+        body["voice_settings"] = {"stability": 0.5}
     req = urllib.request.Request(f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE}?output_format=mp3_44100_128",
         data=json.dumps(body).encode(), headers={"xi-api-key": KEY, "Content-Type": "application/json", "Accept": "audio/mpeg"})
     with urllib.request.urlopen(req) as r:
