@@ -285,3 +285,4 @@
 .nxt5-registration-confirmation { display: grid; gap: 1.25rem; margin-top: 1.5rem; }
 .nxt5-registration-confirmation > p { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.75; }
 .nxt5-registration-confirmation [tabindex="-1"]:focus { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
+html.nxt5-low-gpu .nxt5-entry-page::before { background: linear-gradient(135deg, #111827, #211d37 62%, #111827); }

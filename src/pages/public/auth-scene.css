@@ -4,8 +4,8 @@
 }
 .nxt5-auth-immersive::before {
   height: 58rem;
-  background: linear-gradient(180deg, #0d142445, #0d1424 98%), url('/assets/home-motion/atmosphere.webp') 35% 25% / cover no-repeat;
-  opacity: .64;
+  background: linear-gradient(180deg, #0d142438, #0d142410 42%, #0d1424 96%), linear-gradient(90deg, #0d142430, #0d142400 40%, #0d1424a8 85%), url('/assets/home-motion/atmosphere.webp') 35% 65% / cover no-repeat;
+  opacity: .95;
 }
 .nxt5-auth-immersive .nxt5-entry-header {
   width: min(100% - 5rem, 84rem);
@@ -36,6 +36,15 @@
   background: radial-gradient(ellipse at 50% 55%, #8b5cf63d, transparent 63%);
   pointer-events: none;
 }
+.nxt5-auth-art::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 17% -5% 2% 20%;
+  clip-path: polygon(54% 0, 100% 36%, 60% 100%, 0 64%);
+  background: linear-gradient(145deg, #c4b5fd40, #7858aa18 45%, #67e8f94d);
+  pointer-events: none;
+}
 .nxt5-auth-glass-scene { position: absolute; inset: -12% -8% -7%; }
 .nxt5-auth-glass-poster, .nxt5-auth-glass-canvas {
   position: absolute;
@@ -53,8 +62,8 @@
   z-index: -1;
   inset: auto -15% 1%;
   height: 22%;
-  background: radial-gradient(ellipse, #9b82f528, transparent 67%);
-  border-top: 1px solid #c4b5fd2e;
+  background: radial-gradient(ellipse, #9b82f542, transparent 67%);
+  border-top: 1px solid #c4b5fd70;
   border-radius: 50%;
   transform: perspective(400px) rotateX(54deg);
   mask-image: linear-gradient(90deg, transparent, #000 25% 75%, transparent);
@@ -127,3 +136,4 @@
 }
 html.nxt5-low-gpu .nxt5-auth-glass-poster, html.nxt5-low-gpu .nxt5-auth-glass-canvas { transition: none; }
 html.nxt5-low-gpu .nxt5-auth-immersive .nxt5-auth-card { box-shadow: inset 0 1px #eff3ff26; }
+html.nxt5-low-gpu .nxt5-auth-immersive::before { background: linear-gradient(115deg, #0d1424, #272044 48%, #0d1424); }

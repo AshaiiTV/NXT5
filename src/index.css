@@ -77,7 +77,11 @@
   --nxt5-glass-border: rgba(196, 181, 253, .34);
   --nxt5-glass-highlight: rgba(226, 232, 255, .22);
   --nxt5-glass-shadow: inset 0 1px 0 rgba(226, 232, 255, .1), 0 16px 48px rgba(2, 6, 17, .23);
-  --nxt5-glass-reflection: radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, .23), transparent 55%), radial-gradient(ellipse at 0% 0%, rgba(103, 232, 249, .08), transparent 42%);
+  --nxt5-glass-reflection: radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, .25), transparent 46%), radial-gradient(ellipse at 0% 0%, rgba(103, 232, 249, .075), transparent 36%);
+  /* Static facets live at the frame's edge; the reading field stays even. */
+  --nxt5-glass-facet: linear-gradient(135deg, transparent 38%, rgba(196, 181, 253, .09) 38.5%, rgba(196, 181, 253, .025) 59%, transparent 59.5%);
+  --nxt5-scene-background: linear-gradient(90deg, #111827 0%, rgba(17, 24, 39, .97) 35%, rgba(17, 24, 39, .66) 67%, rgba(17, 24, 39, .32)), linear-gradient(180deg, rgba(17, 24, 39, .68), transparent 42%, #111827 100%), url("/assets/home-motion/atmosphere.webp") right 58% / cover no-repeat;
+  --nxt5-edge-gradient: linear-gradient(100deg, rgba(103, 232, 249, .7), rgba(196, 181, 253, .65) 42%, rgba(232, 121, 249, .4) 68%, transparent);
   --nxt5-glow-violet: rgba(139, 92, 246, .28);
   --nxt5-glow-cyan: rgba(103, 232, 249, .16);
   --nxt5-glow-fuchsia: rgba(232, 121, 249, .14);
@@ -253,7 +257,8 @@ textarea {
   }
 }
 
-/* Violet glass frames the content; semantic colors remain owned by each state. */
+/* Three intensities: scene introductions, faceted frames and calm reading.
+   Semantic colors remain owned by each state. */
 .nxt5-panel {
   clip-path: none;
   border-radius: var(--nxt5-radius-panel);
@@ -261,7 +266,7 @@ textarea {
 }
 .nxt5-premium-panel,
 .nxt5-surface {
-  background: var(--nxt5-glass-reflection), var(--nxt5-glass-background);
+  background: var(--nxt5-glass-facet) top right / min(40%, 14rem) 5rem no-repeat, var(--nxt5-glass-reflection), var(--nxt5-glass-background);
   border-color: var(--nxt5-glass-border);
   box-shadow: var(--nxt5-glass-shadow);
   backdrop-filter: none;
@@ -272,7 +277,9 @@ textarea {
   box-shadow: var(--nxt5-shadow-panel);
 }
 .nxt5-surface.nxt5-surface-scene {
-  background: radial-gradient(ellipse at 100% 0%, var(--nxt5-glow-violet), transparent 65%), radial-gradient(ellipse at 0% 100%, var(--nxt5-glow-cyan), transparent 50%), var(--nxt5-glass-background);
+  background: var(--nxt5-glass-facet) top right / min(52%, 22rem) 8rem no-repeat, radial-gradient(ellipse at 100% 0%, var(--nxt5-glow-violet), transparent 56%), radial-gradient(ellipse at 0% 0%, var(--nxt5-glow-cyan), transparent 40%), var(--nxt5-glass-background);
+  border-color: rgba(196, 181, 253, .42);
+  box-shadow: inset 0 1px 0 rgba(226, 232, 255, .2), inset 1px 0 0 rgba(103, 232, 249, .07), 0 18px 48px rgba(2, 6, 17, .24);
 }
 .nxt5-panel .nxt5-panel {
   background: var(--nxt5-surface-soft);

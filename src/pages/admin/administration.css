@@ -1,4 +1,4 @@
-.administration-shell { position: relative; z-index: 1; isolation: isolate; min-height: 100vh; color: var(--nxt5-text); background: radial-gradient(ellipse 50rem 32rem at 0% 0%,rgba(103,232,249,.08),transparent 70%),radial-gradient(ellipse 70rem 48rem at 100% 0%,rgba(139,92,246,.23),transparent 74%),var(--nxt5-bg); }
+.administration-shell { position: relative; z-index: 1; isolation: isolate; min-height: 100vh; color: var(--nxt5-text); background: linear-gradient(180deg,rgba(17,24,39,.55),#111827 650px),linear-gradient(90deg,#111827,rgba(17,24,39,.35)),url("/assets/home-motion/atmosphere.webp") center top / auto 760px no-repeat,var(--nxt5-bg); }
 .administration-header { display: flex; align-items: center; justify-content: space-between; gap: 20px; max-width: 1680px; margin: auto; padding: 20px 32px; border-bottom: 1px solid var(--nxt5-glass-border); background: linear-gradient(105deg,rgba(17,24,39,.95),rgba(43,33,74,.9) 72%,rgba(30,41,59,.95)); box-shadow: 0 1px rgba(196,181,253,.1); }
 .administration-header-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; min-width: 0; }
 @media (max-width: 640px) {
@@ -11,13 +11,13 @@
 .administration-brand > a { flex-shrink: 0; }
 .administration-brand h1 { padding-left: 24px; border-left: 1px solid var(--nxt5-border-strong); font-size: var(--nxt5-font-body); font-weight: 650; letter-spacing: .01em; }
 .administration-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); align-items: start; gap: 36px; max-width: 1680px; margin: auto; padding: 28px 32px 48px; }
-.administration-sidebar { position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto; padding: 16px 8px 20px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: radial-gradient(ellipse at 0% 0%,rgba(139,92,246,.22),transparent 65%),var(--nxt5-glass-background); box-shadow: var(--nxt5-glass-shadow); scrollbar-width: thin; scrollbar-color: rgba(196,181,253,.35) transparent; }
+.administration-sidebar { position: sticky; top: 24px; max-height: calc(100vh - 48px); overflow-y: auto; padding: 16px 8px 20px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: linear-gradient(151deg,transparent 15%,rgba(196,181,253,.09) 15.2%,transparent 42%),linear-gradient(165deg,#25203f,#131b2c 67%); box-shadow: var(--nxt5-glass-shadow); scrollbar-width: thin; scrollbar-color: rgba(196,181,253,.35) transparent; }
 .administration-nav-group + .administration-nav-group { margin-top: 24px; }
 .administration-nav-group > p { padding: 0 12px 8px; color: var(--nxt5-accent-2); font-size: var(--nxt5-font-small); font-weight: 600; letter-spacing: .01em; }
 .administration-nav-group > a { display: flex; align-items: center; gap: 12px; min-height: 44px; margin: 3px 0; padding: 10px 12px; border: 1px solid transparent; border-radius: var(--nxt5-radius-button); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); line-height: 1.4; font-weight: 550; text-decoration: none; }
 .administration-nav-group > a > svg { flex-shrink: 0; color: #b7cbe2; }
 .administration-nav-group > a:hover { background: #ffffff08; border-color: var(--nxt5-border); }
-.administration-nav-group > a[aria-current="page"] { background: linear-gradient(to bottom,var(--nxt5-spectrum-stops)) left / 2px 100% no-repeat,linear-gradient(110deg,rgba(103,232,249,.13),rgba(139,92,246,.24) 72%,rgba(232,121,249,.1)); border-color: rgba(196,181,253,.24); box-shadow: inset 0 1px rgba(226,232,255,.12),0 5px 14px rgba(8,11,23,.2); color: #cffafe; font-weight: 650; }
+.administration-nav-group > a[aria-current="page"] { background: linear-gradient(to bottom,var(--nxt5-spectrum-stops)) left / 2px 100% no-repeat,linear-gradient(128deg,transparent 68%,rgba(196,181,253,.13) 68.4%,transparent),linear-gradient(110deg,rgba(103,232,249,.12),rgba(139,92,246,.34) 72%,rgba(232,121,249,.14)); border-color: rgba(196,181,253,.24); box-shadow: inset 0 1px rgba(226,232,255,.12),0 5px 14px rgba(8,11,23,.2); color: #cffafe; font-weight: 650; }
 .administration-nav-group > a[aria-current="page"] > svg { color: var(--nxt5-accent); }
 .administration-account { margin: 28px 12px 0; padding-top: 20px; border-top: 1px solid var(--nxt5-border); }
 .administration-account > span { display: block; font-size: var(--nxt5-font-small); color: #bacbdf; }
@@ -143,3 +143,5 @@
   .purchase-filters > button { flex: 1 1 100%; }
   .administration-leave-confirmation > div > button { width: 100%; }
 }
+
+html.nxt5-low-gpu .administration-shell { background: var(--nxt5-bg); }

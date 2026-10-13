@@ -6,26 +6,23 @@
   background: var(--nxt5-bg);
 }
 
+/* The same horizon as the public Hero, fading before the reading area. */
 .nxt5-ambient-light {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse at 6% 0%, var(--nxt5-glow-cyan), transparent 42%),
-    radial-gradient(ellipse at 88% 0%, var(--nxt5-glow-violet), transparent 58%),
-    radial-gradient(ellipse at 100% 85%, rgba(232, 121, 249, .055), transparent 38%);
+    linear-gradient(180deg, rgba(17,24,39,.42), #111827 780px),
+    linear-gradient(90deg, rgba(17,24,39,.9), rgba(17,24,39,.24)),
+    url("/assets/home-motion/atmosphere.webp") center top / auto 850px no-repeat;
 }
 .nxt5-ambient-calm::after {
   content: "";
   position: absolute;
-  top: -18rem;
-  right: -19rem;
-  width: 65rem;
-  height: 65rem;
-  border: 1px solid rgba(196, 181, 253, .1);
-  border-radius: 32%;
-  transform: rotate(-28deg);
-  background: linear-gradient(125deg, transparent 49%, rgba(196, 181, 253, .045) 50%, transparent 74%);
-  box-shadow: inset 0 1px 0 rgba(103, 232, 249, .06);
+  inset: 0 0 auto auto;
+  width: min(72vw, 1100px);
+  height: 650px;
+  background: linear-gradient(132deg, transparent 49.8%, rgba(196,181,253,.16) 50%, rgba(139,92,246,.035) 50.2%, transparent 70%);
+  pointer-events: none;
 }
 
 .nxt5-sidebar {
@@ -38,8 +35,8 @@
   height: 100dvh;
   padding: 0 1rem max(.75rem, env(safe-area-inset-bottom));
   border-right: 1px solid var(--nxt5-glass-border);
-  background: linear-gradient(90deg, transparent 98%, rgba(226, 232, 255, .025)), radial-gradient(ellipse at 0% 0%, rgba(103, 232, 249, .07), transparent 40%), linear-gradient(165deg, #24223d, #141c2e 47%, #1b1b32);
-  box-shadow: inset -1px 0 0 rgba(226, 232, 255, .075), 12px 0 40px rgba(2, 6, 17, .16);
+  background: linear-gradient(154deg, transparent 21%, rgba(196,181,253,.09) 21.1%, transparent 42%), radial-gradient(ellipse at 100% 0%, rgba(139,92,246,.3), transparent 48%), linear-gradient(165deg, #1f203a, #101827 62%, #19182f);
+  box-shadow: inset -1px 0 0 rgba(226, 232, 255, .16), 12px 0 40px rgba(2, 6, 17, .24);
   color: var(--nxt5-text);
   visibility: hidden;
   transform: translateX(-100%);
@@ -64,7 +61,7 @@
 .nxt5-sidebar-link + .nxt5-sidebar-link { margin-top: .25rem; }
 .nxt5-sidebar-link > svg { flex: 0 0 auto; color: var(--nxt5-muted); }
 .nxt5-sidebar-link:hover { color: var(--nxt5-text); background: rgba(166, 194, 231, .065); }
-.nxt5-sidebar-link.is-active { background: linear-gradient(180deg, rgba(226, 232, 255, .035), transparent 65%), linear-gradient(110deg, rgba(103, 232, 249, .13), rgba(139, 92, 246, .23) 65%, rgba(232, 121, 249, .08)); color: #edfaff; font-weight: 650; box-shadow: inset 0 0 0 1px rgba(196, 181, 253, .29), inset 0 1px 0 var(--nxt5-glass-highlight), 0 4px 12px rgba(2, 6, 17, .13); }
+.nxt5-sidebar-link.is-active { background: linear-gradient(128deg, transparent 65%, rgba(196,181,253,.13) 65.5%, transparent), linear-gradient(110deg, rgba(103,232,249,.12), rgba(139,92,246,.34) 68%, rgba(232,121,249,.14)); color: #edfaff; font-weight: 650; box-shadow: inset 0 0 0 1px rgba(196,181,253,.4), inset 0 1px 0 rgba(226,232,255,.28), 0 6px 18px rgba(2,6,17,.22); }
 .nxt5-sidebar-link.is-active::before { content: ""; position: absolute; inset: .65rem auto .65rem 0; width: 2px; background: linear-gradient(to bottom, var(--nxt5-spectrum-stops)); }
 .nxt5-sidebar-link.is-active > svg { color: var(--nxt5-accent, #67e8f9); }
 .nxt5-sidebar-label { min-width: 0; }
@@ -90,7 +87,7 @@
 .nxt5-start-return { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--nxt5-border); font-size: var(--nxt5-font-small); }
 .nxt5-start-return button { min-height: 44px; color: var(--nxt5-accent); }
 .nxt5-start-return > span { color: var(--nxt5-muted); }
-.nxt5-topbar { position: sticky; top: 0; z-index: 30; min-width: 0; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 2rem; border-bottom: 1px solid rgba(196, 181, 253, .24); background: linear-gradient(180deg, rgba(226, 232, 255, .025), transparent 64%), linear-gradient(105deg, #182338, #201e38 75%, #25203d); box-shadow: 0 6px 24px rgba(2, 6, 17, .14), inset 0 -1px 0 rgba(226, 232, 255, .055); }
+.nxt5-topbar { position: sticky; top: 0; z-index: 30; min-width: 0; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 2rem; border-bottom: 1px solid rgba(196, 181, 253, .24); background: linear-gradient(125deg, transparent 74%, rgba(196,181,253,.08) 74.1%, transparent 92%), linear-gradient(105deg, #121c2e, #211c3a 78%, #2b244b); box-shadow: 0 6px 24px rgba(2, 6, 17, .14), inset 0 -1px 0 rgba(226, 232, 255, .055); }
 .nxt5-topbar-location, .nxt5-topbar-actions, .nxt5-topbar-tools { display: flex; align-items: center; min-width: 0; }
 .nxt5-topbar-location { flex: 1; gap: .75rem; }
 .nxt5-topbar-page-icon { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; border: 1px solid var(--nxt5-glass-border); border-radius: 10px; background: var(--nxt5-glass-reflection), var(--nxt5-glass-background); color: var(--nxt5-accent); box-shadow: inset 0 1px 0 var(--nxt5-glass-highlight); }
@@ -156,7 +153,7 @@
 }
 
 @media (max-width: 767px) {
-  .nxt5-ambient-calm::after { width: 34rem; height: 34rem; top: -12rem; right: -22rem; }
+  .nxt5-ambient-calm::after { width: 100%; height: 480px; opacity: .6; }
   .nxt5-workspace-main { padding: 1.25rem 1rem; }
   .nxt5-topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; min-height: 68px; padding: .5rem .75rem; gap: .375rem .5rem; }
   .nxt5-topbar-location { gap: .25rem; }
@@ -197,3 +194,5 @@
   .nxt5-sidebar-brand { min-height: 76px; }
   .nxt5-sidebar-navigation { flex: 0 0 auto; overflow: visible; }
 }
+
+html.nxt5-low-gpu .nxt5-ambient-calm::after { display: none; }
