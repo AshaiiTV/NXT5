@@ -290,12 +290,13 @@ function rgbSplit(ctx, src, amount, t) {
   const [cr, xr] = offscreen('R');
   xr.drawImage(src, 0, 0);
   xr.globalCompositeOperation = 'multiply';
-  xr.fillStyle = '#ff0000';
+  // brand split: rose (R + .38B) vs aqua (G + .78B) copies; blue sums to ~1.16 (slight night-blue lift on hits)
+  xr.fillStyle = '#ff0060';
   xr.fillRect(0, 0, W, H);
   const [cg, xg] = offscreen('G');
   xg.drawImage(src, 0, 0);
   xg.globalCompositeOperation = 'multiply';
-  xg.fillStyle = '#00ffff';
+  xg.fillStyle = '#00ffc8';
   xg.fillRect(0, 0, W, H);
   ctx.save();
   ctx.fillStyle = '#000';
