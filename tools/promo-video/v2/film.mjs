@@ -59,9 +59,18 @@ export async function loadAssets() {
   A.emblem = await img(path.join(PUB, 'nxt5-loader-favicon.png'));
   A.poster = await img(path.join(PUB, 'home-motion/glass-poster@3x.webp'));
   A.roles = {};
-  for (const r of ['top', 'jungle', 'middle', 'bottom', 'utility']) A.roles[r] = await img(path.join(PUB, `roles/position-${r}.svg`));
+  for (const r of ['top', 'jungle', 'middle', 'bottom', 'utility']) {
+    const svg = await img(path.join(PUB, `roles/position-${r}.svg`));
+    const c = createCanvas(256, 256);
+    const x = c.getContext('2d');
+    x.drawImage(svg, 0, 0, 256, 256);
+    x.globalCompositeOperation = 'source-in';
+    x.fillStyle = '#E2E8FF';
+    x.fillRect(0, 0, 256, 256);
+    A.roles[r] = c;
+  }
   A.ui = {};
-  for (const f of ['ui-match-timeline-3345.png', 'ui-debrief.png', 'ui-planning.png', 'ui-analyses.png']) {
+  for (const f of ['ui-match-timeline-3345.png', 'ui-debrief.png', 'ui-draft.png', 'ui-planning.png', 'ui-analyses.png']) {
     const p = path.join(ROOT, 'assets/ui', f);
     if (existsSync(p)) A.ui[f] = await img(p);
   }
@@ -112,7 +121,7 @@ export function revealLine(ctx, k, x, y, size, draw) {
   ctx.save();
   const e = ease.outQuint(k);
   ctx.beginPath();
-  ctx.rect(0, y - size * 1.05, W, size * 1.4);
+  ctx.rect(-W * 2, y - size * 1.05, W * 5, size * 1.4);
   ctx.clip();
   ctx.translate(0, (1 - e) * size * 0.9);
   ctx.globalAlpha *= clamp(k * 3);
@@ -239,3 +248,5 @@ export function glassPose(t) {
     position: [0, wave * 0.045 - (1 - enter) * 0.6, (1 - enter) * -1.5],
   };
 }
+
+export const assets = () => A;
