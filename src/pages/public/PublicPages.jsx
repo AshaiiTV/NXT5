@@ -1,4 +1,5 @@
 import HomeMotion from "../home/HomeMotion.jsx";
+import AuthGlassScene from "./AuthGlassScene.jsx";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import React, { useEffect, useRef, useState } from "react";
@@ -16,6 +17,7 @@ import { Badge, Button, PremiumToggle, Surface, TextInput } from "../../componen
 import { LegalConsent, SocialLogin, SocialNotice, SocialSignup, socialCallbackStatus, socialReturnContext } from "../../components/account/SocialAccounts.jsx";
 import "./public-information.css";
 import "./public-entry.css";
+import "./auth-scene.css";
 import { DemoMatchSummary } from "./DemoMatchSummary.jsx";
 
 function TeamRoleSignature() {
@@ -570,7 +572,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
   }
 
   return (
-    <div className="nxt5-entry-page nxt5-auth-page nxt5-social-auth">
+    <div className="nxt5-entry-page nxt5-auth-page nxt5-social-auth nxt5-auth-immersive">
       <AmbientBackground />
       <SiteHeader navigate={navigate} simple>
         <PublicTextLink href={isRegister ? `/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`} navigate={navigate} className="nxt5-entry-header-link">
@@ -579,13 +581,13 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-auth-layout">
         <section className="nxt5-auth-story" aria-labelledby="auth-story-title">
-          <p className="nxt5-entry-eyebrow">{t("Ton espace équipe")}</p>
-          <h2 id="auth-story-title">{t("Cinq rôles.")}<br /><span>{t("Un travail commun.")}</span></h2>
-          <p>{t("Retrouve tes joueurs, tes parties et les points à travailler lors de la prochaine séance.")}</p>
+          <div className="nxt5-auth-art"><AuthGlassScene /><div className="nxt5-auth-horizon" aria-hidden="true" /></div>
+          <div className="nxt5-auth-story-copy">
+            <p className="nxt5-entry-eyebrow">{t("Ton espace équipe")}</p>
+            <h2 id="auth-story-title">{t("Cinq rôles.")}<br /><span>{t("Une même direction.")}</span></h2>
+            <p>{t("Retrouve tes joueurs, tes parties et les points à travailler lors de la prochaine séance.")}</p>
+          </div>
           <TeamRoleSignature />
-          <ul>
-            {[[Users, "Les joueurs de ton équipe", "Profils, rôles et disponibilités au même endroit."], [BarChart3, "Le détail de tes parties", "Le résumé et les statistiques restent liés à chaque partie."], [FileText, "Les débriefs de ton équipe", "Garde les observations et les prochaines actions de l’équipe."]].map(([Icon, title, text]) => <li key={title}><Icon aria-hidden="true" size={21} /><div><strong>{t(title)}</strong><span>{t(text)}</span></div></li>)}
-          </ul>
         </section>
         <Surface variant="scene" glow className="nxt5-auth-card">
           <p className="nxt5-entry-eyebrow">{isRegister ? t("Bienvenue sur NXT5") : t("Bon retour sur NXT5")}</p>
@@ -604,7 +606,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
             {error && <div role="alert" className="nxt5-auth-notice is-error">{t(error)}</div>}
             <Button type="submit" disabled={loading || (isRegister && !legalAccepted)} icon={loading ? Loader2 : isRegister ? UserPlus : ArrowRight} className="nxt5-auth-submit">{loading ? t("Chargement…") : isRegister ? t("Créer le compte") : t("Entrer dans NXT5")}</Button>
           </form>
-          {!isRegister && <div className="nxt5-auth-recovery"><PublicTextLink href="/mot-de-passe-oublie" navigate={navigate}>{t("Mot de passe oublié ?")}</PublicTextLink></div>}
+          {!isRegister && <div className="nxt5-auth-recovery"><PublicTextLink href={`/mot-de-passe-oublie${querySuffix}`} navigate={navigate}>{t("Mot de passe oublié ?")}</PublicTextLink></div>}
           <p className="nxt5-auth-alternative">{isRegister ? t("Déjà inscrit ? ") : t("Pas encore de compte ? ")}<PublicTextLink href={isRegister ? `/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`} navigate={navigate}>{isRegister ? t("Se connecter") : t("Créer un compte")}</PublicTextLink></p>
           </>}
         </Surface>

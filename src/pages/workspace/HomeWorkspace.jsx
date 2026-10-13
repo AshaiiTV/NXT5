@@ -134,9 +134,19 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   ];
 
   return <div className="nxt5-home" data-home-state={focus.kind}>
-    <div className="nxt5-home-identity"><span className="nxt5-home-team-mark" aria-hidden="true"><TeamAvatar team={currentTeam} className="nxt5-home-team-image" /></span><PageHeader eyebrow={currentTeam.name} title={t(focus.title)} subtitle={t(focus.subtitle)}>
-      {context.canImport && context.matches.length > 0 && focus.kind !== "quiet" && <LinkButton href="/games?import=1" navigate={navigate} icon={Upload} variant="ghost">{t("Importer une partie")}</LinkButton>}
-    </PageHeader></div>
+    <div className="nxt5-home-hero">
+      <div className="nxt5-home-identity">
+        <span className="nxt5-home-team-mark" aria-hidden="true"><TeamAvatar team={currentTeam} className="nxt5-home-team-image" /></span>
+        <PageHeader eyebrow={currentTeam.name} title={t(focus.title)} subtitle={t(focus.subtitle)}>
+          {context.canImport && context.matches.length > 0 && focus.kind !== "quiet" && <LinkButton href="/games?import=1" navigate={navigate} icon={Upload} variant="ghost">{t("Importer une partie")}</LinkButton>}
+        </PageHeader>
+      </div>
+      <div className="nxt5-home-hero-art" aria-hidden="true">
+        <span className="nxt5-home-hero-orbit" />
+        <img className="nxt5-home-glass-five" src="/assets/home-motion/glass-poster.webp" width="729" height="665" alt="" decoding="async" />
+        <div className="nxt5-home-hero-roles">{ROLES.map(role => <span key={role}><RoleIcon role={role} className="nxt5-home-hero-role-icon" /><span>{role}</span></span>)}</div>
+      </div>
+    </div>
     {(loading || apiError) && <p className="nxt5-home-data-status" role="status">{loading ? t("Actualisation de l’équipe…") : t("Cet aperçu reprend les dernières données chargées. Réessaie l’actualisation pour le mettre à jour.")}</p>}
     {startIsPrimary ? <BeginnerCompass steps={steps} manager={context.manager} onNavigate={navigate} onClose={closeStart} /> : <Surface glow variant="scene" className="nxt5-home-ready">
       <div className="nxt5-home-focus-layout"><div className="nxt5-home-focus-content">
@@ -154,7 +164,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
     {mainRoster.length > 0 && <nav className="nxt5-home-lineup" aria-label={t("Titulaires")}>
       {ROLES.map(role => {
         const player = mainRoster.find(member => String(member.role).toUpperCase() === role);
-        return player ? <PublicTextLink key={role} href={`/mon-profil?player=${encodeURIComponent(player.id)}`} navigate={navigate} className="nxt5-home-lineup-player"><span aria-hidden="true"><RoleIcon role={role} /></span><span><small>{role}</small><strong>{player.name}</strong></span></PublicTextLink> : <span key={role} className="nxt5-home-lineup-player is-empty"><span aria-hidden="true"><RoleIcon role={role} /></span><span><small>{role}</small><strong>—</strong></span></span>;
+        return player ? <PublicTextLink key={role} href={`/mon-profil?player=${encodeURIComponent(player.id)}`} navigate={navigate} className="nxt5-home-lineup-player"><span className="nxt5-home-lineup-role" aria-hidden="true"><RoleIcon role={role} /></span><span><small>{role}</small><strong>{player.name}</strong></span><ArrowRight className="nxt5-home-lineup-arrow" size={15} aria-hidden="true" /></PublicTextLink> : <span key={role} className="nxt5-home-lineup-player is-empty"><span className="nxt5-home-lineup-role" aria-hidden="true"><RoleIcon role={role} /></span><span><small>{role}</small><strong>—</strong></span></span>;
       })}
     </nav>}
 

@@ -58,6 +58,21 @@
   box-shadow: inset 0 0 0 100px rgb(60 64 67 / 12%);
 }
 
+/* Google's official dark theme fits the NXT5 night surfaces. */
+.nxt5-provider-button[data-provider="google"] {
+  border-color: #8e918f;
+  background: #131314;
+  color: #e3e3e3;
+}
+
+.nxt5-provider-button[data-provider="google"]:hover:not(:disabled) {
+  box-shadow: inset 0 0 0 100px rgb(227 227 227 / 8%);
+}
+
+.nxt5-provider-button[data-provider="google"]:active:not(:disabled) {
+  box-shadow: inset 0 0 0 100px rgb(227 227 227 / 12%);
+}
+
 .nxt5-provider-button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
