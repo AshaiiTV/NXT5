@@ -4,8 +4,9 @@ import { getLocale } from "../../i18n/locale.js";
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, CalendarDays, FileText, Swords, Target, Upload, Users } from "lucide-react";
 import { BeginnerCompass } from "../../components/layout/AppChrome.jsx";
-import { Badge, Button, PageHeader, Surface } from "../../components/ui/Core.jsx";
+import { Badge, Button, PageHeader } from "../../components/ui/Core.jsx";
 import { RoleIcon, TeamAvatar } from "../../components/brand/BrandAssets.jsx";
+import GlassScene from "../../components/brand/GlassScene.jsx";
 import { ROLES } from "../../../shared/roles.js";
 import { rosterPlayersByStatus } from "../../utils/roster.js";
 import { getHomeContext, homeMatchTimestamp } from "../../utils/home-context.js";
@@ -105,6 +106,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   const [clock, setClock] = useState(() => Date.now());
   const [guideKey, setGuideKey] = useState(null);
   const guideTrigger = useRef(null);
+  const heroRef = useRef(null);
   useEffect(() => {
     if (suppliedNow != null) return undefined;
     const timer = setInterval(() => setClock(Date.now()), 60_000);
@@ -134,33 +136,31 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   ];
 
   return <div className="nxt5-home" data-home-state={focus.kind}>
-    <div className="nxt5-home-hero">
+    <div ref={heroRef} className="nxt5-home-hero">
       <div className="nxt5-home-identity">
-        <span className="nxt5-home-team-mark" aria-hidden="true"><TeamAvatar team={currentTeam} className="nxt5-home-team-image" /></span>
-        <PageHeader eyebrow={currentTeam.name} title={t(focus.title)} subtitle={t(focus.subtitle)}>
-          {context.canImport && context.matches.length > 0 && focus.kind !== "quiet" && <LinkButton href="/games?import=1" navigate={navigate} icon={Upload} variant="ghost">{t("Importer une partie")}</LinkButton>}
-        </PageHeader>
+        <div className="nxt5-home-team-brand">
+          <span className="nxt5-home-team-mark" aria-hidden="true"><TeamAvatar team={currentTeam} className="nxt5-home-team-image" /></span>
+          <p className="nxt5-home-team-name">{currentTeam.name}</p>
+        </div>
+        <PageHeader title={t(focus.title)} subtitle={t(focus.subtitle)} />
+        {!startIsPrimary && <section className="nxt5-home-ready" aria-labelledby="nxt5-home-focus-title">
+          <p className="nxt5-home-status"><FocusIcon size={18} aria-hidden="true" />{t(focus.label)}</p>
+          <h3 id="nxt5-home-focus-title">{["start", "quiet"].includes(focus.kind) ? t(focus.heading) : focus.heading}</h3>
+          <p className="nxt5-home-focus-description">{t(focus.text)}</p>
+          <div className="nxt5-home-actions">
+            <LinkButton href={focus.href} navigate={navigate} icon={ArrowRight}>{t(focus.action)}</LinkButton>
+            {focus.secondary && <PublicTextLink href={focus.secondary.href} navigate={navigate} className="nxt5-home-text-link">{t(focus.secondary.label)}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>}
+          </div>
+        </section>}
       </div>
       <div className="nxt5-home-hero-art" aria-hidden="true">
         <span className="nxt5-home-hero-orbit" />
-        <img className="nxt5-home-glass-five" src="/assets/home-motion/glass-poster.webp" width="729" height="665" alt="" decoding="async" />
+        <GlassScene className="nxt5-home-glass-scene" pointerTargetRef={heroRef} pointerStrength={1} />
         <div className="nxt5-home-hero-roles">{ROLES.map(role => <span key={role}><RoleIcon role={role} className="nxt5-home-hero-role-icon" /><span>{role}</span></span>)}</div>
       </div>
     </div>
     {(loading || apiError) && <p className="nxt5-home-data-status" role="status">{loading ? t("Actualisation de l’équipe…") : t("Cet aperçu reprend les dernières données chargées. Réessaie l’actualisation pour le mettre à jour.")}</p>}
-    {startIsPrimary ? <BeginnerCompass steps={steps} manager={context.manager} onNavigate={navigate} onClose={closeStart} /> : <Surface glow variant="scene" className="nxt5-home-ready">
-      <div className="nxt5-home-focus-layout"><div className="nxt5-home-focus-content">
-      <p className="nxt5-home-status">{t(focus.label)}</p>
-      <h3>{["start", "quiet"].includes(focus.kind) ? t(focus.heading) : focus.heading}</h3>
-      <p className="nxt5-home-focus-description">{t(focus.text)}</p>
-      <div className="nxt5-home-actions">
-        <LinkButton href={focus.href} navigate={navigate} icon={ArrowRight}>{t(focus.action)}</LinkButton>
-        {focus.secondary && <PublicTextLink href={focus.secondary.href} navigate={navigate} className="nxt5-home-text-link">{t(focus.secondary.label)}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>}
-      </div>
-      </div>
-      <div className="nxt5-home-focus-marker" aria-hidden="true"><FocusIcon strokeWidth={1.25} /></div>
-      </div>
-    </Surface>}
+    {startIsPrimary && <BeginnerCompass steps={steps} manager={context.manager} onNavigate={navigate} onClose={closeStart} />}
     {mainRoster.length > 0 && <nav className="nxt5-home-lineup" aria-label={t("Titulaires")}>
       {ROLES.map(role => {
         const player = mainRoster.find(member => String(member.role).toUpperCase() === role);
