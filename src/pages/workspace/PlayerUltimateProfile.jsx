@@ -8,6 +8,7 @@ import { Activity, AlertTriangle, Check, Clipboard, Crown, Download, Eye, FileTe
 import { apiFetch } from "../../api/client.js";
 import { profilePathFromView, profileViewFromPath, openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TabNav } from "../../components/ui/Core.jsx";
+import { SortButton } from "../../components/ui/SortButton.jsx";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { cx, tone } from "../../app/helpers.js";
 import { matchDisplayName, matchHasCategory, opponentRoleRow, assetProxyUrl } from "../../utils/matches.js";
@@ -570,16 +571,24 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
   useLanguage();
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState("volume");
+  const [sortDirection, setSortDirection] = useState("descending");
+  const selectSort = (next) => {
+    setSortDirection(next === sortMode ? sortDirection === "descending" ? "ascending" : "descending" : next === "name" ? "ascending" : "descending");
+    setSortMode(next);
+  };
   const [openedChampion, setOpenedChampion] = useState("");
   const rootRef = React.useRef(null);
   const focusTarget = React.useRef("");
   const totalGames = championStats.reduce((total, stat) => total + Number(stat.games || 0), 0);
   const activeStat = championStats.find((stat) => stat.champion === openedChampion) || null;
   const sortedStats = championStats.filter((stat) => championDisplayName(stat.champion).toLocaleLowerCase("fr").includes(query.trim().toLocaleLowerCase("fr"))).slice().sort((a, b) => {
-    if (sortMode === "wr") return (profileChampionResults(b.rows).rate ?? -1) - (profileChampionResults(a.rows).rate ?? -1) || b.games - a.games;
-    if (sortMode === "kda") return (profileChampionKda(b.rows).ratio ?? -1) - (profileChampionKda(a.rows).ratio ?? -1) || b.games - a.games;
-    if (sortMode === "name") return championDisplayName(a.champion).localeCompare(championDisplayName(b.champion), "fr");
-    return b.games - a.games || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion), "fr");
+    const ascending = sortDirection === "ascending";
+    const nameOrder = championDisplayName(a.champion).localeCompare(championDisplayName(b.champion), getLocale());
+    if (sortMode === "name") return (ascending ? 1 : -1) * nameOrder;
+    const value = (stat) => sortMode === "wr" ? profileChampionResults(stat.rows).rate : sortMode === "kda" ? profileChampionKda(stat.rows).ratio : stat.games;
+    const av = value(a), bv = value(b);
+    if (av === null || bv === null) return av === bv ? b.games - a.games || nameOrder : av === null ? 1 : -1;
+    return (ascending ? av - bv : bv - av) || b.games - a.games || nameOrder;
   });
   useEffect(() => {
     setOpenedChampion("");
@@ -617,10 +626,14 @@ function ProfileChampionsView({ championStats = [], selectedChampion, onSelectCh
       </header>
       <div className="profile-champions-toolbar">
         <label className="profile-champions-search"><span>{t("Rechercher un champion")}</span><div><Search aria-hidden="true" className="h-4 w-4" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("Nom du champion")} /></div></label>
-        <SelectInput label={t("Trier les champions")} value={sortMode} onChange={setSortMode}><option value="volume">{t("Nombre de parties")}</option><option value="wr">{t("Taux de victoire")}</option><option value="kda">{t("Ratio KDA")}</option><option value="name">{t("Nom du champion")}</option></SelectInput>
       </div>
       <p className="profile-champions-meta" role="status">{sortedStats.length}{t(sortedStats.length > 1 ? " champions" : " champion")}{t(sortedStats.length > 1 ? " affichés" : " affiché")}</p>
       <div className="profile-champions-list">
+        <div className="profile-champions-sort" role="group" aria-label={t("Trier les champions")}>
+          <SortButton label="Nom du champion" active={sortMode === "name"} direction={sortMode === "name" ? sortDirection : "ascending"} onClick={() => selectSort("name")} />
+          <div className="profile-champion-row-metrics">{[["volume", "Parties"], ["wr", "Victoires"], ["kda", "Ratio KDA"]].map(([key, label]) => <SortButton key={key} label={label} active={sortMode === key} direction={sortMode === key ? sortDirection : "descending"} onClick={() => selectSort(key)} />)}</div>
+          <span aria-hidden="true" />
+        </div>
         {sortedStats.length ? sortedStats.map((stat) => <ProfileChampionCommandCard key={stat.champion} stat={stat} onClick={() => openChampion(stat.champion)} active={selectedChampion === stat.champion} />) : <p className="profile-champions-empty">{t("Aucun champion ne correspond à « ")}{query} ».</p>}
       </div>
       <details className="profile-champions-help"><summary>{t("Comment lire ces résultats ?")}</summary><p>{t("Le taux de victoire porte sur les parties dont le résultat est connu. Le ratio KDA vaut (kills + assists) ÷ morts, avec un diviseur de 1 si le total des morts est nul. Les résultats décrivent les parties importées ; quelques parties ne suffisent pas à établir la maîtrise d’un champion ni à choisir un champion.")}</p></details>

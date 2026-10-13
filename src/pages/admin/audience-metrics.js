@@ -55,16 +55,17 @@ export function countryLabel(value) {
   catch { return value; }
 }
 
-export function selectAudiencePages(rows = [], { search = "", sort = "views" } = {}) {
+export function selectAudiencePages(rows = [], { search = "", sort = "views", direction = sort === "path" ? "ascending" : "descending" } = {}) {
   const normalize = (value) => String(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("fr");
   const needle = normalize(search.trim());
   const numericFields = new Set(["views", "visitors", "avgDurationSeconds", "exits"]);
   return rows.filter((row) => normalize(row.path || "").includes(needle)).sort((a, b) => {
     if (numericFields.has(sort)) {
-      const difference = finiteNumber(b[sort]) - finiteNumber(a[sort]);
+      const difference = (direction === "ascending" ? 1 : -1) * (finiteNumber(a[sort]) - finiteNumber(b[sort]));
       if (difference) return difference;
     }
-    return String(a.path || "").localeCompare(String(b.path || ""), "fr");
+    const pathOrder = String(a.path || "").localeCompare(String(b.path || ""), "fr");
+    return sort === "path" && direction === "descending" ? -pathOrder : pathOrder;
   });
 }
 

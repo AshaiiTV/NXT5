@@ -9,8 +9,8 @@
 .ig-total strong { color: var(--nxt5-text-secondary); font-weight: 650; font-variant-numeric: tabular-nums; }
 .ig-controls { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 12px; padding-top: 20px; border-top: 1px solid var(--nxt5-border); }
 .ig-search-row, .ig-filters { display: contents; }
-.ig-search { grid-column: span 9; min-width: 0; }
-.ig-sort { grid-column: span 3; min-width: 0; }
+.ig-search { grid-column: span 8; min-width: 0; }
+.ig-sort { grid-column: span 4; min-width: 0; }
 .ig-filters > label { grid-column: span 4; min-width: 0; }
 .ig-controls-with-category .ig-filters > label { grid-column: span 3; }
 .imported-games .ig-label, .imported-games .ig-sort label > span, .imported-games .ig-filters label > span { display: block; margin-bottom: 6px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); font-weight: 600; line-height: 1.45; letter-spacing: normal; text-transform: none; }
@@ -135,7 +135,8 @@
 @container (max-width: 599px) {
   .ig-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .ig-search { grid-column: 1 / -1; }
-  .ig-sort, .ig-filters > label, .ig-controls-with-category .ig-filters > label { grid-column: span 1; }
+  .ig-sort { grid-column: 1 / -1; }
+  .ig-filters > label, .ig-controls-with-category .ig-filters > label { grid-column: span 1; }
   .ig-controls-with-category .ig-filters > label:last-child { grid-column: 1 / -1; }
   .imported-games .ig-search-field input, .imported-games .ig-sort select, .imported-games .ig-filters select { font-size: var(--nxt5-font-body); }
   .ig-game { padding: 16px 8px; gap: 12px; }

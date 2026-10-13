@@ -1,0 +1,18 @@
+.nxt5-sort-button {
+  display: inline-flex; align-items: center; justify-content: flex-start; gap: 6px;
+  min-height: 44px; min-width: 44px; max-width: 100%; padding: 8px 4px;
+  border: 0; border-bottom: 2px solid transparent; border-radius: 0;
+  background: transparent; color: var(--nxt5-text-secondary); font: inherit;
+  font-size: var(--nxt5-font-ui); font-weight: 600; line-height: 1.4; text-align: left;
+  cursor: pointer;
+}
+.nxt5-sort-button > span { min-width: 0; overflow-wrap: anywhere; }
+.nxt5-sort-button > svg { flex: 0 0 14px; opacity: .7; }
+.nxt5-sort-button[aria-pressed="true"] { color: var(--nxt5-accent); border-bottom-color: currentColor; }
+.nxt5-sort-button[aria-pressed="true"] > svg { opacity: 1; }
+.nxt5-sort-button:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
+@media (hover: hover) {
+  .nxt5-sort-button:hover { background: var(--nxt5-surface-soft); }
+  .nxt5-sort-button:not([aria-pressed="true"]):hover { color: var(--nxt5-text); }
+}
+.nxt5-sort-options { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }

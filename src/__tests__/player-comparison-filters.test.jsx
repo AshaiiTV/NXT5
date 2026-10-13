@@ -3,7 +3,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TrendsPage } from "../pages/workspace/TrendsPage.jsx";
 import { PlayerComparison } from "../components/trends/PlayerComparison.jsx";
-import { ProgressionObjectives } from "../components/trends/ProgressionObjectives.jsx";
+import { PlaystyleAnalysis } from "../components/trends/PlaystyleAnalysis.jsx";
 import { SelectInput } from "../components/ui/Core.jsx";
 import { setLanguage } from "../i18n/locale.js";
 
@@ -42,7 +42,7 @@ const comparison = () => renderer.root.findByType(PlayerComparison);
 const comparedGames = () => comparison().props.matches.map((match) => match.id);
 const clickTab = (panel) => act(() => renderer.root.findByProps({ id: `trend-tab-${panel}` }).props.onClick());
 
-function mount(search = "?rubrique=ai-objectives&contexte=scrim&periode=5") {
+function mount(search = "?rubrique=statistics&contexte=scrim&periode=5") {
   let location = new URL(`https://nxt5.test/tendances${search}`);
   const events = new EventTarget();
   const update = (_, __, path) => { location = new URL(path, location); };
@@ -63,7 +63,7 @@ afterEach(() => {
 });
 
 describe("player comparison filters in team analysis", () => {
-  it("shares a direct link's category and latest-game period with the comparison and objectives", () => {
+  it("opens the dedicated statistics tab with a direct link's category and latest-game period", () => {
     mount();
     expect(controls("Catégorie")).toHaveLength(1);
     expect(comparison().findAllByType(SelectInput).find((node) => node.props.label === "Catégorie")).toBe(controls("Catégorie")[0]);
@@ -71,7 +71,8 @@ describe("player comparison filters in team analysis", () => {
     expect(controls("Catégorie")[0].findAllByType("option").map((option) => option.props.value)).toEqual(["", "scrim", "official", "empty"]);
     expect(comparedGames()).toEqual(["scrim-7", "scrim-6", "scrim-5", "scrim-4", "scrim-3"]);
     expect(text(comparison().findByProps({ className: "player-comparison-value" }).findByType("strong"))).toBe("5,0");
-    expect(renderer.root.findByType(ProgressionObjectives).props.gamesCount).toBe(5);
+    expect(renderer.root.findAllByType(PlaystyleAnalysis)).toHaveLength(0);
+    expect(renderer.root.findByProps({ id: "trend-tab-statistics" }).props["aria-selected"]).toBe(true);
     expect(text(renderer.root.findByProps({ className: "trends-scope" }))).toContain("5 parties analysées sur 7 · Entraînements");
   });
 
@@ -83,30 +84,35 @@ describe("player comparison filters in team analysis", () => {
     expect(comparedGames()).toEqual(["official-3", "official-2", "official-1"]);
     expect(controls("Thème des statistiques")[0].props.value).toBe("farm");
     expect(controls("Statistique")[0].props.value).toBe("csPerMin");
-    expect(renderer.root.findByType(ProgressionObjectives).props.gamesCount).toBe(3);
+    expect(renderer.root.findAllByType(PlaystyleAnalysis)).toHaveLength(0);
     expect(window.location.search).toContain("contexte=official");
     expect(window.location.search).toContain("periode=5");
     clickTab("coach");
     expect(controls("Catégorie")).toHaveLength(1);
     expect(controls("Catégorie")[0].props.value).toBe("official");
     expect(renderer.root.findAllByType(PlayerComparison)).toHaveLength(0);
-    clickTab("ai-objectives");
+    clickTab("playstyle");
+    expect(controls("Catégorie")).toHaveLength(1);
+    expect(controls("Catégorie")[0].props.value).toBe("official");
+    expect(renderer.root.findAllByType(PlayerComparison)).toHaveLength(0);
+    expect(renderer.root.findByType(PlaystyleAnalysis).props.matches.map(match => match.id)).toEqual(["official-3", "official-2", "official-1"]);
+    clickTab("statistics");
     expect(controls("Catégorie")).toHaveLength(1);
     expect(comparedGames()).toEqual(["official-3", "official-2", "official-1"]);
-    expect(renderer.root.findByType(ProgressionObjectives).props.gamesCount).toBe(3);
+    expect(renderer.root.findAllByType(PlaystyleAnalysis)).toHaveLength(0);
   });
 
   it("leaves a way to recover from an empty category and restores matching games with the same period", () => {
     mount();
     change("Catégorie", "empty");
     expect(renderer.root.findAllByType(PlayerComparison)).toHaveLength(0);
-    expect(renderer.root.findAllByType(ProgressionObjectives)).toHaveLength(0);
+    expect(renderer.root.findAllByType(PlaystyleAnalysis)).toHaveLength(0);
     expect(text(renderer.toJSON())).toContain("Aucune partie dans cette sélection");
     expect(controls("Catégorie")).toHaveLength(1);
     expect(controls("Catégorie")[0].props.value).toBe("empty");
     change("Catégorie", "scrim");
     expect(comparedGames()).toEqual(["scrim-7", "scrim-6", "scrim-5", "scrim-4", "scrim-3"]);
-    expect(renderer.root.findByType(ProgressionObjectives).props.gamesCount).toBe(5);
+    expect(renderer.root.findAllByType(PlaystyleAnalysis)).toHaveLength(0);
     expect(window.location.search).toContain("periode=5");
   });
 
@@ -120,8 +126,22 @@ describe("player comparison filters in team analysis", () => {
     expect(comparedGames()).toEqual(["foreign-game"]);
     expect(text(comparison().findByProps({ className: "player-comparison-identity" }).findByType("strong"))).toBe("Mira");
     expect(text(comparison())).not.toContain("Nova");
-    expect(renderer.root.findByType(ProgressionObjectives).props.gamesCount).toBe(1);
+    expect(renderer.root.findAllByType(PlaystyleAnalysis)).toHaveLength(0);
     expect(window.location.search).not.toContain("contexte=");
     expect(window.location.search).not.toContain("periode=");
+  });
+
+  it("opens the old objectives link as playstyle while retaining its scope and keeping player comparison separate", () => {
+    mount("?rubrique=ai-objectives&contexte=scrim&periode=5");
+    expect(renderer.root.findByProps({ id: "trend-tab-playstyle" }).props["aria-selected"]).toBe(true);
+    expect(renderer.root.findAllByType(PlayerComparison)).toHaveLength(0);
+    expect(renderer.root.findByType(PlaystyleAnalysis).props.matches.map(match => match.id)).toEqual(["scrim-7", "scrim-6", "scrim-5", "scrim-4", "scrim-3"]);
+    expect(controls("Catégorie")).toHaveLength(1);
+    change("Catégorie", "official");
+    expect(renderer.root.findByType(PlaystyleAnalysis).props.matches).toHaveLength(3);
+    expect(window.location.search).toContain("rubrique=playstyle");
+    clickTab("statistics");
+    expect(comparedGames()).toEqual(["official-3", "official-2", "official-1"]);
+    expect(renderer.root.findAllByType(PlaystyleAnalysis)).toHaveLength(0);
   });
 });

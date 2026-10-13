@@ -379,11 +379,10 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   const helpSection = guideSectionForRoute(route);
   const currentPage = waitingForHistory ? <HistoryLoadingState error={historyError} loading={historyLoading} onRetry={() => { void ensureHistory?.().catch(() => {}); }} /> : active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} loading={loading} apiError={apiError} /> : page;
   const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{currentPage}</PassFeatureGate> : currentPage;
-  const assistantWidget = !workspaceLocked && <>
-    {active !== "home" && data.teams.length > 0 && <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? t("Fermer l'assistant NXT5") : t("Ouvrir l'assistant NXT5")} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher", assistantOpen && "is-open")}>
+  const assistantLauncher = !workspaceLocked && active !== "home" && data.teams.length > 0 && <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? t("Fermer l'assistant NXT5") : t("Ouvrir l'assistant NXT5")} title={t("Assistant")} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher nxt5-chrome-icon-button", assistantOpen && "is-open")}>
       <span aria-hidden="true">{assistantOpen ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}</span>
-      <span className="hidden sm:inline">{assistantOpen ? t("Fermer") : t("Assistant")}</span>
-    </button>}
+    </button>;
+  const assistantWidget = !workspaceLocked && <>
     <Suspense fallback={null}><AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId || null} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>
   </>;
   const inactivityReturnModal = user?.email_verified && user?.inactivity_notice
@@ -455,6 +454,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
           onCreateTeam={openTeamCreation}
           onManageTeam={openTeamManagement}
           onHelp={() => navigate(`/guide?section=${helpSection}`)}
+          assistantLauncher={assistantLauncher}
         />
         <main id="workspace-content" tabIndex={-1} className="nxt5-workspace-main">
           <WorkspaceErrorBoundary key={active}>

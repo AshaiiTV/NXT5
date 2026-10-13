@@ -127,6 +127,11 @@
   .administration-layout { padding: 16px 12px 32px; }
   .administration-mobile-menu { margin-bottom: 24px; }
 }
+@media (max-width: 389px) {
+  .administration-brand { gap: 8px; }
+  .administration-brand img { width: 64px; }
+  .administration-brand h1 { padding-left: 8px; }
+}
 .administration-leave-confirmation { margin-bottom: 24px; padding: 16px; border-left: 2px solid #fde68a; background: #fde68a0a; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
 .administration-leave-confirmation > strong { color: #fff; }
 .administration-leave-confirmation > p { margin: 4px 0 12px; }

@@ -12,3 +12,10 @@ Avant toute création ou modification visuelle du site NXT5, lire [charte graphi
 - Pour un nouveau checkout destiné au travail visuel, conserver ce fichier avec son lien vers la source unique. Ne pas recopier la charte ni recréer son PDF ; retirer les anciennes copies éventuellement apportées par Git. Toute évolution autorisée se fait dans la source unique.
 
 Pour une modification uniquement documentaire, vérifier les liens et la cohérence du contenu. Pour le code, effectuer les contrôles adaptés au changement et les vérifications exigées par le dépôt (`npm run verify` pour le contrôle complet).
+
+## Vérification des interfaces
+
+- Avant livraison, inspecter les pages réellement rendues dans leur cadre complet : ordinateur, téléphone et largeur de 320 px. Un test sans débordement ne remplace pas la lecture des captures.
+- Vérifier les actions concernées au clavier, le retour de focus, les menus et dialogues, les textes longs et les états vide, incomplet, erreur ou accès limité pertinents. Les décors et commandes flottantes ne doivent pas masquer le contenu.
+- Pour un changement partagé, couvrir chaque famille de pages touchée et faire relire les corrections par un autre agent. Conserver les captures, scénarios et résultats ; annoncer précisément la couverture et ses limites.
+- Employer des données fictives et des API interceptées pour les tests de mutations. Distinguer validation locale et validation de la version publiée.

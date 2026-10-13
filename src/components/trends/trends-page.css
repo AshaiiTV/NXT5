@@ -122,20 +122,20 @@
 .trends-contract-content p:not(.trends-eyebrow) { font-size: var(--nxt5-font-body); line-height: 1.7; color: var(--nxt5-text-secondary); }
 .nxt5-trends-page :is(button,summary,select):focus-visible, .nxt5-trend-dialog :is(button,summary,select,input):focus-visible { outline: 2px solid #67e8f9; outline-offset: 3px; }
 @container trends-page (max-width: 899px) {
-  .trends-tabs small { display: none; }
-  .trends-tabs > button { justify-content: center; padding: 15px 8px; }
   .nxt5-trends-page .trends-role-columns { display: none; }
   .nxt5-trends-page .trends-role { grid-template-columns: minmax(0,1.3fr) minmax(0,1fr) auto; gap: 14px 24px; }
   .trends-role-function { grid-column: 2 / 4; }
   .trends-role-number > span { display: block; font-size: var(--nxt5-font-small); color: var(--nxt5-text-secondary); margin-bottom: 4px; }
 }
+@container trends-page (max-width: 1059px) {
+  .trends-tabs { display: none; }
+  .trends-mobile-navigation { display: flex; flex-direction: column; gap: 8px; font-size: var(--nxt5-font-small); color: var(--nxt5-text-secondary); }
+  .trends-mobile-navigation select { width: 100%; min-height: 48px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control, 10px); padding: 10px 12px; background: var(--nxt5-field); color: var(--nxt5-text); font-size: var(--nxt5-font-body); }
+}
 @container trends-page (max-width: 639px) {
   .nxt5-trends-page .trends-filters { padding: 16px; }
   .trends-filter-controls { align-items: stretch; flex-direction: column; }
   .trends-filter-controls > label { flex-basis: auto; }
-  .trends-tabs { display: none; }
-  .trends-mobile-navigation { display: flex; flex-direction: column; gap: 8px; font-size: var(--nxt5-font-small); color: var(--nxt5-text-secondary); }
-  .trends-mobile-navigation select { width: 100%; min-height: 48px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control, 10px); padding: 10px 12px; background: var(--nxt5-field); color: var(--nxt5-text); font-size: var(--nxt5-font-body); }
   .nxt5-trends-page .trends-priority { grid-template-columns: minmax(0,1fr); gap: 24px; }
   .trends-review-list summary { display: block; }
   .trends-review-list summary > strong { display: block; margin: 6px 0; min-width: 0; }

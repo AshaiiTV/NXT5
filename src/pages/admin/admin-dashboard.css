@@ -57,6 +57,9 @@
 .admin-dashboard .admin-team-list { margin-top: 1rem; }
 .admin-dashboard .admin-team-row { display: grid; width: 100%; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(6rem, .5fr) 18px; gap: 1.2rem; align-items: center; padding: 1rem .5rem; text-align: left; border-bottom: 1px solid #263448; }
 .admin-dashboard .admin-team-row:hover { background: #102434; }
+.admin-dashboard .admin-team-sort { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(6rem, .5fr) 18px; gap: 1.2rem; padding: 0 .5rem; border-bottom: 1px solid var(--nxt5-border); }
+.admin-team-sort > .nxt5-sort-button { justify-self: start; }
+@media (max-width: 700px) { .admin-dashboard .admin-team-sort { display: flex; flex-wrap: wrap; gap: 8px 16px; } }
 .admin-dashboard .admin-team-row strong { font-size: var(--nxt5-font-ui); font-weight: 650; color: #f1f5f9; overflow-wrap: anywhere; }
 .admin-dashboard .admin-team-row small, .admin-dashboard .admin-team-identity > span { display: block; margin-top: .3rem; font-size: var(--nxt5-font-small); color: #a7b6ca; }
 .admin-dashboard .admin-team-row > svg { color: #67e8f9; }

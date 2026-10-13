@@ -5,6 +5,7 @@ import { apiFetch } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import { ImportedGames } from "../components/games/ImportedGames.jsx";
 import { SelectInput } from "../components/ui/Core.jsx";
+import { SortButton } from "../components/ui/SortButton.jsx";
 import { Statistics } from "../pages/workspace/GameWorkspace.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), apiUploadJson: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -72,7 +73,18 @@ async function search(renderer, query) {
 function select(renderer, label) {
   return renderer.root.findAllByType(SelectInput).find((node) => node.props.label === label).findByType("select");
 }
+function sortButton(renderer, label) {
+  return renderer.root.findAllByType(SortButton).find((node) => node.props.label === label);
+}
 async function filter(renderer, label, value) {
+  if (label === "Trier par") {
+    const sortLabel = value.startsWith("import-") ? "Imports" : ["longest", "shortest"].includes(value) ? "Durée" : "Date";
+    const desiredAscending = ["oldest", "import-oldest", "shortest"].includes(value);
+    const control = () => sortButton(renderer, sortLabel);
+    if (!control().props.active) await act(async () => control().props.onClick());
+    if ((control().props.direction === "ascending") !== desiredAscending) await act(async () => control().props.onClick());
+    return;
+  }
   await act(async () => select(renderer, label).props.onChange({ target: { value } }));
 }
 
@@ -138,7 +150,7 @@ describe("imported games interactions", () => {
     await act(async () => reset.props.onClick());
     expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("");
     expect(select(renderer, "Résultat").props.value).toBe("");
-    expect(select(renderer, "Trier par").props.value).toBe("oldest");
+    expect(renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Date").props).toMatchObject({ active: true, direction: "ascending" });
     expect(rows(renderer)).toHaveLength(25);
     expect(rowLabels(renderer)[0]).toMatch(/EUW1_1$/);
   });
@@ -238,7 +250,7 @@ describe("progressive imported games", () => {
   it("opens the latest imported page without requesting the remaining history", async () => {
     const settings = progressiveProps();
     const renderer = await render(<ImportedGames {...settings} />);
-    expect(select(renderer, "Trier par").props.value).toBe("import-newest");
+    expect(sortButton(renderer, "Imports").props).toMatchObject({ active: true, direction: "descending" });
     expect(rowLabels(renderer)[0]).toContain("EUW1_1");
     expect(text(renderer.root.findByProps({ role: "status" }))).toBe("100 parties chargées sur 1000");
     expect(text(renderer.root.findByProps({ className: "ig-total" }))).toBe("1000 parties");
@@ -327,10 +339,10 @@ describe("progressive imported games", () => {
   it("keeps failed global filters usable and retries the complete history", async () => {
     const settings = progressiveProps();
     const renderer = await render(<ImportedGames {...settings} />);
-    await filter(renderer, "Trier par", "oldest");
+    await filter(renderer, "Trier par", "newest");
     await update(renderer, { ...settings, historyError: "L’historique complet n’a pas pu être chargé." });
     expect(rows(renderer)).toHaveLength(0);
-    expect(select(renderer, "Trier par").props.value).toBe("oldest");
+    expect(sortButton(renderer, "Date").props).toMatchObject({ active: true, direction: "descending" });
     expect(text(renderer.root)).not.toContain("Aucune partie ne correspond");
     await click(renderer, "Réessayer");
     expect(settings.onLoadHistory).toHaveBeenCalledTimes(2);
@@ -347,7 +359,7 @@ describe("progressive imported games", () => {
   it("offers an explicit recovery when a complete list becomes partial with its played-date sort retained", async () => {
     const settings = progressiveProps({ historyComplete: true });
     const renderer = await render(<ImportedGames {...settings} />);
-    expect(select(renderer, "Trier par").props.value).toBe("newest");
+    expect(sortButton(renderer, "Date").props).toMatchObject({ active: true, direction: "descending" });
     await update(renderer, { ...settings, historyComplete: false });
     expect(rows(renderer)).toHaveLength(0);
     expect(settings.onLoadHistory).not.toHaveBeenCalled();
@@ -426,7 +438,7 @@ describe("imported games in Statistics", () => {
     expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("Club 03");
     expect(select(renderer, "Résultat").props.value).toBe("Victoire");
     expect(select(renderer, "Catégorie").props.value).toBe("scrim");
-    expect(select(renderer, "Trier par").props.value).toBe("oldest");
+    expect(renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Date").props).toMatchObject({ active: true, direction: "ascending" });
     expect(rows(renderer).filter(visible)).toHaveLength(1);
     expect(rowLabels(renderer)[0]).toContain("EUW1_3");
     expect(requests()).toEqual(expectedRequests);

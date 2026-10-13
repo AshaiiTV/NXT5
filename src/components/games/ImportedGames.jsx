@@ -4,6 +4,7 @@ import { getLocale } from "../../i18n/locale.js";
 import React, { useDeferredValue, useId, useMemo, useRef, useState } from "react";
 import { ArrowRight, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileText, Search, X } from "lucide-react";
 import { Button, SelectInput, Surface } from "../ui/Core.jsx";
+import { SortButton } from "../ui/SortButton.jsx";
 import { ChampionPortrait, championDisplayName, ROSTER_ROLE_ORDER } from "../../pages/workspace/workspace-shared.jsx";
 import { matchCategoryIds, matchDisplayName } from "../../utils/matches.js";
 import { trendMatchTimestamp } from "../../utils/trends.js";
@@ -108,10 +109,9 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
             {filters.query && <button type="button" onClick={clearSearch} aria-label={t("Effacer la recherche")}><X aria-hidden="true" /></button>}
           </span>
         </div>
-        <div className="ig-sort"><SelectInput label={t("Trier par")} value={filters.sort} onChange={(value) => setFilter("sort", value)}>
-          {allowImportSort && <><option value="import-newest">{t("Derniers imports")}</option><option value="import-oldest">{t("Premiers imports")}</option></>}
-          <option value="newest">{t("Plus récentes")}</option><option value="oldest">{t("Plus anciennes")}</option><option value="longest">{t("Plus longues")}</option><option value="shortest">{t("Plus courtes")}</option>
-        </SelectInput></div>
+        <div className="ig-sort"><span className="ig-label">{t("Trier par")}</span><div className="nxt5-sort-options" role="group" aria-label={t("Trier par")}>
+          {(allowImportSort ? [["Imports", "import-newest", "import-oldest"], ["Date", "newest", "oldest"], ["Durée", "longest", "shortest"]] : [["Date", "newest", "oldest"], ["Durée", "longest", "shortest"]]).map(([label, descending, ascending]) => <SortButton key={descending} label={label} active={[descending, ascending].includes(filters.sort)} direction={filters.sort === ascending ? "ascending" : "descending"} onClick={() => setFilter("sort", filters.sort === descending ? ascending : descending)} />)}
+        </div></div>
       </div>
       <div className={`ig-filters${showCategoryFilter ? " ig-filters-history" : ""}`}>
         {showCategoryFilter && <SelectInput label={t("Catégorie")} value={filters.category} onChange={(value) => setFilter("category", value)}>

@@ -47,14 +47,15 @@ export function TrendSourcesDialog({ source, onClose, onOpenGame, signals, read 
   const filtered = useMemo(() => games.filter((game) => (!result || game.result === result) && [game.title, game.topRoleLabel, game.side, game.patch].join(" ").toLocaleLowerCase("fr").includes(search.trim().toLocaleLowerCase("fr"))), [games, search, result]);
   return <TrendsDialog id="trend-sources" title={source.title} subtitle={t(analysisCopy(source.subtitle))} onClose={onClose}>
     <div className="trends-source-tools"><TextInput label={t("Rechercher une partie")} value={search} onChange={setSearch} placeholder={t("Nom, champion, rôle…")} /><SelectInput label={t("Résultat")} value={result} onChange={setResult}><option value="">{t("Tous les résultats")}</option><option value="Victoire">{t("Victoires")}</option><option value="Défaite">{t("Défaites")}</option></SelectInput></div>
-    <div className="trends-section-heading"><p role="status">{filtered.length}{t(filtered.length > 1 ? " parties" : " partie")}{t(filtered.length > 1 ? " affichées" : " affichée")}{t(" sur ")}{games.length}</p><span>{t("Écarts : notre équipe − adversaires")}</span></div>
+    <div className="trends-section-heading"><p role="status">{filtered.length}{t(filtered.length > 1 ? " parties" : " partie")}{t(filtered.length > 1 ? " affichées" : " affichée")}{t(" sur ")}{games.length}</p><span>{source.playstyle ? t("Mesures disponibles pour cette lecture") : t("Écarts : notre équipe − adversaires")}</span></div>
     <details className="trends-source-context"><summary>{t("Contexte de l’analyse")}</summary><dl>{(source.metrics || []).map((metric, index) => <div key={`${metric.label}-${index}`}><dt>{t(metric.label)}</dt><dd>{metric.value}</dd></div>)}</dl></details>
     <div className="trends-source-list">{filtered.map((game, index) => {
       const timestamp = trendMatchTimestamp(game.match || game);
       return <article key={`${game.id || game.title}-${index}`}>
         <div className="trends-source-heading"><div><h4>{game.title}</h4><p>{timestamp === null ? t("Date inconnue") : new Date(timestamp).toLocaleDateString(getLocale())} · {game.duration} · {t(game.side)} · {game.patch}</p></div><Badge tone={game.result === "Victoire" ? "green" : game.result === "Défaite" ? "red" : "slate"}>{t(game.result)}</Badge></div>
-        <dl className="trends-source-signals">{signals(game).map((signal) => <div key={signal.label}><dt>{t(analysisCopy(signal.label))}</dt><dd className={`trends-value-${signal.toneName}`}>{signal.value}</dd></div>)}</dl>
-        <p className="trends-source-read">{t(analysisCopy(read(game)))}</p><p className="trends-source-role"><strong>{t("Contribution repérée : ")}{t(game.topRoleLabel)}</strong><span>{t(analysisCopy(game.topRoleDetail))}</span></p>
+        <dl className="trends-source-signals">{(source.playstyle ? game.playstyleEvidence || [] : signals(game)).map((signal) => <div key={signal.label}><dt>{source.playstyle ? t(signal.label) : t(analysisCopy(signal.label))}</dt><dd className={`trends-value-${signal.toneName || "slate"}`}>{signal.value}</dd></div>)}</dl>
+        <p className="trends-source-read">{source.playstyle ? t(game.playstyleRead) : t(analysisCopy(read(game)))}</p>
+        {!source.playstyle && <p className="trends-source-role"><strong>{t("Contribution repérée : ")}{t(game.topRoleLabel)}</strong><span>{t(analysisCopy(game.topRoleDetail))}</span></p>}
         <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => onOpenGame(game)}>{t("Ouvrir la partie")}</Button>
       </article>;
     })}</div>
@@ -65,7 +66,7 @@ export function TrendSourcesDialog({ source, onClose, onOpenGame, signals, read 
 export function TrendContractsDialog({ objectives, onClose, onOpenSources }) {
   useLanguage();
   return <TrendsDialog id="trend-contracts" title={t("Objectifs par joueur")} subtitle={t("Une cible et un exercice pour préparer la prochaine session.")} onClose={onClose}>
-    {!objectives.length && <div className="trends-dialog-empty"><h4>{t("Aucun joueur dans l’équipe")}</h4><p>{t("Ajoute les joueurs de l’équipe pour retrouver leurs objectifs individuels. Les consignes par rôle restent disponibles dans Objectifs.")}</p></div>}
+    {!objectives.length && <div className="trends-dialog-empty"><h4>{t("Aucun joueur dans l’équipe")}</h4><p>{t("Ajoute les joueurs de l’équipe pour retrouver leurs objectifs individuels. Les consignes par rôle restent disponibles dans Style de jeu.")}</p></div>}
     <div className="trends-contracts">{objectives.map((item) => <article key={item.player.id}>
       <header><div><h4>{item.player.name}</h4><p>{item.player.riot_id || t("Riot ID non lié")}</p></div><span>{t(roleLabel(item.role))} · {item.games}{t(item.games > 1 ? " parties" : " partie")}</span></header>
       <div className="trends-contract-content"><div><p className="trends-eyebrow">{t("Objectif")}</p><h5>{t(analysisCopy(item.title))}</h5><p>{t(analysisCopy(item.trigger))}</p></div><div><p className="trends-eyebrow">{t("Cible et exercice")}</p><h5>{t(analysisCopy(item.target).replaceAll("<=", "≤").replaceAll(">=", "≥"))}</h5><p>{t(analysisCopy(item.drill))}</p></div></div>

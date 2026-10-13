@@ -20,7 +20,7 @@ beforeEach(() => {
   setLanguage("fr");
   vi.stubGlobal("window", {
     addEventListener: vi.fn(), removeEventListener: vi.fn(), setTimeout, clearTimeout,
-    matchMedia: () => ({ matches: false }),
+    matchMedia: () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }),
     location: { search: "?provider=discord", reload: vi.fn(), assign: vi.fn() },
   });
   vi.stubGlobal("document", { activeElement: null, addEventListener: vi.fn(), removeEventListener: vi.fn(), documentElement: { classList: { contains: () => false } } });

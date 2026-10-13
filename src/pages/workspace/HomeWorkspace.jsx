@@ -7,6 +7,7 @@ import { BeginnerCompass } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PageHeader } from "../../components/ui/Core.jsx";
 import { RoleIcon, TeamAvatar } from "../../components/brand/BrandAssets.jsx";
 import GlassScene from "../../components/brand/GlassScene.jsx";
+import SessionCountdown from "../../components/home/SessionCountdown.jsx";
 import { ROLES } from "../../../shared/roles.js";
 import { rosterPlayersByStatus } from "../../utils/roster.js";
 import { getHomeContext, homeMatchTimestamp } from "../../utils/home-context.js";
@@ -79,7 +80,7 @@ function HomePlayerDebrief({ context, navigate, historyComplete }) {
       <p className="nxt5-home-debrief-player">{t("Pour {0}", [linkedPlayer.name || linkedPlayer.riot_id || linkedPlayer.role])}</p>
       {group && <p className="nxt5-home-debrief-group">{t("Dernier groupe : {0}", [group.name || t("Groupe de parties")])}</p>}
       {!groupHistoryComplete ? <p className="nxt5-home-section-intro">{t("Historique complet à charger")}</p> : orderedSections.length ? <div className="nxt5-home-debrief-sections">
-        {orderedSections.map((section, index) => <details key={`${report.id}:${index}`} className="nxt5-home-debrief-section" open={index === 0}>
+        {orderedSections.map((section, index) => <details key={`${report.id}:${index}`} className="nxt5-home-debrief-section">
           <summary><span><small>{section.source === "analysis" ? t("Analyse enregistrée") : t("Notes de l’équipe")}</small><strong>{section.heading}</strong></span></summary>
           <ul>{section.lines.map((line, lineIndex) => <li key={lineIndex}>{line}</li>)}</ul>
         </details>)}
@@ -102,8 +103,8 @@ function homeFocus(context, now, historyComplete) {
     action: canImport ? "Importer une partie" : linkedPlayer ? "Ouvrir mon profil" : "Voir mon équipe", icon: canImport ? Upload : Users,
   };
   if (nextEvent && nextEvent.startsAt <= now + 48 * 60 * 60 * 1000) return {
-    kind: "session", title: nextEvent.inProgress ? "Votre séance est en cours." : "Votre prochaine séance approche.",
-    subtitle: "Retrouve le programme et les derniers repères de l’équipe.", label: nextEvent.inProgress ? "En ce moment" : "Dans les prochaines 48 heures",
+    kind: "session", title: nextEvent.inProgress ? "Ta séance est en cours." : "Ta prochaine séance approche.",
+    subtitle: "Retrouve le programme et les derniers repères de l’équipe.",
     heading: nextEvent.title || "Séance de l’équipe", text: sessionDate(nextEvent), href: "/planning", action: "Ouvrir le planning", icon: CalendarDays,
   };
   // Bootstrap follows import order, which can differ from played dates. A
@@ -150,7 +151,6 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   const [clock, setClock] = useState(() => Date.now());
   const [guideKey, setGuideKey] = useState(null);
   const guideTrigger = useRef(null);
-  const heroRef = useRef(null);
   useEffect(() => {
     if (suppliedNow != null) return undefined;
     const timer = setInterval(() => setClock(Date.now()), 60_000);
@@ -183,7 +183,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   ];
 
   return <div className="nxt5-home" data-home-state={focus.kind}>
-    <div ref={heroRef} className="nxt5-home-hero">
+    <div className="nxt5-home-hero">
       <div className="nxt5-home-identity">
         <div className="nxt5-home-team-brand">
           <span className="nxt5-home-team-mark" aria-hidden="true"><TeamAvatar team={currentTeam} className="nxt5-home-team-image" /></span>
@@ -191,7 +191,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
         </div>
         <PageHeader title={t(focus.title)} subtitle={t(focus.subtitle)} />
         {!startIsPrimary && <section className="nxt5-home-ready" aria-labelledby="nxt5-home-focus-title">
-          <p className="nxt5-home-status"><FocusIcon size={18} aria-hidden="true" />{t(focus.label)}</p>
+          <p className="nxt5-home-status"><FocusIcon size={18} aria-hidden="true" />{focus.kind === "session" ? <SessionCountdown startsAt={nextEvent.startsAt} now={suppliedNow == null ? undefined : now} onStart={setClock} /> : t(focus.label)}</p>
           <h3 id="nxt5-home-focus-title">{["start", "quiet"].includes(focus.kind) ? t(focus.heading) : focus.heading}</h3>
           <p className="nxt5-home-focus-description">{t(focus.text)}</p>
           <div className="nxt5-home-actions">
@@ -202,7 +202,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
       </div>
       <div className="nxt5-home-hero-art" aria-hidden="true">
         <span className="nxt5-home-hero-orbit" />
-        <GlassScene className="nxt5-home-glass-scene" pointerTargetRef={heroRef} pointerStrength={1} />
+        <GlassScene className="nxt5-home-glass-scene" />
         <div className="nxt5-home-hero-roles">{ROLES.map(role => <span key={role}><RoleIcon role={role} className="nxt5-home-hero-role-icon" /><span>{role}</span></span>)}</div>
       </div>
     </div>

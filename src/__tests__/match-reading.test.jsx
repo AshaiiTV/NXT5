@@ -85,14 +85,16 @@ describe('match detail reading data contracts', () => {
     expect(renderer.root.findAllByType('article')).toHaveLength(10);
   });
 
-  it('does not fabricate damage proportions for incomplete participants', () => {
+  it('keeps drafting independent of missing final damage statistics', () => {
     const game = match();
     delete game.participants[0].gold;
     delete game.participants[0].damage;
     delete game.participants[0].raw.magicDamageDealtToChampions;
     const draft = mount(<DraftImpactPanel match={game} />);
     expect(byClass(draft, 'match-damage-bar')).toHaveLength(0);
-    expect(text(draft.root)).toContain('Aucun pourcentage n’est estimé');
+    expect(text(draft.root)).not.toContain('%');
+    expect(text(draft.root)).toContain('La leur');
+    expect(text(draft.root)).toContain('La nôtre');
   });
 
   it('requires death events to derive context instead of treating missing chronology as zero', () => {
@@ -114,24 +116,26 @@ describe('match detail reading data contracts', () => {
     expect(text(renderer.root)).toContain('hypothèse non chiffrée');
   });
 
-  it('distinguishes zero recorded damage from missing damage without drawing invalid proportions', () => {
+  it('does not display recorded zero damage as a drafting measurement', () => {
     const game = match();
     game.participants.forEach(row => Object.assign(row.raw, { physicalDamageDealtToChampions: 0, magicDamageDealtToChampions: 0, trueDamageDealtToChampions: 0 }));
     const renderer = mount(<DraftImpactPanel match={game} />);
     expect(byClass(renderer, 'match-damage-bar')).toHaveLength(0);
-    expect(text(renderer.root)).toContain('Les cinq joueurs ont 0 dégât renseigné');
-    expect(text(renderer.root)).not.toContain('La répartition des dégâts n’est pas disponible');
+    expect(text(renderer.root)).toContain('Plan possible');
+    expect(text(renderer.root)).not.toContain('%');
+    expect(text(renderer.root)).not.toContain('0 dégât');
     expect(text(renderer.root)).not.toContain('NaN');
   });
 
-  it('reads aliased damage from nested raw data without estimating a missing player', () => {
+  it('does not expose nested final damage data in the drafting reading', () => {
     const game = match();
     game.participants.filter(row => row.team_key === 'ALLY').forEach(row => {
       row.raw = JSON.stringify({ stats: { physicalDamageDealtToChampions: 12000, magicDamageDealtToChampions: 6000, trueDamageDealtToChampions: 2000 } });
     });
     const renderer = mount(<DraftImpactPanel match={game} />);
-    const values = byClass(renderer, 'match-damage-legend')[0].findAllByType('strong').map(text);
-    expect(values).toEqual(['60%', '30%', '10%']);
+    expect(byClass(renderer, 'match-damage-legend')).toHaveLength(0);
+    expect(text(renderer.root)).not.toContain('%');
+    expect(text(renderer.root)).toContain('Plan possible');
   });
 
   it.each(['en', 'es'])('preserves player and team names matching product translations in %s', async language => {
