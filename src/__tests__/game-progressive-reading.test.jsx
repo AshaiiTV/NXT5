@@ -5,7 +5,7 @@ import { openAppPath } from "../app/routing.js";
 import { Button } from "../components/ui/Core.jsx";
 import {
   MatchDataPanel, MatchVersusOverview, MatchTimelineReview,
-  GameSummaryPanel, GameMetricSignals, RoleDiffPanel, DeathContextPanel, DraftImpactPanel,
+  MatchReadingIntro, DeathContextPanel, DraftImpactPanel,
 } from "../pages/workspace/GameWorkspace.jsx";
 
 vi.mock("../app/routing.js", async (load) => ({ ...await load(), openAppPath: vi.fn() }));
@@ -35,7 +35,7 @@ function render(props = {}) {
 }
 function text(node) { return typeof node === "string" ? node : (node.children || []).map(text).join(""); }
 function disclosure(renderer, title) {
-  return renderer.root.findAllByType("details").find((node) => text(node.findByType("summary")).startsWith(title));
+  return renderer.root.findAllByProps({ className: "games-analysis-disclosure" }).find((node) => text(node.children.find((child) => child.type === "summary")).startsWith(title));
 }
 function toggle(renderer, title, open) {
   act(() => disclosure(renderer, title).props.onToggle({ currentTarget: { open } }));
@@ -61,7 +61,7 @@ describe("progressive game reading", () => {
     expect(text(renderer.root)).not.toMatch(/\b(VOD|setup|game|CS10)\b/);
     expect(renderer.root.findAllByType("details")).toHaveLength(3);
     expect(renderer.root.findAllByType("details").every((node) => node.props.open === false)).toBe(true);
-    for (const Component of [MatchVersusOverview, GameSummaryPanel, GameMetricSignals, RoleDiffPanel, DeathContextPanel, DraftImpactPanel, MatchTimelineReview]) {
+    for (const Component of [MatchVersusOverview, MatchReadingIntro, DeathContextPanel, DraftImpactPanel, MatchTimelineReview]) {
       expect(renderer.root.findAllByType(Component)).toHaveLength(0);
     }
   });
@@ -109,19 +109,25 @@ describe("progressive game reading", () => {
     expect(text(disclosure(renderer, "Statistiques et comparaison"))).toContain("Informations de la partie");
     expect(text(disclosure(renderer, "Statistiques et comparaison"))).toContain("EUW1_123");
     expect(text(disclosure(renderer, "Statistiques et comparaison"))).toContain("16.19");
-    expect(renderer.root.findAllByType(GameSummaryPanel)).toHaveLength(0);
+    expect(renderer.root.findAllByType(MatchReadingIntro)).toHaveLength(0);
     toggle(renderer, "Points à approfondir", true);
     const supportingReading = text(disclosure(renderer, "Points à approfondir"));
-    expect(supportingReading).toContain("À garder");
-    expect(supportingReading).toContain("MID termine avec +2\u202f000 or face à son adversaire");
-    expect(supportingReading).toContain("Prochaine action");
-    expect(supportingReading).toContain("Identifier dans la vidéo de la partie une préparation reproductible pour la prochaine partie.");
-    for (const Component of [GameSummaryPanel, GameMetricSignals, RoleDiffPanel, DeathContextPanel, DraftImpactPanel]) {
+    expect(supportingReading).toContain("Ce qui entoure les morts");
+    expect(supportingReading).toContain("La composition, en situation");
+    for (const duplicate of ["Les contributions par rôle", "Économie finale", "Autres repères chiffrés", "À garder", "Prochaine action"]) {
+      expect(supportingReading).not.toContain(duplicate);
+    }
+    for (const Component of [MatchReadingIntro, DeathContextPanel, DraftImpactPanel]) {
       expect(renderer.root.findAllByType(Component)).toHaveLength(1);
     }
     toggle(renderer, "Chronologie de la partie", true);
     expect(renderer.root.findByType(MatchTimelineReview).props.teamName).toBe("Équipe Atlas");
-    expect(text(disclosure(renderer, "Chronologie de la partie"))).toContain("Chronologie indisponible");
+    const chronologicalReading = text(disclosure(renderer, "Chronologie de la partie"));
+    expect(chronologicalReading).toContain("Chronologie indisponible");
+    expect(chronologicalReading).not.toContain("Écart d’or final");
+    expect(chronologicalReading).not.toContain("Objectifs neutres relevés");
+    expect(disclosure(renderer, "Points à approfondir").findAllByType("button")).toHaveLength(0);
+    expect(disclosure(renderer, "Statistiques et comparaison").findAllByProps({ className: "nxt5-objective-timeline" })).toHaveLength(0);
     toggle(renderer, "Statistiques et comparaison", false);
     expect(renderer.root.findAllByType(MatchVersusOverview)).toHaveLength(0);
     expect(text(renderer.root)).not.toContain("EUW1_123");
@@ -135,7 +141,7 @@ describe("progressive game reading", () => {
     expect(disclosure(renderer, "Points à approfondir").props.open).toBe(true);
     act(() => renderer.update(<MatchDataPanel match={game("game-2")} />));
     expect(renderer.root.findAllByType("details").every((node) => node.props.open === false)).toBe(true);
-    expect(renderer.root.findAllByType(GameSummaryPanel)).toHaveLength(0);
+    expect(renderer.root.findAllByType(MatchReadingIntro)).toHaveLength(0);
   });
 
   it("keeps the game review action available without opening details", () => {
