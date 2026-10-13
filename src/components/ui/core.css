@@ -1,7 +1,7 @@
 /* Shared controls. Page-specific composition belongs to the page stylesheet. */
 :where(.nxt5-surface) { padding: 1.25rem; }
-.nxt5-surface.nxt5-surface-emphasis { border-color: rgba(196, 181, 253, .5); box-shadow: var(--nxt5-glass-shadow), 0 0 32px rgba(139, 92, 246, .065); }
-.nxt5-surface-accent { background: var(--nxt5-spectrum-gradient); opacity: .85; }
+.nxt5-surface.nxt5-surface-emphasis { border-color: rgba(196, 181, 253, .44); box-shadow: var(--nxt5-glass-shadow), inset 1px 0 0 rgba(165, 243, 252, .055), inset 0 -1px 0 rgba(139, 92, 246, .08); }
+.nxt5-surface-accent { background: var(--nxt5-spectrum-gradient); opacity: .7; }
 .nxt5-surface > .relative { min-width: 0; }
 
 /* Explicit semantic colors also cover opacity values absent from Tailwind's scale. */
@@ -29,17 +29,19 @@
   border-color: transparent;
   color: var(--nxt5-on-accent);
   font-weight: 750;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32), 0 4px 12px rgba(2, 6, 17, .12);
 }
 .nxt5-button-primary:hover:not(:disabled) { border-color: #cffafe; }
-.nxt5-button-primary:focus-visible { box-shadow: 0 0 24px var(--nxt5-glow-violet); }
+.nxt5-button-primary:focus-visible { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .32); }
 .nxt5-cyber-button:active:not(:disabled) { box-shadow: inset 0 2px 8px rgba(2, 6, 17, .25); }
 @media (hover: hover) and (pointer: fine) {
-  .nxt5-button-primary:hover:not(:disabled) { box-shadow: 0 0 24px var(--nxt5-glow-violet); }
+  .nxt5-button-primary:hover:not(:disabled) { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .5), 0 6px 16px rgba(2, 6, 17, .18); }
 }
 .nxt5-button-secondary {
   background: var(--nxt5-surface-soft);
   border-color: var(--nxt5-border-strong);
   color: var(--nxt5-text-secondary);
+  box-shadow: inset 0 1px 0 rgba(226, 232, 255, .05);
 }
 .nxt5-button-secondary:hover:not(:disabled) {
   background: rgba(103, 232, 249, .075);
@@ -73,7 +75,8 @@
   padding: .25rem;
   border: 1px solid var(--nxt5-border);
   border-radius: .5rem;
-  background: linear-gradient(110deg, #141e32, #201c38);
+  background: linear-gradient(180deg, rgba(226, 232, 255, .025), transparent 62%), linear-gradient(110deg, #172135, #211f39);
+  box-shadow: inset 0 1px 0 rgba(226, 232, 255, .045);
   scrollbar-width: thin;
 }
 .nxt5-tab {
@@ -85,8 +88,8 @@
 .nxt5-tab:hover { background: var(--nxt5-surface-soft); color: var(--nxt5-text); }
 .nxt5-tab:is([aria-selected="true"], [aria-current="page"]) {
   border-color: var(--nxt5-glass-border);
-  background: var(--nxt5-spectrum-gradient) bottom / 100% 2px no-repeat, linear-gradient(115deg, rgba(103, 232, 249, .13), rgba(139, 92, 246, .24) 65%, rgba(232, 121, 249, .12));
-  box-shadow: inset 0 1px 0 var(--nxt5-glass-highlight);
+  background: var(--nxt5-spectrum-gradient) bottom / 100% 2px no-repeat, linear-gradient(115deg, rgba(103, 232, 249, .12), rgba(139, 92, 246, .2) 65%, rgba(232, 121, 249, .09));
+  box-shadow: inset 0 1px 0 var(--nxt5-glass-highlight), 0 2px 8px rgba(2, 6, 17, .1);
   color: #cffafe;
 }
 .nxt5-tab-description { color: var(--nxt5-muted); }
@@ -101,27 +104,28 @@
 .nxt5-toggle[aria-checked="true"] .nxt5-toggle-thumb { transform: translateX(18px); }
 
 .nxt5-page-header {
+  --nxt5-header-art-space: 7rem;
   position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   justify-content: space-between;
   gap: 1.25rem 2rem;
-  padding: 1.25rem 1.5rem 1.5rem;
+  padding: 1.5rem calc(1.5rem + var(--nxt5-header-art-space)) 1.5rem 1.5rem;
   margin-bottom: 1.5rem;
   border: 1px solid var(--nxt5-glass-border);
   border-radius: var(--nxt5-radius-panel);
-  background: radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, .22), transparent 58%), linear-gradient(115deg, rgba(103, 232, 249, .045), rgba(34, 30, 66, .7));
-  box-shadow: inset 0 1px 0 rgba(226, 232, 255, .09);
+  background: linear-gradient(125deg, rgba(226, 232, 255, .045), transparent 35%), radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, .2), transparent 58%), linear-gradient(115deg, rgba(26, 43, 62, .84), rgba(34, 30, 66, .88));
+  box-shadow: inset 0 1px 0 rgba(226, 232, 255, .13), inset 0 -1px 0 rgba(196, 181, 253, .035), 0 10px 28px rgba(2, 6, 17, .1);
   isolation: isolate;
 }
 .nxt5-page-header::before {
   content: "";
   position: absolute;
-  inset: 0 0 0 auto;
-  width: min(42%, 25rem);
-  border-radius: 0 var(--nxt5-radius-panel) var(--nxt5-radius-panel) 0;
-  background: linear-gradient(115deg, transparent 26%, rgba(196, 181, 253, .12) 26.3%, transparent 27%, transparent 52%, rgba(103, 232, 249, .06) 52.3%, transparent 74%);
+  inset: .5rem .625rem .5rem auto;
+  width: var(--nxt5-header-art-space);
+  background: url("/assets/home-motion/glass-poster.webp") center / contain no-repeat;
+  opacity: .85;
   pointer-events: none;
   z-index: -1;
 }
@@ -130,17 +134,32 @@
   position: absolute;
   left: 1.5rem;
   bottom: -1px;
-  width: min(22rem, 58%);
+  width: min(12rem, 48%);
   height: 2px;
   background: var(--nxt5-spectrum-gradient);
   opacity: .8;
   pointer-events: none;
 }
-.nxt5-page-header > :first-child { flex: 1 1 20rem; }
+.nxt5-page-header > :first-child { flex: 1 1 20rem; min-width: 0; }
 .nxt5-page-eyebrow { margin: 0 0 .5rem; font-size: var(--nxt5-font-micro); font-weight: 700; line-height: 1.5; letter-spacing: .1em; text-transform: uppercase; color: var(--nxt5-accent); }
 .nxt5-page-title { margin: 0; max-width: 50rem; font-size: clamp(1.625rem, 2.3vw, 2.125rem); line-height: 1.15; font-weight: 800; letter-spacing: -.035em; color: var(--nxt5-text); text-wrap: balance; overflow-wrap: anywhere; }
 .nxt5-page-subtitle { margin: .625rem 0 0; max-width: var(--nxt5-reading-width); font-size: var(--nxt5-font-body); line-height: 1.7; font-weight: 400; color: var(--nxt5-text-secondary); }
 .nxt5-page-actions { display: flex; flex: 0 1 auto; flex-wrap: wrap; align-items: center; gap: .5rem; max-width: 100%; }
+
+/* Reserve the sculpture's column even in the custom team-management header.
+   Identity headers that supply their own artwork keep their local composition. */
+@media (min-width: 768px) {
+  .nxt5-team-management-page > .nxt5-page-header.nxt5-page-header { padding-inline-end: calc(1.5rem + var(--nxt5-header-art-space)); }
+}
+@media (min-width: 1280px) {
+  .nxt5-page-header { --nxt5-header-art-space: 9rem; }
+}
+@media (max-width: 767px) {
+  .nxt5-page-header { --nxt5-header-art-space: 0px; padding-inline: 1rem; }
+  .nxt5-page-header::before { inset: .625rem .5rem auto auto; width: 3.25rem; height: 3rem; opacity: .8; }
+  .nxt5-page-header > :first-child { padding-inline-end: var(--nxt5-header-mobile-art-space, 2.75rem); }
+  .team-identity-header > .nxt5-page-header, .profile-identity-header > .nxt5-page-header { --nxt5-header-mobile-art-space: 0px; }
+}
 
 .nxt5-reading-details { min-width: 0; border-block: 1px solid var(--nxt5-border); }
 .nxt5-reading-details + .nxt5-reading-details { border-top: 0; }

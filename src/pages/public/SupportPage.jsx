@@ -29,6 +29,11 @@ export function SupportPage({ navigate, user, supportUrl = SUPPORT_URL }) {
             <h1 id="support-title" className="nxt5-page-title">{t("Soutenir NXT5")}</h1>
             <p className="nxt5-support-intro">{t("Contribue aux améliorations de NXT5.")}</p>
             <p>{t("Je développe NXT5 pour aider les équipes à préparer leurs parties et à repérer ce qu’elles peuvent travailler. Ton soutien m’aide à poursuivre ce développement.")}</p>
+            <div className="nxt5-support-sculpture" aria-hidden="true">
+              <div className="nxt5-support-sculpture-ring" />
+              <img src="/assets/home-motion/glass-poster.webp" width="729" height="665" alt="" decoding="async" draggable="false" />
+              <span className="nxt5-support-sculpture-heart"><Heart size={28} /></span>
+            </div>
             <ul className="nxt5-support-impact">
               <li><Sparkles aria-hidden="true" size={20} /><div><h2>{t("Faire évoluer l’outil")}</h2><p>{t("Améliorer les outils que ton équipe utilise.")}</p></div></li>
               <li><Wrench aria-hidden="true" size={20} /><div><h2>{t("Maintenir NXT5")}</h2><p>{t("Corriger les problèmes et rendre NXT5 plus simple à utiliser au quotidien.")}</p></div></li>
