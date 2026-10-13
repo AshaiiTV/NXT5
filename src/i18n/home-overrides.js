@@ -1,5 +1,14 @@
 // Reviewed copy for the public NXT5 homepage and its fictional interactive scenes.
 export const en = {
+  "Ton dernier débrief": "Your latest review",
+  "Pour {0}": "For {0}",
+  "Dernier groupe : {0}": "Latest group: {0}",
+  "Groupe de parties": "Match group",
+  "Analyse enregistrée": "Saved analysis",
+  "Aucun groupe de parties n’est encore disponible.": "No match group is available yet.",
+  "Le débrief de ce groupe n’est pas encore disponible.": "The review for this group is not available yet.",
+  "Ce débrief ne contient pas encore de passage attribuable à ton profil.": "This review does not yet contain any passages attributable to your profile.",
+  "Demande à ton responsable de relier ton compte à ton profil joueur pour retrouver ici tes remarques de débrief.": "Ask your team manager to link your account to your player profile to see your review feedback here.",
   "Passer l’introduction": "Skip the introduction",
   "NXT5 — retour à l’accueil": "NXT5 — back to home",
   "Navigation principale": "Main navigation",
@@ -127,6 +136,15 @@ export const en = {
 };
 
 export const es = {
+  "Ton dernier débrief": "Tu último análisis",
+  "Pour {0}": "Para {0}",
+  "Dernier groupe : {0}": "Último grupo: {0}",
+  "Groupe de parties": "Grupo de partidas",
+  "Analyse enregistrée": "Análisis guardado",
+  "Aucun groupe de parties n’est encore disponible.": "Todavía no hay ningún grupo de partidas disponible.",
+  "Le débrief de ce groupe n’est pas encore disponible.": "El análisis de este grupo todavía no está disponible.",
+  "Ce débrief ne contient pas encore de passage attribuable à ton profil.": "Este análisis todavía no contiene ningún pasaje atribuible a tu perfil.",
+  "Demande à ton responsable de relier ton compte à ton profil joueur pour retrouver ici tes remarques de débrief.": "Pide al responsable de tu equipo que vincule tu cuenta a tu perfil de jugador para ver aquí tus comentarios del análisis.",
   "Passer l’introduction": "Saltar la introducción",
   "NXT5 — retour à l’accueil": "NXT5 — volver al inicio",
   "Navigation principale": "Navegación principal",

@@ -56,6 +56,29 @@ function HomeGoals({ context, navigate }) {
   </section>;
 }
 
+function HomePlayerDebrief({ context, navigate }) {
+  const { linkedPlayer, playerDebrief } = context;
+  const { group, report, sections = [] } = playerDebrief || {};
+  const orderedSections = [...sections].sort((a, b) => Number(a.source === "analysis") - Number(b.source === "analysis"));
+  return <section className="nxt5-home-section nxt5-home-player-debrief" aria-labelledby="nxt5-home-player-debrief-title">
+    <div className="nxt5-home-section-heading"><FileText size={20} aria-hidden="true" /><h3 id="nxt5-home-player-debrief-title">{t("Ton dernier débrief")}</h3></div>
+    {linkedPlayer ? <>
+      <p className="nxt5-home-debrief-player">{t("Pour {0}", [linkedPlayer.name || linkedPlayer.riot_id || linkedPlayer.role])}</p>
+      {group && <p className="nxt5-home-debrief-group">{t("Dernier groupe : {0}", [group.name || t("Groupe de parties")])}</p>}
+      {orderedSections.length ? <div className="nxt5-home-debrief-sections">
+        {orderedSections.map((section, index) => <details key={`${report.id}:${index}`} className="nxt5-home-debrief-section" open={index === 0}>
+          <summary><span><small>{section.source === "analysis" ? t("Analyse enregistrée") : t("Notes de l’équipe")}</small><strong>{section.heading}</strong></span></summary>
+          <ul>{section.lines.map((line, lineIndex) => <li key={lineIndex}>{line}</li>)}</ul>
+        </details>)}
+      </div> : <p className="nxt5-home-section-intro">{!group ? t("Aucun groupe de parties n’est encore disponible.") : !report ? t("Le débrief de ce groupe n’est pas encore disponible.") : t("Ce débrief ne contient pas encore de passage attribuable à ton profil.")}</p>}
+      {report && <PublicTextLink href={reportPath(report)} navigate={navigate} className="nxt5-home-text-link">{t("Relire le débrief")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>}
+    </> : <>
+      <p className="nxt5-home-section-intro">{t("Demande à ton responsable de relier ton compte à ton profil joueur pour retrouver ici tes remarques de débrief.")}</p>
+      <PublicTextLink href="/mon-equipe" navigate={navigate} className="nxt5-home-text-link">{t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
+    </>}
+  </section>;
+}
+
 function homeFocus(context, now) {
   const { matches, latestMatch, latestMatchAt, recentMatches, unreviewedRecentMatches, nextEvent, canImport, canReview, linkedPlayer } = context;
   if (!matches.length) return {
@@ -124,7 +147,6 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
   const startIsPrimary = showStart && !context.matches.length;
   const closeStart = () => { setGuideKey(null); onboarding.dismiss?.(); guideTrigger.current?.focus(); };
   const openStart = () => { setGuideKey(contextKey); onboarding.resume?.(); };
-  const latestReport = context.latestReport;
   const nextEvent = context.nextEvent;
   const FocusIcon = focus.icon;
   const mainRoster = rosterPlayersByStatus(context.players, "MAIN");
@@ -170,7 +192,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
 
     <HomeGoals context={context} navigate={navigate} />
 
-    <div className="nxt5-home-overview">
+    <div className={`nxt5-home-overview${context.showPlayerDebrief ? "" : " nxt5-home-overview--wide"}`}>
       <section className="nxt5-home-section" aria-labelledby="nxt5-home-games-title">
         <div className="nxt5-home-section-heading"><Swords size={20} aria-hidden="true" /><h3 id="nxt5-home-games-title">{context.matches.length ? t("Dernières parties") : t("Les premières parties de ton équipe")}</h3></div>
         {context.matches.length ? <>
@@ -192,17 +214,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
           <PublicTextLink href={context.canManageRoster ? "/gestion-equipe?section=roster" : "/mon-equipe"} navigate={navigate} className="nxt5-home-text-link">{context.canManageRoster ? t("Compléter l’effectif") : t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
         </>}
       </section>
-      <section className="nxt5-home-section" aria-labelledby="nxt5-home-next-title">
-        <div className="nxt5-home-section-heading">{focus.kind === "session" && latestReport ? <FileText size={20} aria-hidden="true" /> : <CalendarDays size={20} aria-hidden="true" />}<h3 id="nxt5-home-next-title">{focus.kind === "session" ? t("Pour préparer la séance") : t("Prochaine séance")}</h3></div>
-        {focus.kind === "session" ? <>
-          <p className="nxt5-home-section-intro">{latestReport ? latestReport.discord_status === "draft" ? t("Un brouillon de débrief attend le staff avant d’être partagé avec l’équipe.") : t("Reprends les points du dernier débrief avant de vous retrouver.") : t("Retrouve les joueurs et vos disponibilités pour cette séance.")}</p>
-          {latestReport && <p className="nxt5-home-session-title">{latestReport.title || t("Dernier débrief de l’équipe")}</p>}
-          <PublicTextLink href={latestReport ? reportPath(latestReport) : "/mon-equipe"} navigate={navigate} className="nxt5-home-text-link">{latestReport ? latestReport.discord_status === "draft" ? t("Reprendre le débrief") : t("Relire le débrief") : t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
-        </> : <>
-          {nextEvent ? <><p className="nxt5-home-session-title">{nextEvent.title || t("Séance de l’équipe")}</p><p className="nxt5-home-section-intro">{sessionDate(nextEvent)}</p></> : <p className="nxt5-home-section-intro">{t("Aucune séance à venir dans le planning.")}{context.linkedPlayer ? t(" Renseigne tes disponibilités pour aider l’équipe à se retrouver.") : t(" Ouvre le planning pour retrouver les disponibilités de l’équipe.")}</p>}
-          <PublicTextLink href="/planning" navigate={navigate} className="nxt5-home-text-link">{nextEvent ? t("Voir le planning") : context.linkedPlayer ? t("Donner mes disponibilités") : t("Ouvrir le planning")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
-        </>}
-      </section>
+      {context.showPlayerDebrief && <HomePlayerDebrief context={context} navigate={navigate} />}
     </div>
 
     {unfinished && !startIsPrimary && <div className="nxt5-home-learning">

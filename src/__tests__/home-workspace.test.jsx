@@ -20,11 +20,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function fixture({ teamId = "team", manager = true, matches = [], reports = [], players = [], availability = [], botEvents = [], discovered = [], dismissed = false } = {}) {
-  const user = { id: "me" };
+function fixture({ teamId = "team", userId = "me", manager = true, matches = [], reports = [], matchArchives = [], players = [], availability = [], botEvents = [], discovered = [], dismissed = false } = {}) {
+  const user = { id: userId };
   const currentTeam = { id: teamId, name: teamId === "team" ? "Équipe actuelle" : "Autre équipe", owner_id: manager ? user.id : "owner" };
   const currentMember = { team_id: teamId, user_id: user.id, role: manager ? "captain" : "player" };
-  const data = { ...DEFAULT_DATA, selectedTeamId: teamId, historyComplete: true, teams: [currentTeam], teamMembers: [currentMember], matches, reports, players, availability, botEvents };
+  const data = { ...DEFAULT_DATA, selectedTeamId: teamId, historyComplete: true, teams: [currentTeam], teamMembers: [currentMember], matches, reports, matchArchives, players, availability, botEvents };
   return {
     data, currentTeam, currentMember, user,
     steps: getOnboardingSteps({ data, currentTeam, currentMember, user, discovered }),
@@ -38,6 +38,41 @@ const text = (node) => typeof node === "string" ? node : (node?.children || []).
 const button = (renderer, label) => renderer.root.findAllByType("button").find((node) => text(node) === label);
 const links = (renderer) => renderer.root.findAllByType("a");
 const homeState = (renderer) => renderer.root.findByProps({ className: "nxt5-home" }).props["data-home-state"];
+const personalDebrief = (renderer) => renderer.root.findByProps({ "aria-labelledby": "nxt5-home-player-debrief-title" });
+
+function personalFixture({ teamId = "team", ...options } = {}) {
+  const player = { id: `${teamId}-mid`, team_id: teamId, user_id: "me", name: "Lumen", riot_id: "Lumen#EUW", role: "MID" };
+  const teammate = { id: `${teamId}-top`, team_id: teamId, user_id: "teammate-user", name: "Orion", role: "TOP" };
+  const gameId = `${teamId}-match`;
+  return fixture({
+    teamId, manager: false,
+    players: [player, teammate],
+    matches: [match({ id: gameId, team_id: teamId, participants: [
+      { player_id: player.id, team_key: "ALLY", role: "MID", summoner_name: player.name, riot_id: player.riot_id },
+      { player_id: teammate.id, team_key: "ALLY", role: "TOP", summoner_name: teammate.name },
+      { team_key: "ENEMY", role: "MID", summoner_name: "Rival" },
+    ] })],
+    matchArchives: [{ id: `${teamId}-group`, team_id: teamId, name: "Alterna Scrim", match_ids: [gameId], created_at: "2026-10-06T19:00:00Z" }],
+    reports: [{ id: `${teamId}-report`, team_id: teamId, title: "Alterna Scrim", match_ids: [gameId], created_at: "2026-10-06T20:00:00Z", content: `## GAME 1 · Scrim
+LECTURE PAR JOUEUR
+### MID · Lumen
+- Catch : Revois ton déplacement à 14:20.
+- Lane : Conserve la priorité.
+### TOP · Orion
+- Observation réservée à Orion.
+### MID · Rival
+- Observation réservée à l’adversaire.
+PLAN D’EXÉCUTION
+- Consigne collective.
+[NXT5_REPORT_V3]
+Notes staff
+### Lumen
+- Annonce ton reset avant le dragon.
+### Orion
+- Note personnelle d’Orion.` }],
+    ...options,
+  });
+}
 
 function follow(link) {
   const event = { button: 0, preventDefault: vi.fn() };
@@ -212,5 +247,106 @@ describe("adaptive team home", () => {
     expect(text(renderer.toJSON())).toContain("Scrim Solaris");
     expect(text(renderer.toJSON())).not.toContain("Scrim Equinox");
     expect(links(renderer).some((link) => /[?&]match=match(?:&|$)/.test(link.props.href))).toBe(false);
+  });
+});
+
+describe("personal home debrief", () => {
+  it("shows only the linked player's saved observations and notes, with their source and group", async () => {
+    const props = personalFixture();
+    const renderer = await render(props);
+    const panel = personalDebrief(renderer);
+    expect(text(panel)).toContain("Pour Lumen");
+    expect(text(panel)).toContain("Alterna Scrim");
+    expect(text(panel)).toContain("Revois ton déplacement à 14:20.");
+    expect(text(panel)).toContain("Conserve la priorité.");
+    expect(text(panel)).toContain("Annonce ton reset avant le dragon.");
+    expect(text(panel)).not.toContain("Observation réservée à Orion");
+    expect(text(panel)).not.toContain("Note personnelle d’Orion");
+    expect(text(panel)).not.toContain("Observation réservée à l’adversaire");
+    expect(text(panel)).not.toContain("Consigne collective");
+    const details = panel.findAllByType("details");
+    expect(details).toHaveLength(2);
+    expect(text(details[0].findByType("summary"))).toContain("Notes de l’équipe");
+    expect(details[0].props.open).toBe(true);
+    expect(details[1].props.open).toBe(false);
+    const action = panel.findByType("a");
+    expect(action.props.href).toBe("/rapports?report=team-report");
+    follow(action);
+    expect(props.navigate).toHaveBeenCalledWith("/rapports?report=team-report");
+  });
+
+  it("removes the preparation panel for a coach who also has a gameplay profile", async () => {
+    const props = personalFixture();
+    props.currentMember = { ...props.currentMember, role: "coach" };
+    const renderer = await render(props);
+    expect(renderer.root.findAllByProps({ "aria-labelledby": "nxt5-home-player-debrief-title" })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ "aria-labelledby": "nxt5-home-next-title" })).toHaveLength(0);
+    expect(renderer.root.findByProps({ className: "nxt5-home-overview nxt5-home-overview--wide" })
+      .findByProps({ "aria-labelledby": "nxt5-home-games-title" })).toBeDefined();
+    expect(text(renderer.toJSON())).not.toContain("Annonce ton reset avant le dragon.");
+  });
+
+  it("recognizes a linked coach profile even before membership has loaded", async () => {
+    const props = personalFixture({ players: [{ id: "coach", team_id: "team", user_id: "me", name: "Coach", role: "COACH" }] });
+    props.currentMember = null;
+    const renderer = await render(props);
+    expect(renderer.root.findAllByProps({ "aria-labelledby": "nxt5-home-player-debrief-title" })).toHaveLength(0);
+    expect(renderer.root.findByProps({ className: "nxt5-home-overview nxt5-home-overview--wide" })).toBeDefined();
+  });
+
+  it("keeps a captain's personal notes when their account is linked to a player", async () => {
+    const renderer = await render(personalFixture({ manager: true }));
+    expect(text(personalDebrief(renderer))).toContain("Annonce ton reset avant le dragon.");
+  });
+
+  it("asks an unlinked player to link their profile instead of showing another player's notes", async () => {
+    const renderer = await render(personalFixture({ userId: "unlinked" }));
+    const panel = personalDebrief(renderer);
+    expect(text(panel)).toContain("relier ton compte à ton profil joueur");
+    expect(text(panel)).not.toContain("Lumen");
+    expect(panel.findAllByType("details")).toHaveLength(0);
+    expect(panel.findByType("a").props.href).toBe("/mon-equipe");
+  });
+
+  it("keeps an unpublished staff draft out of a linked player's personal panel", async () => {
+    const props = personalFixture();
+    props.data.reports[0] = { ...props.data.reports[0], discord_status: "draft" };
+    const renderer = await render(props);
+    const panel = personalDebrief(renderer);
+    expect(text(panel)).toContain("Le débrief de ce groupe n’est pas encore disponible.");
+    expect(text(panel)).not.toContain("Annonce ton reset avant le dragon.");
+    expect(panel.findAllByType("details")).toHaveLength(0);
+    expect(panel.findAllByType("a")).toHaveLength(0);
+  });
+
+  it.each([
+    [{ matchArchives: [] }, "Aucun groupe de parties n’est encore disponible."],
+    [{ reports: [] }, "Le débrief de ce groupe n’est pas encore disponible."],
+    [{ emptyReport: true }, "Ce débrief ne contient pas encore de passage attribuable à ton profil."],
+  ])("explains unavailable personal content without inventing observations", async (options, message) => {
+    const props = personalFixture(options);
+    if (options.emptyReport) props.data.reports[0] = { ...props.data.reports[0], content: "Consigne collective." };
+    const renderer = await render(props);
+    const panel = personalDebrief(renderer);
+    expect(text(panel)).toContain(message);
+    expect(panel.findAllByType("details")).toHaveLength(0);
+    expect(text(panel)).not.toContain("Consigne collective");
+  });
+
+  it("replaces personal observations when the account changes, then isolates them to the selected team", async () => {
+    const props = personalFixture();
+    const renderer = await render(props);
+    expect(text(personalDebrief(renderer))).toContain("Annonce ton reset avant le dragon.");
+    const nextAccount = { ...props, user: { id: "teammate-user" }, currentMember: { ...props.currentMember, user_id: "teammate-user" } };
+    await act(async () => renderer.update(<HomeWorkspace {...nextAccount} />));
+    expect(text(personalDebrief(renderer))).toContain("Pour Orion");
+    expect(text(personalDebrief(renderer))).toContain("Note personnelle d’Orion");
+    expect(text(personalDebrief(renderer))).not.toContain("Annonce ton reset avant le dragon.");
+    const nextTeam = fixture({ teamId: "other", manager: false, userId: "teammate-user", players: props.data.players,
+      reports: props.data.reports, matchArchives: props.data.matchArchives, matches: props.data.matches });
+    await act(async () => renderer.update(<HomeWorkspace {...nextTeam} />));
+    expect(text(personalDebrief(renderer))).toContain("relier ton compte à ton profil joueur");
+    expect(text(personalDebrief(renderer))).not.toContain("Alterna Scrim");
+    expect(text(personalDebrief(renderer))).not.toContain("Note personnelle d’Orion");
   });
 });
