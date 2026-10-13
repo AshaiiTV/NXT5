@@ -1,3 +1,4 @@
+import { getHomePlayerDebrief } from "./home-player-debrief.js";
 import { ROLES } from "../../shared/roles.js";
 import { canManageOnboarding } from "./onboarding.js";
 import { aggregatePlanningEvents } from "./planning-events.js";
@@ -6,6 +7,7 @@ import { sortTrendMatches, trendMatchTimestamp } from "./trends.js";
 export const HOME_RECENT_DAYS = 14;
 const DAY = 86_400_000;
 const GAMEPLAY_ROLES = new Set([...ROLES, "SUB"]);
+const STAFF_ROLES = new Set(["COACH", "ASSISTANT", "ANALYST", "MANAGER", "BOARD"]);
 const DAYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
 const sameId = (a, b) => a != null && b != null && String(a) !== "" && String(a) === String(b);
 const rows = (value) => Array.isArray(value) ? value : [];
@@ -100,7 +102,15 @@ export function getHomeContext({ data = {}, currentTeam, currentMember, user, no
   const manager = hasTeam && canManageOnboarding({ currentTeam, currentMember, user });
   const member = sameId(currentMember?.team_id, teamId) && sameId(currentMember?.user_id, user?.id);
   const players = uniqueTeamRows(data.players, teamId);
-  const linkedPlayer = players.find((player) => sameId(player.user_id, user?.id)) || null;
+  const linkedProfiles = players.filter((player) => sameId(player.user_id, user?.id));
+  const linkedPlayer = linkedProfiles[0] || null;
+  const linkedGameplay = linkedPlayer && GAMEPLAY_ROLES.has(String(linkedPlayer.role || "").toUpperCase());
+  // Captain/owner permissions do not turn a playing member into a coach.
+  const staffView = (member && STAFF_ROLES.has(String(currentMember.role || "").toUpperCase()))
+    || linkedProfiles.some((player) => STAFF_ROLES.has(String(player.role || "").toUpperCase()));
+  const showPlayerDebrief = Boolean(hasTeam && user?.id && !staffView && (!manager || linkedGameplay));
+  const playerDebrief = showPlayerDebrief && linkedGameplay
+    ? getHomePlayerDebrief({ data, teamId, player: linkedPlayer }) : null;
   const linkedGoals = (goals) => linkedPlayer ? uniqueTeamRows(goals, teamId)
     .filter((goal) => sameId(goal.player_id, linkedPlayer.id) && goal.status === "active") : [];
   // Import accepts distinct gameplay profiles, including substitutes and inactive
@@ -137,7 +147,7 @@ export function getHomeContext({ data = {}, currentTeam, currentMember, user, no
     manager, canImport: manager, canManageRoster: manager,
     // reports-manage permits every team member to create their own review.
     canReview: Boolean(user?.id && (manager || member)),
-    players, importPlayers, linkedPlayer,
+    players, importPlayers, linkedPlayer, showPlayerDebrief, playerDebrief,
     playerGoals: linkedGoals(data.playerGoals), botGoals: linkedGoals(data.botGoals),
     rosterReady: importPlayers.length >= ROLES.length, missingImportPlayers: Math.max(0, ROLES.length - importPlayers.length),
     matches, latestMatch, latestMatchAt: homeMatchTimestamp(latestMatch), recentMatches,

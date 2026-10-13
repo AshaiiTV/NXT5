@@ -116,6 +116,56 @@ describe("home reviews", () => {
   });
 });
 
+describe("home personal debrief audience", () => {
+  const linkedPlayer = { id: "me-mid", team_id: team.id, user_id: playerUser.id, name: "Lumen", role: "MID" };
+
+  it.each(["coach", "assistant", "analyst", "manager", "board"])("hides personal preparation for a %s even with a linked gameplay profile", (role) => {
+    expect(context({ players: [linkedPlayer] }, {
+      user: playerUser, currentMember: { ...playerMember, role },
+    }).showPlayerDebrief).toBe(false);
+  });
+
+  it.each(["COACH", "ASSISTANT", "ANALYST", "MANAGER", "BOARD"])("recognizes a linked %s profile when membership has not loaded", (role) => {
+    expect(context({ players: [{ ...linkedPlayer, role }] }, {
+      user: playerUser,
+    }).showPlayerDebrief).toBe(false);
+  });
+
+  it.each(["player", "captain"])("keeps the linked %s's personal preparation", (role) => {
+    expect(context({ players: [linkedPlayer] }, {
+      user: playerUser, currentMember: { ...playerMember, role },
+    }).showPlayerDebrief).toBe(true);
+  });
+
+  it("prioritizes any linked staff profile regardless of profile order", () => {
+    const coach = { ...linkedPlayer, id: "me-coach", role: "COACH" };
+    for (const players of [[linkedPlayer, coach], [coach, linkedPlayer]]) {
+      expect(context({ players }, { user: playerUser, currentMember: playerMember })).toMatchObject({
+        showPlayerDebrief: false, playerDebrief: null,
+      });
+    }
+    expect(context({ players: [linkedPlayer, { ...coach, user_id: "another-account" }] }, {
+      user: playerUser, currentMember: playerMember,
+    }).showPlayerDebrief).toBe(true);
+  });
+
+  it("keeps personal preparation for an owner who plays, and hides it for an unlinked manager", () => {
+    expect(context({ players: [{ ...linkedPlayer, user_id: owner.id }] }).showPlayerDebrief).toBe(true);
+    expect(context().showPlayerDebrief).toBe(false);
+    expect(context({}, { user: playerUser, currentMember: { ...playerMember, role: "captain" } }).showPlayerDebrief).toBe(false);
+    expect(context({}, { user: playerUser, currentMember: playerMember }).showPlayerDebrief).toBe(true);
+  });
+
+  it("ignores staff memberships belonging to a different account or team", () => {
+    const data = { players: [linkedPlayer] };
+    expect(context(data, { user: playerUser, currentMember: { ...playerMember, role: "coach", user_id: "someone-else" } }).showPlayerDebrief).toBe(true);
+    expect(context(data, { user: playerUser, currentMember: { ...playerMember, role: "coach", team_id: "other" } }).showPlayerDebrief).toBe(true);
+    expect(context({ players: [{ ...linkedPlayer, team_id: "other", role: "COACH" }] }, {
+      user: playerUser, currentMember: playerMember,
+    }).showPlayerDebrief).toBe(true);
+  });
+});
+
 describe("home next session", () => {
   it("prioritizes a session in progress over future sessions and ignores canceled or ended sessions", () => {
     const ongoing = event("ongoing", { starts_at: "2026-10-07T11:30:00Z", duration_minutes: 60 });
