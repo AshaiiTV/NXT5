@@ -1,63 +1,63 @@
 1
-00:00:03,300 --> 00:00:08,580
+00:00:04,900 --> 00:00:11,013
 Bienvenue sur NXT5, l’espace de travail des équipes et coachs League of Legends.
 
 2
-00:00:08,600 --> 00:00:13,730
+00:00:11,033 --> 00:00:16,780
 Le principe : comprendre tes parties pour préparer la suite.
 
 3
-00:00:14,650 --> 00:00:20,330
+00:00:17,700 --> 00:00:25,397
 NXT5 couvre tout le cycle d’entraînement : analyse, draft et planning.
 
 4
-00:00:20,650 --> 00:00:25,930
+00:00:25,717 --> 00:00:31,597
 La démo se consulte sans compte. Toutes ses données sont fictives.
 
 5
-00:00:28,417 --> 00:00:33,780
+00:00:34,083 --> 00:00:41,163
 Cherche une partie par champion ou par résultat, par exemple « Jinx défaite ».
 
 6
-00:00:34,933 --> 00:00:37,347
+00:00:42,317 --> 00:00:46,163
 Clique sur une partie pour ouvrir son bilan.
 
 7
-00:00:37,767 --> 00:00:43,047
+00:00:46,583 --> 00:00:52,330
 Le bilan réunit le résultat, les compositions et l’écart d’or final.
 
 8
-00:00:43,567 --> 00:00:48,697
+00:00:52,850 --> 00:00:57,947
 Chaque chiffre lance la discussion. Ce n’est pas un verdict.
 
 9
-00:00:50,800 --> 00:00:56,080
+00:01:00,050 --> 00:01:06,213
 Analyses : suis une mesure partie après partie, comme l’écart d’or.
 
 10
-00:00:56,500 --> 00:01:02,063
+00:01:06,633 --> 00:01:12,313
 Repère les pics et les creux avant de choisir quoi travailler.
 
 11
-00:01:04,050 --> 00:01:08,930
+00:01:14,300 --> 00:01:19,580
 Débrief : un fait observé, puis une question à vérifier…
 
 12
-00:01:08,950 --> 00:01:13,463
+00:01:19,600 --> 00:01:24,563
 … et une action concrète pour la prochaine séance.
 
 13
-00:01:13,483 --> 00:01:18,763
+00:01:24,583 --> 00:01:29,780
 Dans ton espace, chaque membre de l’équipe écrit ses propres observations.
 
 14
-00:01:19,283 --> 00:01:24,380
+00:01:30,300 --> 00:01:35,763
 Pour commencer, crée ton espace équipe. L’accès est actuellement gratuit.
 
 15
-00:01:24,400 --> 00:01:29,480
+00:01:35,783 --> 00:01:42,730
 Importe tes parties avec NXT5 Importer, sur Windows ou Mac.
 
 16
-00:01:29,500 --> 00:01:34,580
+00:01:42,750 --> 00:01:47,963
 Invite tes joueurs, puis analysez et débriefez ensemble.
