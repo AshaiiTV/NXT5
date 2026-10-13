@@ -1,0 +1,22 @@
+{
+  "name": "nxt5-promo-v3",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Nxt5Promo out/nxt5-promo-v3.mp4",
+    "still": "remotion still src/index.ts Nxt5Promo"
+  },
+  "dependencies": {
+    "@fontsource/inter": "5.2.8",
+    "@remotion/cli": "4.0.484",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "remotion": "4.0.484"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.17",
+    "typescript": "6.0.3"
+  }
+}
