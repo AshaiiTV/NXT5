@@ -25,10 +25,11 @@ function GlassStage() {
       <div className="nxt5-sync-art-aura" />
       <div className="nxt5-sync-stage">
         <div className="nxt5-sync-stage-halo" />
-        <div className="nxt5-sync-orbit is-outer" />
-        <div className="nxt5-sync-orbit is-inner" />
+        <div className="nxt5-sync-caustic is-cyan" />
+        <div className="nxt5-sync-caustic is-violet" />
         <div className="nxt5-sync-stage-reflection" />
       </div>
+      <div className="nxt5-sync-refraction"><span /><span /></div>
       <div className="nxt5-sync-core">
         <div className="nxt5-sync-core-arrival">
           <div className="nxt5-sync-core-float">
@@ -41,6 +42,7 @@ function GlassStage() {
               fetchPriority="high"
               decoding="async"
             />
+            <div className="nxt5-sync-glass-light"><span /></div>
           </div>
         </div>
       </div>
