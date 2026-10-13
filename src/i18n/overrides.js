@@ -1,5 +1,6 @@
 // Reviewed product copy. Keep these source strings aligned with the French UI.
 const copy = [
+  ["Filtres de comparaison", "Comparison filters", "Filtros de comparación"],
   ["Suivre partie après partie", "Track game by game", "Seguir partida a partida"],
   ["Voir ce qui a changé", "See what has changed", "Ver qué ha cambiado"],
   ["Choix et compositions", "Picks and compositions", "Selecciones y composiciones"],
