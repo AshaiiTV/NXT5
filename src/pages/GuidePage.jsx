@@ -1,10 +1,14 @@
 import { useLanguage } from "../i18n/useLanguage.js";
 import { t } from "../i18n/translate.js";
-import React, { useMemo } from "react";
-import { Activity, AlertTriangle, ArrowRight, BarChart3, BookOpen, CalendarDays, Crown, FileText, MessageCircleQuestion, Settings, Sparkles, Swords, Users } from "lucide-react";
+import React, { lazy, Suspense, useMemo } from "react";
+import { Activity, AlertTriangle, ArrowRight, BarChart3, BookOpen, CalendarDays, Compass, Crown, FileText, MessageCircleQuestion, Settings, Sparkles, Swords, Users } from "lucide-react";
 import "./guide.css";
 import { cx } from "../app/helpers.js";
-import { Button, PageHeader } from "../components/ui/Core.jsx";
+import { Button, PageHeader, SkeletonRows } from "../components/ui/Core.jsx";
+
+// The complete tutorial is a separate chunk: the guide itself stays light.
+const TutorialPage = lazy(() => import("./guide/TutorialPage.jsx"));
+export const TUTORIAL_SECTION = "tutoriel";
 
 export const GUIDE_SECTIONS = [
   { id: "getting-started", label: "Premiers pas", icon: BookOpen, title: "Retrouver la prochaine action sur l’accueil", intro: "Accueil s’adapte à l’activité de l’équipe : démarrage sans partie, prochaine séance, partie à débriefer ou dernier débrief. Tu peux reprendre le guide de démarrage à tout moment.", path: "/accueil", action: "Revenir à l’accueil", steps: ["À la première arrivée, choisir Créer mon équipe ou Rejoindre mon équipe.", "Pour le responsable : importer une partie, ouvrir son résumé, puis préparer le premier débrief. Les profils peuvent être créés pendant l’import.", "Pour le joueur : ouvrir son profil, renseigner ses disponibilités et découvrir une partie ou un débrief de l’équipe.", "Utiliser Aide en haut de l’écran pour retrouver les explications de la rubrique en cours."] },
@@ -78,6 +82,19 @@ const FIRST_WORDS = [
   ["Review", "Le débrief d’une partie : observations et points à travailler."],
 ];
 
+function TutorialEntry({ onOpen }) {
+  useLanguage();
+  return <section className="nxt5-guide-tutorial" aria-labelledby="nxt5-guide-tutorial-title">
+    <img src="/assets/home-motion/glass-poster.webp" alt="" width="729" height="665" loading="lazy" decoding="async" className="nxt5-guide-tutorial-art" />
+    <div className="nxt5-guide-tutorial-copy">
+      <p className="nxt5-guide-tutorial-meta">{t("{0} chapitres · {1} actes", [15, 3])}</p>
+      <h3 id="nxt5-guide-tutorial-title">{t("Tutoriel complet")}</h3>
+      <p>{t("Le tour de NXT5, de la création de l’équipe au partage sur Discord, avec des écrans annotés et des exemples à manipuler.")}</p>
+    </div>
+    <Button icon={ArrowRight} onClick={onOpen}>{t("Ouvrir le tutoriel")}</Button>
+  </section>;
+}
+
 export default function GuidePage({ route, navigate, onOpenAssistant }) {
   useLanguage();
   const requestedSection = new URLSearchParams(route?.search || "").get("section") || "getting-started";
@@ -85,12 +102,18 @@ export default function GuidePage({ route, navigate, onOpenAssistant }) {
   const CurrentIcon = current.icon;
   const selectSection = (id) => navigate?.(`/guide?section=${encodeURIComponent(id)}`);
 
+  if (requestedSection === TUTORIAL_SECTION) return <div className="min-w-0 nxt5-guide-page">
+    <Suspense fallback={<div role="status" aria-label={t("Chargement du tutoriel")} className="py-8"><SkeletonRows count={4} /></div>}><TutorialPage navigate={navigate} /></Suspense>
+  </div>;
+
   return <div className="min-w-0 nxt5-guide-page">
     <PageHeader eyebrow={t("Guide NXT5")} title={t("Que veux-tu faire ?")} subtitle={t("Choisis une rubrique pour suivre les étapes et ouvrir la page correspondante.")} />
+    <TutorialEntry onOpen={() => selectSection(TUTORIAL_SECTION)} />
     <div className="nxt5-guide-layout">
       <nav aria-label={t("Sommaire du guide")} className="nxt5-guide-nav">
-        <label className="nxt5-guide-mobile-label">{t("Rubrique du guide")}<select value={current.id} onChange={(event) => selectSection(event.target.value)}>{GUIDE_SECTIONS.map((section) => <option key={section.id} value={section.id}>{t(section.label)}</option>)}</select></label>
+        <label className="nxt5-guide-mobile-label">{t("Rubrique du guide")}<select value={current.id} onChange={(event) => selectSection(event.target.value)}><option value={TUTORIAL_SECTION}>{t("Tutoriel complet")}</option>{GUIDE_SECTIONS.map((section) => <option key={section.id} value={section.id}>{t(section.label)}</option>)}</select></label>
         <div className="nxt5-guide-menu">
+          <button type="button" onClick={() => selectSection(TUTORIAL_SECTION)} className="nxt5-guide-link nxt5-guide-tutorial-link group flex items-center gap-3 px-3 text-left font-semibold transition"><span aria-hidden="true" className="text-xs tabular-nums">00</span><Compass aria-hidden="true" className="h-4 w-4 shrink-0" /><span>{t("Tutoriel complet")}</span></button>
           {GUIDE_SECTIONS.map((section, index) => { const Icon = section.icon; const active = section.id === current.id; return <button key={section.id} type="button" onClick={() => selectSection(section.id)} aria-current={active ? "page" : undefined} className={cx("nxt5-guide-link group flex items-center gap-3 px-3 text-left font-semibold transition", active ? "is-active text-white" : "text-slate-400 hover:bg-white/[0.04] hover:text-white")}><span className={cx("text-xs tabular-nums", active ? "text-cyan-100" : "text-slate-600")}>{String(index + 1).padStart(2, "0")}</span><Icon className="h-4 w-4 shrink-0" /><span>{t(section.label)}</span></button>; })}
         </div>
       </nav>

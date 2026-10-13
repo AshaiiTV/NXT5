@@ -1,0 +1,596 @@
+/* Tutoriel de l’Aide : verre violet, reflets cyan/fuchsia et écrans annotés.
+   Les écrans d’exemple se redimensionnent avec leur cadre (unités cqw). */
+.nxt5-tutorial {
+  --tuto-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --tuto-verre: linear-gradient(135deg, rgba(38, 50, 72, .94), rgba(34, 30, 66, .93) 62%, rgba(27, 39, 60, .94));
+  --tuto-trait: rgba(181, 200, 225, .16);
+  --tuto-bleu: #7dd3fc;
+  --tuto-rouge: #fda4af;
+  --tuto-vert: #86efac;
+  --tuto-fuchsia: #e879f9;
+  --tuto-violet: #8b5cf6;
+  container: tuto / inline-size;
+  position: relative;
+  display: grid;
+  gap: clamp(56px, 8cqw, 120px);
+  min-width: 0;
+  color: var(--nxt5-text);
+}
+.nxt5-tutorial :where(h2, h3, h4, p, ol, ul, dl, dd, figure) { margin: 0; }
+.nxt5-tutorial [id^="tuto-"] { scroll-margin-top: 6.5rem; }
+.nxt5-tutorial :where(h2, h3)[tabindex="-1"]:focus { outline: none; }
+.nxt5-tutorial :where(h2, h3)[tabindex="-1"]:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 6px; }
+.nxt5-tutorial svg { flex: none; }
+.tuto-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+/* Boutons et liens */
+.tuto-btn { display: inline-flex; align-items: center; justify-content: center; gap: .6rem; min-height: 48px; padding: .75rem 1.2rem; border: 1px solid transparent; border-radius: var(--nxt5-radius-button); font-size: var(--nxt5-font-ui); font-weight: 650; line-height: 1.3; text-decoration: none; cursor: pointer; transition: transform 220ms var(--nxt5-ease-out), box-shadow 220ms, border-color 220ms; }
+.tuto-btn svg { width: 1.1em; height: 1.1em; }
+.tuto-btn-cta { background-image: var(--nxt5-primary-gradient); color: var(--nxt5-on-accent); font-weight: 750; box-shadow: 0 10px 30px rgba(59, 130, 246, .25); }
+.tuto-btn-cta:hover { transform: translateY(-2px); box-shadow: 0 0 24px var(--nxt5-glow-violet); }
+.tuto-btn-verre { color: var(--nxt5-text); background: rgba(15, 20, 45, .55); border-color: rgba(196, 181, 253, .38); }
+.tuto-btn-verre:hover { border-color: var(--nxt5-accent); transform: translateY(-2px); }
+.tuto-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.tuto-lien { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; margin-top: 1rem; padding: 0; color: var(--nxt5-accent); font-size: var(--nxt5-font-ui); font-weight: 650; border-bottom: 1px solid rgba(103, 232, 249, .35); }
+.tuto-lien:hover { border-color: var(--nxt5-accent); }
+.tuto-lien svg { width: 1em; height: 1em; }
+
+/* Ouverture */
+.tuto-hero { position: relative; isolation: isolate; overflow: hidden; display: grid; gap: clamp(16px, 4cqw, 48px); align-items: center; padding: clamp(24px, 5cqw, 64px); border: 1px solid var(--nxt5-glass-border); border-radius: calc(var(--nxt5-radius-panel) * 1.4); box-shadow: var(--nxt5-glass-shadow); }
+.tuto-hero::before { content: ""; position: absolute; inset: 0; z-index: -2; background: linear-gradient(180deg, rgba(6, 10, 28, .6) 0%, rgba(6, 10, 28, .08) 40%, rgba(6, 10, 28, .3) 72%, rgba(10, 14, 36, .92) 100%), url("/assets/home-motion/atmosphere.webp") center 62% / cover no-repeat; }
+.tuto-hero::after { content: ""; position: absolute; inset: 0; z-index: -1; background: radial-gradient(40% 55% at 74% 46%, rgba(139, 92, 246, .3), transparent 70%); }
+.tuto-surtitre { font-size: var(--nxt5-font-micro); font-weight: 650; letter-spacing: .2em; text-transform: uppercase; color: var(--nxt5-accent-2); }
+.tuto-surtitre span { color: var(--nxt5-accent); }
+.tuto-hero h2 { margin: .45em 0 .4em; font-size: clamp(2.2rem, 6.4cqw, 4.6rem); line-height: .98; letter-spacing: -.048em; font-weight: 700; text-wrap: balance; }
+.tuto-degrade { background: var(--nxt5-spectrum-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.tuto-chapeau { max-width: 34em; color: var(--nxt5-text-secondary); font-size: clamp(1rem, 1.6cqw, 1.15rem); line-height: 1.7; }
+.tuto-hero .tuto-actions { margin-top: 1.75rem; }
+.tuto-faits { display: flex; flex-wrap: wrap; gap: clamp(16px, 3cqw, 40px); margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid rgba(196, 181, 253, .2); }
+.tuto-faits div { display: grid; gap: .1rem; }
+.tuto-faits dt { font-family: var(--tuto-mono); font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; color: var(--nxt5-muted); }
+.tuto-faits dd { margin: 0; font-size: 1.35rem; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+
+.tuto-orbite { position: relative; width: 100%; max-width: 620px; margin-inline: auto; aspect-ratio: 100 / 92; }
+.tuto-orbite > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.tuto-orbite-arriere { z-index: 1; clip-path: inset(0 0 42.4% 0); }
+.tuto-orbite-avant { z-index: 3; clip-path: inset(57.6% 0 0 0); }
+.tuto-anneau { fill: none; stroke: rgba(196, 181, 253, .4); stroke-width: .32; }
+.tuto-anneau-halo { fill: none; stroke: rgba(139, 92, 246, .35); stroke-width: 2.2; filter: blur(1.4px); }
+.tuto-comete { fill: none; stroke-width: .9; stroke-linecap: round; stroke-dasharray: 10 90; animation: tuto-comete 8s linear infinite; }
+.tuto-comete-trace { fill: none; stroke-width: .45; stroke-linecap: round; stroke-dasharray: 22 78; opacity: .45; animation: tuto-comete 8s linear infinite; }
+@keyframes tuto-comete { to { stroke-dashoffset: -100; } }
+.tuto-cinq { position: absolute; z-index: 2; left: 50%; top: 43%; width: 71%; aspect-ratio: 729 / 665; transform: translate(-50%, -50%); }
+.tuto-cinq-flotte { position: absolute; inset: 0; animation: tuto-flotte 9s ease-in-out infinite; }
+.tuto-cinq img { width: 100%; height: 100%; filter: drop-shadow(0 34px 60px rgba(76, 29, 149, .6)); }
+.tuto-cinq-reflet { position: absolute; inset: 0; -webkit-mask: url("/assets/home-motion/glass-poster.webp") center / contain no-repeat; mask: url("/assets/home-motion/glass-poster.webp") center / contain no-repeat; background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, .5) 47%, rgba(232, 121, 249, .25) 52%, transparent 60%); background-size: 260% 100%; background-position: 120% 0; mix-blend-mode: screen; animation: tuto-reflet 7s var(--nxt5-ease-out) 1.2s infinite; }
+@keyframes tuto-flotte { 50% { transform: translateY(-2.2%) rotate(-.6deg); } }
+@keyframes tuto-reflet { 0%, 45% { background-position: 120% 0; } 75%, 100% { background-position: -60% 0; } }
+.tuto-noeud { position: absolute; z-index: 4; display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; padding: .45rem .9rem .45rem .5rem; border: 1px solid rgba(196, 181, 253, .42); border-radius: 999px; background: rgba(16, 16, 44, .82); color: var(--nxt5-text); font-size: clamp(.8rem, 1.7cqw, 1rem); font-weight: 650; text-decoration: none; white-space: nowrap; box-shadow: 0 10px 30px rgba(2, 6, 17, .5), 0 0 22px rgba(139, 92, 246, .25); transition: border-color 220ms, box-shadow 220ms; }
+.tuto-noeud:hover { border-color: var(--nxt5-accent); box-shadow: 0 10px 30px rgba(2, 6, 17, .5), 0 0 26px rgba(103, 232, 249, .45); }
+.tuto-noeud b { display: grid; place-items: center; width: 1.9em; height: 1.9em; border-radius: 50%; font: 650 .68rem var(--tuto-mono); color: var(--nxt5-on-accent); background: var(--nxt5-accent); }
+.tuto-noeud.is-analyse b { background: var(--nxt5-accent-2); }
+.tuto-noeud.is-recommence b { background: var(--tuto-fuchsia); }
+.tuto-noeud.is-joue { left: 12.3%; top: 49.4%; transform: translate(-22%, -50%); }
+.tuto-noeud.is-analyse { left: 87.7%; top: 49.4%; transform: translate(-78%, -50%); }
+.tuto-noeud.is-recommence { left: 46%; top: 71.7%; transform: translate(-50%, -50%); }
+.tuto-orbite-legende { position: absolute; z-index: 4; left: 50%; bottom: 0; transform: translateX(-50%); white-space: nowrap; font: 500 .7rem var(--tuto-mono); letter-spacing: .16em; text-transform: uppercase; color: var(--nxt5-muted); }
+
+/* Titres de section */
+.tuto-titre-section { display: grid; gap: .6rem; max-width: 46rem; margin-bottom: clamp(20px, 3cqw, 36px); }
+.tuto-etiquette, .tuto-acte-num { font-family: var(--tuto-mono); font-size: .75rem; letter-spacing: .16em; text-transform: uppercase; color: var(--nxt5-accent); }
+.tuto-titre-section h2 { font-size: clamp(1.8rem, 3.6cqw, 2.7rem); line-height: 1.05; letter-spacing: -.04em; font-weight: 700; }
+.tuto-titre-section p { max-width: 40rem; color: var(--nxt5-text-secondary); }
+
+/* Départ */
+.tuto-depart-grille, .tuto-depart-choix, .tuto-aide-grille { display: grid; gap: clamp(16px, 2.5cqw, 32px); align-items: start; min-width: 0; }
+.tuto-parcours { display: grid; gap: .9rem; margin: 0; padding: 0; border: 0; min-width: 0; }
+.tuto-parcours-carte { position: relative; display: grid; gap: .45rem; padding: 1.2rem 1.25rem 1.25rem; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-glass-reflection), var(--tuto-verre); cursor: pointer; transition: border-color 220ms, box-shadow 220ms; }
+.tuto-parcours-carte:hover { border-color: rgba(103, 232, 249, .45); }
+.tuto-parcours-carte input { position: absolute; opacity: 0; pointer-events: none; }
+.tuto-parcours-carte:has(input:focus-visible) { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
+.tuto-parcours-carte.is-choisi { border-color: rgba(103, 232, 249, .75); box-shadow: 0 0 0 1px rgba(103, 232, 249, .3), 0 18px 50px rgba(34, 211, 238, .1); }
+.tuto-parcours-coche { position: absolute; top: 1rem; right: 1rem; display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border: 1.5px solid rgba(196, 181, 253, .5); border-radius: 50%; color: transparent; }
+.tuto-parcours-coche svg { width: .9rem; height: .9rem; stroke-width: 3; }
+.tuto-parcours-carte.is-choisi .tuto-parcours-coche { background: var(--nxt5-accent); border-color: var(--nxt5-accent); color: var(--nxt5-on-accent); }
+.tuto-parcours-icone { display: grid; place-items: center; width: 2.6rem; height: 2.6rem; border: 1px solid rgba(103, 232, 249, .3); border-radius: .8rem; background: rgba(103, 232, 249, .1); color: var(--nxt5-accent); }
+.tuto-parcours-icone svg { width: 1.2rem; height: 1.2rem; }
+.tuto-parcours-carte strong { margin-top: .3rem; font-size: 1.1rem; letter-spacing: -.02em; }
+.tuto-parcours-carte > span:last-child { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.55; }
+.tuto-soiree { padding: 1.25rem 1.3rem 1.1rem; border: 1px solid rgba(196, 181, 253, .24); border-radius: var(--nxt5-radius-panel); background: linear-gradient(135deg, rgba(103, 232, 249, .06), rgba(139, 92, 246, .12) 60%, rgba(232, 121, 249, .06)); }
+.tuto-soiree-tete { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 1rem; }
+.tuto-soiree-tete h3 { font-size: 1.1rem; letter-spacing: -.02em; }
+.tuto-soiree-compte { font: 500 .8rem var(--tuto-mono); color: var(--nxt5-accent); }
+.tuto-jauge { display: block; width: 100%; height: 4px; margin: .8rem 0 .3rem; }
+.tuto-jauge-fond { fill: rgba(196, 181, 253, .16); }
+.tuto-soiree ol { display: grid; list-style: none; padding: 0; }
+.tuto-soiree li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .4rem .8rem; padding: .55rem 0; border-bottom: 1px solid rgba(196, 181, 253, .12); }
+.tuto-soiree li:last-child { border-bottom: 0; }
+.tuto-soiree input[type="checkbox"] { width: 1.3rem; height: 1.3rem; margin: 0; accent-color: #67e8f9; cursor: pointer; }
+.tuto-soiree label { cursor: pointer; }
+.tuto-soiree input:checked + label { color: var(--nxt5-muted); text-decoration: line-through; text-decoration-color: rgba(196, 181, 253, .5); }
+.tuto-soiree-lien { display: inline-flex; align-items: center; gap: .3rem; min-height: 44px; color: var(--nxt5-accent-2); font-size: var(--nxt5-font-small); text-decoration: none; white-space: nowrap; }
+.tuto-soiree-lien:hover { color: var(--nxt5-accent); }
+.tuto-soiree-lien svg { width: .95em; height: .95em; }
+.tuto-note { margin-top: .5rem; font-size: var(--nxt5-font-micro); color: var(--nxt5-muted); }
+.tuto-plan { padding: 1.1rem; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-glass-reflection), var(--tuto-verre); box-shadow: var(--nxt5-glass-shadow); }
+.tuto-plan-tete { display: flex; align-items: center; gap: .7rem; padding: .2rem .3rem 1rem; border-bottom: 1px solid var(--tuto-trait); }
+.tuto-plan-tete img { width: 34px; height: 34px; }
+.tuto-plan-tete strong { display: block; font-size: var(--nxt5-font-ui); }
+.tuto-plan-tete span { display: block; font-size: var(--nxt5-font-micro); color: var(--nxt5-muted); }
+.tuto-plan-groupe { margin-top: .9rem; }
+.tuto-plan-groupe > p { padding: 0 .45rem .35rem; font: 500 .68rem var(--tuto-mono); letter-spacing: .15em; text-transform: uppercase; color: var(--nxt5-muted); }
+.tuto-plan ul { display: grid; gap: .15rem; list-style: none; padding: 0; }
+.tuto-plan-lien { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .75rem; min-height: 48px; padding: .5rem .6rem; border-radius: .7rem; text-decoration: none; transition: background-color 200ms; }
+.tuto-plan-lien:hover { background: rgba(139, 92, 246, .16); }
+.tuto-plan-lien svg { width: 1.1rem; height: 1.1rem; color: var(--nxt5-accent-2); }
+.tuto-plan-lien strong { display: block; font-size: var(--nxt5-font-small); font-weight: 650; }
+.tuto-plan-lien small { display: block; font-size: var(--nxt5-font-micro); line-height: 1.35; color: var(--nxt5-muted); }
+.tuto-plan-lien em { font: normal 500 .72rem var(--tuto-mono); color: var(--nxt5-muted); }
+.tuto-plan-lien:hover em { color: var(--nxt5-accent); }
+
+/* Actes */
+.tuto-acte { display: grid; min-width: 0; }
+.tuto-acte-tete { display: grid; gap: .9rem; margin-bottom: clamp(8px, 2cqw, 24px); }
+.tuto-acte-num { display: flex; align-items: center; gap: .8rem; }
+.tuto-acte-num::after { content: ""; flex: 1; max-width: 320px; height: 1px; background: linear-gradient(90deg, rgba(103, 232, 249, .6), transparent); }
+.tuto-acte-titre { line-height: 1; }
+.tuto-mot { display: block; width: auto; max-width: 100%; height: clamp(60px, 12cqw, 164px); overflow: visible; }
+.tuto-mot text { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-weight: 800; font-size: 200px; letter-spacing: -9px; }
+.tuto-acte-promesse { max-width: 38rem; color: var(--nxt5-text-secondary); font-size: clamp(1.05rem, 1.8cqw, 1.3rem); letter-spacing: -.01em; }
+.tuto-sommaire { display: flex; flex-wrap: wrap; gap: .5rem; list-style: none; margin-top: .4rem; padding: 0; }
+.tuto-sommaire-lien { display: inline-flex; align-items: center; gap: .5rem; min-height: 40px; padding: .35rem .8rem .35rem .4rem; border: 1px solid rgba(196, 181, 253, .22); border-radius: 999px; background: rgba(15, 20, 45, .5); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); text-decoration: none; transition: border-color 200ms, color 200ms; }
+.tuto-sommaire-lien:hover { border-color: var(--nxt5-accent); color: var(--nxt5-text); }
+.tuto-sommaire-lien b { padding: .18rem .42rem; border-radius: 999px; background: rgba(139, 92, 246, .22); color: var(--nxt5-accent-2); font: 650 .68rem var(--tuto-mono); }
+
+/* Chapitres */
+.tuto-chapitre { display: grid; gap: clamp(24px, 4cqw, 64px); align-items: start; padding-block: clamp(32px, 5cqw, 64px); border-top: 1px solid rgba(196, 181, 253, .1); min-width: 0; }
+.tuto-ch-texte { min-width: 0; }
+.tuto-ch-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1rem; }
+.tuto-ch-num { font-size: clamp(2.8rem, 5.5cqw, 4.2rem); font-weight: 800; line-height: .9; letter-spacing: -.06em; color: transparent; -webkit-text-stroke: 1.3px rgba(196, 181, 253, .62); font-variant-numeric: tabular-nums; }
+.tuto-ch-rubrique { display: grid; font-family: var(--tuto-mono); font-size: .74rem; line-height: 1.45; color: var(--nxt5-muted); }
+.tuto-ch-rubrique b { font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: var(--nxt5-accent-2); }
+.tuto-pour-toi { display: inline-flex; align-items: center; padding: .28rem .65rem; border-radius: 999px; background-image: var(--nxt5-primary-gradient); color: var(--nxt5-on-accent); font-size: .72rem; font-weight: 700; }
+.tuto-ch-titre { margin: 1rem 0 .7rem; font-size: clamp(1.55rem, 2.9cqw, 2.2rem); line-height: 1.1; letter-spacing: -.035em; font-weight: 700; text-wrap: balance; }
+.tuto-ch-intro { max-width: 36rem; color: var(--nxt5-text-secondary); }
+.tuto-etapes { display: grid; gap: .25rem; margin-top: 1.3rem; padding: 0; list-style: none; }
+.tuto-etapes li { display: grid; grid-template-columns: 2rem minmax(0, 1fr); gap: .85rem; margin-inline: -.75rem; padding: .65rem .75rem; border: 1px solid transparent; border-radius: .9rem; transition: background-color 220ms, border-color 220ms; }
+.tuto-etapes li.has-zone { cursor: pointer; }
+.tuto-etapes li.has-zone:hover, .tuto-etapes li.is-actif { background: rgba(139, 92, 246, .1); border-color: rgba(196, 181, 253, .2); }
+.tuto-pastille { display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid rgba(196, 181, 253, .45); border-radius: 50%; background: rgba(10, 14, 36, .7); color: var(--nxt5-accent-2); font: 650 .8rem var(--tuto-mono); transition: background-color 220ms, color 220ms, box-shadow 220ms; }
+.tuto-etapes li.is-actif .tuto-pastille { background: var(--nxt5-accent); border-color: var(--nxt5-accent); color: var(--nxt5-on-accent); box-shadow: 0 0 18px rgba(103, 232, 249, .55); }
+.tuto-etapes p { padding-top: .2rem; color: var(--nxt5-text-secondary); overflow-wrap: anywhere; }
+.tuto-etapes strong, .tuto-retenir strong { color: var(--nxt5-text); font-weight: 650; }
+.tuto-ui { padding: .02em .36em; border: 1px solid rgba(196, 181, 253, .26); border-radius: .4em; background: rgba(139, 92, 246, .17); color: #ede9fe; font-weight: 600; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.tuto-cmd { padding: .04em .38em; border: 1px solid rgba(103, 232, 249, .25); border-radius: .4em; background: rgba(103, 232, 249, .08); color: var(--nxt5-accent); font-family: var(--tuto-mono); font-size: .9em; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+.tuto-copier { display: inline-flex; align-items: center; gap: .3rem; min-height: 28px; margin-left: .3rem; padding: .1rem .5rem; border: 1px solid rgba(196, 181, 253, .35); border-radius: .4rem; background: rgba(15, 20, 45, .6); color: var(--nxt5-accent-2); font-size: .74rem; vertical-align: .08em; cursor: pointer; }
+.tuto-copier:hover { border-color: var(--nxt5-accent); color: var(--nxt5-accent); }
+.tuto-copier.is-ok { border-color: rgba(134, 239, 172, .5); color: var(--tuto-vert); }
+.tuto-copier svg { width: .85rem; height: .85rem; }
+.tuto-retenir { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .8rem; margin-top: 1.2rem; padding: 1rem 1.1rem; border: 1px solid rgba(103, 232, 249, .22); border-radius: 1rem; background: linear-gradient(135deg, rgba(103, 232, 249, .07), rgba(139, 92, 246, .1)); }
+.tuto-retenir > svg { width: 1.25rem; height: 1.25rem; margin-top: .15rem; color: var(--nxt5-accent); }
+.tuto-retenir p { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); }
+
+/* Écrans d’exemple */
+.tuto-ecran { container: ecran / inline-size; min-width: 0; }
+.tuto-ecran figcaption { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin-top: .8rem; color: var(--nxt5-muted); font-size: var(--nxt5-font-micro); }
+.tuto-essai { padding: .15rem .45rem; border-radius: .3rem; background: var(--nxt5-accent); color: var(--nxt5-on-accent); font: 650 .66rem var(--tuto-mono); letter-spacing: .08em; text-transform: uppercase; }
+.tuto-cadre { position: relative; overflow: hidden; font-size: clamp(9.5px, 2.42cqw, 14px); line-height: 1.45; border: 1px solid var(--nxt5-glass-border); border-radius: 1.4em; background: var(--nxt5-glass-reflection), var(--tuto-verre); box-shadow: inset 0 1px 0 rgba(226, 232, 255, .13), 0 30px 80px rgba(2, 6, 17, .5), 0 0 60px rgba(139, 92, 246, .08); color: var(--nxt5-text); }
+.tuto-cadre::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(105deg, transparent 35%, rgba(226, 232, 255, .12) 47%, rgba(232, 121, 249, .07) 53%, transparent 65%); transform: translateX(-110%); }
+.tuto-chapitre[data-vu] .tuto-cadre::after { animation: tuto-balayage 1.8s var(--nxt5-ease-out) .15s 1 both; }
+@keyframes tuto-balayage { to { transform: translateX(110%); } }
+.tuto-cadre :where(p, b, strong, small, span, i, code) { overflow-wrap: anywhere; }
+.tuto-cadre svg:not(.tuto-m-graph):not(.tuto-m-kda svg) { width: 1.15em; height: 1.15em; }
+.tuto-m-barre { display: flex; align-items: center; gap: .7em; padding: .8em 1.1em; border-bottom: 1px solid rgba(181, 200, 225, .12); background: rgba(6, 10, 28, .25); color: var(--nxt5-muted); font-size: .85em; }
+.tuto-m-barre img { width: 1.75em; height: 1.75em; }
+.tuto-m-chemin { min-width: 0; overflow: hidden; font-family: var(--tuto-mono); font-size: .92em; color: var(--nxt5-text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+.tuto-m-fictif { flex: none; margin-left: auto; padding: .22em .7em; border: 1px solid rgba(196, 181, 253, .3); border-radius: 999px; color: var(--nxt5-accent-2); font-size: .85em; }
+.tuto-m-corps { display: grid; gap: 1em; padding: 1.25em; }
+.tuto-m-label { display: block; color: var(--nxt5-muted); font-size: .72em; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; }
+.tuto-m-label-espace { margin-bottom: .5em; padding-right: 2em; }
+.tuto-m-titre { display: block; font-size: 1.3em; font-weight: 700; line-height: 1.2; letter-spacing: -.02em; }
+.tuto-m-p { display: block; color: var(--nxt5-text-secondary); font-size: .86em; }
+.tuto-m-panneau { padding: .95em; border: 1px solid rgba(181, 200, 225, .13); border-radius: .85em; background: rgba(10, 15, 36, .5); }
+.tuto-m-ligne { display: flex; align-items: center; gap: .6em; min-width: 0; }
+.tuto-m-entre { justify-content: space-between; }
+.tuto-m-wrap { flex-wrap: wrap; }
+.tuto-m-haut { align-items: flex-start; }
+.tuto-m-pile { display: grid; gap: .55em; align-content: start; }
+.tuto-m-debut { justify-self: start; }
+.tuto-m-etire { flex: 1 1 10em; }
+.tuto-m-plein { flex: 1 1 100%; }
+.tuto-m-petit { font-size: .86em; }
+.tuto-m-vert { color: var(--tuto-vert); }
+.tuto-m-mute { color: var(--nxt5-muted); }
+.tuto-m-num { font-family: var(--tuto-mono); font-variant-numeric: tabular-nums; }
+.tuto-m-btn, .tuto-m-btn-g { display: inline-flex; align-items: center; justify-content: center; gap: .45em; padding: .6em 1em; border-radius: .15em; font-size: .86em; font-weight: 650; white-space: nowrap; }
+.tuto-m-btn { background-image: var(--nxt5-primary-gradient); color: var(--nxt5-on-accent); }
+.tuto-m-btn-g { border: 1px solid rgba(196, 181, 253, .38); background: rgba(15, 20, 45, .5); color: var(--nxt5-text); }
+.tuto-m-input { display: flex; align-items: center; gap: .5em; min-width: 0; padding: .6em .75em; border: 1px solid rgba(181, 200, 225, .2); border-radius: .6em; background: rgba(6, 11, 30, .75); font-size: .86em; }
+.tuto-m-input > svg { color: var(--nxt5-muted); }
+.tuto-m-val { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tuto-m-select::after { content: ""; flex: none; width: .45em; height: .45em; margin-left: auto; border: solid var(--nxt5-muted); border-width: 0 1.5px 1.5px 0; transform: rotate(45deg) translateY(-25%); }
+.tuto-m-champ { position: relative; display: block; flex: none; width: 2.6em; height: 2.6em; overflow: hidden; border: 1px solid rgba(196, 181, 253, .35); border-radius: .5em; background: #1b2140; }
+.tuto-m-champ img { width: 100%; height: 100%; object-fit: cover; }
+.tuto-m-mono { display: grid; place-items: center; background: linear-gradient(135deg, rgba(139, 92, 246, .3), rgba(30, 41, 59, .8)); color: var(--nxt5-accent-2); font-size: .85em; font-weight: 700; }
+.tuto-cadre .tuto-m-role { width: 1.35em; height: 1.35em; flex: none; }
+.tuto-m-pill { display: inline-flex; align-items: center; gap: .35em; padding: .22em .65em; border: 1px solid transparent; border-radius: 999px; font-size: .78em; font-weight: 650; white-space: nowrap; }
+.tuto-m-pill.is-v { color: #bbf7d0; background: rgba(134, 239, 172, .12); border-color: rgba(134, 239, 172, .35); }
+.tuto-m-pill.is-d { color: #fecdd3; background: rgba(253, 164, 175, .12); border-color: rgba(253, 164, 175, .35); }
+.tuto-m-pill.is-n { color: var(--nxt5-accent-2); background: rgba(139, 92, 246, .14); border-color: rgba(196, 181, 253, .3); }
+.tuto-m-pill.is-c { color: #cffafe; background: rgba(103, 232, 249, .1); border-color: rgba(103, 232, 249, .35); }
+.tuto-m-pill.is-bleu { color: var(--tuto-bleu); background: rgba(56, 189, 248, .1); border-color: rgba(125, 211, 252, .5); }
+.tuto-m-filtres { display: flex; flex-wrap: wrap; align-items: center; gap: .45em; }
+.tuto-m-filtre { display: inline-flex; align-items: center; gap: .4em; padding: .42em .75em; border: 1px solid rgba(181, 200, 225, .22); border-radius: .55em; background: rgba(6, 11, 30, .7); font-size: .8em; }
+.tuto-m-filtre em { font-style: normal; color: var(--nxt5-muted); }
+.tuto-m-onglets { display: flex; flex-wrap: wrap; gap: .3em; border-bottom: 1px solid rgba(181, 200, 225, .14); }
+.tuto-m-onglets > span:not(.tuto-spot) { margin-bottom: -1px; padding: .55em .8em; border-bottom: 2px solid transparent; color: var(--nxt5-muted); font-size: .84em; }
+.tuto-m-onglets > span.is-actif { border-color: var(--nxt5-accent); color: var(--nxt5-text); }
+.tuto-m-onglets.is-plat { border: 0; }
+.tuto-m-onglets.is-defile { flex-wrap: nowrap; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent); mask-image: linear-gradient(90deg, #000 82%, transparent); }
+.tuto-m-onglets.is-defile > span { white-space: nowrap; }
+
+/* Zones annotées */
+.tuto-z { position: relative; transition: box-shadow 350ms var(--nxt5-ease-out); }
+:where(.tuto-z) { border-radius: .85em; }
+.tuto-z.is-actif { box-shadow: 0 0 0 .15em rgba(103, 232, 249, .9), 0 0 2.6em rgba(103, 232, 249, .28); }
+.tuto-z:is(.tuto-m-btn-g, .tuto-m-etat, .tuto-m-pill, .tuto-m-filtres), .tuto-z-marge { padding-right: 2em; }
+.tuto-spot { position: absolute; top: -.62em; right: -.5em; z-index: 5; display: grid; place-items: center; width: 2.1em; height: 2.1em; border-radius: 50%; background: var(--nxt5-accent); color: var(--nxt5-on-accent); font: 650 .8em/1 var(--tuto-mono); cursor: pointer; box-shadow: 0 0 0 .32em rgba(103, 232, 249, .16), 0 .35em 1em rgba(2, 6, 17, .55); transition: transform 220ms var(--nxt5-ease-out), background-color 220ms; }
+.tuto-spot::before { content: ""; position: absolute; inset: -.32em; border: 1px solid rgba(103, 232, 249, .55); border-radius: 50%; animation: tuto-pouls 2.6s ease-out infinite; }
+.tuto-spot:hover { transform: scale(1.12); }
+.tuto-z.is-actif > .tuto-spot { background: #fff; box-shadow: 0 0 0 .32em rgba(103, 232, 249, .4), 0 0 1.4em rgba(103, 232, 249, .9); }
+@keyframes tuto-pouls { 0% { transform: scale(.85); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+
+/* 01 — Accueil */
+.tuto-m-choix { display: grid; grid-template-columns: 1fr 1fr; gap: .7em; }
+.tuto-m-choix-carte { display: grid; gap: .25em; padding: 1em; border: 1px solid rgba(181, 200, 225, .16); border-radius: .85em; background: rgba(10, 15, 36, .5); }
+.tuto-m-choix-carte svg { margin-bottom: .3em; color: var(--nxt5-accent); }
+.tuto-m-choix-carte span { color: var(--nxt5-muted); font-size: .8em; }
+.tuto-m-choix-carte.is-choisi { border-color: rgba(103, 232, 249, .65); background: linear-gradient(135deg, rgba(103, 232, 249, .1), rgba(139, 92, 246, .16)); }
+.tuto-m-prochaine { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1em; padding: 1.05em; border: 1px solid rgba(196, 181, 253, .32); background: linear-gradient(120deg, rgba(139, 92, 246, .26), rgba(30, 41, 59, .5)); }
+.tuto-m-prochaine strong { display: block; margin-top: .15em; font-size: 1.08em; }
+.tuto-m-reperes ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5em; margin-top: .6em; padding: 0; list-style: none; }
+.tuto-m-reperes li { display: flex; align-items: center; gap: .5em; padding: .6em .65em; border: 1px solid rgba(181, 200, 225, .12); border-radius: .65em; background: rgba(10, 15, 36, .5); color: var(--nxt5-text-secondary); font-size: .8em; }
+.tuto-m-reperes li i { display: grid; place-items: center; flex: none; width: 1.5em; height: 1.5em; border: 1px solid rgba(196, 181, 253, .4); border-radius: 50%; font: normal 650 .85em var(--tuto-mono); }
+.tuto-m-reperes li.is-courant { border-color: rgba(103, 232, 249, .55); color: var(--nxt5-text); }
+.tuto-m-reperes li.is-courant i { background: var(--nxt5-accent); border-color: var(--nxt5-accent); color: var(--nxt5-on-accent); }
+.tuto-m-pied { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1em; padding: .6em .75em; color: var(--nxt5-text-secondary); font-size: .84em; }
+.tuto-m-pied u { text-decoration-color: rgba(103, 232, 249, .6); text-underline-offset: .25em; }
+
+/* 02 — Équipe */
+.tuto-m-embleme { display: grid; place-items: center; flex: none; width: 2.8em; height: 2.8em; border: 1px solid rgba(196, 181, 253, .55); border-radius: .8em; background: linear-gradient(135deg, rgba(34, 211, 238, .25), rgba(139, 92, 246, .45) 60%, rgba(232, 121, 249, .3)); box-shadow: 0 0 1.2em rgba(139, 92, 246, .35); font-weight: 800; }
+.tuto-m-roster { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5em; }
+.tuto-m-joueur { position: relative; overflow: hidden; aspect-ratio: 3 / 4.4; border: 1px solid rgba(196, 181, 253, .32); border-radius: .75em; background: #141a38; }
+.tuto-m-joueur img { width: 100%; height: 100%; object-fit: cover; object-position: center 22%; }
+.tuto-m-joueur::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(6, 10, 28, 0) 40%, rgba(6, 10, 28, .92) 92%); }
+.tuto-m-joueur-role { position: absolute; top: .4em; left: .4em; z-index: 1; display: flex; align-items: center; gap: .25em; padding: .2em .4em; border: 1px solid rgba(196, 181, 253, .3); border-radius: .4em; background: rgba(6, 10, 28, .7); font: 650 .62em var(--tuto-mono); }
+.tuto-m-joueur-info { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; display: grid; padding: .5em .45em; }
+.tuto-m-joueur-info b { font-size: .72em; line-height: 1.2; }
+.tuto-m-joueur-info span { color: var(--nxt5-text-secondary); font-size: .62em; }
+.tuto-m-table { display: grid; padding: .4em .2em; font-size: .8em; }
+.tuto-m-table > div { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, .55fr) minmax(0, 1.35fr) minmax(0, .95fr); align-items: center; gap: .6em; padding: .55em .7em; border-bottom: 1px solid rgba(181, 200, 225, .1); }
+.tuto-m-table > div:last-of-type { border-bottom: 0; }
+.tuto-m-table-tete { color: var(--nxt5-muted); font-size: .85em; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; }
+.tuto-m-table > div span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 03 — NXT5 Importer */
+.tuto-m-plateformes { display: flex; flex-wrap: wrap; align-items: center; gap: .5em; padding: .75em .85em; border: 1px solid rgba(181, 200, 225, .13); background: rgba(10, 15, 36, .45); }
+.tuto-m-fenetre { overflow: hidden; border: 1px solid rgba(196, 181, 253, .3); border-radius: .9em; background: rgba(6, 10, 28, .6); box-shadow: 0 1.5em 3em rgba(2, 6, 17, .45); }
+.tuto-m-fenetre-barre { display: flex; align-items: center; gap: .6em; padding: .55em .85em; border-bottom: 1px solid rgba(181, 200, 225, .12); background: rgba(15, 20, 45, .7); color: var(--nxt5-muted); font-size: .78em; }
+.tuto-m-app { display: grid; grid-template-columns: 8em minmax(0, 1fr); }
+.tuto-m-app-cote { display: grid; align-content: start; gap: .35em; padding: 1em .7em; border-right: 1px solid rgba(181, 200, 225, .12); background: linear-gradient(180deg, rgba(139, 92, 246, .12), transparent); }
+.tuto-m-app-cote img { width: 3.2em; height: 3.2em; margin: 0 auto .6em; }
+.tuto-m-app-cote span { padding: .5em .6em; border-radius: .5em; color: var(--nxt5-muted); font-size: .8em; }
+.tuto-m-app-cote span.is-actif { background: rgba(139, 92, 246, .24); color: #fff; }
+.tuto-m-app-main { display: grid; gap: .85em; min-width: 0; padding: 1.1em; }
+.tuto-m-etat { display: inline-flex; align-items: center; gap: .5em; justify-self: start; padding: .32em .75em; border: 1px solid rgba(134, 239, 172, .32); border-radius: 999px; background: rgba(134, 239, 172, .1); color: #bbf7d0; font-size: .8em; }
+.tuto-m-etat::before { content: ""; width: .55em; height: .55em; border-radius: 50%; background: var(--tuto-vert); box-shadow: 0 0 .6em var(--tuto-vert); }
+.tuto-m-champs { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: .6em; }
+.tuto-m-champs > div { display: grid; gap: .3em; min-width: 0; color: var(--nxt5-muted); font-size: .75em; }
+.tuto-m-champs .tuto-m-input { font-size: 1.12em; color: var(--nxt5-text); }
+.tuto-m-fichier { display: flex; align-items: center; gap: .6em; min-width: 0; padding: .7em .8em; border: 1px dashed rgba(103, 232, 249, .5); border-radius: .7em; background: rgba(103, 232, 249, .06); font-size: .84em; }
+.tuto-m-fichier > span > svg, .tuto-m-fichier > svg { color: var(--nxt5-accent); }
+
+/* 04 — Import */
+.tuto-m-cotes { display: grid; grid-template-columns: 1fr 1fr; gap: .5em; }
+.tuto-m-cote { display: flex; align-items: center; gap: .55em; padding: .7em .85em; border: 1px solid rgba(181, 200, 225, .16); border-radius: .7em; background: rgba(10, 15, 36, .45); font-size: .88em; font-weight: 650; }
+.tuto-m-cote::before { content: ""; flex: none; width: .75em; height: .75em; border: 2px solid currentColor; border-radius: 50%; }
+.tuto-m-cote.is-bleu { color: var(--tuto-bleu); border-color: rgba(125, 211, 252, .65); background: rgba(56, 189, 248, .1); }
+.tuto-m-cote.is-bleu::before { background: currentColor; }
+.tuto-m-cote.is-rouge { color: var(--tuto-rouge); }
+.tuto-m-cote span { margin-left: auto; color: var(--nxt5-text); font-size: .85em; font-weight: 500; }
+.tuto-m-joueurs { display: grid; gap: .35em; }
+.tuto-m-joueurs > div { display: grid; grid-template-columns: 3em minmax(0, 1fr) minmax(0, 1.15fr); align-items: center; gap: .6em; padding: .35em .5em; border-radius: .6em; background: rgba(10, 15, 36, .4); }
+.tuto-m-joueurs .tuto-m-champ { width: 2.1em; height: 2.1em; }
+.tuto-m-joueurs .tuto-m-ligne { font-size: .86em; }
+.tuto-m-joueurs .tuto-m-input { padding: .45em .6em; font-size: .8em; }
+.tuto-m-poste { display: flex; align-items: center; gap: .3em; color: var(--nxt5-accent-2); font: 650 .72em var(--tuto-mono); }
+.tuto-m-tags { display: flex; flex-wrap: wrap; align-items: center; gap: .4em; }
+.tuto-m-tag { display: inline-flex; align-items: center; gap: .35em; padding: .32em .7em; border: 1px solid rgba(103, 232, 249, .55); border-radius: 999px; background: rgba(103, 232, 249, .12); color: #cffafe; font-size: .8em; font-weight: 650; }
+.tuto-m-toast { display: inline-flex; align-items: center; gap: .5em; padding: .5em .8em; border: 1px solid rgba(134, 239, 172, .4); border-radius: .6em; background: rgba(134, 239, 172, .12); color: #dcfce7; font-size: .82em; }
+.tuto-m-toast svg { color: var(--tuto-vert); }
+
+/* 05 — Lire une partie */
+.tuto-m-contre { color: var(--nxt5-muted); font-size: .8em; font-weight: 500; }
+.tuto-m-score { display: grid; justify-items: center; }
+.tuto-m-score > span { display: flex; align-items: center; gap: .5em; }
+.tuto-m-score strong { font-size: 1.9em; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.tuto-m-score strong:first-child { color: var(--nxt5-accent); }
+.tuto-m-score strong:last-child { color: var(--tuto-fuchsia); }
+.tuto-m-score svg { color: var(--nxt5-muted); }
+.tuto-m-score small { color: var(--nxt5-muted); font-size: .72em; }
+.tuto-m-compo { display: flex; flex-wrap: wrap; gap: .45em; }
+.tuto-m-compo > span:not(.tuto-spot):not(.tuto-m-champ) { display: grid; justify-items: center; gap: .2em; color: var(--nxt5-muted); font: 650 .62em var(--tuto-mono); }
+.tuto-m-compo > span:not(.tuto-spot) > .tuto-m-champ { width: 5.2em; height: 5.2em; }
+.tuto-m-or-tete { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1em; }
+.tuto-m-or-valeur { font-size: 2.1em; font-weight: 700; line-height: 1; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
+.tuto-m-or-valeur small { margin-left: .25em; color: var(--nxt5-muted); font-size: .45em; font-weight: 500; letter-spacing: 0; }
+.tuto-m-or-temps { display: flex; align-items: center; gap: .35em; color: var(--nxt5-text-secondary); font: 500 .9em var(--tuto-mono); }
+.tuto-m-graph { display: block; width: 100%; height: auto; margin-top: .4em; overflow: visible; }
+.tuto-g-grille { stroke: rgba(181, 200, 225, .1); stroke-width: 1; }
+.tuto-g-zero { stroke: rgba(181, 200, 225, .35); stroke-width: 1; stroke-dasharray: 3 4; }
+.tuto-g-courbe { fill: none; stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
+.tuto-g-axe { font-family: var(--tuto-mono); font-size: 11px; fill: #93a3bd; }
+.tuto-g-curseur { stroke: rgba(241, 245, 249, .75); stroke-width: 1; stroke-dasharray: 3 3; }
+.tuto-g-point { fill: #fff; stroke: var(--tuto-violet); stroke-width: 3; }
+.tuto-g-objectif { cursor: pointer; }
+.tuto-g-objectif circle { fill: #141a38; stroke: rgba(196, 181, 253, .7); stroke-width: 1.5; }
+.tuto-g-objectif:hover circle, .tuto-g-objectif:focus-visible circle { stroke: var(--nxt5-accent); }
+.tuto-g-objectif:focus-visible { outline: none; }
+.tuto-g-objectif text { font-size: 10.5px; font-weight: 650; fill: #e2e8f0; }
+.tuto-m-curseur { width: 100%; min-height: 24px; margin: .5em 0 .1em; accent-color: #67e8f9; cursor: pointer; }
+.tuto-m-moments { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .4em; }
+.tuto-m-moments button { display: grid; gap: .1em; min-height: 44px; padding: .5em .6em; border: 1px solid rgba(181, 200, 225, .18); border-radius: .55em; background: rgba(10, 15, 36, .45); color: var(--nxt5-text); font-size: .8em; text-align: left; cursor: pointer; transition: border-color 200ms, background-color 200ms; }
+.tuto-m-moments b { font-family: var(--tuto-mono); }
+.tuto-m-moments span { color: var(--nxt5-text-secondary); font-size: .92em; }
+.tuto-m-moments button[aria-pressed="true"] { border-color: rgba(103, 232, 249, .7); background: rgba(103, 232, 249, .1); }
+.tuto-m-note { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: .6em; margin-top: .7em; padding: .7em .8em; border-left: 2px solid var(--tuto-violet); border-radius: 0 .6em .6em 0; background: rgba(139, 92, 246, .1); }
+.tuto-m-note > svg { margin-top: .1em; color: var(--nxt5-accent-2); }
+.tuto-m-note b { display: block; color: var(--nxt5-accent-2); font-size: .76em; font-weight: 650; }
+.tuto-m-note p { font-size: .95em; font-weight: 650; }
+
+/* 06 — Débrief */
+.tuto-m-doc { display: grid; grid-template-columns: 2.4em minmax(0, 1fr); gap: .8em; padding: .95em; border: 1px solid rgba(181, 200, 225, .13); background: rgba(10, 15, 36, .5); }
+.tuto-m-doc > i { display: grid; place-items: center; width: 2.4em; height: 2.4em; border-radius: .7em; font: normal 650 .9em var(--tuto-mono); }
+.tuto-m-doc.is-fait > i { border: 1px solid rgba(103, 232, 249, .4); background: rgba(103, 232, 249, .14); color: var(--nxt5-accent); }
+.tuto-m-doc.is-question > i { border: 1px solid rgba(196, 181, 253, .45); background: rgba(196, 181, 253, .14); color: var(--nxt5-accent-2); }
+.tuto-m-doc.is-action > i { border: 1px solid rgba(232, 121, 249, .45); background: rgba(232, 121, 249, .14); color: var(--tuto-fuchsia); }
+.tuto-m-doc b { display: block; margin-bottom: .2em; color: var(--nxt5-muted); font-size: .78em; letter-spacing: .06em; text-transform: uppercase; }
+.tuto-m-doc p { font-size: .92em; }
+.tuto-m-auto { display: flex; align-items: center; justify-content: space-between; gap: .8em; padding: .7em .85em; border: 1px dashed rgba(196, 181, 253, .35); border-radius: .7em; color: var(--nxt5-text-secondary); font-size: .82em; }
+
+/* 07 — Équipes adverses */
+.tuto-m-adv { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.5fr); gap: .8em; }
+.tuto-m-liste { display: grid; align-content: start; gap: .35em; }
+.tuto-m-liste > span:not(.tuto-m-input):not(.tuto-spot) { display: flex; align-items: center; justify-content: space-between; gap: .5em; padding: .6em .7em; border: 1px solid rgba(181, 200, 225, .12); border-radius: .6em; background: rgba(10, 15, 36, .4); font-size: .84em; }
+.tuto-m-liste > span.is-actif { border-color: rgba(196, 181, 253, .6); background: rgba(139, 92, 246, .16); }
+.tuto-m-parties { display: grid; }
+.tuto-m-partie { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .7em; padding: .6em .2em; border-bottom: 1px solid rgba(181, 200, 225, .1); font-size: .84em; }
+.tuto-m-partie:last-child { border-bottom: 0; }
+.tuto-m-partie b { display: block; }
+.tuto-m-partie small { color: var(--nxt5-muted); font-family: var(--tuto-mono); font-size: .85em; }
+.tuto-m-partie > svg { color: var(--nxt5-muted); }
+
+/* 08 — Analyses */
+.tuto-m-ch-table { display: grid; font-size: .84em; }
+.tuto-m-ch-table > span:not(.tuto-spot) { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(0, .8fr) minmax(0, .9fr) minmax(0, .9fr); align-items: center; gap: .5em; padding: .45em .6em; border-radius: .55em; }
+.tuto-m-ch-table > span.is-actif { background: rgba(139, 92, 246, .18); box-shadow: inset 0 0 0 1px rgba(196, 181, 253, .45); }
+.tuto-m-ch-table .tuto-m-table-tete { font-size: .82em; }
+.tuto-m-nom { display: flex; align-items: center; gap: .55em; min-width: 0; }
+.tuto-m-nom .tuto-m-champ { width: 2em; height: 2em; }
+.tuto-m-nom small { display: block; color: var(--nxt5-muted); font: 500 .82em var(--tuto-mono); }
+.tuto-m-kda { display: grid; gap: .2em; }
+.tuto-m-kda svg { display: block; width: 100%; height: .35em; }
+
+/* 09 — Draft */
+.tuto-m-etape { min-height: 1.5em; color: var(--nxt5-text-secondary); font: 500 .82em var(--tuto-mono); }
+.tuto-m-etape b { color: var(--nxt5-accent); font-weight: 650; }
+.tuto-m-plateau { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .8em; }
+.tuto-m-camp { display: grid; gap: .55em; padding: .75em; border: 1px solid rgba(181, 200, 225, .13); border-radius: .8em; background: rgba(10, 15, 36, .45); }
+.tuto-m-camp.is-bleu { border-color: rgba(125, 211, 252, .35); background: linear-gradient(180deg, rgba(56, 189, 248, .08), rgba(10, 15, 36, .45)); }
+.tuto-m-camp.is-rouge { border-color: rgba(253, 164, 175, .35); background: linear-gradient(180deg, rgba(251, 113, 133, .08), rgba(10, 15, 36, .45)); }
+.tuto-m-camp-tete { display: flex; align-items: center; justify-content: space-between; gap: .5em; font-size: .82em; }
+.tuto-m-camp.is-bleu .tuto-m-camp-tete b { color: var(--tuto-bleu); }
+.tuto-m-camp.is-rouge .tuto-m-camp-tete b { color: var(--tuto-rouge); }
+.tuto-m-camp-tete small { color: var(--nxt5-muted); }
+.tuto-m-bans { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .3em; }
+.tuto-m-ban { position: relative; display: grid; place-items: center; overflow: hidden; aspect-ratio: 1; border: 1px solid rgba(181, 200, 225, .18); border-radius: .45em; background: rgba(30, 41, 59, .7); color: var(--nxt5-muted); font: 650 .7em var(--tuto-mono); }
+.tuto-m-ban::after { content: ""; position: absolute; left: -20%; right: -20%; top: 50%; height: 1.5px; background: rgba(253, 164, 175, .7); transform: rotate(-38deg); }
+.tuto-m-picks { display: grid; gap: .3em; }
+.tuto-m-pick { display: grid; grid-template-columns: auto 2.3em minmax(0, 1fr); align-items: center; gap: .5em; padding: .3em .45em; border-radius: .55em; background: rgba(10, 15, 36, .4); font-size: .82em; }
+.tuto-m-pick .tuto-m-champ { width: 2.3em; height: 2.3em; }
+.tuto-m-rang { color: var(--nxt5-muted); font: 650 .78em var(--tuto-mono); }
+.tuto-m-nomc { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tuto-m-ban, .tuto-m-pick { transition: opacity 350ms, filter 350ms, box-shadow 350ms; }
+.tuto-m-ban.is-vide, .tuto-m-pick.is-vide { opacity: .28; filter: grayscale(1); }
+.tuto-m-ban.is-vide { color: transparent; }
+.tuto-m-ban.is-vide::after { display: none; }
+.tuto-m-pick.is-vide .tuto-m-champ img, .tuto-m-pick.is-vide .tuto-m-nomc { visibility: hidden; }
+.tuto-m-ban.is-courant, .tuto-m-pick.is-courant { box-shadow: 0 0 0 .14em var(--nxt5-accent), 0 0 1.4em rgba(103, 232, 249, .45); }
+.tuto-m-commandes { display: flex; flex-wrap: wrap; align-items: center; gap: .4em; }
+.tuto-m-commandes button { display: inline-flex; align-items: center; gap: .4em; min-height: 40px; padding: .5em .75em; border: 1px solid rgba(196, 181, 253, .38); border-radius: .15em; background: rgba(15, 20, 45, .55); color: var(--nxt5-text); font-size: .8em; font-weight: 650; cursor: pointer; transition: border-color 200ms, color 200ms; }
+.tuto-m-commandes button:hover:not(:disabled) { border-color: var(--nxt5-accent); color: var(--nxt5-accent); }
+.tuto-m-commandes button:disabled { opacity: .4; cursor: default; }
+
+/* 10 — Pool */
+.tuto-m-roles { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .35em; }
+.tuto-m-roles > span { display: flex; align-items: center; justify-content: center; gap: .35em; padding: .5em .3em; border: 1px solid rgba(181, 200, 225, .15); border-radius: .55em; background: rgba(10, 15, 36, .4); color: var(--nxt5-muted); font: 650 .74em var(--tuto-mono); }
+.tuto-m-roles > span.is-actif { border-color: rgba(103, 232, 249, .6); background: rgba(103, 232, 249, .1); color: var(--nxt5-text); }
+.tuto-m-pool { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5em; }
+.tuto-m-pool > span:not(.tuto-spot) { display: grid; grid-template-columns: 3em minmax(0, 1fr); align-items: center; gap: .65em; padding: .6em; border: 1px solid rgba(181, 200, 225, .13); border-radius: .7em; background: rgba(10, 15, 36, .45); }
+.tuto-m-pool .tuto-m-champ { width: 3em; height: 3em; }
+.tuto-m-pool b { display: block; font-size: .92em; }
+.tuto-m-niveau { display: inline-flex; align-items: center; gap: .4em; color: var(--nxt5-text-secondary); font-size: .76em; }
+.tuto-m-niveau::before { content: ""; flex: none; width: .7em; height: .7em; border-radius: 50%; }
+.tuto-m-niveau.is-confiance::before { background: var(--nxt5-accent); box-shadow: 0 0 .6em var(--nxt5-accent); }
+.tuto-m-niveau.is-situationnel::before { background: var(--nxt5-accent-2); }
+.tuto-m-niveau.is-validation::before { width: .55em; height: .55em; border: 2px solid var(--tuto-violet); }
+.tuto-m-niveau.is-entrainement::before { width: .55em; height: .55em; border: 2px dashed var(--tuto-fuchsia); }
+.tuto-m-legende { display: flex; flex-wrap: wrap; gap: .4em 1em; padding: .7em .8em; border: 1px solid rgba(181, 200, 225, .13); background: rgba(10, 15, 36, .3); }
+.tuto-m-legende > span:not(.tuto-spot) { display: flex; flex-wrap: wrap; align-items: center; gap: .4em .9em; }
+.tuto-m-legende b { color: var(--nxt5-muted); font-size: .72em; font-weight: 650; letter-spacing: .08em; text-transform: uppercase; }
+
+/* 11 — Compositions */
+.tuto-m-slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .45em; }
+.tuto-m-slot { display: grid; justify-items: center; gap: .3em; padding: .6em .3em .55em; border: 1px solid rgba(125, 211, 252, .28); border-radius: .75em; background: rgba(10, 15, 36, .45); text-align: center; }
+.tuto-m-slot .tuto-m-champ { width: 3.1em; height: 3.1em; }
+.tuto-m-slot b { font-size: .76em; }
+.tuto-m-slot small { display: flex; align-items: center; gap: .25em; color: var(--nxt5-muted); font: 650 .64em var(--tuto-mono); }
+.tuto-m-slot.is-cible { border-style: dashed; border-color: rgba(103, 232, 249, .65); background: rgba(103, 232, 249, .07); }
+.tuto-m-sugg { display: grid; grid-template-columns: 2.4em minmax(0, 1fr) auto; align-items: center; gap: .6em; padding: .45em .55em; border: 1px solid rgba(181, 200, 225, .12); border-radius: .6em; background: rgba(10, 15, 36, .45); font-size: .86em; }
+.tuto-m-sugg .tuto-m-champ { width: 2.4em; height: 2.4em; }
+.tuto-m-sugg small { display: block; color: var(--nxt5-muted); font-size: .85em; }
+.tuto-m-plan { padding: .75em .85em; border: 1px solid rgba(181, 200, 225, .2); border-radius: .7em; background: rgba(6, 11, 30, .65); color: var(--nxt5-text-secondary); font-size: .86em; }
+
+/* 12 — Planning */
+.tuto-m-icone { display: grid; place-items: center; width: 2.2em; height: 2.2em; border: 1px solid rgba(196, 181, 253, .38); border-radius: .15em; background: rgba(15, 20, 45, .5); }
+.tuto-m-semaine { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .35em; }
+.tuto-m-jour { display: grid; justify-items: center; gap: .15em; padding: .5em .2em; border: 1px solid rgba(181, 200, 225, .13); border-radius: .6em; background: rgba(10, 15, 36, .4); font-size: .78em; }
+.tuto-m-jour b { font-size: 1.25em; font-variant-numeric: tabular-nums; }
+.tuto-m-jour i { color: var(--nxt5-muted); font-size: .8em; font-style: normal; }
+.tuto-m-jour.is-dispo { border-color: rgba(103, 232, 249, .55); background: rgba(103, 232, 249, .09); }
+.tuto-m-jour.is-dispo i:last-child { color: var(--nxt5-accent); }
+.tuto-m-deux { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .8em; }
+.tuto-m-zone-texte { margin-top: .4em; padding: .65em .8em; border: 1px solid rgba(181, 200, 225, .2); border-radius: .6em; background: rgba(6, 11, 30, .65); font-size: .86em; }
+.tuto-m-compteur { margin-top: .3em; color: var(--nxt5-muted); font-size: .74em; text-align: right; }
+.tuto-m-precision { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: .55em; padding: .45em 0; font-size: .82em; }
+.tuto-m-precision b { display: block; font-size: .95em; }
+.tuto-m-precision span span { color: var(--nxt5-text-secondary); }
+.tuto-m-seances { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5em; }
+.tuto-m-seance { display: grid; align-content: start; gap: .25em; padding: .75em; border: 1px solid rgba(181, 200, 225, .14); border-radius: .75em; background: rgba(10, 15, 36, .5); font-size: .84em; }
+.tuto-m-seance.is-entrainement { border-top: 2px solid var(--nxt5-accent); }
+.tuto-m-seance.is-debrief { border-top: 2px solid var(--tuto-fuchsia); }
+.tuto-m-seance-jour { color: var(--nxt5-muted); font: 650 .8em var(--tuto-mono); }
+.tuto-m-seance b { font-size: 1.02em; line-height: 1.25; }
+
+/* 13 — Profil */
+.tuto-m-profil-tete { display: grid; grid-template-columns: 4.2em minmax(0, 1fr) auto; align-items: center; gap: .85em; }
+.tuto-m-avatar { display: block; width: 4.2em; height: 4.2em; overflow: hidden; border: 2px solid transparent; border-radius: 50%; background: linear-gradient(#141a38, #141a38) padding-box, var(--nxt5-spectrum-gradient) border-box; }
+.tuto-m-avatar img { width: 100%; height: 100%; object-fit: cover; object-position: center 18%; }
+.tuto-m-duel { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: .8em; }
+.tuto-m-duel .tuto-m-champ { width: 3.4em; height: 3.4em; }
+.tuto-m-vs { display: grid; gap: .15em; text-align: center; }
+.tuto-m-vs b { color: var(--nxt5-muted); font: 650 .78em var(--tuto-mono); letter-spacing: .2em; }
+.tuto-m-vs span { font-size: .92em; font-weight: 650; }
+.tuto-m-vs small { color: var(--nxt5-muted); font-size: .8em; }
+
+/* 14 — Carte & Wrapped */
+.tuto-m-vitrine { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 1.2em; }
+.tuto-carte-scene { perspective: 1200px; }
+.tuto-carte { position: relative; aspect-ratio: 5 / 7; transform-style: preserve-3d; transition: transform 900ms var(--nxt5-ease-out); }
+.tuto-carte.is-retournee { transform: rotateY(180deg); }
+.tuto-carte-face { position: absolute; inset: 0; overflow: hidden; border: 1.5px solid transparent; border-radius: 1em; -webkit-backface-visibility: hidden; backface-visibility: hidden; background: linear-gradient(#11163a, #11163a) padding-box, linear-gradient(150deg, #67e8f9, #a78bfa 45%, #e879f9) border-box; box-shadow: 0 1.6em 3.2em rgba(2, 6, 17, .6), 0 0 2.5em rgba(139, 92, 246, .3); }
+.tuto-carte-art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 20%; }
+.tuto-carte-recto::before { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, rgba(17, 22, 58, 0) 38%, rgba(17, 22, 58, .94) 80%), linear-gradient(120deg, rgba(103, 232, 249, .18), transparent 40%, rgba(232, 121, 249, .16)); }
+.tuto-carte-recto::after { content: ""; position: absolute; inset: 0; z-index: 2; background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .22) 45%, transparent 58%); background-size: 250% 100%; animation: tuto-reflet 6s var(--nxt5-ease-out) infinite; }
+.tuto-carte-haut { position: absolute; z-index: 3; top: .8em; left: .8em; right: .8em; display: flex; align-items: center; justify-content: space-between; }
+.tuto-carte-haut img { width: 2em; height: 2em; }
+.tuto-carte-bas { position: absolute; z-index: 3; left: .9em; right: .9em; bottom: .9em; display: grid; gap: .5em; }
+.tuto-carte-bas > b { font-size: 1.35em; line-height: 1.1; letter-spacing: -.02em; }
+.tuto-carte-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .3em; padding-top: .55em; border-top: 1px solid rgba(196, 181, 253, .3); }
+.tuto-carte-stats > span { display: grid; color: var(--nxt5-text-secondary); font-size: .66em; }
+.tuto-carte-stats strong { color: var(--nxt5-text); font-size: 1.55em; font-variant-numeric: tabular-nums; }
+.tuto-carte-verso { display: grid; align-content: center; gap: .7em; padding: 1.2em; transform: rotateY(180deg); background: var(--nxt5-glass-reflection), linear-gradient(135deg, #1d2448, #231d4a 60%, #16203a) padding-box, linear-gradient(150deg, #67e8f9, #a78bfa 45%, #e879f9) border-box; }
+.tuto-carte-verso img { width: 3.2em; height: 3.2em; }
+.tuto-carte-verso dl { display: grid; gap: .45em; font-size: .78em; }
+.tuto-carte-verso dl div { display: flex; justify-content: space-between; gap: .5em; padding-bottom: .35em; border-bottom: 1px solid rgba(196, 181, 253, .18); }
+.tuto-carte-verso dt { color: var(--nxt5-muted); }
+.tuto-carte-verso dd { font-weight: 650; text-align: right; }
+.tuto-carte-verso p { color: var(--nxt5-text-secondary); font-size: .74em; }
+.tuto-m-vitrine-cote { display: grid; gap: .8em; min-width: 0; }
+.tuto-retourner { display: inline-flex; align-items: center; justify-content: center; gap: .45em; min-height: 44px; padding: .65em 1em; border-radius: .15em; background-image: var(--nxt5-primary-gradient); color: var(--nxt5-on-accent); font-size: .88em; font-weight: 700; cursor: pointer; box-shadow: 0 .6em 1.6em rgba(59, 130, 246, .3); }
+.tuto-m-chapitres { display: flex; align-items: center; gap: .35em; }
+.tuto-m-chapitres i { width: 1.6em; height: .32em; border-radius: 999px; background: rgba(196, 181, 253, .25); }
+.tuto-m-chapitres i.is-on { width: 2.6em; background: var(--nxt5-spectrum-gradient); }
+
+/* 15 — Discord */
+.tuto-m-discord { gap: .5em; }
+.tuto-m-salon { display: flex; align-items: center; gap: .5em; padding: .55em .2em; border-bottom: 1px solid rgba(181, 200, 225, .12); font-size: .9em; font-weight: 650; }
+.tuto-m-salon > svg { color: var(--nxt5-muted); }
+.tuto-m-msg { display: grid; grid-template-columns: 2.5em minmax(0, 1fr); align-items: start; gap: .7em; padding: .4em .3em; }
+.tuto-m-msg > span:nth-child(2) { display: grid; justify-items: start; gap: .2em; min-width: 0; }
+.tuto-m-av { display: grid; place-items: center; width: 2.5em; height: 2.5em; border: 1px solid rgba(196, 181, 253, .5); border-radius: 50%; background: linear-gradient(135deg, rgba(103, 232, 249, .35), rgba(139, 92, 246, .5)); font-size: .85em; font-weight: 700; }
+.tuto-m-av.is-bot { background: #11163a; }
+.tuto-m-av img { width: 1.7em; height: 1.7em; }
+.tuto-m-qui { display: flex; align-items: center; gap: .45em; font-size: .85em; font-weight: 650; }
+.tuto-m-qui em { padding: .1em .4em; border-radius: .3em; background: rgba(139, 92, 246, .35); color: #ede9fe; font: normal 650 .7em var(--tuto-mono); }
+.tuto-m-qui small { color: var(--nxt5-muted); font-size: .85em; font-weight: 400; }
+.tuto-m-commande { padding: .15em .45em; border: 1px solid rgba(103, 232, 249, .25); border-radius: .4em; background: rgba(103, 232, 249, .08); color: var(--nxt5-accent); font: 500 .86em var(--tuto-mono); }
+.tuto-m-embed { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .7em; width: 100%; padding: .75em .85em; border-left: 3px solid var(--tuto-violet); border-radius: .6em; background: rgba(10, 15, 36, .6); }
+.tuto-m-embed b { display: block; font-size: .92em; }
+.tuto-m-embed small { display: block; color: var(--nxt5-text-secondary); font: 500 .78em var(--tuto-mono); }
+.tuto-m-embed > svg { color: var(--nxt5-accent-2); }
+.tuto-m-visuel { position: relative; isolation: isolate; display: grid; gap: .6em; width: 100%; padding: .9em; overflow: hidden; border: 1px solid rgba(196, 181, 253, .4); border-radius: .7em; background: var(--nxt5-glass-reflection), linear-gradient(135deg, #1d2448, #231d4a 60%, #16203a); }
+.tuto-m-visuel::after { content: ""; position: absolute; inset: 0; z-index: -1; opacity: .18; background: url("/assets/home-motion/atmosphere.webp") center 70% / cover; }
+.tuto-m-visuel .tuto-m-compo { gap: .35em; }
+.tuto-m-visuel .tuto-m-champ { width: 2.4em; height: 2.4em; }
+
+/* Aide */
+.tuto-bloc { padding: clamp(18px, 2.4cqw, 28px); border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-glass-reflection), var(--tuto-verre); }
+.tuto-bloc > h3 { font-size: 1.25rem; letter-spacing: -.025em; }
+.tuto-bloc > p { margin: .3rem 0 1rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); }
+.tuto-droits { display: grid; list-style: none; padding: 0; }
+.tuto-droits li { display: grid; grid-template-columns: minmax(0, 1fr); gap: .45rem; padding: .8rem 0; border-top: 1px solid var(--tuto-trait); }
+.tuto-droits li > span:first-child { font-size: var(--nxt5-font-ui); font-weight: 650; }
+.tuto-droits small { color: var(--nxt5-muted); font-size: var(--nxt5-font-micro); }
+.tuto-qui { display: flex; flex-wrap: wrap; gap: .3rem; }
+.tuto-qui i { padding: .2rem .55rem; border: 1px solid rgba(196, 181, 253, .3); border-radius: 999px; background: rgba(139, 92, 246, .16); color: var(--nxt5-accent-2); font-size: .75rem; font-style: normal; font-weight: 650; white-space: nowrap; }
+.tuto-qui i.is-tous { border-color: rgba(103, 232, 249, .35); background: rgba(103, 232, 249, .1); color: #cffafe; }
+.tuto-faq details { border-top: 1px solid var(--tuto-trait); }
+.tuto-faq details:last-child { border-bottom: 1px solid var(--tuto-trait); }
+.tuto-faq summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 1rem; min-height: 48px; padding: .8rem 0; font-weight: 650; list-style: none; cursor: pointer; }
+.tuto-faq summary::-webkit-details-marker { display: none; }
+.tuto-faq summary svg { width: 1.1rem; height: 1.1rem; color: var(--nxt5-accent-2); transition: transform 300ms var(--nxt5-ease-out); }
+.tuto-faq details[open] summary svg { transform: rotate(45deg); color: var(--nxt5-accent); }
+.tuto-faq details p { max-width: 40rem; padding-bottom: 1rem; color: var(--nxt5-text-secondary); }
+.tuto-glossaire { margin-top: clamp(16px, 2.5cqw, 32px); }
+.tuto-glossaire dl { display: grid; gap: 1px; overflow: hidden; border: 1px solid rgba(196, 181, 253, .16); border-radius: 1rem; background: rgba(196, 181, 253, .16); }
+.tuto-glossaire dl div { padding: 1rem 1.1rem; background: rgba(10, 14, 36, .92); }
+.tuto-glossaire dt { font-weight: 700; letter-spacing: -.01em; }
+.tuto-glossaire dd { margin-top: .25rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); }
+
+/* Final */
+.tuto-finale { position: relative; isolation: isolate; overflow: hidden; display: grid; padding: clamp(40px, 8cqw, 112px) clamp(24px, 5cqw, 64px); border: 1px solid var(--nxt5-glass-border); border-radius: calc(var(--nxt5-radius-panel) * 1.4); }
+.tuto-finale::before { content: ""; position: absolute; inset: 0; z-index: -2; background: linear-gradient(180deg, rgba(10, 14, 36, .85) 0%, rgba(6, 10, 28, .25) 40%, rgba(6, 10, 28, .55) 100%), url("/assets/home-motion/atmosphere.webp") center 60% / cover no-repeat; }
+.tuto-finale-cinq { position: absolute; z-index: -1; right: -6%; top: 50%; width: min(48%, 520px); height: auto; opacity: .35; transform: translateY(-50%) rotate(4deg); filter: drop-shadow(0 40px 80px rgba(76, 29, 149, .6)); }
+.tuto-finale-texte { display: grid; gap: 1rem; max-width: 42rem; }
+.tuto-finale h2 { display: grid; gap: .15em; font-size: clamp(2.3rem, 7cqw, 5.4rem); line-height: .95; letter-spacing: -.055em; font-weight: 800; }
+.tuto-finale h2 .tuto-mot { height: clamp(48px, 8.4cqw, 116px); }
+.tuto-finale-texte > p:not(.tuto-surtitre) { max-width: 32rem; color: var(--nxt5-text-secondary); font-size: 1.05rem; }
+
+/* Mises en page plus larges, selon la place réellement disponible */
+@container tuto (min-width: 640px) {
+  .tuto-parcours { grid-template-columns: 1fr 1fr; }
+  .tuto-glossaire dl { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tuto-droits li { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+  .tuto-droits small { grid-column: 1 / -1; }
+  .tuto-qui { justify-content: flex-end; }
+  .tuto-finale-cinq { opacity: .9; }
+}
+@container tuto (min-width: 860px) {
+  .tuto-hero { grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); }
+  .tuto-depart-grille, .tuto-aide-grille { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); }
+  .tuto-aide-grille { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .tuto-glossaire dl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@container tuto (min-width: 980px) {
+  .tuto-chapitre { grid-template-columns: minmax(0, 5fr) minmax(0, 6.2fr); }
+  .tuto-chapitre.is-inverse .tuto-ch-texte { order: 2; }
+  .tuto-ecran { position: sticky; top: calc(76px + 1.5rem); }
+}
+@container tuto (max-width: 520px) {
+  .tuto-noeud b { display: none; }
+  .tuto-noeud { padding: .4rem .75rem; }
+  .tuto-soiree li { grid-template-columns: auto minmax(0, 1fr); }
+  .tuto-soiree-lien { grid-column: 2; min-height: 32px; }
+}
+
+/* Mouvement réduit et mode performance : la page reste complète, sans animation ni reflet */
+@media (prefers-reduced-motion: reduce) {
+  .nxt5-tutorial .tuto-mot-reflet, .nxt5-tutorial .tuto-cinq-reflet { display: none; }
+  .nxt5-tutorial .tuto-comete, .nxt5-tutorial .tuto-comete-trace { stroke-dasharray: none; opacity: .5; }
+}
+html.nxt5-low-gpu .nxt5-tutorial .tuto-mot-reflet,
+html.nxt5-low-gpu .nxt5-tutorial .tuto-cinq-reflet,
+html.nxt5-low-gpu .nxt5-tutorial .tuto-anneau-halo { display: none; }
+html.nxt5-low-gpu .nxt5-tutorial :is(.tuto-cinq img, .tuto-finale-cinq) { filter: none; }
+html.nxt5-low-gpu .nxt5-tutorial :is(.tuto-comete, .tuto-comete-trace) { stroke-dasharray: none; opacity: .5; }

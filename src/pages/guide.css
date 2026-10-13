@@ -30,3 +30,16 @@
 @media (max-width: 480px) {
  .nxt5-guide-actions button { width: 100%; }
 }
+.nxt5-guide-tutorial { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem 1.5rem; margin-bottom: 1.5rem; padding: 1.25rem 1.5rem; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: linear-gradient(100deg, rgba(10, 14, 36, .94) 0%, rgba(10, 14, 36, .6) 55%, rgba(10, 14, 36, .25) 100%), url("/assets/home-motion/atmosphere.webp") center 65% / cover no-repeat; box-shadow: var(--nxt5-glass-shadow); }
+.nxt5-guide-tutorial-art { width: 5.5rem; height: auto; filter: drop-shadow(0 12px 24px rgba(76, 29, 149, .55)); }
+.nxt5-guide-tutorial-meta { font-size: var(--nxt5-font-micro); font-weight: 650; line-height: 1.5; letter-spacing: .1em; text-transform: uppercase; color: var(--nxt5-accent); }
+.nxt5-guide-tutorial h3 { margin-top: .25rem; color: var(--nxt5-text); font-size: 1.35rem; font-weight: 750; line-height: 1.3; letter-spacing: -.03em; }
+.nxt5-guide-tutorial-copy > p:last-child { max-width: 46rem; margin-top: .35rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); line-height: 1.6; }
+.nxt5-guide-tutorial-link { color: var(--nxt5-accent-2); }
+.nxt5-guide-tutorial-link:hover { background: rgba(139, 92, 246, .12); color: var(--nxt5-text); }
+html.nxt5-low-gpu .nxt5-guide-tutorial-art { filter: none; }
+@media (max-width: 720px) {
+ .nxt5-guide-tutorial { grid-template-columns: auto minmax(0, 1fr); padding: 1rem; }
+ .nxt5-guide-tutorial > button { grid-column: 1 / -1; }
+ .nxt5-guide-tutorial-art { width: 4rem; }
+}

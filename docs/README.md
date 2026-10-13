@@ -53,6 +53,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 
 | Date | Rapport |
 | --- | --- |
+| 2026-10-13 | [Tutoriel complet dans l’Aide](tutoriel-aide-2026-10-13.md) |
 | 2026-10-12 | [Écran de chargement en verre violet](design-glass-loading-2026-10-12.md) |
 | 2026-10-12 | [Verre violet dans tous les exports visuels](design-glass-exports-2026-10-12.md) |
 | 2026-10-12 | [Verre violet dans l’ensemble du site](design-glass-sitewide-2026-10-12.md) |
