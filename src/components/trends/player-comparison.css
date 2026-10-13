@@ -1,15 +1,4 @@
 .nxt5-surface.player-comparison-surface { padding: 0; }
-.nxt5-trends-page[data-statistics="true"] > .nxt5-page-header { padding: 0 0 16px; margin-bottom: 16px; }
-.nxt5-trends-page[data-statistics="true"] > .nxt5-page-header :is(.nxt5-page-eyebrow, .nxt5-page-subtitle) { display: none; }
-.nxt5-trends-page[data-statistics="true"] .trends-tabs small { display: none; }
-.nxt5-trends-page[data-statistics="true"] .trends-tabs > button { min-height: 56px; padding-block: 10px; gap: 8px; }
-.nxt5-trends-page[data-statistics="true"] .trends-navigation { margin-bottom: 16px; }
-@container trends-page (min-width: 900px) {
-  .nxt5-trends-page[data-statistics="true"] .trends-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding: 14px 20px; margin-bottom: 16px; }
-  .nxt5-trends-page[data-statistics="true"] .trends-filter-controls { flex: 1 1 570px; }
-  .nxt5-trends-page[data-statistics="true"] .trends-scope { margin: 0; padding: 0; border: 0; flex: 1 1 220px; }
-  .nxt5-trends-page[data-statistics="true"] .trends-results-context { flex: 0 0 100%; margin: 0; }
-}
 .player-comparison { container: player-comparison / inline-size; min-width: 0; color: var(--nxt5-text); background: radial-gradient(ellipse at 95% 0%, #7c3aed33, transparent 45%), linear-gradient(150deg, #263248, #211c3b 45%, #141e30); }
 .player-comparison-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px 28px; padding: 30px 32px 24px; }
 .player-comparison-heading-copy { flex: 1 1 380px; min-width: 0; }

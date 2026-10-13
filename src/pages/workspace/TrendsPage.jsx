@@ -1020,7 +1020,7 @@ function TrendsPage({ data, selectedTeamId }) {
     setTrendPanel("playstyle");
   };
 
-  return <div className="nxt5-data-dense nxt5-trends-page" data-statistics={trendPanel === "statistics"}>
+  return <div className="nxt5-data-dense nxt5-trends-page">
     {detailHeader || <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.")}>
       {trendPanel !== "comparison" && <Button type="button" variant="ghost" icon={ImageIcon} disabled={exportState === "loading"} onClick={exportTrends}>{exportState === "loading" ? t("Export en cours…") : t("Exporter la synthèse")}</Button>}
     </PageHeader>}
