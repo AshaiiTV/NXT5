@@ -122,7 +122,7 @@ function ringRot(lt) {
 
 /** Brand bug (always-on layer). */
 function brandBug(ctx, K) {
-  K.logo(ctx, 1772, 62, 150, { alpha: 0.55, glow: 2 });
+  K.logo(ctx, 1772, 62, 150, { alpha: 0.55, glow: 6, lineWidth: 2.4 });
 }
 
 /** Accelerating inward vacuum: streaks fall toward the ring centre. */
@@ -509,9 +509,10 @@ function drawNodes(ctx, f, K, st, nodeAlpha) {
     ctx.arc(0, 0, 24 * pulse, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
-    // label on a small ink pill, radially outside the node
+    // label on a small ink pill, radially outside the node (pops in right after the 8.0 slam frame)
     const lp = dl >= 0 ? 1 + 0.22 * (1 - E.outBack(clamp(dl / 0.22), 2)) : 1;
     ctx.save();
+    ctx.globalAlpha *= clamp((lt - 0.03) / 0.05);
     ctx.translate(sp.lx, sp.ly);
     ctx.scale(lp, lp);
     const pw = sp.w + 30;
@@ -773,7 +774,7 @@ function paint(ctx, f, K) {
   const giantOn = lt >= loc(9) - 0.04 && lt < T_COUNT;
   const countOn = lt >= T_COUNT;
   const ringA = (countOn ? 0.25 : giantOn ? 0.35 : 1) * slamA;
-  const nodeA = (countOn ? 0.35 - 0.25 * seg(lt, T_COUNT, T_COUNT + 0.12) : giantOn ? 0.35 : 1) * slamA;
+  const nodeA = (countOn ? 0.35 * (1 - seg(lt, T_COUNT, T_COUNT + 0.12)) : giantOn ? 0.35 : 1) * slamA;
   const specQ = seg(lt, NODES[2].tf + LAND, NODES[2].tf + LAND + 0.1);
   const glowW = 12 + 20 * seg(lt, 0, loc(11, 2));
   const lw = lt >= loc(10) ? 8 : lt >= loc(9) ? 6 : 4;
@@ -904,16 +905,20 @@ function drawCrack(ctx, K, t) {
     const main = c.born == null;
     const tip = strokeTo(c, c.L * local);
     tips.push(tip);
+    // light glow (reads on the black), ink fissure lips (read on the white « 1 »), then the white core
     ctx.globalCompositeOperation = 'lighter';
-    ctx.strokeStyle = 'rgba(103,232,249,0.22)';
-    ctx.lineWidth = main ? 14 : 11;
-    ctx.stroke();
-    ctx.strokeStyle = 'rgba(103,232,249,0.45)';
-    ctx.lineWidth = main ? 7 : 5;
+    ctx.strokeStyle = 'rgba(103,232,249,0.24)';
+    ctx.lineWidth = main ? 16 : 12;
     ctx.stroke();
     ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = 'rgba(2,6,17,0.92)';
+    ctx.lineWidth = main ? 9 : 7;
+    ctx.stroke();
+    ctx.strokeStyle = '#67e8f9';
+    ctx.lineWidth = main ? 5 : 3.8;
+    ctx.stroke();
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = main ? 3.5 : 2.6;
+    ctx.lineWidth = main ? 3 : 2.2;
     ctx.stroke();
   });
   // bright tips
@@ -956,6 +961,9 @@ export default {
     const edge = K.seg(f.t, T_END - 3.5 / 60, T_END - 1 / 60);
     drawDigit(ctx, g, K, DIGITS[4], { band: false, edge });
     drawCrack(ctx, K, f.t);
+    // float rounding: barT(12) = 19.200000000000003, so the renderer can still ask S03 for the 12.0 frame
+    // itself; let the automatic impact FX fire on that exact downbeat (the shatter follows next frame).
+    if (f.t >= T_END - 1e-6) return { flash: 0.35 };
     return { auto: false, shake: 0, rgb: 0, zoom: 0, flash: 0 };
   },
 };

@@ -44,7 +44,7 @@ export function baseLayers(ctx, f, K, { particles = 1 } = {}) {
 }
 /** Small NXT5 logo at the top-right corner (always on from bar 4 to bar 44). */
 export function brandBug(ctx, K, alpha = 1) {
-  K.logo(ctx, 1772, 62, 150, { alpha: 0.55 * alpha, glow: 1.4, lineWidth: 2.4 });
+  K.logo(ctx, 1772, 62, 150, { alpha: 0.55 * alpha, glow: 6, lineWidth: 2.4 });
 }
 
 // ------------------------------------------------------------------ all-out-attack bands

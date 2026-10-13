@@ -316,5 +316,5 @@ export function particles3(ctx, f, K, alpha = 1) {
 /** The small brand bug (top right). */
 export function brandBug(ctx, K, alpha = 1) {
   if (alpha <= 0) return;
-  K.logo(ctx, 1772, 62, 150, { alpha: 0.55 * alpha, glow: 10, lineWidth: 2.2 });
+  K.logo(ctx, 1772, 62, 150, { alpha: 0.55 * alpha, glow: 6, lineWidth: 2.4 });
 }

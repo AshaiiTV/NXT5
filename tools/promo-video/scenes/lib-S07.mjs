@@ -46,7 +46,7 @@ export function brandBug(ctx, K, alpha = 0.55) {
   if (alpha <= 0) return;
   const bw = 260;
   const bh = 120;
-  const c = bitmap('S07-brandbug', bw, bh, (x) => K.logo(x, bw / 2, bh / 2, 150, { glow: 14, lineWidth: 2.4 }));
+  const c = bitmap('S07-brandbug', bw, bh, (x) => K.logo(x, bw / 2, bh / 2, 150, { glow: 6, lineWidth: 2.4 }));
   ctx.save();
   ctx.globalAlpha *= alpha;
   ctx.drawImage(c, 1772 - bw / 2, 62 - bh / 2);

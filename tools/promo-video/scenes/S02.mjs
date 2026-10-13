@@ -1013,7 +1013,7 @@ export default {
 
     // brand bug (visible from the bar-4 impact), dimmed while a card slams in under it
     const bugA = 0.55 - 0.35 * (1 - seg(entering, 0.15, 0.3));
-    K.logo(ctx, 1772, 62, 150, { alpha: bugA, glow: 10, draw: E.outCubic(seg(lt, 0, 0.5)) });
+    K.logo(ctx, 1772, 62, 150, { alpha: bugA, glow: 6, lineWidth: 2.4, draw: E.outCubic(seg(lt, 0, 0.5)) });
 
     // ---- FX
     // bar-4 impact: own soft values (no red-heavy auto split); bar-6 brass stab: visible hit

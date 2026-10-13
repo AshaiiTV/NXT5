@@ -14,6 +14,8 @@ const CHAOS_T = 0.8;
 const ORDER_T = 1.6;
 const POP = [1.6, 2.0, 2.2, 2.4, 2.7, 2.8]; // grid panels pop on the six hits of bar 33
 const IMP_T = 3.2;
+const WIN_IN = IMP_T - 0.08; // the Importer window slam starts early so it has landed on the 34.0 downbeat
+const SWEEP_T = 1.6 - 0.04; // the 33.0 sweep is already on screen on the downbeat frame
 const TICKS = [3.6, 4.0, 4.2, 4.4]; // export steps tick on the kicks of bar 34
 const FILE_T = 4.8;
 const LAND_T = 5.6;
@@ -362,9 +364,9 @@ function drawSilhouettes(ctx, f, K) {
 
 function drawAvatars(ctx, f, K) {
   const lt = f.lt;
-  if (lt < ORDER_T + 0.12 || lt >= IMP_T) return;
+  if (lt < ORDER_T + 0.12 || lt >= WIN_IN) return;
   // gone before the Importer window slams in on 34.0 (never over its title bar)
-  const out = K.seg(lt, IMP_T - 0.1, IMP_T);
+  const out = K.seg(lt, WIN_IN - 0.1, WIN_IN);
   for (let i = 0; i < 5; i++) {
     const a = K.E.outBack(K.seg(lt, ORDER_T + 0.12 + i * 0.03, ORDER_T + 0.32 + i * 0.03));
     if (a <= 0) continue;
@@ -425,7 +427,7 @@ function drawChaos(ctx, f, K) {
     const st = chaosPos(K, f, c);
     if (st.pin <= 0) continue;
     // on 33.0 every piece is pulled into its cell as the sweep passes it (outExpo, rotation to 0)
-    const t0 = ORDER_T + passDelay(c.x);
+    const t0 = SWEEP_T + passDelay(c.x);
     const q = K.E.outExpo(K.seg(lt, t0, t0 + 0.2));
     const lit = lt >= POP[c.g];
     if (q >= 1 && lit) continue; // absorbed by the lit cell
@@ -467,7 +469,7 @@ function drawChaos(ctx, f, K) {
 }
 
 function drawSweep(ctx, K, lt) {
-  const p = K.seg(lt, ORDER_T, ORDER_T + 0.22);
+  const p = K.seg(lt, SWEEP_T, SWEEP_T + 0.22);
   if (p <= 0 || p >= 1) return;
   const x = K.lerp(-300, 2200, K.E.outQuad(p));
   ctx.save();
@@ -542,14 +544,14 @@ function drawGrid(ctx, f, K) {
 
 function drawWindow(ctx, f, K) {
   const lt = f.lt;
-  if (lt < IMP_T) return;
-  const p = K.seg(lt, IMP_T, IMP_T + 0.14);
+  if (lt < WIN_IN) return;
+  const p = K.seg(lt, WIN_IN, WIN_IN + 0.12); // lands on the 34.0 brass, not after it
   const s = K.lerp(1.3, 1, K.E.outExpo(p));
   const bmp = windowBitmap(K);
   const cx = WIN.x + WIN.w / 2;
   const cy = WIN.y + WIN.h / 2;
   ctx.save();
-  ctx.globalAlpha = K.clamp(p * 6);
+  ctx.globalAlpha = K.clamp(p * 14);
   ctx.translate(cx, cy);
   ctx.scale(s, s);
   ctx.translate(-WIN.w / 2, -WIN.h / 2);
@@ -945,7 +947,9 @@ export default {
   startBar: 32,
   endBar: 36,
   transitionOut: 'slash',
-  draw(ctx, f, K) {
+  draw(ctx, f0, K) {
+    // f.lt and f.at() round differently: nudge lt so a frame that sits exactly on a downbeat counts as on/after it
+    const f = { ...f0, lt: f0.lt + 1e-6 };
     const lt = f.lt;
     L.baseLayers(ctx, f, K);
     if (lt < 0) {

@@ -3,43 +3,113 @@
 import { createCanvas } from '@napi-rs/canvas';
 
 const bmpCache = new Map();
+const LIFT = 'brightness(1.22) contrast(1.12) saturate(1.15)';
 
 /**
- * Builds (once) a bitmap from stacked crops of assets/ui screenshots.
- * parts: [{ file, src: [sx, sy, sw, sh], gap? }] — all crops share the width of the first one (scaled to fit).
- * w: display width in px. Returns { c, w, h, s, map(file-space x, y, partIndex) -> bitmap px }.
+ * Builds (once) a bitmap from crops of assets/ui screenshots, lifted once (brightness/contrast/saturation)
+ * so the dark UI separates from the dark field at no per-frame cost.
+ * parts: [{ file, src: [sx, sy, sw, sh], x?, y?, gap? }]. When a part has `y`, the layout is explicit:
+ *   (x, y) is its top-left in "source canvas" pixels (width opts.sw, height opts.sh); otherwise parts stack.
+ * w: display width in px. opts: { sw, sh, bg, pad, lift, decorate(ctx, s) } — decorate draws in bitmap px
+ * on top of the crops (static: role glyphs, dividers…).
+ * Returns { c, w, h, s, map(file-space x, y, partIndex) -> bitmap px, at(canvas x, y) -> bitmap px }.
  */
 export function screenBitmap(K, key, parts, w, opts = {}) {
   if (bmpCache.has(key)) return bmpCache.get(key);
-  const { pad = 0, bg = '#151c30' } = opts;
-  const s = (w - pad * 2) / parts[0].src[2];
+  const { pad = 0, bg = '#151c30', lift = true } = opts;
+  const explicit = parts.some((p) => p.y != null);
+  const sw = opts.sw || parts[0].src[2];
+  const s = (w - pad * 2) / sw;
   const offs = [];
-  let h = pad;
-  parts.forEach((p, i) => {
-    if (i) h += (p.gap || 0) * s;
-    offs.push(h);
-    h += p.src[3] * s;
-  });
-  h += pad;
+  let hs = 0; // source-canvas height
+  if (explicit) {
+    parts.forEach((p) => offs.push([p.x || 0, p.y || 0]));
+    hs = opts.sh || Math.max(...parts.map((p, i) => offs[i][1] + p.src[3]));
+  } else {
+    parts.forEach((p, i) => {
+      if (i) hs += p.gap || 0;
+      offs.push([p.dx || 0, hs]);
+      hs += p.src[3];
+    });
+  }
   const W2 = Math.round(w);
-  const H2 = Math.round(h);
-  const c = createCanvas(W2, H2);
-  const x = c.getContext('2d');
+  const H2 = Math.round(hs * s + pad * 2);
+  const raw = createCanvas(W2, H2);
+  const x = raw.getContext('2d');
   x.imageSmoothingEnabled = true;
   x.imageSmoothingQuality = 'high';
-  x.fillStyle = bg;
+  if (typeof bg === 'string') x.fillStyle = bg;
+  else {
+    // gradient fill matching the source panel's own gradient: { x0, y0, x1, y1 (0..1), stops }
+    const g = x.createLinearGradient(bg.x0 * W2, bg.y0 * H2, bg.x1 * W2, bg.y1 * H2);
+    for (const [o, c] of bg.stops) g.addColorStop(o, c);
+    x.fillStyle = g;
+  }
   x.fillRect(0, 0, W2, H2);
   parts.forEach((p, i) => {
     const img = K.uiImage(p.file);
-    const [sx, sy, sw, sh] = p.src;
-    const dx = pad + (p.dx || 0) * s;
-    if (img) x.drawImage(img, sx, sy, sw, sh, dx, offs[i], sw * s, sh * s);
+    const [sx, sy, sw0, sh0] = p.src;
+    if (!img) return;
+    const dx = pad + offs[i][0] * s;
+    const dy = pad + offs[i][1] * s;
+    const fe = (p.feather || 0) * s;
+    if (fe <= 0) {
+      x.drawImage(img, sx, sy, sw0, sh0, dx, dy, sw0 * s, sh0 * s);
+      return;
+    }
+    // feathered crop: soft edges so stitched crops melt into the panel fill (built once)
+    const pw = Math.ceil(sw0 * s);
+    const ph = Math.ceil(sh0 * s);
+    const t = createCanvas(pw, ph);
+    const tx = t.getContext('2d');
+    tx.imageSmoothingEnabled = true;
+    tx.imageSmoothingQuality = 'high';
+    tx.drawImage(img, sx, sy, sw0, sh0, 0, 0, sw0 * s, sh0 * s);
+    tx.globalCompositeOperation = 'destination-in';
+    const gh = tx.createLinearGradient(0, 0, pw, 0);
+    const fx = Math.min(0.45, fe / pw);
+    gh.addColorStop(0, 'rgba(0,0,0,0)');
+    gh.addColorStop(fx, 'rgba(0,0,0,1)');
+    gh.addColorStop(1 - fx, 'rgba(0,0,0,1)');
+    gh.addColorStop(1, 'rgba(0,0,0,0)');
+    tx.fillStyle = gh;
+    tx.fillRect(0, 0, pw, ph);
+    const gv = tx.createLinearGradient(0, 0, 0, ph);
+    const fy = Math.min(0.45, fe / ph);
+    gv.addColorStop(0, 'rgba(0,0,0,0)');
+    gv.addColorStop(fy, 'rgba(0,0,0,1)');
+    gv.addColorStop(1 - fy, 'rgba(0,0,0,1)');
+    gv.addColorStop(1, 'rgba(0,0,0,0)');
+    tx.fillStyle = gv;
+    tx.fillRect(0, 0, pw, ph);
+    x.drawImage(t, dx, dy);
   });
-  const out = {
-    c, w: W2, h: H2, s,
-    /** source-image pixel (of part i) -> bitmap pixel */
-    map: (px, py, i = 0) => [pad + ((parts[i].dx || 0) + px - parts[i].src[0]) * s, offs[i] + (py - parts[i].src[1]) * s],
-  };
+  const map = (px, py, i = 0) => [pad + (offs[i][0] + px - parts[i].src[0]) * s, pad + (offs[i][1] + py - parts[i].src[1]) * s];
+  const at = (cx, cy) => [pad + cx * s, pad + cy * s];
+  let c = raw;
+  if (lift) {
+    c = createCanvas(W2, H2);
+    const y = c.getContext('2d');
+    y.filter = LIFT;
+    y.drawImage(raw, 0, 0);
+    y.filter = 'none';
+    y.globalCompositeOperation = 'screen';
+    y.fillStyle = 'rgba(255,255,255,0.05)';
+    y.fillRect(0, 0, W2, H2);
+    y.globalCompositeOperation = 'source-over';
+  }
+  const cx = c.getContext('2d');
+  if (opts.decorate) {
+    cx.save();
+    opts.decorate(cx, s, { map, at });
+    cx.restore();
+  }
+  // 1 px top inner highlight
+  cx.fillStyle = 'rgba(255,255,255,0.35)';
+  cx.fillRect(0, 0, W2, 1);
+  cx.fillStyle = 'rgba(255,255,255,0.08)';
+  cx.fillRect(0, 1, W2, 2);
+  const out = { c, w: W2, h: H2, s, map, at };
   bmpCache.set(key, out);
   return out;
 }
@@ -59,9 +129,9 @@ export function project(o, bx, by) {
   return [cx + x * cr - y * sr, cy + x * sr + y * cr, k * scale];
 }
 
-/** The 4 projected corners (TL, TR, BR, BL). */
-export function corners(o) {
-  return [project(o, 0, 0), project(o, o.w, 0), project(o, o.w, o.h), project(o, 0, o.h)];
+/** The 4 projected corners (TL, TR, BR, BL), optionally only down to the reveal line. */
+export function corners(o, rv = 1) {
+  return [project(o, 0, 0), project(o, o.w, 0), project(o, o.w, o.h * rv), project(o, 0, o.h * rv)];
 }
 
 function polyPath(ctx, pts) {
@@ -70,18 +140,46 @@ function polyPath(ctx, pts) {
   ctx.closePath();
 }
 
+/** Quad grown outward by `d` px along its edge normals (exact for rectangles). */
+function inflate(pts, d) {
+  const n = pts.length;
+  const nrm = (a, b) => {
+    const dx = b[0] - a[0];
+    const dy = b[1] - a[1];
+    const l = Math.hypot(dx, dy) || 1;
+    return [dy / l, -dx / l];
+  };
+  return pts.map((p, i) => {
+    const a = pts[(i + n - 1) % n];
+    const b = pts[(i + 1) % n];
+    const n1 = nrm(a, p);
+    const n2 = nrm(p, b);
+    return [p[0] + (n1[0] + n2[0]) * d, p[1] + (n1[1] + n2[1]) * d];
+  });
+}
+
 /**
  * Draws a bitmap as a 2.5D glass screen rotated around its vertical axis (true perspective via strips).
  * o: { cx, cy, w, h (display size at scale 1), rotY, roll, scale, alpha, reveal (0..1 wipe from top),
- *      glare (-1 or 0..1), frame (accent colour), shadow (0..1), glow (0..1) }
+ *      glare (-1 or 0..1), frame (accent colour), shadow (0..1), glow (0..1), plate (ink plate alpha),
+ *      bmp2 + blend (crossfade to a second keyframe bitmap of the same size) }
  */
 export function drawScreen(ctx, K, bmp, o) {
   const { C, rgba, clamp } = K;
-  const { w, h, rotY = 0, roll = 0, scale = 1, alpha = 1, reveal = 1, glare = -1, frame = C.cyan, shadow = 1, glow = 0.6, strips = 44 } = o;
+  const { w, h, roll = 0, scale = 1, alpha = 1, reveal = 1, glare = -1, frame = C.cyan, shadow = 1, glow = 0.6, strips = 44, plate = 0.75 } = o;
+  const rotY = o.rotY || 0;
   if (alpha <= 0.002 || scale <= 0.01) return;
-  const cs = corners(o);
+  const rv = clamp(reveal);
+  if (rv <= 0.001) return;
+  const cs = corners(o, rv);
   ctx.save();
   ctx.globalAlpha *= alpha;
+  // solid ink plate: separates the dark UI from the fuchsia half
+  if (plate > 0) {
+    polyPath(ctx, inflate(cs, 14 * scale));
+    ctx.fillStyle = rgba(C.ink, plate);
+    ctx.fill();
+  }
   // hard P5 drop shadow
   if (shadow > 0) {
     ctx.save();
@@ -96,8 +194,8 @@ export function drawScreen(ctx, K, bmp, o) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.lineJoin = 'round';
-    polyPath(ctx, cs);
-    for (const [lw, a] of [[34, 0.05], [18, 0.08], [8, 0.12]]) {
+    polyPath(ctx, inflate(cs, 14 * scale));
+    for (const [lw, a] of [[30, 0.05], [14, 0.08], [6, 0.12]]) {
       ctx.lineWidth = lw * scale;
       ctx.strokeStyle = rgba(frame, a * glow);
       ctx.stroke();
@@ -105,7 +203,6 @@ export function drawScreen(ctx, K, bmp, o) {
     ctx.restore();
   }
   // strips (perspective), wiped from the top by `reveal`
-  const rv = clamp(reveal);
   ctx.save();
   polyPath(ctx, cs);
   ctx.clip();
@@ -114,19 +211,22 @@ export function drawScreen(ctx, K, bmp, o) {
   ctx.translate(o.cx, o.cy);
   ctx.rotate(roll);
   const focal = o.focal || 2000;
-  const sw = bmp.c.width / strips;
-  for (let i = 0; i < strips; i++) {
-    const u0 = (i / strips) * w - w / 2;
-    const u1 = ((i + 1) / strips) * w - w / 2;
-    const k0 = focal / (focal + u0 * Math.sin(rotY));
-    const k1 = focal / (focal + u1 * Math.sin(rotY));
-    const x0 = u0 * Math.cos(rotY) * k0 * scale;
-    const x1 = u1 * Math.cos(rotY) * k1 * scale;
-    const km = (k0 + k1) / 2;
-    const hh = h * km * scale;
-    if (rv < 1) {
-      ctx.drawImage(bmp.c, i * sw, 0, sw, bmp.c.height * rv, x0, -hh / 2, x1 - x0 + 0.8, hh * rv);
-    } else ctx.drawImage(bmp.c, i * sw, 0, sw, bmp.c.height, x0, -hh / 2, x1 - x0 + 0.8, hh);
+  const layers = [[bmp, 1]];
+  if (o.bmp2 && o.blend > 0) layers.push([o.bmp2, clamp(o.blend)]);
+  for (const [B, la] of layers) {
+    ctx.globalAlpha = alpha * la;
+    const sw = B.c.width / strips;
+    for (let i = 0; i < strips; i++) {
+      const u0 = (i / strips) * w - w / 2;
+      const u1 = ((i + 1) / strips) * w - w / 2;
+      const k0 = focal / (focal + u0 * Math.sin(rotY));
+      const k1 = focal / (focal + u1 * Math.sin(rotY));
+      const x0 = u0 * Math.cos(rotY) * k0 * scale;
+      const x1 = u1 * Math.cos(rotY) * k1 * scale;
+      const km = (k0 + k1) / 2;
+      const hh = h * km * scale;
+      ctx.drawImage(B.c, i * sw, 0, sw, B.c.height * rv, x0, -hh / 2, x1 - x0 + 0.8, hh * rv);
+    }
   }
   ctx.restore();
   // scan line of the wipe

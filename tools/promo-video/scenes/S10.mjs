@@ -1,15 +1,18 @@
 // S10 — DROP 2: four features, one Persona menu panel per bar (Vue coach, carte joueur, suivi, assistant).
+// Panels land ON the downbeats (entry starts 0.1 s early) and the outgoing panel whips off across the incoming one.
 import * as L from './lib-S09.mjs';
 
 const { BEAT, S16 } = L;
 // ------------------------------------------------------------------ timing (local seconds, bar 36 = 0)
-const ENTER = [0, 1.6, 3.2, 4.8];
-const EXIT = [1.6, 3.0, 4.8, 99];
+const BAR_T = [0, 1.6, 3.2, 4.8]; // the four downbeats
+const ENTER = [-0.1, 1.5, 3.1, 4.7]; // outExpo entry over 0.1 s → landed exactly on the downbeat
+const SWAP = 0.1; // the outgoing panel whips off during the last 0.1 s before the next downbeat
 const FROM = [-1, 1, -1, 1]; // -1 = enters from the left
 const STABS = [0, 0.6, 3.2, 3.8];
-const TOGGLE = [0.4, 0.8]; // 5 → 10 → 20
-const MORPH_T = 1.2;
-const SHEEN = [2.2, 2.7];
+const TOGGLE = [0.4, 0.8]; // 5 → 10 → 20 on the 36.1 and 36.2 kicks
+const TRACES = [[-0.04, 0.3], [0.4, 0.15], [0.8, 0.15]]; // line (re)draws: entry, then one per toggle kick
+const PAYOFF_T = 1.2; // 36.3 kick: push-in on Partie 3 + the real highlight card
+const SHEEN = [2.2, 2.7]; // 37.1.5 and 37.2.75 kicks
 const FAN_T = 2.4;
 const GHOST_T = 3.0;
 const SLASH_T = 3.1;
@@ -50,8 +53,8 @@ function jaggedOutline(K) {
   for (let i = 0; i < pts.length; i++) segs.push([pts[i], pts[(i + 1) % pts.length]]);
   return { pts, segs };
 }
-let OUTLINE = null;
-const outline = (K) => OUTLINE || (OUTLINE = jaggedOutline(K));
+const OUTLINES = new Map(); // static geometry cache (built once)
+const outline = (K) => OUTLINES.get('o') || (OUTLINES.set('o', jaggedOutline(K)), OUTLINES.get('o'));
 function outlinePath(ctx, K, inset = 0) {
   const { pts } = outline(K);
   const s = inset ? 1 - inset / (PW / 2) : 1;
@@ -81,7 +84,6 @@ function panelBitmap(K) {
     g.addColorStop(1, K.rgba(K.C.fuchsia2, 0.08));
     x.fillStyle = g;
     x.fillRect(-PW, -PH, PW * 2, PH * 2);
-    // fine diagonal hatching for texture
     x.strokeStyle = 'rgba(148,163,184,0.04)';
     x.lineWidth = 2;
     x.beginPath();
@@ -115,126 +117,319 @@ function panelGhost(ctx, K, x, a) {
   ctx.restore();
 }
 
-// ------------------------------------------------------------------ content: Vue coach (real Évolution chart)
-const CHART_SRC = [107, 494, 2474, 690];
-const CHART_END = [0.9766, 0.229]; // last point of the curve inside the crop (normalised)
-const CHART_PTS = [[0.0687, 0.762], [0.523, 0.406], CHART_END];
+// ------------------------------------------------------------------ giant faint watermark icons (one per panel)
+function watermarkBitmap(K, kind) {
+  return L.cached(`s10-wm-${kind}`, 320, 320, (x) => {
+    x.translate(160, 160);
+    if (kind === 'target') {
+      x.strokeStyle = K.C.text;
+      x.lineWidth = 14;
+      for (const r of [124, 84, 44]) {
+        x.beginPath();
+        x.arc(0, 0, r, 0, Math.PI * 2);
+        x.stroke();
+      }
+      x.fillStyle = K.C.text;
+      x.beginPath();
+      x.arc(0, 0, 14, 0, Math.PI * 2);
+      x.fill();
+      return;
+    }
+    K.icon(x, kind, 0, 0, 260, { color: K.C.text, lw: 6 });
+  });
+}
+function watermark(ctx, K, kind, x, y, lt, k) {
+  const b = watermarkBitmap(K, kind);
+  const drift = (lt - BAR_T[k]) * -26; // slow parallax against the panel
+  ctx.save();
+  ctx.globalAlpha *= 0.12;
+  ctx.drawImage(b, x - 160 + drift, y - 160);
+  ctx.restore();
+}
+
+// ------------------------------------------------------------------ panel 0: Vue coach (real Analyses screenshot)
+const UI = 'ui-analyses.png';
+const SCR = { x: -516, y: -199, w: 1032, h: 398 }; // glass screen inside the panel (panel-local px)
+const HDR_L = { src: [96, 70, 670, 130], x: -500, y: -190, s: 0.6 }; // « Trajectoire de l’équipe / Une mesure, partie après partie »
+const HDR_R = { src: [2032, 74, 576, 172], x: 214, y: -192, s: 0.5 }; // « Mesure à suivre / Écart d’or »
+const CHART = { src: [107, 494, 2474, 686], x: -495, y: -82, s: 0.4 };
+const CHART_CLIP_Y = -100; // the chart zooms inside its own window, under the header strip
+const LINE_SRC = [[277, 1020], [1401, 774], [2523, 652]]; // the real gold-gap curve (Parties 1, 2, 3)
+const LABEL_SRC = [[262, 1092, 210, 86], [1290, 1092, 222, 86], [2328, 1092, 210, 86]];
+const HL_SRC = [1372, 1386, 1214, 360]; // « Partie 3 sur 3 · Victoire · Scrim 3 · Aurore · Écart d’or +4 000 or »
+const cx2 = (u) => CHART.x + (u - CHART.src[0]) * CHART.s;
+const cy2 = (v) => CHART.y + (v - CHART.src[1]) * CHART.s;
+const LINE = LINE_SRC.map(([u, v]) => [cx2(u), cy2(v)]);
+const SEGLEN = [Math.hypot(LINE[1][0] - LINE[0][0], LINE[1][1] - LINE[0][1]), Math.hypot(LINE[2][0] - LINE[1][0], LINE[2][1] - LINE[1][1])];
+const P3 = LINE[2];
+
+function cropDraw(ctx, img, [sx0, sy0, sw, sh], x, y, s) {
+  ctx.drawImage(img, sx0, sy0, sw, sh, x, y, sw * s, sh * s);
+}
+/** Point at fraction u (0..1, by arc length) along the curve. */
+function linePoint(u) {
+  const d = u * (SEGLEN[0] + SEGLEN[1]);
+  if (d <= SEGLEN[0]) {
+    const q = d / SEGLEN[0];
+    return [LINE[0][0] + (LINE[1][0] - LINE[0][0]) * q, LINE[0][1] + (LINE[1][1] - LINE[0][1]) * q];
+  }
+  const q = (d - SEGLEN[0]) / SEGLEN[1];
+  return [LINE[1][0] + (LINE[2][0] - LINE[1][0]) * q, LINE[1][1] + (LINE[2][1] - LINE[1][1]) * q];
+}
+function tracePath(ctx, u) {
+  ctx.beginPath();
+  ctx.moveTo(LINE[0][0], LINE[0][1]);
+  const frac1 = SEGLEN[0] / (SEGLEN[0] + SEGLEN[1]);
+  if (u > frac1) ctx.lineTo(LINE[1][0], LINE[1][1]);
+  const [hx, hy] = linePoint(u);
+  ctx.lineTo(hx, hy);
+}
+/** Current trace state: {u: head 0..1, drawing, age since the last trace started, k}. */
+function traceState(lt) {
+  let cur = null;
+  TRACES.forEach(([t0, d], k) => {
+    if (lt >= t0) cur = { t0, d, k };
+  });
+  if (!cur) return null;
+  const u = Math.min(1, (lt - cur.t0) / cur.d);
+  return { u, drawing: u < 1, age: lt - cur.t0, k: cur.k, t0: cur.t0, d: cur.d };
+}
+function coachZoom(K, lt) {
+  const base = K.lerp(1, 1.08, K.E.inOutSine(K.seg(lt, -0.1, 1.6)));
+  const pay = K.lerp(1, 1.25, K.E.outCubic(K.seg(lt, PAYOFF_T, PAYOFF_T + 0.3)));
+  return { base, pay };
+}
 function drawCoach(ctx, f, K, lt) {
-  const w = K.lerp(1000, 1030, K.E.outCubic(K.seg(lt, 0, 1.6)));
-  const h = (w * CHART_SRC[3]) / CHART_SRC[2];
-  const cx = -14;
-  const cy = 46;
-  const reveal = K.E.outCubic(K.seg(lt, 0, 0.34));
-  const glare = Math.max(K.seg(lt, TOGGLE[0], TOGGLE[0] + 0.32), K.seg(lt, TOGGLE[1], TOGGLE[1] + 0.32));
-  const gOn = (lt > TOGGLE[0] && lt < TOGGLE[0] + 0.32) || (lt > TOGGLE[1] && lt < TOGGLE[1] + 0.32);
+  watermark(ctx, K, 'graph', -420, 120, lt, 0);
+  const img = K.uiImage(UI);
+  if (!img) return;
+  const { base, pay } = coachZoom(K, lt);
+  const P3b = [P3[0] * base, P3[1] * base]; // where the Partie 3 point sits on screen (payoff zoom pivot)
+  // glass screen frame, filled with the screenshot's own background so the crops blend in
+  ctx.save();
+  const bg = ctx.createLinearGradient(SCR.x, 0, SCR.x + SCR.w, 0);
+  bg.addColorStop(0, '#252d47');
+  bg.addColorStop(1, '#221e42');
+  ctx.fillStyle = bg;
+  K.roundRect(ctx, SCR.x, SCR.y, SCR.w, SCR.h, 16);
+  ctx.fill();
+  ctx.clip();
+  // header (real titles): fixed, never cropped by the pushes
+  cropDraw(ctx, img, HDR_L.src, HDR_L.x, HDR_L.y, HDR_L.s);
+  cropDraw(ctx, img, HDR_R.src, HDR_R.x, HDR_R.y, HDR_R.s);
+  // chart: slow push over the bar, then the payoff push centred on the Partie 3 point
   ctx.save();
   ctx.beginPath();
-  ctx.rect(cx - w / 2 - 80, cy - h / 2 - 80, (w + 160) * reveal, h + 160);
+  ctx.rect(SCR.x, CHART_CLIP_Y, SCR.w, SCR.y + SCR.h - CHART_CLIP_Y);
   ctx.clip();
-  K.screen(ctx, 'ui-analyses.png', cx, cy, w, { src: CHART_SRC, glow: 0.7, frame: K.C.cyan, glare: gOn ? glare : -1, r: 14 });
-  ctx.restore();
-  // glow trace over the real curve (emphasis only, same three points as the screenshot)
-  const pts = CHART_PTS.map(([u, v]) => [cx - w / 2 + u * w, cy - h / 2 + v * h]);
-  const xr = cx - w / 2 + w * reveal;
-  const trace = 1 - K.seg(lt, 0.5, 0.9);
-  if (trace > 0) {
+  ctx.translate(P3b[0], P3b[1]);
+  ctx.scale(pay, pay);
+  ctx.translate(-P3b[0], -P3b[1]);
+  ctx.scale(base, base);
+  cropDraw(ctx, img, CHART.src, CHART.x, CHART.y, CHART.s);
+  // the gold-gap line re-traces left → right on every toggle kick (the screenshot line is hidden while it redraws)
+  const tr = traceState(lt);
+  if (tr) {
+    if (tr.drawing) {
+      ctx.save();
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const eg = ctx.createLinearGradient(LINE[0][0], 0, LINE[2][0], 0);
+      eg.addColorStop(0, '#111b2d');
+      eg.addColorStop(0.5, '#181f39');
+      eg.addColorStop(1, '#1e2242');
+      ctx.strokeStyle = eg;
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      LINE.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.stroke();
+      ctx.restore();
+    }
+    const glow = tr.drawing ? 1 : 0.45 + 0.55 * Math.exp(-(tr.age - tr.d) * 5);
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.strokeStyle = K.rgba(K.C.cyan, 0.55 * trace);
-    ctx.lineWidth = 7;
-    ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
-    ctx.shadowColor = K.C.cyan2;
-    ctx.shadowBlur = 16;
-    ctx.beginPath();
-    pts.forEach(([x, y], i) => {
-      if (i && x > xr) {
-        const [px, py] = pts[i - 1];
-        if (px < xr) ctx.lineTo(xr, py + ((y - py) * (xr - px)) / (x - px));
-        return;
-      }
-      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-    });
+    ctx.lineJoin = 'round';
+    ctx.globalCompositeOperation = 'lighter';
+    tracePath(ctx, tr.u);
+    ctx.strokeStyle = K.rgba(K.C.cyan2, 0.22 * glow);
+    ctx.lineWidth = 18;
+    ctx.stroke();
+    ctx.strokeStyle = K.rgba(K.C.cyan, 0.45 * glow);
+    ctx.lineWidth = 9;
+    ctx.stroke();
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = K.C.cyan;
+    ctx.lineWidth = 4;
     ctx.stroke();
     ctx.restore();
+    // points reached so far
+    const frac1 = SEGLEN[0] / (SEGLEN[0] + SEGLEN[1]);
+    [0, frac1, 1].forEach((pu, i) => {
+      if (tr.u < pu) return;
+      ctx.fillStyle = i === 2 ? K.C.violet2 : K.C.cyan;
+      ctx.beginPath();
+      ctx.arc(LINE[i][0], LINE[i][1], i === 2 ? 7 : 5, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    // x-axis labels flash as the head passes each Partie
+    [0, frac1, 1].forEach((pu, i) => {
+      const tHit = tr.t0 + tr.d * pu;
+      const fl = lt >= tHit ? Math.exp(-(lt - tHit) * 9) : 0;
+      if (fl < 0.03) return;
+      const [u0, v0, w0, h0] = LABEL_SRC[i];
+      const x = cx2(u0);
+      const y = cy2(v0);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = K.rgba(K.C.cyan, 0.32 * fl);
+      K.roundRect(ctx, x - 4, y - 2, w0 * CHART.s + 8, h0 * CHART.s + 4, 6);
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = K.rgba(K.C.cyan, fl);
+      ctx.fillRect(x, y + h0 * CHART.s + 4, w0 * CHART.s, 3);
+    });
+    // spark at the head while drawing
+    if (tr.drawing) {
+      const [hx, hy] = linePoint(tr.u);
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      const g = ctx.createRadialGradient(hx, hy, 0, hx, hy, 34);
+      g.addColorStop(0, 'rgba(255,255,255,0.95)');
+      g.addColorStop(0.3, K.rgba(K.C.cyan, 0.7));
+      g.addColorStop(1, K.rgba(K.C.cyan, 0));
+      ctx.fillStyle = g;
+      ctx.fillRect(hx - 34, hy - 34, 68, 68);
+      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const a = i * (Math.PI / 2) + lt * 20;
+        ctx.moveTo(hx + Math.cos(a) * 8, hy + Math.sin(a) * 8);
+        ctx.lineTo(hx + Math.cos(a) * 22, hy + Math.sin(a) * 22);
+      }
+      ctx.stroke();
+      ctx.restore();
+    }
   }
-  if (reveal > 0 && reveal < 1) {
-    const x = cx - w / 2 + w * reveal;
-    ctx.fillStyle = K.C.cyan;
-    ctx.fillRect(x - 2, cy - h / 2 - 10, 4, h + 20);
-    ctx.fillStyle = K.rgba(K.C.cyan, 0.25);
-    ctx.fillRect(x - 14, cy - h / 2 - 10, 12, h + 20);
-  }
-  // end point pulse on the 36.3 kick
-  const ex = cx - w / 2 + CHART_END[0] * w;
-  const ey = cy - h / 2 + CHART_END[1] * h;
-  const age = lt - MORPH_T;
+  // payoff ring on the Partie 3 point
+  const age = lt - PAYOFF_T;
   if (age >= 0) {
-    const q = K.clamp(age / 0.4);
+    const q = K.clamp(age / 0.35);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     ctx.strokeStyle = K.rgba(K.C.violet2, 1 - q);
     ctx.lineWidth = 5 * (1 - q) + 1;
     ctx.beginPath();
-    ctx.arc(ex, ey, 10 + 70 * K.E.outCubic(q), 0, Math.PI * 2);
+    ctx.arc(P3[0], P3[1], 10 + 60 * K.E.outCubic(q), 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
     ctx.strokeStyle = K.C.cyan;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(ex, ey, 22 + 6 * Math.exp(-age * 8), 0, Math.PI * 2);
+    ctx.arc(P3[0], P3[1], 16 + 6 * Math.exp(-age * 8), 0, Math.PI * 2);
     ctx.stroke();
   }
-  // header: icon + two wordless chips, segmented control 5 | 10 | 20
-  K.icon(ctx, 'graph', -476, -150, 58, { color: K.C.cyan, lw: 7 });
-  [[-410, 132, 0.12], [-262, 104, 0.2]].forEach(([x, cw, t]) => {
-    const e = K.E.outBack(K.seg(lt, t, t + 0.16), 2);
-    if (e <= 0) return;
-    ctx.save();
-    ctx.translate(x + cw / 2, -150);
-    ctx.scale(e, e);
-    ctx.fillStyle = K.rgba(K.C.violet, 0.16);
-    K.roundRect(ctx, -cw / 2, -19, cw, 38, 19);
-    ctx.fill();
-    ctx.strokeStyle = K.rgba(K.C.violet2, 0.55);
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = K.C.violet2;
-    ctx.beginPath();
-    ctx.arc(-cw / 2 + 20, 0, 6, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = K.rgba(K.C.text2, 0.55);
-    K.roundRect(ctx, -cw / 2 + 36, -5, cw - 56, 10, 5);
-    ctx.fill();
-    ctx.restore();
-  });
+  ctx.restore();
+  // glare sweep (entry, then the payoff)
+  for (const [t0, d] of [[-0.1, 0.45], [PAYOFF_T, 0.4]]) {
+    const q = K.seg(lt, t0, t0 + d);
+    if (q <= 0 || q >= 1) continue;
+    const gx = SCR.x - 300 + K.E.inOutCubic(q) * (SCR.w + 600);
+    const g = ctx.createLinearGradient(gx - 170, 0, gx + 170, 0);
+    g.addColorStop(0, 'rgba(255,255,255,0)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0.16)');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(SCR.x - 400, SCR.y - 200, SCR.w + 800, SCR.h + 400);
+  }
+  ctx.restore();
+  // segmented control 5 | 10 | 20 (stays in the screen's top bar, not zoomed)
   const opts = ['5', '10', '20'];
-  const tx = 380;
-  const ty = -150;
-  const tw = 234;
+  const tx = 74;
+  const ty = -158;
+  const tw = 246;
   const ow = tw / 3;
   ctx.fillStyle = K.C.ink;
-  K.roundRect(ctx, tx - tw / 2, ty - 23, tw, 46, 23);
+  K.roundRect(ctx, tx - tw / 2, ty - 25, tw, 50, 25);
   ctx.fill();
-  ctx.strokeStyle = K.rgba(K.C.cyan, 0.45);
+  ctx.strokeStyle = K.rgba(K.C.cyan, 0.5);
   ctx.lineWidth = 2;
   ctx.stroke();
   const pos = TOGGLE.reduce((acc, t) => acc + K.E.outBack(K.seg(lt, t, t + 0.14), 1.6), 0);
   const px = tx - tw / 2 + ow / 2 + pos * ow;
+  const kfl = Math.max(...TOGGLE.map((t) => (lt >= t ? Math.exp(-(lt - t) * 10) : 0)));
   ctx.fillStyle = K.C.cyan;
-  ctx.shadowColor = K.C.cyan;
-  ctx.shadowBlur = 14;
-  K.roundRect(ctx, px - ow / 2 + 4, ty - 19, ow - 8, 38, 19);
+  K.roundRect(ctx, px - ow / 2 + 4, ty - 21, ow - 8, 42, 21);
   ctx.fill();
-  ctx.shadowBlur = 0;
+  if (kfl > 0.03) {
+    ctx.strokeStyle = K.rgba('#ffffff', kfl);
+    ctx.lineWidth = 3;
+    K.roundRect(ctx, px - ow / 2 + 1, ty - 24, ow - 2, 48, 24);
+    ctx.stroke();
+  }
   opts.forEach((o, i) => {
     const ox = tx - tw / 2 + ow / 2 + i * ow;
     const on = Math.abs(ox - px) < ow / 2;
-    K.text(ctx, o, ox, ty + 1, { size: 26, font: K.F.russo, color: on ? K.C.ink : K.C.text2 });
+    K.text(ctx, o, ox, ty + 1, { size: 28, font: K.F.russo, color: on ? K.C.ink : K.C.text2 });
   });
+  // frame
+  ctx.strokeStyle = K.rgba(K.C.cyan, 0.85);
+  ctx.lineWidth = 3;
+  K.roundRect(ctx, SCR.x, SCR.y, SCR.w, SCR.h, 16);
+  ctx.stroke();
+}
+/** The real highlight card pops out of the frame on the 36.3 kick (drawn unclipped, panel-local). */
+function drawCoachOver(ctx, f, K, lt) {
+  const img = K.uiImage(UI);
+  const age = lt - PAYOFF_T;
+  if (!img || age < 0) return;
+  const w = 650;
+  const s = w / HL_SRC[2];
+  const h = HL_SRC[3] * s;
+  const base = coachZoom(K, lt).base;
+  const p3 = [P3[0] * base, P3[1] * base]; // displayed Partie 3 point (the payoff zoom pivots on it)
+  const ax = p3[0] + 40; // anchor: the card's top-right corner, just under the Partie 3 point
+  const ay = p3[1] + 34;
+  const e = K.E.outBack(K.clamp(age / 0.2), 1.7);
+  const sc = K.lerp(0.55, 1, e);
+  // connector from the point to the card
+  ctx.save();
+  ctx.strokeStyle = K.rgba(K.C.violet2, 0.9 * K.clamp(age / 0.08));
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(p3[0], p3[1] + 18);
+  ctx.lineTo(ax - 20, ay + 4);
+  ctx.stroke();
+  ctx.translate(ax, ay);
+  ctx.scale(sc, sc);
+  ctx.globalAlpha *= K.clamp(age / 0.05);
+  ctx.fillStyle = K.C.ink;
+  K.roundRect(ctx, -w + 12, 12, w, h, 16);
+  ctx.fill();
+  ctx.save();
+  K.roundRect(ctx, -w, 0, w, h, 16);
+  ctx.clip();
+  ctx.drawImage(img, HL_SRC[0], HL_SRC[1], HL_SRC[2], HL_SRC[3], -w, 0, w, h);
+  const fl = Math.exp(-age * 9);
+  if (fl > 0.03) {
+    ctx.fillStyle = `rgba(255,255,255,${0.5 * fl})`;
+    ctx.fillRect(-w, 0, w, h);
+  }
+  ctx.restore();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = K.linearSpectrum(ctx, -w, 0, 0, h);
+  K.roundRect(ctx, -w, 0, w, h, 16);
+  ctx.stroke();
+  ctx.restore();
 }
 
-// ------------------------------------------------------------------ content: player card + récap fan
+// ------------------------------------------------------------------ panel 1: player card + récap fan
+const CARD_X = -330;
+const CARD_W = 320;
+const CARD_H = 460;
+const FAN = [[-40, 10, -8], [180, 0, 0], [400, 10, 8]];
+const STORY_W = 200;
+const STORY_H = 352;
 function cardBack(ctx, K, w, h) {
   K.roundRect(ctx, -w / 2, -h / 2, w, h, 18);
   ctx.fillStyle = K.linearSpectrum(ctx, -w / 2, -h / 2, w / 2, h / 2);
@@ -263,12 +458,10 @@ function cardFront(ctx, K, w, h, lt) {
   ctx.lineWidth = 6;
   ctx.strokeStyle = K.linearSpectrum(ctx, -w / 2, -h / 2, w / 2, h / 2);
   ctx.stroke();
-  // role tag
   ctx.fillStyle = K.C.cyan;
   K.roundRect(ctx, -w / 2 + 18, -h / 2 + 18, 74, 36, 8);
   ctx.fill();
   K.text(ctx, 'MID', -w / 2 + 55, -h / 2 + 37, { size: 24, font: K.F.russo, color: K.C.ink });
-  // geometric avatar
   const ay = -h / 2 + 140;
   ctx.save();
   K.hexPath(ctx, 0, ay, 74, Math.PI / 6);
@@ -289,13 +482,12 @@ function cardFront(ctx, K, w, h, lt) {
   ctx.closePath();
   ctx.fill();
   ctx.restore();
-  // three unnumbered bars
   [[0.8, K.C.cyan2], [0.58, K.C.violet], [0.9, K.C.fuchsia2]].forEach(([v, col], i) => {
     const y = -h / 2 + 248 + i * 30;
     ctx.fillStyle = '#1e293b';
     K.roundRect(ctx, -w / 2 + 28, y, w - 56, 12, 6);
     ctx.fill();
-    const grow = K.E.outCubic(K.clamp((lt - ENTER[1] - 0.3 - i * 0.06) / 0.3));
+    const grow = K.E.outCubic(K.clamp((lt - BAR_T[1] - 0.3 - i * 0.06) / 0.3));
     ctx.fillStyle = col;
     K.roundRect(ctx, -w / 2 + 28, y, (w - 56) * v * grow, 12, 6);
     ctx.fill();
@@ -312,7 +504,6 @@ function drawStory(ctx, K, kind, w, h, k) {
   ctx.strokeStyle = K.rgba(K.C.violet2, 0.6);
   ctx.lineWidth = 3;
   ctx.stroke();
-  // story progress segments
   for (let i = 0; i < 5; i++) {
     ctx.fillStyle = i <= k + 1 ? K.C.text : 'rgba(203,213,225,0.25)';
     ctx.fillRect(-w / 2 + 14 + i * ((w - 28) / 5), -h / 2 + 14, (w - 28) / 5 - 5, 4);
@@ -337,69 +528,88 @@ function drawStory(ctx, K, kind, w, h, k) {
   ctx.fill();
 }
 function drawPlayer(ctx, f, K, lt) {
-  // the card holds the centre, then steps left on 37.2 to make room for the récap fan
-  const CX = K.lerp(0, -300, K.E.outExpo(K.seg(lt, FAN_T, FAN_T + 0.22)));
-  // récap fan (behind the card)
-  const fan = [[24, 12, -8], [208, 0, 0], [392, 12, 8]];
+  watermark(ctx, K, 'users', 250, 10, lt, 1);
+  // dashed slots where the récap stories will land (the right half is never dead)
+  const slotA = 1 - K.seg(lt, FAN_T, FAN_T + 0.15);
+  if (slotA > 0) {
+    ctx.save();
+    ctx.globalAlpha *= 0.3 * slotA;
+    ctx.setLineDash([12, 10]);
+    ctx.lineDashOffset = -lt * 50;
+    ctx.strokeStyle = K.C.violet2;
+    ctx.lineWidth = 3;
+    for (const [x, y, deg] of FAN) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate((deg * Math.PI) / 180);
+      K.roundRect(ctx, -STORY_W / 2, -STORY_H / 2, STORY_W, STORY_H, 16);
+      ctx.stroke();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+}
+/** The card is taller than the panel: it is drawn unclipped and breaks the frame. */
+function drawPlayerOver(ctx, f, K, lt) {
   ['graph', 'star', 'hex'].forEach((kind, k) => {
     const e = K.E.outBack(K.seg(lt, FAN_T + k * 0.05, FAN_T + 0.24 + k * 0.05), 1.6);
     if (e <= 0) return;
-    const [x, y, deg] = fan[k];
+    const [x, y, deg] = FAN[k];
     ctx.save();
-    ctx.translate(K.lerp(CX, x, e), K.lerp(0, y, e));
+    ctx.translate(K.lerp(CARD_X, x, e), K.lerp(0, y, e));
     ctx.rotate((deg * Math.PI * e) / 180);
     ctx.globalAlpha *= K.clamp(e * 3);
-    drawStory(ctx, K, kind, 180, 320, k);
+    drawStory(ctx, K, kind, STORY_W, STORY_H, k);
     ctx.restore();
   });
-  // flip-in card
-  const p = K.seg(lt, ENTER[1], ENTER[1] + 0.3);
+  const p = K.seg(lt, BAR_T[1], BAR_T[1] + 0.3);
   const c = Math.cos(Math.PI * p);
-  const w = 260;
-  const h = 380;
+  const w = CARD_W;
+  const h = CARD_H;
   ctx.save();
-  ctx.translate(CX, 0);
+  ctx.translate(CARD_X, 0);
   ctx.rotate(-0.04);
   ctx.scale(Math.max(0.02, Math.abs(c)), 1);
-  ctx.shadowColor = K.rgba(K.C.violet, 0.7);
-  ctx.shadowBlur = 34;
   ctx.fillStyle = K.C.ink;
-  K.roundRect(ctx, -w / 2, -h / 2, w, h, 18);
+  K.roundRect(ctx, -w / 2 + 14, -h / 2 + 14, w, h, 18);
   ctx.fill();
-  ctx.shadowBlur = 0;
-  if (c > 0) cardBack(ctx, K, w, h);
-  else cardFront(ctx, K, w, h, lt);
-  // holo sheen on 37.1.5 and 37.2.75
+  ctx.save();
+  ctx.scale(w / 260, h / 380);
+  if (c > 0) cardBack(ctx, K, 260, 380);
+  else cardFront(ctx, K, 260, 380, lt);
+  ctx.restore();
+  // holo sheen: brightest frame on the kick (starts 0.04 s early, outCubic −160 → +360 over 0.25 s)
   for (const t of SHEEN) {
-    const q = K.seg(lt, t, t + 0.3);
+    const q = K.seg(lt, t - 0.04, t + 0.21);
     if (q <= 0 || q >= 1) continue;
     ctx.save();
     K.roundRect(ctx, -w / 2, -h / 2, w, h, 18);
     ctx.clip();
     ctx.globalCompositeOperation = 'lighter';
     ctx.rotate(0.5);
-    const x = K.lerp(-360, 360, K.E.inOutCubic(q));
-    const g = ctx.createLinearGradient(x - 90, 0, x + 90, 0);
+    const x = K.lerp(-160, 360, K.E.outCubic(q));
+    const g = ctx.createLinearGradient(x - 60, 0, x + 60, 0);
     g.addColorStop(0, 'rgba(103,232,249,0)');
-    g.addColorStop(0.35, 'rgba(103,232,249,0.35)');
-    g.addColorStop(0.5, 'rgba(255,255,255,0.55)');
-    g.addColorStop(0.65, 'rgba(232,121,249,0.35)');
+    g.addColorStop(0.25, 'rgba(103,232,249,0.5)');
+    g.addColorStop(0.5, 'rgba(255,255,255,0.85)');
+    g.addColorStop(0.75, 'rgba(232,121,249,0.5)');
     g.addColorStop(1, 'rgba(232,121,249,0)');
     ctx.fillStyle = g;
-    ctx.fillRect(x - 90, -500, 180, 1000);
+    ctx.fillRect(x - 60, -600, 120, 1200);
     ctx.restore();
   }
   ctx.restore();
 }
 
-// ------------------------------------------------------------------ content: objectives & coach notes
-const RING_X = [-14, 116, 246, 376, 506];
-const RING_Y = 34;
+// ------------------------------------------------------------------ panel 2: objectives & coach notes
+const RING_X = [-108, 44, 196, 348, 500];
+const RING_Y = 4;
+const RING_R = 56;
 const LEVELS = [0.82, 0.55, 0.92, 0.42, 0.7];
 const ROLES = ['TOP', 'JGL', 'MID', 'ADC', 'SUP'];
-const TGT = [-330, 0];
+const TGT = [-372, 0];
 function drawObjectives(ctx, f, K, lt) {
-  // target
+  watermark(ctx, K, 'target', 566, -150, lt, 2);
   const [tx, ty] = TGT;
   [[150, K.C.cyan2], [100, K.C.violet], [50, K.C.cyan]].forEach(([r, col], i) => {
     ctx.fillStyle = K.rgba(col, 0.06 + i * 0.03);
@@ -422,11 +632,10 @@ function drawObjectives(ctx, f, K, lt) {
   ctx.moveTo(tx, ty - 182);
   ctx.lineTo(tx, ty + 182);
   ctx.stroke();
-  // rings
   RING_X.forEach((x, i) => {
-    const r = 46;
+    const r = RING_R;
     ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth = 12;
+    ctx.lineWidth = 14;
     ctx.beginPath();
     ctx.arc(x, RING_Y, r, 0, Math.PI * 2);
     ctx.stroke();
@@ -440,33 +649,32 @@ function drawObjectives(ctx, f, K, lt) {
       ctx.stroke();
       ctx.restore();
     }
-    const fl = Math.exp(-Math.max(0, lt - FILLS[i]) * 9) * (lt >= FILLS[i] ? 1 : 0);
+    const fl = lt >= FILLS[i] ? Math.exp(-(lt - FILLS[i]) * 9) : 0;
     if (fl > 0.02) {
       ctx.strokeStyle = K.rgba(K.C.cyan, fl);
       ctx.lineWidth = 3;
       ctx.beginPath();
-      ctx.arc(x, RING_Y, r + 12 + (1 - fl) * 20, 0, Math.PI * 2);
+      ctx.arc(x, RING_Y, r + 14 + (1 - fl) * 22, 0, Math.PI * 2);
       ctx.stroke();
     }
     ctx.fillStyle = K.rgba(K.C.text2, 0.85);
     ctx.beginPath();
-    ctx.arc(x, RING_Y - 10, 10, 0, Math.PI * 2);
+    ctx.arc(x, RING_Y - 12, 12, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(x, RING_Y + 22, 18, Math.PI, 0);
+    ctx.arc(x, RING_Y + 26, 22, Math.PI, 0);
     ctx.fill();
-    K.text(ctx, ROLES[i], x, RING_Y + 84, { size: 24, font: K.F.russo, color: i === 1 ? K.C.violet2 : K.C.text2 });
+    K.text(ctx, ROLES[i], x, RING_Y + 100, { size: 28, font: K.F.russo, color: i === 1 ? K.C.violet2 : K.C.text2 });
   });
-  // coach-note bubbles
   for (const [t, i] of BUBBLES) {
     const e = K.E.outBack(K.seg(lt, t, t + 0.18), 2.2);
     if (e <= 0) continue;
     const x = RING_X[i];
     ctx.save();
-    ctx.translate(x, RING_Y - 98);
+    ctx.translate(x, RING_Y - 126);
     ctx.scale(e, e);
     ctx.fillStyle = K.C.violet;
-    K.roundRect(ctx, -84, -38, 168, 70, 16);
+    K.roundRect(ctx, -88, -38, 176, 70, 16);
     ctx.fill();
     ctx.beginPath();
     ctx.moveTo(-12, 31);
@@ -474,9 +682,9 @@ function drawObjectives(ctx, f, K, lt) {
     ctx.lineTo(12, 31);
     ctx.fill();
     ctx.fillStyle = K.rgba(K.C.ink, 0.75);
-    K.roundRect(ctx, -62, -18, 124, 11, 5);
+    K.roundRect(ctx, -64, -18, 128, 11, 5);
     ctx.fill();
-    K.roundRect(ctx, -62, 4, 84, 11, 5);
+    K.roundRect(ctx, -64, 4, 88, 11, 5);
     ctx.fill();
     ctx.restore();
   }
@@ -521,8 +729,10 @@ function drawArrow(ctx, f, K, lt, panelX) {
   if (lt >= ARROW_T) K.shockwave(ctx, tx, ty, K.clamp(age / 0.4), { color: K.C.cyan, maxR: 300, width: 22, sparks: 10, seed: 21 });
 }
 
-// ------------------------------------------------------------------ content: assistant
-const PROMPT = ['Que veux-tu faire', 'sur cette page\u00a0?'];
+// ------------------------------------------------------------------ panel 3: assistant
+const PROMPT = ['Que veux-tu faire', 'sur cette page ?'];
+const BUB = { x: -526, y: -192, w: 600, h: 214 };
+const PAGE = { x: 96, y: -206, w: 456, h: 412 };
 function sparkle(ctx, K, x, y, r, rot) {
   ctx.save();
   ctx.translate(x, y);
@@ -541,11 +751,8 @@ function sparkle(ctx, K, x, y, r, rot) {
   ctx.restore();
 }
 function drawAssistant(ctx, f, K, lt) {
-  const bx = -548;
-  const by = -178;
-  const bw = 620;
-  const bh = 196;
-  // main bubble
+  watermark(ctx, K, 'chat', -250, 150, lt, 3);
+  const { x: bx, y: by, w: bw, h: bh } = BUB;
   ctx.save();
   ctx.fillStyle = '#111827';
   K.roundRect(ctx, bx, by, bw, bh, 26);
@@ -565,22 +772,22 @@ function drawAssistant(ctx, f, K, lt) {
   ctx.fill();
   ctx.restore();
   const tw = Math.max(...SPARKLE.map((t) => (lt >= t ? Math.exp(-(lt - t) * 7) : 0)));
-  sparkle(ctx, K, bx + 58, by + 62, 30 * (1 + 0.55 * tw), tw * 0.8 + lt * 0.4);
-  K.icon(ctx, 'chat', bx + 58, by + 140, 52, { color: K.C.violet2, lw: 7 });
-  // typed prompt (real assistant heading)
-  const tp = K.seg(lt, ENTER[3] + 0.06, ENTER[3] + 0.46);
+  sparkle(ctx, K, bx + 60, by + 66, 32 * (1 + 0.55 * tw), tw * 0.8 + lt * 0.4);
+  K.icon(ctx, 'chat', bx + 60, by + 150, 56, { color: K.C.violet2, lw: 7 });
+  // typed prompt (the assistant's real opening question)
+  const tp = K.seg(lt, BAR_T[3] - 0.04, BAR_T[3] + 0.3);
   const total = PROMPT[0].length + PROMPT[1].length;
   let n = Math.floor(tp * total);
   PROMPT.forEach((line, i) => {
     const s = line.slice(0, Math.max(0, n));
     n -= line.length;
-    if (s) K.text(ctx, s, bx + 112, by + 66 + i * 64, { size: 44, font: (px) => K.F.inter(px, 800), align: 'left', color: K.C.text, alpha: 0.92 });
+    if (s) K.text(ctx, s, bx + 118, by + 72 + i * 70, { size: 48, font: (px) => K.F.inter(px, 800), align: 'left', color: K.C.text, alpha: 0.94 });
   });
   // typing indicator
-  const tx = bx + bw - 200;
-  const ty = by + bh + 34;
+  const tx = bx + bw - 170;
+  const ty = by + bh + 30;
   ctx.fillStyle = K.rgba(K.C.violet, 0.22);
-  K.roundRect(ctx, tx, ty, 132, 56, 28);
+  K.roundRect(ctx, tx, ty, 140, 60, 30);
   ctx.fill();
   ctx.strokeStyle = K.rgba(K.C.violet2, 0.6);
   ctx.lineWidth = 2;
@@ -590,37 +797,37 @@ function drawAssistant(ctx, f, K, lt) {
     const up = (step + 3 - i) % 3 === 0 ? 1 : 0;
     ctx.fillStyle = up ? K.C.cyan : K.C.violet2;
     ctx.beginPath();
-    ctx.arc(tx + 36 + i * 30, ty + 28 - up * 9, 8, 0, Math.PI * 2);
+    ctx.arc(tx + 38 + i * 32, ty + 30 - up * 10, 9, 0, Math.PI * 2);
     ctx.fill();
   }
-  // NXT5 page sketch with the highlight ring
-  const px = 170;
-  const py = -184;
-  const pw = 360;
-  const ph = 340;
+}
+/** NXT5 page sketch with the highlight ring (×1.2, drawn unclipped). */
+function drawAssistantOver(ctx, f, K, lt) {
+  const { x: px, y: py, w: pw, h: ph } = PAGE;
+  const k = pw / 360;
   ctx.fillStyle = '#0b1224';
-  K.roundRect(ctx, px, py, pw, ph, 16);
+  K.roundRect(ctx, px, py, pw, ph, 18);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(148,163,184,0.5)';
+  ctx.strokeStyle = 'rgba(148,163,184,0.55)';
   ctx.lineWidth = 2;
   ctx.stroke();
   ctx.fillStyle = '#1e293b';
-  ctx.fillRect(px + 2, py + 2, pw - 4, 46);
-  K.logo(ctx, px + 62, py + 25, 84, { glow: 1, lineWidth: 2 });
+  ctx.fillRect(px + 2, py + 2, pw - 4, 54);
+  K.logo(ctx, px + 70, py + 29, 100, { glow: 1, lineWidth: 2 });
   ctx.fillStyle = '#273449';
   for (let i = 0; i < 4; i++) {
-    K.roundRect(ctx, px + 16, py + 70 + i * 40, 66, 22, 6);
+    K.roundRect(ctx, px + 18, py + 80 + i * 46, 80, 26, 7);
     ctx.fill();
   }
   ctx.fillStyle = '#334155';
-  K.roundRect(ctx, px + 100, py + 66, pw - 118, 110, 10);
+  K.roundRect(ctx, px + 120, py + 76, pw - 140, 124, 12);
   ctx.fill();
-  const btn = [px + 100, py + 196, 150, 46];
+  const btn = [px + 120, py + 220, 180, 54];
   ctx.fillStyle = '#3b4a5e';
-  K.roundRect(ctx, ...btn, 10);
+  K.roundRect(ctx, ...btn, 12);
   ctx.fill();
   ctx.fillStyle = '#334155';
-  K.roundRect(ctx, px + 100, py + 262, pw - 118, 60, 10);
+  K.roundRect(ctx, px + 120, py + 296, pw - 140, ph - 316, 12);
   ctx.fill();
   const age = lt - RING_T;
   if (age >= 0) {
@@ -628,15 +835,15 @@ function drawAssistant(ctx, f, K, lt) {
     const [bx2, by2, bw2, bh2] = btn;
     const cx = bx2 + bw2 / 2;
     const cy = by2 + bh2 / 2;
-    // dashed pointer from the bubble to the ring
+    const { x: bx, y: by, w: bw, h: bh } = BUB;
     ctx.save();
     ctx.setLineDash([10, 10]);
     ctx.lineDashOffset = -lt * 80;
-    ctx.strokeStyle = K.rgba(K.C.cyan, 0.8 * K.clamp(age / 0.1));
+    ctx.strokeStyle = K.rgba(K.C.cyan, 0.85 * K.clamp(age / 0.1));
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(bx + bw, by + bh * 0.62);
-    const ex = K.lerp(bx + bw, bx2 - 14, K.E.outExpo(K.clamp(age / 0.16)));
+    const ex = K.lerp(bx + bw, bx2 - 16, K.E.outExpo(K.clamp(age / 0.16)));
     const ey = K.lerp(by + bh * 0.62, cy, K.E.outExpo(K.clamp(age / 0.16)));
     ctx.lineTo(ex, ey);
     ctx.stroke();
@@ -646,45 +853,46 @@ function drawAssistant(ctx, f, K, lt) {
     const s = K.lerp(1.9, 1, e);
     ctx.scale(s, s);
     ctx.strokeStyle = K.C.cyan;
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 6;
     ctx.shadowColor = K.C.cyan;
     ctx.shadowBlur = 20;
-    K.roundRect(ctx, -bw2 / 2 - 14, -bh2 / 2 - 12, bw2 + 28, bh2 + 24, 18);
+    K.roundRect(ctx, -bw2 / 2 - 16 * k, -bh2 / 2 - 14, bw2 + 32 * k, bh2 + 28, 20);
     ctx.stroke();
     ctx.restore();
     const fl = Math.exp(-age * 9);
     ctx.fillStyle = K.rgba(K.C.cyan, 0.5 * fl);
-    K.roundRect(ctx, ...btn, 10);
+    K.roundRect(ctx, ...btn, 12);
     ctx.fill();
   }
 }
 
 // ------------------------------------------------------------------ panel driver
 const CONTENT = [drawCoach, drawPlayer, drawObjectives, drawAssistant];
+const OVER = [drawCoachOver, drawPlayerOver, null, drawAssistantOver];
 function panelX(lt, k, K) {
-  const ein = K.E.outExpo(K.seg(lt, ENTER[k], ENTER[k] + BEAT * 0.25));
+  const ein = K.E.outExpo(K.seg(lt, ENTER[k], ENTER[k] + 0.1));
   let x = FROM[k] * 1400 * (1 - ein);
-  const dir = k < 3 ? FROM[k + 1] * -1 : 1;
-  const out = K.E.inCubic(K.seg(lt, EXIT[k] - 0.1, EXIT[k])); // gone exactly on the next downbeat
+  const dir = k < 3 ? -FROM[k + 1] : 1;
+  const next = k < 3 ? BAR_T[k + 1] : 99;
+  const out = K.E.inCubic(K.seg(lt, next - SWAP, next)); // whips off across the incoming panel
   x += dir * 1800 * out;
-  return { x, out, ein };
+  return { x, out, ein, dir };
 }
 function drawPanels(ctx, f, K) {
   const lt = f.lt;
   for (let k = 0; k < 4; k++) {
-    if (lt < ENTER[k] || lt >= EXIT[k]) continue;
-    const { x, out, ein } = panelX(lt, k, K);
+    const next = k < 3 ? BAR_T[k + 1] : 99;
+    if (lt < ENTER[k] || lt >= next) continue;
+    const { x, out, ein, dir } = panelX(lt, k, K);
     ctx.save();
     ctx.translate(PCX, PCY);
-    // motion ghosts (entry and whip-off)
-    const moving = (ein < 0.999 ? 1 : 0) || (out > 0.001 && out < 0.999 ? 1 : 0);
-    if (moving) {
-      const dirIn = -FROM[k];
-      const dirOut = k < 3 ? -FROM[k + 1] : 1;
-      const d = out > 0.001 ? dirOut : dirIn;
+    const entering = ein < 0.999;
+    const leaving = out > 0.001 && out < 0.999;
+    if (entering || leaving) {
+      const d = leaving ? dir : -FROM[k];
       for (let g = 4; g >= 1; g--) panelGhost(ctx, K, x - d * g * 70, 0.28 * (1 - (g - 1) / 4));
     }
-    const s = 1 + 0.02 * f.kick;
+    const s = 1 + 0.02 * (lt >= 0 ? f.kick : 0);
     ctx.translate(x, 0);
     ctx.scale(s, s);
     const b = panelBitmap(K);
@@ -694,8 +902,9 @@ function drawPanels(ctx, f, K) {
     ctx.clip();
     CONTENT[k](ctx, f, K, lt);
     ctx.restore();
-    // slam flash: bright jagged edge, not a grey fill
-    const fl = Math.exp(-(lt - ENTER[k]) * 12);
+    if (OVER[k]) OVER[k](ctx, f, K, lt);
+    // slam flash keyed to the downbeat: bright jagged edge, not a grey fill
+    const fl = lt >= BAR_T[k] ? Math.exp(-(lt - BAR_T[k]) * 12) : 0;
     if (fl > 0.03) {
       outlinePath(ctx, K);
       ctx.strokeStyle = `rgba(255,255,255,${0.9 * fl})`;
@@ -707,36 +916,39 @@ function drawPanels(ctx, f, K) {
   }
 }
 
+// ------------------------------------------------------------------ 37.3.5 flashback: the old line, slashed
 function drawGhostLine(ctx, f, K) {
   const lt = f.lt;
-  if (lt < GHOST_T || lt >= ENTER[2]) return;
-  const p = K.seg(lt, GHOST_T, ENTER[2]);
+  if (lt < GHOST_T || lt >= BAR_T[2]) return;
   ctx.save();
-  ctx.fillStyle = K.rgba(K.C.ink, 0.45);
+  ctx.fillStyle = K.rgba(K.C.night, 0.55);
   ctx.fillRect(0, 0, 1920, 1080);
   const str = 'MÊME ERREUR DEMAIN.';
-  const jit = Math.floor(lt / (S16 / 2)) % 2 ? 4 : -4;
-  K.text(ctx, str, 960 + jit + 7, 540, { size: 150, font: K.F.anton, color: K.C.cyan2, alpha: 0.22 });
-  K.text(ctx, str, 960 - jit - 7, 540, { size: 150, font: K.F.anton, color: K.C.fuchsia2, alpha: 0.22 });
-  K.text(ctx, str, 960, 540, { size: 150, font: K.F.anton, color: K.C.text, alpha: 0.5 });
+  const jit = Math.floor((lt + 0.001) / S16) % 2 ? 2 : -2; // 2 px jitter on every hat
+  K.text(ctx, str, 960 + jit + 6, 540, { size: 150, font: K.F.anton, color: K.C.cyan2, alpha: 0.2 });
+  K.text(ctx, str, 960 + jit - 6, 540, { size: 150, font: K.F.anton, color: K.C.fuchsia2, alpha: 0.2 });
+  K.text(ctx, str, 960 + jit, 540, { size: 150, font: K.F.anton, color: K.C.text, alpha: 0.5 });
   const sp = K.E.outExpo(K.seg(lt, SLASH_T, SLASH_T + 0.05));
   if (sp > 0) {
     const x0 = 300;
     const y0 = 600;
     const x1 = 1620;
     const y1 = 470;
-    ctx.strokeStyle = K.C.fuchsia2;
-    ctx.lineWidth = 12;
+    const xe = K.lerp(x0, x1, sp);
+    const ye = K.lerp(y0, y1, sp);
     ctx.lineCap = 'round';
-    ctx.shadowColor = K.C.fuchsia2;
-    ctx.shadowBlur = 24;
+    ctx.strokeStyle = K.C.fuchsia2;
+    ctx.lineWidth = 14;
     ctx.beginPath();
     ctx.moveTo(x0, y0);
-    ctx.lineTo(K.lerp(x0, x1, sp), K.lerp(y0, y1, sp));
+    ctx.lineTo(xe, ye);
     ctx.stroke();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+    K.shockwave(ctx, x1, y1, K.clamp((lt - SLASH_T - 0.04) / 0.16), { color: K.C.fuchsia, maxR: 140, width: 12, sparks: 8, seed: 33 });
   }
   ctx.restore();
-  return p;
 }
 
 /** Scene-drawn stamp card « Même erreur ? Notée. Suivie. » + its sub, sized to stay clear of the sub pill. */
@@ -778,17 +990,30 @@ function drawStampCard(ctx, f, K, c) {
   ctx.restore();
 }
 
+// the bar-39 card lasts 4.5 beats so renderCards' quick exit falls after the 40.0 cut: it is cut at full strength
+const longCards = new WeakMap();
+function sceneCards(f) {
+  let c = longCards.get(f.cardsOf);
+  if (!c) {
+    c = L.frCards(f.cardsOf).map((x, i, all) => (i === all.length - 1 ? { ...x, durBeats: 4.5 } : x));
+    longCards.set(f.cardsOf, c);
+  }
+  return c;
+}
+
 export default {
   id: 'S10',
   startBar: 36,
   endBar: 40,
   transitionOut: 'cut',
-  draw(ctx, f, K) {
+  draw(ctx, f0, K) {
+    // f.lt and f.at() round differently: nudge lt so a frame that sits exactly on a downbeat counts as on/after it
+    const f = { ...f0, lt: f0.lt + 1e-6 };
     const lt = f.lt;
     L.baseLayers(ctx, f, K);
     const order = Math.max(0, STABS.filter((t) => lt >= t).length - 1) + 1;
     L.bands(ctx, K, { shift: lt * 140, order, alpha: 0.55, pulse: lt >= 0 ? f.env('snare', 9) : 0 });
-    K.speedLines(ctx, f, { angle: Math.PI, density: 0.28, alpha: 0.22 + 0.3 * f.hat, color: K.C.cyan, speed: 2600, width: 2 });
+    K.speedLines(ctx, f, { angle: Math.PI, density: 0.28, alpha: 0.22 + 0.3 * (lt >= 0 ? f.hat : 0), color: K.C.cyan, speed: 2600, width: 2 });
     // octave-lead streak on the top edge, every 8th
     const ph = (((lt % (BEAT / 2)) + BEAT / 2) % (BEAT / 2)) / (BEAT / 2);
     ctx.save();
@@ -801,21 +1026,20 @@ export default {
     ctx.fillStyle = g;
     ctx.fillRect(sx0 - 700, 14, 700, 5);
     ctx.restore();
+    // under the renderer slash, panel 0 is already in flight (clean state: no cards, no FX)
+    if (lt >= ENTER[0] - 0.02) drawPanels(ctx, f, K);
     if (lt < 0) {
       L.brandBug(ctx, K);
       return {};
     }
-    const cards = L.frCards(f.cardsOf);
-
-    drawPanels(ctx, f, K);
-    // brass spark bursts from the panel's leading edge
-    // panels 1 and 3 enter from the left, so their leading edge is on the right
+    const cards = sceneCards(f);
+    // brass spark bursts from the panel's leading edge (panels 1 and 3 enter from the left → right edge)
     [[STABS[0], 1590, 380, 0], [STABS[1], 960, 170, -Math.PI / 2], [STABS[2], 1590, 380, 0], [STABS[3], 960, 170, -Math.PI / 2]].forEach(
       ([t, x, y, dir], k) => L.sparkBurst(ctx, K, x, y, lt - t, 400 + k, { n: 30, life: 0.55, dir, spread: k % 2 ? Math.PI * 1.1 : Math.PI * 1.3 }),
     );
     drawGhostLine(ctx, f, K);
 
-    // cards (lower third). « Ta carte joueur. » leaves early for the ghost line; the stamp is scene-drawn.
+    // cards (lower third). « Ta carte joueur. » leaves for the ghost line; the stamp is scene-drawn.
     const fadeCard1 = 1 - K.seg(lt, GHOST_T - 0.06, GHOST_T);
     cards.forEach((c, i) => {
       if (i === 2) return;
