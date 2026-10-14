@@ -1,4 +1,4 @@
-// Shot 8 — the close (k68–84, local 0–221). Shot card outro/outro-group-photo-launch, re-skinned to the NXT5
+// Shot 8 — the close (k68–92, local 0–332). Shot card outro/outro-group-photo-launch, re-skinned to the NXT5
 // night charte. Structure first (card « known pitfalls »): one representative of every feature already shown flies
 // in and settles in a group-photo slot around the empty centre stage.
 // Opening (k68 is a hit, review finding 12): frame 0 is crisp and already moving — the hook's match list, sharp,
@@ -36,7 +36,7 @@ import { dur, localBeat, SHOTS } from '../timeline';
 import layout from '../layout.json';
 
 const B = (k: number) => localBeat(SHOTS.outro, k);
-const END = dur(SHOTS.outro); // 221
+const END = dur(SHOTS.outro); // 332
 const IMPACT = B(76); // 111 — slam #3, the song's second drop
 const EMERGE = B(74); // 83 — the hero's 28 f arc out of the stage light
 const FADE = [END - 20, END] as const; // gentle fade to #111827 (audio fade handled in Main)

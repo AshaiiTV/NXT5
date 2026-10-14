@@ -23,7 +23,7 @@ const shot = (a: number, b: number): Shot => ({ from: beatF(a), to: beatF(b) });
 
 /**
  * Music structure (film beats): k8–16 build · k16 DROP · k44–48 one-bar dip · k48 return ·
- * k72–76 build (spliced) · k76 second DROP. Slams (R4: ≤3, ≥16 beats apart): k16, k48, k76.
+ * k72–76 build (spliced) · k76 second DROP, full energy to the end (k92). Slams (R4: ≤3, ≥16 beats apart): k16, k48, k76.
  */
 export const SHOTS = {
   hook: shot(FILM_K0, 16),
@@ -33,10 +33,10 @@ export const SHOTS = {
   card: shot(44, 48),
   debrief: shot(48, 60),
   planning: shot(60, 68),
-  outro: shot(68, 84),
+  outro: shot(68, 92),
 } as const;
 export const SLAMS = [16, 48, 76];
-export const DURATION = beatF(84) + 6;
+export const DURATION = beatF(92) + 6;
 export const dur = (s: Shot) => s.to - s.from;
 /** Frame (relative to the shot start) of film beat k. */
 export const localBeat = (s: Shot, k: number) => beatF(k) - s.from;

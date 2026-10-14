@@ -2,7 +2,7 @@
 
 Fichiers produits par `tools/promo-video` :
 
-- `v3/out/nxt5-promo-v3.mp4` : la vidéo (39 s, 1080p30, H.264 + AAC, −14,5 LUFS) ;
+- `v3/out/nxt5-promo-v3.mp4` : la vidéo (39 s, 1080p30, H.264 + AAC, −14,3 LUFS) ;
 - `v3/out/nxt5-promo-v3-sans-musique.mp4` : la même vidéo avec les seuls effets sonores, pour une autre musique ;
 - `v3/out/thumbnail.png` : la miniature (1280 × 720, `npx remotion still src/index.ts Thumbnail out/thumbnail.png`).
 
@@ -61,6 +61,6 @@ league of legends, lol, nxt5, coaching lol, analyse de partie lol, débrief lol,
 
 ## Écran de fin
 
-La carte finale (wordmark, « Joue. Analyse. Recommence. », « Essaie la démo », nxt5.org) se pose à 35 s, au troisième impact. Elle reste affichée jusqu’à la fin (39 s).
+La carte finale (wordmark, « Joue. Analyse. Recommence. », « Essaie la démo », nxt5.org) se pose à 31,4 s, sur le second drop. Elle est complète à 32,6 s et reste affichée jusqu’à la fin (39 s).
 
-YouTube impose 5 s minimum pour un écran de fin. Règle-le donc sur les 5 dernières secondes, à partir de 34 s. Place l’élément « Abonnement » sur les côtés et laisse le centre libre.
+Règle l’écran de fin YouTube (5 s minimum) sur les 6 dernières secondes, à partir de 33 s. Place l’élément « Abonnement » sur les côtés et laisse le centre libre.

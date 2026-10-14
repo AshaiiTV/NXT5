@@ -8,7 +8,7 @@ import numpy as np
 SR, T, B0 = 48000, 0.46152823, 9.0085
 FILM_K0, SPLICE_K, BAR39 = 8, 72, 73.622
 PRIMING = 2032 / SR
-LENGTH = 38.0  # s, longer than the film
+LENGTH = 41.0  # s, longer than the film
 raw = subprocess.run(['ffmpeg', '-v', 'error', '-i', sys.argv[1], '-ac', '2', '-ar', str(SR), '-f', 'f32le', '-'], capture_output=True, check=True).stdout
 x = np.frombuffer(raw, np.float32).reshape(-1, 2)
 s = lambda t: int(round(t * SR))
