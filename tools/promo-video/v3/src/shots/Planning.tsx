@@ -15,16 +15,19 @@
 // Camera (one continuous arc, no pan): the card's real left edge is anchored at x = 940 (clear of the caption) for
 // the whole shot; a single monotone zoom spline 1.66 → 1.03 pulls back from the frame's right edge so slots 2–3 are
 // revealed as they land (all three items are on screen at the last landing) and lands on the bar's strongest hit
-// (k64), whole card in frame, turned 2° toward the caption. Then the availability block completes as a wave of light
-// from the card's own pixels: the five role cells, veiled while pending, brighten TOP → SUP with their checks
-// (accelerating, k64 → k65), and the real "5 / 5 disponibles" counter settles on the bar's strongest onset (k65.5).
-// The wave hands over to the payoff push: from k64 (f55) the camera pushes into the roles strip, the counter
-// travelling on a straight screen line while the zoom grows log-linearly 1.03 → 2.7, and lands on k66.5 (f90): the
-// counter's 12px CSS type is then 32px on screen (Q11), next to the caption's second line, with the ADC / SUP cells
-// and their checks under it. Everything above the roles section is veiled during the push (Q5), and the card's left
-// part fades out under a screen-space mask before it reaches the caption, which stays readable. No dead freeze: from
-// f90 to the cut the camera keeps creeping into the counter (+1.2 %, anchored on it, transform scale over a fixed CSS
-// zoom, so no raster re-snapping).
+// (k64), whole card in frame, turned 2° toward the caption. The availability block completes as a wave of light from
+// the card's own pixels while the pull settles: the five role cells, veiled while pending, brighten TOP → SUP with
+// their checks (accelerating, f45 → f54, the last one on k64) and the real "5 / 5 disponibles" counter settles with
+// them (f51 → f63). The complete state — whole card, five checks, 5 / 5 — is HELD still for ≈ 10 f (f55–65, k64 →
+// k65, review 2 N6). Then the light leaves the card's left part (TOP/JGL/MID and everything left of the ADC cell,
+// f64–70) before the payoff push moves it: f66 → k66.5 (f90) the camera pushes into the roles strip, the counter
+// travelling on a straight screen line while the zoom grows log-linearly 1.03 → 2.8 (fast frames get a light camera
+// blur), and lands with the counter's 12px CSS type at 33.6px on screen (Q11), next to the caption's second line,
+// with the ADC / SUP cells and their checks under it. Everything above the roles section recedes during the push
+// (Q5). The card's left edge in frame is a deliberate soft vertical fade (screen x 888 → 1015, 127 px, clear of the
+// caption), and since the left part is already veiled when it slides through it, no half word is ever readable. No
+// dead freeze: from f90 to the cut the camera keeps creeping into the counter (+1.2 %, anchored on it, transform
+// scale over a fixed CSS zoom, so no raster re-snapping); the counter is settled 21 f (0.7 s) before the cut.
 // CSS zoom keeps the 2x textures rasterised at their final size during the moves (Q2); no shake, no frame-level
 // pulse (Q3/R4); the stage is flat (no preserve-3d) so flyers never intersect the card plane. Caption: eyebrow
 // present on the cut, settled by ≈ f30 and held ≈ 2.7 s (R1/R3).
@@ -88,21 +91,29 @@ type Keys = readonly (readonly [number, number])[];
 const Z_KEYS: Keys = [[0, 1.66], [14, 1.58], [27, 1.42], [34, 1.32], [PULL_END, 1.03]]; // one monotone spline
 const Z_CLOSE = 1.66;
 const Z_WIDE = 1.03;
-// payoff push into the roles strip: k64 → k66.5 (f55 → f90, the pull's zero-velocity landing turns straight into
-// it; fastest on k65, lands on the bar's strong k66.5 onset), then a slow creep until the cut (k68, f111)
-const PUSH = [PULL_END, B(66.5)] as const;
+// payoff push into the roles strip: after the hold, f66 → k66.5 (f90; eased in, so it really moves from k65 = f69,
+// fastest ≈ f75, lands on the bar's strong k66.5 onset), then a slow creep until the cut (k68, f111)
+const PUSH = [66, B(66.5)] as const;
 const END = B(68); // 111
 const PUSH_EASE = Easing.bezier(0.4, 0, 0.25, 1);
-const Z_PUSH = 2.7; // the counter is 12px CSS (product-story.css .ps-ready-heading) → 32.4px on screen
+const Z_PUSH = 2.8; // the counter is 12px CSS (product-story.css .ps-ready-heading) → 33.6px on screen (≥ 32 with margin)
 const CREEP = 0.012; // f90 → cut: +1.2 % (transform scale over the fixed CSS zoom)
 const RASTER_LOCK = 0.97; // past this push progress the CSS zoom is fixed at Z_PUSH and the rest is a transform scale
 const PUSH_TARGET = { x: 791.3, y: 671.8 }; // centre of the real counter (layout readyCount)
 const PUSH_CORNER = { x: W, y: H, sx: 1880, sy: 925 }; // final framing: card's bottom-right corner on screen, clear of the tag
-// screen-x mask on the card (the caption ends ≈ 874): soft while the card slides under it, then tightened onto the
-// MID / ADC gap of the final framing (screen 900–927) and scaled with the creep, so no sliver of the MID cell is
-// left at the edge and the ADC cell stays whole
-const MASK_PUSH = [870, 935] as const;
-const MASK_END = [902, 925] as const;
+// the card's left edge in the push framing: a soft vertical fade in screen space (the caption ends at x 880), ramped in
+// as the push starts; the left part is veiled first (LEFT_VEIL), so only veiled card surface ever crosses it
+const MASK_X = [888, 1015] as const;
+const MASK_T = [66, 71] as const;
+// left-part veil (review 2 N6): everything left of the ADC cell (MID cell ends at CSS x 518, ADC starts at 528) dims
+// to the night before the push carries it toward the caption — the light moves onto ADC / SUP and the counter. Its
+// edge is a soft falloff over the MID cell's text-free right part (MID label ends ≈ 455), so it reads as light,
+// not as a cut; the upper card goes dark on the same ramp (UPPER_VEIL_A), so the falloff only crosses the lower band
+const LEFT_VEIL_X = [470, 527] as const;
+const LEFT_VEIL_T = [64, 70] as const;
+const LEFT_VEIL_A = 0.98;
+// camera blur on the fastest push frames only (recipe: ≥ 30 px/f strobes at 30 fps); measured on the ADC cell
+const BLUR_PT = { x: 600, y: 740 };
 const ROT_Y: Keys = [[0, 4], [34, 0.5], [PULL_END, -2]]; // the card swings to face the caption (−) as it pulls back
 const ROT_X: Keys = [[0, 4], [PULL_END, 0]];
 const AX = 1400; // pivot / perspective origin (screen)
@@ -121,7 +132,7 @@ const TY_WIDE = 90 + TOP_CSS * Z_WIDE; // wide: card top at y 90, bottom ≈ 934
 // ── availability: role cells (veiled while pending), checks (2x bboxes measured on the texture), real counter ──
 const CELLS = P.boxes.roleCards;
 const CHECKS = CELLS.map((c) => ({ x: c.x + c.w - 17.5, y: 704.5, w: 12, h: 9.5 }));
-const CHECK_T = [PULL_END + 1, PULL_END + 5, PULL_END + 8.5, PULL_END + 11.5, PULL_END + 14]; // 56 → 69 (k64 → k65), TOP → SUP
+const CHECK_T = [45, 48, 50.5, 52.5, 54]; // TOP → SUP, accelerating into k64 (f55): all five lit as the pull lands
 const LIFT = 6;
 const VEIL_A = 0.6;
 // the cells' own vertical gradient (17,24,39) at y 697 → (30,42,62) at y 783: the veil is invisible on the cell
@@ -130,12 +141,16 @@ const CELL_Y0 = 699;
 const CELL_Y1 = 781; // above the accent bar (783–785)
 const cellBg = (y: number) => mix([17, 24, 39], [30, 42, 62], (y - 697) / 86);
 const COUNTER = { x: 732, y: 663, w: 118, h: 19 };
-const COUNTER_T = B(65.5); // 76: strongest onset of the bar
-const COUNTER_IN = [COUNTER_T - 5, COUNTER_T + 9] as const;
+const COUNTER_T = PULL_END; // 55: k64, the bar's strongest hit, with the last check
+const COUNTER_IN = [COUNTER_T - 4, COUNTER_T + 8] as const; // 51 → 63, settled before the hold ends
 const DONE = COUNTER_IN[1] + 1; // every overlay equals the real texture from here: render it alone
-// push veil (Q5): everything above the roles section (separator at CSS y 640) recedes while the camera pushes in
+// push veil (Q5): everything above the roles section (separator at CSS y 640) recedes while the camera pushes in: the
+// upper card (event, goal, days; down to the goal's bottom at 527) goes dark with the left veil, the agenda row
+// (21:45 Débrief à chaud stays in the final framing) only dims with the push
 const PUSH_VEIL_BOT = 632;
-const PUSH_VEIL_A = 0.5;
+const PUSH_VEIL_A = 0.45;
+const UPPER_VEIL_BOT = 524; // soft step 524 → 548 (goal box ends at 527, the agenda track runs at 551)
+const UPPER_VEIL_A = 0.9;
 
 /** Monotone cubic Hermite (Fritsch–Butland): first key keeps its secant velocity (opens moving), last key settles. */
 function spline(f: number, keys: Keys): number {
@@ -194,12 +209,14 @@ const WIDE = pullCamera(PULL_END);
 /**
  * Payoff push (f > PULL_END): log-linear zoom WIDE → Z_PUSH; the counter's screen position moves on a straight line
  * from where the wide framing shows it to where the final framing puts it (card corner at PUSH_CORNER), so the camera
- * visibly travels toward it. Then a slow creep (transform scale) keeps the frame alive until the cut.
+ * visibly travels toward it; the card turns back from −2° to face the frame as it comes (flat on landing). Then a slow
+ * creep (transform scale about the counter, over the fixed CSS zoom) keeps the frame alive until the cut. The stage is
+ * rendered without perspective once flat (Scene): a slowly changing transform under a perspective re-snaps by up to
+ * ±0.3 px every few frames (measured), the plain 2D path is sub-pixel smooth.
  */
 function pushCamera(f: number): Cam {
   const e = interpolate(f, [...PUSH], [0, 1], { ...clamp, easing: PUSH_EASE });
   const c = interpolate(f, [PUSH[1], END], [0, 1], clamp);
-  const creep = 1 + CREEP * c;
   const z = WIDE.zoom * Math.pow(Z_PUSH / WIDE.zoom, e);
   const T = PUSH_TARGET;
   const sx = lerp(AX + (T.x - WIDE.cx) * WIDE.zoom, Q_X, e);
@@ -208,19 +225,26 @@ function pushCamera(f: number): Cam {
   const cy = T.y - (sy - AY) / z;
   // creep about the counter's final screen position: the payoff stays still (no reversal after the landing) while
   // the rest of the frame keeps opening slowly around it
-  const qx = Q_X;
-  const qy = Q_Y;
-  const zc = z * creep;
+  const zc = z * (1 + CREEP * c);
   const css = e < RASTER_LOCK ? z : Z_PUSH;
   return {
     zoom: zc, css, s: zc / css,
-    cx: cx + (qx - AX) / z - (qx - AX) / zc,
-    cy: cy + (qy - AY) / z - (qy - AY) / zc,
-    rotY: -2, rotX: 0, q: 1, push: e, creep: c,
+    cx: cx + (Q_X - AX) / z - (Q_X - AX) / zc,
+    cy: cy + (Q_Y - AY) / z - (Q_Y - AY) / zc,
+    rotY: -2 * (1 - e), rotX: 0, q: 1, push: e, creep: c,
   };
 }
 
 const camera = (f: number): Cam => (f <= PULL_END ? pullCamera(f) : pushCamera(f));
+
+/** Screen point of a card point (flat approximation: the 2° turn is ignored), for the blur speed. */
+const screenOf = (c: Cam, x: number, y: number) => ({ x: AX + (x - c.cx) * c.zoom, y: AY + (y - c.cy) * c.zoom });
+const camBlur = (f: number) => {
+  if (f <= PUSH[0] || f > PUSH[1]) return 0;
+  const a = screenOf(camera(f - 1), BLUR_PT.x, BLUR_PT.y);
+  const b = screenOf(camera(f), BLUR_PT.x, BLUR_PT.y);
+  return Math.max(0, Math.min(1.4, (Math.hypot(b.x - a.x, b.y - a.y) - 30) / 16));
+};
 
 /** A window (x, y, w, h) of a card texture, showing the texture's own pixels from (sx, sy). */
 const Crop: React.FC<{ src: string; x: number; y: number; w: number; h: number; sx?: number; sy?: number; style?: React.CSSProperties }> = ({
@@ -242,12 +266,15 @@ const Scene: React.FC = () => {
   const dim = 0.45 * dimK;
   const dimTop = DIM_TOP * dimK;
   const done = f >= DONE;
+  const veilT = interpolate(f, [LEFT_VEIL_T[0], LEFT_VEIL_T[1]], [0, 1], { ...clamp, easing: Easing.inOut(Easing.quad) });
   const pushVeil = PUSH_VEIL_A * cam.push;
-  // screen-space mask: only needed once the push starts sliding the card's left part toward the caption
-  const k = 1 + CREEP * cam.creep; // the mask edges follow the creep (scaled about the counter, like the card)
-  const m0 = Q_X + (lerp(MASK_PUSH[0], MASK_END[0], cam.push) - Q_X) * k;
-  const m1 = Q_X + (lerp(MASK_PUSH[1], MASK_END[1], cam.push) - Q_X) * k;
-  const mask = f > PULL_END ? `linear-gradient(to right, transparent ${m0}px, #000 ${m1}px)` : undefined;
+  const upperVeil = Math.max(pushVeil, UPPER_VEIL_A * veilT);
+  const leftVeil = LEFT_VEIL_A * veilT;
+  // screen-space soft left edge, ramped in with the push (1 = no mask)
+  const m = interpolate(f, [MASK_T[0], MASK_T[1]], [0, 1], clamp);
+  const mask = m > 0 ? `linear-gradient(to right, rgba(0,0,0,${(1 - m).toFixed(4)}) ${MASK_X[0]}px, #000 ${MASK_X[1]}px)` : undefined;
+  const blur = camBlur(f);
+  const flat = cam.rotY === 0 && cam.rotX === 0;
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg, overflow: 'hidden' }}>
@@ -260,13 +287,14 @@ const Scene: React.FC = () => {
       <Glow x={1890} y={300} r={380} color={C.glowFuchsia} />
 
       {/* camera: lens-shifted 2.5D look-at, CSS zoom (crisp 2x texture), flat stage */}
-      <div style={{ position: 'absolute', inset: 0, WebkitMaskImage: mask, maskImage: mask }}>
-      <div style={{ position: 'absolute', inset: 0, perspective: `${PERSP * cam.zoom}px`, perspectiveOrigin: `${AX}px ${AY}px` }}>
+      <div style={{ position: 'absolute', inset: 0, WebkitMaskImage: mask, maskImage: mask, ...(blur > 0.05 ? { filter: `blur(${blur.toFixed(2)}px)` } : {}) }}>
+      {/* flat once the card faces the frame (push landing → cut): no perspective, plain 2D transform (smooth creep) */}
+      <div style={{ position: 'absolute', inset: 0, ...(flat ? {} : { perspective: `${PERSP * cam.zoom}px`, perspectiveOrigin: `${AX}px ${AY}px` }) }}>
         <div
           style={{
             position: 'absolute', left: 0, top: 0, width: W, height: H, zoom: cam.css,
-            transform: `translate(${AX / cam.css - cam.cx}px, ${AY / cam.css - cam.cy}px) rotateY(${cam.rotY}deg) rotateX(${cam.rotX}deg)${
-              cam.s !== 1 ? ` scale(${cam.s})` : ''
+            transform: `translate(${AX / cam.css - cam.cx}px, ${AY / cam.css - cam.cy}px)${flat ? '' : ` rotateY(${cam.rotY}deg) rotateX(${cam.rotX}deg)`}${
+              cam.s !== 1 ? ` scale(${cam.s.toFixed(6)})` : ''
             }`,
             transformOrigin: `${cam.cx}px ${cam.cy}px`,
           }}
@@ -332,12 +360,21 @@ const Scene: React.FC = () => {
                 ) : null}
               </>
             ) : null}
+            {/* left-part veil: TOP / JGL / MID and everything left of the ADC cell go dark before the push moves them */}
+            {leftVeil > 0.004 ? (
+              <div
+                style={{
+                  position: 'absolute', left: 0, top: 0, width: LEFT_VEIL_X[1], height: H,
+                  background: `linear-gradient(90deg, rgba(17,24,39,${leftVeil.toFixed(4)}) ${LEFT_VEIL_X[0]}px, rgba(17,24,39,0) ${LEFT_VEIL_X[1]}px)`,
+                }}
+              />
+            ) : null}
             {/* push veil: the roles section stays the only lit part while the camera pushes in */}
-            {pushVeil > 0.004 ? (
+            {upperVeil > 0.004 ? (
               <div
                 style={{
                   position: 'absolute', left: 0, top: 0, width: W, height: PUSH_VEIL_BOT + 10,
-                  background: `linear-gradient(180deg, rgba(17,24,39,${pushVeil}) 0px, rgba(17,24,39,${pushVeil}) ${PUSH_VEIL_BOT}px, rgba(17,24,39,0) ${PUSH_VEIL_BOT + 10}px)`,
+                  background: `linear-gradient(180deg, rgba(17,24,39,${upperVeil.toFixed(4)}) 0px, rgba(17,24,39,${upperVeil.toFixed(4)}) ${UPPER_VEIL_BOT}px, rgba(17,24,39,${pushVeil.toFixed(4)}) ${UPPER_VEIL_BOT + 24}px, rgba(17,24,39,${pushVeil.toFixed(4)}) ${PUSH_VEIL_BOT}px, rgba(17,24,39,0) ${PUSH_VEIL_BOT + 10}px)`,
                 }}
               />
             ) : null}

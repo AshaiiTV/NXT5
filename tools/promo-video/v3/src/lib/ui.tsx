@@ -72,7 +72,7 @@ export const BlurLine: React.FC<{
             <span
               key={i}
               style={{
-                display: 'inline-block', opacity: Math.min(1, q * 2.5), transform: q < 1 ? `scale(${1.18 - 0.18 * q})` : undefined, transformOrigin: '50% 70%',
+                display: 'inline-block', opacity: Math.min(1, q * 2.5), transform: q < 1 ? `scale(${1.18 - 0.18 * q})` : undefined, transformOrigin: '0% 70%',
                 ...(w.spectrum ? spectrumText : {}),
               }}
             >

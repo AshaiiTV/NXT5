@@ -9,9 +9,12 @@
 //   4) deal on the static overview (camera ≤ 4 px/f, so each throw reads as a hit): cards fly in reading order on
 //      a hard-accelerating cadence quantised to the music (gaps 1.5 → 1 → ½ → ¼ beat), dive 8f + settle 4f +
 //      press, z-arc and ghost trail kept from the demo, each seating exactly in its layout slot (Q9);
-//   5) single lock push once the deck is empty (L92–108), crossfade to the real filled texture (real "selected"
-//      state of the MID pick), header and pool/note dimmed so the five picks are the hero, ≈ 1 s of rest on a slow
-//      continuous drift toward the picks (plan DRIFT: the cards stay locked in their slots, the frame never freezes).
+//   5) lock push once the deck is empty (L92–108), crossfade to the real filled texture (real "selected" state of
+//      the MID pick), header and pool/note dimmed so the five picks are the hero;
+//   6) row push (L108–125, review 2 N9): the camera dollies onto the five picks and lands ON k43 (L125), the row
+//      spanning 60 % of the frame (cards ≈ 220 × 347 px, champion art from 2x textures). The card's left padding
+//      fades out before the caption and its recessed lower part fades out above the « Données fictives » slot
+//      (screen masks), then a gentle drift to the cut (plan DRIFT).
 // Light: a dark glossy table (Q7 contrast material) with a tight key light on the deck + glossy specular bands, then
 // slowly drifting ambient pools; no per-card glow (C1/Q4). « Données fictives »: ONE screen-space tag in the film's
 // shared bottom-right slot for the whole shot.
@@ -22,8 +25,8 @@ import { Backdrop, FeatureTitle, FictiveTag, Glow } from '../lib/ui';
 import { clamp } from '../lib/motion';
 import { StageCam } from './draft/StageCam';
 import {
-  ANT, BOARD, BOARD_DIM, BOARD_R, camAt, camBlur, CHAMPS, CUE, DECK, DIVE, DRIFT, driftScale, FILLED, HERO_DIM, N,
-  project, SETTLE, STACK_STEP, TABLE_FADE, TITLE_START,
+  ANT, BOARD, BOARD_DIM, BOARD_R, camAt, camBlur, CHAMPS, CUE, DECK, DEEP_DIM, DIVE, FILLED, HERO_DIM, N, ROW_MASK,
+  SETTLE, STACK_STEP, TABLE_FADE, TITLE_START,
 } from './draft/plan';
 
 const HOVER_H = 40;
@@ -87,8 +90,13 @@ export const Draft: React.FC = () => {
   const f = useCurrentFrame();
   const cam = camAt(f);
   const blur = camBlur(f);
-  const drift = driftScale(f);
-  const anchor = project(cam, DRIFT.anchor.x, DRIFT.anchor.y);
+  // row framing masks (screen space), ramped in during the row push; 1 = no mask
+  const m = interpolate(f, [ROW_MASK.from, ROW_MASK.to], [0, 1], { ...clamp, easing: Easing.inOut(Easing.quad) });
+  const floor = (1 - m).toFixed(4);
+  const maskL = m > 0 ? `linear-gradient(to right, rgba(0,0,0,${floor}) ${ROW_MASK.left[0]}px, #000 ${ROW_MASK.left[1]}px)` : undefined;
+  const maskB = m > 0 ? `linear-gradient(to bottom, #000 ${ROW_MASK.bottom[0]}px, rgba(0,0,0,${floor}) ${ROW_MASK.bottom[1]}px)` : undefined;
+  const deep = interpolate(f, [DEEP_DIM[0], DEEP_DIM[1]], [0, 1], { ...clamp, easing: Easing.inOut(Easing.quad) });
+  const lowDim = `rgba(17,24,39,${(0.45 + 0.52 * deep).toFixed(4)})`;
   const tableO = interpolate(f, [TABLE_FADE[0], TABLE_FADE[1]], [1, 0], clamp);
   const boardDim = interpolate(f, [BOARD_DIM[0], BOARD_DIM[1]], [1, 0], { ...clamp, easing: Easing.inOut(Easing.quad) });
   const filled = interpolate(f, [FILLED[0], FILLED[1]], [0, 1], clamp);
@@ -107,13 +115,10 @@ export const Draft: React.FC = () => {
         <Glow x={1860 - pool * 0.5} y={240 + pool * 0.4} r={380} color={C.glowFuchsia} />
       </AbsoluteFill>
 
-      {/* rest drift (plan DRIFT): screen-space push about the projected centre of the picks */}
-      <AbsoluteFill
-        style={{
-          ...(blur > 0.05 ? { filter: `blur(${blur.toFixed(2)}px)` } : {}),
-          ...(drift > 1 ? { transform: `scale(${drift.toFixed(5)})`, transformOrigin: `${anchor.x.toFixed(2)}px ${anchor.y.toFixed(2)}px` } : {}),
-        }}
-      >
+      {/* camera blur on the fastest pull-back frames; row framing masks (left: before the caption, bottom: above the tag) */}
+      <AbsoluteFill style={blur > 0.05 ? { filter: `blur(${blur.toFixed(2)}px)` } : undefined}>
+      <AbsoluteFill style={maskL ? { WebkitMaskImage: maskL, maskImage: maskL } : undefined}>
+      <AbsoluteFill style={maskB ? { WebkitMaskImage: maskB, maskImage: maskB } : undefined}>
       <StageCam cam={cam}>
         {/* dark glossy table under the opening close-up (Q7 contrast material), fades with the pull-back */}
         {tableO > 0.001 ? (
@@ -228,12 +233,14 @@ export const Draft: React.FC = () => {
           <div
             style={{
               position: 'absolute', left: 0, top: 0, width: BOARD.w, height: BOARD.h, borderRadius: BOARD_R, opacity: heroDim,
-              background: `linear-gradient(to bottom, transparent 78px, ${HERO_DIM_C} 94px, ${HERO_DIM_C} 152px, transparent 168px, transparent 420px, ${HERO_DIM_C} 440px)`,
+              background: `linear-gradient(to bottom, transparent 78px, ${HERO_DIM_C} 94px, ${HERO_DIM_C} 152px, transparent 168px, transparent 420px, ${lowDim} 440px)`,
               pointerEvents: 'none',
             }}
           />
         ) : null}
       </StageCam>
+      </AbsoluteFill>
+      </AbsoluteFill>
       </AbsoluteFill>
 
       {/* Données fictives: one tag, screen space, the film's shared slot, for the whole shot */}

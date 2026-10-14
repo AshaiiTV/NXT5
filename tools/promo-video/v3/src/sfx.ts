@@ -12,7 +12,7 @@ export const OUTPUT_AUDIO_OFFSET_F = 1.27;
 const PEAK_F: Record<string, number> = {
   'whoosh-big.mp3': 21.3, 'whoosh-fast.mp3': 21.6, 'swoosh-quick.mp3': 9.9, 'transition-soft.mp3': 13.5,
   'transition-snap.mp3': 3.3, 'air-woosh-deep.mp3': 13.5, 'click-camera.mp3': 5.7, 'keyboard.mp3': 0,
-  'riser-cine.mp3': 30.6, 'riser-cine-hp.mp3': 19.2, 'typewriter-hit-single.mp3': 5.1, 'impact-deep-whoosh.mp3': 16.5, 'bass-hit-short.mp3': 2.4, 'hit-fast-exciting.mp3': 4.2,
+  'riser-cine.mp3': 30.6, 'marker-pen-line.mp3': 1.2, 'riser-cine-hp.mp3': 19.2, 'typewriter-hit-single.mp3': 5.1, 'impact-deep-whoosh.mp3': 16.5, 'bass-hit-short.mp3': 2.4, 'hit-fast-exciting.mp3': 4.2,
   'shimmer-sparkle-sweep.mp3': 27.3, 'sparkle-touch.mp3': 14.1, 'paper-move-quick.mp3': 12.6, 'paper-slide.mp3': 10.5,
 };
 /** Sequence start so that the sample's peak lands on `peak` (absolute frame). */
@@ -57,13 +57,14 @@ export const SFX: Sfx[] = [
   cue(DB + 28, 'typewriter-hit-single.mp3', 0.34, 'debrief: numeral 2 presses (k50)'),
   cue(DB + 55, 'typewriter-hit-single.mp3', 0.3, 'debrief: numeral 3 presses (k52)'),
   ...WRITING.map(([a, b], i): Sfx => ({ from: DB + a, src: 'keyboard.mp3', volume: 0.3, duration: b - a, trimBefore: 45 + i * 70, note: `debrief: writing ${i + 1}` })),
+  cue(DB + 139, 'marker-pen-line.mp3', 0.42, 'debrief: coach highlights the action (k58 → k59)', { duration: 14, fadeOut: 3 }),
   // 7 planning — row-embed: the band opens with one transition, rows land silently (visual foley), pull-back whoosh
   cue(P + 5, 'transition-soft.mp3', 0.26, 'planning: agenda band opens'),
   cue(P + 47, 'whoosh-fast.mp3', 0.26, 'planning: pull-back to the full card (k64)'),
   cue(P + 62, 'sparkle-touch.mp3', 0.22, 'planning: five availability checks light up TOP→SUP'),
   cue(P + 70, 'swoosh-quick.mp3', 0.24, 'planning: push to the roles strip, lands k66.5'),
   // 8 outro — group photo: gather whoosh, riser → impact (slam #3) → sparkle
-  cue(O + 14, 'whoosh-big.mp3', 0.45, 'outro: pieces fly in around the stage'),
+  cue(O + 10, 'whoosh-big.mp3', 0.45, 'outro: pieces fly in around the stage'),
   // the music leaves a ~5 f gap before its second drop: the riser (high-passed copy, so it never covers the drop's
   // bass) stops 3 f before the drop and the impact starts on its attack, so silence → hit stays audible (review 2, N1)
   { from: beatF(76) - 39, src: 'riser-cine-hp.mp3', volume: 0.2, duration: 34, fadeOut: 4, note: 'outro: riser into the launch, cut before the drop' },

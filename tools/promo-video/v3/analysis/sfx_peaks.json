@@ -47,6 +47,12 @@
   "onset_f": 0.0,
   "peak_db": 1.6
  },
+ "marker-pen-line.mp3": {
+  "dur_s": 1.24,
+  "peak_f": 1.2,
+  "onset_f": 0.3,
+  "peak_db": -1.5
+ },
  "paper-move-quick.mp3": {
   "dur_s": 0.902,
   "peak_f": 12.6,

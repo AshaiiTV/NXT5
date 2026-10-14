@@ -5,21 +5,24 @@
 // with the hook's « Victoire » row already lifting out of its real slot (the depth plane); the page recedes and
 // dissolves within ~16 f under a crane that starts with velocity, while the row drops to the foot of the stage.
 // Then review card, planning card, debrief, Ahri, Gnar, Jinx and the session-programme chip land on an
-// accelerating grid (R2: contacts 7/21/31/41/48/55/62/66 = k68.5…k72.75, gaps 14→10→10→7→7→7→4), a 0.5 s rest.
+// accelerating grid (R2: contacts 7/14/24/34/41/48/55/59 = k68.5…k72.25; the cards' gaps 10→10→7→7→7→4). The first
+// card is already in flight while the page dissolves (review 2, P4: no empty sky after the row lands), then a rest.
 // Anticipation k73–76 (the spliced build): the stage core light swells, the OFFICIAL wordmark (lib <Wordmark/>,
 // never redrawn) condenses out of it (brightness 2.2→1 + blur 10→0) and accelerates toward the lens under an
 // ease-in dolly; contact exactly on k76 (local 111) = the song's second drop = slam #3, the film's third and last
 // full-frame impact: an 8 f out-expo shock pushes the group out of its build slots + a depth recoil of the group
 // layer (scale ×0.965, no oscillation, no camera shake, Q3) + a halation on the wordmark only (Brand.tsx style D, the
-// shot's single light effect, Q4). Focus racks to the hero, the rule draws, « Joue. Analyse. Recommence. » lands
-// word by word on half-beats, then the CTA « Essaie la démo » + nxt5.org. Full-energy music runs to the end, so
-// the end card never freezes: the group keeps a slow push (parallax against the hero's slower one) and the stage
-// pools drift, until the last 20 frames fade to #111827.
+// shot's single light effect, Q4). Focus racks to the hero, the rule draws, « Joue. Analyse. Recommence. » slams in
+// word by word on the eighth grid after the drop (local 118 / 125 / 132: the film's snap caption grammar, lib BlurLine
+// `snap`, Inter 800), then the CTA « Essaie la démo » + nxt5.org (settled by local 150). Full-energy music runs to
+// the end, so the end card never freezes (review 2, N5): the group keeps a 7 % push (≈0.2–0.3 px/f at the corners,
+// parallax against the hero's 3.5 %) and the stage pools drift, until the last 20 frames fade to #111827.
 //
 // Charte §4 protection space (≥ ¼ of the sign's visible height ≈ 66 px; target 72 px): the group's REST slots keep
-// every card ≥ 72 px from the wordmark's visible box, and the BUILD slots (before the blast) clear the wordmark at
-// its contact scale, so nothing overlaps it during the launch either. OUTRO_GEOM below exports the exact geometry the
-// shot renders, for the spacing check (QA script bundles this file).
+// every card ≥ 72 px from the wordmark's visible box for the whole hold (measured with the push: ≥ 75 px from
+// local 119), the corner cards keep ≥ 26 px of frame margin until the fade starts, and the BUILD slots (before the
+// blast) clear the wordmark at its contact scale, so nothing overlaps it during the launch either. OUTRO_GEOM below
+// exports the exact geometry the shot renders, for the spacing check (QA script bundles this file).
 //
 // Card adaptations: demo serif letterpress → the wordmark is an image (charte §4: never rebuilt from letters),
 // so it lands as one piece; amber landing glow per element dropped (Q4: no batch glints) — landings read through
@@ -29,8 +32,8 @@
 // lands in fixed stage slots (the recipe's group photo), not in a page layout — deliberate, see openIssues.
 import React from 'react';
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from 'remotion';
-import { C, FONT, PRIMARY_GRADIENT, spectrumText } from '../theme';
-import { Backdrop, FictiveTag, Glow, Wordmark } from '../lib/ui';
+import { C, FONT, PRIMARY_GRADIENT } from '../theme';
+import { Backdrop, BlurLine, EIGHTH_F, FictiveTag, Glow, Wordmark } from '../lib/ui';
 import { clamp, EASE, outCubic } from '../lib/motion';
 import { dur, localBeat, SHOTS } from '../timeline';
 import layout from '../layout.json';
@@ -40,6 +43,11 @@ const END = dur(SHOTS.outro); // 332
 const IMPACT = B(76); // 111 — slam #3, the song's second drop
 const EMERGE = B(74); // 83 — the hero's 28 f arc out of the stage light
 const FADE = [END - 20, END] as const; // gentle fade to #111827 (audio fade handled in Main)
+/** Tagline words slam in on the eighth grid counted from the drop: local 118 / 125 / 132 (lib BlurLine `snap`). */
+const TAG_START = IMPACT + Math.round(EIGHTH_F);
+const TAGLINE = [{ text: 'Joue.' }, { text: 'Analyse.' }, { text: 'Recommence.', spectrum: true }];
+/** CTA eases in under « Recommence. », ~80 % there on k78 (local 138), settled by local 150. */
+const CTA_START = 134;
 
 // card-tuned easings
 const FLY_EASE = Easing.bezier(0.34, 1.4, 0.44, 1); // y1 > 1: a real overshoot on landing (card lesson)
@@ -63,7 +71,8 @@ const CTA_Y = TAG_Y + 146;
 
 // ── camera on the group layer ──
 const GROUP_ORIGIN = { x: 960, y: 486 }; // transformOrigin '50% 45%'
-const HOLD_PUSH = 0.03; // slow push through the end card (group), against the hero's 1.5 %: parallax, never a freeze
+const HOLD_PUSH = 0.07; // slow push through the end card (group), against the hero's 3.5 %: parallax, never a freeze
+const HERO_PUSH = 0.035;
 
 // ── depth plane: the hook's match list, crisp on frame 0, receding and dissolving fast ──
 const PAGE = layout['demo-matches'];
@@ -88,21 +97,22 @@ type El = {
   /** absolute start (camera-layer px) — the piece is visible from frame 0 and lifts out of that real slot */
   from?: { x: number; y: number; s: number; rot: number };
 };
-// Rest slots: the corner cards sit ≥ 72 px from the sign (charte §4) at 0.42 (was 0.47: too close, too busy);
-// the right-hand champions sit high enough to clear the shared « Données fictives » slot (bottom-right).
+// Rest slots: the top corner cards sit ≥ 72 px from the sign (charte §4) at 0.40 (was 0.47, then 0.42: room for the
+// end-card push, which takes them ≈ 4 % further out); the right-hand champions sit high enough to clear the shared
+// « Données fictives » slot (bottom-right) at the end of the push.
 const ELS: El[] = [
   // the hook row lifts out of its real slot in the page (Q9 start) and drops to the foot of the stage
   { key: 'row', tex: 'demo-row-1', cx: 960, cy: 960, s: 0.6, rot: -1.2, dx: 0, dy: 0, px: 0, py: 90, r: 14, contact: B(68.5), rim: true, from: ROW_SLOT },
-  { key: 'review', tex: 'review-3345', cx: 230, cy: 300, s: 0.42, rot: -4, dx: -560, dy: -160, px: -75, py: -20, r: 16, contact: B(69.5), rim: true },
-  { key: 'planning', tex: 'planning', cx: 1690, cy: 292, s: 0.42, rot: 3.5, dx: 560, dy: -180, px: 78, py: -20, r: 16, contact: B(70.25), rim: true },
+  { key: 'review', tex: 'review-3345', cx: 243, cy: 300, s: 0.4, rot: -4, dx: -560, dy: -160, px: -70, py: -20, r: 16, contact: B(69), rim: true },
+  { key: 'planning', tex: 'planning', cx: 1682, cy: 292, s: 0.4, rot: 3.5, dx: 560, dy: -180, px: 78, py: -20, r: 16, contact: B(69.75), rim: true },
   // debrief cropped to its content (steps run x 33–720 of 1280): no dark empty slab
-  { key: 'debrief', tex: 'debrief', cx: 226, cy: 820, s: 0.42, rot: 2.5, dx: -500, dy: 300, px: -110, py: 60, r: 13, contact: B(71), rim: true, crop: { x: 0, y: 0, w: 740, h: 720 } },
-  { key: 'ahri', tex: 'champ-3', cx: 1618, cy: 784, s: 1, rot: -4, dx: 540, dy: 120, px: 110, py: 80, r: 12, contact: B(71.5), alpha: true },
+  { key: 'debrief', tex: 'debrief', cx: 226, cy: 820, s: 0.42, rot: 2.5, dx: -500, dy: 300, px: -110, py: 60, r: 13, contact: B(70.5), rim: true, crop: { x: 0, y: 0, w: 740, h: 720 } },
+  { key: 'ahri', tex: 'champ-3', cx: 1618, cy: 776, s: 1, rot: -4, dx: 540, dy: 120, px: 110, py: 80, r: 12, contact: B(71), alpha: true },
   // Gnar's card has no picked-state border (Ahri/Jinx do): the glass rim gives it the same silhouette
-  { key: 'gnar', tex: 'champ-1', cx: 474, cy: 830, s: 1, rot: 5, dx: -320, dy: 420, px: -80, py: 90, r: 2, contact: B(72), alpha: true, rim: true },
-  { key: 'jinx', tex: 'champ-4', cx: 1772, cy: 752, s: 1, rot: 6, dx: 520, dy: 60, px: 120, py: 60, r: 12, contact: B(72.5), alpha: true },
+  { key: 'gnar', tex: 'champ-1', cx: 474, cy: 830, s: 1, rot: 5, dx: -320, dy: 420, px: -80, py: 90, r: 2, contact: B(71.5), alpha: true, rim: true },
+  { key: 'jinx', tex: 'champ-4', cx: 1772, cy: 752, s: 1, rot: 6, dx: 520, dy: 60, px: 120, py: 60, r: 12, contact: B(72), alpha: true },
   // the session programme's first item (planning shot), cropped from the real card with its background
-  { key: 'agenda', tex: 'planning', cx: 900, cy: 92, s: 1, rot: -1.5, dx: 0, dy: -330, px: 0, py: -70, r: 10, contact: B(72.75), rim: true, crop: { x: 16, y: 532, w: 280, h: 86 } },
+  { key: 'agenda', tex: 'planning', cx: 900, cy: 92, s: 1, rot: -1.5, dx: 0, dy: -330, px: 0, py: -70, r: 10, contact: B(72.25), rim: true, crop: { x: 16, y: 532, w: 280, h: 86 } },
 ];
 
 // ── pure motion (shared by the render and by the QA spacing check) ──
@@ -112,8 +122,9 @@ const camAt = (f: number) => {
   const dollyIn = interpolate(f, [EMERGE, IMPACT], [0, 1], { ...clamp, easing: Easing.in(Easing.quad) });
   const dollyRelax = interpolate(f, [IMPACT, IMPACT + 30], [0, 1], { ...clamp, easing: EASE });
   const recoil = interpolate(f, [IMPACT, IMPACT + 8], [0, 1], { ...clamp, easing: Easing.out(Easing.exp) });
-  // slow push through the end card: eased in, still moving when the fade starts (no dead freeze under the drop)
-  const holdPush = interpolate(f, [IMPACT + 8, END], [0, 1], { ...clamp, easing: Easing.bezier(0.45, 0, 0.75, 0.9) });
+  // slow push through the end card: near-linear (0.15 → 0.3 px/f at the corners from the first held frame), still moving
+  // when the fade starts — no dead freeze under the drop (review 2, N5)
+  const holdPush = interpolate(f, [IMPACT + 8, END], [0, 1], { ...clamp, easing: Easing.bezier(0.3, 0.12, 0.7, 0.88) });
   const scale = (1.06 - 0.06 * craneT + 0.03 * dollyIn * (1 - dollyRelax) + HOLD_PUSH * holdPush) * (1 - 0.035 * recoil);
   return { scale, tilt: 4 * (1 - craneT) };
 };
@@ -167,7 +178,7 @@ const heroAt = (f: number) => {
   const condense = interpolate(f, [EMERGE, IMPACT - 2], [0, 1], { ...clamp, easing: Easing.bezier(0.4, 0, 0.6, 1) });
   return {
     visible: f >= EMERGE,
-    scale: f < IMPACT ? 0.3 + (1.04 - 0.3) * wmIn : 1.04 - 0.04 * wmSettle + 0.015 * wmHold,
+    scale: f < IMPACT ? 0.3 + (1.04 - 0.3) * wmIn : 1.04 - 0.04 * wmSettle + HERO_PUSH * wmHold,
     lift: f < IMPACT ? 40 * (1 - wmIn) : 0,
     opacity: interpolate(f, [EMERGE, EMERGE + 8], [0, 1], clamp),
     condense,
@@ -246,32 +257,6 @@ const GroupEl: React.FC<{ el: El; f: number }> = ({ el, f }) => {
   );
 };
 
-type Word = { text: string; start: number; spectrum?: boolean };
-/** blur-slide words (shot card typography/blur-slide, lib BlurLine maths) with one start frame per word. */
-const BeatWords: React.FC<{ words: Word[]; size: number; f: number }> = ({ words, size, f }) => (
-  <div
-    style={{
-      display: 'flex', justifyContent: 'center', gap: '0 0.28em', whiteSpace: 'nowrap', fontFamily: FONT, fontSize: size,
-      fontWeight: 700, color: C.text, lineHeight: 1.12, letterSpacing: '-0.02em',
-    }}
-  >
-    {words.map((w) => {
-      const p = interpolate(f, [w.start, w.start + 20], [0, 1], { ...clamp, easing: outCubic });
-      return (
-        <span
-          key={w.text}
-          style={{
-            display: 'inline-block', opacity: p, transform: `translateY(${(1 - p) * size * 0.45}px)`,
-            filter: p < 1 ? `blur(${(1 - p) * size * 0.12}px)` : undefined, ...(w.spectrum ? spectrumText : {}),
-          }}
-        >
-          {w.text}
-        </span>
-      );
-    })}
-  </div>
-);
-
 export const Outro: React.FC = () => {
   const f = useCurrentFrame();
 
@@ -315,14 +300,7 @@ export const Outro: React.FC = () => {
   const ruleExt = interpolate(f, [IMPACT + 2, IMPACT + 10], [0, 1], { ...clamp, easing: DRAW_EASE });
   const ruleExtFade = interpolate(f, [IMPACT + 10, IMPACT + 16], [1, 0], clamp);
 
-  // tagline: one word per half-beat (start 4f early so each word reads « landed » on its beat)
-  const words: Word[] = [
-    { text: 'Joue.', start: B(76.5) - 4 },
-    { text: 'Analyse.', start: B(77) - 4 },
-    { text: 'Recommence.', start: B(77.5) - 4, spectrum: true },
-  ];
-  const ctaStart = B(78) - 6;
-  const cta = interpolate(f, [ctaStart, ctaStart + 16], [0, 1], { ...clamp, easing: EASE });
+  const cta = interpolate(f, [CTA_START, CTA_START + 16], [0, 1], { ...clamp, easing: EASE });
 
   const fade = interpolate(f, [FADE[0], FADE[1]], [1, 0], { ...clamp, easing: Easing.bezier(0.4, 0, 0.6, 1) });
 
@@ -423,9 +401,9 @@ export const Outro: React.FC = () => {
           </div>
         ) : null}
 
-        {/* tagline */}
+        {/* tagline: the film's snap caption grammar, one word per eighth after the drop */}
         <div style={{ position: 'absolute', left: 0, right: 0, top: TAG_Y }}>
-          <BeatWords words={words} size={76} f={f} />
+          <BlurLine line={TAGLINE} start={TAG_START} size={76} weight={800} align="center" snap style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap' }} />
         </div>
 
         {/* call to action: the site's primary button (charte §3/§6) + the address */}

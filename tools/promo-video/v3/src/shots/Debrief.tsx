@@ -12,7 +12,11 @@
 // Writing = the demo's mask wipe (bezier(0.4,0,0.6,1), one cyan caret riding the newest block only, fading 2f after
 // it); the "paper" cover is the real texture with the text erased (debrief/debrief-empty.png, built by
 // debrief/make-empty.py) because the glass card is a gradient, not a flat colour. After the last line the pen rests
-// and blinks on the beats until the cut.
+// and blinks on the beats (k54–57).
+// The reading hold is not a freeze (review 2, N3): the coach's highlight — a cyan marker band — is drawn under step
+// 3's body (the action to take, the line the caption « doit changer » names) from k58 and lands on k59, element level,
+// in page space, blended `lighten` so the light glyphs stay exactly as written while only the glass behind them takes
+// the cyan; and a slow push (2.8 %, transform only, over the constant CSS zoom) leans the page in on that line.
 //
 // Camera: PageCam2D maths (CSS zoom so the 2x texture is rasterised at its final size, rotateY around the frame
 // centre, perspective × zoom), eased down with the pen. The page's body text is 16px CSS (cap height 11.5px, line
@@ -124,6 +128,33 @@ const camAt = (f: number) => {
   };
 };
 
+// ---------- the coach's highlight (step 3 body) + reading push ----------
+// Glyph rows measured on the texture (debrief.png vs debrief-empty.png): line 8 = CSS y 487.5–503.5 (cap top →
+// descender), line 9 = 515.5–531.5. The marker is a soft cyan band from the x-height down to the descenders, denser at
+// its foot, sitting on a crisp cyan underline just under the descenders (charte: cyan + underline = the active item).
+const HL_LINES = [8, 9];
+const HL_START = B(58); // 138: the marker touches down
+const HL_LAND = B(59); // 152: the stroke ends on the hit
+const HL_DRAW = Easing.bezier(0.45, 0, 0.25, 1); // one continuous stroke, decelerating into the landing
+const HL_BAND = 'linear-gradient(to bottom, rgba(103,232,249,.08), rgba(103,232,249,.4))';
+const HL_SEGS = (() => {
+  const ws = HL_LINES.map((i) => L.boxes.lines[i].w + 4);
+  const total = ws.reduce((a, b) => a + b, 0);
+  let acc = 0;
+  return HL_LINES.map((i, j) => {
+    const b = L.boxes.lines[i];
+    // band: x-height top (box top + 7) → 1 px under the box; underline: 1.6 CSS px right below it
+    const seg = { x: b.x - 2, y: b.y + 7, w: ws[j], h: b.h - 6, a: acc / total, b: (acc + ws[j]) / total };
+    acc += ws[j];
+    return seg;
+  });
+})();
+/** Reading push: takes over from the camera follow, keeps moving through the cut (never parks on a still). */
+const PUSH_WIN = [80, 166] as const; // overlaps the follow's deceleration (ends f96): a velocity hand-off, no lull
+const PUSH = 0.028;
+const PUSH_EASE = Easing.bezier(0.4, 0, 0.8, 0.8); // eases in, still at full speed on the cut
+const PUSH_Y = 772; // screen y of step 3's body: the push leans in on the highlighted line
+
 /** One block revealed from the real texture: a left-anchored window over the original page that widens. */
 const Reveal: React.FC<{ r: Rect; p: number }> = ({ r, p }) =>
   p <= 0 ? null : (
@@ -168,14 +199,16 @@ export const Debrief: React.FC = () => {
       o: progress[i] < 1 ? 1 : interpolate(f, [b.cue + b.dur, b.cue + b.dur + 2], [1, 0], clamp),
     };
   }
-  // after the last line, the pen rests at its end and blinks on the beats until the cut
-  if (!caret && f > WRITE_END + 2 && LAST.text) {
+  // after the last line, the pen rests at its end and blinks on the beats, until it picks up the marker (k58)
+  if (!caret && f > WRITE_END + 2 && f < HL_START && LAST.text) {
     const t = LAST.text;
     const h = Math.min(20, t.h - 2);
-    const since = [54, 55, 56, 57, 58, 59].filter((k) => B(k) > WRITE_END + 2).map((k) => f - B(k)).filter((d) => d >= 0);
+    const since = [54, 55, 56, 57].filter((k) => B(k) > WRITE_END + 2).map((k) => f - B(k)).filter((d) => d >= 0);
     const d = since.length ? Math.min(...since) : 99;
     caret = { x: t.x + t.w + 3, y: t.y + (t.h - h) / 2, h, o: d <= 7 ? 1 : 0 };
   }
+  const hl = interpolate(f, [HL_START, HL_LAND], [0, 1], { ...clamp, easing: HL_DRAW });
+  const push = 1 + PUSH * interpolate(f, [...PUSH_WIN], [0, 1], { ...clamp, easing: PUSH_EASE });
 
   const rim = interpolate(f, [0, 26], [1, 0], { ...clamp, easing: Easing.out(Easing.cubic) });
   const bgZoom = 1.07 + 0.05 * cam.imp; // 1.07 overfills the frame so the parallax lift never shows an edge
@@ -192,41 +225,57 @@ export const Debrief: React.FC = () => {
       <Glow x={260} y={300 + bgLift} r={560} color={C.glowCyan} />
       <Glow x={1500} y={520} r={900} color={C.glowViolet} />
 
-      {/* camera: PageCam2D 3D-branch maths on the card stage (CSS zoom → texture rasterised at final size) */}
-      <div style={{ position: 'absolute', inset: 0, perspective: `${PERSP * cam.s}px`, perspectiveOrigin: '960px 540px' }}>
-        <div
-          style={{
-            position: 'absolute', left: 0, top: 0, width: CARD_W, height: CARD_H, zoom: cam.css,
-            transform: `translate(${960 / cam.css - cam.cx}px, ${540 / cam.css - cam.cy}px) rotateY(${cam.rotY}deg) scale(${cam.k})`,
-            transformOrigin: `${cam.cx}px ${cam.cy}px`, transformStyle: 'preserve-3d',
-          }}
-        >
-          <div style={{ position: 'absolute', inset: 0, borderRadius: RADIUS, boxShadow: '0 30px 90px rgba(2,6,17,.62), 0 0 0 1px rgba(2,6,17,.3)' }} />
-          <div style={{ position: 'absolute', inset: 0, borderRadius: RADIUS, overflow: 'hidden' }}>
-            <Img src={emptyTex} style={{ position: 'absolute', left: 0, top: 0, width: CARD_W, height: CARD_H, maxWidth: 'none' }} />
-            {BLOCKS.map((b, i) => (
-              <Reveal key={i} r={b.rect} p={progress[i]} />
-            ))}
-            {NUMERALS.map((n, i) => (
-              <NumeralPress key={`n${i}`} r={n.rect} scale={n.scale} t={interpolate(f, [n.cue, n.cue + n.win], [0, 1], { ...clamp, easing: PRESS })} />
-            ))}
-            {caret ? (
-              <div
-                style={{
-                  position: 'absolute', left: caret.x, top: caret.y, width: 2, height: caret.h, borderRadius: 1,
-                  background: C.cyan, opacity: caret.o,
-                }}
-              />
-            ) : null}
-            {/* the shot's one light: violet rim light on impact, inside the card's rounded clip */}
-            {rim > 0.01 ? (
-              <div
-                style={{
-                  position: 'absolute', inset: 0, borderRadius: RADIUS, pointerEvents: 'none',
-                  boxShadow: `inset 0 0 0 2px rgba(196,181,253,${rim}), inset 0 0 120px rgba(139,92,246,${0.7 * rim})`,
-                }}
-              />
-            ) : null}
+      {/* camera: PageCam2D 3D-branch maths on the card stage (CSS zoom → texture rasterised at final size); the
+          reading push is a plain transform on top, anchored on step 3's body at the text column */}
+      <div style={{ position: 'absolute', inset: 0, transform: push > 1 ? `scale(${push})` : undefined, transformOrigin: `${X_LEFT}px ${PUSH_Y}px` }}>
+        <div style={{ position: 'absolute', inset: 0, perspective: `${PERSP * cam.s}px`, perspectiveOrigin: '960px 540px' }}>
+          <div
+            style={{
+              position: 'absolute', left: 0, top: 0, width: CARD_W, height: CARD_H, zoom: cam.css,
+              transform: `translate(${960 / cam.css - cam.cx}px, ${540 / cam.css - cam.cy}px) rotateY(${cam.rotY}deg) scale(${cam.k})`,
+              transformOrigin: `${cam.cx}px ${cam.cy}px`, transformStyle: 'preserve-3d',
+            }}
+          >
+            <div style={{ position: 'absolute', inset: 0, borderRadius: RADIUS, boxShadow: '0 30px 90px rgba(2,6,17,.62), 0 0 0 1px rgba(2,6,17,.3)' }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: RADIUS, overflow: 'hidden' }}>
+              <Img src={emptyTex} style={{ position: 'absolute', left: 0, top: 0, width: CARD_W, height: CARD_H, maxWidth: 'none' }} />
+              {BLOCKS.map((b, i) => (
+                <Reveal key={i} r={b.rect} p={progress[i]} />
+              ))}
+              {NUMERALS.map((n, i) => (
+                <NumeralPress key={`n${i}`} r={n.rect} scale={n.scale} t={interpolate(f, [n.cue, n.cue + n.win], [0, 1], { ...clamp, easing: PRESS })} />
+              ))}
+              {/* the coach's highlight: `lighten` keeps every glyph pixel (lighter than the band) untouched, so the
+                  band reads as drawn under the text; it lives in page space, inside the card's rounded clip */}
+              {hl > 0
+                ? HL_SEGS.map((s, i) => {
+                    const p = Math.min(1, Math.max(0, (hl - s.a) / (s.b - s.a)));
+                    return p <= 0 ? null : (
+                      <React.Fragment key={`hl${i}`}>
+                        <div style={{ position: 'absolute', left: s.x, top: s.y, width: s.w * p, height: s.h, background: HL_BAND, mixBlendMode: 'lighten' }} />
+                        <div style={{ position: 'absolute', left: s.x, top: s.y + s.h, width: s.w * p, height: 1.6, borderRadius: 1, background: C.cyan }} />
+                      </React.Fragment>
+                    );
+                  })
+                : null}
+              {caret ? (
+                <div
+                  style={{
+                    position: 'absolute', left: caret.x, top: caret.y, width: 2, height: caret.h, borderRadius: 1,
+                    background: C.cyan, opacity: caret.o,
+                  }}
+                />
+              ) : null}
+              {/* the shot's one light: violet rim light on impact, inside the card's rounded clip */}
+              {rim > 0.01 ? (
+                <div
+                  style={{
+                    position: 'absolute', inset: 0, borderRadius: RADIUS, pointerEvents: 'none',
+                    boxShadow: `inset 0 0 0 2px rgba(196,181,253,${rim}), inset 0 0 120px rgba(139,92,246,${0.7 * rim})`,
+                  }}
+                />
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
