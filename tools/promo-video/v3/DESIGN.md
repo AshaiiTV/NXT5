@@ -103,6 +103,7 @@ Réservations de maintien :
 - **Draft.** Cinq cartes seulement : c’est la composition réelle de l’équipe, pas un paquet.
 - **Lumière.** Deux halations (marque, clôture). S’y ajoutent l’éclair de bord au slam #2 et les coutures de row-embed, qui sont le bruitage visuel de la recette. Le reflet de l’analyse a été retiré.
 - **Maintiens vivants.** Pendant les repos, la caméra dérive en transformation d’écran, avec un zoom CSS constant pour garder le texte net. Le texte reste fixe.
+- **Étiquette « Données fictives ».** 32 px, à 80 px du bas : au-dessus de la barre de progression YouTube et à la taille minimale du texte secondaire (Q11). Elle reste au même endroit dans tous les plans.
 - **Couleur de la victoire.** `#A7F3D0`, prélevée sur le libellé « Victoire » de la démo.
 
 - **Bouton « Essaie la démo ».** Il suit la charte §6 : rayon de 2 px, dégradé primaire, texte `#020611`, sans halo au repos. Ce n’est donc pas une pilule.
@@ -113,6 +114,6 @@ Réservations de maintien :
 
 - **Musique.** `bgm.wav` est coupé 42,3 ms plus tard que la grille. Cela absorbe les 2032 échantillons de pré-roll AAC ajoutés par le rendu, mesurés par `analysis/sync_check.py`. Mesure faite sur le rendu : la musique tombe à 0,0 image de chaque beat de contrôle (k9 à k80, raccord compris ; `analysis/music_check.py`).
 - **Effets.** Ils sont listés dans un seul tableau, `src/sfx.ts`, calés relativement à chaque plan. Chaque calage corrige le pic propre de l’échantillon (`analysis/sfx_peaks.json`) et le décalage de sortie (1,27 image).
-- **Vocabulaire.** whoosh, impact, riser, sparkle et transition, plus des bruitages réels : clics, clavier, cartes. Les trois slams (k16, k48, k76) sont les pics du mix.
-- **Second drop.** La musique laisse environ 5 images de silence avant k76. Le riser (copie filtrée au-dessus de 200 Hz) s’arrête 3 images avant le drop, avec un fondu, et l’impact démarre sur son attaque (`trimBefore`). Le silence suivi du coup reste ainsi audible (revue n° 2, N1). La musique s’éteint avant le temps k92 pour qu’aucun coup ne tombe sur le noir final.
-- **Master** (`master.sh`). Gain statique vers −14 LUFS, puis limiteur à −2,9 dBFS qui ne touche que les slams. Résultat : −14,3 LUFS et −2,2 dBTP. La version sans musique reçoit le même gain.
+- **Vocabulaire.** whoosh, impact, riser, sparkle et transition, plus des bruitages réels : clics, clavier, cartes. Les trois slams (k16, k48, k76) sont les pics du mix. Le slam final est le plus fort : énergie sur 150 ms, −6,5 dB contre −6,6 et −6,8 pour les deux autres, et −8,5 pour l’accent du Draft (k43).
+- **Second drop.** La musique laisse environ 5 images de silence avant k76. Le riser (copie filtrée au-dessus de 200 Hz, la partie qui monte seulement) s’arrête 5 images avant le drop avec un fondu. L’impact est coupé dans son attaque (`trimBefore` 15) et son départ est calé sur le kick de la musique. Résultat mesuré : environ −35 dB sur les 3 images qui précèdent, puis un saut de 30 dB (revues n° 2 et 3). La musique s’éteint avant le temps k92 pour qu’aucun coup ne tombe sur le noir final.
+- **Master** (`master.sh`). Gain statique vers −14 LUFS, puis limiteur à −2,9 dBFS qui attrape surtout les slams et les impacts. Résultat : −14,2 LUFS et −1,4 dBTP. La version sans musique reçoit le même gain.

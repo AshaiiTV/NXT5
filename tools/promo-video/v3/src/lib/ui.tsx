@@ -67,7 +67,7 @@ export const BlurLine: React.FC<{
       {words.map((w, i) => {
         if (snap) {
           const t = start + Math.round(i * EIGHTH_F);
-          const q = interpolate(f, [t, t + 5], [0, 1], { ...clamp, easing: outCubic });
+          const q = interpolate(f, [t - 1, t + 4], [0, 1], { ...clamp, easing: outCubic }); // visible ON its eighth
           return (
             <span
               key={i}
@@ -119,14 +119,14 @@ export const FeatureTitle: React.FC<{ eyebrow: string; l1: string; l2: string; s
   );
 };
 
-/** Charte §10: example data must say so. Same bottom-right slot in every shot (72 px up, clear of the YouTube progress bar) unless x/y are given. */
+/** Charte §10: example data must say so. Same bottom-right slot in every shot (80 px up, clear of the YouTube progress bar; 32 px = Q11 secondary size) unless x/y are given. */
 export const FictiveTag: React.FC<{ x?: number; y?: number; opacity?: number }> = ({ x, y, opacity = 1 }) => (
   <div
     style={{
-      position: 'absolute', ...(x === undefined ? { right: 48 } : { left: x }), ...(y === undefined ? { bottom: 72 } : { top: y }),
-      padding: '9px 22px', borderRadius: 999, opacity, whiteSpace: 'nowrap',
+      position: 'absolute', ...(x === undefined ? { right: 48 } : { left: x }), ...(y === undefined ? { bottom: 80 } : { top: y }),
+      padding: '10px 24px', borderRadius: 999, opacity, whiteSpace: 'nowrap',
       background: 'rgba(17,24,39,.72)', border: '1.5px solid rgba(181,200,225,.38)',
-      fontFamily: FONT, fontWeight: 600, fontSize: 28, color: C.muted,
+      fontFamily: FONT, fontWeight: 600, fontSize: 32, color: C.muted,
     }}
   >
     Données fictives

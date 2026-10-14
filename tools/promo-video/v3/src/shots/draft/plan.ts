@@ -59,14 +59,14 @@ export const CAM_KEYS: Record<Exclude<keyof Cam, 's'>, Keys> = {
 /** The five slots on the card (layout draft.boxes.roster), page px. */
 export const ROW = { x0: 33.52, x1: 847.52, y0: 171.45, y1: 416.45 };
 export const PUSH_ROW = { from: 108, to: B(43) } as const; // 108 → 125 (k43 = abs 485)
-/** Landing framing: the row spans 60 % of the frame width (1153 px, cards ≈ 220 × 347 px), Gnar's left edge 45 px
- * clear of the caption (« Pense ta draft » ends at x 701), Braum 21 px inside the frame, row centred on the
+/** Landing framing: the row spans 56 % of the frame width (1075 px, cards ≈ 205 × 323 px), Gnar's left edge 59 px
+ * clear of the caption (« Pense ta draft » ends at x 701), Braum 85 px inside the frame (review 3, p4), row centred on the
  * caption's height (y 500). Textures are 2x, so 1.42 is still a downscale: champion art stays crisp. */
-export const ROW_SCREEN = { left: 746, width: 1153, cy: 500 };
+export const ROW_SCREEN = { left: 760, width: 1075, cy: 500 };
 export const Z_HIT = ROW_SCREEN.width / (ROW.x1 - ROW.x0); // 1.4165
 /** In-out with a firm landing: starts on k42 (L111, ≈ 2.4 px/f at the row edge), peaks on k42.5 (L118, ≈ 20 px/f),
  * still travels ≈ 5 / 2.7 px/f two and one frames before k43 and stops on it (0.8 px/f at L125). */
-const ROW_EASE = Easing.bezier(0.62, 0, 0.5, 1);
+const ROW_EASE = Easing.bezier(0.35, 0.12, 0.3, 1); // review 3: leaves L108 already moving (no dead stop after the lock push) and lands firmly on k43
 /**
  * Rest drift after the landing: +0.8 % about the row centre (edges ≈ 0.35 → 0.45 px/f), eased in from 0 so the
  * landing reads, never freezing under full-energy music. Like the push, it is a transform scale over a FIXED CSS

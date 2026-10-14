@@ -35,11 +35,11 @@ export const SFX: Sfx[] = [
   cue(H + 95, 'transition-snap.mp3', 0.42, 'hook: row reseats'),
   cue(H + 109, 'air-woosh-deep.mp3', 0.28, 'hook: pull-back into darkness, sucked into the drop'),
   // 2 brand — slam #1 on the drop
-  cue(B, 'impact-deep-whoosh.mp3', 0.5, 'brand: glass 5 lands on the drop (slam #1)'),
+  cue(B, 'impact-deep-whoosh.mp3', 0.42, 'brand: glass 5 lands on the drop (slam #1)'),
   // 3 analyse — real clicks on the chips
   cue(A + 8, 'transition-soft.mp3', 0.3, 'analyse: review card swings in'),
   cue(A + 29, 'click-camera.mp3', 0.6, 'analyse: click on 21:00 (k26, press bottom)'),
-  cue(A + 38, 'swoosh-quick.mp3', 0.5, 'analyse: punch-in towards +1 300 or'),
+  cue(A + 38, 'swoosh-quick.mp3', 0.65, 'analyse: punch-in towards +1 300 or'),
   cue(A + 85, 'click-camera.mp3', 0.55, 'analyse: click on 33:45 (k30, press bottom)'),
   cue(A + 113, 'sparkle-touch.mp3', 0.2, 'analyse: +4 000 or pops with the chart end ring (k32)'),
   // 4 draft — deck-deal-flyin: orbit pull-back whoosh, landings on two alternating samples, fading, merged at the end
@@ -50,12 +50,12 @@ export const SFX: Sfx[] = [
   cue(D + 98, 'swoosh-quick.mp3', 0.42, 'draft: Jinx and Braum land as one sweep'),
   cue(D + 106, 'transition-snap.mp3', 0.28, 'draft: board locks'),
   cue(D + 119, 'whoosh-fast.mp3', 0.34, 'draft: camera dollies onto the five champions'),
-  cue(D + 125, 'bass-hit-short.mp3', 0.3, 'draft: the champion row lands full-frame on k43'),
+  cue(D + 125, 'bass-hit-short.mp3', 0.16, 'draft: the champion row lands full-frame on k43'),
   // 5 breath card
   cue(K + 2, 'swoosh-quick.mp3', 0.42, 'card: Et après la partie ? presses in'),
   // 6 debrief — slam #2 when the music returns, then the document writes itself
-  cue(DB, 'hit-fast-exciting.mp3', 0.6, 'debrief: card lands (slam #2)'),
-  cue(DB, 'bass-hit-short.mp3', 0.4, 'debrief: slam #2 low end'),
+  cue(DB, 'hit-fast-exciting.mp3', 0.45, 'debrief: card lands (slam #2)'),
+  cue(DB, 'bass-hit-short.mp3', 0.28, 'debrief: slam #2 low end'),
   cue(DB + 28, 'typewriter-hit-single.mp3', 0.34, 'debrief: numeral 2 presses (k50)'),
   cue(DB + 55, 'typewriter-hit-single.mp3', 0.3, 'debrief: numeral 3 presses (k52)'),
   ...WRITING.map(([a, b], i): Sfx => ({ from: DB + a, src: 'keyboard.mp3', volume: 0.3, duration: b - a, trimBefore: 45 + i * 70, note: `debrief: writing ${i + 1}` })),
@@ -64,12 +64,13 @@ export const SFX: Sfx[] = [
   cue(P + 5, 'transition-soft.mp3', 0.26, 'planning: agenda band opens'),
   cue(P + 47, 'whoosh-fast.mp3', 0.26, 'planning: pull-back to the full card (k64)'),
   cue(P + 52, 'sparkle-touch.mp3', 0.22, 'planning: five availability checks ripple TOP→SUP (k64)'),
-  cue(P + 74, 'swoosh-quick.mp3', 0.3, 'planning: push to « 5 / 5 disponibles », lands k66.5'),
+  cue(P + 70, 'swoosh-quick.mp3', 0.45, 'planning: push to « 5 / 5 disponibles », lands k66.5'),
   // 8 outro — group photo: gather whoosh, riser → impact (slam #3) → sparkle
   cue(O + 10, 'whoosh-big.mp3', 0.45, 'outro: pieces fly in around the stage'),
   // the music leaves a ~5 f gap before its second drop: the riser (high-passed copy, so it never covers the drop's
   // bass) stops 3 f before the drop and the impact starts on its attack, so silence → hit stays audible (review 2, N1)
-  { from: beatF(76) - 39, src: 'riser-cine-hp.mp3', volume: 0.2, duration: 34, fadeOut: 4, note: 'outro: riser into the launch, cut before the drop' },
-  cue(beatF(76), 'impact-deep-whoosh.mp3', 0.45, 'outro: wordmark launch on the second drop (k76, slam #3)', { trimBefore: 15 }),
+  { from: beatF(76) - 24, src: 'riser-cine-hp.mp3', volume: 0.2, duration: 19, fadeOut: 4, note: 'outro: riser into the launch, cut before the drop' },
+  cue(beatF(76) + 1, 'impact-deep-whoosh.mp3', 0.45, 'outro: wordmark launch on the second drop (k76, slam #3), onset on the music\'s kick', { trimBefore: 15 }),
+  cue(beatF(76), 'bass-hit-short.mp3', 0.5, 'outro: slam #3 low end — the climax is the loudest hit of the film'),
   cue(O + 121, 'sparkle-touch.mp3', 0.32, 'outro: rule draws under the wordmark'),
 ];

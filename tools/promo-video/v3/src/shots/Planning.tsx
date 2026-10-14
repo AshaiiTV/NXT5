@@ -115,7 +115,7 @@ const MASK_T = [66, 71] as const;
 const LEFT_VEIL_X = [470, 527] as const;
 // …and the whole MID cell (its check and accent bar sit inside that falloff) goes fully dark up to its own border,
 // so the edge of the light is a real cell edge, with no stray check left at the frame's soft edge
-const LEFT_VEIL_T = [64, 70] as const;
+const LEFT_VEIL_T = [66, 72] as const; // review 3: the dark arrives with the push's speed, not before it
 const LEFT_VEIL_A = 0.98;
 // camera blur on the fastest push frames only (recipe: ≥ 30 px/f strobes at 30 fps); measured on the ADC cell
 const BLUR_PT = { x: 600, y: 740 };
@@ -156,7 +156,7 @@ const DONE = COUNTER_IN[1] + 1; // every overlay equals the real texture from he
 const PUSH_VEIL_BOT = 632;
 const PUSH_VEIL_A = 0.45;
 const UPPER_VEIL_BOT = 524; // soft step 524 → 548 (goal box ends at 527, the agenda track runs at 551)
-const UPPER_VEIL_A = 0.9;
+const UPPER_VEIL_A = 0.98; // review 3: no ghost « 18 Dim. » in the veiled frames
 
 /** Monotone cubic Hermite (Fritsch–Butland): first key keeps its secant velocity (opens moving), last key settles. */
 function spline(f: number, keys: Keys): number {
