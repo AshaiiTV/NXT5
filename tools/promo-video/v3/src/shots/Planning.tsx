@@ -17,13 +17,18 @@
 // revealed as they land (all three items are on screen at the last landing) and lands on the bar's strongest hit
 // (k64), whole card in frame, turned 2° toward the caption. Then the availability block completes as a wave of light
 // from the card's own pixels: the five role cells, veiled while pending, brighten TOP → SUP with their checks
-// (accelerating, k64 → k65), and the real "5 / 5 disponibles" counter settles on the bar's strongest onset (k65.5),
-// during a slow push toward the roles strip (transform scale over a fixed CSS zoom, so it renders continuously).
-// From f90 the frame is frozen (identical frames) until the cut. CSS zoom keeps the 2x textures rasterised at their
-// final size (Q2); no shake, no frame-level pulse (Q3/R4); the stage is flat (no preserve-3d) so flyers never
-// intersect the card plane. Caption: eyebrow present on the cut, settled by ≈ f30 and held ≈ 2.7 s (R1/R3).
+// (accelerating, k64 → k65), and the real "5 / 5 disponibles" counter settles on the bar's strongest onset (k65.5).
+// The wave hands over to the payoff push: from k64.25 (f58) the camera pushes into the roles strip, the counter
+// travelling on a straight screen line while the zoom grows log-linearly 1.03 → 2.7, and lands on k66.5 (f90): the
+// counter's 12px CSS type is then 32px on screen (Q11), next to the caption's second line, with the ADC / SUP cells
+// and their checks under it. Everything above the roles section is veiled during the push (Q5), and the card's left
+// part fades out under a screen-space mask before it reaches the caption, which stays readable. No dead freeze: from
+// f90 to the cut the camera keeps creeping (+1.2 %, transform scale over a fixed CSS zoom, so no raster re-snapping).
+// CSS zoom keeps the 2x textures rasterised at their final size during the moves (Q2); no shake, no frame-level
+// pulse (Q3/R4); the stage is flat (no preserve-3d) so flyers never intersect the card plane. Caption: eyebrow
+// present on the cut, settled by ≈ f30 and held ≈ 2.7 s (R1/R3).
 import React from 'react';
-import { AbsoluteFill, Easing, Freeze, Img, interpolate, staticFile, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from 'remotion';
 import { C, FONT } from '../theme';
 import { localBeat, SHOTS } from '../timeline';
 import { Backdrop, BlurLine, FictiveTag, Glow } from '../lib/ui';
@@ -78,25 +83,30 @@ const DIM = [LAND[2], B(64)] as const;
 
 // ── camera ──
 const PULL_END = B(64); // 55: the pull lands on the bar's strongest hit
-const HOLD = 90; // frozen from here to the cut (0.7 s of identical frames)
 type Keys = readonly (readonly [number, number])[];
 const Z_KEYS: Keys = [[0, 1.66], [14, 1.58], [27, 1.42], [34, 1.32], [PULL_END, 1.03]]; // one monotone spline
 const Z_CLOSE = 1.66;
 const Z_WIDE = 1.03;
-const Z_PUSH = 1.075; // slow push toward the roles strip (k64 → f90), CSS zoom fixed here, transform scale below it
-const PUSH_EASE = Easing.bezier(0.42, 0, 0.38, 1);
+// payoff push into the roles strip: k64.25 → k66.5 (f58 → f90), then a slow creep until the cut (k68, f111)
+const PUSH = [PULL_END + 3, B(66.5)] as const;
+const END = B(68); // 111
+const PUSH_EASE = Easing.bezier(0.45, 0, 0.2, 1);
+const Z_PUSH = 2.7; // the counter is 12px CSS (product-story.css .ps-ready-heading) → 32.4px on screen
+const CREEP = 0.012; // f90 → cut: +1.2 % (transform scale over the fixed CSS zoom)
+const RASTER_LOCK = 0.97; // past this push progress the CSS zoom is fixed at Z_PUSH and the rest is a transform scale
+const PUSH_TARGET = { x: 791.3, y: 671.8 }; // centre of the real counter (layout readyCount)
+const PUSH_CORNER = { x: W, y: H, sx: 1880, sy: 925 }; // final framing: card's bottom-right corner on screen, clear of the tag
+const MASK = [870, 935] as const; // screen x: the card fades in from here (the caption ends ≈ 874)
 const ROT_Y: Keys = [[0, 4], [34, 0.5], [PULL_END, -2]]; // the card swings to face the caption (−) as it pulls back
 const ROT_X: Keys = [[0, 4], [PULL_END, 0]];
 const AX = 1400; // pivot / perspective origin (screen)
 const AY = 540;
 const PERSP = 1400;
 const LEFT = 940; // screen x of the card's real left edge (card x = 0): the caption ends ≈ 874
-const LEFT_PUSH = 930;
 const TOP_CSS = 262; // the divider above the event: pinned to the frame top in the close-up
 const TY_CLOSE = -10; // close-up: the divider sits ≈ 8px under the frame top once rotateX is applied
 const REVEAL = 1.25; // the top of the card enters a little later than the zoom (clean top until row 1 lands)
 const TY_WIDE = 90 + TOP_CSS * Z_WIDE; // wide: card top at y 90, bottom ≈ 934, tag seated under it
-const TY_PUSH = 46 + TOP_CSS * Z_PUSH; // pushed: card top at y 46, bottom ≈ 926, right edge ≈ 1876
 
 // ── availability: role cells (veiled while pending), checks (2x bboxes measured on the texture), real counter ──
 const CELLS = P.boxes.roleCards;
@@ -113,6 +123,9 @@ const COUNTER = { x: 732, y: 663, w: 118, h: 19 };
 const COUNTER_T = B(65.5); // 76: strongest onset of the bar
 const COUNTER_IN = [COUNTER_T - 5, COUNTER_T + 9] as const;
 const DONE = COUNTER_IN[1] + 1; // every overlay equals the real texture from here: render it alone
+// push veil (Q5): everything above the roles section (separator at CSS y 640) recedes while the camera pushes in
+const PUSH_VEIL_BOT = 632;
+const PUSH_VEIL_A = 0.5;
 
 /** Monotone cubic Hermite (Fritsch–Butland): first key keeps its secant velocity (opens moving), last key settles. */
 function spline(f: number, keys: Keys): number {
@@ -145,42 +158,49 @@ function spline(f: number, keys: Keys): number {
   );
 }
 
+type Cam = { zoom: number; css: number; s: number; cx: number; cy: number; rotY: number; rotX: number; q: number; push: number; creep: number };
+
 /**
- * Camera for local frame f. The card point (0, cy) — its real left edge on the pivot row — is solved through the
- * perspective so it lands exactly on screen x = left (the look-at follows the zoom; nothing pans). Vertically the
- * divider above the event (CSS y 262) goes from the frame top (close-up) to its wide position, driven by the zoom.
+ * Pull-back camera for local frame f ≤ PULL_END. The card point (0, cy) — its real left edge on the pivot row — is
+ * solved through the perspective so it lands exactly on screen x = LEFT (the look-at follows the zoom; nothing pans).
+ * Vertically the divider above the event (CSS y 262) goes from the frame top (close-up) to its wide position, driven
+ * by the zoom.
  */
-function camera(f: number) {
-  let zoom: number;
-  let rotY: number;
-  let rotX: number;
-  let left: number;
-  let ty: number;
-  let q: number; // pull progress (log-zoom), 0 close → 1 wide
-  let push = 0;
-  if (f <= PULL_END) {
-    zoom = spline(f, Z_KEYS);
-    q = Math.log(Z_CLOSE / zoom) / Math.log(Z_CLOSE / Z_WIDE);
-    rotY = spline(f, ROT_Y);
-    rotX = spline(f, ROT_X);
-    left = LEFT;
-    ty = lerp(TY_CLOSE, TY_WIDE, Math.pow(q, REVEAL));
-  } else {
-    push = interpolate(f, [PULL_END, HOLD], [0, 1], { ...clamp, easing: PUSH_EASE });
-    zoom = lerp(Z_WIDE, Z_PUSH, push);
-    q = 1;
-    rotY = lerp(-2, -1.4, push);
-    rotX = 0;
-    left = lerp(LEFT, LEFT_PUSH, push);
-    ty = lerp(TY_WIDE, TY_PUSH, push);
-  }
-  const css = f <= PULL_END ? zoom : Z_PUSH; // pull: CSS zoom (crisp, fast enough to render every frame); push: fixed
+function pullCamera(f: number): Cam {
+  const zoom = spline(f, Z_KEYS);
+  const q = Math.log(Z_CLOSE / zoom) / Math.log(Z_CLOSE / Z_WIDE); // pull progress (log-zoom), 0 close → 1 wide
+  const rotY = spline(f, ROT_Y);
+  const rotX = spline(f, ROT_X);
+  const ty = lerp(TY_CLOSE, TY_WIDE, Math.pow(q, REVEAL));
   const d = PERSP * zoom;
   const th = (rotY * Math.PI) / 180;
-  const sx = left - AX;
+  const sx = LEFT - AX;
   const u = (sx * d) / (d * Math.cos(th) - sx * Math.sin(th)); // screen offset of the left edge before rotateY
-  return { zoom, css, s: zoom / css, cx: -u / zoom, cy: TOP_CSS + (AY - ty) / zoom, rotY, rotX, q, push };
+  // CSS zoom (crisp, fast enough to render every frame)
+  return { zoom, css: zoom, s: 1, cx: -u / zoom, cy: TOP_CSS + (AY - ty) / zoom, rotY, rotX, q, push: 0, creep: 0 };
 }
+const WIDE = pullCamera(PULL_END);
+
+/**
+ * Payoff push (f > PULL_END): log-linear zoom WIDE → Z_PUSH; the counter's screen position moves on a straight line
+ * from where the wide framing shows it to where the final framing puts it (card corner at PUSH_CORNER), so the camera
+ * visibly travels toward it. Then a slow creep (transform scale) keeps the frame alive until the cut.
+ */
+function pushCamera(f: number): Cam {
+  const e = interpolate(f, [...PUSH], [0, 1], { ...clamp, easing: PUSH_EASE });
+  const c = interpolate(f, [PUSH[1], END], [0, 1], clamp);
+  const creep = 1 + CREEP * c;
+  const z = WIDE.zoom * Math.pow(Z_PUSH / WIDE.zoom, e);
+  const T = PUSH_TARGET;
+  const cxEnd = PUSH_CORNER.x - (PUSH_CORNER.sx - AX) / Z_PUSH;
+  const cyEnd = PUSH_CORNER.y - (PUSH_CORNER.sy - AY) / Z_PUSH;
+  const sx = lerp(AX + (T.x - WIDE.cx) * WIDE.zoom, AX + (T.x - cxEnd) * Z_PUSH, e);
+  const sy = lerp(AY + (T.y - WIDE.cy) * WIDE.zoom, AY + (T.y - cyEnd) * Z_PUSH, e);
+  const css = e < RASTER_LOCK ? z : Z_PUSH;
+  return { zoom: z * creep, css, s: (z * creep) / css, cx: T.x - (sx - AX) / z, cy: T.y - (sy - AY) / z, rotY: -2, rotX: 0, q: 1, push: e, creep: c };
+}
+
+const camera = (f: number): Cam => (f <= PULL_END ? pullCamera(f) : pushCamera(f));
 
 /** A window (x, y, w, h) of a card texture, showing the texture's own pixels from (sx, sy). */
 const Crop: React.FC<{ src: string; x: number; y: number; w: number; h: number; sx?: number; sy?: number; style?: React.CSSProperties }> = ({
@@ -201,7 +221,7 @@ const Title: React.FC<{ start: number }> = ({ start }) => {
   const e = interpolate(f, [start - 6, start + 6], [0, 1], { ...clamp, easing: EASE });
   return (
     <div style={{ position: 'absolute', left: 140, top: 380, width: 780 }}>
-      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 30, letterSpacing: '0.2em', color: C.cyan, opacity: e, marginBottom: 18 }}>
+      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 32, letterSpacing: '0.2em', color: C.cyan, opacity: e, marginBottom: 18 }}>
         PLANNING
       </div>
       <BlurLine line="Planifie la" start={start + 2} size={84} />
@@ -220,10 +240,13 @@ const Scene: React.FC = () => {
   const dim = 0.45 * dimK;
   const dimTop = DIM_TOP * dimK;
   const done = f >= DONE;
+  const pushVeil = PUSH_VEIL_A * cam.push;
+  // screen-space mask: only needed once the push starts sliding the card's left part toward the caption
+  const mask = f > PULL_END ? `linear-gradient(to right, transparent ${MASK[0]}px, #000 ${MASK[1]}px)` : undefined;
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg, overflow: 'hidden' }}>
-      <AbsoluteFill style={{ transform: `scale(${1.04 + 0.05 * (1 - cam.q) + 0.012 * cam.push})` }}>
+      <AbsoluteFill style={{ transform: `scale(${1.04 + 0.05 * (1 - cam.q) + 0.05 * cam.push + 0.006 * cam.creep})` }}>
         <Backdrop dim={0.42} />
       </AbsoluteFill>
       {/* ambient pools (screen space): violet matter under the card, cyan guide, fuchsia counter-light */}
@@ -232,6 +255,7 @@ const Scene: React.FC = () => {
       <Glow x={1890} y={300} r={380} color={C.glowFuchsia} />
 
       {/* camera: lens-shifted 2.5D look-at, CSS zoom (crisp 2x texture), flat stage */}
+      <div style={{ position: 'absolute', inset: 0, WebkitMaskImage: mask, maskImage: mask }}>
       <div style={{ position: 'absolute', inset: 0, perspective: `${PERSP * cam.zoom}px`, perspectiveOrigin: `${AX}px ${AY}px` }}>
         <div
           style={{
@@ -303,6 +327,15 @@ const Scene: React.FC = () => {
                 ) : null}
               </>
             ) : null}
+            {/* push veil: the roles section stays the only lit part while the camera pushes in */}
+            {pushVeil > 0.004 ? (
+              <div
+                style={{
+                  position: 'absolute', left: 0, top: 0, width: W, height: PUSH_VEIL_BOT + 10,
+                  background: `linear-gradient(180deg, rgba(17,24,39,${pushVeil}) 0px, rgba(17,24,39,${pushVeil}) ${PUSH_VEIL_BOT}px, rgba(17,24,39,0) ${PUSH_VEIL_BOT + 10}px)`,
+                }}
+              />
+            ) : null}
           </div>
 
           {/* agenda items: drop from the air and embed in their slots */}
@@ -364,20 +397,13 @@ const Scene: React.FC = () => {
             : null}
         </div>
       </div>
+      </div>
 
-      {/* Données fictives (screen space, under the card's right edge in the wide framing) */}
+      {/* Données fictives: shared bottom-right slot, under the card's right edge (wide) and its bottom-right corner (push) */}
       <FictiveTag />
       <Title start={-4} />
     </AbsoluteFill>
   );
 };
 
-export const Planning: React.FC = () => {
-  const f = useCurrentFrame();
-  // from HOLD to the cut every layer (backdrop drift included) is frozen: identical frames
-  return (
-    <Freeze frame={HOLD} active={f >= HOLD}>
-      <Scene />
-    </Freeze>
-  );
-};
+export const Planning: React.FC = () => <Scene />;

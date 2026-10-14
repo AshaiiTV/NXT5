@@ -17,7 +17,10 @@ const PEAK_F: Record<string, number> = {
 };
 /** Sequence start so that the sample's peak lands on `peak` (absolute frame). */
 const at = (peak: number, src: string) => Math.max(0, Math.round(peak - (PEAK_F[src] ?? 0) - OUTPUT_AUDIO_OFFSET_F));
-const cue = (peak: number, src: string, volume: number, note: string, extra: Partial<Sfx> = {}): Sfx => ({ from: at(peak, src), src, volume, note, ...extra });
+/** trimBefore (frames) cuts the head of the sample, which shortens its peak lag by the same amount. */
+const cue = (peak: number, src: string, volume: number, note: string, extra: Partial<Sfx> = {}): Sfx => ({
+  from: at(peak + (extra.trimBefore ?? 0), src), src, volume, note, ...extra,
+});
 
 const H = SHOTS.hook.from, B = SHOTS.brand.from, A = SHOTS.analyse.from, D = SHOTS.draft.from, K = SHOTS.card.from;
 const DB = SHOTS.debrief.from, P = SHOTS.planning.from, O = SHOTS.outro.from;
@@ -27,10 +30,10 @@ const WRITING: [number, number][] = [[28, 36], [41, 54], [56, 65], [69, 84], [84
 
 export const SFX: Sfx[] = [
   // 1 hook — spotlight-hero-card: lift = whoosh-big, beam = sparkle, reseat = snap
-  cue(H + 46, 'whoosh-big.mp3', 0.34, 'hook: the Défaite row lifts towards the camera'),
-  cue(H + 70, 'shimmer-sparkle-sweep.mp3', 0.22, 'hook: perimeter beam laps the row'),
-  cue(H + 194, 'transition-snap.mp3', 0.4, 'hook: row reseats'),
-  cue(H + 219, 'air-woosh-deep.mp3', 0.26, 'hook: pull-back into darkness, sucked into the drop'),
+  cue(H + 20, 'whoosh-big.mp3', 0.36, 'hook: the Victoire row lifts towards the camera', { trimBefore: 6 }),
+  cue(H + 36, 'shimmer-sparkle-sweep.mp3', 0.22, 'hook: perimeter beam laps the row'),
+  cue(H + 95, 'transition-snap.mp3', 0.42, 'hook: row reseats'),
+  cue(H + 109, 'air-woosh-deep.mp3', 0.28, 'hook: pull-back into darkness, sucked into the drop'),
   // 2 brand — slam #1 on the drop
   cue(B, 'impact-deep-whoosh.mp3', 0.5, 'brand: glass 5 lands on the drop (slam #1)'),
   // 3 analyse — real clicks on the chips

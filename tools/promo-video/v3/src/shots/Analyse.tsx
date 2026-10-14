@@ -6,21 +6,27 @@
 // beat k26 and the 33:45 chip on beat k30 (same bar position); each click swaps the captured state instantly (as the
 // real UI does) and rolls the gold value in its own slot. Camera: CSS zoom (crisp 2x textures, Q2), no shake, card
 // layer only (R4). Click 1 = decisive ×1.36 punch-in (header leaves the frame, « +1 300 or » at caption size), hold,
-// return; click 2 = gentle push to the final framing. The cursor lives on its own copy of the camera layer, drawn
-// above the night fade, so the hero never greys out. Light: one soft reflection crossing the card during the cut-in
-// swing, clipped to its radius (Q4); a key-light grade dims header and notes so the gold / chart / chips band reads
-// first. Holds: title settled ~f26→139 (3.8 s), « +4 000 or » settled f93→139 (1.53 s).
+// return; click 2 = gentle push to the final framing, then a slow continuous push (+2 %, f85 → cut, 12f smooth start then
+// constant speed, ≈0.2 px/f on « +4 000 or ») so the hold is never a dead still; during it the camera keeps its CSS zoom fixed at the end value and scales down by transform (crisp, no
+// sub-pixel stepping of a moving CSS zoom). The cursor lives on its own copy of the camera layer, drawn above the night
+// fade, so the hero never greys out. Light: no sweep (film light budget = the two halations); a key-light grade dims
+// header and notes so the gold / chart / chips band reads first. Beat k32 (local 110, the strongest hit of the shot):
+// element-level accent only — « +4 000 or » pops 1 → 1.06 → 1 (3f out-cubic, 5f in-quad) and the chart's end marker
+// pops with one ring leaving its halo; no camera or full-frame pulse.
+// Holds: title settled ~f26→137 (3.7 s), « +4 000 or » settled f93→137 (1.47 s, plus the k32 pop).
 import React from 'react';
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from 'remotion';
 import layout from '../layout.json';
 import { C } from '../theme';
 import { Backdrop, FeatureTitle, FictiveTag, Glow } from '../lib/ui';
 import { clamp, EASE, lerp } from '../lib/motion';
-import { localBeat, SHOTS } from '../timeline';
+import { dur, localBeat, SHOTS } from '../timeline';
 
 const SHOT = SHOTS.analyse;
-const CLICK1 = localBeat(SHOT, 26); // local 28
+const CLICK1 = localBeat(SHOT, 26); // local 27
 const CLICK2 = localBeat(SHOT, 30); // local 83
+const ACCENT = localBeat(SHOT, 32); // local 110: strongest hit of the shot
+const END = dur(SHOT) - 1; // local 137, last frame before the cut
 
 const REVIEW = layout['review-1200'];
 const W = REVIEW.w; // 881 CSS px (texture 2x)
@@ -32,6 +38,7 @@ const TEX = ['review-1200', 'review-2100', 'review-3345'].map((k) => staticFile(
 const outCubic = Easing.out(Easing.cubic);
 const inOutCubic = Easing.inOut(Easing.cubic);
 const inOutQuad = Easing.inOut(Easing.quad);
+const inQuad = Easing.in(Easing.quad);
 const ramp = (f: number, a: number, b: number, ease: (t: number) => number = (t) => t) =>
   interpolate(f, [a, b], [0, 1], { ...clamp, easing: ease });
 
@@ -54,16 +61,32 @@ const KEYS: Key[] = [
   { f: CLICK1 + 26, ...PUNCH1 }, // hold 14f
   { f: CLICK1 + 42, ...BACK, ease: inOutCubic }, // 16f return (有去有回)
   { f: CLICK2, ...BACK },
-  { f: CLICK2 + 10, ...FINAL, ease: outCubic }, // gentle final push; settled by k30+10f, held ≥1.5 s to the cut
+  { f: CLICK2 + 10, ...FINAL, ease: outCubic }, // gentle final push; framing settled by k30+10f, held ≥1.5 s to the cut
 ];
 if (KEYS.some((k, i) => i > 0 && k.f <= KEYS[i - 1].f)) throw new Error('Analyse: camera keys out of order');
+// Final hold: slow push around the anchor, overlapping the end of the click-2 push (never a full stop), still moving at
+// the cut. From the frame after click 2 the CSS zoom stays at Z_END and the move is a transform scale ≤ 1 below it.
+const DRIFT = 0.02;
+const DRIFT_IN = CLICK2 + 2;
+const DRIFT_RAMP = 12; // smoothstep velocity ramp, then constant speed
+const Z_END = FINAL.z * (1 + DRIFT);
+/** 0 → 1 over DRIFT_IN → END: velocity rises with a smoothstep over DRIFT_RAMP frames, then stays constant. */
+const driftAt = (f: number) => {
+  const u = Math.min(f, END) - DRIFT_IN;
+  if (u <= 0) return 0;
+  const R = DRIFT_RAMP;
+  const v0 = 1 / (END - DRIFT_IN - R / 2);
+  return u <= R ? v0 * (u ** 3 / R ** 2 - u ** 4 / (2 * R ** 3)) : v0 * (u - R / 2);
+};
 const camAt = (f: number) => {
   let i = 0;
   while (i < KEYS.length - 2 && f >= KEYS[i + 1].f) i++;
   const a = KEYS[i];
   const b = KEYS[i + 1];
   const t = interpolate(f, [a.f, b.f], [0, 1], { ...clamp, easing: b.ease ?? ((x: number) => x) });
-  return { cx: lerp(a.cx, b.cx, t), cy: lerp(a.cy, b.cy, t), z: lerp(a.z, b.z, t), rotY: lerp(a.rotY, b.rotY, t) };
+  const z = lerp(a.z, b.z, t) * (1 + DRIFT * driftAt(f));
+  const css = f > CLICK2 ? Z_END : z;
+  return { cx: lerp(a.cx, b.cx, t), cy: lerp(a.cy, b.cy, t), z, css, rotY: lerp(a.rotY, b.rotY, t) };
 };
 
 // ───────────────────────── cursor performance ─────────────────────────
@@ -145,6 +168,44 @@ const goldSlicesAt = (f: number) => {
   return [{ src: TEX[1], ...out(f - SWAP2) }, { src: TEX[2], ...inn(f - SWAP2) }];
 };
 
+// k32 accent. Pop of the value: 3f out-cubic up to 1.06, 5f in-quad back to 1, around the glyph run's centre
+// (card x 35–168, y 295–321); the scaled slice stays inside the slot (x ≥ 31, y 288–328).
+const POP_ORIGIN = { x: 101 - GOLD_WIN.x, y: 308 - GOLD_SLICE.y }; // slice-local
+const popAt = (f: number) =>
+  1 + 0.06 * (f < ACCENT + 3 ? ramp(f, ACCENT, ACCENT + 3, outCubic) : 1 - ramp(f, ACCENT + 3, ACCENT + 8, inQuad));
+// Chart end marker of the 33:45 state (sampled on the 2x texture): dot centre, white dot + card-colour outline, halo.
+const MARK = { x: 817.9, y: 436.8 };
+const DOT = { w: 8.8, h: 5.8, ow: 13.4, oh: 8.4, fill: '#E9E3FF' };
+const HALO = { rx: 15.6, ry: 9.9 };
+
+const EndMarkerPulse: React.FC<{ f: number }> = ({ f }) => {
+  if (f < ACCENT || f >= ACCENT + 20) return null; // unmounted outside the accent: the texture is untouched at rest
+  const s = 1 + 0.5 * (f < ACCENT + 3 ? ramp(f, ACCENT, ACCENT + 3, outCubic) : 1 - ramp(f, ACCENT + 3, ACCENT + 9, inQuad));
+  const k = interpolate(f, [ACCENT, ACCENT + 18], [1, 3.2], { ...clamp, easing: outCubic });
+  const o = interpolate(f, [ACCENT, ACCENT + 20], [0.85, 0], clamp);
+  const bw = interpolate(f, [ACCENT, ACCENT + 18], [2, 1], clamp);
+  return (
+    <>
+      <div
+        style={{
+          position: 'absolute', left: MARK.x - HALO.rx * k, top: MARK.y - HALO.ry * k, width: 2 * HALO.rx * k, height: 2 * HALO.ry * k,
+          borderRadius: '50%', border: `${bw}px solid ${C.violetText}`, opacity: o, boxSizing: 'border-box',
+        }}
+      />
+      {s > 1.001 ? (
+        <div
+          style={{
+            position: 'absolute', left: MARK.x - DOT.ow / 2, top: MARK.y - DOT.oh / 2, width: DOT.ow, height: DOT.oh, borderRadius: '50%',
+            background: CARD_BG, transform: `scale(${s})`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+        >
+          <div style={{ width: DOT.w, height: DOT.h, borderRadius: '50%', background: DOT.fill }} />
+        </div>
+      ) : null}
+    </>
+  );
+};
+
 const GRADE =
   'linear-gradient(to bottom, rgba(9,13,27,.62) 0px, rgba(9,13,27,.5) 200px, rgba(9,13,27,0) 272px, rgba(9,13,27,0) 704px, rgba(9,13,27,.42) 780px, rgba(9,13,27,.62) 950px)';
 
@@ -190,8 +251,10 @@ const CamLayer: React.FC<{ cam: ReturnType<typeof camAt>; children: React.ReactN
   <div style={{ position: 'absolute', inset: 0, perspective: `${PERSP * cam.z}px`, perspectiveOrigin: `${AX}px ${AY}px` }}>
     <div
       style={{
-        position: 'absolute', left: 0, top: 0, width: W, height: H, zoom: cam.z,
-        transform: `translate(${AX / cam.z - cam.cx}px, ${AY / cam.z - cam.cy}px) rotateY(${cam.rotY}deg)`,
+        position: 'absolute', left: 0, top: 0, width: W, height: H, zoom: cam.css,
+        transform: `translate(${AX / cam.css - cam.cx}px, ${AY / cam.css - cam.cy}px) rotateY(${cam.rotY}deg)${
+          cam.z !== cam.css ? ` scale(${cam.z / cam.css})` : ''
+        }`,
         transformOrigin: `${cam.cx}px ${cam.cy}px`, transformStyle: 'preserve-3d',
       }}
     >
@@ -216,8 +279,7 @@ export const Analyse: React.FC = () => {
   const py = -(cam.cy - 470) * 0.25 * cam.z;
   const tagIn = ramp(f, 14, 26, EASE); // once the swinging card edge has passed the tag
   const grade = ramp(f, 4, 22, EASE);
-  const sp = ramp(f, 0, 18, Easing.out(Easing.quad));
-  const sheen = { x: lerp(-260, W + 260, sp), o: 1 - ramp(f, 12, 18) };
+  const pop = popAt(f);
 
   return (
     <AbsoluteFill style={{ overflow: 'hidden' }}>
@@ -247,6 +309,7 @@ export const Analyse: React.FC = () => {
                     style={{
                       position: 'absolute', left: 0, top: GOLD_SLICE.y - GOLD_WIN.y + s.dy, width: GOLD_WIN.w, height: GOLD_SLICE.h, overflow: 'hidden',
                       opacity: s.o, filter: s.blur > 0.05 ? `blur(${s.blur}px)` : undefined,
+                      ...(pop > 1.0005 ? { transform: `scale(${pop})`, transformOrigin: `${POP_ORIGIN.x}px ${POP_ORIGIN.y}px` } : {}),
                     }}
                   >
                     <Img src={s.src} style={{ position: 'absolute', left: -GOLD_WIN.x, top: -GOLD_SLICE.y, width: W, height: H }} />
@@ -258,18 +321,10 @@ export const Analyse: React.FC = () => {
             <Chip i={2} hover={hover2} ring={hover2 * (1 - ramp(f, SWAP2, SWAP2 + 6))} press={press(CLICK2)} layers={layers} />
             <Ripple f={f} c={CLICK1} at={C1} />
             <Ripple f={f} c={CLICK2} at={C2} />
+            <EndMarkerPulse f={f} />
 
             {/* key light on the working band: header and notes fall half a stop as the camera settles */}
             <div style={{ position: 'absolute', inset: 0, opacity: grade, background: GRADE }} />
-            {/* the one light effect: a soft glass reflection crossing the card while it swings to frontal */}
-            {sheen.o > 0.001 ? (
-              <div
-                style={{
-                  position: 'absolute', top: -60, bottom: -60, left: sheen.x - 190, width: 380, opacity: sheen.o, transform: 'skewX(-16deg)',
-                  background: 'linear-gradient(90deg, rgba(226,232,255,0), rgba(226,232,255,.17) 50%, rgba(226,232,255,0))', mixBlendMode: 'screen',
-                }}
-              />
-            ) : null}
           </div>
       </CamLayer>
 

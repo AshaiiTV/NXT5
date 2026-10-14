@@ -1,5 +1,5 @@
 // Draft shot plan: stage geometry, beat-quantised timing and camera keys (no JSX, so the projection checks in
-// QA can import exactly what the shot renders). All frames are LOCAL to the shot (0 = abs 471 = k34).
+// QA can import exactly what the shot renders). All frames are LOCAL to the shot (0 = abs 360 = k34).
 import { localBeat, SHOTS } from '../../timeline';
 import layout from '../../layout.json';
 
@@ -20,7 +20,7 @@ export const STACK_STEP = 10; // 5 cards → top card at z 50: a chunky physical
 export const DIVE = 8;
 export const SETTLE = 4;
 // hard-accelerating cadence quantised to the music: 1.5 → 1 → ½ → ¼ beat (gaps 21 → 14 → 7 → 3 f)
-export const LAND = [B(38), B(39.5), B(40.5), B(41), B(41.25)]; // 55, 76, 90, 97, 100 (abs 526/547/561/568/571)
+export const LAND = [B(38), B(39.5), B(40.5), B(41), B(41.25)]; // 55, 76, 90, 97, 100 (abs 415/436/450/457/460)
 export const CUE = LAND.map((l) => l - DIVE); // 47, 68, 82, 89, 92
 // anticipation on a settled camera (pull-back done at 38): pile presses away from the slots, top card pulls back
 export const ANT = { from: CUE[0] - 10, to: CUE[0], pileDown: 50, topPull: 34 };
@@ -31,10 +31,8 @@ export const HERO_DIM = [LAND[N - 1], LAND[N - 1] + 10] as const;
 export const TITLE_START = B(34.5); // 7
 export const TABLE_FADE = [20, 46] as const; // table light hands over to the frontal ambient pools
 export const BOARD_DIM = [18, 36] as const; // board dimmed while only the deck is lit, "lights up" on the pull-back
-// Données fictives: a screen-space tag covers the close-up and pull-back; the stage tag (seated under the card)
-// fades in once it is fully inside the frame (projected right edge < 1920 from L31)
-export const OPEN_TAG = [26, 33] as const;
-export const STAGE_TAG = [30, 37] as const;
+// Données fictives: ONE screen-space <FictiveTag /> in the film's shared bottom-right slot for the whole shot (no
+// stage-attached copy, no crossfade); the rest framing below keeps the card ≥ 50 px above it.
 
 // ── camera ──
 export type Cam = { cx: number; cy: number; zoom: number; rotX: number; rotY: number; rotZ: number; persp: number };
@@ -42,16 +40,31 @@ type Keys = readonly (readonly [number, number])[];
 /**
  * 0–16 orbit close-up on the deck (rotY sweeps 30 → 14) · 16–38 pull-back to one overview holding board AND deck
  * · 38–92 near-static overview (≤ 4 px/f) for anticipation and the whole deal, so each throw reads as a hit
- * · 92–108 single lock push once the deck is empty · 108–137 rest (fully still from 112: ≈ 0.85 s).
+ * · 92–108 single lock push once the deck is empty · 108–137 rest: the push hands over to a slow continuous drift
+ * (DRIFT) toward the five picks, so the locked board never freezes under full-energy music.
+ * Rest framing (zoom 1.1, card centre at screen y ≈ 500): card x 854–1824, y 107–893 → ≥ 50 px above the tag.
  */
 export const CAM_KEYS: Record<keyof Cam, Keys> = {
-  zoom: [[0, 2.0], [16, 1.94], [38, 0.9], [62, 0.9], [92, 0.92], [108, 1.12]],
-  cx: [[0, -70], [16, -50], [38, 80], [62, 90], [92, 96], [108, 102]],
-  cy: [[0, 820], [16, 805], [38, 596], [62, 552], [92, 536], [108, 357]],
+  zoom: [[0, 2.0], [16, 1.94], [38, 0.9], [62, 0.9], [92, 0.92], [108, 1.1]],
+  cx: [[0, -70], [16, -50], [38, 80], [62, 90], [92, 96], [108, 96]],
+  cy: [[0, 820], [16, 805], [38, 596], [62, 552], [92, 536], [108, 393]],
   rotX: [[0, 44], [16, 40], [38, 16], [62, 8], [92, 5], [108, 0]],
   rotY: [[0, 30], [16, 14], [38, 4], [62, 2], [92, 1], [108, 0]],
   rotZ: [[0, -8], [16, -4], [38, -1], [92, 0]],
   persp: [[0, 1100], [38, 1300], [108, 1400]],
+};
+/**
+ * Rest drift: a slow push (+1.8 % by the cut) about the centre of the five picks (page point `anchor`), eased in
+ * from L96 so it is already carrying the frame when the lock push settles at L108 — the camera never stops.
+ * Applied as a screen-space transform scale about the anchor's projected point (see Draft.tsx), NOT through the
+ * camera's CSS zoom: a slowly changing CSS zoom re-snaps the layout every frame and the board judders ±0.5 px
+ * (measured); the CSS zoom stays constant at rest, so text keeps its crisp raster and the push is sub-pixel smooth.
+ * Screen speed at the card corners ≈ 0.2 px/f at L108 → ≈ 0.45 px/f at the cut.
+ */
+export const DRIFT = { from: 96, to: 138, amount: 0.018, anchor: { x: 440, y: 294 } } as const;
+export const driftScale = (f: number) => {
+  const u = Math.min(1, Math.max(0, (f - DRIFT.from) / (DRIFT.to - DRIFT.from)));
+  return 1 + DRIFT.amount * Math.pow(u, 1.5);
 };
 
 /**
