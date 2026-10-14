@@ -337,7 +337,7 @@ export const Analyse: React.FC = () => {
         <Cursor x={cur.x} y={cur.y} />
       </CamLayer>
 
-      <FeatureTitle eyebrow="ANALYSE" l1="Revois chaque" l2="moment clé." start={-4} />
+      <FeatureTitle eyebrow="ANALYSE" l1="Revois chaque" l2="moment clé." start={0} />
     </AbsoluteFill>
   );
 };

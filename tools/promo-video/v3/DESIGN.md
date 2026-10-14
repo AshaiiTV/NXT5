@@ -33,7 +33,7 @@
 |---|---|---|
 | 8–16 | 12,7–16,4 s | Montée (−27 puis −18 dB), accroche |
 | 16 | 16,39 s | **Drop** : slam #1 |
-| 32 | 23,78 s | Coup le plus fort de l’extrait : accent sur « +4 000 or » |
+| 32 | 23,78 s | Coup fort (3ᵉ de l’extrait après k76 et k64) : accent sur « +4 000 or » |
 | 44–48 | 29,3–31,2 s | Mesure creuse (−21 dB), carte de respiration |
 | 48 | 31,16 s | **Retour** : slam #2 |
 | 72–76 | 73,6–75,5 s (raccord) | Montée sous l’assemblage de la clôture |
@@ -90,6 +90,15 @@ Réservations de maintien :
 
 ## Écarts assumés (aesthetic-rules)
 
+- **« Énergie LoL / Persona ».** C’est la demande de l’utilisateur. Elle se traduit par :
+  - une musique trap à 130 BPM et trois slams sur ses vrais temps forts ;
+  - des titres « snap » qui claquent mot par mot sur les croches (Inter 800, échelle 1,18 → 1 en 5 images, sans flou), ce qui reste au niveau des éléments (R4) ;
+  - des coupes sèches sur les temps et des champions montrés en grand au temps fort k43.
+
+  La charte (nuit, verre violet, Inter seule) reste la limite : aucune typographie ni couleur empruntée à Persona.
+- **Rotation d’entrée du 5 en verre.** Le 5 entre en tournant depuis l’arrière (pose de `glass-scene.js` animée), alors que la charte §9 décrit une pose stable. La pose officielle est atteinte en 0,75 s, puis le 5 flotte. Les images f111 à f118 (rotation rapide, sous la halation) montrent des faces étirées par le moteur : c’est une limite connue.
+- **Entrée du wordmark.** Le wordmark officiel entre en fondu et en montée dans la marque, puis avec un éclat de halation dans la clôture. Le fichier n’est jamais modifié, seulement sa lumière et sa position (charte §4).
+
 - **Accroche compressée.** La recette spotlight-hero-card tient en 111 frames (rapports de la démo conservés) : un seul tour de faisceau, 5 frames de repos après le retour. Les légendes restent pendant le retour pour tenir 1,5 s.
 - **Draft.** Cinq cartes seulement : c’est la composition réelle de l’équipe, pas un paquet.
 - **Lumière.** Deux halations (marque, clôture). S’y ajoutent l’éclair de bord au slam #2 et les coutures de row-embed, qui sont le bruitage visuel de la recette. Le reflet de l’analyse a été retiré.
@@ -104,5 +113,6 @@ Réservations de maintien :
 
 - **Musique.** `bgm.wav` est coupé 42,3 ms plus tard que la grille. Cela absorbe les 2032 échantillons de pré-roll AAC ajoutés par le rendu, mesurés par `analysis/sync_check.py`. Mesure faite sur le rendu : la musique tombe à 0,0 image de chaque beat de contrôle (k9 à k80, raccord compris ; `analysis/music_check.py`).
 - **Effets.** Ils sont listés dans un seul tableau, `src/sfx.ts`, calés relativement à chaque plan. Chaque calage corrige le pic propre de l’échantillon (`analysis/sfx_peaks.json`) et le décalage de sortie (1,27 image).
-- **Vocabulaire.** whoosh, impact, riser, sparkle et transition, plus des bruitages réels : clics, clavier, cartes. Les trois slams (k16, k48, k76) sont les seuls pics.
+- **Vocabulaire.** whoosh, impact, riser, sparkle et transition, plus des bruitages réels : clics, clavier, cartes. Les trois slams (k16, k48, k76) sont les pics du mix.
+- **Second drop.** La musique laisse environ 5 images de silence avant k76. Le riser (copie filtrée au-dessus de 200 Hz) s’arrête 3 images avant le drop, avec un fondu, et l’impact démarre sur son attaque (`trimBefore`). Le silence suivi du coup reste ainsi audible (revue n° 2, N1). La musique s’éteint avant le temps k92 pour qu’aucun coup ne tombe sur le noir final.
 - **Master** (`master.sh`). Gain statique vers −14 LUFS, puis limiteur à −2,9 dBFS qui ne touche que les slams. Résultat : −14,3 LUFS et −2,2 dBTP. La version sans musique reçoit le même gain.

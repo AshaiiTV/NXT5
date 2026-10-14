@@ -65,6 +65,12 @@
   "onset_f": 0.9,
   "peak_db": 1.0
  },
+ "riser-cine-hp.mp3": {
+  "dur_s": 4.809,
+  "peak_f": 19.2,
+  "onset_f": 6.0,
+  "peak_db": 1.4
+ },
  "riser-cine.mp3": {
   "dur_s": 4.809,
   "peak_f": 30.6,

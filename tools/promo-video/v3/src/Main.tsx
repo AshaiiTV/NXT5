@@ -2,7 +2,10 @@
 import React from 'react';
 import { AbsoluteFill, Audio, interpolate, Sequence, staticFile } from 'remotion';
 import { C } from './theme';
-import { DURATION, dur, SHOTS } from './timeline';
+import { beatF, dur, SHOTS } from './timeline';
+
+/** The music is silent before the k92 downbeat so no stray hit plays on the black end frames (review 2, N4). */
+const MUSIC_OUT = beatF(92) - 3;
 import { SFX } from './sfx';
 import { Hook } from './shots/Hook';
 import { Brand } from './shots/Brand';
@@ -34,12 +37,16 @@ export const Main: React.FC<{ bgm?: boolean }> = ({ bgm = true }) => (
     {bgm ? (
       <Audio
         src={staticFile('audio/bgm.wav')}
-        volume={(f) => 0.42 * interpolate(f, [0, 6, DURATION - 36, DURATION], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}
+        volume={(f) => 0.42 * interpolate(f, [0, 6, MUSIC_OUT - 33, MUSIC_OUT], [0, 1, 1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' })}
       />
     ) : null}
     {SFX.map((s, i) => (
       <Sequence key={`sfx-${i}`} from={s.from} durationInFrames={s.duration ?? 150} name={`sfx ${s.note}`}>
-        <Audio src={staticFile(`sfx/${s.src}`)} volume={s.volume} trimBefore={s.trimBefore} />
+        <Audio
+          src={staticFile(`sfx/${s.src}`)}
+          trimBefore={s.trimBefore}
+          volume={(f) => s.volume * (s.fadeOut && s.duration ? interpolate(f, [s.duration - s.fadeOut, s.duration], [1, 0], { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }) : 1)}
+        />
       </Sequence>
     ))}
   </AbsoluteFill>

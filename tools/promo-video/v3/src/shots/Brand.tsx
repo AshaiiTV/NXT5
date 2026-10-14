@@ -10,6 +10,7 @@ import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame, Easing } f
 import { C, FONT } from '../theme';
 import { Backdrop, BlurLine, Glow, Wordmark } from '../lib/ui';
 import { clamp, EASE } from '../lib/motion';
+import { localBeat, SHOTS } from '../timeline';
 
 const GLASS_FRAMES = 123;
 const GW = 820;
@@ -69,8 +70,8 @@ export const Brand: React.FC = () => {
       ) : null}
       <Img src={src} style={{ position: 'absolute', left: GX - GW / 2, top: GY - GH / 2, width: GW, height: GH, transform: float }} />
       <div style={{ position: 'absolute', left: 140, top: 360, width: 1000 }}>
-        <BlurLine line="Comprends tes parties." start={8} size={92} />
-        <BlurLine line={[{ text: 'Prépare la suite.', spectrum: true }]} start={18} size={92} />
+        <BlurLine line="Comprends tes parties." start={localBeat(SHOTS.brand, 17)} size={92} weight={800} snap />
+        <BlurLine line={[{ text: 'Prépare la suite.', spectrum: true }]} start={localBeat(SHOTS.brand, 18.5)} size={92} weight={800} snap />
         <div style={{ marginTop: 34, fontFamily: FONT, fontWeight: 500, fontSize: 36, lineHeight: 1.35, color: C.text2, opacity: sub, transform: `translateY(${(1 - sub) * 14}px)` }}>
           L’espace de travail des équipes
           <br />

@@ -32,7 +32,7 @@ import React from 'react';
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from 'remotion';
 import { C, FONT } from '../theme';
 import { localBeat, SHOTS } from '../timeline';
-import { Backdrop, BlurLine, FictiveTag, Glow } from '../lib/ui';
+import { Backdrop, FeatureTitle, FictiveTag, Glow } from '../lib/ui';
 import { clamp, EASE, lerp } from '../lib/motion';
 import layout from '../layout.json';
 
@@ -231,24 +231,6 @@ const Crop: React.FC<{ src: string; x: number; y: number; w: number; h: number; 
   </div>
 );
 
-/**
- * lib/ui FeatureTitle, same eyebrow / sizes / blur-slide timings, with a box wide enough for "prochaine séance."
- * (≈ 734px at 84px Inter Bold): the shared 720px box would break it onto a third line. The eyebrow ramps in just
- * before the cut so the first frame already carries it.
- */
-const Title: React.FC<{ start: number }> = ({ start }) => {
-  const f = useCurrentFrame();
-  const e = interpolate(f, [start - 6, start + 6], [0, 1], { ...clamp, easing: EASE });
-  return (
-    <div style={{ position: 'absolute', left: 140, top: 380, width: 780 }}>
-      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 32, letterSpacing: '0.2em', color: C.cyan, opacity: e, marginBottom: 18 }}>
-        PLANNING
-      </div>
-      <BlurLine line="Planifie la" start={start + 2} size={84} />
-      <BlurLine line={[{ text: 'prochaine séance.', spectrum: true }]} start={start + 10} size={84} />
-    </div>
-  );
-};
 
 const Scene: React.FC = () => {
   const f = useCurrentFrame();
@@ -424,7 +406,7 @@ const Scene: React.FC = () => {
 
       {/* Données fictives: shared bottom-right slot, under the card's right edge (wide) and its bottom-right corner (push) */}
       <FictiveTag />
-      <Title start={-4} />
+      <FeatureTitle eyebrow="PLANNING" l1="Planifie la" l2="prochaine séance." start={0} />
     </AbsoluteFill>
   );
 };

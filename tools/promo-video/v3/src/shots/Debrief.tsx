@@ -146,7 +146,7 @@ const NumeralPress: React.FC<{ r: Rect; t: number; scale: number }> = ({ r, t, s
     </div>
   );
 
-const CAPTION_START = 2;
+const CAPTION_START = 7; // k48.5: caption words snap on the eighth grid after the slam
 const CAPTION_Y = 889; // eyebrow 32px: the caption line keeps its baseline (≈ 1005)
 
 export const Debrief: React.FC = () => {
@@ -182,7 +182,7 @@ export const Debrief: React.FC = () => {
   const bgLift = -(cam.cy - 228) * 0.2;
   // the top scrim arrives with the follow, so the landing (card edge + rim light) stays clean
   const topScrim = interpolate(f, [SLAM, SLAM + 30], [0.35, 1], { ...clamp, easing: EASE });
-  const eyebrow = interpolate(f, [CAPTION_START, CAPTION_START + 14], [0, 1], { ...clamp, easing: EASE });
+  const eyebrow = interpolate(f, [CAPTION_START - 3, CAPTION_START + 2], [0, 1], clamp);
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg, overflow: 'hidden' }}>
@@ -243,8 +243,10 @@ export const Debrief: React.FC = () => {
         </div>
         <BlurLine
           line={[{ text: 'Note ce qui' }, { text: 'doit changer.', spectrum: true }]}
-          start={CAPTION_START + 2}
+          start={CAPTION_START}
           size={72}
+          weight={800}
+          snap
           style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap' }}
         />
       </div>
