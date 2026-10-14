@@ -2,7 +2,7 @@
 
 Fichiers produits par `tools/promo-video` :
 
-- `v3/out/nxt5-promo-v3.mp4` : la vidéo (39 s, 1080p30, H.264 + AAC, −14,3 LUFS) ;
+- `v3/out/nxt5-promo-v3.mp4` : la vidéo (39 s, 1080p30, H.264 + AAC, −14,2 LUFS) ;
 - `v3/out/nxt5-promo-v3-sans-musique.mp4` : la même vidéo avec les seuls effets sonores, pour une autre musique ;
 - `v3/out/thumbnail.png` : la miniature (1280 × 720, `npx remotion still src/index.ts Thumbnail out/thumbnail.png`).
 
