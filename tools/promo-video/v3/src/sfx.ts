@@ -38,9 +38,10 @@ export const SFX: Sfx[] = [
   cue(B, 'impact-deep-whoosh.mp3', 0.5, 'brand: glass 5 lands on the drop (slam #1)'),
   // 3 analyse — real clicks on the chips
   cue(A + 8, 'transition-soft.mp3', 0.3, 'analyse: review card swings in'),
-  cue(A + 30, 'click-camera.mp3', 0.6, 'analyse: click on 21:00 (k26, press bottom)'),
+  cue(A + 29, 'click-camera.mp3', 0.6, 'analyse: click on 21:00 (k26, press bottom)'),
   cue(A + 38, 'swoosh-quick.mp3', 0.24, 'analyse: punch-in towards +1 300 or'),
   cue(A + 85, 'click-camera.mp3', 0.55, 'analyse: click on 33:45 (k30, press bottom)'),
+  cue(A + 113, 'sparkle-touch.mp3', 0.2, 'analyse: +4 000 or pops with the chart end ring (k32)'),
   // 4 draft — deck-deal-flyin: orbit pull-back whoosh, landings on two alternating samples, fading, merged at the end
   cue(D + 28, 'whoosh-big.mp3', 0.32, 'draft: camera pulls back from the deck'),
   cue(D + 55, 'paper-move-quick.mp3', 0.6, 'draft: Gnar lands'),

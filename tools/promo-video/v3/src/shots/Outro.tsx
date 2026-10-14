@@ -279,12 +279,13 @@ export const Outro: React.FC = () => {
   const cam = camAt(f);
   const camTransform = cam.tilt > 0.001 ? `perspective(1400px) rotateX(${cam.tilt}deg) scale(${cam.scale})` : `scale(${cam.scale})`;
 
-  // ── depth plane: crisp on frame 0, recedes fast (own scale, fastest at the cut), blurs and dissolves by ~16 f ──
-  const pageRecede = interpolate(f, [0, 18], [0, 1], { ...clamp, easing: outCubic });
-  const pageScale = 1 - 0.07 * pageRecede;
-  const pageBlur = interpolate(f, [0, 2, 14], [0, 0.4, 12], { ...clamp, easing: Easing.in(Easing.quad) });
-  const pageOpacity = interpolate(f, [2, 16], [1, 0], { ...clamp, easing: Easing.bezier(0.4, 0, 0.6, 1) });
-  const pageScrim = interpolate(f, [0, 10], [0.28, 0.6], clamp);
+  // ── depth plane: crisp on frame 0 (blur < 0.5 px until L4), recedes fast (own scale, fastest at the cut), then
+  // blurs and dissolves, handing over to the first card (review in flight L16–28): gone by L22 ──
+  const pageRecede = interpolate(f, [0, 20], [0, 1], { ...clamp, easing: outCubic });
+  const pageScale = 1 - 0.08 * pageRecede;
+  const pageBlur = interpolate(f, [0, 4, 18], [0, 0.5, 12], { ...clamp, easing: Easing.in(Easing.quad) });
+  const pageOpacity = interpolate(f, [3, 22], [1, 0], { ...clamp, easing: Easing.bezier(0.4, 0, 0.6, 1) });
+  const pageScrim = interpolate(f, [0, 12], [0.28, 0.6], clamp);
 
   // ── stage light (charte pools, behind the group): low → swells through the anticipation → settles, then drifts ──
   const stage = interpolate(f, [0, B(72), IMPACT - 2, IMPACT + 30], [0.4, 0.5, 1, 0.8], { ...clamp, easing: Easing.bezier(0.5, 0, 0.6, 1) });

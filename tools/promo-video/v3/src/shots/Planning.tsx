@@ -23,7 +23,8 @@
 // counter's 12px CSS type is then 32px on screen (Q11), next to the caption's second line, with the ADC / SUP cells
 // and their checks under it. Everything above the roles section is veiled during the push (Q5), and the card's left
 // part fades out under a screen-space mask before it reaches the caption, which stays readable. No dead freeze: from
-// f90 to the cut the camera keeps creeping (+1.2 %, transform scale over a fixed CSS zoom, so no raster re-snapping).
+// f90 to the cut the camera keeps creeping into the counter (+1.2 %, anchored on it, transform scale over a fixed CSS
+// zoom, so no raster re-snapping).
 // CSS zoom keeps the 2x textures rasterised at their final size during the moves (Q2); no shake, no frame-level
 // pulse (Q3/R4); the stage is flat (no preserve-3d) so flyers never intersect the card plane. Caption: eyebrow
 // present on the cut, settled by ≈ f30 and held ≈ 2.7 s (R1/R3).
@@ -96,7 +97,11 @@ const CREEP = 0.012; // f90 → cut: +1.2 % (transform scale over the fixed CSS 
 const RASTER_LOCK = 0.97; // past this push progress the CSS zoom is fixed at Z_PUSH and the rest is a transform scale
 const PUSH_TARGET = { x: 791.3, y: 671.8 }; // centre of the real counter (layout readyCount)
 const PUSH_CORNER = { x: W, y: H, sx: 1880, sy: 925 }; // final framing: card's bottom-right corner on screen, clear of the tag
-const MASK = [870, 935] as const; // screen x: the card fades in from here (the caption ends ≈ 874)
+// screen-x mask on the card (the caption ends ≈ 874): soft while the card slides under it, then tightened onto the
+// MID / ADC gap of the final framing (screen 900–927; the creep then moves both edges ≈ 8px left) so no sliver of
+// the MID cell is left at the edge and the ADC cell stays whole
+const MASK_PUSH = [870, 935] as const;
+const MASK_END = [899, 918] as const;
 const ROT_Y: Keys = [[0, 4], [34, 0.5], [PULL_END, -2]]; // the card swings to face the caption (−) as it pulls back
 const ROT_X: Keys = [[0, 4], [PULL_END, 0]];
 const AX = 1400; // pivot / perspective origin (screen)
@@ -196,8 +201,20 @@ function pushCamera(f: number): Cam {
   const cyEnd = PUSH_CORNER.y - (PUSH_CORNER.sy - AY) / Z_PUSH;
   const sx = lerp(AX + (T.x - WIDE.cx) * WIDE.zoom, AX + (T.x - cxEnd) * Z_PUSH, e);
   const sy = lerp(AY + (T.y - WIDE.cy) * WIDE.zoom, AY + (T.y - cyEnd) * Z_PUSH, e);
+  const cx = T.x - (sx - AX) / z;
+  const cy = T.y - (sy - AY) / z;
+  // creep about the counter's final screen position: the payoff stays still (no reversal after the landing) while
+  // the rest of the frame keeps opening slowly around it
+  const qx = AX + (T.x - cxEnd) * Z_PUSH;
+  const qy = AY + (T.y - cyEnd) * Z_PUSH;
+  const zc = z * creep;
   const css = e < RASTER_LOCK ? z : Z_PUSH;
-  return { zoom: z * creep, css, s: (z * creep) / css, cx: T.x - (sx - AX) / z, cy: T.y - (sy - AY) / z, rotY: -2, rotX: 0, q: 1, push: e, creep: c };
+  return {
+    zoom: zc, css, s: zc / css,
+    cx: cx + (qx - AX) / z - (qx - AX) / zc,
+    cy: cy + (qy - AY) / z - (qy - AY) / zc,
+    rotY: -2, rotX: 0, q: 1, push: e, creep: c,
+  };
 }
 
 const camera = (f: number): Cam => (f <= PULL_END ? pullCamera(f) : pushCamera(f));
@@ -242,7 +259,10 @@ const Scene: React.FC = () => {
   const done = f >= DONE;
   const pushVeil = PUSH_VEIL_A * cam.push;
   // screen-space mask: only needed once the push starts sliding the card's left part toward the caption
-  const mask = f > PULL_END ? `linear-gradient(to right, transparent ${MASK[0]}px, #000 ${MASK[1]}px)` : undefined;
+  const mask =
+    f > PULL_END
+      ? `linear-gradient(to right, transparent ${lerp(MASK_PUSH[0], MASK_END[0], cam.push)}px, #000 ${lerp(MASK_PUSH[1], MASK_END[1], cam.push)}px)`
+      : undefined;
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg, overflow: 'hidden' }}>
