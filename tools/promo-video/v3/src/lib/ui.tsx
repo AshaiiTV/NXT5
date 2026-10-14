@@ -84,8 +84,8 @@ export const FeatureTitle: React.FC<{ eyebrow: string; l1: string; l2: string; s
   const e = interpolate(f, [start, start + 14], [0, 1], { ...clamp, easing: EASE });
   const exit = out === undefined ? 0 : interpolate(f, [out, out + 10], [0, 1], clamp);
   return (
-    <div style={{ position: 'absolute', left: x, top: y, width: 720 }}>
-      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 30, letterSpacing: '0.2em', color: C.cyan, opacity: e * (1 - exit), marginBottom: 18 }}>
+    <div style={{ position: 'absolute', left: x, top: y, width: 800 }}>
+      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 32, letterSpacing: '0.2em', color: C.cyan, opacity: e * (1 - exit), marginBottom: 18 }}>
         {eyebrow}
       </div>
       <BlurLine line={l1} start={start + 2} size={84} out={out} />
@@ -94,13 +94,14 @@ export const FeatureTitle: React.FC<{ eyebrow: string; l1: string; l2: string; s
   );
 };
 
-/** Charte §10: example data must say so. */
-export const FictiveTag: React.FC<{ x: number; y: number; opacity?: number }> = ({ x, y, opacity = 1 }) => (
+/** Charte §10: example data must say so. Same bottom-right slot in every shot unless x/y are given. */
+export const FictiveTag: React.FC<{ x?: number; y?: number; opacity?: number }> = ({ x, y, opacity = 1 }) => (
   <div
     style={{
-      position: 'absolute', left: x, top: y, padding: '8px 20px', borderRadius: 999, opacity,
+      position: 'absolute', ...(x === undefined ? { right: 48 } : { left: x }), ...(y === undefined ? { bottom: 40 } : { top: y }),
+      padding: '9px 22px', borderRadius: 999, opacity, whiteSpace: 'nowrap',
       background: 'rgba(17,24,39,.72)', border: '1.5px solid rgba(181,200,225,.38)',
-      fontFamily: FONT, fontWeight: 600, fontSize: 24, color: C.muted,
+      fontFamily: FONT, fontWeight: 600, fontSize: 28, color: C.muted,
     }}
   >
     Données fictives

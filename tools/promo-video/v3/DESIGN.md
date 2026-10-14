@@ -73,10 +73,10 @@ Une frame = 30 fps. `beatF(k) = round(k × 0,46153 × 30)`.
 | 1 | 0–16 | 0–222 | Liste des parties de la démo | Le projecteur verrouille la ligne « Défaite · Scrim 1 », poussée à 45°, lévitation, tracé lumineux, retour. « Défaite. » puis « Tu sais vraiment pourquoi ? ». Fondu au noir avant le drop |
 | 2 | 16–24 | 222–332 | Le 5 en verre | Slam #1 : le 5 entre en tournant avec une halation, puis « Comprends tes parties. Prépare la suite. » et le wordmark, tenu au moins 1 s |
 | 3 | 24–34 | 332–471 | Revue d’équipe (courbe d’or) | Le curseur clique 12:00 → 21:00 → 33:45 et la vraie carte change d’état. « Revois chaque moment clé. » |
-| 4 | 34–44 | 471–609 | Draft | Les 5 cartes champions sont distribuées en accélérant dans les emplacements, puis 0,5 s de repos. « Cinq picks. Une intention. » |
+| 4 | 34–44 | 471–609 | Draft | Les 5 cartes champions sont distribuées en accélérant dans les emplacements, puis 0,5 s de repos. « Pense ta draft à cinq. » (l’en-tête de la vraie carte dit déjà « Cinq picks. Une intention. ») |
 | 5 | 44–48 | 609–665 | Carte de respiration (mesure creuse) | « Et après la partie ? » |
 | 6 | 48–60 | 665–831 | Débrief | Slam #2 : le débrief s’écrit étape par étape. « Note ce qui doit changer. » |
-| 7 | 60–68 | 831–942 | Planning | Les lignes du programme s’insèrent, puis 5/5 disponibles. « Le cinq au rendez-vous. » |
+| 7 | 60–68 | 831–942 | Planning | Les lignes du programme s’insèrent, puis 5/5 disponibles. « Planifie la prochaine séance. » (la carte s’appelle déjà « Le rendez-vous du cinq ») |
 | 8 | 68–84 | 942–1169 | Clôture | Les éléments convergent autour du wordmark, montée, atterrissage sur k76 (frame 1052, slam #3), scintillement, « Joue. Analyse. Recommence. », nxt5.org, « Essaie la démo ». Maintien jusqu’à la fin, fondu |
 
 Réservations de maintien :
@@ -84,3 +84,16 @@ Réservations de maintien :
 - marque et wordmark tenus au moins 1 s ;
 - 0,5 s de repos après la distribution des cartes ;
 - chaque titre tenu au moins 1,5 s.
+
+## Écarts assumés (aesthetic-rules)
+
+- **Bouton « Essaie la démo ».** Il suit la charte §6 : rayon de 2 px, dégradé primaire, texte `#020611`, sans halo au repos. Ce n’est donc pas une pilule.
+- **Q9 dans la clôture.** La recette outro-group-photo-launch pose les éléments sur une scène, pas dans une page. Chaque pièce atterrit dans un emplacement fixe de la composition, et seule la ligne « Défaite » part de sa vraie place.
+- **Débrief.** Le texte du document fait 16 px CSS. Il faut donc un zoom d’au moins 2 pour le lire en 32 px, ce qui ne laisse pas de colonne de titre à gauche. Le titre passe en bandeau bas (même style : sur-titre cyan, mot clé en spectre).
+
+## Son (stage 6)
+
+- **Musique.** `bgm.wav` est coupé 42,3 ms plus tard que la grille. Cela absorbe les 2032 échantillons de pré-roll AAC ajoutés par le rendu, mesurés par `analysis/sync_check.py`. Mesure faite sur le rendu : la musique tombe à 0,0 image de chaque beat de contrôle (k4, 16, 30, 48, 64, 76).
+- **Effets.** Ils sont listés dans un seul tableau, `src/sfx.ts`, calés relativement à chaque plan. Chaque calage corrige le pic propre de l’échantillon (`analysis/sfx_peaks.json`) et le décalage de sortie (1,27 image).
+- **Vocabulaire.** whoosh, impact, riser, sparkle et transition, plus des bruitages réels : clics, clavier, cartes. Les trois slams (k16, k48, k76) sont les seuls pics.
+- **Master** (`master.sh`). Gain statique vers −14 LUFS, puis limiteur à −2,9 dBFS qui ne touche que les slams. Résultat : −14,5 LUFS et −2 dBTP. La version sans musique reçoit le même gain.

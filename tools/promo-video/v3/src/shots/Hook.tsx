@@ -302,7 +302,7 @@ export const Hook: React.FC = () => {
         </div>
       </CamLayer>
 
-      <FictiveTag x={1636} y={994} opacity={1 - 0.75 * sink} />
+      <FictiveTag opacity={1 - 0.75 * sink} />
     </AbsoluteFill>
   );
 };

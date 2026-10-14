@@ -1,46 +1,27 @@
 // Shot 4 — Draft (k34–44, full energy). Shot card ui-entrance/deck-deal-flyin, adapted to the real draft card:
-//   1) pile close-up: the five real champion cutouts (Gnar, Vi, Ahri, Jinx, Braum) lie as a physical deck on a
-//      violet-glass table below the EMPTY draft card; the camera opens tilted and orbits (Q7), then pulls back and
-//      cranes up to a frontal framing (Q6) while the table fades to the night backdrop;
-//   2) anticipation beat, seen in a tilted overview that holds deck and empty roster: the pile presses back and
-//      the top card pulls against the deal direction (card values 48/30px → 44/30 page px, ≈ 46/31 screen px);
-//   3) deal: cards fly in reading order on a hard-accelerating cadence quantised to the music (1.5 → 1 → ½ → ½
-//      beat), dive 8f + settle 4f + press, z-arc and ghost trail kept from the demo, each seating exactly in its
-//      layout slot (Q9) on a beat or half-beat; then the board locks (crossfade to the real filled texture, which
-//      carries the real "selected" state of the MID pick) and rests ~1.2 s until the hard cut on k44.
-// Light: table key light + ambient pools only, no per-card glow (C1/Q4). Title held ≈ 3.2 s once settled (R1/R3).
+//   1) pile close-up (L0–16): the five real champion cutouts (Gnar, Vi, Ahri, Jinx, Braum) lie as a chunky
+//      physical deck on a violet-glass table below the EMPTY draft card; the camera opens tilted and orbits
+//      (rotY 30 → 14, Q7), the board is dimmed so the deck is the only lit object;
+//   2) pull-back (L16–38) to ONE overview that holds board and deck; the board "lights up", the table light hands
+//      over to the frontal ambient pools;
+//   3) anticipation on a settled camera (L37–47): the pile presses away from the slots, the top card pulls back
+//      (46/30 page px ≈ 47/31 screen px);
+//   4) deal on the static overview (camera ≤ 4 px/f, so each throw reads as a hit): cards fly in reading order on
+//      a hard-accelerating cadence quantised to the music (gaps 1.5 → 1 → ½ → ¼ beat), dive 8f + settle 4f +
+//      press, z-arc and ghost trail kept from the demo, each seating exactly in its layout slot (Q9);
+//   5) single lock push once the deck is empty (L92–106), crossfade to the real filled texture (real "selected"
+//      state of the MID pick), header and pool/note dimmed so the five picks are the hero, ≈ 1.1 s of rest.
+// Light: table key light + soft specular bands, then ambient pools; no per-card glow (C1/Q4).
 import React from 'react';
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from 'remotion';
 import { C } from '../theme';
-import { localBeat, SHOTS } from '../timeline';
 import { Backdrop, FeatureTitle, FictiveTag, Glow } from '../lib/ui';
 import { clamp } from '../lib/motion';
-import layout from '../layout.json';
-import { spline, StageCam, type Cam } from './draft/StageCam';
-
-const B = (k: number) => localBeat(SHOTS.draft, k);
-
-// ── stage (page space = CSS px of the draft card, 881×714; textures are 2x) ──
-const BOARD = { w: layout.draft.w, h: layout.draft.h };
-const BOARD_R = 19; // texture corner radius ≈ 20.5 CSS px; slightly smaller keeps the 1px border inside the clip
-const CHAMPS = [1, 2, 3, 4, 5].map((i) => {
-  const c = layout[`champ-${i}` as 'champ-1'];
-  return { file: c.file, x: c.offset.x, y: c.offset.y, w: c.w, h: c.h };
-});
-const N = CHAMPS.length;
-const DECK = { x: 111, y: 867 }; // deck centre: on the table, just below the card's left edge (under slot 1)
-const STACK_STEP = 6;
-
-// ── timing (local frames; landings = touch-down at cue + DIVE) ──
-const DIVE = 8;
-const SETTLE = 4;
-const LAND = [B(37.5), B(39), B(40), B(40.5), B(41)]; // 48, 69, 83, 90, 97 — gaps 21 → 14 → 7 → 7
-const CUE = LAND.map((l) => l - DIVE);
-const ANT = { from: CUE[0] - 10, to: CUE[0], pileDown: 44, topPull: 30 };
-const LOCK = LAND[N - 1] + SETTLE; // 101: last card seated → ≈ 1.2 s of rest
-const FILLED = [LOCK, LOCK + 10] as const; // crossfade to the real filled texture
-const TITLE_START = B(34.5); // 7 — settled by ~41, held ≈ 3.2 s
-const TABLE_FADE = [22, 60] as const;
+import { StageCam } from './draft/StageCam';
+import {
+  ANT, BOARD, BOARD_DIM, BOARD_R, camAt, camBlur, CHAMPS, CUE, DECK, DIVE, FILLED, HERO_DIM, N, OPEN_TAG, SETTLE,
+  STACK_STEP, STAGE_TAG, TABLE_FADE, TITLE_START,
+} from './draft/plan';
 
 const HOVER_H = 40;
 const ARC = 120;
@@ -65,45 +46,49 @@ const D0 = (() => {
   return { x: vx / l, y: vy / l };
 })();
 
-// ── camera: opens tilted on the deck (orbiting), pulls back + cranes up, locks frontal as the board fills ──
-const CAM_KEYS = {
-  // close orbit on the deck (0–14) → fast pull-back to a tilted overview that holds deck AND empty roster for
-  // the anticipation and first deal (36) → slow crane/untilt/push-in that locks frontal as the last card lands
-  // (96). The deck's top stays in frame until the last cue (keys checked by projection: deck top ≤ 964px at 89).
-  // The card enters from the right and only ever moves left to its final slot (left edge 846px at rest), so it
-  // never slides under the title; the deck opens right of centre, clear of the title column.
-  zoom: [[0, 2.0], [14, 1.88], [36, 1.04], [62, 1.06], [96, 1.12]],
-  cx: [[0, -80], [14, -66], [36, 70], [62, 96], [96, 102]],
-  cy: [[0, 800], [14, 786], [36, 640], [62, 490], [96, 357]],
-  rotX: [[0, 42], [14, 39], [36, 22], [62, 8], [96, 0]],
-  rotY: [[0, 22], [14, 16], [36, 6], [62, 1.5], [96, 0]],
-  rotZ: [[0, -6], [14, -5], [36, -1.5], [62, -0.3], [96, 0]],
-  persp: [[0, 1100], [62, 1400], [96, 1400]],
-} as const;
-const camAt = (f: number): Cam => ({
-  zoom: spline(f, CAM_KEYS.zoom),
-  cx: spline(f, CAM_KEYS.cx),
-  cy: spline(f, CAM_KEYS.cy),
-  rotX: spline(f, CAM_KEYS.rotX),
-  rotY: spline(f, CAM_KEYS.rotY),
-  rotZ: spline(f, CAM_KEYS.rotZ),
-  persp: spline(f, CAM_KEYS.persp),
-});
-
 /** Pile offset along +y (away from the slots): anticipation press, then released with a small rebound. */
 const pileOff = (f: number) =>
   f < ANT.to
     ? ANT.pileDown * interpolate(f, [ANT.from, ANT.to], [0, 1], { ...clamp, easing: Easing.out(Easing.quad) })
     : ANT.pileDown * interpolate(f, [ANT.to, ANT.to + 8], [1, 0], { ...clamp, easing: Easing.bezier(0.3, 0, 0.3, 1.3) });
 
-const TAG_W = 235; // rendered pill width (page px), so its right edge aligns with the card
+// ── table: violet glass, low-frequency light only (no 1px texture: it aliases under zoom + 3D) ──
+const TABLE = 5000; // plane centred on the deck
+const T0 = { x: DECK.x - TABLE / 2, y: DECK.y - TABLE / 2 };
+const BAND_A = 118; // deg
+const BAND_L = TABLE * (Math.abs(Math.sin((BAND_A * Math.PI) / 180)) + Math.abs(Math.cos((BAND_A * Math.PI) / 180)));
+/** A soft specular band (≈ 120 px core, soft shoulders), `o` page px from the deck along the gradient line. */
+const band = (o: number, a: number) => {
+  const c = BAND_L / 2 + o;
+  const col = `rgba(226,232,255,${a})`;
+  return `linear-gradient(${BAND_A}deg, transparent ${c - 130}px, ${col} ${c - 40}px, ${col} ${c + 40}px, transparent ${c + 130}px)`;
+};
+const TABLE_BG = [
+  `radial-gradient(760px 620px at ${TABLE / 2}px ${TABLE / 2 - 40}px, rgba(103,232,249,.22), rgba(139,92,246,.16) 45%, transparent 72%)`,
+  `radial-gradient(1400px 1000px at ${TABLE / 2 + 500}px ${TABLE / 2 - 500}px, rgba(232,121,249,.07), transparent 70%)`,
+  band(-620, 0.05),
+  band(-290, 0.075),
+  band(170, 0.06),
+  'linear-gradient(118deg, #141a2c 0%, #1d1a38 34%, #161d31 58%, #1e1b3a 80%, #121827 100%)',
+].join(', ');
+
+// Données fictives: zoom on an inner element (zoom also scales an element's own left/top), so ≈ 35 px at rest
+const TAG_W = 278; // rendered pill width at zoom 1 (page px)
+const TAG_ZOOM = 0.94;
+const DIM = 'rgba(17,24,39,.6)';
+const HERO_DIM_C = 'rgba(17,24,39,.45)';
 
 export const Draft: React.FC = () => {
   const f = useCurrentFrame();
   const cam = camAt(f);
+  const blur = camBlur(f);
   const tableO = interpolate(f, [TABLE_FADE[0], TABLE_FADE[1]], [1, 0], clamp);
+  const boardDim = interpolate(f, [BOARD_DIM[0], BOARD_DIM[1]], [1, 0], { ...clamp, easing: Easing.inOut(Easing.quad) });
   const filled = interpolate(f, [FILLED[0], FILLED[1]], [0, 1], clamp);
+  const heroDim = interpolate(f, [HERO_DIM[0], HERO_DIM[1]], [0, 1], { ...clamp, easing: Easing.inOut(Easing.quad) });
   const pullT = interpolate(f, [ANT.from, ANT.to], [0, 1], { ...clamp, easing: Easing.out(Easing.quad) });
+  const openTagO = interpolate(f, [OPEN_TAG[0], OPEN_TAG[1]], [1, 0], clamp);
+  const stageTagO = interpolate(f, [STAGE_TAG[0], STAGE_TAG[1]], [0, 1], clamp);
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg }}>
@@ -115,19 +100,14 @@ export const Draft: React.FC = () => {
         <Glow x={1860} y={240} r={380} color={C.glowFuchsia} />
       </AbsoluteFill>
 
+      <AbsoluteFill style={blur > 0.05 ? { filter: `blur(${blur.toFixed(2)}px)` } : undefined}>
       <StageCam cam={cam}>
         {/* violet-glass table under the opening close-up (Q7 contrast material), fades with the pull-back */}
         {tableO > 0.001 ? (
           <div
             style={{
-              position: 'absolute', left: -4000, top: -4000, width: 9000, height: 9000, opacity: tableO,
-              background: [
-                `radial-gradient(760px 620px at ${4000 + DECK.x}px ${4000 + DECK.y - 40}px, rgba(103,232,249,.17), rgba(139,92,246,.13) 45%, transparent 72%)`,
-                `radial-gradient(1400px 1000px at ${4000 + DECK.x + 500}px ${4000 + DECK.y - 500}px, rgba(232,121,249,.07), transparent 70%)`,
-                'repeating-linear-gradient(100deg, rgba(226,232,255,.016) 0px, rgba(226,232,255,.016) 1px, transparent 2px, transparent 9px)',
-                'linear-gradient(118deg, #141a2c 0%, #1d1a38 34%, #161d31 58%, #1e1b3a 80%, #121827 100%)',
-              ].join(', '),
-              pointerEvents: 'none',
+              position: 'absolute', left: T0.x, top: T0.y, width: TABLE, height: TABLE, opacity: tableO,
+              background: TABLE_BG, pointerEvents: 'none',
             }}
           />
         ) : null}
@@ -145,9 +125,24 @@ export const Draft: React.FC = () => {
             style={{ position: 'absolute', left: 0, top: 0, width: BOARD.w, height: BOARD.h, borderRadius: BOARD_R }}
           />
         ) : null}
+        {/* board unlit while the deck is the only hero; it lights up on the pull-back */}
+        {boardDim > 0.001 ? (
+          <div
+            style={{
+              position: 'absolute', left: 0, top: 0, width: BOARD.w, height: BOARD.h, borderRadius: BOARD_R,
+              background: DIM, opacity: boardDim, pointerEvents: 'none',
+            }}
+          />
+        ) : null}
 
         {/* Données fictives, seated under the card's right edge (moves with the stage) */}
-        <FictiveTag x={BOARD.w - TAG_W} y={BOARD.h + 22} />
+        {stageTagO > 0 ? (
+          <div style={{ position: 'absolute', left: BOARD.w - TAG_W * TAG_ZOOM, top: BOARD.h + 22, opacity: stageTagO, whiteSpace: 'nowrap' }}>
+            <div style={{ position: 'relative', zoom: TAG_ZOOM }}>
+              <FictiveTag x={0} y={0} />
+            </div>
+          </div>
+        ) : null}
 
         {/* the deck: bottom card first in DOM; each card deals itself on the accelerating cadence */}
         {filled < 1
@@ -184,7 +179,7 @@ export const Draft: React.FC = () => {
               // drag hierarchy: the body locks at cue+12, its shadow converges 3f later
               const shadowT = interpolate(f, [cue + DIVE, cue + DIVE + SETTLE + 3], [0, 1], clamp);
               const shadow = inPile
-                ? '0 2px 6px rgba(2,6,17,.55)'
+                ? '0 5px 0 #0b1020, 0 3px 8px rgba(2,6,17,.6)' // card thickness: the pile reads as a chunky deck
                 : shadowT >= 1
                   ? 'none'
                   : `0 ${36 - 34 * shadowT}px ${70 - 66 * shadowT}px rgba(2,6,17,${0.5 - 0.5 * shadowT})`;
@@ -223,9 +218,30 @@ export const Draft: React.FC = () => {
             style={{ position: 'absolute', left: 0, top: 0, width: BOARD.w, height: BOARD.h, borderRadius: BOARD_R, opacity: filled }}
           />
         ) : null}
+        {/* rest: light the five picks as the single hero (lighting only, inside the real UI): one feathered
+            overlay recesses the header band and the pool/note area; the top row (Exemple fictif) stays lit */}
+        {heroDim > 0 ? (
+          <div
+            style={{
+              position: 'absolute', left: 0, top: 0, width: BOARD.w, height: BOARD.h, borderRadius: BOARD_R, opacity: heroDim,
+              background: `linear-gradient(to bottom, transparent 78px, ${HERO_DIM_C} 94px, ${HERO_DIM_C} 152px, transparent 168px, transparent 420px, ${HERO_DIM_C} 440px)`,
+              pointerEvents: 'none',
+            }}
+          />
+        ) : null}
       </StageCam>
+      </AbsoluteFill>
 
-      <FeatureTitle eyebrow="DRAFT" l1="Cinq picks." l2="Une intention." start={TITLE_START} />
+      {/* Données fictives during the close-up (screen space), until the stage tag is in frame */}
+      {openTagO > 0 ? (
+        <div style={{ position: 'absolute', left: 1920 - 72 - TAG_W * TAG_ZOOM, top: 960, opacity: openTagO, whiteSpace: 'nowrap' }}>
+          <div style={{ position: 'relative', zoom: TAG_ZOOM }}>
+            <FictiveTag x={0} y={0} />
+          </div>
+        </div>
+      ) : null}
+
+      <FeatureTitle eyebrow="DRAFT" l1="Pense ta draft" l2="à cinq." start={TITLE_START} />
     </AbsoluteFill>
   );
 };

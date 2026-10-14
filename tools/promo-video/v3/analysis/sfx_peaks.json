@@ -17,6 +17,12 @@
   "onset_f": 4.2,
   "peak_db": -3.9
  },
+ "hit-fast-exciting.mp3": {
+  "dur_s": 2.0,
+  "peak_f": 4.2,
+  "onset_f": 3.6,
+  "peak_db": -6.8
+ },
  "impact-cine-big.mp3": {
   "dur_s": 7.929,
   "peak_f": 65.1,
@@ -29,11 +35,29 @@
   "onset_f": 8.1,
   "peak_db": 2.1
  },
+ "impact-movie-epic.mp3": {
+  "dur_s": 5.145,
+  "peak_f": 42.3,
+  "onset_f": 4.2,
+  "peak_db": 1.7
+ },
  "keyboard.mp3": {
   "dur_s": 19.633,
   "peak_f": 351.3,
   "onset_f": 0.0,
   "peak_db": 1.6
+ },
+ "paper-move-quick.mp3": {
+  "dur_s": 0.902,
+  "peak_f": 12.6,
+  "onset_f": 5.4,
+  "peak_db": -4.5
+ },
+ "paper-slide.mp3": {
+  "dur_s": 1.094,
+  "peak_f": 10.5,
+  "onset_f": 4.2,
+  "peak_db": 2.3
  },
  "pop.mp3": {
   "dur_s": 0.479,

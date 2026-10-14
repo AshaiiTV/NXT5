@@ -2,7 +2,8 @@
 // Music: g-eazy-nba-type.mp3 (Mixkit "G Eazy NBA type", Arulo). Grid measured on strong onsets
 // (analysis/geazy5.py → geazy130.json): 130.003 BPM — the "86 BPM" label is the dotted-quarter 3-3-2 kick
 // pattern —, mean |residual| 4.7 ms, no drift. The film starts 16 beats before the drop (music 9.0085 s);
-// public/audio/bgm.wav is trimmed there (prepare-audio.sh).
+// public/audio/bgm.wav is trimmed there, 42.3 ms later to absorb the output AAC priming (prepare-audio.sh), so
+// OUTPUT_AUDIO_OFFSET_SEC stays 0 and the picture keeps the exact beat grid.
 export const FPS = 30;
 export const BEAT_INT = 0.46152823; // s
 export const MUSIC_START_SEC = 9.0085; // audit value: music time of film beat 0 (drop 16.393 s − 16 beats)

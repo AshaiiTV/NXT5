@@ -38,8 +38,8 @@ export const Main: React.FC<{ bgm?: boolean }> = ({ bgm = true }) => (
       />
     ) : null}
     {SFX.map((s, i) => (
-      <Sequence key={`sfx-${i}`} from={s.from} durationInFrames={s.duration} name={`sfx ${s.note}`}>
-        <Audio src={staticFile(`sfx/${s.src}`)} volume={s.volume} />
+      <Sequence key={`sfx-${i}`} from={s.from} durationInFrames={s.duration ?? 150} name={`sfx ${s.note}`}>
+        <Audio src={staticFile(`sfx/${s.src}`)} volume={s.volume} trimBefore={s.trimBefore} />
       </Sequence>
     ))}
   </AbsoluteFill>

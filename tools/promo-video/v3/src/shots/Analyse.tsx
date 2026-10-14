@@ -275,7 +275,7 @@ export const Analyse: React.FC = () => {
 
       {/* the lower card (note, footer) falls into the night; opaque around the tag so no footer glyph shows beside it */}
       <div style={{ position: 'absolute', left: 0, right: 0, top: 840, bottom: 0, background: 'linear-gradient(to bottom, rgba(17,24,39,0), rgba(17,24,39,.92) 50%, rgba(17,24,39,1) 66%)' }} />
-      <FictiveTag x={862} y={1004} opacity={tagIn} />
+      <FictiveTag opacity={tagIn} />
 
       {/* the hero actor: same camera, drawn above the night fade */}
       <CamLayer cam={cam}>

@@ -44,8 +44,10 @@ export const Brand: React.FC = () => {
       <div style={{ position: 'absolute', left: 140, top: 360, width: 1000 }}>
         <BlurLine line="Comprends tes parties." start={8} size={92} />
         <BlurLine line={[{ text: 'Prépare la suite.', spectrum: true }]} start={18} size={92} />
-        <div style={{ marginTop: 34, fontFamily: FONT, fontWeight: 500, fontSize: 36, color: C.text2, opacity: sub, transform: `translateY(${(1 - sub) * 14}px)` }}>
-          L’espace de travail des équipes et coachs League of Legends
+        <div style={{ marginTop: 34, fontFamily: FONT, fontWeight: 500, fontSize: 36, lineHeight: 1.35, color: C.text2, opacity: sub, transform: `translateY(${(1 - sub) * 14}px)` }}>
+          L’espace de travail des équipes
+          <br />
+          et coachs League of Legends
         </div>
       </div>
       <div style={{ position: 'absolute', left: 140, top: 820, opacity: mark, transform: `translateY(${(1 - mark) * 16}px)` }}>
