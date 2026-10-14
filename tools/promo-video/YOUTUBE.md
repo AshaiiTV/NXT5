@@ -1,11 +1,12 @@
-# Kit de publication YouTube — « Défaite. Pourquoi ? » (v2)
+# Kit de publication YouTube — « Défaite. Pourquoi ? » (v3)
 
 Fichiers produits par `tools/promo-video` :
 
-- `out/v2/nxt5-promo-v2.mp4` : la vidéo (38 s, 1080p60, H.264 + AAC, −14 LUFS) ;
-- `out/v2/thumbnail.png` : la miniature (1280 × 720).
+- `v3/out/nxt5-promo-v3.mp4` : la vidéo (39 s, 1080p30, H.264 + AAC, −14,5 LUFS) ;
+- `v3/out/nxt5-promo-v3-sans-musique.mp4` : la même vidéo avec les seuls effets sonores, pour une autre musique ;
+- `v3/out/thumbnail.png` : la miniature (1280 × 720, `npx remotion still src/index.ts Thumbnail out/thumbnail.png`).
 
-La v2 suit la charte graphique v1.92 du 13 octobre 2026 :
+La v3 suit la charte graphique v1.92 du 13 octobre 2026 :
 
 - Inter seule ;
 - wordmark officiel ;
@@ -40,12 +41,7 @@ NXT5, c’est l’espace de travail des équipes et coachs League of Legends.
 
 Joue. Analyse. Recommence.
 
-0:00 Défaite.
-0:16 Comprends tes parties
-0:20 Analyse, débriefs, draft, planning
-0:32 nxt5.org
-
-Musique originale composée pour cette vidéo (orchestre : soundfont MuseScore General, licence MIT).
+Musique : « G Eazy NBA type », Arulo (Mixkit, licence Mixkit Stock Music Free).
 Captures : démonstration publique de NXT5, données fictives.
 
 NXT5 n’est pas affilié à Riot Games. NXT5 isn’t endorsed by Riot Games and doesn’t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
@@ -64,4 +60,6 @@ league of legends, lol, nxt5, coaching lol, analyse de partie lol, débrief lol,
 
 ## Écran de fin
 
-La carte finale (wordmark, « Joue. Analyse. Recommence. », nxt5.org, « Essaie la démo ») reste affichée de 32 s à la fin. Places-y l’élément « Abonnement » sur les côtés, et laisse le centre libre.
+La carte finale (wordmark, « Joue. Analyse. Recommence. », « Essaie la démo », nxt5.org) se pose à 35 s, au troisième impact. Elle reste affichée jusqu’à la fin (39 s).
+
+YouTube impose 5 s minimum pour un écran de fin. Règle-le donc sur les 5 dernières secondes, à partir de 34 s. Place l’élément « Abonnement » sur les côtés et laisse le centre libre.
