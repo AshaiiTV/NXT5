@@ -24,9 +24,9 @@ Recommandé :
 
 Variantes :
 
-1. Comprends tes parties LoL. Prépare la suite.
-2. Ton équipe LoL gagne… mais sais-tu pourquoi ?
-3. Le score ne raconte pas tout. | NXT5
+1. Le score ne raconte pas tout. | NXT5
+
+Ne mets ni « LoL », ni « League », ni « Riot », ni nom de champion dans le titre (Legal Jibber Jabber §5, voir `RIOT-CONFORMITE.md`).
 
 ## Description
 
@@ -34,7 +34,9 @@ Variantes :
 Victoire. Tu sais vraiment pourquoi ? Le score ne raconte pas tout. NXT5 réunit tes parties, tes débriefs, ta draft et ton planning au même endroit : https://nxt5.org
 Essaie la démo, sans installation : https://nxt5.org/demo
 
-NXT5, c’est l’espace de travail des équipes et coachs League of Legends.
+NXT5 isn’t endorsed by Riot Games and doesn’t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
+
+NXT5 est un espace de travail pour les équipes et coachs de League of Legends.
 ▸ Analyse : écart d’or, objectifs et combats au fil de la partie
 ▸ Débriefs : les points à travailler, liés à la partie
 ▸ Draft : champions par rôle et compositions à cinq
@@ -45,14 +47,16 @@ Joue. Analyse. Recommence.
 Musique : « G Eazy NBA type », Arulo (Mixkit, licence Mixkit Stock Music Free).
 Captures : démonstration publique de NXT5, données fictives.
 
-NXT5 n’est pas affilié à Riot Games. NXT5 isn’t endorsed by Riot Games and doesn’t reflect the views or opinions of Riot Games or anyone officially involved in producing or managing Riot Games properties. Riot Games, and all associated properties are trademarks or registered trademarks of Riot Games, Inc.
+NXT5 n’est ni approuvé ni sponsorisé par Riot Games. Riot Games et les propriétés associées sont des marques de Riot Games, Inc.
 
-#LeagueOfLegends #CoachingLoL #NXT5
+#NXT5 #CoachingEsport #EsportAmateur
 ```
 
 ## Tags
 
-league of legends, lol, nxt5, coaching lol, analyse de partie lol, débrief lol, scrim lol, équipe lol, draft lol, coach league of legends, progresser sur lol, esport amateur
+nxt5, coaching esport, coach esport, analyse de partie, débrief de partie, scrim, draft, planning d’équipe, équipe esport, esport amateur, progresser en équipe
+
+Pas de marque Riot en tags ou mots-clés (Legal Jibber Jabber §5).
 
 ## Commentaire épinglé
 
@@ -64,3 +68,10 @@ league of legends, lol, nxt5, coaching lol, analyse de partie lol, débrief lol,
 La carte finale (wordmark, « Joue. Analyse. Recommence. », « Essaie la démo », nxt5.org) se pose à 31,4 s, sur le second drop. Elle est complète à 32,6 s et reste affichée jusqu’à la fin (39 s).
 
 Règle l’écran de fin YouTube (5 s minimum) sur les 6 dernières secondes, à partir de 33 s. Place l’élément « Abonnement » sur les côtés et laisse le centre libre.
+
+## Paramètres de publication (règles Riot)
+
+- **Monétisation désactivée.** Aucun texte Riot n’autorise la publicité YouTube sur la vidéo promotionnelle d’un produit. Il faut un accord écrit de Riot (Developer Relations) avant de l’activer ; le message à envoyer est dans `RIOT-CONFORMITE.md`.
+- **Vidéo publique.** Ni réservée aux membres ni payante : Riot interdit de mettre derrière un paywall un contenu qui utilise sa propriété intellectuelle.
+- **Chaîne.** Son nom et son handle ne doivent contenir ni « LoL », ni « League », ni « Riot », ni nom de champion.
+- **Condition préalable.** L’art des champions vient de Data Dragon. Riot l’autorise « in the development and marketing of your product » uniquement pour un produit enregistré au Developer Portal, avec une clé API propre à NXT5. Vérifie ce statut avant de publier.

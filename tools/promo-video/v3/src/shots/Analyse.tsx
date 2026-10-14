@@ -277,7 +277,7 @@ export const Analyse: React.FC = () => {
   // light pools follow the card a little (parallax 0.25), no pulses
   const px = -(cam.cx - 440) * 0.25 * cam.z;
   const py = -(cam.cy - 470) * 0.25 * cam.z;
-  const tagIn = ramp(f, 14, 26, EASE); // once the swinging card edge has passed the tag
+  const tagIn = 1; // « Données fictives » from the first frame of the shot (Riot check: example data always flagged)
   const grade = ramp(f, 4, 22, EASE);
   const pop = popAt(f);
 

@@ -73,9 +73,9 @@ export const Brand: React.FC = () => {
         <BlurLine line="Comprends tes parties." start={localBeat(SHOTS.brand, 17)} size={92} weight={800} snap />
         <BlurLine line={[{ text: 'Prépare la suite.', spectrum: true }]} start={localBeat(SHOTS.brand, 18.5)} size={92} weight={800} snap />
         <div style={{ marginTop: 34, fontFamily: FONT, fontWeight: 500, fontSize: 36, lineHeight: 1.35, color: C.text2, opacity: sub, transform: `translateY(${(1 - sub) * 14}px)` }}>
-          L’espace de travail des équipes
+          Un espace de travail pour les équipes
           <br />
-          et coachs League of Legends
+          et coachs de League of Legends
         </div>
       </div>
       <div style={{ position: 'absolute', left: 140, top: 820, opacity: mark, transform: `translateY(${(1 - mark) * 16}px)` }}>

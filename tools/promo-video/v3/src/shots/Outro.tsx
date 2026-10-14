@@ -426,6 +426,15 @@ export const Outro: React.FC = () => {
 
         {/* Données fictives: the film's shared slot (bottom-right), clear of the champions and the CTA */}
         <FictiveTag />
+        {/* Riot legal line on the end card (precaution; the official boilerplate is also in the YouTube description) */}
+        <div
+          style={{
+            position: 'absolute', left: 0, right: 0, bottom: 30, textAlign: 'center', opacity: cta,
+            fontFamily: FONT, fontWeight: 500, fontSize: 20, color: C.muted, letterSpacing: '0.01em',
+          }}
+        >
+          NXT5 n’est ni approuvé ni sponsorisé par Riot Games. Riot Games et les propriétés associées sont des marques de Riot Games, Inc.
+        </div>
       </AbsoluteFill>
     </AbsoluteFill>
   );
