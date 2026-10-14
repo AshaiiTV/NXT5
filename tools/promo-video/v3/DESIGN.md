@@ -76,10 +76,10 @@ Une frame = 30 fps. `beatF(k) = round((k − 8) × 0,46153 × 30)`.
 | 1 | 8–16 | 0–111 | Liste des parties de la démo | Le projecteur est déjà sur la ligne « Victoire · Scrim 3 », qui se soulève. « Victoire. » puis « Tu sais vraiment pourquoi ? ». Même une victoire se comprend : c’est la partie analysée dans tout le film. Retour, puis plongée au noir avant le drop |
 | 2 | 16–24 | 111–222 | Le 5 en verre | Slam #1 : le 5 entre en tournant avec une halation, puis « Comprends tes parties. Prépare la suite. » et le wordmark. Le 5 flotte pendant le maintien |
 | 3 | 24–34 | 222–360 | Revue d’équipe (courbe d’or) | Le curseur clique 21:00 puis 33:45 et la vraie carte change d’état. Accent sur « +4 000 or » au k32. « Revois chaque moment clé. » |
-| 4 | 34–44 | 360–498 | Draft | Les 5 cartes champions sont distribuées en accélérant dans les emplacements, puis repos en légère dérive. « Pense ta draft à cinq. » (la carte dit déjà « Cinq picks. Une intention. ») |
+| 4 | 34–44 | 360–498 | Draft | Les 5 cartes champions sont distribuées en accélérant dans les emplacements. Le plateau se verrouille, puis la caméra plonge sur les cinq champions, qui remplissent 60 % de la largeur au temps fort k43, avant une légère dérive. « Pense ta draft à cinq. » (la carte dit déjà « Cinq picks. Une intention. ») |
 | 5 | 44–48 | 498–554 | Carte de respiration (mesure creuse) | « Et après la partie ? » |
-| 6 | 48–60 | 554–720 | Débrief | Slam #2 : « 1. Le fait observé » s’imprime sur le coup, puis le débrief s’écrit étape par étape. « Note ce qui doit changer. » |
-| 7 | 60–68 | 720–831 | Planning | Les lignes du programme s’insèrent, puis poussée sur « 5 / 5 disponibles » (lisible). « Planifie la prochaine séance. » |
+| 6 | 48–60 | 554–720 | Débrief | Slam #2 : « 1. Le fait observé » s’imprime sur le coup, puis le débrief s’écrit étape par étape. Un surlignage cyan souligne l’action à mener de k58 à k59. « Note ce qui doit changer. » |
+| 7 | 60–68 | 720–831 | Planning | Les lignes du programme s’insèrent, les cinq coches s’allument de TOP à SUP et la carte complète est tenue (k64–65). La caméra pousse ensuite sur « 5 / 5 disponibles », qui atterrit sur k66.5, lisible (33 px). « Planifie la prochaine séance. » |
 | 8 | 68–92 | 831–1163 | Clôture | La ligne « Victoire » ouvre, les éléments convergent autour du wordmark pendant la montée, lancement sur le second drop (k76, frame 942, slam #3), « Joue. Analyse. Recommence. », « Essaie la démo », nxt5.org. Carte finale tenue 5,5 s (écran de fin YouTube), fondu |
 
 Réservations de maintien :

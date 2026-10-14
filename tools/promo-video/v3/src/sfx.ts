@@ -49,6 +49,8 @@ export const SFX: Sfx[] = [
   cue(D + 90, 'paper-move-quick.mp3', 0.46, 'draft: Ahri lands'),
   cue(D + 98, 'swoosh-quick.mp3', 0.42, 'draft: Jinx and Braum land as one sweep'),
   cue(D + 106, 'transition-snap.mp3', 0.28, 'draft: board locks'),
+  cue(D + 119, 'whoosh-fast.mp3', 0.34, 'draft: camera dollies onto the five champions'),
+  cue(D + 125, 'bass-hit-short.mp3', 0.3, 'draft: the champion row lands full-frame on k43'),
   // 5 breath card
   cue(K + 2, 'swoosh-quick.mp3', 0.42, 'card: Et après la partie ? presses in'),
   // 6 debrief — slam #2 when the music returns, then the document writes itself
@@ -61,8 +63,8 @@ export const SFX: Sfx[] = [
   // 7 planning — row-embed: the band opens with one transition, rows land silently (visual foley), pull-back whoosh
   cue(P + 5, 'transition-soft.mp3', 0.26, 'planning: agenda band opens'),
   cue(P + 47, 'whoosh-fast.mp3', 0.26, 'planning: pull-back to the full card (k64)'),
-  cue(P + 62, 'sparkle-touch.mp3', 0.22, 'planning: five availability checks light up TOP→SUP'),
-  cue(P + 70, 'swoosh-quick.mp3', 0.24, 'planning: push to the roles strip, lands k66.5'),
+  cue(P + 52, 'sparkle-touch.mp3', 0.22, 'planning: five availability checks ripple TOP→SUP (k64)'),
+  cue(P + 74, 'swoosh-quick.mp3', 0.3, 'planning: push to « 5 / 5 disponibles », lands k66.5'),
   // 8 outro — group photo: gather whoosh, riser → impact (slam #3) → sparkle
   cue(O + 10, 'whoosh-big.mp3', 0.45, 'outro: pieces fly in around the stage'),
   // the music leaves a ~5 f gap before its second drop: the riser (high-passed copy, so it never covers the drop's

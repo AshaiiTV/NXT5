@@ -98,7 +98,10 @@ const END = B(68); // 111
 const PUSH_EASE = Easing.bezier(0.4, 0, 0.25, 1);
 const Z_PUSH = 2.8; // the counter is 12px CSS (product-story.css .ps-ready-heading) → 33.6px on screen (≥ 32 with margin)
 const CREEP = 0.012; // f90 → cut: +1.2 % (transform scale over the fixed CSS zoom)
-const RASTER_LOCK = 0.97; // past this push progress the CSS zoom is fixed at Z_PUSH and the rest is a transform scale
+// past this push progress (≈ f75, while the push is at its fastest, so the one-time raster re-snap is invisible) the
+// CSS zoom is fixed at Z_PUSH and the rest of the push is a transform scale: the slow landing never re-snaps
+const RASTER_LOCK = 0.45;
+const FLAT_AT = 0.6; // push progress at which the card has turned back to face the frame (rotY 0, flat 2D path)
 const PUSH_TARGET = { x: 791.3, y: 671.8 }; // centre of the real counter (layout readyCount)
 const PUSH_CORNER = { x: W, y: H, sx: 1880, sy: 925 }; // final framing: card's bottom-right corner on screen, clear of the tag
 // the card's left edge in the push framing: a soft vertical fade in screen space (the caption ends at x 880), ramped in
@@ -110,6 +113,8 @@ const MASK_T = [66, 71] as const;
 // edge is a soft falloff over the MID cell's text-free right part (MID label ends ≈ 455), so it reads as light,
 // not as a cut; the upper card goes dark on the same ramp (UPPER_VEIL_A), so the falloff only crosses the lower band
 const LEFT_VEIL_X = [470, 527] as const;
+// …and the whole MID cell (its check and accent bar sit inside that falloff) goes fully dark up to its own border,
+// so the edge of the light is a real cell edge, with no stray check left at the frame's soft edge
 const LEFT_VEIL_T = [64, 70] as const;
 const LEFT_VEIL_A = 0.98;
 // camera blur on the fastest push frames only (recipe: ≥ 30 px/f strobes at 30 fps); measured on the ADC cell
@@ -131,6 +136,7 @@ const TY_WIDE = 90 + TOP_CSS * Z_WIDE; // wide: card top at y 90, bottom ≈ 934
 
 // ── availability: role cells (veiled while pending), checks (2x bboxes measured on the texture), real counter ──
 const CELLS = P.boxes.roleCards;
+const MID = CELLS[2]; // the MID cell: fully veiled with the left part (see LEFT_VEIL_X)
 const CHECKS = CELLS.map((c) => ({ x: c.x + c.w - 17.5, y: 704.5, w: 12, h: 9.5 }));
 const CHECK_T = [45, 48, 50.5, 52.5, 54]; // TOP → SUP, accelerating into k64 (f55): all five lit as the pull lands
 const LIFT = 6;
@@ -209,7 +215,7 @@ const WIDE = pullCamera(PULL_END);
 /**
  * Payoff push (f > PULL_END): log-linear zoom WIDE → Z_PUSH; the counter's screen position moves on a straight line
  * from where the wide framing shows it to where the final framing puts it (card corner at PUSH_CORNER), so the camera
- * visibly travels toward it; the card turns back from −2° to face the frame as it comes (flat on landing). Then a slow
+ * visibly travels toward it; the card turns back from −2° to face the frame as it comes (flat from e 0.6). Then a slow
  * creep (transform scale about the counter, over the fixed CSS zoom) keeps the frame alive until the cut. The stage is
  * rendered without perspective once flat (Scene): a slowly changing transform under a perspective re-snaps by up to
  * ±0.3 px every few frames (measured), the plain 2D path is sub-pixel smooth.
@@ -231,7 +237,7 @@ function pushCamera(f: number): Cam {
     zoom: zc, css, s: zc / css,
     cx: cx + (Q_X - AX) / z - (Q_X - AX) / zc,
     cy: cy + (Q_Y - AY) / z - (Q_Y - AY) / zc,
-    rotY: -2 * (1 - e), rotX: 0, q: 1, push: e, creep: c,
+    rotY: -2 * Math.max(0, 1 - e / FLAT_AT), rotX: 0, q: 1, push: e, creep: c,
   };
 }
 
@@ -366,6 +372,14 @@ const Scene: React.FC = () => {
                 style={{
                   position: 'absolute', left: 0, top: 0, width: LEFT_VEIL_X[1], height: H,
                   background: `linear-gradient(90deg, rgba(17,24,39,${leftVeil.toFixed(4)}) ${LEFT_VEIL_X[0]}px, rgba(17,24,39,0) ${LEFT_VEIL_X[1]}px)`,
+                }}
+              />
+            ) : null}
+            {leftVeil > 0.004 ? (
+              <div
+                style={{
+                  position: 'absolute', left: MID.x - 1, top: MID.y - 1, width: MID.w + 2, height: MID.h + 2, borderRadius: 6,
+                  background: `rgba(17,24,39,${leftVeil.toFixed(4)})`,
                 }}
               />
             ) : null}
