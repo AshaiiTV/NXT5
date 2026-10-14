@@ -68,7 +68,7 @@ const HOLD_PUSH = 0.03; // slow push through the end card (group), against the h
 // ── depth plane: the hook's match list, crisp on frame 0, receding and dissolving fast ──
 const PAGE = layout['demo-matches'];
 const PZ = 1; // page scale (layer px)
-const PAGE_CY = 520; // a little above centre: the page corner stays clear of the « Données fictives » slot
+const PAGE_CY = 510; // a little above centre: the page corner stays clear of the « Données fictives » slot
 const PAGE_L = 960 - (PAGE.w * PZ) / 2;
 const PAGE_T = PAGE_CY - (PAGE.h * PZ) / 2;
 const ROW = layout['demo-row-1']; // « Victoire · Scrim 3 · Aurore » — the hook's hero row
@@ -97,7 +97,7 @@ const ELS: El[] = [
   { key: 'planning', tex: 'planning', cx: 1690, cy: 292, s: 0.42, rot: 3.5, dx: 560, dy: -180, px: 78, py: -20, r: 16, contact: B(70.25), rim: true },
   // debrief cropped to its content (steps run x 33–720 of 1280): no dark empty slab
   { key: 'debrief', tex: 'debrief', cx: 226, cy: 820, s: 0.42, rot: 2.5, dx: -500, dy: 300, px: -110, py: 60, r: 13, contact: B(71), rim: true, crop: { x: 0, y: 0, w: 740, h: 720 } },
-  { key: 'ahri', tex: 'champ-3', cx: 1618, cy: 784, s: 1, rot: -4, dx: 440, dy: 320, px: 110, py: 80, r: 12, contact: B(71.5), alpha: true },
+  { key: 'ahri', tex: 'champ-3', cx: 1618, cy: 784, s: 1, rot: -4, dx: 540, dy: 120, px: 110, py: 80, r: 12, contact: B(71.5), alpha: true },
   // Gnar's card has no picked-state border (Ahri/Jinx do): the glass rim gives it the same silhouette
   { key: 'gnar', tex: 'champ-1', cx: 474, cy: 830, s: 1, rot: 5, dx: -320, dy: 420, px: -80, py: 90, r: 2, contact: B(72), alpha: true, rim: true },
   { key: 'jinx', tex: 'champ-4', cx: 1772, cy: 752, s: 1, rot: 6, dx: 520, dy: 60, px: 120, py: 60, r: 12, contact: B(72.5), alpha: true },

@@ -18,7 +18,7 @@
 // (k64), whole card in frame, turned 2° toward the caption. Then the availability block completes as a wave of light
 // from the card's own pixels: the five role cells, veiled while pending, brighten TOP → SUP with their checks
 // (accelerating, k64 → k65), and the real "5 / 5 disponibles" counter settles on the bar's strongest onset (k65.5).
-// The wave hands over to the payoff push: from k64.25 (f58) the camera pushes into the roles strip, the counter
+// The wave hands over to the payoff push: from k64 (f55) the camera pushes into the roles strip, the counter
 // travelling on a straight screen line while the zoom grows log-linearly 1.03 → 2.7, and lands on k66.5 (f90): the
 // counter's 12px CSS type is then 32px on screen (Q11), next to the caption's second line, with the ADC / SUP cells
 // and their checks under it. Everything above the roles section is veiled during the push (Q5), and the card's left
@@ -88,24 +88,29 @@ type Keys = readonly (readonly [number, number])[];
 const Z_KEYS: Keys = [[0, 1.66], [14, 1.58], [27, 1.42], [34, 1.32], [PULL_END, 1.03]]; // one monotone spline
 const Z_CLOSE = 1.66;
 const Z_WIDE = 1.03;
-// payoff push into the roles strip: k64.25 → k66.5 (f58 → f90), then a slow creep until the cut (k68, f111)
-const PUSH = [PULL_END + 3, B(66.5)] as const;
+// payoff push into the roles strip: k64 → k66.5 (f55 → f90, the pull's zero-velocity landing turns straight into
+// it; fastest on k65, lands on the bar's strong k66.5 onset), then a slow creep until the cut (k68, f111)
+const PUSH = [PULL_END, B(66.5)] as const;
 const END = B(68); // 111
-const PUSH_EASE = Easing.bezier(0.45, 0, 0.2, 1);
+const PUSH_EASE = Easing.bezier(0.4, 0, 0.25, 1);
 const Z_PUSH = 2.7; // the counter is 12px CSS (product-story.css .ps-ready-heading) → 32.4px on screen
 const CREEP = 0.012; // f90 → cut: +1.2 % (transform scale over the fixed CSS zoom)
 const RASTER_LOCK = 0.97; // past this push progress the CSS zoom is fixed at Z_PUSH and the rest is a transform scale
 const PUSH_TARGET = { x: 791.3, y: 671.8 }; // centre of the real counter (layout readyCount)
 const PUSH_CORNER = { x: W, y: H, sx: 1880, sy: 925 }; // final framing: card's bottom-right corner on screen, clear of the tag
 // screen-x mask on the card (the caption ends ≈ 874): soft while the card slides under it, then tightened onto the
-// MID / ADC gap of the final framing (screen 900–927; the creep then moves both edges ≈ 8px left) so no sliver of
-// the MID cell is left at the edge and the ADC cell stays whole
+// MID / ADC gap of the final framing (screen 900–927) and scaled with the creep, so no sliver of the MID cell is
+// left at the edge and the ADC cell stays whole
 const MASK_PUSH = [870, 935] as const;
-const MASK_END = [899, 918] as const;
+const MASK_END = [902, 925] as const;
 const ROT_Y: Keys = [[0, 4], [34, 0.5], [PULL_END, -2]]; // the card swings to face the caption (−) as it pulls back
 const ROT_X: Keys = [[0, 4], [PULL_END, 0]];
 const AX = 1400; // pivot / perspective origin (screen)
 const AY = 540;
+const CX_END = PUSH_CORNER.x - (PUSH_CORNER.sx - AX) / Z_PUSH; // look-at of the push's final framing
+const CY_END = PUSH_CORNER.y - (PUSH_CORNER.sy - AY) / Z_PUSH;
+const Q_X = AX + (PUSH_TARGET.x - CX_END) * Z_PUSH; // final screen position of the counter: the creep's fixed point
+const Q_Y = AY + (PUSH_TARGET.y - CY_END) * Z_PUSH;
 const PERSP = 1400;
 const LEFT = 940; // screen x of the card's real left edge (card x = 0): the caption ends ≈ 874
 const TOP_CSS = 262; // the divider above the event: pinned to the frame top in the close-up
@@ -197,16 +202,14 @@ function pushCamera(f: number): Cam {
   const creep = 1 + CREEP * c;
   const z = WIDE.zoom * Math.pow(Z_PUSH / WIDE.zoom, e);
   const T = PUSH_TARGET;
-  const cxEnd = PUSH_CORNER.x - (PUSH_CORNER.sx - AX) / Z_PUSH;
-  const cyEnd = PUSH_CORNER.y - (PUSH_CORNER.sy - AY) / Z_PUSH;
-  const sx = lerp(AX + (T.x - WIDE.cx) * WIDE.zoom, AX + (T.x - cxEnd) * Z_PUSH, e);
-  const sy = lerp(AY + (T.y - WIDE.cy) * WIDE.zoom, AY + (T.y - cyEnd) * Z_PUSH, e);
+  const sx = lerp(AX + (T.x - WIDE.cx) * WIDE.zoom, Q_X, e);
+  const sy = lerp(AY + (T.y - WIDE.cy) * WIDE.zoom, Q_Y, e);
   const cx = T.x - (sx - AX) / z;
   const cy = T.y - (sy - AY) / z;
   // creep about the counter's final screen position: the payoff stays still (no reversal after the landing) while
   // the rest of the frame keeps opening slowly around it
-  const qx = AX + (T.x - cxEnd) * Z_PUSH;
-  const qy = AY + (T.y - cyEnd) * Z_PUSH;
+  const qx = Q_X;
+  const qy = Q_Y;
   const zc = z * creep;
   const css = e < RASTER_LOCK ? z : Z_PUSH;
   return {
@@ -259,10 +262,10 @@ const Scene: React.FC = () => {
   const done = f >= DONE;
   const pushVeil = PUSH_VEIL_A * cam.push;
   // screen-space mask: only needed once the push starts sliding the card's left part toward the caption
-  const mask =
-    f > PULL_END
-      ? `linear-gradient(to right, transparent ${lerp(MASK_PUSH[0], MASK_END[0], cam.push)}px, #000 ${lerp(MASK_PUSH[1], MASK_END[1], cam.push)}px)`
-      : undefined;
+  const k = 1 + CREEP * cam.creep; // the mask edges follow the creep (scaled about the counter, like the card)
+  const m0 = Q_X + (lerp(MASK_PUSH[0], MASK_END[0], cam.push) - Q_X) * k;
+  const m1 = Q_X + (lerp(MASK_PUSH[1], MASK_END[1], cam.push) - Q_X) * k;
+  const mask = f > PULL_END ? `linear-gradient(to right, transparent ${m0}px, #000 ${m1}px)` : undefined;
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg, overflow: 'hidden' }}>

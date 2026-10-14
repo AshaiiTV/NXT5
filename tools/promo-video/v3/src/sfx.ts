@@ -1,7 +1,7 @@
 // Sound design (video-shotcraft sound-design.md): one declarative table, every cue pinned to a picture action,
 // relative to its shot (§4.5) and corrected for the sample's own peak lag and the output audio offset (§4.6).
 // Vocabulary: whoosh / impact / riser / sparkle / transition + real foley for real actions (click, keys, cards).
-import { SHOTS } from './timeline';
+import { beatF, SHOTS } from './timeline';
 
 export type Sfx = { from: number; src: string; volume: number; duration?: number; trimBefore?: number; note: string };
 
@@ -61,7 +61,7 @@ export const SFX: Sfx[] = [
   cue(P + 58, 'sparkle-touch.mp3', 0.22, 'planning: five availability checks light up'),
   // 8 outro — group photo: gather whoosh, riser → impact (slam #3) → sparkle
   cue(O + 14, 'whoosh-big.mp3', 0.45, 'outro: pieces fly in around the stage'),
-  cue(O + 106, 'riser-cine.mp3', 0.3, 'outro: riser into the launch'),
-  cue(O + 110, 'impact-deep-whoosh.mp3', 0.45, 'outro: wordmark launch (slam #3)'),
-  cue(O + 120, 'sparkle-touch.mp3', 0.32, 'outro: rule draws under the wordmark'),
+  cue(beatF(76) - 4, 'riser-cine.mp3', 0.3, 'outro: riser into the launch'),
+  cue(beatF(76), 'impact-deep-whoosh.mp3', 0.45, 'outro: wordmark launch on the second drop (k76, slam #3)'),
+  cue(O + 121, 'sparkle-touch.mp3', 0.32, 'outro: rule draws under the wordmark'),
 ];
