@@ -12,6 +12,11 @@ Pages Riot récupérées le 2026-10-14. Versions en vigueur à cette date :
 | Politique LoL, qui suit cet index | non datée | https://developer.riotgames.com/docs/lol |
 | API Terms | « LAST UPDATED: DECEMBER 9, 2013 » | https://developer.riotgames.com/terms |
 
+> **Décisions de l’équipe NXT5 (14 octobre 2026)**
+> - **Statut au Developer Portal : confirmé** par l’équipe. La condition principale du rapport (exception 3 de LJJ, art Data Dragon autorisé « in the development and marketing of your product ») est donc remplie.
+> - **Icônes de rôle, Dragon et Nashor : risque accepté** par l’équipe. Les icônes restent dans la vidéo et sur le site.
+> - **Monétisation de la vidéo : désactivée** tant que Riot n’a pas donné d’accord écrit.
+
 Ce rapport ne constitue pas un avis juridique. Il confronte les livrables aux textes publiés par Riot. Il ne tranche pas sur le droit des marques européen ou français.
 
 ---
@@ -53,7 +58,6 @@ Abréviations utilisées :
 | **Aval ou partenariat** | API (k) : « …in a way that does or may constitute a direct or indirect endorsement, certification or approval by Riot… »<br>API : « no act by Riot shall constitute endorsement, certification or approval of any Application, including, without limitation, Riot's registration of an Application and issuance of a Production Key. » | **OK.** Aucune mention « officiel », « partenaire » ou « approuvé ». | Ne jamais écrire « officiel », « approuvé », « conforme Riot » ni afficher de badge de conformité, même après approbation. |
 | **Monétisation YouTube (AdSense) de la vidéo** | LJJ, exception 1 : « We permit individual players to promote their Projects on websites, streams, or videos and passively generate revenue through appropriate advertisements »<br>API : « You may advertise through such software applications and/or websites without asking for Riot's permission » | **Incertain, avec risque.** L'exception 1 vise des joueurs individuels. La phrase des API Terms vise la publicité dans l'application ou le site. Aucun texte ne couvre une vidéo publicitaire monétisée. | Ne pas monétiser. Si la monétisation est voulue, obtenir d'abord un accord écrit de Riot DevRel. |
 | **Contenu payant ou réservé** | LJJ §2 : « any Project where you gate the content with a paywall (e.g., Patreon, YouTube Premium, etc.) » | **OK** si la vidéo est publique | Pas de vidéo réservée aux membres ni d'accès payant. |
-| **Offre promue (Pass Équipe)** : obligatoire après 14 jours de Découverte (`PricingPage.jsx:19`), désactivée aujourd'hui | GP : « You may monetize your product as long as your product is registered on the Developer Portal and your product status is either Approved or Acknowledged. You must have a free tier of access for players »<br>API : « You must notify Riot and obtain Riot's prior written approval before undertaking such activities » et « Failure to obtain Riot's prior written permission will result in the termination of Your rights under these API Terms. » | Vidéo : **OK**, car elle ne mentionne ni prix ni gratuité. Projet tarifaire : **non conforme** en l'état. | Avant de lancer le Pass : prévoir un palier gratuit permanent et obtenir l'accord écrit préalable de Riot. |
 | **Dons Ko-fi** (actifs) | GP : « Acceptable ways to charge players are: Subscriptions, donations, or crowdfunding », sous condition du statut Approved ou Acknowledged | **Incertain** (dépend du statut) | Couvert par la question 1 de la section 4. |
 | **Miniature** | Pas de règle propre aux miniatures. LJJ §5 s'applique : « video, or other publication » | **OK.** Aucune IP Riot, vérifié visuellement. | Ne pas y ajouter d'art de champion ni de logo. |
 | **Musique** (Mixkit) | Riot Music, usage commercial interdit : « Use in content that has the sole purpose of advertising or selling a product or service. » (leagueoflegends.com/en-us/news/community/riot-music-creator-safe-guidelines/) | **OK** | Ne jamais utiliser de musique Riot, même « Creator-Safe ». |
@@ -101,12 +105,11 @@ Abréviations utilisées :
 
 **6. Site (produit).** Les General Policies exigent le texte anglais exact du point 5 dans un endroit « readily visible », à côté de la ligne française actuelle du pied de page. À faire avant de diriger du trafic vers nxt5.org.
 
-### B. Avant de monétiser la vidéo ou de lancer une offre payante
+### B. Avant de monétiser la vidéo
 
 **7.** Envoyer une demande écrite à Riot DevRel, via https://support-developer.riotgames.com ou la page produit du Portal. GP : « If you are unsure if your monetization platform is acceptable, contact us through the Developer Portal ». Texte proposé :
-> Product: NXT5 (https://nxt5.org), app ID [ID]. We made a 39-second promotional video for NXT5 for our YouTube channel. It shows only NXT5's own interface with fictitious data, including Data Dragon champion art; it contains no Riot logo, gameplay footage or Riot music, and the description carries the required legal boilerplate. (1) May we enable YouTube ad revenue on this promotional video? (2) Please confirm that Data Dragon champion art may appear in it under "Use the following assets in the development and marketing of your product". (3) [If applicable] We plan a paid team subscription; per the API Terms we are notifying you and requesting prior written approval. We will keep a free tier of access for players.
+> Product: NXT5 (https://nxt5.org), app ID [ID]. We made a 39-second promotional video for NXT5 for our YouTube channel. It shows only NXT5's own interface with fictitious data, including Data Dragon champion art; it contains no Riot logo, gameplay footage or Riot music, and the description carries the required legal boilerplate. (1) May we enable YouTube ad revenue on this promotional video? (2) Please confirm that Data Dragon champion art may appear in it under "Use the following assets in the development and marketing of your product".
 
-**8.** Pass Équipe : prévoir un palier gratuit permanent, obtenir l'accord écrit préalable de Riot (API Terms) et un statut Approved ou Acknowledged, puis faire auditer cette nouvelle fonctionnalité au Portal.
 
 ### C. Recommandé
 
@@ -119,18 +122,20 @@ Abréviations utilisées :
 ## 4. Questions pour l'équipe NXT5
 
 1. NXT5 est-il enregistré au Riot Developer Portal ? Avec quel identifiant, quel statut (Approved, Acknowledged, Pending) et quel type de clé ? La clé `RIOT_API_KEY` de production est-elle dédiée à NXT5 seul (une clé par produit) ?
+   **Réponse de l’équipe (14/10/2026) : oui, statut confirmé.**
 2. La description enregistrée couvre-t-elle les points suivants ?
    - le bot Discord et la « publication des parties » ;
    - l'Importer : lecture du LCU via le lockfile et `/lol-match-history/v1/…` (LoL : « This service is not officially supported for use with third party applications. ») ;
    - l'envoi de données de match à OpenAI pour l'assistant (règle LoL : « No apps serving as a “data broker” between our API and another third-party company. »).
 3. La vidéo sera-t-elle monétisée (AdSense) ? Ou seulement publiée, voire sponsorisée en publicité payante ? Le second cas relève du « marketing » couvert par les General Policies si le produit est conforme. Le premier n'est couvert par aucun texte.
-4. Qui publie : une personne physique ou une entité ? Les mentions légales disent « édité à titre non professionnel » (`PublicPages.jsx:162`). Ce statut est-il cohérent avec une campagne commerciale, les dons et le Pass prévu ?
-5. Le Pass Équipe comportera-t-il un palier gratuit permanent ? Riot a-t-il été notifié ? Y a-t-il une date de lancement ?
-6. NXT5 télécharge-t-il des replays de parties d'autres joueurs ? Sinon, la mention « avec le contexte du replay » reste exacte. Si oui, elle dépend de ce qui sortira au patch 26.21.
-7. Où en est la demande RSO ? Comment les scrims (file personnalisée) partagés en équipe ou publiés sur Discord respectent-ils la règle d'opt-in ou RSO ?
-8. Quels sont le nom et le handle exacts de la chaîne YouTube ?
-9. L'équipe accepte-t-elle de retirer les icônes du client aussi du site, ou seulement de la vidéo ? Le site est lui aussi concerné par « Only the following Riot IP assets… ».
-10. D'où viennent les effets sonores de `v3/public/sfx`, et sous quelle licence ?
+4. Qui publie : une personne physique ou une entité ? Les mentions légales disent « édité à titre non professionnel » (`PublicPages.jsx:162`). Ce statut est-il cohérent avec une campagne commerciale et les dons ?
+5. NXT5 télécharge-t-il des replays de parties d'autres joueurs ? Sinon, la mention « avec le contexte du replay » reste exacte. Si oui, elle dépend de ce qui sortira au patch 26.21.
+6. Où en est la demande RSO ? Comment les scrims (file personnalisée) partagés en équipe ou publiés sur Discord respectent-ils la règle d'opt-in ou RSO ?
+7. Quels sont le nom et le handle exacts de la chaîne YouTube ?
+8. L'équipe accepte-t-elle de retirer les icônes du client aussi du site, ou seulement de la vidéo ? Le site est lui aussi concerné par « Only the following Riot IP assets… ».
+   **Réponse de l’équipe (14/10/2026) : non, risque accepté ; les icônes restent.**
+9. D'où viennent les effets sonores de `v3/public/sfx`, et sous quelle licence ?
+   **Réponse : bibliothèque du skill video-shotcraft, effets Mixkit (Mixkit Sound Effects Free License, usage commercial autorisé sans attribution). Le seul fichier d’origine non documentée (`pop.mp3`) n’est pas utilisé dans le film.**
 
 ---
 
@@ -164,5 +169,4 @@ Fichiers clés :
 - /home/user/NXT5/public/assets/objectives/
 - /home/user/NXT5/docs/home-release/champion-assets.json
 - /home/user/NXT5/src/pages/public/PublicPages.jsx
-- /home/user/NXT5/src/pages/public/PricingPage.jsx
 - /home/user/NXT5/tools/promo-video/v3/public/textures/
