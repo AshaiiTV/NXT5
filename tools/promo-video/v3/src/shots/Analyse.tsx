@@ -54,8 +54,10 @@ const PUNCH1 = { cx: PUNCH_CX, cy: 600, z: 1.5, rotY: 0 }; // ×1.36: header out
 const BACK = { cx: 455, cy: 480, z: 1.22, rotY: 0 };
 const FINAL = { cx: 470, cy: 486, z: 1.25, rotY: 0 }; // +4 000 or, curve end, 33:45 chip, card border visible on the right
 const KEYS: Key[] = [
-  { f: 0, cx: 440, cy: 475, z: 0.97, rotY: 12 }, // cut-in: whole card, slight left-camera angle
-  { f: 18, ...WORK, ease: EASE }, // swing to frontal + dolly in; still card for the last 10f before the click
+  // slam #1 (seam C1): the card arrives from the hook's window over-pushed (×1.12 past WORK, top edge just out of frame)
+  // and still swinging, ON the drop; it recoils into the working framing on the brand ease (fastest on its first frames)
+  { f: 0, cx: 440, cy: 478, z: 1.28, rotY: 4 },
+  { f: 18, ...WORK, ease: EASE }, // recoil + swing to frontal; still card for the last 10f before the click
   { f: CLICK1, ...WORK },
   { f: CLICK1 + 12, ...PUNCH1, ease: outCubic }, // punch-in starts on the click frame
   { f: CLICK1 + 26, ...PUNCH1 }, // hold 14f
@@ -87,6 +89,21 @@ const camAt = (f: number) => {
   const z = lerp(a.z, b.z, t) * (1 + DRIFT * driftAt(f));
   const css = f > CLICK2 ? Z_END : z;
   return { cx: lerp(a.cx, b.cx, t), cy: lerp(a.cy, b.cy, t), z, css, rotY: lerp(a.rotY, b.rotY, t) };
+};
+
+/** Seam C1 pre-roll (frame 0 seen through the hook's window): the card dives at the lens from ×0.5 (log-scaled, so the
+ * push reads as one acceleration) and from a stronger angle (rotY 16 → 4), reaching KEYS[0] exactly on the drop. */
+const DIVE_S0 = 0.42;
+const DIVE_ROT0 = 16;
+/** Slam #1, far plane: the night world behind the card is pushed with it (×1 → 1.1 through the window, log-scaled) and
+ * recoils with the card on the brand ease (f0 → 18) — the film's first full-frame impact, the music's drop. */
+const WORLD_PUSH = 1.2;
+const worldAt = (f: number, dive?: number) =>
+  dive !== undefined ? Math.pow(WORLD_PUSH, dive) : 1 + (WORLD_PUSH - 1) * (1 - ramp(f, 0, KEYS[1].f, EASE));
+const diveCamAt = (d: number) => {
+  const k = KEYS[0];
+  const z = k.z * Math.pow(DIVE_S0, 1 - d);
+  return { cx: k.cx, cy: k.cy, z, css: z, rotY: DIVE_ROT0 + (k.rotY - DIVE_ROT0) * d };
 };
 
 // ───────────────────────── cursor performance ─────────────────────────
@@ -263,9 +280,18 @@ const CamLayer: React.FC<{ cam: ReturnType<typeof camAt>; children: React.ReactN
   </div>
 );
 
-export const Analyse: React.FC = () => {
+/** `preRoll`: the shot waiting on its frame 0 inside the hook's window (seam C1) — its title snaps on the drop, not before,
+ * and its card dives at the lens on `dive` (0 → 1 on the drop; `diveTrail`: its earlier values over the shutter);
+ * and the hook's « Données fictives » (same slot) stands for its tag until the cut. `hideTag`: inside the whip (seam C2)
+ * the seam draws the one fixed tag, so the travelling plate carries none. */
+export const Analyse: React.FC<{ preRoll?: boolean; hideTag?: boolean; dive?: number; diveTrail?: number[] }> = ({
+  preRoll = false, hideTag = false, dive, diveTrail = [],
+}) => {
   const f = useCurrentFrame();
-  const cam = camAt(f);
+  const cam = preRoll && dive !== undefined ? diveCamAt(dive) : camAt(f);
+  const world = worldAt(f, preRoll ? dive : undefined);
+  // zoom-blur trail of the diving card: its poses over the last half frame, only while it travels
+  const trail = preRoll && dive !== undefined ? diveTrail.filter((d) => dive - d > 0.002).map(diveCamAt) : [];
   const layers = layersAt(f);
   const cur = cursorAt(f);
 
@@ -281,18 +307,12 @@ export const Analyse: React.FC = () => {
   const grade = ramp(f, 4, 22, EASE);
   const pop = popAt(f);
 
-  return (
-    <AbsoluteFill style={{ overflow: 'hidden' }}>
-      <Backdrop dim={0.38} />
-      <Glow x={AX + 20 + px} y={1000 + py} r={660} color={C.glowViolet} />
-      <Glow x={AX - 420 + px} y={170 + py} r={440} color={C.glowCyan} />
-      <Glow x={AX + 520 + px} y={500 + py} r={380} color={C.glowFuchsia} />
-
-      <CamLayer cam={cam}>
+  // `shadow` false: a zoom-trail copy, drawn over the card, carries no shadow of its own
+  const cardBody = (shadow = true) => (
           <div
             style={{
               position: 'absolute', inset: 0, borderRadius: 20, overflow: 'hidden', background: CARD_BG,
-              boxShadow: '0 40px 110px rgba(2,6,17,.62), 0 0 0 1px rgba(196,181,253,.16), 0 0 90px rgba(139,92,246,.16)',
+              boxShadow: shadow ? '0 40px 110px rgba(2,6,17,.62), 0 0 0 1px rgba(196,181,253,.16), 0 0 90px rgba(139,92,246,.16)' : undefined,
             }}
           >
             {layers.map((l, i) => (
@@ -326,18 +346,36 @@ export const Analyse: React.FC = () => {
             {/* key light on the working band: header and notes fall half a stop as the camera settles */}
             <div style={{ position: 'absolute', inset: 0, opacity: grade, background: GRADE }} />
           </div>
-      </CamLayer>
+  );
+
+  return (
+    <AbsoluteFill style={{ overflow: 'hidden' }}>
+      <AbsoluteFill style={world > 1.0001 ? { transform: `scale(${world.toFixed(5)})`, transformOrigin: `${AX}px ${AY}px` } : undefined}>
+        <Backdrop dim={0.38} />
+        <Glow x={AX + 20 + px} y={1000 + py} r={660} color={C.glowViolet} />
+        <Glow x={AX - 420 + px} y={170 + py} r={440} color={C.glowCyan} />
+        <Glow x={AX + 520 + px} y={500 + py} r={380} color={C.glowFuchsia} />
+      </AbsoluteFill>
+
+      {/* the card; in the seam C1 pre-roll its zoom trail (shutter ½ frame, copies averaged on top) smears it at speed, so
+          it lands crisp on the drop */}
+      <CamLayer cam={cam}>{cardBody()}</CamLayer>
+      {trail.map((c, j) => (
+        <div key={`trail${j}`} style={{ position: 'absolute', inset: 0, opacity: 1 / (j + 2), filter: 'blur(1.2px)' }}>
+          <CamLayer cam={c}>{cardBody(false)}</CamLayer>
+        </div>
+      ))}
 
       {/* the lower card (note, footer) falls into the night; opaque around the tag so no footer glyph shows beside it */}
       <div style={{ position: 'absolute', left: 0, right: 0, top: 840, bottom: 0, background: 'linear-gradient(to bottom, rgba(17,24,39,0), rgba(17,24,39,.92) 50%, rgba(17,24,39,1) 66%)' }} />
-      <FictiveTag opacity={tagIn} />
+      {preRoll || hideTag ? null : <FictiveTag opacity={tagIn} />}
 
       {/* the hero actor: same camera, drawn above the night fade */}
       <CamLayer cam={cam}>
         <Cursor x={cur.x} y={cur.y} />
       </CamLayer>
 
-      <FeatureTitle eyebrow="ANALYSE" l1="Revois chaque" l2="moment clé." start={0} />
+      {preRoll ? null : <FeatureTitle eyebrow="ANALYSE" l1="Revois chaque" l2="moment clé." start={0} />}
     </AbsoluteFill>
   );
 };

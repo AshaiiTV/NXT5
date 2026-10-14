@@ -35,13 +35,18 @@ export const SFX: Sfx[] = [
   cue(H + 20, 'whoosh-big.mp3', 0.36, 'hook: the Victoire row lifts towards the camera', { trimBefore: 6 }),
   cue(H + 36, 'shimmer-sparkle-sweep.mp3', 0.22, 'hook: perimeter beam laps the row'),
   cue(H + 95, 'transition-snap.mp3', 0.42, 'hook: row reseats'),
-  cue(H + 109, 'air-woosh-deep.mp3', 0.28, 'hook: pull-back into darkness, sucked into the drop'),
+  // seam C1 (riser → silence → hit, the slam #3 grammar): the high-passed riser climbs with the accelerating dive into
+  // the window and is cut 2 f before the drop, inside the music's own silent gap; slam #1 = the card's over-push on 111
+  { from: at(A - 3.5, 'riser-cine-hp.mp3'), src: 'riser-cine-hp.mp3', volume: 0.24, duration: 20, fadeOut: 3, note: 'C1: riser into the window dive (peak ≈ 107.5), cut by ≈ 108.3 — the music’s silent gap, then the hit' },
+  cue(A, 'hit-fast-exciting.mp3', 0.4, 'C1: slam #1 — the review card lands over-pushed on the drop'),
+  cue(A, 'bass-hit-short.mp3', 0.28, 'C1: slam #1 low end'),
   // 3 analyse — real clicks on the chips
-  cue(A + 8, 'transition-soft.mp3', 0.3, 'analyse: review card swings in'),
   cue(A + 29, 'click-camera.mp3', 0.6, 'analyse: click on 21:00 (k26, press bottom)'),
   cue(A + 38, 'swoosh-quick.mp3', 0.65, 'analyse: punch-in towards +1 300 or'),
   cue(A + 85, 'click-camera.mp3', 0.55, 'analyse: click on 33:45 (k30, press bottom)'),
   cue(A + 113, 'sparkle-touch.mp3', 0.2, 'analyse: +4 000 or pops with the chart end ring (k32)'),
+  // seam C2: whip-pan, the whoosh's peak (and its abrupt end) on the mid-point
+  cue(D, 'whoosh-fast.mp3', 0.55, 'C2: whip-pan to the draft, mid-point on k26'),
   // 4 draft — deck-deal-flyin: orbit pull-back whoosh, landings on two alternating samples, fading, merged at the end
   cue(D + 28, 'whoosh-big.mp3', 0.5, 'draft: camera pulls back from the deck'),
   cue(D + 55, 'paper-move-quick.mp3', 0.6, 'draft: Gnar lands'),
@@ -51,8 +56,11 @@ export const SFX: Sfx[] = [
   cue(D + 106, 'transition-snap.mp3', 0.28, 'draft: board locks'),
   cue(D + 119, 'whoosh-fast.mp3', 0.34, 'draft: camera dollies onto the five champions'),
   cue(D + 125, 'bass-hit-short.mp3', 0.16, 'draft: the champion row lands full-frame on k43'),
-  // 5 breath card
-  cue(K + 2, 'swoosh-quick.mp3', 0.42, 'card: Et après la partie ? presses in'),
+  // 5 breath card — seam C3 (calm, into the hollow bar): a soft transition peaking on the card's half presence
+  cue(K, 'transition-soft.mp3', 0.3, 'C3: focus relay, the breath card takes the focus (k36)'),
+  // seam C4: riser under the growing glass plate, cut by 441; the push through the clearing glass on 442; hit on 443
+  { from: at(DB - 4.5, 'riser-cine-hp.mp3'), src: 'riser-cine-hp.mp3', volume: 0.2, duration: 21, fadeOut: 3, note: 'C4: riser as the plate grows into the card (peak ≈ 438.5), cut by ≈ 440.3' },
+  cue(DB - 1, 'swoosh-quick.mp3', 0.36, 'C4: the glass clears, push into the page'),
   // 6 debrief — slam #2 when the music returns, then the document writes itself
   cue(DB, 'hit-fast-exciting.mp3', 0.45, 'debrief: card lands (slam #2)'),
   cue(DB, 'bass-hit-short.mp3', 0.28, 'debrief: slam #2 low end'),
@@ -60,6 +68,9 @@ export const SFX: Sfx[] = [
   cue(DB + 55, 'typewriter-hit-single.mp3', 0.3, 'debrief: numeral 3 presses (k52)'),
   ...WRITING.map(([a, b], i): Sfx => ({ from: DB + a, src: 'keyboard.mp3', volume: 0.3, duration: b - a, trimBefore: 45 + i * 70, note: `debrief: writing ${i + 1}` })),
   cue(DB + 139, 'marker-pen-line.mp3', 0.42, 'debrief: coach highlights the action (k58 → k59)', { duration: 14, fadeOut: 3 }),
+  // seam C5: the debrief folds back into the « Victoire » row (fastest 605–607) and seats on 609
+  cue(O - 3.5, 'swoosh-quick.mp3', 0.5, 'C5: the page folds into the row'),
+  cue(O, 'transition-snap.mp3', 0.4, 'C5: the row seats in the match list (k52)'),
   // 8 outro — group photo: gather whoosh, riser → impact (slam #3) → sparkle
   cue(O + 10, 'whoosh-big.mp3', 0.45, 'outro: pieces fly in around the stage'),
   // the music leaves a ~5 f gap before its second drop: the riser (high-passed copy, so it never covers the drop's

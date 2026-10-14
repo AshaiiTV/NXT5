@@ -22,7 +22,8 @@ import React from 'react';
 import { AbsoluteFill, Easing, Img, interpolate, staticFile, useCurrentFrame } from 'remotion';
 import { C } from '../theme';
 import { Backdrop, FeatureTitle, FictiveTag, Glow } from '../lib/ui';
-import { clamp } from '../lib/motion';
+import { clamp, outCubic } from '../lib/motion';
+import { dur, SHOTS } from '../timeline';
 import { StageCam } from './draft/StageCam';
 import {
   ANT, BOARD, BOARD_DIM, BOARD_R, camAt, camBlur, CHAMPS, CUE, DECK, DEEP_DIM, DIVE, FILLED, HERO_DIM, N, ROW_MASK,
@@ -84,9 +85,13 @@ const TABLE_BG = [
 ].join(', ');
 
 const DIM = 'rgba(17,24,39,.6)';
+/** Caption exit (local 125 → 135, abs 374 → 384): ahead of seam C3 (f381). */
+const CAPTION_OUT = dur(SHOTS.draft) - 14;
 const HERO_DIM_C = 'rgba(17,24,39,.45)';
 
-export const Draft: React.FC = () => {
+/** `hideTag`: inside seams C2 (whip) and C3 (focus relay) the seam draws the one fixed « Données fictives » in the shared
+ * slot, so the moving / defocusing plate carries no copy of it. */
+export const Draft: React.FC<{ hideTag?: boolean }> = ({ hideTag = false }) => {
   const f = useCurrentFrame();
   const cam = camAt(f);
   const blur = camBlur(f);
@@ -104,6 +109,7 @@ export const Draft: React.FC = () => {
   const pullT = interpolate(f, [ANT.from, ANT.to], [0, 1], { ...clamp, easing: Easing.out(Easing.quad) });
   // ambient pools drift slowly across the whole shot (≈ 0.4 px/f), so the rest is lit by moving light
   const pool = f * 0.4;
+  const captionOut = interpolate(f, [CAPTION_OUT, CAPTION_OUT + 10], [0, 1], { ...clamp, easing: outCubic });
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg }}>
@@ -244,9 +250,13 @@ export const Draft: React.FC = () => {
       </AbsoluteFill>
 
       {/* Données fictives: one tag, screen space, the film's shared slot, for the whole shot */}
-      <FictiveTag />
+      {hideTag ? null : <FictiveTag />}
 
-      <FeatureTitle eyebrow="DRAFT" l1="Pense ta draft" l2="à cinq." start={TITLE_START} />
+      {/* seam C3: the caption leaves first (blur-slide exit, 10 f) so the focus hand-off never shows two titles; the
+          eyebrow leaves on the lines' own out-cubic curve (FeatureTitle fades it linearly, which left « DRAFT » alone) */}
+      <div style={{ opacity: 1 - captionOut }}>
+        <FeatureTitle eyebrow="DRAFT" l1="Pense ta draft" l2="à cinq." start={TITLE_START} out={CAPTION_OUT} />
+      </div>
     </AbsoluteFill>
   );
 };

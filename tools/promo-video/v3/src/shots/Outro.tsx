@@ -4,8 +4,9 @@
 // Opening (k68 is a hit, review finding 12): frame 0 is crisp and already moving — the hook's match list, sharp,
 // with the hook's « Victoire » row already lifting out of its real slot (the depth plane); the page recedes and
 // dissolves within ~16 f under a crane that starts with velocity, while the row drops to the foot of the stage.
-// Then review card, planning card, debrief, Ahri, Gnar, Jinx and the session-programme chip land on an
-// accelerating grid (R2: contacts 7/14/24/34/41/48/55/59 = k68.5…k72.25; the cards' gaps 10→10→7→7→7→4). The first
+// Then review card, draft board, debrief, Ahri, Gnar, Jinx and the review's « 33:45 » moment chip land on an
+// accelerating grid (R2: contacts 14/14/24/34/41/48/55/59 = k69…k72.25, the row and the review together; gaps
+// 10→10→7→7→7→4). The first
 // card is already in flight while the page dissolves (review 2, P4: no empty sky after the row lands), then a rest.
 // Anticipation k73–76 (the spliced build): the stage core light swells, the OFFICIAL wordmark (lib <Wordmark/>,
 // never redrawn) condenses out of it (brightness 2.2→1 + blur 10→0) and accelerates toward the lens under an
@@ -102,17 +103,21 @@ type El = {
 // « Données fictives » slot (bottom-right) at the end of the push.
 const ELS: El[] = [
   // the hook row lifts out of its real slot in the page (Q9 start) and drops to the foot of the stage
-  { key: 'row', tex: 'demo-row-1', cx: 960, cy: 960, s: 0.6, rot: -1.2, dx: 0, dy: 0, px: 0, py: 90, r: 14, contact: B(68.5), rim: true, from: ROW_SLOT },
+  // seam C5 lands it back in its slot on frame 0: it stays there (lifting) for ~9 f, the list full around it, then drops
+  // to the foot of the stage, landing with the review card on k69
+  { key: 'row', tex: 'demo-row-1', cx: 960, cy: 960, s: 0.6, rot: -1.2, dx: 0, dy: 0, px: 0, py: 90, r: 14, contact: B(69), rim: true, from: ROW_SLOT },
   { key: 'review', tex: 'review-3345', cx: 243, cy: 300, s: 0.4, rot: -4, dx: -560, dy: -160, px: -70, py: -20, r: 16, contact: B(69), rim: true },
-  { key: 'planning', tex: 'planning', cx: 1682, cy: 292, s: 0.4, rot: 3.5, dx: 560, dy: -180, px: 78, py: -20, r: 16, contact: B(69.75), rim: true },
+  // the draft board (header, « Cinq picks. Une intention. », the five picks), cropped above its pool and staff note — the
+  // roster / planning page (« Le cinq au rendez-vous », TOP…SUP, 5/5) is no longer in the film (user request)
+  { key: 'draft', tex: 'draft', cx: 1682, cy: 292, s: 0.42, rot: 3.5, dx: 560, dy: -180, px: 78, py: -20, r: 16, contact: B(69.75), rim: true, crop: { x: 0, y: 0, w: 881, h: 436 } },
   // debrief cropped to its content (steps run x 33–720 of 1280): no dark empty slab
   { key: 'debrief', tex: 'debrief', cx: 226, cy: 820, s: 0.42, rot: 2.5, dx: -500, dy: 300, px: -110, py: 60, r: 13, contact: B(70.5), rim: true, crop: { x: 0, y: 0, w: 740, h: 720 } },
   { key: 'ahri', tex: 'champ-3', cx: 1618, cy: 776, s: 1, rot: -4, dx: 540, dy: 120, px: 110, py: 80, r: 12, contact: B(71), alpha: true },
   // Gnar's card has no picked-state border (Ahri/Jinx do): the glass rim gives it the same silhouette
   { key: 'gnar', tex: 'champ-1', cx: 474, cy: 830, s: 1, rot: 5, dx: -320, dy: 420, px: -80, py: 90, r: 2, contact: B(71.5), alpha: true, rim: true },
   { key: 'jinx', tex: 'champ-4', cx: 1772, cy: 752, s: 1, rot: 6, dx: 520, dy: 60, px: 120, py: 60, r: 12, contact: B(72), alpha: true },
-  // the session programme's first item (planning shot), cropped from the real card with its background
-  { key: 'agenda', tex: 'planning', cx: 900, cy: 92, s: 1, rot: -1.5, dx: 0, dy: -330, px: 0, py: -70, r: 10, contact: B(72.25), rim: true, crop: { x: 16, y: 532, w: 280, h: 86 } },
+  // the moment clicked in the analyse shot: the review's selected « 33:45 · Fin de partie » chip, cropped with its card
+  { key: 'moment', tex: 'review-3345', cx: 900, cy: 92, s: 1, rot: -1.5, dx: 0, dy: -330, px: 0, py: -70, r: 10, contact: B(72.25), rim: true, crop: { x: 574, y: 621, w: 281, h: 76 } },
 ];
 
 // ── pure motion (shared by the render and by the QA spacing check) ──
@@ -266,11 +271,14 @@ export const Outro: React.FC = () => {
 
   // ── depth plane: crisp on frame 0 (blur < 0.5 px until L4), recedes fast (own scale, fastest at the cut), then
   // blurs and dissolves, handing over to the first card (review in flight L16–28): gone by L22 ──
-  const pageRecede = interpolate(f, [0, 20], [0, 1], { ...clamp, easing: outCubic });
+  // (seam C5 seats the debrief back into the « Victoire » row on frame 0: the list holds, full, for ~6 f around it before
+  // it recedes — the arrival registers as « back in the match list »)
+  const PAGE_HOLD = 6;
+  const pageRecede = interpolate(f, [PAGE_HOLD, PAGE_HOLD + 20], [0, 1], { ...clamp, easing: outCubic });
   const pageScale = 1 - 0.08 * pageRecede;
-  const pageBlur = interpolate(f, [0, 4, 18], [0, 0.5, 12], { ...clamp, easing: Easing.in(Easing.quad) });
-  const pageOpacity = interpolate(f, [3, 22], [1, 0], { ...clamp, easing: Easing.bezier(0.4, 0, 0.6, 1) });
-  const pageScrim = interpolate(f, [0, 12], [0.28, 0.6], clamp);
+  const pageBlur = interpolate(f, [PAGE_HOLD, PAGE_HOLD + 4, PAGE_HOLD + 18], [0, 0.5, 12], { ...clamp, easing: Easing.in(Easing.quad) });
+  const pageOpacity = interpolate(f, [PAGE_HOLD + 3, PAGE_HOLD + 22], [1, 0], { ...clamp, easing: Easing.bezier(0.4, 0, 0.6, 1) });
+  const pageScrim = interpolate(f, [PAGE_HOLD, PAGE_HOLD + 12], [0.28, 0.6], clamp);
 
   // ── stage light (charte pools, behind the group): low → swells through the anticipation → settles, then drifts ──
   const stage = interpolate(f, [0, B(72), IMPACT - 2, IMPACT + 30], [0.4, 0.5, 1, 0.8], { ...clamp, easing: Easing.bezier(0.5, 0, 0.6, 1) });

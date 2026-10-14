@@ -179,8 +179,12 @@ const NumeralPress: React.FC<{ r: Rect; t: number; scale: number }> = ({ r, t, s
 
 const CAPTION_START = 7; // k48.5: caption words snap on the eighth grid after the slam
 const CAPTION_Y = 889; // eyebrow 32px: the caption line keeps its baseline (≈ 1005)
+/** Seam C5: the caption leaves on its own blur-slide exit (lib BlurLine, 10 f, local 146 → 156 = abs 589 → 599, held
+ * ≈ 3.6 s) before the page folds away (from f600), so the fold never crops it. */
+const CAPTION_OUT = 146;
 
-export const Debrief: React.FC = () => {
+/** `hideTag`: inside the seam C5 container the page shrinks away from the tag's slot; the seam keeps one fixed tag. */
+export const Debrief: React.FC<{ hideTag?: boolean }> = ({ hideTag = false }) => {
   const f = useCurrentFrame();
   const cam = camAt(f);
 
@@ -215,7 +219,9 @@ export const Debrief: React.FC = () => {
   const bgLift = -(cam.cy - 228) * 0.2;
   // the top scrim arrives with the follow, so the landing (card edge + rim light) stays clean
   const topScrim = interpolate(f, [SLAM, SLAM + 30], [0.35, 1], { ...clamp, easing: EASE });
-  const eyebrow = interpolate(f, [CAPTION_START - 3, CAPTION_START + 2], [0, 1], clamp);
+  const eyebrow =
+    interpolate(f, [CAPTION_START - 3, CAPTION_START + 2], [0, 1], clamp) *
+    (1 - interpolate(f, [CAPTION_OUT, CAPTION_OUT + 10], [0, 1], { ...clamp, easing: outCubic }));
 
   return (
     <AbsoluteFill style={{ backgroundColor: C.bg, overflow: 'hidden' }}>
@@ -293,13 +299,32 @@ export const Debrief: React.FC = () => {
         <BlurLine
           line={[{ text: 'Note ce qui' }, { text: 'doit changer.', spectrum: true }]}
           start={CAPTION_START}
+          out={CAPTION_OUT}
           size={72}
           weight={800}
           snap
           style={{ flexWrap: 'nowrap', whiteSpace: 'nowrap' }}
         />
       </div>
-      <FictiveTag />
+      {hideTag ? null : <FictiveTag />}
     </AbsoluteFill>
   );
 };
+
+/** Screen position (1920×1080) of a card point (CSS px) at local frame f, with the camera and reading push above —
+ * used by the seams in Main that carry the card in (C4) and out (C5). */
+export const debriefToScreen = (f: number, x: number, y: number) => {
+  const c = camAt(f);
+  const a = (c.rotY * Math.PI) / 180;
+  const X = (x - c.cx) * c.s;
+  const Y = (y - c.cy) * c.s;
+  const vx = X * Math.cos(a);
+  const vz = -X * Math.sin(a);
+  const P = PERSP * c.s;
+  const k = P / (P - vz);
+  const sx = 960 + vx * k;
+  const sy = 540 + Y * k;
+  const push = 1 + PUSH * interpolate(f, [...PUSH_WIN], [0, 1], { ...clamp, easing: PUSH_EASE });
+  return { x: X_LEFT + (sx - X_LEFT) * push, y: PUSH_Y + (sy - PUSH_Y) * push };
+};
+export const DEBRIEF_CARD = { w: CARD_W, h: CARD_H, r: RADIUS, lines: L.boxes.lines, hlLines: HL_LINES };

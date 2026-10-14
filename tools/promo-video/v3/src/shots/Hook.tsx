@@ -8,8 +8,16 @@
 // 3/4 view (rotY dominant), the row rises (lands on k10), hovers with a sin bob, one perimeter beam lap; a 3D
 // annotation in the same page space reads « Victoire. » (UI victory green, settled f16) then « Tu sais
 // vraiment pourquoi ? » (settled on k12 = f55, held to f100). The camera orbits slowly towards a more
-// frontal view and is still from f78 through the reseat (touchdown f95); f100–110 it pulls back while the frame
-// sinks to near-black, so the drop on f111 lands on a clean contrast cut to the glass 5.
+// frontal view and is still from f78 through the reseat (touchdown f95). Seam C1 (shot card transition
+// shot-transitions F, portal-wipe depth variant, + transition-travel « 进窗 »): the captions leave (f100–104), then from
+// f99 the camera dives into the row on a late, still-accelerating curve that fills the music's silent gap before the
+// drop: it swings frontal (done f107) and pushes in, while the row splits open along its centre line into a window
+// onto the review of that same match (Main passes the analyse shot as `portal`, drawn in screen space and clipped to
+// the window's projected outline, so its world never tilts with the page). The window's rim (cyan, the seam's one
+// light) sweeps out of the frame between f107 and f108; through it the review card rushes at the lens (2 parallax
+// planes: the window much faster than the card behind it), still accelerating on f110, and arrives over-pushed ON the
+// drop (f111 = analyse frame 0, ×1.12 past its framing), where it recoils into place (slam #1, the analyse's own
+// first camera key). The 110 → 111 step is the largest of the seam.
 // Light (demo values): pool alpha 0.42 at the centre → 0.10 at 45 %; darkening 0 inside 45 % of the pool radius,
 // ≤ 0.42 at its edge and beyond (mean luma f0–95 ≈ 33/255). The rest of the page focus-pulls to « texture » (Q11).
 import React from 'react';
@@ -20,6 +28,7 @@ import { clamp, outCubic } from '../lib/motion';
 import { localBeat, SHOTS } from '../timeline';
 import layout from '../layout.json';
 import { camAt, CamKey, CamLayer, project } from './hook/cam';
+import { roundedPath } from './BreathCard';
 
 const B = (k: number) => localBeat(SHOTS.hook, k);
 
@@ -46,8 +55,11 @@ const HOVER_END = 81; // 53f hover (demo 54f)
 const RESEAT_A = HOVER_END;
 const RESEAT_B = 95; // touchdown (14f reseat, demo 18f)
 const ORBIT_END = 78; // camera still from here through the reseat and the touchdown
-const EXIT_A = 100; // pull back + sink to near-black
+const DIVE_A = 99; // seam C1: the dive starts (from rest; the captions hold to f100)
 const END = B(16); // 111 (shot length): the drop
+const WIN_OUT = 110.5; // window progress reaches 1 here: its rim crosses the frame edges between f109 and f110 (gone on f110)
+const SWING_END = 109.5; // the camera is frontal from here (the page has left the frame)
+const NOTE_OUT = 100; // captions held 1.5 s (settled f55), then blur-slide out (4 f, gone by f104) as the window opens
 const WORD_A = 0; // « Victoire. » rises from frame 0, settled f16
 const QUESTION_A = 26; // last word settled f55 (k12), held to f100
 
@@ -57,7 +69,20 @@ const RESEAT_EASE = Easing.bezier(0.4, 0, 0.3, 1.05);
 const SPOT_EASE = Easing.bezier(0.4, 0, 0.3, 1);
 const ARRIVE_EASE = Easing.bezier(0.25, 0.35, 0.3, 1); // already sliding on frame 0, decelerates into the lock
 const CREEP_EASE = Easing.bezier(0.45, 0, 0.55, 1);
-const EXIT_EASE = Easing.in(Easing.quad);
+/** Seam C1, card F portal-wipe (« 先慢后快 »): one late, still-accelerating progress per plane, all from rest on f99.
+ * Window + camera push: (u)^2.2 over f99 → 108.5 (the rim leaves the frame at full speed). The review behind the window:
+ * (u)^3 over f99 → 111 (log-scaled from ×0.5), so it is still accelerating on f110 and arrives on the drop. */
+const WIN_POW = 4;
+/** The swing to frontal accelerates too (power 1.8, done f107.5), so the camera barely moves while the captions leave. */
+const SWING_POW = 3;
+/** Final page-space height of the window and camera zoom at WIN_OUT: the window then overfills the frame (≥ 1.1×). */
+const WIN_H1 = 700;
+const Z1 = 2.0;
+/** The window floats 2 page px above the row (translateZ). */
+const WIN_Z = 2;
+const winQ = (f: number) => Math.pow(interpolate(f, [DIVE_A, WIN_OUT], [0, 1], clamp), WIN_POW);
+/** Progress of the review card's approach behind the window (0 → 1 on the drop, f111), for the analyse pre-roll. */
+export const hookDiveAt = (f: number) => Math.pow(interpolate(f, [DIVE_A, END], [0, 1], clamp), 3.5);
 
 // Opening view: the whole list, nearly frontal; then the left-side 3/4 hero view (lifted row + beam keep
 // ≥150 px on both sides), then a slow orbit towards a more frontal view. The question (60 page px) measures
@@ -69,9 +94,26 @@ const CAM_KEYS: CamKey[] = [
   { frame: 0, ...OPEN_CAM },
   { frame: PUSH_END, ...HERO_CAM, ease: PUSH_EASE },
   { frame: ORBIT_END, ...ORBIT_CAM, ease: CREEP_EASE },
-  { frame: EXIT_A, ...ORBIT_CAM },
-  { frame: END - 1, cx: 880, cy: HCY - 90, zoom: 1.16, rotX: 6, rotY: 21, rotZ: 1, persp: 1200, ease: EXIT_EASE },
+  { frame: DIVE_A, ...ORBIT_CAM },
 ];
+/** Seam C1 camera: swings frontal and centres on the row (in-out, done f107) while it pushes in on the window's
+ * accelerating progress (zoom interpolated in log space, so the push reads at constant acceleration). */
+const diveCam = (f: number) => {
+  const sw = Math.pow(interpolate(f, [DIVE_A, SWING_END], [0, 1], clamp), SWING_POW);
+  const q = winQ(f);
+  const o = ORBIT_CAM;
+  return {
+    cx: o.cx + (HCX - o.cx) * sw, cy: o.cy + (HCY - o.cy) * sw, zoom: o.zoom * Math.pow(Z1 / o.zoom, q),
+    rotX: o.rotX * (1 - sw), rotY: o.rotY * (1 - sw), rotZ: o.rotZ * (1 - sw), persp: o.persp,
+  };
+};
+/** Window (page space) at frame f: the hero row opening about its centre (vertically, a little sideways). */
+const hookPortalAt = (f: number) => {
+  const q = winQ(f);
+  const w = HERO.w * (1 + 0.15 * q);
+  const h = HERO.h + (WIN_H1 - HERO.h) * q;
+  return { q, x: HCX - w / 2, y: HCY - h / 2, w, h, r: RADIUS * (1 - q) };
+};
 
 // arriving light (page space): slides up from the compositions between the two wins onto the hero row, locks at LOCK
 const SPOT_FROM = { x: 1260, y: HCY + 70 };
@@ -100,9 +142,9 @@ const Words: React.FC<{ words: Seg[][]; start: number; size: number; weight?: nu
   );
 };
 
-export const Hook: React.FC = () => {
+export const Hook: React.FC<{ portal?: React.ReactNode }> = ({ portal }) => {
   const f = useCurrentFrame();
-  const cam = camAt(CAM_KEYS, f);
+  const cam = portal && f >= DIVE_A ? diveCam(f) : camAt(CAM_KEYS, f);
 
   // ---- hero action arc: rise (overshoot) → hover (sin bob) → reseat (gentle, slight press) ----
   const rise = interpolate(f, [RISE_A, RISE_B], [0, 1], { ...clamp, easing: POP_EASE });
@@ -152,8 +194,24 @@ export const Hook: React.FC = () => {
   const poolRy = interpolate(f, [0, LOCK, PUSH_END], [380, 320, 300], { ...clamp, easing: SPOT_EASE }) * (1 + 0.06 * pulse);
   const poolA = 0.42;
 
-  // ---- end: pull back and sink to near-black for the hard cut on the drop ----
-  const sink = interpolate(f, [EXIT_A, END - 1], [0, 1], { ...clamp, easing: EXIT_EASE });
+  // ---- end (seam C1): captions leave (blur-slide out, lib BlurLine exit, 4 f), the row opens as a window ----
+  const noteOut = interpolate(f, [NOTE_OUT, NOTE_OUT + 4], [0, 1], { ...clamp, easing: outCubic });
+  const win = hookPortalAt(f);
+  // the row's face splits along its centre line (top half rides the window's top edge, bottom half its bottom edge)
+  // and lets go fast, so the review is never muddied by the row's icons
+  const winFace = interpolate(win.q, [0.02, 0.25], [1, 0], { ...clamp, easing: Easing.in(Easing.quad) });
+  const winShadow = Math.min(1, win.q * 6) * (1 - win.q); // grows in as it lifts off, gone when it fills the frame
+  const winEdge = interpolate(win.q, [0, 0.1, 0.5, 0.8], [0, 1, 1, 0], clamp); // the seam's one light (peaks f104–108, gone by f110)
+  const poolBg = `radial-gradient(${poolRx}px ${poolRy}px at ${sp.x}px ${sp.y}px, rgba(214,236,255,${poolA}), rgba(196,181,253,.10) 45%, rgba(0,0,0,0) 100%)`;
+  const poolIn = 1 - interpolate(win.q, [0, 0.08], [0, 1], { ...clamp, easing: Easing.inOut(Easing.quad) });
+  // the page around the opening window sinks into the night (spotlight 0.42 → 0.86, its pool off): the eye goes through
+  const sink = portal ? interpolate(win.q, [0.02, 0.5], [0, 1], { ...clamp, easing: Easing.inOut(Easing.quad) }) : 0;
+  // window outline on screen (projected page rect, rounded): the portal is clipped to it, its rim is drawn on it
+  const winQuad = [
+    project(cam, win.x, win.y, WIN_Z), project(cam, win.x + win.w, win.y, WIN_Z),
+    project(cam, win.x + win.w, win.y + win.h, WIN_Z), project(cam, win.x, win.y + win.h, WIN_Z),
+  ];
+  const winPath = portal && f >= DIVE_A ? roundedPath(winQuad, Math.max(0.01, win.r * winQuad[0].scale)) : '';
 
   // ---- annotation (same 3D space, floats at z≈92, own slow bob, not in sync with the row) ----
   const noteZ = 92 + Math.sin(((f - RISE_B) / 44) * Math.PI * 2) * 3;
@@ -172,7 +230,8 @@ export const Hook: React.FC = () => {
           style={{
             position: 'absolute', left: PX, top: PY, width: PANEL.w, height: PANEL.h, borderRadius: 16,
             boxShadow: '0 30px 90px rgba(2,6,17,.55)',
-            filter: focus > 0 ? `blur(${2.4 * focus}px) brightness(${1 - 0.1 * focus})` : undefined,
+            // seam C1: the page streaks out of focus as the camera dives past it (sink)
+            filter: focus > 0 ? `blur(${(2.4 * focus + 9 * sink).toFixed(2)}px) brightness(${1 - 0.1 * focus})` : undefined,
           }}
         />
         {slotVis > 0.02 ? (
@@ -233,6 +292,15 @@ export const Hook: React.FC = () => {
             <div style={{ position: 'absolute', inset: -3, borderRadius: RADIUS + 3, border: `1.5px solid ${C.cyan}`, opacity: trail }} />
           ) : null}
         </div>
+        {/* seam C1: the window's lift shadow, in the page under it (the window itself is drawn in screen space below) */}
+        {portal && f >= DIVE_A && winShadow > 0.001 ? (
+          <div
+            style={{
+              position: 'absolute', left: win.x, top: win.y, width: win.w, height: win.h, borderRadius: win.r,
+              transform: `translateZ(${WIN_Z}px)`, boxShadow: `0 ${30 * winShadow}px ${80 * winShadow}px rgba(2,6,17,${0.55 * winShadow})`,
+            }}
+          />
+        ) : null}
       </CamLayer>
 
       {/* outside darkening (≤ 0.42, demo vignette) with a soft hole shaped like the hero row (projected quad) */}
@@ -257,21 +325,79 @@ export const Hook: React.FC = () => {
             {lockOn > 0.01 ? <polygon points={quad} fill="black" opacity={lockOn * rowLit} filter="url(#hook-spot-row)" /> : null}
           </mask>
         </defs>
-        <rect width={1920} height={1080} fill="rgb(2,6,17)" opacity={dark} mask="url(#hook-spot-mask)" />
+        <rect width={1920} height={1080} fill="rgb(2,6,17)" opacity={dark + (0.86 - dark) * sink} mask="url(#hook-spot-mask)" />
       </svg>
-      {/* the light pool itself: cool white → violet, screen-blended (demo: 0.42 → 0.10 at 45 %) */}
-      <AbsoluteFill
-        style={{
-          background: `radial-gradient(${poolRx}px ${poolRy}px at ${sp.x}px ${sp.y}px, rgba(214,236,255,${poolA}), rgba(196,181,253,.10) 45%, rgba(0,0,0,0) 100%)`,
-          mixBlendMode: 'screen',
-        }}
-      />
+      {/* seam C1: the window. Its world (the analyse shot, its card diving at the lens) is screen-space, clipped to the
+          row's projected outline; the two halves of the row's face ride its edges in page space and let go. It is drawn
+          over the spotlight's darkening, which deepens on the page around it (`sink`), so the opening glows */}
+      {winPath ? (
+        <>
+          <AbsoluteFill style={{ clipPath: `path('${winPath}')`, backgroundColor: C.bg }}>{portal}</AbsoluteFill>
+          {winFace > 0 ? (
+            <CamLayer cam={cam} pageH={PAGE_H}>
+              <div
+                style={{
+                  position: 'absolute', left: win.x, top: win.y, width: win.w, height: win.h, borderRadius: win.r, overflow: 'hidden',
+                  transform: `translateZ(${WIN_Z}px)`,
+                }}
+              >
+                {[0, 1].map((half) => (
+                  // the two halves of the row's face, split on its centre line, each riding its edge of the window
+                  <div
+                    key={half}
+                    style={{
+                      position: 'absolute', left: (win.w - HERO.w) / 2, top: half ? win.h - HERO.h / 2 : 0, width: HERO.w, height: HERO.h / 2,
+                      opacity: winFace, overflow: 'hidden',
+                    }}
+                  >
+                    <Img
+                      src={staticFile(CUT.file)}
+                      style={{
+                        position: 'absolute', left: 0, top: -CUT.boxes.content.y - (half ? HERO.h / 2 : 0), width: CUT.w, height: CUT.h, display: 'block',
+                        filter: `brightness(${1 + 0.12 * rowLit})`,
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </CamLayer>
+          ) : null}
+        </>
+      ) : null}
 
-      {/* end: the whole scene sinks towards near-black (the captions stay a little longer) */}
-      <AbsoluteFill style={{ backgroundColor: `rgba(2,6,17,${0.9 * sink})` }} />
+      {/* the light pool itself: cool white → violet, screen-blended (demo: 0.42 → 0.10 at 45 %). Seam C1: it stays on the
+          page around the window, and leaves the window's own world within its first frames (q 0 → 0.08, the window still
+          row-sized), so the review behind it is seen at its own exposure, the one it keeps on the drop */}
+      {winPath ? (
+        <>
+          <AbsoluteFill style={{ background: poolBg, mixBlendMode: 'screen', opacity: 1 - sink, clipPath: `path(evenodd, 'M-10 -10 H1930 V1090 H-10 Z ${winPath}')` }} />
+          {poolIn > 0.001 ? (
+            <AbsoluteFill style={{ background: poolBg, mixBlendMode: 'screen', opacity: poolIn, clipPath: `path('${winPath}')` }} />
+          ) : null}
+        </>
+      ) : (
+        <AbsoluteFill style={{ background: poolBg, mixBlendMode: 'screen' }} />
+      )}
+
+      {/* the window's rim lights up cyan (the hook beam's colour, the seam's one light) and leaves the frame with its edges */}
+      {winPath && winEdge > 0.001 ? (
+        <svg width={1920} height={1080} style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
+          <defs>
+            <filter id="hook-win-glow" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation={10 + 8 * win.q} />
+            </filter>
+          </defs>
+          <path d={winPath} fill="none" stroke="rgba(103,232,249,.55)" strokeWidth={10 + 10 * win.q} opacity={winEdge} filter="url(#hook-win-glow)" />
+          <path d={winPath} fill="none" stroke={C.cyan} strokeWidth={2 + 2 * win.q} opacity={0.95 * winEdge} />
+        </svg>
+      ) : null}
 
       {/* annotation layer: same camera, drawn above the light so the captions stay crisp and legible */}
-      <CamLayer cam={cam} pageH={PAGE_H} style={{ opacity: 1 - 0.85 * sink }}>
+      <CamLayer
+        cam={cam}
+        pageH={PAGE_H}
+        style={noteOut > 0 ? { opacity: 1 - noteOut, filter: `blur(${(8 * noteOut).toFixed(2)}px)` } : undefined}
+      >
         {/* the caption's own soft shadow in the same space: the filter UI behind it drops to « texture » (Q11) */}
         <div
           style={{
@@ -294,7 +420,7 @@ export const Hook: React.FC = () => {
         </div>
       </CamLayer>
 
-      <FictiveTag opacity={1 - 0.75 * sink} />
+      <FictiveTag />
     </AbsoluteFill>
   );
 };
