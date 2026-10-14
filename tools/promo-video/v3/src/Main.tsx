@@ -2,26 +2,22 @@
 import React from 'react';
 import { AbsoluteFill, Audio, interpolate, Sequence, staticFile } from 'remotion';
 import { C } from './theme';
-import { beatF, dur, SHOTS } from './timeline';
+import { dur, SHOTS } from './timeline';
 
-/** The music is silent before the k92 downbeat so no stray hit plays on the black end frames (review 2, N4). */
-const MUSIC_OUT = beatF(92) - 3;
+/** The music is silent before the last downbeat so no stray hit plays on the black end frames (review 2, N4). */
+const MUSIC_OUT = SHOTS.outro.to - 3;
 import { SFX } from './sfx';
 import { Hook } from './shots/Hook';
-import { Brand } from './shots/Brand';
 import { Analyse } from './shots/Analyse';
 import { Draft } from './shots/Draft';
-import { Planning } from './shots/Planning';
 import { BreathCard } from './shots/BreathCard';
 import { Debrief } from './shots/Debrief';
 import { Outro } from './shots/Outro';
 
 export const SCENES = [
   { key: 'hook', shot: SHOTS.hook, Comp: Hook },
-  { key: 'brand', shot: SHOTS.brand, Comp: Brand },
   { key: 'analyse', shot: SHOTS.analyse, Comp: Analyse },
   { key: 'draft', shot: SHOTS.draft, Comp: Draft },
-  { key: 'planning', shot: SHOTS.planning, Comp: Planning },
   { key: 'card', shot: SHOTS.card, Comp: BreathCard },
   { key: 'debrief', shot: SHOTS.debrief, Comp: Debrief },
   { key: 'outro', shot: SHOTS.outro, Comp: Outro },

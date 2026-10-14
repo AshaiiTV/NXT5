@@ -1,42 +1,52 @@
-// Single source of truth for timing. Everything is expressed in film beats k.
+// Single source of truth for timing. Film beat k = one beat of the music track as heard in the film.
 // Music: g-eazy-nba-type.mp3 (Mixkit "G Eazy NBA type", Arulo). Grid measured on strong onsets
 // (analysis/geazy5.py → geazy130.json): 130.003 BPM — the "86 BPM" label is the dotted-quarter 3-3-2 kick
-// pattern —, mean |residual| 4.7 ms, no drift. Film beat k sits at music 9.0085 + k·T; the film opens on k8
-// (music 12.701 s, start of the build, 8 beats before the drop). At k72 the music is spliced on a bar line to
-// bar 39 (73.622 s, the build) so the song's second drop (75.469 s) lands on k76, the wordmark launch.
-// public/audio/bgm.wav is built by prepare-audio.py, 42.3 ms later than the grid to absorb the output AAC
-// priming, so OUTPUT_AUDIO_OFFSET_SEC stays 0 and the picture keeps the exact beat grid.
+// pattern —, mean |residual| 4.7 ms, no drift. Source beat k sits at music 9.0085 + k·T.
+// v3.2 (user: remove the brand still and the planning shot): the film is a montage of whole bars of the song,
+// spliced on bar lines (see MUSIC_SEGMENTS, built by prepare-audio.py, 42.3 ms later than the grid to absorb the
+// output AAC priming, so OUTPUT_AUDIO_OFFSET_SEC stays 0 and the picture keeps the exact beat grid).
 export const FPS = 30;
 export const BEAT_INT = 0.46152823; // s
-export const MUSIC_BEAT0_SEC = 9.0085; // audit value: music time of film beat 0 (drop 16.393 s − 16 beats)
+export const MUSIC_BEAT0_SEC = 9.0085; // audit value: music time of source beat 0 (drop 16.393 s − 16 beats)
 /** First film beat (frame 0). */
 export const FILM_K0 = 8;
-export const MUSIC_START_SEC = MUSIC_BEAT0_SEC + FILM_K0 * 0.46152823; // 12.701 s
-/** Film beat where the music jumps to bar 39 (music 73.622 s), so that k76 = the song's second drop. */
-export const SPLICE_K = 72;
+/**
+ * Film beats [from, to) ← source music (seconds at the segment start). Bar lines only (k ≡ 0 mod 4).
+ * k8–36 build, DROP (k16) and full energy · k36–40 the song's hollow bar (source k44) · k40 its return (slam #2)
+ * · k52–56 full energy (source k68) · k56–60 the build of bar 39 · k60 the song's SECOND DROP (75.469 s) to the end.
+ */
+export const MUSIC_SEGMENTS = [
+  { from: 8, src: MUSIC_BEAT0_SEC + 8 * 0.46152823 },
+  { from: 36, src: MUSIC_BEAT0_SEC + 44 * 0.46152823 },
+  { from: 52, src: MUSIC_BEAT0_SEC + 68 * 0.46152823 },
+  { from: 56, src: 73.622 },
+] as const;
 export const OUTPUT_AUDIO_OFFSET_SEC = 0; // measured after render (music-beat-sync §5b)
 export const beatT = (k: number) => OUTPUT_AUDIO_OFFSET_SEC + (k - FILM_K0) * BEAT_INT;
 export const beatF = (k: number) => Math.round(beatT(k) * FPS);
 
-export type Shot = { from: number; to: number };
-const shot = (a: number, b: number): Shot => ({ from: beatF(a), to: beatF(b) });
+/**
+ * A shot keeps the beat numbers it was designed on (its code uses localBeat(SHOTS.x, k) with those k); `shift`
+ * places it on the film: design beat k plays at film beat k + shift.
+ */
+export type Shot = { from: number; to: number; shift: number };
+const shot = (a: number, b: number, shift = 0): Shot => ({ from: beatF(a + shift), to: beatF(b + shift), shift });
 
 /**
- * Music structure (film beats): k8–16 build · k16 DROP · k44–48 one-bar dip · k48 return ·
- * k72–76 build (spliced) · k76 second DROP, full energy to the end (k92). Slams (R4: ≤3, ≥16 beats apart): k16, k48, k76.
+ * Film (beats): hook 8–16 · analyse 16–26 (drop on the cut) · draft 26–36 · card 36–40 (hollow bar) · debrief
+ * 40–52 (slam #2 on the return) · outro 52–76 (second drop k60 = design k76). Slams (R4: ≤3, ≥16 beats apart):
+ * film k16, k40, k60.
  */
 export const SHOTS = {
   hook: shot(FILM_K0, 16),
-  brand: shot(16, 24),
-  analyse: shot(24, 34),
-  draft: shot(34, 44),
-  card: shot(44, 48),
-  debrief: shot(48, 60),
-  planning: shot(60, 68),
-  outro: shot(68, 92),
+  analyse: shot(24, 34, -8),
+  draft: shot(34, 44, -8),
+  card: shot(44, 48, -8),
+  debrief: shot(48, 60, -8),
+  outro: shot(68, 92, -16),
 } as const;
-export const SLAMS = [16, 48, 76];
-export const DURATION = beatF(92) + 6;
+export const SLAMS = [16, 40, 60];
+export const DURATION = SHOTS.outro.to + 6;
 export const dur = (s: Shot) => s.to - s.from;
-/** Frame (relative to the shot start) of film beat k. */
-export const localBeat = (s: Shot, k: number) => beatF(k) - s.from;
+/** Frame (relative to the shot start) of the shot's design beat k. */
+export const localBeat = (s: Shot, k: number) => beatF(k + s.shift) - s.from;

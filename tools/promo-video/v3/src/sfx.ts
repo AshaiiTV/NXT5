@@ -1,7 +1,7 @@
 // Sound design (video-shotcraft sound-design.md): one declarative table, every cue pinned to a picture action,
 // relative to its shot (§4.5) and corrected for the sample's own peak lag and the output audio offset (§4.6).
 // Vocabulary: whoosh / impact / riser / sparkle / transition + real foley for real actions (click, keys, cards).
-import { beatF, SHOTS } from './timeline';
+import { localBeat, SHOTS } from './timeline';
 
 export type Sfx = { from: number; src: string; volume: number; duration?: number; trimBefore?: number; fadeOut?: number; note: string };
 
@@ -22,8 +22,10 @@ const cue = (peak: number, src: string, volume: number, note: string, extra: Par
   from: at(peak + (extra.trimBefore ?? 0), src), src, volume, note, ...extra,
 });
 
-const H = SHOTS.hook.from, B = SHOTS.brand.from, A = SHOTS.analyse.from, D = SHOTS.draft.from, K = SHOTS.card.from;
-const DB = SHOTS.debrief.from, P = SHOTS.planning.from, O = SHOTS.outro.from;
+const H = SHOTS.hook.from, A = SHOTS.analyse.from, D = SHOTS.draft.from, K = SHOTS.card.from;
+const DB = SHOTS.debrief.from, O = SHOTS.outro.from;
+/** The outro's launch on the song's second drop (design k76). */
+const DROP2 = O + localBeat(SHOTS.outro, 76);
 
 // keyboard foley cut exactly to the debrief's writing windows (local frames), each from a different part of the take
 const WRITING: [number, number][] = [[14, 27], [31, 39], [41, 56], [58, 69], [70, 86], [87, 92]];
@@ -34,8 +36,6 @@ export const SFX: Sfx[] = [
   cue(H + 36, 'shimmer-sparkle-sweep.mp3', 0.22, 'hook: perimeter beam laps the row'),
   cue(H + 95, 'transition-snap.mp3', 0.42, 'hook: row reseats'),
   cue(H + 109, 'air-woosh-deep.mp3', 0.28, 'hook: pull-back into darkness, sucked into the drop'),
-  // 2 brand — slam #1 on the drop
-  cue(B, 'impact-deep-whoosh.mp3', 0.42, 'brand: glass 5 lands on the drop (slam #1)'),
   // 3 analyse — real clicks on the chips
   cue(A + 8, 'transition-soft.mp3', 0.3, 'analyse: review card swings in'),
   cue(A + 29, 'click-camera.mp3', 0.6, 'analyse: click on 21:00 (k26, press bottom)'),
@@ -60,17 +60,12 @@ export const SFX: Sfx[] = [
   cue(DB + 55, 'typewriter-hit-single.mp3', 0.3, 'debrief: numeral 3 presses (k52)'),
   ...WRITING.map(([a, b], i): Sfx => ({ from: DB + a, src: 'keyboard.mp3', volume: 0.3, duration: b - a, trimBefore: 45 + i * 70, note: `debrief: writing ${i + 1}` })),
   cue(DB + 139, 'marker-pen-line.mp3', 0.42, 'debrief: coach highlights the action (k58 → k59)', { duration: 14, fadeOut: 3 }),
-  // 7 planning — row-embed: the band opens with one transition, rows land silently (visual foley), pull-back whoosh
-  cue(P + 5, 'transition-soft.mp3', 0.26, 'planning: agenda band opens'),
-  cue(P + 47, 'whoosh-fast.mp3', 0.26, 'planning: pull-back to the full card (k64)'),
-  cue(P + 52, 'sparkle-touch.mp3', 0.22, 'planning: five availability checks ripple TOP→SUP (k64)'),
-  cue(P + 70, 'swoosh-quick.mp3', 0.45, 'planning: push to « 5 / 5 disponibles », lands k66.5'),
   // 8 outro — group photo: gather whoosh, riser → impact (slam #3) → sparkle
   cue(O + 10, 'whoosh-big.mp3', 0.45, 'outro: pieces fly in around the stage'),
   // the music leaves a ~5 f gap before its second drop: the riser (high-passed copy, so it never covers the drop's
   // bass) stops 3 f before the drop and the impact starts on its attack, so silence → hit stays audible (review 2, N1)
-  { from: beatF(76) - 24, src: 'riser-cine-hp.mp3', volume: 0.2, duration: 19, fadeOut: 4, note: 'outro: riser into the launch, cut before the drop' },
-  cue(beatF(76) + 1, 'impact-deep-whoosh.mp3', 0.45, 'outro: wordmark launch on the second drop (k76, slam #3), onset on the music\'s kick', { trimBefore: 15 }),
-  cue(beatF(76), 'bass-hit-short.mp3', 0.5, 'outro: slam #3 low end — the climax is the loudest hit of the film'),
+  { from: DROP2 - 24, src: 'riser-cine-hp.mp3', volume: 0.2, duration: 19, fadeOut: 4, note: 'outro: riser into the launch, cut before the drop' },
+  cue(DROP2 + 1, 'impact-deep-whoosh.mp3', 0.45, 'outro: wordmark launch on the second drop (k76, slam #3), onset on the music\'s kick', { trimBefore: 15 }),
+  cue(DROP2, 'bass-hit-short.mp3', 0.5, 'outro: slam #3 low end — the climax is the loudest hit of the film'),
   cue(O + 121, 'sparkle-touch.mp3', 0.32, 'outro: rule draws under the wordmark'),
 ];
