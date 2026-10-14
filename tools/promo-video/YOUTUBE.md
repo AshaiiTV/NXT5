@@ -1,4 +1,4 @@
-# Kit de publication YouTube — « Défaite. Pourquoi ? » (v3)
+# Kit de publication YouTube — « Victoire. Pourquoi ? » (v3)
 
 Fichiers produits par `tools/promo-video` :
 
@@ -20,17 +20,18 @@ La v3 suit la charte graphique v1.92 du 13 octobre 2026 :
 
 Recommandé :
 
-> Défaite. Tu sais vraiment pourquoi ? | NXT5
+> Victoire. Tu sais vraiment pourquoi ? | NXT5
 
 Variantes :
 
 1. Comprends tes parties LoL. Prépare la suite.
-2. Ton équipe LoL perd sans savoir pourquoi ?
+2. Ton équipe LoL gagne… mais sais-tu pourquoi ?
+3. Le score ne raconte pas tout. | NXT5
 
 ## Description
 
 ```
-Défaite. Tu sais vraiment pourquoi ? NXT5 réunit tes parties, tes débriefs, ta draft et ton planning au même endroit : https://nxt5.org
+Victoire. Tu sais vraiment pourquoi ? Le score ne raconte pas tout. NXT5 réunit tes parties, tes débriefs, ta draft et ton planning au même endroit : https://nxt5.org
 Essaie la démo, sans installation : https://nxt5.org/demo
 
 NXT5, c’est l’espace de travail des équipes et coachs League of Legends.
@@ -55,7 +56,7 @@ league of legends, lol, nxt5, coaching lol, analyse de partie lol, débrief lol,
 
 ## Commentaire épinglé
 
-> Ta dernière défaite, tu sais vraiment pourquoi ? 👇
+> Ta dernière victoire, tu sais vraiment pourquoi ? 👇
 > Essaie la démo de NXT5 : https://nxt5.org/demo
 
 ## Écran de fin

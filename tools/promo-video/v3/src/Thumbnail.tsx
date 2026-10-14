@@ -1,4 +1,4 @@
-// YouTube thumbnail (1280x720): the hook question next to the glass 5, in the charte (Inter, official files).
+// YouTube thumbnail (1280x720): the hook (« Victoire. Pourquoi ? ») next to the glass 5, in the charte (Inter, official files).
 // npx remotion still src/index.ts Thumbnail out/thumbnail.png
 import React from 'react';
 import { AbsoluteFill, Img, staticFile } from 'remotion';
@@ -18,7 +18,7 @@ export const Thumbnail: React.FC = () => (
     <Glow x={760} y={240} r={330} color={C.glowCyan} />
     <Img src={staticFile('glass/g00122.png')} style={{ position: 'absolute', left: 1020 - GW / 2, top: 352 - GH / 2, width: GW, height: GH }} />
     <div style={{ position: 'absolute', left: 64, top: 118, lineHeight: 1.02, letterSpacing: '-0.035em', fontWeight: 800 }}>
-      <div style={{ fontSize: 158, color: C.danger }}>Défaite.</div>
+      <div style={{ fontSize: 158, color: C.success }}>Victoire.</div>
       <div style={{ fontSize: 138, marginTop: 14 }}>
         <span style={spectrumText}>Pourquoi</span>
         <span style={{ color: C.text }}>{' ?'}</span>

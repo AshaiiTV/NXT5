@@ -12,6 +12,7 @@ export const C = {
   violet: '#A78BFA',
   fuchsia: '#E879F9',
   danger: '#FDA4AF',
+  success: '#A7F3D0', // the demo's « Victoire » label (sampled from the match list)
   onAccent: '#020611',
   glassBorder: 'rgba(196,181,253,.34)',
   glassHighlight: 'rgba(226,232,255,.22)',

@@ -40,13 +40,13 @@ export const SFX: Sfx[] = [
   cue(A + 85, 'click-camera.mp3', 0.55, 'analyse: click on 33:45 (k30, press bottom)'),
   // 4 draft — deck-deal-flyin: orbit pull-back whoosh, landings on two alternating samples, fading, merged at the end
   cue(D + 28, 'whoosh-big.mp3', 0.32, 'draft: camera pulls back from the deck'),
-  cue(D + 55, 'paper-move-quick.mp3', 0.42, 'draft: Gnar lands'),
-  cue(D + 76, 'paper-slide.mp3', 0.36, 'draft: Vi lands'),
-  cue(D + 90, 'paper-move-quick.mp3', 0.31, 'draft: Ahri lands'),
-  cue(D + 98, 'swoosh-quick.mp3', 0.26, 'draft: Jinx and Braum land as one sweep'),
+  cue(D + 55, 'paper-move-quick.mp3', 0.6, 'draft: Gnar lands'),
+  cue(D + 76, 'paper-slide.mp3', 0.52, 'draft: Vi lands'),
+  cue(D + 90, 'paper-move-quick.mp3', 0.46, 'draft: Ahri lands'),
+  cue(D + 98, 'swoosh-quick.mp3', 0.42, 'draft: Jinx and Braum land as one sweep'),
   cue(D + 106, 'transition-snap.mp3', 0.28, 'draft: board locks'),
   // 5 breath card
-  cue(K + 2, 'swoosh-quick.mp3', 0.22, 'card: Et après la partie ? presses in'),
+  cue(K + 2, 'swoosh-quick.mp3', 0.42, 'card: Et après la partie ? presses in'),
   // 6 debrief — slam #2 when the music returns, then the document writes itself
   cue(DB, 'hit-fast-exciting.mp3', 0.6, 'debrief: card lands (slam #2)'),
   cue(DB, 'bass-hit-short.mp3', 0.4, 'debrief: slam #2 low end'),
@@ -56,7 +56,7 @@ export const SFX: Sfx[] = [
   cue(P + 47, 'whoosh-fast.mp3', 0.26, 'planning: pull-back to the full card (k64)'),
   cue(P + 58, 'sparkle-touch.mp3', 0.22, 'planning: five availability checks light up'),
   // 8 outro — group photo: gather whoosh, riser → impact (slam #3) → sparkle
-  cue(O + 14, 'whoosh-big.mp3', 0.3, 'outro: pieces fly in around the stage'),
+  cue(O + 14, 'whoosh-big.mp3', 0.45, 'outro: pieces fly in around the stage'),
   cue(O + 106, 'riser-cine.mp3', 0.3, 'outro: riser into the launch'),
   cue(O + 110, 'impact-deep-whoosh.mp3', 0.45, 'outro: wordmark launch (slam #3)'),
   cue(O + 120, 'sparkle-touch.mp3', 0.32, 'outro: rule draws under the wordmark'),

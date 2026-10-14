@@ -94,11 +94,11 @@ export const FeatureTitle: React.FC<{ eyebrow: string; l1: string; l2: string; s
   );
 };
 
-/** Charte §10: example data must say so. Same bottom-right slot in every shot unless x/y are given. */
+/** Charte §10: example data must say so. Same bottom-right slot in every shot (72 px up, clear of the YouTube progress bar) unless x/y are given. */
 export const FictiveTag: React.FC<{ x?: number; y?: number; opacity?: number }> = ({ x, y, opacity = 1 }) => (
   <div
     style={{
-      position: 'absolute', ...(x === undefined ? { right: 48 } : { left: x }), ...(y === undefined ? { bottom: 40 } : { top: y }),
+      position: 'absolute', ...(x === undefined ? { right: 48 } : { left: x }), ...(y === undefined ? { bottom: 72 } : { top: y }),
       padding: '9px 22px', borderRadius: 999, opacity, whiteSpace: 'nowrap',
       background: 'rgba(17,24,39,.72)', border: '1.5px solid rgba(181,200,225,.38)',
       fontFamily: FONT, fontWeight: 600, fontSize: 28, color: C.muted,
