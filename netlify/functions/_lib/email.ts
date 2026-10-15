@@ -1,4 +1,5 @@
 import { escapeHtml } from './text';
+import { NXT5_CONTACT_EMAIL } from '../../../shared/legal.js';
 
 function env(name) {
   return (globalThis as any).Netlify?.env?.get?.(name) || process.env[name] || '';
@@ -19,6 +20,7 @@ function postResendEmail({ to, subject, text, html }, signal?: AbortSignal) {
     },
     body: JSON.stringify({
       from: env('RESET_EMAIL_FROM'),
+      reply_to: NXT5_CONTACT_EMAIL,
       to,
       subject,
       text,
