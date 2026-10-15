@@ -2,7 +2,7 @@ import type { Context } from "@netlify/functions";
 import crypto from 'node:crypto';
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
-import { assertSessionSecret, ensureEmailVerificationColumns, isValidEmail, normalizeEmail, requireAuth, safeUser, sha256, verifyPassword } from './_lib/auth';
+import { assertSessionSecret, ensureEmailVerificationColumns, isValidEmail, normalizeEmail, readSessionCookie, requireAuth, safeUser, sha256, verifyPassword } from './_lib/auth';
 import { sendEmailVerificationEmail } from './_lib/email';
 import { ensureUserNotificationColumns } from './_lib/team-member-emails';
 import { assertSubjectRateLimit, assertVerificationEmailRateLimit } from './_lib/rate-limit';
@@ -50,11 +50,28 @@ export default async function handler(request: Request, context: Context): Promi
     const verifyToken = emailChanged ? crypto.randomBytes(32).toString('base64url') : null;
     const verifyTokenHash = verifyToken ? sha256(verifyToken) : null;
     const verifyExpiresAt = emailChanged ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null;
+    const currentTokenHash = sha256(readSessionCookie(context) || '');
 
     // Revoke links delivered to the old address in the same transaction as the
     // address change, sharing the account version with recovery operations.
+    // Recheck the browser session after password verification, using the same
+    // user-then-session lock order as password changes and email verification.
     const rows = emailChanged ? await sql`
       with changed_account as (
+        with authorized_user as materialized (
+          select id from users
+          where id = ${user.id}
+            and email is not distinct from ${current.email}
+            and password_hash = ${current.password_hash}
+            and xmin = ${current.account_version}::xid
+          for update
+        ), authorized_session as materialized (
+          select sessions.user_id from sessions
+          join authorized_user on authorized_user.id = sessions.user_id
+          where sessions.token_hash = ${currentTokenHash}
+            and sessions.revoked_at is null and sessions.expires_at > clock_timestamp()
+          for update of sessions
+        )
         update users
         set name = ${name},
             email = ${email},
@@ -62,7 +79,7 @@ export default async function handler(request: Request, context: Context): Promi
             email_verify_token = ${verifyTokenHash},
             email_verify_expires_at = ${verifyExpiresAt},
             updated_at = now()
-        where id = ${user.id}
+        where id in (select user_id from authorized_session)
           and email is not distinct from ${current.email}
           and password_hash = ${current.password_hash}
           and xmin = ${current.account_version}::xid

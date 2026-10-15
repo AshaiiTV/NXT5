@@ -92,10 +92,11 @@ const nextToken = 'new-address-verification-token';
 const verificationSession = 'email-verification-browser-session';
 const context = { cookies: { set: vi.fn() } } as any;
 
-function profile(email = 'next@example.test', currentPassword: string | undefined = password) {
+async function profile(email = 'next@example.test', currentPassword: string | undefined = password) {
+  await state.pg.query("insert into sessions(user_id, token_hash, expires_at) values ($1, $2, now() + interval '1 day') on conflict (token_hash) do nothing", [userId, sha256(verificationSession)]);
   return updateProfile(new Request('https://nxt5.test/profile', {
     method: 'POST', body: JSON.stringify({ name: 'Test account', email, currentPassword })
-  }), context);
+  }), { cookies: { get: () => verificationSession, set: context.cookies.set } } as any);
 }
 function verify(token = originalToken) {
   return verifyEmail(new Request(`https://nxt5.test/verify-email?token=${token}`), {

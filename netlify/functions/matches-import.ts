@@ -3,7 +3,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
-import { fetchRiotMatch } from './_lib/riot';
+import { assertImportRequestActive, fetchRequestedRiotMatch } from './_lib/match-import-request';
 import { persistAnalyzedMatch } from './_lib/analytics';
 import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
@@ -47,6 +47,7 @@ async function runOptionalImportTask(label: string, task: () => Promise<unknown>
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertMethod(request, 'POST');
+    assertImportRequestActive(request.signal);
     const body = await readJson(request);
     if (!body.previewOnly) assertMatchSourceMutationEnvironment(context);
     assertSessionSecret();
@@ -84,7 +85,7 @@ export default async function handler(request: Request, context: Context): Promi
     const roster = await sql`select * from players where team_id = ${teamId}`;
     if (!roster.length) throw Object.assign(new Error('Ajoute au moins un joueur au roster avant d’importer une game.'), { status: 400 });
 
-    const match = await fetchRiotMatch(gameId);
+    const match = await fetchRequestedRiotMatch(gameId, request.signal);
     if (body.previewOnly) {
       return json({
         gameId,
@@ -110,7 +111,7 @@ export default async function handler(request: Request, context: Context): Promi
       });
     }
     const savedMatch = await persistAnalyzedMatch({ team, gameId, match, roster, userId: user.id, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label, categoryIds,
-      opponentId: body.opponentId, newOpponentName: body.newOpponentName });
+      opponentId: body.opponentId, newOpponentName: body.newOpponentName, signal: request.signal });
     wakeDiscordPublications(context);
 
     await runOptionalImportTask('audit log', () => sql`
