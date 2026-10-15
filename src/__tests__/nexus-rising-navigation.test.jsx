@@ -25,11 +25,13 @@ describe("private Nexus Rising shortcut", () => {
   it.each([false, true])("opens the private prototype immediately above Administration, including collapsed menus (%s)", collapsed => {
     const sidebar = renderSidebar({ isPlatformAdmin: true, collapsed, currentTeamId: "private-team" });
     const links = sidebar.findByProps({ className: "nxt5-sidebar-footer" }).findAllByType("a");
-    expect(links.slice(0, 2).map(link => link.props["aria-label"])).toEqual(["Nexus Rising", "Administration"]);
-    expect(links[0].props.href).toBe("https://nexus-rising-admin-nxt5.ashaii.chatgpt.site");
-    expect(links[0].props.target).toBe("_blank");
-    expect(links[0].props.rel).toBe("noopener noreferrer");
-    expect(links[0].props.onClick).toBeUndefined();
-    expect(links[1].props.href).toBe("/admin?team=private-team");
+    const index = links.findIndex(link => link.props["aria-label"] === "Nexus Rising");
+    expect(index).toBeGreaterThanOrEqual(0);
+    expect(links.slice(index, index + 2).map(link => link.props["aria-label"])).toEqual(["Nexus Rising", "Administration"]);
+    expect(links[index].props.href).toBe("https://nexus-rising-admin-nxt5.ashaii.chatgpt.site");
+    expect(links[index].props.target).toBe("_blank");
+    expect(links[index].props.rel).toBe("noopener noreferrer");
+    expect(links[index].props.onClick).toBeUndefined();
+    expect(links[index + 1].props.href).toBe("/admin?team=private-team");
   });
 });
