@@ -6,7 +6,7 @@ import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { persistAnalyzedMatch } from './_lib/analytics';
 import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
-import { fetchRiotMatch } from './_lib/riot';
+import { assertImportRequestActive, fetchRequestedRiotMatch } from './_lib/match-import-request';
 import { assertRateLimit } from './_lib/rate-limit';
 import { getTeamMemberEmails } from './_lib/team-member-emails';
 import { sendNotification } from './_lib/email';
@@ -72,6 +72,7 @@ async function runOptionalImportTask(label: string, task: () => Promise<unknown>
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertMethod(request, 'POST');
+    assertImportRequestActive(request.signal);
     const body = await readJson(request, 5 * 1024 * 1024);
     if (!body.previewOnly) assertMatchSourceMutationEnvironment(context);
     assertSessionSecret();
@@ -99,7 +100,7 @@ export default async function handler(request: Request, context: Context): Promi
     if (!/^([A-Z0-9]+)_\d+$/.test(resolvedGameId)) {
       throw Object.assign(new Error('Game ID absent ou invalide dans le fichier. Attendu : EUW1_7123456789.'), { status: 400, code: 'NXT5_IMPORT_FILE_INVALID' });
     }
-    if (!match) match = await fetchRiotMatch(resolvedGameId);
+    if (!match) match = await fetchRequestedRiotMatch(resolvedGameId, request.signal);
     resolvedGameId = matchGameId(match) || resolvedGameId;
     if (timeline) match.timeline = timeline;
     const payloadMeta = body?.payload?.nxt5 || body?.file?.nxt5 || body?.nxt5 || null;
@@ -135,7 +136,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     // Affiliation comes only from the request envelope, never uploaded metadata.
     const savedMatch = await persistAnalyzedMatch({ team, gameId: resolvedGameId, match, roster, userId: user.id, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label, categoryIds,
-      opponentId: body.opponentId, newOpponentName: body.newOpponentName });
+      opponentId: body.opponentId, newOpponentName: body.newOpponentName, signal: request.signal });
     wakeDiscordPublications(context);
 
     await runOptionalImportTask('audit log', () => sql`

@@ -68,7 +68,8 @@ const otherUserId = '00000000-0000-4000-8000-000000000002';
 const currentPassword = 'Correct current password';
 const oldToken = 'link-delivered-to-old-email';
 const otherToken = 'second-link-delivered-to-old-email';
-const context = {} as any;
+const profileSession = 'authenticated-profile-browser-session';
+const context = { cookies: { get: () => profileSession } } as any;
 function request(path: string, body: object) {
   return new Request(`https://nxt5.test/${path}`, { method: 'POST', body: JSON.stringify(body) });
 }
@@ -109,6 +110,7 @@ beforeEach(async () => {
   for (const [id, token] of [[userId, oldToken], [userId, otherToken], [otherUserId, 'unrelated-token']]) {
     await state.pg.query("insert into password_reset_tokens(user_id, token_hash, expires_at) values ($1, $2, now() + interval '30 minutes')", [id, sha256(token)]);
   }
+  await state.pg.query("insert into sessions(user_id, token_hash, expires_at) values ($1, $2, now() + interval '1 day')", [userId, sha256(profileSession)]);
 });
 afterEach(() => vi.restoreAllMocks());
 afterAll(async () => { await state.pg?.close(); });

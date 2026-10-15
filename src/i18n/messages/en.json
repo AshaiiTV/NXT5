@@ -7788,5 +7788,7 @@
   "LinkedIn": "LinkedIn",
   "Les actualités NXT5 et les échanges avec les acteurs de l’esport.": "NXT5 news and conversations with the esports community.",
   "Réseaux officiels : Discord, YouTube, Instagram et LinkedIn — NXT5": "Official social channels: Discord, YouTube, Instagram and LinkedIn — NXT5",
-  "Retrouve NXT5 sur Discord, YouTube, Instagram et LinkedIn : vidéos, conseils et échanges autour des équipes League of Legends.": "Find NXT5 on Discord, YouTube, Instagram and LinkedIn: videos, tips and conversations about League of Legends teams."
+  "Retrouve NXT5 sur Discord, YouTube, Instagram et LinkedIn : vidéos, conseils et échanges autour des équipes League of Legends.": "Find NXT5 on Discord, YouTube, Instagram and LinkedIn: videos, tips and conversations about League of Legends teams.",
+  "Protection des choix entre onglets": "Protecting choices across tabs",
+  "Ajout technique du 15 octobre 2026 : le cookie nécessaire nxt5_audience_choice_revision conserve pendant 10 minutes une révision du dernier refus. Il empêche une ancienne acceptation d’annuler un refus plus récent, même si les onglets communiquent avec retard. Il ne sert pas à identifier un visiteur et n’est jamais ajouté aux statistiques.": "Technical addition on 15 October 2026: the necessary cookie nxt5_audience_choice_revision stores a revision of your latest refusal for 10 minutes. It prevents an older acceptance from undoing a more recent refusal, even when communication between tabs is delayed. It does not identify visitors and is never added to audience statistics."
 }
