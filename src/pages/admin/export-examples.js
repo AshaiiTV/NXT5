@@ -25,7 +25,7 @@ export const EXPORT_TEMPLATES = Object.freeze([
   {
     id: "pool", category: "site", title: "Pool de champions déclaré", source: "Mon profil · Champion pool / Draft · Champions des joueurs", format: "PNG",
     description: "Les champions déclarés par le joueur ou le staff, regroupés par niveau de préparation.",
-    uses: ["Picks de confiance", "Picks situationnels", "Picks en validation et en entraînement", "Games et taux de victoire disponibles"],
+    uses: ["Picks de confiance", "Picks situationnels", "Picks en validation et en entraînement"],
   },
   {
     id: "audience", category: "site", title: "Fréquentation du site", source: "Administration · Fréquentation", format: "CSV",
@@ -183,16 +183,13 @@ export async function createExportExample(id) {
     const rows = matches.flatMap((match) => match.participants.filter((row) => row.player_id === PLAYER.id).map((row) => ({ ...row, match })));
     canvases = [await renderPlayerProfilePng({ player: PLAYER, rows, category: CATEGORY.name, teamName: TEAM.name, selectedMatches: matches })];
   } else {
-    const { renderChampionTierListPng, championPoolPngPages } = await import("../workspace/workspace-shared.jsx");
+    const { renderChampionTierListPng } = await import("../workspace/workspace-shared.jsx");
     const rows = [["Ahri", "lock"], ["Orianna", "lock"], ["Syndra", "pocket"], ["Viktor", "work"], ["Taliyah", "work"], ["Azir", "danger"]].map(([champion, status]) => {
       const played = matches.filter((match) => match.participants.some((row) => row.player_id === PLAYER.id && row.champion === champion));
       const wins = played.filter((match) => match.result === "Victoire").length;
       return { champion, status, games: played.length, knownResults: played.length, winrate: played.length ? wins / played.length * 100 : null, stats_available: true };
     });
-    canvases = [];
-    for (let pageIndex = 0; pageIndex < championPoolPngPages({ rows }).pageCount; pageIndex += 1) {
-      canvases.push(await renderChampionTierListPng({ player: PLAYER, rows, category: CATEGORY.name, matches, pageIndex }));
-    }
+    canvases = [await renderChampionTierListPng({ player: PLAYER, rows, category: CATEGORY.name, matches })];
   }
   try {
     const width = Math.max(...canvases.map((canvas) => canvas.width));
