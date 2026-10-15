@@ -11,6 +11,7 @@ import { en as groupOpponents } from './group-opponents-overrides.js';
 import { en as draftIntelligence } from './draft-intelligence-overrides.js';
 import { en as helpFeatures } from './help-features-overrides.js';
 import { en as playerComparison } from './player-comparison-overrides.js';
+import { en as socialCalendar } from './social-calendar-overrides.js';
 const teamManagement = {
   "Effectif": "Roster",
   "Titulaires": "Starters",
@@ -53,4 +54,4 @@ const teamManagement = {
   "Supprimer définitivement l’équipe": "Permanently delete team",
   "Gère l’effectif, les invitations et les informations de ton équipe.": "Manage your team's roster, invitations and details.",
 };
-export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison };
+export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar };

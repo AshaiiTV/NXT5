@@ -31,6 +31,7 @@ const TrendsPage = lazy(() => import("./pages/workspace/TrendsPage.jsx").then((m
 const GameWorkspace = lazy(() => import("./pages/workspace/GameWorkspace.jsx").then((module) => ({ default: module.GameWorkspace })));
 const Planning = lazy(() => import("./pages/workspace/Planning.jsx").then((module) => ({ default: module.Planning })));
 const AccountSettings = lazy(() => import("./pages/workspace/AccountSettings.jsx").then((module) => ({ default: module.AccountSettings })));
+const SocialCalendar = lazy(() => import("./pages/workspace/SocialCalendar.jsx"));
 const DraftWorkspace = lazy(() => import("./pages/workspace/DraftWorkspace.jsx").then((module) => ({ default: module.DraftWorkspace })));
 
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
@@ -308,7 +309,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
   const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll, ensureHistory, loadNextPage, historyLoading, historyError } = useTeamData(planningStore, route.search, { requireHistory: requiresHistory });
   const teamCreation = useTeamCreation({ setSelectedTeamId, refreshAll, pushToast });
-  const independentAccountPage = active === "account-settings";
+  const independentAccountPage = ["account-settings", "social-calendar"].includes(active);
   const waitingForBootstrap = !independentAccountPage && !bootstrapReady && (!bootstrapped || loading);
   useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -358,6 +359,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   }, [requiresHistory, bootstrapReady, workspaceLocked, historyComplete, historyLoading, historyError, data.selectedTeamId, selectedTeamId, ensureHistory]);
 
   const page = useMemo(() => {
+    if (active === "social-calendar") return isPlatformAdmin ? <SocialCalendar key={user.id} /> : <Surface className="p-6"><p role="alert">{t("Ce calendrier est réservé au compte propriétaire de NXT5.")}</p></Surface>;
     if (active === "bot-discord") return <DiscordWorkspace data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} />;
     if (active === "teams") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} setupOnly={teamSetupOnly} onLoadHistory={ensureHistory} historyLoading={historyLoading} historyError={historyError} />;
     if (active === "team-management") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly onLoadHistory={ensureHistory} historyLoading={historyLoading} historyError={historyError} />;

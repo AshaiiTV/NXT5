@@ -31,6 +31,7 @@ export const NAV = [
   { id: "profile", label: "Mon profil", hint: "Suivre ta progression", icon: Activity, shortcut: "P", path: "/mon-profil" },
   { id: "guide", label: "Guide d’utilisation", hint: "Les étapes et les mots utiles", icon: BookOpen, shortcut: "A", path: "/guide", hidden: true },
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
+  { id: "social-calendar", label: "Calendrier", icon: CalendarDays, path: "/calendrier", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
   { id: "audience", label: "Fréquentation", hint: "Audience et conversions", icon: BarChart3, path: "/admin/frequentation", hidden: true },
   { id: "admin", label: "Administration", hint: "Gérer NXT5", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
