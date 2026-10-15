@@ -70,7 +70,7 @@ RESET_EMAIL_FROM=NXT5 <noreply@ton-domaine.fr>
 `DATABASE_URL` vient de Neon et doit être disponible pour les fonctions. Pour les migrations, donne accès au contexte **production / Builds** à `MIGRATION_DATABASE_URL` (ou à `DATABASE_URL` en son absence). Ne partage pas les identifiants de production avec les Deploy Previews.
 `RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton « Analyser profils » recalcule les champions joués sur la saison courante.
 `PUBLIC_SITE_URL` est facultative ; si elle est définie, elle doit valoir exactement `https://nxt5.org`, sinon le build échoue pour ne pas publier de mauvaise URL canonique.
-`RESEND_API_KEY` et `RESET_EMAIL_FROM` servent à envoyer les e-mails de mot de passe oublié. Le domaine utilisé dans `RESET_EMAIL_FROM` doit être validé dans Resend.
+`RESEND_API_KEY` et `RESET_EMAIL_FROM` servent à envoyer tous les e-mails du site : vérification du compte, mot de passe oublié, inscription sociale, rappels et notifications d’équipe. Le domaine utilisé dans `RESET_EMAIL_FROM` doit être validé dans Resend. L’adresse de réponse (`Reply-To`) est `contact@nxt5.org`, issue de `NXT5_CONTACT_EMAIL` dans `shared/legal.js`.
 
 ## Neon
 

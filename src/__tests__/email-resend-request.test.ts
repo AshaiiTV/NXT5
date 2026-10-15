@@ -22,8 +22,8 @@ describe('shared Resend request', () => {
     expect(options).toMatchObject({ method: 'POST', headers: { Authorization: 'Bearer test-provider-key', 'Content-Type': 'application/json' } });
     expect(options.signal).toBeInstanceOf(AbortSignal);
     const body = JSON.parse(String(options.body));
-    expect(Object.keys(body)).toEqual(['from', 'to', 'subject', 'text', 'html']);
-    expect(body).toMatchObject({ from: 'NXT5 <no-reply@example.test>', to: 'player@example.test' });
+    expect(Object.keys(body)).toEqual(['from', 'reply_to', 'to', 'subject', 'text', 'html']);
+    expect(body).toMatchObject({ from: 'NXT5 <no-reply@example.test>', reply_to: 'contact@nxt5.org', to: 'player@example.test' });
   });
 
   it('sends team notifications through the same request, without a timeout', async () => {
@@ -34,8 +34,8 @@ describe('shared Resend request', () => {
     expect(options).not.toHaveProperty('signal');
     expect(options.headers).toEqual({ Authorization: 'Bearer test-provider-key', 'Content-Type': 'application/json' });
     const body = JSON.parse(String(options.body));
-    expect(Object.keys(body)).toEqual(['from', 'to', 'subject', 'text', 'html']);
-    expect(body).toMatchObject({ from: 'NXT5 <no-reply@example.test>', to: ['a@example.test'], subject: 'Review <prête>', text: 'Bonjour\nSuite' });
+    expect(Object.keys(body)).toEqual(['from', 'reply_to', 'to', 'subject', 'text', 'html']);
+    expect(body).toMatchObject({ from: 'NXT5 <no-reply@example.test>', reply_to: 'contact@nxt5.org', to: ['a@example.test'], subject: 'Review <prête>', text: 'Bonjour\nSuite' });
     expect(body.html).toContain('Review &lt;prête&gt;');
     expect(body.html).toContain('<p>Bonjour</p><p>Suite</p>');
   });
