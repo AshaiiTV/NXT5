@@ -36,6 +36,7 @@ Le Discord déjà présent dans NXT5 est utilisé par défaut. Pour ajouter les 
 ```dotenv
 VITE_SOCIAL_INSTAGRAM_URL=
 VITE_SOCIAL_YOUTUBE_URL=
+VITE_SOCIAL_LINKEDIN_URL=
 VITE_SOCIAL_TWITCH_URL=
 VITE_SOCIAL_TIKTOK_URL=
 VITE_SOCIAL_X_URL=

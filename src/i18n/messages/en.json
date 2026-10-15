@@ -7784,5 +7784,9 @@
   "Score combiné sur 100 : moyenne des critères sélectionnés, à poids égal.": "Combined score out of 100: an equally weighted average of the selected criteria.",
   "Sélectionne plusieurs critères pour combiner le nombre de parties, le WR et le KDA.": "Select multiple criteria to combine games played, win rate and KDA.",
   "Pour le classement combiné, les parties et le KDA sont divisés par leur maximum dans le contexte sélectionné, puis convertis sur 100. Le WR reste son pourcentage. Le score est la moyenne des critères cochés. La recherche ne change pas ces références. Une donnée manquante place le champion en fin de liste, quel que soit le sens du tri.": "For the combined ranking, games played and KDA are divided by their maximum in the selected context, then converted to a scale of 100. Win rate keeps its percentage. The score is the average of the selected criteria. Searching does not change these reference values. A missing value places the champion at the end of the list, in either sort direction.",
-  "Score / 100": "Score / 100"
+  "Score / 100": "Score / 100",
+  "LinkedIn": "LinkedIn",
+  "Les actualités NXT5 et les échanges avec les acteurs de l’esport.": "NXT5 news and conversations with the esports community.",
+  "Réseaux officiels : Discord, YouTube, Instagram et LinkedIn — NXT5": "Official social channels: Discord, YouTube, Instagram and LinkedIn — NXT5",
+  "Retrouve NXT5 sur Discord, YouTube, Instagram et LinkedIn : vidéos, conseils et échanges autour des équipes League of Legends.": "Find NXT5 on Discord, YouTube, Instagram and LinkedIn: videos, tips and conversations about League of Legends teams."
 }
