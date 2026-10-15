@@ -27,8 +27,6 @@ import { ParticipantRunes } from "../../components/profile/ParticipantRunes.jsx"
 
 const ProfileShowcase = React.lazy(() => import("../../components/profile/ProfileShowcase.jsx").then((module) => ({ default: module.ProfileShowcase })));
 
-const PROFILE_PNG_CHAMPIONS_PER_PAGE = 14;
-
 function playerProfilePngData(rows = []) {
   const stat = (row, field) => {
     const aliases = { damage: ["damage", "totalDamageDealtToChampions"], gold: ["gold", "goldEarned"], vision: ["vision", "visionScore"], damage_to_turrets: ["damage_to_turrets", "damageToTurrets", "damageDealtToTurrets"] };
@@ -97,17 +95,14 @@ function playerProfilePngData(rows = []) {
   return { games: rows.length, results, kda, participation, measures, champions };
 }
 
-async function renderPlayerProfilePng({ player, rows = [], category = "Toutes les catégories", teamName = "", selectedMatches = [], pageIndex = 0 } = {}) {
+async function renderPlayerProfilePng({ player, rows = [], category = "Toutes les catégories", teamName = "", selectedMatches = [] } = {}) {
   await document.fonts?.ready;
   const report = playerProfilePngData(rows);
-  const pageCount = Math.max(1, Math.ceil(report.champions.length / PROFILE_PNG_CHAMPIONS_PER_PAGE));
-  const currentPage = Math.max(0, Math.min(pageCount - 1, pageIndex));
-  const champions = report.champions.slice(currentPage * PROFILE_PNG_CHAMPIONS_PER_PAGE, (currentPage + 1) * PROFILE_PNG_CHAMPIONS_PER_PAGE);
+  const champions = report.champions;
   const W = 1440;
   const margin = 64;
   const width = W - margin * 2;
-  const firstPage = currentPage === 0;
-  const tableY = firstPage ? 844 : 244;
+  const tableY = 844;
   const tableHeight = 118 + Math.max(1, champions.length) * 80;
   const H = tableY + tableHeight + 158;
   const { canvas, ctx } = pngCreateCanvas(W, H);
@@ -134,32 +129,30 @@ async function renderPlayerProfilePng({ player, rows = [], category = "Toutes le
   }
   fit([roleLabel(player?.role), player?.riot_id, teamName].filter(Boolean).join(" · "), margin + (roleImage ? 46 : 0), 222, width - (roleImage ? 46 : 0), { color: PNG_THEME.muted });
 
-  if (firstPage) {
-    pngMetricStrip(ctx, { x: margin, y: 246, width, items: [
-      { label: "Games analysées", value: pngNumber(report.games), detail: `${report.games}/${selectedMatches.length || report.games} games reliées` },
-      { label: "Victoires", value: pngPercent(report.results.rate), detail: `${report.results.wins} V · ${report.results.losses} D${report.games > report.results.count ? ` · ${report.games - report.results.count} ?` : ""}`, accent: report.results.rate === null ? undefined : report.results.rate >= 50 ? "green" : "red" },
-      { label: "Ratio KDA", value: pngNumber(report.kda.ratio, 2), detail: `${report.kda.count}/${report.games} games renseignées` },
-      { label: "Participation kills", value: pngPercent(report.participation.value), detail: `${report.participation.count}/${report.games} games renseignées` },
-    ] });
-    const metricsY = 390;
-    const innerX = margin + 28;
-    const halfWidth = (width - 80) / 2;
-    pngPanel(ctx, margin, metricsY, width, 426, { material: "reading", accent: "purple" });
-    pngPanel(ctx, margin + 1, metricsY + 1, width - 2, 62, { stroke: null, radius: 17 });
-    fit("Moyennes par game", innerX, metricsY + 43, 520, { font: "700 27px Inter, Arial, sans-serif" });
-    fit("Games renseignées / games analysées", margin + width - 28, metricsY + 43, 600, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
-    pngLine(ctx, margin + width / 2, metricsY + 73, margin + width / 2, metricsY + 398);
-    report.measures.forEach((metric, index) => {
-      const column = Math.floor(index / 5);
-      const row = index % 5;
-      const x = innerX + column * (halfWidth + 24);
-      const y = metricsY + 108 + row * 66;
-      fit(metric.label, x, y, 302, { font: "500 21px Inter, Arial, sans-serif", color: PNG_THEME.muted });
-      fit(pngNumber(metric.value, metric.digits), x + halfWidth - 104, y, 164, { font: "700 25px Inter, Arial, sans-serif", align: "right", color: PNG_THEME.purple });
-      fit(`${metric.count}/${report.games}`, x + halfWidth, y, 90, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
-      if (row < 4) pngLine(ctx, x, y + 27, x + halfWidth, y + 27);
-    });
-  }
+  pngMetricStrip(ctx, { x: margin, y: 246, width, items: [
+    { label: "Games analysées", value: pngNumber(report.games), detail: `${report.games}/${selectedMatches.length || report.games} games reliées` },
+    { label: "Victoires", value: pngPercent(report.results.rate), detail: `${report.results.wins} V · ${report.results.losses} D${report.games > report.results.count ? ` · ${report.games - report.results.count} ?` : ""}`, accent: report.results.rate === null ? undefined : report.results.rate >= 50 ? "green" : "red" },
+    { label: "Ratio KDA", value: pngNumber(report.kda.ratio, 2), detail: `${report.kda.count}/${report.games} games renseignées` },
+    { label: "Participation kills", value: pngPercent(report.participation.value), detail: `${report.participation.count}/${report.games} games renseignées` },
+  ] });
+  const metricsY = 390;
+  const innerX = margin + 28;
+  const halfWidth = (width - 80) / 2;
+  pngPanel(ctx, margin, metricsY, width, 426, { material: "reading", accent: "purple" });
+  pngPanel(ctx, margin + 1, metricsY + 1, width - 2, 62, { stroke: null, radius: 17 });
+  fit("Moyennes par game", innerX, metricsY + 43, 520, { font: "700 27px Inter, Arial, sans-serif" });
+  fit("Games renseignées / games analysées", margin + width - 28, metricsY + 43, 600, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
+  pngLine(ctx, margin + width / 2, metricsY + 73, margin + width / 2, metricsY + 398);
+  report.measures.forEach((metric, index) => {
+    const column = Math.floor(index / 5);
+    const row = index % 5;
+    const x = innerX + column * (halfWidth + 24);
+    const y = metricsY + 108 + row * 66;
+    fit(metric.label, x, y, 302, { font: "500 21px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+    fit(pngNumber(metric.value, metric.digits), x + halfWidth - 104, y, 164, { font: "700 25px Inter, Arial, sans-serif", align: "right", color: PNG_THEME.purple });
+    fit(`${metric.count}/${report.games}`, x + halfWidth, y, 90, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
+    if (row < 4) pngLine(ctx, x, y + 27, x + halfWidth, y + 27);
+  });
 
   pngPanel(ctx, margin, tableY, width, tableHeight, { material: "reading" });
   pngPanel(ctx, margin + 1, tableY + 1, width - 2, 61, { stroke: null, radius: 17 });
@@ -202,7 +195,7 @@ async function renderPlayerProfilePng({ player, rows = [], category = "Toutes le
   });
   if (!champions.length) fit("Aucune game analysée", margin + 28, tableY + 155, width - 56, { color: PNG_THEME.muted });
   fit("KDA : (kills + assists) / morts, diviseur 1 si aucune mort.  — : donnée absente.  ? : résultat inconnu.", margin, H - 108, width, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
-  pngFooter(ctx, { width: W, height: H, label: `Profil joueur · ${currentPage + 1}/${pageCount}` });
+  pngFooter(ctx, { width: W, height: H, label: "Profil joueur" });
   return canvas;
 }
 
@@ -468,14 +461,9 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   }
   async function exportProfilePng() {
     if (!selectedPlayer) return;
-    const pageCount = Math.max(1, Math.ceil(playerProfilePngData(rows).champions.length / PROFILE_PNG_CHAMPIONS_PER_PAGE));
-    const canvases = [];
-    for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
-      const canvas = await renderPlayerProfilePng({ player: selectedPlayer, rows, category: activeProfileCategory?.name || "Toutes les catégories", teamName: selectedTeam?.name, selectedMatches: filteredMatches, pageIndex });
-      canvases.push(canvas);
-    }
+    const canvas = await renderPlayerProfilePng({ player: selectedPlayer, rows, category: activeProfileCategory?.name || "Toutes les catégories", teamName: selectedTeam?.name, selectedMatches: filteredMatches });
     const filename = String(selectedPlayer.name || "joueur").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    await pngDownloadPages(canvases, `nxt5-profil-${filename}.png`);
+    await pngDownloadPages([canvas], `nxt5-profil-${filename}.png`);
     pushToast?.({ type: "cyan", title: "PNG exporté", text: "Une image PNG exportée." });
   }
 
