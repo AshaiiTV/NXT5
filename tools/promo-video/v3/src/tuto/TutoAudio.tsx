@@ -20,7 +20,7 @@ const BIG = /téléchargé|connecté|Ta game est prête|Fichier chargé|Partie i
 const list = (cues as { cues: Cue[] }).cues;
 export const TUTO_SFX: Hit[] = list.flatMap((c): Hit[] => {
   switch (c.kind) {
-    case 'click': return [hit(c.frame, 'switch-click-quick.mp3', 0.32, c.note, 20)];
+    case 'click': return [hit(c.frame, 'switch-click-quick.mp3', 0.24, c.note, 20)];
     case 'chapter': return c.frame > 0 ? [hit(c.frame + 4, 'swoosh-quick.mp3', 0.26, c.note, 30)] : [];
     case 'key': case 'paste': return [hit(c.frame, 'typewriter-hit-soft.mp3', 0.3, c.note, 20)];
     case 'typing-start': {
