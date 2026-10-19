@@ -125,7 +125,6 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
     if (image) pngImageCover(ctx, image, x, y, size, size, radius);
   };
   const header = () => pngHeader(ctx, { width: W, margin: M, title: title || "Groupe de games", eyebrow: "Groupe de games", subtitle: [teamName, pngDateRange(scoped), subtitle].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index).join(" · "), logo: imageCache.get("/assets/nxt5-wordmark.png") });
-  const pages = [];
   const measures = [["Kills", "kills", 1], ["Morts", "deaths", 1], ["Assists", "assists", 1], ["Or", "gold", 0], ["Dégâts champions", "damage", 0], ["Score de vision", "vision", 1]].map(([label, key, digits]) => {
     const pairs = paired(key);
     return { label, digits, count: pairs.length, ally: pngMean(pairs.map((pair) => pair.ally)), enemy: pngMean(pairs.map((pair) => pair.enemy)), diff: pngMean(pairs.map((pair) => pair.ally - pair.enemy)) };
@@ -133,98 +132,78 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
   const durationValues = scoped.map(durationSeconds).filter((value) => value !== null);
   const gameRows = scoped.map((match) => ({ match, names: wrap(matchDisplayName(match, "Game"), 464, 22, 700) })).map((row) => ({ ...row, height: Math.max(82, row.names.length * 27 + 38) }));
   const championRows = Array.from({ length: Math.max(...championLists.map((list) => list.length)) }, (_, index) => ({ entries: championLists.map((list) => list[index]), height: 64 }));
-  // Every game and champion is exported. The rendered pages are joined into one PNG.
-  const plan = [{ parts: [], end: 844, first: true }];
+  // Size one continuous report to its full content, without internal page breaks.
+  const parts = [];
+  let contentEnd = 844;
   for (const section of [{ key: "games", rows: gameRows }, { key: "champions", rows: championRows }]) {
-    const remaining = [...section.rows];
-    if (!remaining.length) continue;
-    while (remaining.length) {
-      let page = plan[plan.length - 1];
-      if (page.end + 108 + remaining[0].height > 1896) {
-        page = { parts: [], end: 216, first: false };
-        plan.push(page);
-      }
-      const part = { key: section.key, y: page.end, rows: [] };
-      let end = part.y + 108;
-      while (remaining.length && end + remaining[0].height <= 1896) {
-        const row = remaining.shift();
-        part.rows.push(row);
-        end += row.height;
-      }
-      if (!part.rows.length) throw new Error("Le nom d’une game est trop long pour tenir sur une page PNG.");
-      page.parts.push(part);
-      page.end = end + 24;
-    }
+    if (!section.rows.length) continue;
+    const part = { ...section, y: contentEnd, height: 108 + section.rows.reduce((sum, row) => sum + row.height, 0) };
+    parts.push(part);
+    contentEnd += part.height + 24;
   }
-  plan.forEach((page, pageIndex) => {
-    const { canvas, ctx: canvasCtx } = pngCreateCanvas(W, Math.max(960, page.end + 96));
-    ctx = canvasCtx;
-    pngBackground(ctx, W, canvas.height, { variant: "group" });
-    header();
-    if (page.first) {
-      pngMetricStrip(ctx, { x: M, y: 208, width: CW, items: [
-        { label: "Games", value: pngNumber(games), detail: `${wins} V · ${losses} D${games > knownResults ? ` · ${games - knownResults} inconnus` : ""}` },
-        { label: "Taux de victoire", value: pngPercent(knownResults ? wins / knownResults * 100 : null), detail: `${knownResults}/${games} résultats connus` },
-        { label: "Durée moyenne", value: duration(pngMean(durationValues)), detail: `${durationValues.length}/${games} games · min:s` },
-        { label: "Kills / game", value: pngNumber(measures[0].ally, 1), detail: `${measures[0].count}/${games} games` },
-      ] });
-      pngPanel(ctx, M, 364, CW, 456, { material: "reading", accent: "purple" });
-      pngPanel(ctx, M + 382, 426, 330, 335, { stroke: null, radius: 12 });
-      text(t("Moyennes par game"), M + 24, 406, 620, 28, PNG_THEME.text, 700);
-      text(t("Écart = équipe − adversaires"), W - M - 24, 405, 490, 20, PNG_THEME.muted, 500, "right");
-      [["Mesure", M + 24, 330], [teamName, M + 400, 308], ["Adversaires", M + 746, 220], ["Écart", M + 1030, 190], ["Games", M + 1280, 174]].forEach(([label, x, width]) => text(label, x, 452, width, 20, PNG_THEME.muted));
-      measures.forEach((measure, index) => {
-        const y = 480 + index * 46;
-        pngLine(ctx, M + 24, y - 10, W - M - 24, y - 10);
-        text(t(measure.label), M + 24, y + 21, 330, 22);
-        text(pngNumber(measure.ally, measure.digits), M + 400, y + 21, 308, 28, PNG_THEME.text, 700);
-        text(pngNumber(measure.enemy, measure.digits), M + 746, y + 21, 220, 28, PNG_THEME.text, 700);
-        text(signed(measure.diff, measure.digits), M + 1030, y + 21, 190, 28, PNG_THEME.text, 700);
-        text(`${measure.count}/${games}`, M + 1280, y + 21, 174, 22, PNG_THEME.muted);
-      });
-      text(t("Games : 5 joueurs renseignés par équipe pour la mesure · — = indisponible"), M + 24, 795, CW - 48, 20, PNG_THEME.muted, 500);
-    }
-    page.parts.forEach((part) => {
-      const height = 108 + part.rows.reduce((sum, row) => sum + row.height, 0);
-      pngPanel(ctx, M, part.y, CW, height, { material: "reading" });
-      pngPanel(ctx, M + 1, part.y + 1, CW - 2, 60, { stroke: null, radius: 17 });
-      text(part.key === "games" ? `Games · ${games}` : "Champions joués · nombre de picks", M + 24, part.y + 40, CW - 48, 28, PNG_THEME.text, 700);
-      if (part.key === "games") {
-        [["Game / identifiant", M + 24, 464], ["Résultat", M + 522, 174], ["Date", M + 734, 190], ["Durée", M + 964, 130], ["Côté équipe", M + 1132, 160], ["Patch", M + 1334, 122]].forEach(([label, x, width]) => text(label, x, part.y + 84, width, 20, PNG_THEME.muted));
-      } else {
-        text(teamName, M + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
-        text(t("Adversaires"), W / 2 + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
-      }
-      let y = part.y + 108;
-      part.rows.forEach((row, rowIndex) => {
-        if (rowIndex % 2 === 0) pngPanel(ctx, M + 12, y + 3, CW - 24, row.height - 6, { fill: "rgba(196,181,253,0.035)", stroke: null, radius: 8 });
-        pngLine(ctx, M + 24, y, W - M - 24, y);
-        if (part.key === "games") {
-          const { match, names } = row;
-          pngLine(ctx, M + 8, y + 18, M + 8, y + row.height - 18, resultColor(match), 3);
-          lines(names, M + 24, y + 30, 464, 22, PNG_THEME.text, 700);
-          text(match.game_id || "Identifiant —", M + 24, y + 30 + names.length * 27, 464, 20, PNG_THEME.muted, 500);
-          text(t(resultLabel(match)), M + 522, y + 43, 174, 24, resultColor(match), 700);
-          text(pngDateRange([match]) === "Date indisponible" ? "—" : pngDateRange([match]), M + 734, y + 43, 190, 20, PNG_THEME.muted);
-          text(duration(durationSeconds(match)), M + 964, y + 43, 130, 24);
-          text(sideLabel(match).replace("Côté ", ""), M + 1132, y + 43, 160, 22, sideColor(match), 700);
-          text(match.patch || "—", M + 1334, y + 43, 122, 22, PNG_THEME.muted);
-        } else row.entries.forEach((entry, teamIndex) => {
-          if (!entry) return;
-          const [champion, count] = entry;
-          const x = M + 24 + teamIndex * CW / 2;
-          pngPanel(ctx, x - 3, y + 7, 50, 50, { stroke: teamIndex ? PNG_THEME.pink : PNG_THEME.cyan, radius: 11 });
-          drawImage(championPortraitSources(champion, champion), x, y + 10, 44);
-          text(championDisplayName(champion), x + 62, y + 40, CW / 2 - 218, 24, PNG_THEME.text, 600);
-          text(pngNumber(count), x + CW / 2 - 80, y + 40, 96, 28, teamIndex ? PNG_THEME.pink : PNG_THEME.cyan, 700, "right");
-        });
-        y += row.height;
-      });
-    });
-    pngFooter(ctx, { width: W, height: canvas.height, margin: M, label: `Groupe de games · ${pageIndex + 1}/${plan.length}` });
-    pages.push(canvas);
+  const { canvas, ctx: canvasCtx } = pngCreateCanvas(W, Math.max(960, contentEnd + 96));
+  ctx = canvasCtx;
+  pngBackground(ctx, W, canvas.height, { variant: "group" });
+  header();
+  pngMetricStrip(ctx, { x: M, y: 208, width: CW, items: [
+    { label: "Games", value: pngNumber(games), detail: `${wins} V · ${losses} D${games > knownResults ? ` · ${games - knownResults} inconnus` : ""}` },
+    { label: "Taux de victoire", value: pngPercent(knownResults ? wins / knownResults * 100 : null), detail: `${knownResults}/${games} résultats connus` },
+    { label: "Durée moyenne", value: duration(pngMean(durationValues)), detail: `${durationValues.length}/${games} games · min:s` },
+    { label: "Kills / game", value: pngNumber(measures[0].ally, 1), detail: `${measures[0].count}/${games} games` },
+  ] });
+  pngPanel(ctx, M, 364, CW, 456, { material: "reading", accent: "purple" });
+  pngPanel(ctx, M + 382, 426, 330, 335, { stroke: null, radius: 12 });
+  text(t("Moyennes par game"), M + 24, 406, 620, 28, PNG_THEME.text, 700);
+  text(t("Écart = équipe − adversaires"), W - M - 24, 405, 490, 20, PNG_THEME.muted, 500, "right");
+  [["Mesure", M + 24, 330], [teamName, M + 400, 308], ["Adversaires", M + 746, 220], ["Écart", M + 1030, 190], ["Games", M + 1280, 174]].forEach(([label, x, width]) => text(label, x, 452, width, 20, PNG_THEME.muted));
+  measures.forEach((measure, index) => {
+    const y = 480 + index * 46;
+    pngLine(ctx, M + 24, y - 10, W - M - 24, y - 10);
+    text(t(measure.label), M + 24, y + 21, 330, 22);
+    text(pngNumber(measure.ally, measure.digits), M + 400, y + 21, 308, 28, PNG_THEME.text, 700);
+    text(pngNumber(measure.enemy, measure.digits), M + 746, y + 21, 220, 28, PNG_THEME.text, 700);
+    text(signed(measure.diff, measure.digits), M + 1030, y + 21, 190, 28, PNG_THEME.text, 700);
+    text(`${measure.count}/${games}`, M + 1280, y + 21, 174, 22, PNG_THEME.muted);
   });
-  return pages;
+  text(t("Games : 5 joueurs renseignés par équipe pour la mesure · — = indisponible"), M + 24, 795, CW - 48, 20, PNG_THEME.muted, 500);
+  parts.forEach((part) => {
+    pngPanel(ctx, M, part.y, CW, part.height, { material: "reading" });
+    pngPanel(ctx, M + 1, part.y + 1, CW - 2, 60, { stroke: null, radius: 17 });
+    text(part.key === "games" ? `Games · ${games}` : "Champions joués · nombre de picks", M + 24, part.y + 40, CW - 48, 28, PNG_THEME.text, 700);
+    if (part.key === "games") {
+      [["Game / identifiant", M + 24, 464], ["Résultat", M + 522, 174], ["Date", M + 734, 190], ["Durée", M + 964, 130], ["Côté équipe", M + 1132, 160], ["Patch", M + 1334, 122]].forEach(([label, x, width]) => text(label, x, part.y + 84, width, 20, PNG_THEME.muted));
+    } else {
+      text(teamName, M + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
+      text(t("Adversaires"), W / 2 + 24, part.y + 84, CW / 2 - 88, 22, PNG_THEME.text, 700);
+    }
+    let y = part.y + 108;
+    part.rows.forEach((row, rowIndex) => {
+      if (rowIndex % 2 === 0) pngPanel(ctx, M + 12, y + 3, CW - 24, row.height - 6, { fill: "rgba(196,181,253,0.035)", stroke: null, radius: 8 });
+      pngLine(ctx, M + 24, y, W - M - 24, y);
+      if (part.key === "games") {
+        const { match, names } = row;
+        pngLine(ctx, M + 8, y + 18, M + 8, y + row.height - 18, resultColor(match), 3);
+        lines(names, M + 24, y + 30, 464, 22, PNG_THEME.text, 700);
+        text(match.game_id || "Identifiant —", M + 24, y + 30 + names.length * 27, 464, 20, PNG_THEME.muted, 500);
+        text(t(resultLabel(match)), M + 522, y + 43, 174, 24, resultColor(match), 700);
+        text(pngDateRange([match]) === "Date indisponible" ? "—" : pngDateRange([match]), M + 734, y + 43, 190, 20, PNG_THEME.muted);
+        text(duration(durationSeconds(match)), M + 964, y + 43, 130, 24);
+        text(sideLabel(match).replace("Côté ", ""), M + 1132, y + 43, 160, 22, sideColor(match), 700);
+        text(match.patch || "—", M + 1334, y + 43, 122, 22, PNG_THEME.muted);
+      } else row.entries.forEach((entry, teamIndex) => {
+        if (!entry) return;
+        const [champion, count] = entry;
+        const x = M + 24 + teamIndex * CW / 2;
+        pngPanel(ctx, x - 3, y + 7, 50, 50, { stroke: teamIndex ? PNG_THEME.pink : PNG_THEME.cyan, radius: 11 });
+        drawImage(championPortraitSources(champion, champion), x, y + 10, 44);
+        text(championDisplayName(champion), x + 62, y + 40, CW / 2 - 218, 24, PNG_THEME.text, 600);
+        text(pngNumber(count), x + CW / 2 - 80, y + 40, 96, 28, teamIndex ? PNG_THEME.pink : PNG_THEME.cyan, 700, "right");
+      });
+      y += row.height;
+    });
+  });
+  pngFooter(ctx, { width: W, height: canvas.height, margin: M, label: "Groupe de games" });
+  return [canvas];
 }
 
 async function exportStatsPng(options) {

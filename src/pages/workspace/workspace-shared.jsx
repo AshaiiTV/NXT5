@@ -5,7 +5,7 @@ import { resultSummary, resultLabel, sideResults, comparableSides, sideLabel } f
 import { canonicalChampion as championAssetId, championNameKey as championKey, championDisplayName, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
 import { DDRAGON_FALLBACK_VERSIONS, championPortraitUrls, itemIconUrls } from "../../../shared/riot-assets.js";
 import { normalizeRole as normalizeProfileRole } from "../../../shared/roles.js";
-import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngNumeric, pngPercent, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
+import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 import { lazy, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BarChart3, Shield, Swords, Target, Upload, Flame, Gauge, ShieldCheck } from "lucide-react";
 import { matchDisplayName, assetProxyUrl } from "../../utils/matches.js";
@@ -150,20 +150,16 @@ function championPoolRowsByTier(rows = []) {
   return grouped;
 }
 
-const POOL_PNG_CHAMPIONS_PER_PAGE = 24;
-
-function championPoolPngPages({ rows = [], rowsByTier } = {}) {
+function championPoolPngData({ rows = [], rowsByTier } = {}) {
   const grouped = rowsByTier || championPoolRowsByTier(rows);
   const entries = CHAMPION_TIERS.flatMap((tier) => (grouped[tier.id] || []).map((row) => ({ row, tier })));
-  return { grouped, entries, pageCount: Math.max(1, Math.ceil(entries.length / POOL_PNG_CHAMPIONS_PER_PAGE)) };
+  return { grouped, entries };
 }
 
-async function renderChampionTierListPng({ player, rows = [], rowsByTier, category = "", matches = [], pageIndex = 0 } = {}) {
+async function renderChampionTierListPng({ player, rows = [], rowsByTier, category = "", matches = [] } = {}) {
   await document.fonts?.ready;
-  const { grouped, entries, pageCount } = championPoolPngPages({ rows, rowsByTier });
-  const currentPage = Math.max(0, Math.min(pageCount - 1, pageIndex));
-  const pageEntries = entries.slice(currentPage * POOL_PNG_CHAMPIONS_PER_PAGE, (currentPage + 1) * POOL_PNG_CHAMPIONS_PER_PAGE);
-  const sections = CHAMPION_TIERS.map((tier) => ({ tier, rows: pageEntries.filter((entry) => entry.tier.id === tier.id).map((entry) => entry.row) })).filter((section) => section.rows.length);
+  const { grouped, entries } = championPoolPngData({ rows, rowsByTier });
+  const sections = CHAMPION_TIERS.map((tier) => ({ tier, rows: grouped[tier.id] || [] })).filter((section) => section.rows.length);
   const W = 1440;
   const margin = 64;
   const width = W - margin * 2;
@@ -173,7 +169,7 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
   const fit = (text, x, y, maxWidth, options = {}) => pngFitText(ctx, text, x, y, maxWidth, { font: "500 22px Inter, Arial, sans-serif", min: 20, ...options });
   const images = new Map();
   const logoPromise = pngLoadImage("/assets/nxt5-wordmark.png");
-  await Promise.all(pageEntries.map(async ({ row }) => {
+  await Promise.all(entries.map(async ({ row }) => {
     const sources = championPortraitSources(row, row?.champion);
     let portrait = null;
     for (const source of sources.slice(0, 2)) {
@@ -190,7 +186,7 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
     subtitle: category ? `${category} · ${pngDateRange(matches)}` : [roleLabel(player?.role), `${entries.length} champions`].filter(Boolean).join(" · "),
     logo: await logoPromise,
   });
-  fit(category ? `${roleLabel(player?.role)} · ${entries.length} champions · ${matches.length} games analysées` : "Classement déclaré par le joueur ou le staff", margin, 222, width, { color: PNG_THEME.muted });
+  fit(category ? `${roleLabel(player?.role)} · ${entries.length} champions` : "Classement déclaré par le joueur ou le staff", margin, 222, width, { color: PNG_THEME.muted });
   pngMetricStrip(ctx, { x: margin, y: 246, width, items: CHAMPION_TIERS.map((tier) => ({
     label: tier.id === "danger" ? "En entraînement" : POOL_TIER_LABELS[tier.id],
     value: pngNumber((grouped[tier.id] || []).length),
@@ -203,8 +199,7 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
     pngPanel(ctx, margin, sectionY, width, height, { material: "reading", accent: tier.tone });
     pngPanel(ctx, margin + 1, sectionY + 1, width - 2, 62, { stroke: null, radius: 17 });
     fit(t(tier.id === "danger" ? "En entraînement" : POOL_TIER_LABELS[tier.id]), margin + 28, sectionY + 43, 550, { font: "700 27px Inter, Arial, sans-serif", color: pngAccent(tier.tone) });
-    const total = (grouped[tier.id] || []).length;
-    fit(tierRows.length === total ? `${total} champions` : `${tierRows.length}/${total} champions sur cette page`, W - margin - 28, sectionY + 43, 500, { align: "right", color: PNG_THEME.muted });
+    fit(`${tierRows.length} champions`, W - margin - 28, sectionY + 43, 500, { align: "right", color: PNG_THEME.muted });
     pngLine(ctx, margin + 28, sectionY + 64, W - margin - 28, sectionY + 64);
     const columnWidth = (width - 80) / 2;
     tierRows.forEach((row, index) => {
@@ -216,35 +211,26 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
       if (!pngImageCover(ctx, images.get(championAssetId(row.champion)), x, y, 56, 56, 8)) {
         fit(name.slice(0, 2).toUpperCase(), x + 28, y + 39, 56, { align: "center", color: pngAccent(tier.tone) });
       }
-      const rawGames = pngNumeric(row.games);
-      const games = row.stats_available === true || rawGames > 0 ? rawGames : null;
-      const knownResults = pngNumeric(row.knownResults);
-      const winrate = games > 0 && knownResults !== 0 ? pngNumeric(row.winrate) : null;
-      const statistics = games !== null ? `${pngNumber(games)} game${games > 1 ? "s" : ""}${winrate !== null ? ` · ${pngPercent(winrate)} victoires${knownResults !== null && knownResults < games ? ` (${knownResults}/${games})` : ""}` : ""}` : "";
       const lines = pngWrapText(ctx, name, columnWidth - 80, { font: "600 24px Inter, Arial, sans-serif" });
-      lines.forEach((line, lineIndex) => fit(line, x + 80, y + (statistics ? 23 : 38) + lineIndex * 28, columnWidth - 80, { font: "600 24px Inter, Arial, sans-serif" }));
-      if (statistics) fit(statistics, x + 80, y + 54 + Math.max(0, lines.length - 1) * 28, columnWidth - 80, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+      lines.forEach((line, lineIndex) => fit(line, x + 80, y + 38 + lineIndex * 28, columnWidth - 80, { font: "600 24px Inter, Arial, sans-serif" }));
       if (index + 2 < tierRows.length) pngLine(ctx, x, y + 77, x + columnWidth, y + 77);
     });
     sectionY += height + 24;
   });
   if (!entries.length) fit(t("Aucun champion déclaré"), margin + 28, 443, width - 56, { color: PNG_THEME.muted });
-  pngFooter(ctx, { width: W, height: H, label: `Pool déclaré · ${currentPage + 1}/${pageCount}` });
+  pngFooter(ctx, { width: W, height: H, label: "Pool déclaré" });
   return canvas;
 }
 
 async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushToast, category = "", matches = [] } = {}) {
-  const { entries, pageCount } = championPoolPngPages({ rows, rowsByTier });
+  const { entries } = championPoolPngData({ rows, rowsByTier });
   if (!entries.length) {
     pushToast?.({ type: "yellow", title: "Export vide", text: "Aucun champion déclaré." });
     return;
   }
   try {
-    const canvases = [];
-    for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
-      canvases.push(await renderChampionTierListPng({ player, rows, rowsByTier, category, matches, pageIndex }));
-    }
-    await pngDownloadPages(canvases, `nxt5-pool-${safeExportFilename(player?.name, "joueur")}-${new Date().toISOString().slice(0, 10)}.png`);
+    const canvas = await renderChampionTierListPng({ player, rows, rowsByTier, category, matches });
+    await pngDownloadPages([canvas], `nxt5-pool-${safeExportFilename(player?.name, "joueur")}-${new Date().toISOString().slice(0, 10)}.png`);
     pushToast?.({ type: "cyan", title: "Pool exporté", text: `${entries.length} champions · une image PNG.` });
   } catch (err) {
     pushToast?.({ type: "red", title: "Export impossible", text: err?.message || "Le navigateur n'a pas pu générer le PNG." });
@@ -811,6 +797,6 @@ function championMatchesLane(champion, lane) {
   return (ALL_CHAMPION_LANE_POOLS[lane] || []).includes(id);
 }
 
-export { renderChampionTierListPng, championPoolPngPages, ROSTER_ROLE_ORDER, COMP_ROLES, canStaffManage, STAFF_ACCESS_ROLE_IDS, TEAM_ACCESS_ROLES, isGameplayRole, isStaffRole, STAFF_ROLES, lazyNamed, loadNextPhase, championDisplayName, championAssetId, CHAMPION_ASSET_ALIASES, championKey, sortPlayersByRole, ROLE_ORDER, teamMatchRows, normalizeProfileRole, buildStaffAlerts, playerDisplayFromRow, parsePercent, formatCountdown, ChampionPortrait, championPortraitSources, DDRAGON_FALLBACK_VERSIONS, playerIntegratedRows, normalizeProfileKey, matchCategoryTone, matchImportDateLabel, championMatchesLane, ALL_CHAMPION_LANE_POOLS, CHAMPION_LANE_POOLS, ADDITIONAL_CHAMPION_LANE_POOLS, formatPoints, formatGoldDiff, objectiveTeamId, teamRows, sumRows, statValue, storedTimelineFrames, compactTimelineEvents, diffTone, matchTimelineFrames, participantTeamMap, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, compositionIdentity, championStyleTags, ALL_CHAMPION_STYLE_TAGS, CHAMPION_STYLE_TAGS, ADDITIONAL_CHAMPION_STYLE_TAGS, championStyleTone, tagLabel, objectiveTeamSummary, objectiveTeamAnyValue, objectiveTeamValue, ChampionBackdrop, championSplashUrl, championSplashFocus, itemIconSources, summonerSpellIconSources, SUMMONER_SPELLS, itemSlots, participantNumber, itemIndexFromKey, participantSources, participantStoredRaw, safeJsonParse, participantRaw, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, CategoryFilter, championPoolRowsByTier, championPoolStatus, CHAMPION_TIERS, exportChampionTierListPng, safeExportFilename, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championTierFrame, championPoolStatusLabel, championPoolStatusTone };
+export { renderChampionTierListPng, ROSTER_ROLE_ORDER, COMP_ROLES, canStaffManage, STAFF_ACCESS_ROLE_IDS, TEAM_ACCESS_ROLES, isGameplayRole, isStaffRole, STAFF_ROLES, lazyNamed, loadNextPhase, championDisplayName, championAssetId, CHAMPION_ASSET_ALIASES, championKey, sortPlayersByRole, ROLE_ORDER, teamMatchRows, normalizeProfileRole, buildStaffAlerts, playerDisplayFromRow, parsePercent, formatCountdown, ChampionPortrait, championPortraitSources, DDRAGON_FALLBACK_VERSIONS, playerIntegratedRows, normalizeProfileKey, matchCategoryTone, matchImportDateLabel, championMatchesLane, ALL_CHAMPION_LANE_POOLS, CHAMPION_LANE_POOLS, ADDITIONAL_CHAMPION_LANE_POOLS, formatPoints, formatGoldDiff, objectiveTeamId, teamRows, sumRows, statValue, storedTimelineFrames, compactTimelineEvents, diffTone, matchTimelineFrames, participantTeamMap, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, compositionIdentity, championStyleTags, ALL_CHAMPION_STYLE_TAGS, CHAMPION_STYLE_TAGS, ADDITIONAL_CHAMPION_STYLE_TAGS, championStyleTone, tagLabel, objectiveTeamSummary, objectiveTeamAnyValue, objectiveTeamValue, ChampionBackdrop, championSplashUrl, championSplashFocus, itemIconSources, summonerSpellIconSources, SUMMONER_SPELLS, itemSlots, participantNumber, itemIndexFromKey, participantSources, participantStoredRaw, safeJsonParse, participantRaw, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, CategoryFilter, championPoolRowsByTier, championPoolStatus, CHAMPION_TIERS, exportChampionTierListPng, safeExportFilename, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championTierFrame, championPoolStatusLabel, championPoolStatusTone };
 
 export const POOL_TIER_LABELS = { lock: "Confiance", pocket: "Situationnel", work: "En validation", danger: "En entraînement" };

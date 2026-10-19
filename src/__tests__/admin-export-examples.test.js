@@ -10,6 +10,8 @@ vi.mock("../utils/png-report.js", async (importOriginal) => ({
   pngLoadImage: vi.fn(async () => null),
 }));
 
+import { championDisplayName } from "../../shared/champions.js";
+
 let drawnText;
 
 beforeEach(() => {
@@ -62,6 +64,60 @@ describe("site export catalogue integration", () => {
     const full = await renderGamePublicationPng(snapshot);
     expect(full.width).toBe(1440);
     for (const participant of snapshot.participants.filter(row => row.teamKey === "ENEMY")) expect(drawnText.join(" ")).toContain(participant.name);
+  });
+});
+
+describe("continuous PNG reports", () => {
+  const champions = ["Aatrox", "Ahri", "Akali", "Alistar", "Amumu", "Anivia", "Annie", "Aphelios", "Ashe", "AurelionSol", "Azir", "Bard", "Blitzcrank", "Brand", "Braum", "Caitlyn", "Camille", "Cassiopeia", "Chogath", "Corki", "Darius", "Diana", "DrMundo", "Draven", "Ekko", "Elise", "Evelynn", "Ezreal"];
+  const player = { name: "Joueur export continu", role: "MID" };
+
+  it("keeps a large champion pool together without performance stats or page markers", async () => {
+    const { renderChampionTierListPng } = await import("../pages/workspace/workspace-shared.jsx");
+    const rows = champions.map(champion => ({ champion, status: "lock", games: 10, knownResults: 10, winrate: 80, stats_available: true }));
+    const canvas = await renderChampionTierListPng({ player, rows });
+    expect(canvas.height).toBeGreaterThan(1800);
+    for (const champion of champions) expect(drawnText).toContain(championDisplayName(champion));
+    expect(drawnText.filter(text => text === player.name)).toHaveLength(1);
+    expect(drawnText.filter(text => text.startsWith("Exporté le "))).toHaveLength(1);
+    expect(drawnText.join(" ")).not.toMatch(/victoires|games|winrate|%|sur cette page|Pool déclaré · \d+\/\d+/i);
+  });
+
+  it("keeps every played champion in the same profile below a single summary", async () => {
+    const { renderPlayerProfilePng } = await import("../pages/workspace/PlayerUltimateProfile.jsx");
+    const rows = champions.map(champion => ({ champion, match: { result: "Victoire" } }));
+    const canvas = await renderPlayerProfilePng({ player, rows });
+    expect(canvas.height).toBeGreaterThan(3000);
+    for (const champion of champions) expect(drawnText).toContain(championDisplayName(champion));
+    for (const label of [player.name, "Moyennes par game", "Champions joués"]) expect(drawnText.filter(text => text === label)).toHaveLength(1);
+    expect(drawnText.filter(text => text.startsWith("Exporté le "))).toHaveLength(1);
+    expect(drawnText.join(" ")).not.toMatch(/Profil joueur · \d+\/\d+/);
+  });
+
+  it("grows a group report to keep all games and champions under one header", async () => {
+    const { renderStatsPng } = await import("../pages/workspace/GameWorkspace.jsx");
+    const matches = champions.map((champion, index) => ({
+      game_id: `CONTINUOUS_${index + 1}`, opponent: `Adversaire ${index + 1}`,
+      participants: [{ team_key: "ALLY", champion }],
+    }));
+    const canvases = await renderStatsPng({ title: "Groupe export continu", matches, group: true });
+    expect(canvases).toHaveLength(1);
+    expect(canvases[0].height).toBeGreaterThan(4000);
+    for (const match of matches) expect(drawnText).toContain(match.game_id);
+    for (const champion of champions) expect(drawnText).toContain(championDisplayName(champion));
+    for (const label of ["Groupe export continu", "Moyennes par game", "Games · 28", "Champions joués · nombre de picks"]) expect(drawnText.filter(text => text === label)).toHaveLength(1);
+    expect(drawnText.filter(text => text.startsWith("Exporté le "))).toHaveLength(1);
+    expect(drawnText.join(" ")).not.toMatch(/Groupe de games · \d+\/\d+/);
+  });
+
+  it("expands the group image for a game name taller than the old page limit", async () => {
+    const { renderStatsPng } = await import("../pages/workspace/GameWorkspace.jsx");
+    const canvases = await renderStatsPng({ matches: [{
+      game_id: "VERY_LONG_GAME", opponent: "Adversaires de démonstration ".repeat(180), participants: [],
+    }], group: true });
+    expect(canvases).toHaveLength(1);
+    expect(canvases[0].height).toBeGreaterThan(3000);
+    expect(drawnText).toContain("VERY_LONG_GAME");
+    expect(drawnText.filter(text => text.startsWith("Exporté le "))).toHaveLength(1);
   });
 });
 

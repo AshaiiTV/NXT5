@@ -11,14 +11,16 @@ const consent = (choice = "accepted", lifetime = 86_400_000) => ({
   choice, version: AUDIENCE_CONSENT_VERSION, expiresAt: new Date(Date.now() + lifetime).toISOString(),
 });
 
-function browser({ cookieBlocked = false } = {}) {
-  const jar = new Map();
+function browser({ cookieBlocked = false, jar = new Map(), broadcast = true, beforeCookieWrite } = {}) {
+  const cookieWrites = [];
   const doc = new EventTarget();
   Object.assign(doc, { visibilityState: "visible", referrer: "", documentElement: { scrollHeight: 2000 } });
   Object.defineProperty(doc, "cookie", {
     get: () => [...jar].map(([key, value]) => `${key}=${value}`).join("; "),
     set: value => {
+      cookieWrites.push(value);
       if (cookieBlocked) return;
+      beforeCookieWrite?.(value);
       const [pair, ...attributes] = value.split(";");
       const [key, ...rest] = pair.split("=");
       if (attributes.some(attribute => attribute.trim() === "Max-Age=0")) jar.delete(key);
@@ -31,13 +33,13 @@ function browser({ cookieBlocked = false } = {}) {
     location: { href: "https://nxt5.org/", protocol: "https:" }, innerHeight: 1000, scrollY: 0,
     setInterval: (...args) => globalThis.setInterval(...args),
     clearInterval: id => globalThis.clearInterval(id),
-    BroadcastChannel: class {
+    BroadcastChannel: broadcast ? class {
       constructor() { channels.push(this); }
       postMessage = vi.fn();
       close = vi.fn();
-    },
+    } : undefined,
   });
-  return { win, doc, channels };
+  return { win, doc, channels, cookieWrites };
 }
 
 const clients = [];
@@ -184,6 +186,26 @@ describe("consent-gated audience collection", () => {
     expect(h.events()).toEqual([]);
   });
 
+  it("removes a prior local refusal only after a current explicit acceptance is saved", async () => {
+    let h;
+    h = setup({ handler: (path, options) => path === "audience-consent" && options.method !== "POST" && h.doc.cookie.includes("nxt5_audience_optout=1")
+      ? { choice: "rejected", version: AUDIENCE_CONSENT_VERSION, expiresAt: null } : undefined });
+    h.doc.cookie = "nxt5_audience_optout=1";
+    await h.open();
+    expect(h.client.getState().choice).toBe("rejected");
+    expect(h.events()).toEqual([]);
+    expect(await h.client.choose(false)).toBe(true);
+    const refusalRevision = h.doc.cookie.split("; ").find(value => value.startsWith("nxt5_audience_choice_revision="));
+    expect(await h.client.choose(true)).toBe(true);
+    await settle();
+    expect(h.doc.cookie).not.toContain("nxt5_audience_optout=1");
+    expect(h.client.getState().choice).toBe("accepted");
+    expect(h.events().map(event => event.type)).toEqual(["pageview"]);
+    expect(h.doc.cookie).toContain(refusalRevision);
+    expect(h.cookieWrites.find(value => value.startsWith("nxt5_audience_choice_revision="))).toContain("Max-Age=600; SameSite=Lax; Secure");
+    expect(JSON.stringify(h.events())).not.toContain("nxt5_audience_choice_revision");
+  });
+
   it("does not restart from an acceptance confirmation superseded by a cross-tab refusal", async () => {
     const confirmation = deferred();
     let reads = 0;
@@ -200,6 +222,165 @@ describe("consent-gated audience collection", () => {
     expect(h.client.getState().choice).toBe("rejected");
     expect(h.events()).toEqual([]);
     disconnect();
+  });
+
+  it.each([true, false])("preserves a pending cross-tab refusal before its HTTP response or broadcast arrives (BroadcastChannel: %s)", async broadcast => {
+    const jar = new Map(), acceptance = deferred(), refusal = deferred();
+    const first = setup({ jar, broadcast, initialConsent: consent(), handler: (path, options) => path === "audience-consent" && options.method === "POST" ? acceptance.promise : undefined });
+    const second = setup({ jar, broadcast, initialConsent: consent(), handler: (path, options) => path === "audience-consent" && options.method === "POST" ? refusal.promise : undefined });
+    const disconnect = [first.client.connect(), second.client.connect()];
+    try {
+      await first.open(); await second.open();
+      const before = first.events().length;
+      const oldAcceptance = first.client.choose(true);
+      const newRefusal = second.client.choose(false);
+      expect(second.client.getState()).toMatchObject({ choice: "rejected", saving: true });
+      if (broadcast) expect(second.channels[0].postMessage).toHaveBeenCalledWith({ changed: true, pending: true });
+      // Broadcasts are deliberately not delivered, and the refusal POST stays
+      // pending while the older acceptance response reaches the other tab.
+      acceptance.resolve(consent());
+      expect(await oldAcceptance).toBe(false);
+      await first.client.initialize(true);
+      expect(await first.client.trackEvent("login")).toBe(false);
+      expect(first.events()).toHaveLength(before);
+      expect(first.doc.cookie).toContain("nxt5_audience_optout=1");
+      refusal.reject(new Error("offline"));
+      expect(await newRefusal).toBe(false);
+      await first.client.initialize(true);
+      expect(first.client.getState().choice).toBe("rejected");
+      expect(first.events()).toHaveLength(before);
+    } finally { disconnect.forEach(stop => stop()); }
+  });
+
+  it("rechecks the shared revision after a delayed acceptance confirmation without BroadcastChannel", async () => {
+    const jar = new Map(), confirmation = deferred(), refusal = deferred();
+    let reads = 0;
+    const first = setup({ jar, broadcast: false, handler: (path, options) => path === "audience-consent" && options.method !== "POST" && ++reads === 2 ? confirmation.promise : undefined });
+    const second = setup({ jar, broadcast: false, handler: (path, options) => path === "audience-consent" && options.method === "POST" ? refusal.promise : undefined });
+    await first.open(); await second.open();
+    const oldAcceptance = first.client.choose(true);
+    await settle();
+    const newRefusal = second.client.choose(false);
+    confirmation.resolve(consent());
+    expect(await oldAcceptance).toBe(false);
+    expect(await first.client.trackEvent("login")).toBe(false);
+    expect(first.events()).toEqual([]);
+    refusal.resolve(consent("rejected"));
+    expect(await newRefusal).toBe(true);
+  });
+
+  it("restores a durable refusal if another tab changes its choice between the revision check and optout removal", async () => {
+    const jar = new Map(), refusal = deferred();
+    let newRefusal;
+    const second = setup({ jar, broadcast: false, handler: (path, options) => path === "audience-consent" && options.method === "POST" ? refusal.promise : undefined });
+    const first = setup({ jar, broadcast: false, beforeCookieWrite: value => {
+      if (!newRefusal && value.startsWith("nxt5_audience_optout=") && value.includes("Max-Age=0")) newRefusal = second.client.choose(false);
+    } });
+    await first.open(); await second.open();
+    expect(await first.client.choose(true)).toBe(false);
+    expect(first.doc.cookie).toContain("nxt5_audience_optout=1");
+    refusal.reject(new Error("offline"));
+    expect(await newRefusal).toBe(false);
+    jar.delete("nxt5_audience_choice_revision"); // The 10-minute ordering guard expires.
+    await first.client.initialize(true);
+    expect(first.client.getState().choice).toBe("rejected");
+    expect(first.events()).toEqual([]);
+  });
+
+  it("never writes over a refusal that arrives while an older acceptance is being initiated", async () => {
+    const jar = new Map(), refusal = deferred();
+    let newRefusal;
+    const second = setup({ jar, broadcast: false, handler: (path, options) => path === "audience-consent" && options.method === "POST" ? refusal.promise : undefined });
+    const first = setup({ jar, broadcast: false, beforeCookieWrite: value => {
+      if (!newRefusal && value.startsWith("nxt5_audience_optout=1")) newRefusal = second.client.choose(false);
+    } });
+    await first.open(); await second.open();
+    expect(await first.client.choose(true)).toBe(false);
+    expect(first.cookieWrites.some(value => value.startsWith("nxt5_audience_choice_revision="))).toBe(false);
+    expect(first.doc.cookie).toContain("nxt5_audience_optout=1");
+    expect(first.events()).toEqual([]);
+    refusal.reject(new Error("offline"));
+    expect(await newRefusal).toBe(false);
+  });
+
+  it("uses distinct refusal guards even when choices occur in the same millisecond", async () => {
+    const h = setup();
+    await h.open();
+    expect(await h.client.choose(false)).toBe(true);
+    const previous = h.doc.cookie;
+    expect(await h.client.choose(false)).toBe(true);
+    expect(h.doc.cookie).not.toBe(previous);
+    expect(h.uuid).not.toHaveBeenCalled();
+  });
+
+  it("keeps a completed explicit acceptance active after its earlier refusal guard expires", async () => {
+    const jar = new Map(), h = setup({ jar });
+    await h.open();
+    expect(await h.client.choose(false)).toBe(true);
+    expect(await h.client.choose(true)).toBe(true);
+    jar.delete("nxt5_audience_choice_revision");
+    await vi.advanceTimersByTimeAsync(15000);
+    await h.client.initialize(true);
+    expect(h.client.getState().choice).toBe("accepted");
+    expect(await h.client.trackEvent("login")).toBe(true);
+  });
+
+  it("rejects an old acceptance resumed after a newer refusal guard expired in a suspended tab", async () => {
+    const jar = new Map(), acceptance = deferred(), refusal = deferred();
+    const first = setup({ jar, broadcast: false, initialConsent: consent(), handler: (path, options) => path === "audience-consent" && options.method === "POST" ? acceptance.promise : undefined });
+    const second = setup({ jar, broadcast: false, initialConsent: consent(), handler: (path, options) => path === "audience-consent" && options.method === "POST" ? refusal.promise : undefined });
+    await first.open(); await second.open();
+    const before = first.events().length;
+    const oldAcceptance = first.client.choose(true);
+    const newRefusal = second.client.choose(false);
+    await vi.advanceTimersByTimeAsync(600001);
+    jar.delete("nxt5_audience_choice_revision");
+    acceptance.resolve(consent());
+    expect(await oldAcceptance).toBe(false);
+    expect(first.doc.cookie).toContain("nxt5_audience_optout=1");
+    expect(first.events()).toHaveLength(before);
+    refusal.reject(new Error("offline"));
+    await newRefusal;
+  });
+
+  it("restores refusal after optout removal races with a refusal and its confirmation resumes after guard expiry", async () => {
+    const jar = new Map(), confirmation = deferred(), refusal = deferred();
+    let newRefusal, reads = 0;
+    const second = setup({ jar, broadcast: false, handler: (path, options) => path === "audience-consent" && options.method === "POST" ? refusal.promise : undefined });
+    const first = setup({ jar, broadcast: false,
+      handler: (path, options) => path === "audience-consent" && options.method !== "POST" && ++reads === 2 ? confirmation.promise : undefined,
+      beforeCookieWrite: value => {
+        if (!newRefusal && value.startsWith("nxt5_audience_optout=") && value.includes("Max-Age=0")) newRefusal = second.client.choose(false);
+      },
+    });
+    await first.open(); await second.open();
+    const oldAcceptance = first.client.choose(true);
+    await settle();
+    expect(newRefusal).toBeDefined();
+    await vi.advanceTimersByTimeAsync(601000);
+    jar.delete("nxt5_audience_choice_revision");
+    confirmation.resolve(consent());
+    expect(await oldAcceptance).toBe(false);
+    await first.client.initialize(true);
+    expect(first.doc.cookie).toContain("nxt5_audience_optout=1");
+    expect(first.client.getState().choice).toBe("rejected");
+    expect(await first.client.trackEvent("login")).toBe(false);
+    expect(first.events()).toEqual([]);
+    refusal.reject(new Error("offline"));
+    await newRefusal;
+  });
+
+  it("fails closed when shared choice cookies cannot be written, including later refreshes", async () => {
+    let serverAccepted = false;
+    const h = setup({ cookieBlocked: true, handler: path => path === "audience-consent" && serverAccepted ? consent() : undefined });
+    await h.open();
+    expect(await h.client.choose(true)).toBe(false);
+    expect(h.request.mock.calls.some(([, options]) => options?.method === "POST")).toBe(false);
+    serverAccepted = true;
+    await h.client.initialize(true);
+    expect(h.client.getState().choice).toBe("rejected");
+    expect(h.events()).toEqual([]);
+    expect(h.uuid).not.toHaveBeenCalled();
   });
 });
 

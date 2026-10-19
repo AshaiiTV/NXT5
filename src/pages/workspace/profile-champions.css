@@ -21,18 +21,21 @@
 .profile-champions-heading > div { flex: 1 1 300px; }
 .profile-champions-heading > p { flex: 0 1 330px; color: var(--nxt5-text-secondary); }
 .profile-champions-heading :where(h3, h4) + p { margin-top: 5px; color: var(--nxt5-text-secondary); }
-.profile-champions-toolbar { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-bottom: 16px; padding-block: 20px; border-block: 1px solid var(--nxt5-border); }
+.profile-champions-toolbar { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, .55fr); gap: 16px; margin-bottom: 16px; padding-block: 20px; border-block: 1px solid var(--nxt5-border); }
 .profile-champions-toolbar > label > span { display: block; margin-bottom: 7px; font-size: var(--nxt5-font-ui); font-weight: 650; text-transform: none; letter-spacing: normal; color: var(--nxt5-text); }
 .profile-champions-search > div { display: flex; align-items: center; gap: 10px; padding: 0 12px; min-height: 46px; border: 1px solid rgba(165, 243, 252, .2); border-radius: var(--nxt5-radius-control, 10px); background: var(--nxt5-field); }
 .profile-champions-search > div:focus-within { border-color: #67e8f9; outline: 2px solid rgba(103, 232, 249, .3); outline-offset: 2px; }
 .profile-champions-search svg { flex: 0 0 auto; color: #a5f3fc; }
 .profile-champions-search input { width: 100%; color: var(--nxt5-text); background: transparent; border: 0; outline: 0; }
 .profile-champions-search input:focus-visible { outline: 0; }
+.profile-champions-sort-hint { padding-bottom: 12px; color: var(--nxt5-text-secondary); }
 .profile-champions-list { margin-top: 12px; border-top: 1px solid var(--nxt5-border, rgba(207, 250, 254, .13)); }
 .profile-champion-row { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr) minmax(260px, .95fr) 10rem; gap: 24px; align-items: center; padding: 20px 12px; border: 0; border-bottom: 1px solid var(--nxt5-border); background: transparent; text-align: left; color: var(--nxt5-text); transition: background 160ms; }
 .profile-champions-sort { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .95fr) 10rem; gap: 24px; align-items: center; padding: 4px 12px; border-bottom: 1px solid var(--nxt5-border); }
 .profile-champions-sort > .nxt5-sort-button { justify-self: start; }
-.profile-champions-sort .profile-champion-row-metrics > .nxt5-sort-button { padding-left: 16px; }
+.profile-champions-sort .profile-champion-row-metrics > .nxt5-sort-button { padding-left: 16px; flex-wrap: wrap; row-gap: 4px; }
+.profile-champions-sort .profile-champion-row-metrics > .nxt5-sort-button > span { overflow-wrap: normal; }
+.profile-champion-ranking-heading { display: flex; align-items: center; padding-left: 16px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); }
 .profile-champion-row:hover { background: linear-gradient(110deg,rgba(103,232,249,.04),rgba(139,92,246,.13),transparent); }
 .profile-champion-row .profile-champion-identity > img { width: 64px; height: 64px; border: 1px solid var(--nxt5-glass-border); box-shadow: 0 3px 18px rgba(139,92,246,.16); }
 .profile-champion-identity { display: flex; align-items: center; gap: 12px; }
@@ -41,6 +44,7 @@
 .profile-champion-identity strong { display: block; font-weight: 700; }
 .profile-champion-row .profile-champion-identity strong { font-size: 18px; letter-spacing: -.02em; }
 .profile-champion-row-metrics { display: grid; grid-template-columns: .6fr 1fr 1fr; gap: 16px; }
+.profile-champion-row-metrics-combined { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .profile-champion-mini { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .profile-champion-mini > span { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 450; line-height: 1.4; }
 .profile-champion-mini > strong { font-size: var(--nxt5-font-body); font-weight: 700; color: var(--nxt5-text); font-variant-numeric: tabular-nums; }
@@ -114,6 +118,7 @@
   .profile-champions-sort { grid-template-columns: minmax(0, 1fr) minmax(200px, .85fr); }
   .profile-champions-sort > span { display: none; }
   .profile-champion-row { grid-template-columns: minmax(0, 1fr) minmax(200px, .85fr); }
+  .profile-champion-row-metrics-combined { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 12px; }
   .profile-champion-row-action { grid-column: 1 / -1; justify-content: flex-end; }
   .profile-champion-metrics, .profile-champion-deltas { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .profile-champion-game > summary { grid-template-columns: minmax(0, 1fr) auto; }
@@ -128,6 +133,8 @@
   .profile-champions-toolbar, .profile-champion-row, .profile-champion-reference-grid, .profile-champion-participants { grid-template-columns: minmax(0, 1fr); }
   .profile-champion-row { gap: 12px; padding: 16px 0; }
   .profile-champion-row-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .profile-champion-row-metrics-combined { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 12px; }
+  .profile-champion-ranking-heading { padding-left: 0; }
   .profile-champion-row-metrics > .profile-champion-mini { padding-left: 12px; }
   .profile-champion-row-metrics > .profile-champion-mini:first-child { padding-left: 0; border-left: 0; }
   .profile-champion-row-action { justify-content: flex-start; }

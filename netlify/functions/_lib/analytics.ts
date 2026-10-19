@@ -8,6 +8,7 @@ import { sql } from './db';
 import type { RiotMatch } from './types';
 import { assertImportMatch, assertImportPlayerAssignments, normalizeImportCategoryIds } from './import-validation';
 import { assertMatchHasCategory } from './match-categories';
+import { assertImportRequestActive } from './match-import-request';
 import { TEAM_STAFF_ROLES } from './teams';
 import { assertImportOpponentAvailable, importOpponentInput, importOpponentQueries } from './opponents';
 
@@ -407,7 +408,8 @@ async function runImportSideEffect(label: string, task: () => Promise<unknown>) 
   }
 }
 
-export async function persistAnalyzedMatch({ team, gameId, match, roster, userId, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [], opponentId, newOpponentName }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId: string; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[]; opponentId?: unknown; newOpponentName?: unknown }) {
+export async function persistAnalyzedMatch({ team, gameId, match, roster, userId, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [], opponentId, newOpponentName, signal }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId: string; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[]; opponentId?: unknown; newOpponentName?: unknown; signal?: AbortSignal }) {
+  assertImportRequestActive(signal);
   const opponentSelection = importOpponentInput(opponentId, newOpponentName);
   assertImportMatch(match);
   const validCategoryIds = normalizeImportCategoryIds(categoryIds);
@@ -467,6 +469,9 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
   let savedMatch;
   let firstImport = false;
   let inserted = false;
+  // Cancellation is accepted only before the atomic batch starts. Never abort
+  // its transport: a committed match must retain a successful import receipt.
+  assertImportRequestActive(signal);
   try {
     const results = await sql.transaction(tx => [
       // Same ordering is used by category deletion; imports of one team cannot

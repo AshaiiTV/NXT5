@@ -14,6 +14,7 @@ import { AUDIENCE_SCHEMA_VERSION, COOKIE, CONSENT_SECONDS, GOALS } from '../../n
 import { audiencePeriod, loadAudienceReport } from '../../netlify/functions/_lib/audience-report';
 import { recordRegistrationSignup } from '../../netlify/functions/_lib/audience-registration';
 import { canonicalAudiencePath, sanitizeCampaignValue } from '../app/audience-paths.js';
+import { createAudienceClient } from '../app/audience-client.js';
 
 let db: PGlite;
 let beforeCollection: (() => Promise<void>) | null = null;
@@ -131,7 +132,75 @@ describe('first-party consent and event security', () => {
     expect((await collect(request('audience-events',event()),client.context)).status).toBe(403);
     expect(await (await consent(request('audience-consent'),client.context)).json()).toMatchObject({ choice:'rejected' });
     expect(query).not.toHaveBeenCalled();
-    await accept(client); expect(client.jar.has(COOKIE.optout)).toBe(false);
+    client.set.mockClear();
+    await accept(client);
+    expect(client.jar.get(COOKIE.optout)).toBe('1');
+    expect(client.set.mock.calls.some(([cookie]: any) => cookie.name === COOKIE.optout)).toBe(false);
+    // Only the browser that confirms a still-current explicit acceptance may
+    // remove its local refusal; a delayed HTTP response cannot do that for it.
+    client.jar.delete(COOKIE.optout);
+    expect(await (await consent(request('audience-consent'),client.context)).json()).toMatchObject({ choice:'accepted' });
+  });
+
+  it('preserves a newer cross-tab refusal when an older acceptance response delivers its cookies late', async () => {
+    const client = browser();
+    let releaseAcceptance!: () => void, acceptanceBuffered!: () => void;
+    const responseDelivery = new Promise<void>(resolve => { releaseAcceptance = resolve; });
+    const buffered = new Promise<void>(resolve => { acceptanceBuffered = resolve; });
+    let channel: { onmessage?: (event: any) => void } | undefined;
+    const doc = new EventTarget();
+    Object.assign(doc, { visibilityState: 'visible', documentElement: { scrollHeight: 1000 } });
+    Object.defineProperty(doc, 'cookie', {
+      get: () => [...client.jar].map(([key, value]) => `${key}=${value}`).join('; '),
+      set: (value: string) => {
+        const [pair, ...attributes] = value.split(';');
+        const [key, ...rest] = pair.split('=');
+        if (attributes.some(attribute => attribute.trim() === 'Max-Age=0')) client.jar.delete(key);
+        else client.jar.set(key, rest.join('='));
+      },
+    });
+    const win = new EventTarget();
+    Object.assign(win, {
+      location: { href: 'https://nxt5.org/', protocol: 'https:' }, innerHeight: 1000, scrollY: 0,
+      setInterval: () => 1, clearInterval: () => {},
+      BroadcastChannel: class {
+        constructor() { channel = this; }
+        onmessage?: (event: any) => void;
+        postMessage() {} close() {}
+      },
+    });
+    const audienceClient = createAudienceClient({ win, doc, uuid: uid, request: async (path: string, options: any = {}) => {
+      const snapshot = new Map(client.jar);
+      const responseCookies: any[] = [];
+      const context = { ...client.context, cookies: { get: (name: string) => snapshot.get(name), set: (cookie: any) => responseCookies.push(cookie) } };
+      const body = options.method === 'POST' ? JSON.parse(options.body) : undefined;
+      const response = await (path === 'audience-consent' ? consent : collect)(request(path, body), context);
+      if (path === 'audience-consent' && body?.analytics === true) {
+        acceptanceBuffered();
+        await responseDelivery;
+      }
+      // HTTP applies Set-Cookie before fetch resolves, even for a stale reply.
+      responseCookies.forEach(cookie => client.context.cookies.set(cookie));
+      return response.json();
+    } });
+    const disconnect = audienceClient.connect();
+    try {
+      audienceClient.setContext({ path: '/', excluded: false });
+      await audienceClient.initialize();
+      const pendingAcceptance = audienceClient.choose(true);
+      await buffered;
+      client.jar.set(COOKIE.optout, '1');
+      await consent(request('audience-consent', { analytics: false }), client.context);
+      channel?.onmessage?.({ data: { changed: true } });
+      releaseAcceptance();
+      expect(await pendingAcceptance).toBe(false);
+      await audienceClient.initialize(true);
+      expect(await audienceClient.trackEvent('login')).toBe(false);
+      expect(audienceClient.getState().choice).toBe('rejected');
+      expect(client.jar.get(COOKIE.optout)).toBe('1');
+      expect(await rows('audience_pages')).toEqual([]);
+      expect(await (await consent(request('audience-consent'), client.context)).json()).toMatchObject({ choice: 'rejected' });
+    } finally { releaseAcceptance(); disconnect(); }
   });
 
   it('bounds rejection persistence while withdrawal still revokes an accepted proof at the limit', async () => {

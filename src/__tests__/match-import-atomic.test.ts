@@ -6,6 +6,7 @@ const database = vi.hoisted(() => ({
   pg: null as any,
   statements: [] as string[],
   matchQuery: null as null | { query: string; params: unknown[] },
+  afterQuery: null as null | ((query: string) => void),
   beforeBatch: null as null | (() => Promise<void>)
 }));
 
@@ -20,6 +21,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
       database.statements.push(statement.query);
       if (statement.query.includes('from match_page matches')) database.matchQuery = statement;
       const result = await connection.query(statement.query, statement.params);
+      database.afterQuery?.(statement.query);
       return {
         fields: result.fields,
         rows: result.rows.map((row: any) => result.fields.map((field: any) => {
@@ -155,6 +157,7 @@ beforeEach(async () => {
   for (const key of ['AWS_LAMBDA_FUNCTION_NAME', 'LAMBDA_TASK_ROOT', 'SITE_ID']) vi.stubEnv(key, '');
   vi.stubEnv('CONTEXT', 'dev');
   database.beforeBatch = null;
+  database.afterQuery = null;
   await database.pg.exec('alter table match_participants drop constraint if exists reject_test_stat; alter table champion_pool drop constraint if exists reject_pool_refresh; truncate users cascade');
   await database.pg.query('insert into users(id, account_name, name, password_hash) values ($1, $2, $3, $4)', [userId, 'test', 'Test account', 'unused']);
   for (const id of [teamId, otherTeamId]) {
@@ -357,6 +360,73 @@ describe('opponent affiliation within the match import transaction', () => {
     database.beforeBatch = async () => { await query('update teams set owner_id=$1 where id=$2', [otherOwner, teamId]); };
     await expect(persistAnalyzedMatch({ ...importArgs(), newOpponentName: 'Unauthorized orphan' })).rejects.toMatchObject({ status: 409 });
     expect((await storedMatch()).matches).toHaveLength(0); expect(await query('select id from team_opponents')).toHaveLength(0);
+  });
+});
+
+describe('cancelled match import requests', () => {
+  function request(args: any, signal: AbortSignal, payload = args.match) {
+    return new Request('https://nxt5.example/test', {
+      method: 'POST', signal, headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ ...args, teamId, payload })
+    });
+  }
+
+  async function expectNoImport() {
+    expect(await storedMatch()).toEqual({ matches: [], participants: [], archives: [] });
+    expect((await database.pg.query('select * from reports')).rows).toEqual([]);
+    expect((await database.pg.query("select * from audit_logs where action in ('match.import','match.import_file')")).rows).toEqual([]);
+    expect((await database.pg.query('select first_import_at from teams where id=$1', [teamId])).rows[0].first_import_at).toBeNull();
+    expect(sendNotification).not.toHaveBeenCalled();
+  }
+
+  it.each(['file', 'riot'])('rejects an already cancelled %s request before work starts', async kind => {
+    const args = importArgs();
+    const controller = new AbortController();
+    controller.abort();
+    vi.mocked(fetchRiotMatch).mockResolvedValue(args.match);
+    const response = await (kind === 'file' ? importFile : importRiot)(request(args, controller.signal), {} as any);
+    expect(response.status).toBe(408);
+    expect(await response.json()).toMatchObject({ code: 'NXT5_IMPORT_CANCELLED' });
+    expect(database.statements).toEqual([]);
+    await expectNoImport();
+  });
+
+  it.each(['file', 'riot'])('cancels the Riot lookup for a %s request without persisting', async kind => {
+    const args = importArgs();
+    const controller = new AbortController();
+    vi.mocked(fetchRiotMatch).mockImplementationOnce(async (_gameId, options) => {
+      controller.abort();
+      options?.signal?.throwIfAborted();
+      return args.match;
+    });
+    // The file path also accepts an envelope containing only a Riot game ID.
+    const response = await (kind === 'file' ? importFile : importRiot)(request(args, controller.signal, { gameId: args.gameId }), {} as any);
+    expect(response.status).toBe(408);
+    expect(await response.json()).toMatchObject({ code: 'NXT5_IMPORT_CANCELLED' });
+    expect(vi.mocked(fetchRiotMatch).mock.calls.at(-1)?.[1]?.signal?.aborted).toBe(true);
+    await expectNoImport();
+  });
+
+  it('rechecks a local file cancellation after reference reads and before the transaction', async () => {
+    const controller = new AbortController();
+    database.afterQuery = query => {
+      if (/select id from match_categories where team_id/.test(query)) controller.abort();
+    };
+    const response = await importFile(request(importArgs(), controller.signal), {} as any);
+    expect(response.status).toBe(408);
+    expect(await response.json()).toMatchObject({ code: 'NXT5_IMPORT_CANCELLED' });
+    await expectNoImport();
+  });
+
+  it('completes an atomic write already started when cancellation arrives', async () => {
+    const controller = new AbortController();
+    database.beforeBatch = async () => { controller.abort(); };
+    const response = await importFile(request(importArgs(), controller.signal), {} as any);
+    expect(controller.signal.aborted).toBe(true);
+    expect(response.status).toBe(200);
+    expect((await storedMatch()).matches).toHaveLength(1);
+    expect((await storedMatch()).participants).toHaveLength(10);
+    expect(sendNotification).toHaveBeenCalledTimes(1);
   });
 });
 
