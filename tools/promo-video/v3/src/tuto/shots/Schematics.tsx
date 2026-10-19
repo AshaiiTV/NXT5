@@ -115,6 +115,79 @@ export const DownloadSchema: React.FC<{ shot: CardShot }> = ({ shot }) => {
   );
 };
 
+// ───────────────────────── 3a (end) · double-click on the downloaded file ─────────────────────────
+/** The 2c « Téléchargements » card again (same panel, same file row), centred: the cursor double-clicks the file (two
+ * presses 6 f apart, two ripples), the row is selected and the emblem pulses as the program starts. « Double-clic » is
+ * an annotation of the gesture (like 5a's « copie l’identifiant »), not a UI label. */
+export const OpenFileSchema: React.FC<{ shot: CardShot }> = ({ shot }) => {
+  const f = useCurrentFrame();
+  const [c1, c2] = shot.clicks;
+  const { open } = shot.t;
+  const a = useIn(f);
+  const P = { x: 495, y: 278, w: 930, h: 410 };
+  const ROW = { x: P.x + 40, y: P.y + 132, w: 850, h: 112 };
+  const EMB = 68;
+  const target: Pt = [1190, 470]; // just under « .exe » (the arrow stays below the name: the version stays legible)
+  const sel = f >= c1.f + 1;
+  const hint = Math.min(ramp(f, c1.f - 8, c1.f, BRAND), 1 - ramp(f, shot.dur - 14, shot.dur - 6));
+  const bump = interpolate(f, [open, open + 5, open + 12], [0, 1, 0], clamp);
+  const pulse = f >= open && f < open + 24 ? interpolate(f - open, [0, 22], [0, 1], clamp) : -1;
+  return (
+    <AbsoluteFill>
+      <TutoBackdrop />
+      <div style={{ position: 'absolute', inset: 0, opacity: a, transform: `translateY(${(1 - a) * 16}px)` }}>
+        <Panel {...P} style={{ padding: '36px 40px', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <IconTile name="folder" size={70} tint="violet" />
+            <Txt size={42} weight={700}>Téléchargements</Txt>
+          </div>
+          {[0, 1].map((k) => (
+            <div key={k} style={{ position: 'absolute', left: 40, top: 270 + k * 62, display: 'flex', alignItems: 'center', gap: 22, opacity: 0.7 }}>
+              <Icon name="file" size={34} color="rgba(203,213,225,.35)" />
+              <Skel w={k ? 300 : 380} h={14} />
+            </div>
+          ))}
+        </Panel>
+        <div
+          style={{
+            position: 'absolute', left: ROW.x, top: ROW.y, width: ROW.w, height: ROW.h, borderRadius: 14, boxSizing: 'border-box',
+            background: sel ? 'linear-gradient(135deg, #31406A, #2D2759)' : 'linear-gradient(135deg, #2A3552, #262049)',
+            border: `1.5px solid ${sel ? 'rgba(103,232,249,.85)' : 'rgba(103,232,249,.55)'}`, boxShadow: '0 18px 44px rgba(2,6,17,.5)',
+            display: 'flex', alignItems: 'center', gap: 22, padding: '0 26px',
+          }}
+        >
+          <div style={{ position: 'relative', width: EMB, height: EMB, flexShrink: 0 }}>
+            <Emblem size={EMB} style={{ transform: `scale(${1 + 0.07 * bump})` }} />
+            {pulse >= 0 ? (
+              <div style={{ position: 'absolute', left: EMB / 2 - (EMB / 2 + 34 * pulse), top: EMB / 2 - (EMB / 2 + 34 * pulse), width: EMB + 68 * pulse, height: EMB + 68 * pulse,
+                borderRadius: EMB * 0.22 + 20 * pulse, border: `2px solid ${COL.cyan}`, opacity: 0.8 * (1 - pulse) }} />
+            ) : null}
+          </div>
+          <div style={{ flex: 1 }}>
+            <Txt size={34} weight={600} color={COL.fileText}>NXT5-Importer-Windows-0.3.8.exe</Txt>
+            <Txt size={26} weight={500} color={COL.muted}>NXT5 Importer</Txt>
+          </div>
+          <CheckPop f={f} at={-10} size={28} />
+          <Ring f={f} f0={c1.f - 16} f1={c2.f + 12} pad={6} radius={18} />
+        </div>
+      </div>
+      {hint > 0.001 ? (
+        <div
+          style={{
+            position: 'absolute', right: 1920 - (ROW.x + ROW.w), top: ROW.y - 12, transform: `translateY(-100%) translateY(${(1 - hint) * 10}px)`, opacity: hint,
+            display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', borderRadius: 16, whiteSpace: 'nowrap',
+            background: 'rgba(17,24,39,.92)', border: `1.5px solid ${COL.panelEdge}`, boxShadow: '0 14px 40px rgba(2,6,17,.5)',
+          }}
+        >
+          <Icon name="mouse" size={30} color={COL.cyan} />
+          <Txt size={30} weight={700}>Double-clic</Txt>
+        </div>
+      ) : null}
+      <ScreenCursor f={f} start={[1250, 790]} show={6} clicks={shot.clicks} moves={[{ f: 14, dur: 20, to: target }]} />
+    </AbsoluteFill>
+  );
+};
+
 // ───────────────────────── 3b · Windows protection message ─────────────────────────
 export const SmartScreenSchema: React.FC<{ shot: CardShot }> = ({ shot }) => {
   const f = useCurrentFrame();
@@ -181,7 +254,9 @@ export const SmartScreenSchema: React.FC<{ shot: CardShot }> = ({ shot }) => {
   );
 };
 
-// ───────────────────────── 4a · League of Legends client first ─────────────────────────
+// ───────────────────────── 4a · League of Legends client open, the Importer connects ─────────────────────────
+// No order imposed (no « D’abord / Ensuite », no numbers): at this point the viewer has already opened the Importer
+// (step 2). The client goes green, then the Importer shows « Client LoL connecté ».
 export const LolOpenSchema: React.FC<{ shot: CardShot }> = ({ shot }) => {
   const f = useCurrentFrame();
   const { client, arrow, importer } = shot.t;
@@ -191,17 +266,14 @@ export const LolOpenSchema: React.FC<{ shot: CardShot }> = ({ shot }) => {
   const on2 = ramp(f, importer, importer + 10, BRAND);
   const ar = ramp(f, arrow, arrow + 16, IO);
   const pulse = (at: number) => (f >= at && f < at + 26 ? interpolate(f - at, [0, 24], [0, 1], clamp) : -1);
-  const Tile: React.FC<{ x: number; n: number; lead: string; title: string; icon: React.ReactNode; on: number; status: string; pulseT: number; a: number }> = ({ x, n, lead, title, icon, on, status, pulseT, a }) => (
+  const Tile: React.FC<{ x: number; lead: string; title: string; icon: React.ReactNode; on: number; status: string; pulseT: number; a: number }> = ({ x, lead, title, icon, on, status, pulseT, a }) => (
     <Panel
       x={x} y={252} w={620} h={440}
       style={{ opacity: a, transform: `translateY(${(1 - a) * 16}px)`, padding: '40px 48px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 26,
         border: `1.5px solid ${on > 0 ? `rgba(103,232,249,${0.3 + 0.35 * on})` : COL.glassBorder}`,
         boxShadow: `inset 0 1px 0 rgba(226,232,255,.1), 0 30px 80px rgba(2,6,17,.5)${on > 0 ? `, 0 0 ${40 * on}px rgba(103,232,249,${0.18 * on})` : ''}` }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <StepBadge n={n} />
-        <Txt size={30} weight={600} color={COL.muted}>{lead}</Txt>
-      </div>
+      <Txt size={30} weight={600} color={COL.muted}>{lead}</Txt>
       {icon}
       <Txt size={40} weight={700}>{title}</Txt>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, opacity: on, position: 'relative' }}>
@@ -216,12 +288,14 @@ export const LolOpenSchema: React.FC<{ shot: CardShot }> = ({ shot }) => {
   return (
     <AbsoluteFill>
       <TutoBackdrop />
-      <Tile x={260} n={1} lead="D’abord" title="Client League of Legends" icon={<IconTile name="gamepad" size={104} tint="neutral" />} on={on1} status="Client ouvert" pulseT={pulse(client)} a={a1} />
+      <Tile x={260} lead="Ouvre aussi" title="Client League of Legends" icon={<IconTile name="gamepad" size={104} tint="neutral" />} on={on1} status="Client ouvert" pulseT={pulse(client)} a={a1} />
       <svg width={1920} height={1080} style={{ position: 'absolute', inset: 0 }}>
         <path d="M 900 472 L 1010 472" stroke={COL.cyan} strokeWidth={4} strokeLinecap="round" pathLength={100} strokeDasharray="100" strokeDashoffset={100 * (1 - ar)} fill="none" />
+        {/* a link, not a sequence: heads on both ends */}
         <path d="M 990 452 L 1012 472 L 990 492" stroke={COL.cyan} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={ramp(f, arrow + 12, arrow + 18)} />
+        <path d="M 920 452 L 898 472 L 920 492" stroke={COL.cyan} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={ramp(f, arrow + 12, arrow + 18)} />
       </svg>
-      <Tile x={1040} n={2} lead="Ensuite" title="NXT5 Importer" icon={<Emblem size={104} />} on={on2} status="Client LoL connecté" pulseT={pulse(importer)} a={a2} />
+      <Tile x={1040} lead="Se connecte au client" title="NXT5 Importer" icon={<Emblem size={104} />} on={on2} status="Client LoL connecté" pulseT={pulse(importer)} a={a2} />
     </AbsoluteFill>
   );
 };

@@ -119,6 +119,12 @@ const P = {
       <circle cx="17.5" cy="17.5" r="3.5" />
     </>
   ),
+  mouse: (
+    <>
+      <rect x="5" y="2" width="14" height="20" rx="7" />
+      <path d="M12 6v4" />
+    </>
+  ),
   keyboard: (
     <>
       <path d="M10 8h.01" />

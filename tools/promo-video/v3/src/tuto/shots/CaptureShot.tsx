@@ -71,7 +71,7 @@ export const CaptureShot: React.FC<{ shot: CaptureShotData }> = ({ shot }) => {
             const r = resolveRect(h.at);
             const pad = h.pad ?? 6;
             const sr = view.rect({ x: r.x - pad, y: r.y - pad, w: r.w + 2 * pad, h: r.h + 2 * pad });
-            return <Halo key={i} r={sr} f={f} f0={h.f0} f1={h.f1} radius={(h.radius ?? 8) * view.S + 4} spot={h.spot} circle={h.circle} pulse={h.pulse} />;
+            return <Halo key={i} r={sr} f={f} f0={h.f0} f1={h.f1} radius={(h.radius ?? 8) * view.S + 4} spot={h.spot} circle={h.circle} pulse={h.pulse} cut={h.cut} />;
           })}
         </AbsoluteFill>
         {shot.context ? <ContextChip f={f} frameX={makeView(shot.app, camAt(shot.cam, shot.context.f0, shot.app, size), size).frame.x} c={shot.context} /> : null}
@@ -79,7 +79,7 @@ export const CaptureShot: React.FC<{ shot: CaptureShotData }> = ({ shot }) => {
           const [x, y] = view.toScreen(resolvePt(k.at));
           return <KeycapHint key={i} keys={k.keys} f={f} f0={k.f0} f1={k.f1} x={x + k.dx} y={y + k.dy} />;
         })}
-        {shot.cursor ? (
+        {shot.cursor && (shot.cursor.cut === undefined || f < shot.cursor.cut) ? (
           <CursorLayer
             f={f}
             point={view.toScreen(cursorPoint(shot.cursor.start, shot.cursor.moves, f))}

@@ -60,15 +60,16 @@ export type Ease = 'io' | 'out' | 'brand' | 'glide';
  * (only while the stage is dipped to night). */
 export type CamKey = { f: number; z: number; at: PtRef; ease?: Ease; slack?: number; cut?: boolean };
 /** Capture shown from frame f. No `xf`/`scroll`/`dip`: instant swap (a state change that moves the layout, cut 2 f
- * after the click, under its ripple). `xf`: dissolve from the previous one, only where the layout stays put (a label
+ * after the click, under its ripple, or a label whose new width shifts its neighbours). `xf`: dissolve from the previous one, only where the layout stays put (a label
  * or a toast changes); `scroll`: pixel-true scroll of the import dialog from the previous capture to this one over
  * `scroll` frames (both captures share the dialog's sticky bars); `dip`: another page, through night (`dip` frames
  * out, `dip` frames in). */
 export type Layer = { f: number; cap: CapAlias; xf?: number; scroll?: number; dip?: number; note?: string };
 export type Move = { f: number; dur: number; to: PtRef };
 export type Click = { f: number; label: string };
-/** `pulse`: frame of one soft outline growing out of the halo (hover confirmation, no click). */
-export type Halo = { f0: number; f1: number; at: RectRef; pad?: number; radius?: number; spot?: boolean; circle?: boolean; pulse?: number };
+/** `pulse`: frame of one soft outline growing out of the halo (hover confirmation, no click). `cut`: the halo is at full
+ * strength from f0 (no grow-in): it takes over, on an instant capture swap at f0, from a halo the swap cuts. */
+export type Halo = { f0: number; f1: number; at: RectRef; pad?: number; radius?: number; spot?: boolean; circle?: boolean; pulse?: number; cut?: boolean };
 export type Moment = { f: number; label: string };
 export type Typing = { f0: number; f1: number; text: string; cap: CapAlias; cover: Rect };
 export type Keycap = { f0: number; f1: number; keys: string[]; at: PtRef; dx: number; dy: number };
@@ -92,7 +93,9 @@ export type CaptureShot = {
   dur: number;
   layers: Layer[];
   cam: CamKey[];
-  cursor?: { start: PtRef; show: number; hide?: number; moves: Move[] };
+  /** `cut`: the cursor and its ripple leave with the old screen at this instant capture swap (no fade): a click whose
+   * layout change would otherwise leave the arrow and its ripple over another control. */
+  cursor?: { start: PtRef; show: number; hide?: number; cut?: number; moves: Move[] };
   clicks: Click[];
   halos: Halo[];
   typing?: Typing;
@@ -106,7 +109,7 @@ export type CaptureShot = {
 };
 export type CardShot = {
   kind: 'card';
-  view: 'title' | 'prereq' | 'recap' | 'download' | 'smartscreen' | 'lolOpen' | 'lolHistory' | 'saveJson' | 'pickFile';
+  view: 'title' | 'prereq' | 'recap' | 'download' | 'openFile' | 'smartscreen' | 'lolOpen' | 'lolHistory' | 'saveJson' | 'pickFile';
   dur: number;
   /** Schematic / card beats used by the view (local frames). */
   t: Record<string, number>;
@@ -127,7 +130,8 @@ export const SHOTS = {
   prereq: { kind: 'card', view: 'prereq', dur: 220, t: { in: 0, check1: 36, check2: 72, check3: 108 }, clicks: [],
     success: [{ f: 36, label: 'coche 1' }, { f: 72, label: 'coche 2' }, { f: 108, label: 'coche 3' }] },
 
-  // 2a + 2b · Étape 1 — Parties → « Importer une partie » → « Obtenir NXT5 Importer » → « Télécharger »
+  // 2a + 2b · Étape 1 — dans Parties (déjà ouvert : survol et halo, sans clic) → « Importer une partie » → « Obtenir
+  // NXT5 Importer » → « Télécharger »
   dlSite: {
     kind: 'capture', app: 'site', dur: 380,
     layers: [
@@ -162,7 +166,6 @@ export const SHOTS = {
       ],
     },
     clicks: [
-      { f: 102, label: '« Parties » (menu latéral)' },
       { f: 156, label: '« Importer une partie »' },
       { f: 214, label: '« Pas encore de fichier ? Obtenir NXT5 Importer »' },
       { f: 326, label: '« Télécharger »' },
@@ -174,6 +177,8 @@ export const SHOTS = {
       { f0: 246, f1: 296, at: 'S03.versionSelect' },
       { f0: 310, f1: 348, at: 'S03.downloadButton' },
     ],
+    // S01 is already the Parties page (the item is highlighted in the menu): the cursor only points it out.
+    hovers: [{ f: 98, label: '« Parties » (menu latéral), page déjà ouverte : survol sans clic' }],
   },
 
   // 2c · le fichier arrive dans « Téléchargements » (schéma)
@@ -193,23 +198,29 @@ export const SHOTS = {
     halos: [{ f0: 84, f1: 222, at: 'S04.helpSteps', pad: 12 }],
   },
 
+  // 3a (fin) · double-clic sur le fichier téléchargé (schéma « Téléchargements », comme 2c)
+  openFile: { kind: 'card', view: 'openFile', dur: 80, t: { in: 0, open: 52 },
+    clicks: [{ f: 42, label: 'double-clic (1/2) sur « NXT5-Importer-Windows-0.3.8.exe » (schéma)' }, { f: 48, label: 'double-clic (2/2) (schéma)' }] },
+
   // 3b · protection Windows (schéma, deux clics)
   smartscreen: { kind: 'card', view: 'smartscreen', dur: 254, t: { in: 0, reveal: 72, done: 158 },
     clicks: [{ f: 66, label: '« Informations complémentaires » (schéma)' }, { f: 144, label: '« Exécuter quand même » (schéma)' }],
     success: [{ f: 160, label: 'NXT5 Importer s’ouvre (schéma)' }] },
 
   // 4a · Étape 3 — client LoL ouvert (schéma)
-  lolOpen: { kind: 'card', view: 'lolOpen', dur: 182, t: { in: 0, client: 52, arrow: 92, importer: 112 }, clicks: [],
+  lolOpen: { kind: 'card', view: 'lolOpen', dur: 192, t: { in: 0, client: 52, arrow: 92, importer: 112 }, clicks: [],
     success: [{ f: 52, label: 'point vert « client ouvert » (schéma)' }] },
 
   // 4b + 4c · indicateur du client dans l’Importer, puis actualisation
   clientStatus: {
     kind: 'capture', app: 'importer', dur: 330,
+    // Instant swaps, no dissolve: the status label changes width, which shifts the centred tab group by 2–15 px (a
+    // dissolve would double-expose the whole tab bar).
     layers: [
       { f: 0, cap: 'I01' },
-      { f: 140, cap: 'I02', xf: 12, note: 'cas « Client LoL non détecté »' },
-      { f: 208, cap: 'I02b', xf: 4, note: '« Recherche du client… »' },
-      { f: 240, cap: 'I02c', xf: 8, note: 'retour à « Client LoL connecté »' },
+      { f: 140, cap: 'I02', note: 'cas « Client LoL non détecté » (coupe franche)' },
+      { f: 208, cap: 'I02b', note: '« Recherche du client… » (coupe franche 2 f après le clic)' },
+      { f: 240, cap: 'I02c', note: 'retour à « Client LoL connecté » (coupe franche)' },
     ],
     cam: [
       { f: 0, z: 1, at: [590, 395] },
@@ -222,10 +233,10 @@ export const SHOTS = {
     },
     clicks: [{ f: 206, label: 'icône d’actualisation « Vérifier le client »' }],
     halos: [
-      { f0: 42, f1: 136, at: 'I01.clientIndicator', pad: 8, spot: true },
-      // the halo hands over to the wider « Client LoL non détecté » label while it appears (cross-fade 140 → 152)
-      { f0: 136, f1: 184, at: 'I02.clientIndicator', pad: 8, spot: true },
-      { f0: 188, f1: 220, at: 'I02.refreshClient', circle: true, pad: 4 },
+      // cut with the capture at 140; the halo on the wider « Client LoL non détecté » label takes over at full strength
+      { f0: 42, f1: 140, at: 'I01.clientIndicator', pad: 8, spot: true },
+      { f0: 140, f1: 184, at: 'I02.clientIndicator', pad: 8, spot: true, cut: true },
+      { f0: 188, f1: 206, at: 'I02.refreshClient', circle: true, pad: 4 },
       { f0: 246, f1: 322, at: 'I02c.clientIndicator', pad: 8, spot: true },
     ],
     success: [{ f: 240, label: '« Client LoL connecté » (point vert)' }],
@@ -281,12 +292,11 @@ export const SHOTS = {
       { f: 76, z: 1.76, at: [868, 485] },
       { f: 110, z: 1.76, at: [868, 228], ease: 'glide' },
     ],
+    // The cut to I05 moves the form down under the arrow: the cursor and its ripple leave with I04 (otherwise they
+    // would sit on « Serveur de jeu », which reads as a click there). The progress card needs no pointer.
     cursor: {
-      start: { box: 'I01.gameIdInput', ax: 0.62, ay: 0.64 }, show: 0,
-      moves: [
-        { f: 44, dur: 16, to: { box: 'I04.submitButton', ax: 0.36, ay: 0.72 } },
-        { f: 88, dur: 20, to: [566, 300] },
-      ],
+      start: { box: 'I01.gameIdInput', ax: 0.62, ay: 0.64 }, show: 0, cut: 76,
+      moves: [{ f: 44, dur: 16, to: { box: 'I04.submitButton', ax: 0.36, ay: 0.72 } }],
     },
     clicks: [{ f: 74, label: '« Exporter la game »' }],
     halos: [
@@ -400,7 +410,11 @@ export const SHOTS = {
       start: [980, 640], show: 30, hide: 664,
       moves: [
         { f: 104, dur: 18, to: { box: 'S05b.blueSide', ax: 0.62, ay: 0.3 } }, // hover only: already selected
-        { f: 420, dur: 18, to: { box: 'S07.nameInput', ax: 0.62, ay: 0.64 } },
+        // parked in the left margin (dimmed menu, empty between « Préparation et partage » and the profile) while the
+        // rosters are reviewed: never over a name or a profile
+        { f: 186, dur: 24, to: [150, 520] },
+        // to the name field before the camera glide (402 → 430): it then rides with the field, mid-frame
+        { f: 396, dur: 22, to: { box: 'S07.nameInput', ax: 0.62, ay: 0.64 } },
         { f: 504, dur: 16, to: { box: 'S07b.scrimTag', ax: 0.9, ay: 0.82 } },
         { f: 592, dur: 18, to: { box: 'S08.confirmButton', ax: 0.93, ay: 0.8 } },
       ],
@@ -439,10 +453,10 @@ export const SHOTS = {
 
   // 8 · C’est fait — « Partie importée », puis la nouvelle ligne dans la liste
   done: {
-    kind: 'capture', app: 'site', dur: 300,
+    kind: 'capture', app: 'site', dur: 360,
     layers: [
       { f: 0, cap: 'S09' },
-      { f: 150, cap: 'S10', dip: 5, note: 'retour à « Toutes les parties » (passage par le noir, caméra immobile)' },
+      { f: 210, cap: 'S10', dip: 5, note: 'retour à « Toutes les parties » (passage par le noir, caméra immobile)' },
     ],
     cam: [
       { f: 0, z: 1.1, at: [840, 491] },
@@ -450,16 +464,21 @@ export const SHOTS = {
       // z 1.77 puts the top soft edge in the gap between « +7 300 » and « Notre équipe – adversaires » (the camera is
       // at the page bottom, so the zoom sets where the top edge falls)
       { f: 40, z: 1.77, at: { box: 'S09.toast' }, slack: 40 },
+      { f: 104, z: 1.77, at: { box: 'S09.toast' }, slack: 40 },
+      // up to the game's title (« Scrim Aurore · partie 1 », « Victoire », duration, side): « c’est ma partie »
+      { f: 140, z: 1.77, at: [503, 160], ease: 'glide' },
       // still while the page dips to night; the camera cuts at night, then settles on the new row
-      { f: 150, z: 1.5, at: [852, 450], cut: true },
-      { f: 182, z: 1.75, at: [852, 436], ease: 'glide' },
+      { f: 210, z: 1.5, at: [852, 450], cut: true },
+      { f: 242, z: 1.75, at: [852, 436], ease: 'glide' },
     ],
     clicks: [],
     halos: [
-      { f0: 42, f1: 140, at: 'S09.toast', pad: 6, spot: true },
-      { f0: 180, f1: 292, at: 'S10.newRow', pad: 6, spot: true },
+      { f0: 42, f1: 104, at: 'S09.toast', pad: 6, spot: true },
+      // title + « Victoire » + « Durée : 25:00 · Notre équipe : côté bleu » (literal rect: matchMeta spans the card)
+      { f0: 142, f1: 200, at: { rect: { x: 317, y: 127, w: 373, h: 66 } }, pad: 10, spot: true },
+      { f0: 240, f1: 352, at: 'S10.newRow', pad: 6, spot: true },
     ],
-    success: [{ f: 8, label: 'notification « Partie importée »' }, { f: 182, label: 'nouvelle ligne dans « Toutes les parties »' }],
+    success: [{ f: 8, label: 'notification « Partie importée »' }, { f: 242, label: 'nouvelle ligne dans « Toutes les parties »' }],
   },
 
   // 9 · À retenir (8 s)
@@ -471,7 +490,7 @@ export type ShotId = keyof typeof SHOTS;
 export const ORDER: ShotId[] = [
   'title', 'prereq',
   'dlSite', 'dlFile',
-  'openHelp', 'smartscreen',
+  'openHelp', 'openFile', 'smartscreen',
   'lolOpen', 'clientStatus',
   'lolHistory', 'pasteId',
   'exportRun', 'saveJson', 'ready',
@@ -501,18 +520,18 @@ export const STEPS = 6;
 // drawn). French spacing (no-break space before ? ! : ; and inside « ») is applied at render time by `frSpaces`.
 export type Sub = { id: string; shot: ShotId; f: number; lines: string[]; verbatim: string };
 export const SUBS: Sub[] = [
-  { id: '2a', shot: 'dlSite', f: SUB_AFTER_CARD, lines: ['Sur nxt5.org, ouvre [Parties]', 'puis clique sur « Importer une partie ».'],
-    verbatim: 'Sur nxt5.org, ouvre Parties puis clique sur « Importer une partie ».' },
+  { id: '2a', shot: 'dlSite', f: SUB_AFTER_CARD, lines: ['Sur nxt5.org, dans [Parties],', 'clique sur « Importer une partie ».'],
+    verbatim: 'Sur nxt5.org, dans Parties, clique sur « Importer une partie ».' },
   { id: '2b', shot: 'dlSite', f: 186, lines: ['Déplie « Obtenir NXT5 Importer »,', 'garde « Windows (64 bits) » et clique sur « Télécharger ».'],
     verbatim: 'Déplie « Obtenir NXT5 Importer », garde « Windows (64 bits) » et clique sur « Télécharger ».' },
   { id: '2c', shot: 'dlFile', f: 0, lines: ['Le fichier {NXT5-Importer-Windows-0.3.8.exe}', 'arrive dans tes téléchargements.'],
     verbatim: 'Le fichier NXT5-Importer-Windows-0.3.8.exe arrive dans tes téléchargements.' },
-  { id: '3a', shot: 'openHelp', f: SUB_AFTER_CARD, lines: ['Pas d’installation : NXT5 Importer est un programme portable.', 'Double-clique sur le fichier.'],
-    verbatim: 'Pas d’installation : NXT5 Importer est un programme portable. Double-clique sur le fichier.' },
+  { id: '3a', shot: 'openHelp', f: SUB_AFTER_CARD, lines: ['Pas d’installation : NXT5 Importer est un programme portable.', 'Double-clique sur le fichier téléchargé.'],
+    verbatim: 'Pas d’installation : NXT5 Importer est un programme portable. Double-clique sur le fichier téléchargé.' },
   { id: '3b', shot: 'smartscreen', f: 0, lines: ['Si « Windows a protégé votre ordinateur » apparaît, clique sur', '« Informations complémentaires », puis « Exécuter quand même ».'],
     verbatim: 'Si « Windows a protégé votre ordinateur » apparaît, clique sur « Informations complémentaires », puis « Exécuter quand même ».' },
-  { id: '4a', shot: 'lolOpen', f: SUB_AFTER_CARD, lines: ['Ouvre d’abord le client League of Legends,', 'puis NXT5 Importer.'],
-    verbatim: 'Ouvre d’abord le client League of Legends, puis NXT5 Importer.' },
+  { id: '4a', shot: 'lolOpen', f: SUB_AFTER_CARD, lines: ['Ouvre aussi le client League of Legends :', 'l’Importer s’y connecte.'],
+    verbatim: 'Ouvre aussi le client League of Legends : l’Importer s’y connecte.' },
   { id: '4b', shot: 'clientStatus', f: 0, lines: ['En haut à droite, « Client LoL connecté » : tout est prêt.'],
     verbatim: 'En haut à droite, « Client LoL connecté » : tout est prêt.' },
   { id: '4c', shot: 'clientStatus', f: 140, lines: ['Sinon, ouvre le client puis clique', 'sur l’icône d’actualisation.'],
@@ -531,8 +550,8 @@ export const SUBS: Sub[] = [
     verbatim: 'Clique sur « Ouvrir NXT5 », puis « Importer une partie » et « Choisir mon fichier ».' },
   { id: '7b', shot: 'pickFile', f: 0, lines: ['Choisis le fichier {nxt5-EUW1_7861632138.json}.'],
     verbatim: 'Choisis le fichier nxt5-EUW1_7861632138.json.' },
-  { id: '7c', shot: 'review', f: 0, lines: ['Le fichier est chargé, rien n’est encore enregistré.', 'Choisis le côté de ton équipe.'],
-    verbatim: 'Le fichier est chargé, rien n’est encore enregistré. Choisis le côté de ton équipe.' },
+  { id: '7c', shot: 'review', f: 0, lines: ['Le fichier est chargé, rien n’est encore enregistré.', 'Vérifie le côté de ton équipe.'],
+    verbatim: 'Le fichier est chargé, rien n’est encore enregistré. Vérifie le côté de ton équipe.' },
   { id: '7d', shot: 'review', f: 186, lines: ['Vérifie les postes et les profils de ton équipe…'],
     verbatim: 'Vérifie les postes et les profils de ton équipe…' },
   { id: '7e', shot: 'review', f: 306, lines: ['… puis les postes adverses.'], verbatim: '… puis les postes adverses.' },
@@ -544,8 +563,10 @@ export const SUBS: Sub[] = [
 ];
 
 // Cards (not subtitles): exact texts of the title, checklist and recap cards.
-export const TITLE_TEXT = { title: 'Importer une partie dans NXT5', sub: 'De l’installation à ta partie en ligne.', chip: 'Windows · NXT5 Importer 0.3.8' };
+export const TITLE_TEXT = { title: 'Importer une partie dans NXT5', sub: 'Du téléchargement à ta partie en ligne.', chip: 'Windows · NXT5 Importer 0.3.8' };
 export const PREREQ_ITEMS = ['Un compte NXT5 avec un e-mail vérifié.', 'Une équipe où tu es propriétaire ou staff.', 'Windows 64 bits et League of Legends installé.'];
+/** Riot legal line, small at the bottom of the recap card (same wording as the promo's end card, src/shots/Outro.tsx). */
+export const RECAP_LEGAL = 'NXT5 n’est ni approuvé ni sponsorisé par Riot Games. Riot Games et les propriétés associées sont des marques de Riot Games, Inc.';
 export const RECAP_ITEMS = ['Ouvre le client LoL avant l’Importer.', 'Numéro seul ? Choisis le serveur de la partie.', 'Le fichier .json reste sur ton ordinateur jusqu’à l’import.'];
 
 // ───────────────────────────────────────── text helpers ─────────────────────────────────────────

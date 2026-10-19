@@ -13,7 +13,7 @@ import { RESOLVER } from './captures';
 import { ChapterCard, ChapterDim, CornerTag, StepHeader, SubtitleBar } from './parts/Chrome';
 import { CaptureShot } from './shots/CaptureShot';
 import { PrereqCard, RecapCard, TitleCard } from './shots/Cards';
-import { DownloadSchema, LolHistorySchema, LolOpenSchema, PickFileSchema, SaveJsonSchema, SmartScreenSchema } from './shots/Schematics';
+import { DownloadSchema, LolHistorySchema, LolOpenSchema, OpenFileSchema, PickFileSchema, SaveJsonSchema, SmartScreenSchema } from './shots/Schematics';
 import { IO, ramp } from './style';
 import { TutoAudio } from './TutoAudio';
 import { DURATION as TUTO_DURATION } from './script';
@@ -29,6 +29,7 @@ const ShotView: React.FC<{ id: ShotId }> = ({ id }) => {
     case 'prereq': return <PrereqCard shot={s} />;
     case 'recap': return <RecapCard shot={s} />;
     case 'download': return <DownloadSchema shot={s} />;
+    case 'openFile': return <OpenFileSchema shot={s} />;
     case 'smartscreen': return <SmartScreenSchema shot={s} />;
     case 'lolOpen': return <LolOpenSchema shot={s} />;
     case 'lolHistory': return <LolHistorySchema shot={s} />;

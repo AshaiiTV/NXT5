@@ -1,11 +1,11 @@
 // Text cards: title (wordmark + blur-slide title), « Avant de commencer » checklist, « À retenir » recap with the
-// official wordmark and nxt5.org. Typography: blur-slide (lib/ui BlurLine) for the titles.
+// official wordmark, nxt5.org and the Riot legal line (small, muted, at the bottom, as on the promo's end card). Typography: blur-slide (lib/ui BlurLine) for the titles.
 import React from 'react';
 import { AbsoluteFill, useCurrentFrame } from 'remotion';
 import { BlurLine, Wordmark } from '../../lib/ui';
 import { FONT, PRIMARY_GRADIENT, spectrumText } from '../../theme';
 import type { CardShot } from '../script';
-import { frSpaces, PREREQ_ITEMS, RECAP_ITEMS, TITLE_TEXT } from '../script';
+import { frSpaces, PREREQ_ITEMS, RECAP_ITEMS, RECAP_LEGAL, TITLE_TEXT } from '../script';
 import { TutoBackdrop } from '../parts/Backdrop';
 import { Panel, Txt } from '../parts/Glass';
 import { Icon, type IconName } from '../parts/icons';
@@ -110,6 +110,16 @@ export const RecapCard: React.FC<{ shot: CardShot }> = ({ shot }) => {
           <Wordmark width={330} />
           <div style={{ width: 2, height: 80, background: 'rgba(196,181,253,.35)' }} />
           <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: 64, letterSpacing: '-0.02em', ...spectrumText }}>nxt5.org</div>
+        </div>
+        {/* Riot legal line (precaution, as on the promo's end card; the official boilerplate is also in the YouTube
+            description): discreet, one line, it fades in with the wordmark */}
+        <div
+          style={{
+            position: 'absolute', left: 60, right: 60, bottom: 44, textAlign: 'center', opacity: b,
+            fontFamily: FONT, fontWeight: 500, fontSize: 21, color: COL.muted, letterSpacing: '0.01em',
+          }}
+        >
+          {frSpaces(RECAP_LEGAL)}
         </div>
       </AbsoluteFill>
       <AbsoluteFill style={{ backgroundColor: COL.night, opacity: 1 - fade }} />

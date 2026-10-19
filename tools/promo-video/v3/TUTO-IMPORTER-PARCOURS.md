@@ -93,7 +93,7 @@ Ce plan fusionne les trois rapports. J'ai revérifié ces points dans le code :
 
 **6. Copier l'identifiant de la partie dans le client LoL**
 - **Action :** copier l'ID d'une partie depuis l'historique du client.
-- **Écran et bouton exacts :** **INCONNUS**, rien dans le dépôt ne les décrit.
+- **Écran et bouton exacts :** **INCONNUS**, rien dans le dépôt ne les décrit. La vidéo les montre en schéma générique (décision du 19 octobre 2026, point C1).
 - **Texte de l'Importer :** « Copie l'identifiant depuis l'historique du client LoL. Pour un numéro sans préfixe, choisis le serveur de la partie. » (`importer-app/src/renderer.html:311-314`)
 - **Limite :** l'Importer n'affiche pas de liste des parties récentes. On ne peut donc pas montrer un choix dans une liste.
 
@@ -243,9 +243,11 @@ Toutes les captures sont dans `/tmp/claude-0/-home-user-NXT5/20b1d35b-3d4e-52a6-
 
 ## C. Points à faire confirmer par le propriétaire
 
-1. **Où copier le Game ID dans le client LoL.** L'écran et le bouton exacts ne sont pas documentés. Il faut une vraie séance du client ou une capture fournie.
-   - **Bloquant pour la publication de la vidéo.** Le tutoriel montre une copie dans l'historique du client et un ID complet « EUW1_7861632138 » dans le presse-papiers (5a), puis affirme « Avec un ID complet, le serveur est reconnu tout seul » (5b et rappel 2 du récapitulatif).
-   - Si le client ne donne que le numéro : montrer le numéro seul dans la pastille 5a, laisser « Europe Ouest · EUW » visible en 5b avec le halo sur le serveur comme point à vérifier, et réécrire d'abord le sous-titre 5b et le rappel 2 dans `TUTO-IMPORTER.md`.
+1. **Où copier le Game ID dans le client LoL.** L'écran et le bouton exacts ne sont pas documentés dans le dépôt.
+   - **Décision du propriétaire (19 octobre 2026) : schéma générique.** La vidéo (5a) montre un historique schématique, étiqueté « Illustration », sans reproduire l'interface de Riot : une partie sélectionnée, une icône de copie sans libellé, puis la pastille presse-papiers « EUW1_7861632138 » (l'exemple que donne l'Importer lui-même).
+   - **Le texte reprend l'aide de l'Importer.** Le sous-titre 5a, « Dans l’historique du client LoL, copie l’identifiant de la partie. », suit « Copie l'identifiant depuis l'historique du client LoL. Pour un numéro sans préfixe, choisis le serveur de la partie. » (`importer-app/src/renderer.html:311-314`).
+   - **Les deux formats sont couverts.** ID complet ou numéro seul plus serveur : le sous-titre 5b dit « Colle-le dans « Identifiant du match ». Si tu n’as que le numéro, choisis aussi le serveur. » et le rappel 2 du récapitulatif dit « Numéro seul ? Choisis le serveur de la partie. ».
+   - **Ce n'est plus bloquant pour la publication**, mais le propriétaire doit encore revérifier sur un vrai client que l'historique propose bien une action de copie, et où. S'il n'y en a pas, retirer le clic de copie du schéma 5a et reformuler le sous-titre, par exemple « Repère l’identifiant de la partie dans l’historique du client LoL. », dans `src/tuto/script.ts` et `TUTO-IMPORTER.md`.
 2. **Le client doit-il seulement être lancé, ou aussi connecté au compte ?** Le statut n'appelle que `/riotclient/region-locale`.
 3. **Le scrim personnalisé passe-t-il par Riot ?** On ne sait pas si un scrim personnalisé est renvoyé par Riot (pastille « Riot via NXT5 ») ou s'il passe toujours par le client (« Client LoL » et avertissement jaune). Il faut choisir le cas montré dans la vidéo.
    - **En attendant la réponse**, la vidéo (6c) n'entoure que « 10 joueurs · 25 min 00 · Timeline incluse ». La pastille « Riot via NXT5 » reste visible dans la capture, mais n'est pas mise en avant. Une fois le cas confirmé, noter ici la réponse et, si besoin, refaire la capture du résultat avec la bonne source.

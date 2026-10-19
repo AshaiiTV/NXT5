@@ -4,7 +4,9 @@ import React from 'react';
 import type { Rect } from '../script';
 import { BRAND, COL, IO, lerp, ramp } from '../style';
 
-export const haloAmount = (f: number, f0: number, f1: number) => Math.min(ramp(f, f0, f0 + 9, BRAND), 1 - ramp(f, f1, f1 + 8, IO));
+/** `cut`: full strength from f0 (no fade-in), for a halo that takes over from another one on an instant swap. */
+export const haloAmount = (f: number, f0: number, f1: number, cut = false) =>
+  Math.min(cut ? (f >= f0 ? 1 : 0) : ramp(f, f0, f0 + 9, BRAND), 1 - ramp(f, f1, f1 + 8, IO));
 
 /** The same halo attached to an element (child of a position: relative box): no measuring needed in schematics. */
 export const Ring: React.FC<{ f: number; f0: number; f1: number; pad?: number; radius?: number }> = ({ f, f0, f1, pad = 10, radius = 14 }) => {
@@ -22,11 +24,12 @@ export const Ring: React.FC<{ f: number; f0: number; f1: number; pad?: number; r
 };
 
 /** `pulse`: frame of one soft outline that grows out of the halo (a hover confirmation, not a click: no press, no
- * ripple dot). */
-export const Halo: React.FC<{ r: Rect; f: number; f0: number; f1: number; radius: number; spot?: boolean; circle?: boolean; pulse?: number }> = ({
-  r, f, f0, f1, radius, spot, circle, pulse,
+ * ripple dot). `cut`: no grow-in and no fade-in (it takes over, on an instant capture swap, from a halo the swap cuts:
+ * a spotlight dim stays continuous). */
+export const Halo: React.FC<{ r: Rect; f: number; f0: number; f1: number; radius: number; spot?: boolean; circle?: boolean; pulse?: number; cut?: boolean }> = ({
+  r, f, f0, f1, radius, spot, circle, pulse, cut,
 }) => {
-  const a = haloAmount(f, f0, f1);
+  const a = haloAmount(f, f0, f1, cut);
   if (a <= 0.001) return null;
   const pt = pulse === undefined ? -1 : f - pulse;
   const pulseRing = pt >= 0 && pt < 22 ? (
@@ -38,7 +41,7 @@ export const Halo: React.FC<{ r: Rect; f: number; f0: number; f1: number; radius
       }}
     />
   ) : null;
-  const grow = lerp(1.08, 1, ramp(f, f0, f0 + 9, BRAND));
+  const grow = cut ? 1 : lerp(1.08, 1, ramp(f, f0, f0 + 9, BRAND));
   const w = r.w * grow;
   const h = r.h * grow;
   const cx = r.x + r.w / 2;
