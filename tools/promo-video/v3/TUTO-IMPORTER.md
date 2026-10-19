@@ -1,0 +1,44 @@
+# Tutoriel « Importer une partie dans NXT5 » : storyboard
+
+Ce tutoriel YouTube montre le parcours complet, de l’installation de NXT5 Importer jusqu’à la partie importée sur nxt5.org.
+
+- **Format.** Vidéo de 2 min 25 environ, en 1920×1080 à 30 i/s, composition Remotion `TutoImporter` de ce projet. Le code est dans `src/tuto/`, les captures dans `public/tuto/`.
+- **Décisions du propriétaire (19 octobre 2026).**
+  - Windows uniquement.
+  - Prérequis annoncés sur un carton : pas d’inscription filmée.
+  - Sous-titres à l’écran, sans voix.
+  - Le passage dans le client League of Legends est un schéma générique, sans reproduire l’interface de Riot.
+- **Sources.** Le parcours et les textes exacts viennent de `importer-app/src` (0.3.8) et de `src/pages/workspace/{GameWorkspace,ImporterDownloadPanel,GameOperations}.jsx`, `src/components/importer/ImporterOpeningHelp.jsx`. La cartographie complète (parcours, textes, plan de capture, points ouverts) est dans `TUTO-IMPORTER-PARCOURS.md` ; ce fichier n’en garde que ce qui est montré.
+- **Charte.** Charte NXT5 v1.92 : fond nuit, verre violet, Inter, wordmark officiel. Chaque écran réel porte « Données fictives ». Les fenêtres système (téléchargement, SmartScreen, enregistrement, sélecteur de fichier) et le client LoL ne sont pas capturés : ce sont des **schémas** dans la charte NXT5, étiquetés « Illustration », qui n’imitent ni Windows ni Riot.
+- **Rythme.** C’est un tutoriel, pas une bande-annonce. Chaque sous-titre reste lisible au moins 2,5 s, et chaque clic est précédé d’un mouvement de curseur visible. Le zoom amène le bouton visé en grand avant le clic.
+
+## Déroulé
+
+| # | Chapitre | Écran | Animation | Sous-titre |
+|---|---|---|---|---|
+| 0 | Titre (5 s) | Fond nuit, wordmark | Titre en blur-slide | « Importer une partie dans NXT5 » / « De l’installation à ta partie en ligne. » · « Windows · NXT5 Importer 0.3.8 » |
+| 1 | Avant de commencer (7 s) | Carte de vérification | Trois coches qui s’allument | « Un compte NXT5 avec un e-mail vérifié. » · « Une équipe où tu es propriétaire ou staff. » · « Windows 64 bits et League of Legends installé. » |
+| 2a | Étape 1 · Télécharge NXT5 Importer | Site : Parties | Curseur sur « Parties », puis « Importer une partie » | « Sur nxt5.org, ouvre Parties puis clique sur « Importer une partie ». » |
+| 2b | | Fenêtre « Importer une partie » | Clic sur « Pas encore de fichier ? Obtenir NXT5 Importer », la section s’ouvre, zoom sur « Windows (64 bits) » et « Télécharger » | « Déplie « Obtenir NXT5 Importer », garde « Windows (64 bits) » et clique sur « Télécharger ». » |
+| 2c | | Schéma : fichier téléchargé | Une carte fichier glisse dans « Téléchargements » | « Le fichier NXT5-Importer-Windows-0.3.8.exe arrive dans tes téléchargements. » |
+| 3a | Étape 2 · Ouvre l’Importer | Site : aide « Ouvrir NXT5 Importer », onglet Windows | Zoom sur les trois consignes | « Pas d’installation : NXT5 Importer est un programme portable. Double-clique sur le fichier. » |
+| 3b | | Schéma : protection Windows | Deux clics schématisés | « Si « Windows a protégé votre ordinateur » apparaît, clique sur « Informations complémentaires », puis « Exécuter quand même ». » |
+| 4a | Étape 3 · Lance League of Legends | Schéma : client LoL ouvert | Point vert « client ouvert » | « Ouvre d’abord le client League of Legends, puis NXT5 Importer. » |
+| 4b | | Importer : accueil, « Client LoL connecté » | Zoom sur l’indicateur | « En haut à droite, « Client LoL connecté » : tout est prêt. » |
+| 4c | | Importer : « Client LoL non détecté » | Halo sur l’icône d’actualisation, clic, passage au vert | « Sinon, ouvre le client puis clique sur l’icône d’actualisation. » |
+| 5a | Étape 4 · Copie l’identifiant de la partie | Schéma : historique du client LoL | Sélection d’une partie, « copier l’identifiant », pastille presse-papiers « EUW1_7861632138 » | « Dans l’historique du client LoL, copie l’identifiant de la partie. » |
+| 5b | | Importer : champ « Identifiant du match » | Clic dans le champ, l’ID se tape | « Colle-le dans « Identifiant du match ». Avec un ID complet, le serveur est reconnu tout seul. » |
+| 6a | Étape 5 · Exporte la partie | Importer : « Exporter la game », puis progression | Clic, étapes 1 Match → 2 Timeline → 3 Fichier | « Clique sur « Exporter la game ». L’Importer récupère la partie et sa timeline. » |
+| 6b | | Schéma : « Enregistrer le JSON NXT5 » | Fichier `nxt5-EUW1_7861632138.json` → Téléchargements → Enregistrer | « Enregistre le fichier .json (par défaut dans Téléchargements). » |
+| 6c | | Importer : « Ta game est prête. » | Zoom sur le résultat et ses pastilles | « Ta game est prête. Le fichier reste sur ton ordinateur. » |
+| 7a | Étape 6 · Importe la partie sur NXT5 | Importer → site | Clic sur « Ouvrir NXT5 », puis « Importer une partie » et « Choisir mon fichier » | « Clique sur « Ouvrir NXT5 », puis « Importer une partie » et « Choisir mon fichier ». » |
+| 7b | | Schéma : sélection du fichier | `nxt5-EUW1_7861632138.json` choisi | « Choisis le fichier nxt5-EUW1_7861632138.json. » |
+| 7c | | Site : « Fichier chargé », « Choisis ton équipe » | Zoom sur les deux côtés | « Le fichier est chargé, rien n’est encore enregistré. Choisis le côté de ton équipe. » |
+| 7d | | Site : « Notre équipe » | Panoramique sur le tableau | « Vérifie les postes et les profils de ton équipe… » |
+| 7e | | Site : « Équipe adverse » | Panoramique | « … puis les postes adverses. » |
+| 7f | | Site : nom, tags, adversaire | Zoom sur les champs | « Nomme la partie et garde au moins un tag, par exemple « Scrim ». » |
+| 7g | | Site : « Prêt à importer » | Clic sur « Confirmer l’import » | « Clique sur « Confirmer l’import ». » |
+| 8 | C’est fait (10 s) | Site : « Partie importée », puis liste des parties | Zoom sur le message, puis sur la nouvelle ligne | « C’est fait : ta partie est dans NXT5, prête à revoir avec ton équipe. » |
+| 9 | À retenir (8 s) | Carte récapitulative, wordmark | Trois rappels | « Ouvre le client LoL avant l’Importer. » · « Un ID complet suffit : le serveur est reconnu. » · « Le fichier .json reste sur ton ordinateur jusqu’à l’import. » · nxt5.org |
+
+Les sous-titres suivent la typographie française du site : apostrophe typographique et espace insécable avant « ? », « ! », « : », et entre les guillemets « ».
