@@ -11,6 +11,7 @@ Ce tutoriel YouTube montre le parcours complet, de l’installation de NXT5 Impo
 - **Sources.** Le parcours et les textes exacts viennent de `importer-app/src` (0.3.8) et de `src/pages/workspace/{GameWorkspace,ImporterDownloadPanel,GameOperations}.jsx`, `src/components/importer/ImporterOpeningHelp.jsx`. La cartographie complète (parcours, textes, plan de capture, points ouverts) est dans `TUTO-IMPORTER-PARCOURS.md` ; ce fichier n’en garde que ce qui est montré.
 - **Charte.** Charte NXT5 v1.92 : fond nuit, verre violet, Inter, wordmark officiel. Chaque écran réel porte « Données fictives ». Les fenêtres système (téléchargement, SmartScreen, enregistrement, sélecteur de fichier) et le client LoL ne sont pas capturés : ce sont des **schémas** dans la charte NXT5, étiquetés « Illustration », qui n’imitent ni Windows ni Riot.
 - **Rythme.** C’est un tutoriel, pas une bande-annonce. Chaque sous-titre reste lisible au moins 2,5 s, et chaque clic est précédé d’un mouvement de curseur visible. Le zoom amène le bouton visé en grand avant le clic.
+- **Caméra et enchaînements.** La caméra reste calme : au plus 35 px par image au centre de l’écran, sans à-coup (contrôle automatique). Pour aller d’un bout à l’autre de la page, elle recule pour montrer la page entière, puis s’approche de la cible. Un clic qui change la mise en page passe au nouvel écran en coupe franche, sous l’onde du clic. Un changement d’application ou de page passe par le noir. Seuls les changements qui ne déplacent rien (un libellé, une notification) sont en fondu.
 
 ## Déroulé
 
@@ -26,19 +27,19 @@ Ce tutoriel YouTube montre le parcours complet, de l’installation de NXT5 Impo
 | 4a | Étape 3 · Lance League of Legends | Schéma : client LoL ouvert | Point vert « client ouvert » | « Ouvre d’abord le client League of Legends, puis NXT5 Importer. » |
 | 4b | | Importer : accueil, « Client LoL connecté » | Zoom sur l’indicateur | « En haut à droite, « Client LoL connecté » : tout est prêt. » |
 | 4c | | Importer : « Client LoL non détecté » | Halo sur l’icône d’actualisation, clic, passage au vert | « Sinon, ouvre le client puis clique sur l’icône d’actualisation. » |
-| 5a | Étape 4 · Copie l’identifiant de la partie | Schéma : historique du client LoL | Sélection d’une partie, « copier l’identifiant », pastille presse-papiers « EUW1_7861632138 » | « Dans l’historique du client LoL, copie l’identifiant de la partie. » |
-| 5b | | Importer : champ « Identifiant du match » | Clic dans le champ, l’ID se tape | « Colle-le dans « Identifiant du match ». Avec un ID complet, le serveur est reconnu tout seul. » |
+| 5a | Étape 4 · Copie l’identifiant de la partie | Schéma : historique du client LoL | Sélection d’une partie, action de copie générique (icône sans libellé : l’écran et le bouton réels du client ne sont pas confirmés, point C1 du parcours), pastille presse-papiers « EUW1_7861632138 » | « Dans l’historique du client LoL, copie l’identifiant de la partie. » |
+| 5b | | Importer : champ « Identifiant du match » | Clic dans le champ, « Ctrl + V » : l’ID apparaît d’un coup, comme un vrai collage | « Colle-le dans « Identifiant du match ». Si tu n’as que le numéro, choisis aussi le serveur. » |
 | 6a | Étape 5 · Exporte la partie | Importer : « Exporter la game », puis progression | Clic, étapes 1 Match → 2 Timeline → 3 Fichier | « Clique sur « Exporter la game ». L’Importer récupère la partie et sa timeline. » |
 | 6b | | Schéma : « Enregistrer le JSON NXT5 » | Fichier `nxt5-EUW1_7861632138.json` → Téléchargements → Enregistrer | « Enregistre le fichier .json (par défaut dans Téléchargements). » |
-| 6c | | Importer : « Ta game est prête. » | Zoom sur le résultat et ses pastilles | « Ta game est prête. Le fichier reste sur ton ordinateur. » |
+| 6c | | Importer : « Ta game est prête. » | Zoom sur le résultat, halo sur « 10 joueurs · 25 min 00 · Timeline incluse » (la pastille de source n’est pas mise en avant tant que le point C3 du parcours n’est pas tranché) | « Ta game est prête. Le fichier reste sur ton ordinateur. » |
 | 7a | Étape 6 · Importe la partie sur NXT5 | Importer → site | Clic sur « Ouvrir NXT5 », puis « Importer une partie » et « Choisir mon fichier » | « Clique sur « Ouvrir NXT5 », puis « Importer une partie » et « Choisir mon fichier ». » |
 | 7b | | Schéma : sélection du fichier | `nxt5-EUW1_7861632138.json` choisi | « Choisis le fichier nxt5-EUW1_7861632138.json. » |
 | 7c | | Site : « Fichier chargé », « Choisis ton équipe » | Zoom sur les deux côtés | « Le fichier est chargé, rien n’est encore enregistré. Choisis le côté de ton équipe. » |
 | 7d | | Site : « Notre équipe » | Panoramique sur le tableau | « Vérifie les postes et les profils de ton équipe… » |
 | 7e | | Site : « Équipe adverse » | Panoramique | « … puis les postes adverses. » |
-| 7f | | Site : nom, tags, adversaire | Zoom sur les champs | « Nomme la partie et garde au moins un tag, par exemple « Scrim ». » |
+| 7f | | Site : nom, tags, adversaire | Zoom sur les champs. « Ctrl + A » sélectionne le Game ID pré-rempli, la première lettre le remplace et le nom se tape (à valider par le propriétaire : seul l’état final est capturé). Clic sur le tag « Scrim » (aucun tag n’est choisi au chargement du fichier) | « Nomme la partie et choisis au moins un tag, par exemple « Scrim ». » |
 | 7g | | Site : « Prêt à importer » | Clic sur « Confirmer l’import » | « Clique sur « Confirmer l’import ». » |
-| 8 | C’est fait (10 s) | Site : « Partie importée », puis liste des parties | Zoom sur le message, puis sur la nouvelle ligne | « C’est fait : ta partie est dans NXT5, prête à revoir avec ton équipe. » |
-| 9 | À retenir (8 s) | Carte récapitulative, wordmark | Trois rappels | « Ouvre le client LoL avant l’Importer. » · « Un ID complet suffit : le serveur est reconnu. » · « Le fichier .json reste sur ton ordinateur jusqu’à l’import. » · nxt5.org |
+| 8 | C’est fait (10 s) | Site : « Partie importée », puis liste des parties | Zoom sur le message, passage par le noir vers « Toutes les parties », puis zoom sur la nouvelle ligne | « C’est fait : ta partie est dans NXT5, prête à revoir avec ton équipe. » |
+| 9 | À retenir (8 s) | Carte récapitulative, wordmark | Trois rappels | « Ouvre le client LoL avant l’Importer. » · « Numéro seul ? Choisis le serveur de la partie. » · « Le fichier .json reste sur ton ordinateur jusqu’à l’import. » · nxt5.org |
 
 Les sous-titres suivent la typographie française du site : apostrophe typographique et espace insécable avant « ? », « ! », « : », et entre les guillemets « ».

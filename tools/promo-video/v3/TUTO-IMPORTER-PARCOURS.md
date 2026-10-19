@@ -176,7 +176,7 @@ Ce plan fusionne les trois rapports. J'ai revérifié ces points dans le code :
 **16. Nom, tags et adversaire**
 - **Champs :**
   - « Nom de la partie », pré-rempli **avec le Game ID**. Le renommer, par exemple « Scrim Aurore · partie 1 » (`src/pages/public/PublicGuides.jsx:23`).
-  - « Tags (au moins un) », avec le tag d'équipe par défaut « Scrim ».
+  - « Tags (au moins un) » : les tags de l'équipe (ici « Scrim ») sont proposés, mais **aucun n'est choisi** au chargement du fichier (`categoryIds: []`, `GameOperations.jsx:647`). Tant qu'aucun tag n'est choisi, le champ affiche « Ajoute au moins un tag à la partie. » et le pied de la fenêtre reste sur « À compléter » (`GameOperations.jsx:194,691,780`). Il faut cliquer sur un tag, par exemple « Scrim ».
   - « Équipe adverse (facultatif) », avec le bouton « Nouvelle équipe ».
   - Sources : `src/pages/workspace/GameOperations.jsx:186-194,369-379,774`.
 
@@ -244,8 +244,11 @@ Toutes les captures sont dans `/tmp/claude-0/-home-user-NXT5/20b1d35b-3d4e-52a6-
 ## C. Points à faire confirmer par le propriétaire
 
 1. **Où copier le Game ID dans le client LoL.** L'écran et le bouton exacts ne sont pas documentés. Il faut une vraie séance du client ou une capture fournie.
+   - **Bloquant pour la publication de la vidéo.** Le tutoriel montre une copie dans l'historique du client et un ID complet « EUW1_7861632138 » dans le presse-papiers (5a), puis affirme « Avec un ID complet, le serveur est reconnu tout seul » (5b et rappel 2 du récapitulatif).
+   - Si le client ne donne que le numéro : montrer le numéro seul dans la pastille 5a, laisser « Europe Ouest · EUW » visible en 5b avec le halo sur le serveur comme point à vérifier, et réécrire d'abord le sous-titre 5b et le rappel 2 dans `TUTO-IMPORTER.md`.
 2. **Le client doit-il seulement être lancé, ou aussi connecté au compte ?** Le statut n'appelle que `/riotclient/region-locale`.
 3. **Le scrim personnalisé passe-t-il par Riot ?** On ne sait pas si un scrim personnalisé est renvoyé par Riot (pastille « Riot via NXT5 ») ou s'il passe toujours par le client (« Client LoL » et avertissement jaune). Il faut choisir le cas montré dans la vidéo.
+   - **En attendant la réponse**, la vidéo (6c) n'entoure que « 10 joueurs · 25 min 00 · Timeline incluse ». La pastille « Riot via NXT5 » reste visible dans la capture, mais n'est pas mise en avant. Une fois le cas confirmé, noter ici la réponse et, si besoin, refaire la capture du résultat avec la bonne source.
 4. **`RIOT_EXPORT_TOKEN` est-il défini en production ?** Si oui, chaque export distant reçoit une erreur 401, et le message mal encodé « Export Riot non autorisÃ©. » apparaît (`netlify/functions/riot-match-export.ts:72`).
 5. **Comportement réel de SmartScreen et Gatekeeper sur 0.3.8**, sans signature : ils peuvent ne pas apparaître ou avoir un autre texte. Il faut de vraies captures Windows et Mac.
 6. **Plateforme principale de la vidéo :** Windows, Mac, ou les deux.

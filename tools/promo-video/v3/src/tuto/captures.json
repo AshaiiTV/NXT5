@@ -1,0 +1,3720 @@
+{
+  "meta": {
+    "units": "Boîtes en px CSS, origine en haut à gauche du PNG. PNG = viewport complet au facteur 2 (multiplier par scale pour les pixels du PNG).",
+    "scale": 2,
+    "regenerate": "tools/promo-video/v3/capture/tuto/run-all.sh (voir l’en-tête de chaque script).",
+    "notes": {
+      "importer": [
+        "Renderer réel NXT5 Importer 0.3.8 (importer-app/src) dans Chromium, pont preload simulé en Windows (win32), données fictives.",
+        "Fenêtre 1180×790 sans cadre (10 px de moins que la taille par défaut 1180×800 de main.js) : ainsi le bord inférieur ne coupe aucune ligne de texte dans les états accueil, progression et résultat. Barres de défilement masquées (Chromium sans interface).",
+        "Animations figées à la capture (animations: disabled) : l’emblème ne « respire » pas pendant l’export et l’icône d’actualisation est à 0°.",
+        "Calque de frappe (5b) : partir de importer-03 (champ focalisé, vide) et finir sur importer-04 (ID collé, même focus). Le placeholder « Ex. EUW1_7861632138 » est visible dans le champ vide et disparaît à la première frappe : le calque doit le masquer. Police, taille, couleur, x du texte et centre vertical : gameIdInputText.",
+        "Le menu central (Exporter / Historique / Paramètres) se décale de quelques px quand le libellé du client change de longueur (importer-02 et 02b) : comportement réel."
+      ],
+      "site": [
+        "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+        "Viewport 1440×900 CSS au facteur 2 (2880×1800), thème sombre, fr-FR, cookies refusés (« Tout refuser »).",
+        "Seule retouche : une feuille de style de capture masque le badge d’abonnement du menu latéral (.nxt5-sidebar-subscription), pour qu’aucune offre n’apparaisse ; l’application replie elle-même cet emplacement quand il est vide.",
+        "Le sélecteur de fichiers du système n’est pas capturé : le fichier fixtures/nxt5-EUW1_7861632138.json est posé sur le vrai champ de fichier.",
+        "Les notifications (toasts) restent 4,5 s ; site-05 et site-09 les montrent, les autres captures attendent leur disparition.",
+        "La fenêtre « Importer une partie » est centrée verticalement : sa position change entre site-02 (repliée), site-03 (dépliée) et site-05 (fichier chargé, pleine hauteur). Les boîtes « visible » retirent les zones cachées sous l’en-tête et le pied collants de la fenêtre et sous la barre du haut du site ; hiddenBoxes liste les éléments entièrement cachés.",
+        "Dans la fenêtre, le pied collant (« À compléter » / « Prêt à importer ») et l’en-tête restent fixes : le défilement est choisi pour qu’aucun de ces bords ne coupe une ligne de texte ou un champ."
+      ]
+    },
+    "updatedAt": "2026-10-19T13:14:58.833Z"
+  },
+  "captures": {
+    "importer-01-accueil-client-connecte": {
+      "file": "tuto/importer-01-accueil-client-connecte.png",
+      "app": "importer",
+      "css": {
+        "w": 1180,
+        "h": 790
+      },
+      "scale": 2,
+      "px": {
+        "w": 2360,
+        "h": 1580
+      },
+      "storyboard": [
+        "4b"
+      ],
+      "state": "Vue Exporter, « Client LoL connecté » (point vert), champ « Identifiant du match » vide, sans focus.",
+      "method": "Renderer réel NXT5 Importer 0.3.8 (importer-app/src) dans Chromium, pont preload simulé en Windows (win32), données fictives.",
+      "boxes": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1180,
+          "h": 84
+        },
+        "brand": {
+          "x": 36,
+          "y": 19.75,
+          "w": 124.8,
+          "h": 43.5
+        },
+        "navExport": {
+          "x": 341.09,
+          "y": 19.5,
+          "w": 107.59,
+          "h": 44
+        },
+        "navHistory": {
+          "x": 452.69,
+          "y": 19.5,
+          "w": 148.52,
+          "h": 44
+        },
+        "navSettings": {
+          "x": 605.2,
+          "y": 19.5,
+          "w": 125.5,
+          "h": 44
+        },
+        "clientIndicator": {
+          "x": 911,
+          "y": 19.5,
+          "w": 179,
+          "h": 44
+        },
+        "clientDot": {
+          "x": 911,
+          "y": 38.5,
+          "w": 6,
+          "h": 6
+        },
+        "clientLabel": {
+          "x": 925,
+          "y": 32.5,
+          "w": 113,
+          "h": 18
+        },
+        "refreshClient": {
+          "x": 1046,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "openSiteIcon": {
+          "x": 1100,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "heroHeading": {
+          "x": 40,
+          "y": 161,
+          "w": 503.84,
+          "h": 96
+        },
+        "exportCard": {
+          "x": 595.84,
+          "y": 120,
+          "w": 544.16,
+          "h": 512.63
+        },
+        "gameIdLabel": {
+          "x": 624.84,
+          "y": 275.89,
+          "w": 486.16,
+          "h": 18
+        },
+        "gameIdInput": {
+          "x": 624.84,
+          "y": 301.89,
+          "w": 486.16,
+          "h": 48
+        },
+        "gameIdHint": {
+          "x": 624.84,
+          "y": 357.89,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "regionLabel": {
+          "x": 624.84,
+          "y": 395.69,
+          "w": 486.16,
+          "h": 18
+        },
+        "regionSelect": {
+          "x": 624.84,
+          "y": 421.69,
+          "w": 486.16,
+          "h": 48
+        },
+        "regionHint": {
+          "x": 624.84,
+          "y": 477.69,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "submitButton": {
+          "x": 624.84,
+          "y": 521.48,
+          "w": 486.16,
+          "h": 48
+        },
+        "exportShortcut": {
+          "x": 1030.42,
+          "y": 537.23,
+          "w": 32.58,
+          "h": 16.5
+        },
+        "workflowStrip": {
+          "x": 40,
+          "y": 720.63,
+          "w": 1100,
+          "h": 69.14
+        },
+        "exportCardOverline": {
+          "x": 624.84,
+          "y": 149,
+          "w": 486.16,
+          "h": 24.5
+        },
+        "exportCardTitle": {
+          "x": 624.84,
+          "y": 193.5,
+          "w": 486.16,
+          "h": 32.39
+        },
+        "exportCaption": {
+          "x": 624.84,
+          "y": 585.48,
+          "w": 486.16,
+          "h": 18.14
+        },
+        "helpSummary": {
+          "x": 599.84,
+          "y": 644.63,
+          "w": 536.16,
+          "h": 44
+        }
+      },
+      "scrollY": 0,
+      "focus": null,
+      "gameIdInputText": {
+        "value": "",
+        "placeholder": "Ex. EUW1_7861632138",
+        "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "color": "rgb(241, 245, 249)",
+        "paddingLeft": "14px",
+        "textX": 639.84,
+        "centerY": 325.89
+      }
+    },
+    "importer-02-client-non-detecte": {
+      "file": "tuto/importer-02-client-non-detecte.png",
+      "app": "importer",
+      "css": {
+        "w": 1180,
+        "h": 790
+      },
+      "scale": 2,
+      "px": {
+        "w": 2360,
+        "h": 1580
+      },
+      "storyboard": [
+        "4c"
+      ],
+      "state": "Démarrage sans client LoL : « Client LoL non détecté » (point gris). Infobulle non affichée. Le menu central se décale de quelques px car le libellé est plus long (comportement réel).",
+      "method": "Renderer réel NXT5 Importer 0.3.8 (importer-app/src) dans Chromium, pont preload simulé en Windows (win32), données fictives.",
+      "boxes": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1180,
+          "h": 84
+        },
+        "brand": {
+          "x": 36,
+          "y": 19.75,
+          "w": 124.8,
+          "h": 43.5
+        },
+        "navExport": {
+          "x": 333.75,
+          "y": 19.5,
+          "w": 107.59,
+          "h": 44
+        },
+        "navHistory": {
+          "x": 445.34,
+          "y": 19.5,
+          "w": 148.52,
+          "h": 44
+        },
+        "navSettings": {
+          "x": 597.86,
+          "y": 19.5,
+          "w": 125.5,
+          "h": 44
+        },
+        "clientIndicator": {
+          "x": 896.31,
+          "y": 19.5,
+          "w": 193.67,
+          "h": 44
+        },
+        "clientDot": {
+          "x": 896.31,
+          "y": 38.5,
+          "w": 6,
+          "h": 6
+        },
+        "clientLabel": {
+          "x": 910.31,
+          "y": 32.5,
+          "w": 127.67,
+          "h": 18
+        },
+        "refreshClient": {
+          "x": 1045.98,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "openSiteIcon": {
+          "x": 1099.98,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "heroHeading": {
+          "x": 40,
+          "y": 161,
+          "w": 503.84,
+          "h": 96
+        },
+        "exportCard": {
+          "x": 595.84,
+          "y": 120,
+          "w": 544.16,
+          "h": 512.63
+        },
+        "gameIdLabel": {
+          "x": 624.84,
+          "y": 275.89,
+          "w": 486.16,
+          "h": 18
+        },
+        "gameIdInput": {
+          "x": 624.84,
+          "y": 301.89,
+          "w": 486.16,
+          "h": 48
+        },
+        "gameIdHint": {
+          "x": 624.84,
+          "y": 357.89,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "regionLabel": {
+          "x": 624.84,
+          "y": 395.69,
+          "w": 486.16,
+          "h": 18
+        },
+        "regionSelect": {
+          "x": 624.84,
+          "y": 421.69,
+          "w": 486.16,
+          "h": 48
+        },
+        "regionHint": {
+          "x": 624.84,
+          "y": 477.69,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "submitButton": {
+          "x": 624.84,
+          "y": 521.48,
+          "w": 486.16,
+          "h": 48
+        },
+        "exportShortcut": {
+          "x": 1030.42,
+          "y": 537.23,
+          "w": 32.58,
+          "h": 16.5
+        },
+        "workflowStrip": {
+          "x": 40,
+          "y": 720.63,
+          "w": 1100,
+          "h": 69.14
+        },
+        "exportCardOverline": {
+          "x": 624.84,
+          "y": 149,
+          "w": 486.16,
+          "h": 24.5
+        },
+        "exportCardTitle": {
+          "x": 624.84,
+          "y": 193.5,
+          "w": 486.16,
+          "h": 32.39
+        },
+        "exportCaption": {
+          "x": 624.84,
+          "y": 585.48,
+          "w": 486.16,
+          "h": 18.14
+        },
+        "helpSummary": {
+          "x": 599.84,
+          "y": 644.63,
+          "w": 536.16,
+          "h": 44
+        }
+      },
+      "scrollY": 0,
+      "focus": null,
+      "tooltip": "Client LoL introuvable. Ouvre League of Legends ou indique son dossier dans les Paramètres."
+    },
+    "importer-02b-recherche-du-client": {
+      "file": "tuto/importer-02b-recherche-du-client.png",
+      "app": "importer",
+      "css": {
+        "w": 1180,
+        "h": 790
+      },
+      "scale": 2,
+      "px": {
+        "w": 2360,
+        "h": 1580
+      },
+      "storyboard": [
+        "4c"
+      ],
+      "state": "Après clic sur l’icône d’actualisation : « Recherche du client… », icône désactivée (rotation figée à 0°).",
+      "method": "Renderer réel NXT5 Importer 0.3.8 (importer-app/src) dans Chromium, pont preload simulé en Windows (win32), données fictives.",
+      "boxes": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1180,
+          "h": 84
+        },
+        "brand": {
+          "x": 36,
+          "y": 19.75,
+          "w": 124.8,
+          "h": 43.5
+        },
+        "navExport": {
+          "x": 336.09,
+          "y": 19.5,
+          "w": 107.59,
+          "h": 44
+        },
+        "navHistory": {
+          "x": 447.69,
+          "y": 19.5,
+          "w": 148.52,
+          "h": 44
+        },
+        "navSettings": {
+          "x": 600.2,
+          "y": 19.5,
+          "w": 125.5,
+          "h": 44
+        },
+        "clientIndicator": {
+          "x": 901,
+          "y": 19.5,
+          "w": 189,
+          "h": 44
+        },
+        "clientDot": {
+          "x": 901,
+          "y": 38.5,
+          "w": 6,
+          "h": 6
+        },
+        "clientLabel": {
+          "x": 915,
+          "y": 32.5,
+          "w": 123,
+          "h": 18
+        },
+        "refreshClient": {
+          "x": 1046,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "openSiteIcon": {
+          "x": 1100,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "heroHeading": {
+          "x": 40,
+          "y": 161,
+          "w": 503.84,
+          "h": 96
+        },
+        "exportCard": {
+          "x": 595.84,
+          "y": 120,
+          "w": 544.16,
+          "h": 512.63
+        },
+        "gameIdLabel": {
+          "x": 624.84,
+          "y": 275.89,
+          "w": 486.16,
+          "h": 18
+        },
+        "gameIdInput": {
+          "x": 624.84,
+          "y": 301.89,
+          "w": 486.16,
+          "h": 48
+        },
+        "gameIdHint": {
+          "x": 624.84,
+          "y": 357.89,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "regionLabel": {
+          "x": 624.84,
+          "y": 395.69,
+          "w": 486.16,
+          "h": 18
+        },
+        "regionSelect": {
+          "x": 624.84,
+          "y": 421.69,
+          "w": 486.16,
+          "h": 48
+        },
+        "regionHint": {
+          "x": 624.84,
+          "y": 477.69,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "submitButton": {
+          "x": 624.84,
+          "y": 521.48,
+          "w": 486.16,
+          "h": 48
+        },
+        "exportShortcut": {
+          "x": 1030.42,
+          "y": 537.23,
+          "w": 32.58,
+          "h": 16.5
+        },
+        "workflowStrip": {
+          "x": 40,
+          "y": 720.63,
+          "w": 1100,
+          "h": 69.14
+        },
+        "exportCardOverline": {
+          "x": 624.84,
+          "y": 149,
+          "w": 486.16,
+          "h": 24.5
+        },
+        "exportCardTitle": {
+          "x": 624.84,
+          "y": 193.5,
+          "w": 486.16,
+          "h": 32.39
+        },
+        "exportCaption": {
+          "x": 624.84,
+          "y": 585.48,
+          "w": 486.16,
+          "h": 18.14
+        },
+        "helpSummary": {
+          "x": 599.84,
+          "y": 644.63,
+          "w": 536.16,
+          "h": 44
+        }
+      },
+      "scrollY": 0,
+      "focus": null
+    },
+    "importer-02c-client-reconnecte": {
+      "file": "tuto/importer-02c-client-reconnecte.png",
+      "app": "importer",
+      "css": {
+        "w": 1180,
+        "h": 790
+      },
+      "scale": 2,
+      "px": {
+        "w": 2360,
+        "h": 1580
+      },
+      "storyboard": [
+        "4c"
+      ],
+      "state": "Fin de 4c : « Client LoL connecté » après actualisation (identique à importer-01 hors infobulle).",
+      "method": "Renderer réel NXT5 Importer 0.3.8 (importer-app/src) dans Chromium, pont preload simulé en Windows (win32), données fictives.",
+      "boxes": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1180,
+          "h": 84
+        },
+        "brand": {
+          "x": 36,
+          "y": 19.75,
+          "w": 124.8,
+          "h": 43.5
+        },
+        "navExport": {
+          "x": 341.09,
+          "y": 19.5,
+          "w": 107.59,
+          "h": 44
+        },
+        "navHistory": {
+          "x": 452.69,
+          "y": 19.5,
+          "w": 148.52,
+          "h": 44
+        },
+        "navSettings": {
+          "x": 605.2,
+          "y": 19.5,
+          "w": 125.5,
+          "h": 44
+        },
+        "clientIndicator": {
+          "x": 911,
+          "y": 19.5,
+          "w": 179,
+          "h": 44
+        },
+        "clientDot": {
+          "x": 911,
+          "y": 38.5,
+          "w": 6,
+          "h": 6
+        },
+        "clientLabel": {
+          "x": 925,
+          "y": 32.5,
+          "w": 113,
+          "h": 18
+        },
+        "refreshClient": {
+          "x": 1046,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "openSiteIcon": {
+          "x": 1100,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "heroHeading": {
+          "x": 40,
+          "y": 161,
+          "w": 503.84,
+          "h": 96
+        },
+        "exportCard": {
+          "x": 595.84,
+          "y": 120,
+          "w": 544.16,
+          "h": 512.63
+        },
+        "gameIdLabel": {
+          "x": 624.84,
+          "y": 275.89,
+          "w": 486.16,
+          "h": 18
+        },
+        "gameIdInput": {
+          "x": 624.84,
+          "y": 301.89,
+          "w": 486.16,
+          "h": 48
+        },
+        "gameIdHint": {
+          "x": 624.84,
+          "y": 357.89,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "regionLabel": {
+          "x": 624.84,
+          "y": 395.69,
+          "w": 486.16,
+          "h": 18
+        },
+        "regionSelect": {
+          "x": 624.84,
+          "y": 421.69,
+          "w": 486.16,
+          "h": 48
+        },
+        "regionHint": {
+          "x": 624.84,
+          "y": 477.69,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "submitButton": {
+          "x": 624.84,
+          "y": 521.48,
+          "w": 486.16,
+          "h": 48
+        },
+        "exportShortcut": {
+          "x": 1030.42,
+          "y": 537.23,
+          "w": 32.58,
+          "h": 16.5
+        },
+        "workflowStrip": {
+          "x": 40,
+          "y": 720.63,
+          "w": 1100,
+          "h": 69.14
+        },
+        "exportCardOverline": {
+          "x": 624.84,
+          "y": 149,
+          "w": 486.16,
+          "h": 24.5
+        },
+        "exportCardTitle": {
+          "x": 624.84,
+          "y": 193.5,
+          "w": 486.16,
+          "h": 32.39
+        },
+        "exportCaption": {
+          "x": 624.84,
+          "y": 585.48,
+          "w": 486.16,
+          "h": 18.14
+        },
+        "helpSummary": {
+          "x": 599.84,
+          "y": 644.63,
+          "w": 536.16,
+          "h": 44
+        }
+      },
+      "scrollY": 0,
+      "focus": null
+    },
+    "importer-03-champ-focus-vide": {
+      "file": "tuto/importer-03-champ-focus-vide.png",
+      "app": "importer",
+      "css": {
+        "w": 1180,
+        "h": 790
+      },
+      "scale": 2,
+      "px": {
+        "w": 2360,
+        "h": 1580
+      },
+      "storyboard": [
+        "5b"
+      ],
+      "state": "Clic dans « Identifiant du match » : champ vide avec focus (bordure et contour cyan), placeholder « Ex. EUW1_7861632138 » visible, curseur texte masqué.",
+      "method": "Renderer réel NXT5 Importer 0.3.8 (importer-app/src) dans Chromium, pont preload simulé en Windows (win32), données fictives.",
+      "boxes": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1180,
+          "h": 84
+        },
+        "brand": {
+          "x": 36,
+          "y": 19.75,
+          "w": 124.8,
+          "h": 43.5
+        },
+        "navExport": {
+          "x": 341.09,
+          "y": 19.5,
+          "w": 107.59,
+          "h": 44
+        },
+        "navHistory": {
+          "x": 452.69,
+          "y": 19.5,
+          "w": 148.52,
+          "h": 44
+        },
+        "navSettings": {
+          "x": 605.2,
+          "y": 19.5,
+          "w": 125.5,
+          "h": 44
+        },
+        "clientIndicator": {
+          "x": 911,
+          "y": 19.5,
+          "w": 179,
+          "h": 44
+        },
+        "clientDot": {
+          "x": 911,
+          "y": 38.5,
+          "w": 6,
+          "h": 6
+        },
+        "clientLabel": {
+          "x": 925,
+          "y": 32.5,
+          "w": 113,
+          "h": 18
+        },
+        "refreshClient": {
+          "x": 1046,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "openSiteIcon": {
+          "x": 1100,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "heroHeading": {
+          "x": 40,
+          "y": 161,
+          "w": 503.84,
+          "h": 96
+        },
+        "exportCard": {
+          "x": 595.84,
+          "y": 120,
+          "w": 544.16,
+          "h": 512.63
+        },
+        "gameIdLabel": {
+          "x": 624.84,
+          "y": 275.89,
+          "w": 486.16,
+          "h": 18
+        },
+        "gameIdInput": {
+          "x": 624.84,
+          "y": 301.89,
+          "w": 486.16,
+          "h": 48
+        },
+        "gameIdHint": {
+          "x": 624.84,
+          "y": 357.89,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "regionLabel": {
+          "x": 624.84,
+          "y": 395.69,
+          "w": 486.16,
+          "h": 18
+        },
+        "regionSelect": {
+          "x": 624.84,
+          "y": 421.69,
+          "w": 486.16,
+          "h": 48
+        },
+        "regionHint": {
+          "x": 624.84,
+          "y": 477.69,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "submitButton": {
+          "x": 624.84,
+          "y": 521.48,
+          "w": 486.16,
+          "h": 48
+        },
+        "exportShortcut": {
+          "x": 1030.42,
+          "y": 537.23,
+          "w": 32.58,
+          "h": 16.5
+        },
+        "workflowStrip": {
+          "x": 40,
+          "y": 720.63,
+          "w": 1100,
+          "h": 69.14
+        },
+        "exportCardOverline": {
+          "x": 624.84,
+          "y": 149,
+          "w": 486.16,
+          "h": 24.5
+        },
+        "exportCardTitle": {
+          "x": 624.84,
+          "y": 193.5,
+          "w": 486.16,
+          "h": 32.39
+        },
+        "exportCaption": {
+          "x": 624.84,
+          "y": 585.48,
+          "w": 486.16,
+          "h": 18.14
+        },
+        "helpSummary": {
+          "x": 599.84,
+          "y": 644.63,
+          "w": 536.16,
+          "h": 44
+        }
+      },
+      "scrollY": 0,
+      "focus": "input#gameId",
+      "gameIdInputText": {
+        "value": "",
+        "placeholder": "Ex. EUW1_7861632138",
+        "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "color": "rgb(241, 245, 249)",
+        "paddingLeft": "14px",
+        "textX": 639.84,
+        "centerY": 325.89
+      }
+    },
+    "importer-04-id-saisi": {
+      "file": "tuto/importer-04-id-saisi.png",
+      "app": "importer",
+      "css": {
+        "w": 1180,
+        "h": 790
+      },
+      "scale": 2,
+      "px": {
+        "w": 2360,
+        "h": 1580
+      },
+      "storyboard": [
+        "5b",
+        "6a"
+      ],
+      "state": "ID « EUW1_7861632138 » collé, champ toujours focalisé, serveur « Europe Ouest · EUW ». État final du calque de frappe.",
+      "method": "Renderer réel NXT5 Importer 0.3.8 (importer-app/src) dans Chromium, pont preload simulé en Windows (win32), données fictives.",
+      "boxes": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1180,
+          "h": 84
+        },
+        "brand": {
+          "x": 36,
+          "y": 19.75,
+          "w": 124.8,
+          "h": 43.5
+        },
+        "navExport": {
+          "x": 341.09,
+          "y": 19.5,
+          "w": 107.59,
+          "h": 44
+        },
+        "navHistory": {
+          "x": 452.69,
+          "y": 19.5,
+          "w": 148.52,
+          "h": 44
+        },
+        "navSettings": {
+          "x": 605.2,
+          "y": 19.5,
+          "w": 125.5,
+          "h": 44
+        },
+        "clientIndicator": {
+          "x": 911,
+          "y": 19.5,
+          "w": 179,
+          "h": 44
+        },
+        "clientDot": {
+          "x": 911,
+          "y": 38.5,
+          "w": 6,
+          "h": 6
+        },
+        "clientLabel": {
+          "x": 925,
+          "y": 32.5,
+          "w": 113,
+          "h": 18
+        },
+        "refreshClient": {
+          "x": 1046,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "openSiteIcon": {
+          "x": 1100,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "heroHeading": {
+          "x": 40,
+          "y": 161,
+          "w": 503.84,
+          "h": 96
+        },
+        "exportCard": {
+          "x": 595.84,
+          "y": 120,
+          "w": 544.16,
+          "h": 512.63
+        },
+        "gameIdLabel": {
+          "x": 624.84,
+          "y": 275.89,
+          "w": 486.16,
+          "h": 18
+        },
+        "gameIdInput": {
+          "x": 624.84,
+          "y": 301.89,
+          "w": 486.16,
+          "h": 48
+        },
+        "gameIdHint": {
+          "x": 624.84,
+          "y": 357.89,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "regionLabel": {
+          "x": 624.84,
+          "y": 395.69,
+          "w": 486.16,
+          "h": 18
+        },
+        "regionSelect": {
+          "x": 624.84,
+          "y": 421.69,
+          "w": 486.16,
+          "h": 48
+        },
+        "regionHint": {
+          "x": 624.84,
+          "y": 477.69,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "submitButton": {
+          "x": 624.84,
+          "y": 521.48,
+          "w": 486.16,
+          "h": 48
+        },
+        "exportShortcut": {
+          "x": 1030.42,
+          "y": 537.23,
+          "w": 32.58,
+          "h": 16.5
+        },
+        "workflowStrip": {
+          "x": 40,
+          "y": 720.63,
+          "w": 1100,
+          "h": 69.14
+        },
+        "exportCardOverline": {
+          "x": 624.84,
+          "y": 149,
+          "w": 486.16,
+          "h": 24.5
+        },
+        "exportCardTitle": {
+          "x": 624.84,
+          "y": 193.5,
+          "w": 486.16,
+          "h": 32.39
+        },
+        "exportCaption": {
+          "x": 624.84,
+          "y": 585.48,
+          "w": 486.16,
+          "h": 18.14
+        },
+        "helpSummary": {
+          "x": 599.84,
+          "y": 644.63,
+          "w": 536.16,
+          "h": 44
+        }
+      },
+      "scrollY": 0,
+      "focus": "input#gameId",
+      "gameIdInputText": {
+        "value": "EUW1_7861632138",
+        "placeholder": "Ex. EUW1_7861632138",
+        "fontFamily": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "color": "rgb(241, 245, 249)",
+        "paddingLeft": "14px",
+        "textX": 639.84,
+        "centerY": 325.89
+      }
+    },
+    "importer-05-progression-1-match": {
+      "file": "tuto/importer-05-progression-1-match.png",
+      "app": "importer",
+      "css": {
+        "w": 1180,
+        "h": 790
+      },
+      "scale": 2,
+      "px": {
+        "w": 2360,
+        "h": 1580
+      },
+      "storyboard": [
+        "6a"
+      ],
+      "state": "Après clic sur « Exporter la game » : « Préparation de ton export », étape 1 Match active, « Récupération de la partie auprès de Riot… », « Tu pourras choisir l’emplacement du fichier à la fin. », bouton « Export en cours… ».",
+      "method": "Renderer réel NXT5 Importer 0.3.8 (importer-app/src) dans Chromium, pont preload simulé en Windows (win32), données fictives.",
+      "boxes": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1180,
+          "h": 84
+        },
+        "brand": {
+          "x": 36,
+          "y": 19.75,
+          "w": 124.8,
+          "h": 43.5
+        },
+        "navExport": {
+          "x": 341.09,
+          "y": 19.5,
+          "w": 107.59,
+          "h": 44
+        },
+        "navHistory": {
+          "x": 452.69,
+          "y": 19.5,
+          "w": 148.52,
+          "h": 44
+        },
+        "navSettings": {
+          "x": 605.2,
+          "y": 19.5,
+          "w": 125.5,
+          "h": 44
+        },
+        "clientIndicator": {
+          "x": 911,
+          "y": 19.5,
+          "w": 179,
+          "h": 44
+        },
+        "clientDot": {
+          "x": 911,
+          "y": 38.5,
+          "w": 6,
+          "h": 6
+        },
+        "clientLabel": {
+          "x": 925,
+          "y": 32.5,
+          "w": 113,
+          "h": 18
+        },
+        "refreshClient": {
+          "x": 1046,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "openSiteIcon": {
+          "x": 1100,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "heroHeading": {
+          "x": 40,
+          "y": 161,
+          "w": 503.84,
+          "h": 96
+        },
+        "exportCard": {
+          "x": 595.84,
+          "y": 380.73,
+          "w": 544.16,
+          "h": 351.59
+        },
+        "gameIdLabel": {
+          "x": 624.84,
+          "y": 409.73,
+          "w": 486.16,
+          "h": 18
+        },
+        "gameIdInput": {
+          "x": 624.84,
+          "y": 435.73,
+          "w": 486.16,
+          "h": 48
+        },
+        "gameIdHint": {
+          "x": 624.84,
+          "y": 491.73,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "regionLabel": {
+          "x": 624.84,
+          "y": 529.53,
+          "w": 486.16,
+          "h": 18
+        },
+        "regionSelect": {
+          "x": 624.84,
+          "y": 555.53,
+          "w": 486.16,
+          "h": 48
+        },
+        "regionHint": {
+          "x": 624.84,
+          "y": 611.53,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "submitButton": {
+          "x": 624.84,
+          "y": 655.33,
+          "w": 486.16,
+          "h": 48
+        },
+        "exportShortcut": {
+          "x": 1030.42,
+          "y": 671.08,
+          "w": 32.58,
+          "h": 16.5
+        },
+        "workflowStrip": {
+          "x": 40,
+          "y": 764.33,
+          "w": 1100,
+          "h": 69.14,
+          "visible": {
+            "x": 40,
+            "y": 764.33,
+            "w": 1100,
+            "h": 25.67
+          }
+        },
+        "progressCard": {
+          "x": 595.84,
+          "y": 120,
+          "w": 544.16,
+          "h": 242.73
+        },
+        "progressHeading": {
+          "x": 620.84,
+          "y": 156.2,
+          "w": 212.41,
+          "h": 21.59
+        },
+        "progressSteps": {
+          "x": 620.84,
+          "y": 209,
+          "w": 494.16,
+          "h": 59.5
+        },
+        "progressStep1": {
+          "x": 620.84,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressStep2": {
+          "x": 746.39,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressStep3": {
+          "x": 871.94,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressStep4": {
+          "x": 997.48,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressMessage": {
+          "x": 620.84,
+          "y": 288.5,
+          "w": 494.16,
+          "h": 21.44
+        },
+        "progressTime": {
+          "x": 620.84,
+          "y": 317.94,
+          "w": 494.16,
+          "h": 19.8
+        },
+        "cancelButton": {
+          "x": 1065.67,
+          "y": 145,
+          "w": 49.33,
+          "h": 44
+        }
+      },
+      "scrollY": 0,
+      "focus": null
+    },
+    "importer-06-progression-2-timeline": {
+      "file": "tuto/importer-06-progression-2-timeline.png",
+      "app": "importer",
+      "css": {
+        "w": 1180,
+        "h": 790
+      },
+      "scale": 2,
+      "px": {
+        "w": 2360,
+        "h": 1580
+      },
+      "storyboard": [
+        "6a"
+      ],
+      "state": "Étape 2 Timeline active (1 faite), « Vérification de la timeline et des statistiques… », « 2 s écoulées ».",
+      "method": "Renderer réel NXT5 Importer 0.3.8 (importer-app/src) dans Chromium, pont preload simulé en Windows (win32), données fictives.",
+      "boxes": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1180,
+          "h": 84
+        },
+        "brand": {
+          "x": 36,
+          "y": 19.75,
+          "w": 124.8,
+          "h": 43.5
+        },
+        "navExport": {
+          "x": 341.09,
+          "y": 19.5,
+          "w": 107.59,
+          "h": 44
+        },
+        "navHistory": {
+          "x": 452.69,
+          "y": 19.5,
+          "w": 148.52,
+          "h": 44
+        },
+        "navSettings": {
+          "x": 605.2,
+          "y": 19.5,
+          "w": 125.5,
+          "h": 44
+        },
+        "clientIndicator": {
+          "x": 911,
+          "y": 19.5,
+          "w": 179,
+          "h": 44
+        },
+        "clientDot": {
+          "x": 911,
+          "y": 38.5,
+          "w": 6,
+          "h": 6
+        },
+        "clientLabel": {
+          "x": 925,
+          "y": 32.5,
+          "w": 113,
+          "h": 18
+        },
+        "refreshClient": {
+          "x": 1046,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "openSiteIcon": {
+          "x": 1100,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "heroHeading": {
+          "x": 40,
+          "y": 161,
+          "w": 503.84,
+          "h": 96
+        },
+        "exportCard": {
+          "x": 595.84,
+          "y": 380.73,
+          "w": 544.16,
+          "h": 351.59
+        },
+        "gameIdLabel": {
+          "x": 624.84,
+          "y": 409.73,
+          "w": 486.16,
+          "h": 18
+        },
+        "gameIdInput": {
+          "x": 624.84,
+          "y": 435.73,
+          "w": 486.16,
+          "h": 48
+        },
+        "gameIdHint": {
+          "x": 624.84,
+          "y": 491.73,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "regionLabel": {
+          "x": 624.84,
+          "y": 529.53,
+          "w": 486.16,
+          "h": 18
+        },
+        "regionSelect": {
+          "x": 624.84,
+          "y": 555.53,
+          "w": 486.16,
+          "h": 48
+        },
+        "regionHint": {
+          "x": 624.84,
+          "y": 611.53,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "submitButton": {
+          "x": 624.84,
+          "y": 655.33,
+          "w": 486.16,
+          "h": 48
+        },
+        "exportShortcut": {
+          "x": 1030.42,
+          "y": 671.08,
+          "w": 32.58,
+          "h": 16.5
+        },
+        "workflowStrip": {
+          "x": 40,
+          "y": 764.33,
+          "w": 1100,
+          "h": 69.14,
+          "visible": {
+            "x": 40,
+            "y": 764.33,
+            "w": 1100,
+            "h": 25.67
+          }
+        },
+        "progressCard": {
+          "x": 595.84,
+          "y": 120,
+          "w": 544.16,
+          "h": 242.73
+        },
+        "progressHeading": {
+          "x": 620.84,
+          "y": 156.2,
+          "w": 212.41,
+          "h": 21.59
+        },
+        "progressSteps": {
+          "x": 620.84,
+          "y": 209,
+          "w": 494.16,
+          "h": 59.5
+        },
+        "progressStep1": {
+          "x": 620.84,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressStep2": {
+          "x": 746.39,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressStep3": {
+          "x": 871.94,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressStep4": {
+          "x": 997.48,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressMessage": {
+          "x": 620.84,
+          "y": 288.5,
+          "w": 494.16,
+          "h": 21.44
+        },
+        "progressTime": {
+          "x": 620.84,
+          "y": 317.94,
+          "w": 494.16,
+          "h": 19.8
+        },
+        "cancelButton": {
+          "x": 1065.67,
+          "y": 145,
+          "w": 49.33,
+          "h": 44
+        }
+      },
+      "scrollY": 0,
+      "focus": null
+    },
+    "importer-07-progression-3-fichier": {
+      "file": "tuto/importer-07-progression-3-fichier.png",
+      "app": "importer",
+      "css": {
+        "w": 1180,
+        "h": 790
+      },
+      "scale": 2,
+      "px": {
+        "w": 2360,
+        "h": 1580
+      },
+      "storyboard": [
+        "6a",
+        "6b"
+      ],
+      "state": "Étape 3 Fichier active (1 et 2 faites), « Choisis où enregistrer ton fichier JSON… » (la fenêtre d’enregistrement du système est alors ouverte), « Annuler » désactivé, « 3 s écoulées ».",
+      "method": "Renderer réel NXT5 Importer 0.3.8 (importer-app/src) dans Chromium, pont preload simulé en Windows (win32), données fictives.",
+      "boxes": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1180,
+          "h": 84
+        },
+        "brand": {
+          "x": 36,
+          "y": 19.75,
+          "w": 124.8,
+          "h": 43.5
+        },
+        "navExport": {
+          "x": 341.09,
+          "y": 19.5,
+          "w": 107.59,
+          "h": 44
+        },
+        "navHistory": {
+          "x": 452.69,
+          "y": 19.5,
+          "w": 148.52,
+          "h": 44
+        },
+        "navSettings": {
+          "x": 605.2,
+          "y": 19.5,
+          "w": 125.5,
+          "h": 44
+        },
+        "clientIndicator": {
+          "x": 911,
+          "y": 19.5,
+          "w": 179,
+          "h": 44
+        },
+        "clientDot": {
+          "x": 911,
+          "y": 38.5,
+          "w": 6,
+          "h": 6
+        },
+        "clientLabel": {
+          "x": 925,
+          "y": 32.5,
+          "w": 113,
+          "h": 18
+        },
+        "refreshClient": {
+          "x": 1046,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "openSiteIcon": {
+          "x": 1100,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "heroHeading": {
+          "x": 40,
+          "y": 161,
+          "w": 503.84,
+          "h": 96
+        },
+        "exportCard": {
+          "x": 595.84,
+          "y": 380.73,
+          "w": 544.16,
+          "h": 351.59
+        },
+        "gameIdLabel": {
+          "x": 624.84,
+          "y": 409.73,
+          "w": 486.16,
+          "h": 18
+        },
+        "gameIdInput": {
+          "x": 624.84,
+          "y": 435.73,
+          "w": 486.16,
+          "h": 48
+        },
+        "gameIdHint": {
+          "x": 624.84,
+          "y": 491.73,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "regionLabel": {
+          "x": 624.84,
+          "y": 529.53,
+          "w": 486.16,
+          "h": 18
+        },
+        "regionSelect": {
+          "x": 624.84,
+          "y": 555.53,
+          "w": 486.16,
+          "h": 48
+        },
+        "regionHint": {
+          "x": 624.84,
+          "y": 611.53,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "submitButton": {
+          "x": 624.84,
+          "y": 655.33,
+          "w": 486.16,
+          "h": 48
+        },
+        "exportShortcut": {
+          "x": 1030.42,
+          "y": 671.08,
+          "w": 32.58,
+          "h": 16.5
+        },
+        "workflowStrip": {
+          "x": 40,
+          "y": 764.33,
+          "w": 1100,
+          "h": 69.14,
+          "visible": {
+            "x": 40,
+            "y": 764.33,
+            "w": 1100,
+            "h": 25.67
+          }
+        },
+        "progressCard": {
+          "x": 595.84,
+          "y": 120,
+          "w": 544.16,
+          "h": 242.73
+        },
+        "progressHeading": {
+          "x": 620.84,
+          "y": 156.2,
+          "w": 212.41,
+          "h": 21.59
+        },
+        "progressSteps": {
+          "x": 620.84,
+          "y": 209,
+          "w": 494.16,
+          "h": 59.5
+        },
+        "progressStep1": {
+          "x": 620.84,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressStep2": {
+          "x": 746.39,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressStep3": {
+          "x": 871.94,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressStep4": {
+          "x": 997.48,
+          "y": 209,
+          "w": 117.55,
+          "h": 59.5
+        },
+        "progressMessage": {
+          "x": 620.84,
+          "y": 288.5,
+          "w": 494.16,
+          "h": 21.44
+        },
+        "progressTime": {
+          "x": 620.84,
+          "y": 317.94,
+          "w": 494.16,
+          "h": 19.8
+        },
+        "cancelButton": {
+          "x": 1065.67,
+          "y": 145,
+          "w": 49.33,
+          "h": 44
+        }
+      },
+      "scrollY": 0,
+      "focus": null
+    },
+    "importer-08-resultat": {
+      "file": "tuto/importer-08-resultat.png",
+      "app": "importer",
+      "css": {
+        "w": 1180,
+        "h": 790
+      },
+      "scale": 2,
+      "px": {
+        "w": 2360,
+        "h": 1580
+      },
+      "storyboard": [
+        "6c",
+        "7a"
+      ],
+      "state": "« Export enregistré · Ta game est prête. », pastilles 10 joueurs / 25 min 00 / Timeline incluse / Riot via NXT5, chemin Windows, « Voir le fichier » et « Ouvrir NXT5 ». (Le message de réussite #status est masqué visuellement par l’application quand la carte est affichée.)",
+      "method": "Renderer réel NXT5 Importer 0.3.8 (importer-app/src) dans Chromium, pont preload simulé en Windows (win32), données fictives.",
+      "boxes": {
+        "header": {
+          "x": 0,
+          "y": 0,
+          "w": 1180,
+          "h": 84
+        },
+        "brand": {
+          "x": 36,
+          "y": 19.75,
+          "w": 124.8,
+          "h": 43.5
+        },
+        "navExport": {
+          "x": 341.09,
+          "y": 19.5,
+          "w": 107.59,
+          "h": 44
+        },
+        "navHistory": {
+          "x": 452.69,
+          "y": 19.5,
+          "w": 148.52,
+          "h": 44
+        },
+        "navSettings": {
+          "x": 605.2,
+          "y": 19.5,
+          "w": 125.5,
+          "h": 44
+        },
+        "clientIndicator": {
+          "x": 911,
+          "y": 19.5,
+          "w": 179,
+          "h": 44
+        },
+        "clientDot": {
+          "x": 911,
+          "y": 38.5,
+          "w": 6,
+          "h": 6
+        },
+        "clientLabel": {
+          "x": 925,
+          "y": 32.5,
+          "w": 113,
+          "h": 18
+        },
+        "refreshClient": {
+          "x": 1046,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "openSiteIcon": {
+          "x": 1100,
+          "y": 19.5,
+          "w": 44,
+          "h": 44
+        },
+        "heroHeading": {
+          "x": 40,
+          "y": 161,
+          "w": 503.84,
+          "h": 96
+        },
+        "exportCard": {
+          "x": 595.84,
+          "y": 435.19,
+          "w": 544.16,
+          "h": 351.59
+        },
+        "gameIdLabel": {
+          "x": 624.84,
+          "y": 464.19,
+          "w": 486.16,
+          "h": 18
+        },
+        "gameIdInput": {
+          "x": 624.84,
+          "y": 490.19,
+          "w": 486.16,
+          "h": 48
+        },
+        "gameIdHint": {
+          "x": 624.84,
+          "y": 546.19,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "regionLabel": {
+          "x": 624.84,
+          "y": 583.98,
+          "w": 486.16,
+          "h": 18
+        },
+        "regionSelect": {
+          "x": 624.84,
+          "y": 609.98,
+          "w": 486.16,
+          "h": 48
+        },
+        "regionHint": {
+          "x": 624.84,
+          "y": 665.98,
+          "w": 486.16,
+          "h": 19.8
+        },
+        "submitButton": {
+          "x": 624.84,
+          "y": 709.78,
+          "w": 486.16,
+          "h": 48
+        },
+        "exportShortcut": {
+          "x": 1030.42,
+          "y": 725.53,
+          "w": 32.58,
+          "h": 16.5
+        },
+        "resultCard": {
+          "x": 595.84,
+          "y": 120,
+          "w": 544.16,
+          "h": 297.19
+        },
+        "resultIcon": {
+          "x": 620.84,
+          "y": 147.64,
+          "w": 44,
+          "h": 44
+        },
+        "resultEyebrow": {
+          "x": 676.84,
+          "y": 145,
+          "w": 201.25,
+          "h": 16.5
+        },
+        "resultHeading": {
+          "x": 676.84,
+          "y": 165.5,
+          "w": 201.25,
+          "h": 28.8
+        },
+        "resultGameId": {
+          "x": 620.84,
+          "y": 214.3,
+          "w": 145.08,
+          "h": 20
+        },
+        "resultFacts": {
+          "x": 620.84,
+          "y": 248.3,
+          "w": 494.16,
+          "h": 26.5
+        },
+        "resultFactPlayers": {
+          "x": 620.84,
+          "y": 248.3,
+          "w": 71.14,
+          "h": 26.5
+        },
+        "resultFactDuration": {
+          "x": 698.98,
+          "y": 248.3,
+          "w": 70.11,
+          "h": 26.5
+        },
+        "resultFactTimeline": {
+          "x": 776.09,
+          "y": 248.3,
+          "w": 101.98,
+          "h": 26.5
+        },
+        "resultFactSource": {
+          "x": 885.08,
+          "y": 248.3,
+          "w": 88.14,
+          "h": 26.5
+        },
+        "resultPath": {
+          "x": 620.84,
+          "y": 286.8,
+          "w": 494.16,
+          "h": 17.59
+        },
+        "revealFileButton": {
+          "x": 620.84,
+          "y": 320.39,
+          "w": 129.75,
+          "h": 44
+        },
+        "openNxt5Button": {
+          "x": 768.59,
+          "y": 320.39,
+          "w": 97.48,
+          "h": 44
+        },
+        "resultHint": {
+          "x": 620.84,
+          "y": 372.39,
+          "w": 494.16,
+          "h": 19.8
+        }
+      },
+      "hiddenBoxes": [
+        "workflowStrip"
+      ],
+      "scrollY": 0,
+      "focus": null,
+      "openNxt5Url": "https://nxt5.org/integration"
+    },
+    "site-01-parties": {
+      "file": "tuto/site-01-parties.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "2a",
+        "7a"
+      ],
+      "state": "Page Parties de l’équipe « Équipe Démo » (aucune partie), bouton « Importer une partie » visible, menu latéral « Parties » actif. Page défilée de quelques px pour que le bas de la fenêtre ne coupe pas le titre de l’état vide.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "w": 264,
+          "h": 900
+        },
+        "sidebarParties": {
+          "x": 16,
+          "y": 244.39,
+          "w": 231,
+          "h": 44
+        },
+        "topbarTeam": {
+          "x": 955.2,
+          "y": 14.5,
+          "w": 179.52,
+          "h": 46
+        },
+        "pageEyebrow": {
+          "x": 296,
+          "y": 193,
+          "w": 878.67,
+          "h": 18
+        },
+        "pageTitle": {
+          "x": 296,
+          "y": 223,
+          "w": 800,
+          "h": 38.09
+        },
+        "pageSubtitle": {
+          "x": 296,
+          "y": 277.09,
+          "w": 585.44,
+          "h": 54.38
+        },
+        "importButton": {
+          "x": 1206.67,
+          "y": 286.97,
+          "w": 201.33,
+          "h": 44.5
+        },
+        "libraryTabs": {
+          "x": 296,
+          "y": 368.47,
+          "w": 1112,
+          "h": 58.39
+        },
+        "gamesCard": {
+          "x": 296,
+          "y": 442.86,
+          "w": 1112,
+          "h": 618.28,
+          "visible": {
+            "x": 296,
+            "y": 442.86,
+            "w": 1112,
+            "h": 457.14
+          }
+        },
+        "gamesCardTitle": {
+          "x": 317,
+          "y": 472.81,
+          "w": 158.83,
+          "h": 26.59
+        }
+      },
+      "url": "/games",
+      "scrollY": 8,
+      "focus": null
+    },
+    "site-02-dialogue-import": {
+      "file": "tuto/site-02-dialogue-import.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "2b",
+        "7a"
+      ],
+      "state": "Fenêtre « Importer une partie » : « Ajoute le fichier de ta partie », « Choisir mon fichier », section « Pas encore de fichier ? Obtenir NXT5 Importer » repliée.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 257.61,
+          "w": 1080,
+          "h": 384.78
+        },
+        "dialogHeader": {
+          "x": 181,
+          "y": 258.61,
+          "w": 1078,
+          "h": 77
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 282.31,
+          "w": 207.2,
+          "h": 28.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 274.61,
+          "w": 44,
+          "h": 44
+        },
+        "dialogContent": {
+          "x": 181,
+          "y": 335.61,
+          "w": 1078,
+          "h": 305.78
+        },
+        "filePanel": {
+          "x": 205,
+          "y": 355.61,
+          "w": 1030,
+          "h": 261.78
+        },
+        "filePanelTitle": {
+          "x": 226,
+          "y": 376.61,
+          "w": 686.38,
+          "h": 28
+        },
+        "filePanelText": {
+          "x": 226,
+          "y": 410.61,
+          "w": 686.38,
+          "h": 51.19
+        },
+        "chooseFileButton": {
+          "x": 226,
+          "y": 477.8,
+          "w": 199.23,
+          "h": 48
+        },
+        "downloadSummary": {
+          "x": 226,
+          "y": 546.8,
+          "w": 988,
+          "h": 49.59
+        }
+      },
+      "url": "/games?import=1",
+      "scrollY": 0,
+      "focus": null
+    },
+    "site-03-obtenir-importer": {
+      "file": "tuto/site-03-obtenir-importer.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "2b"
+      ],
+      "state": "Section « Obtenir NXT5 Importer » dépliée : « Version de l’application » sur « Windows (64 bits) » (choix par défaut), bouton « Télécharger », lien « Aide à l’ouverture sur Windows et Mac ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 158.53,
+          "w": 1080,
+          "h": 582.92
+        },
+        "dialogHeader": {
+          "x": 181,
+          "y": 159.53,
+          "w": 1078,
+          "h": 77
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 183.23,
+          "w": 207.2,
+          "h": 28.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 175.53,
+          "w": 44,
+          "h": 44
+        },
+        "dialogContent": {
+          "x": 181,
+          "y": 236.53,
+          "w": 1078,
+          "h": 503.92
+        },
+        "filePanel": {
+          "x": 205,
+          "y": 256.53,
+          "w": 1030,
+          "h": 459.92
+        },
+        "filePanelTitle": {
+          "x": 226,
+          "y": 277.53,
+          "w": 686.38,
+          "h": 28
+        },
+        "filePanelText": {
+          "x": 226,
+          "y": 311.53,
+          "w": 686.38,
+          "h": 51.19
+        },
+        "chooseFileButton": {
+          "x": 226,
+          "y": 378.72,
+          "w": 199.23,
+          "h": 48
+        },
+        "downloadSummary": {
+          "x": 226,
+          "y": 447.72,
+          "w": 988,
+          "h": 49.59
+        },
+        "downloadText": {
+          "x": 226,
+          "y": 497.31,
+          "w": 672,
+          "h": 48
+        },
+        "versionLabel": {
+          "x": 226,
+          "y": 561.31,
+          "w": 288,
+          "h": 82.14
+        },
+        "versionSelect": {
+          "x": 226,
+          "y": 591.06,
+          "w": 288,
+          "h": 52.39
+        },
+        "downloadButton": {
+          "x": 526,
+          "y": 594.95,
+          "w": 153.92,
+          "h": 48.5
+        },
+        "helpLink": {
+          "x": 226,
+          "y": 651.45,
+          "w": 305.97,
+          "h": 44
+        }
+      },
+      "url": "/games?import=1",
+      "scrollY": 0,
+      "focus": null,
+      "versionValue": "Windows (64 bits)"
+    },
+    "site-04-aide-ouverture-windows": {
+      "file": "tuto/site-04-aide-ouverture-windows.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "3a"
+      ],
+      "state": "Fenêtre « Ouvrir NXT5 Importer », onglet « Windows » : « Microsoft Defender SmartScreen », « Windows a protégé votre ordinateur », trois consignes numérotées, « J’ai compris ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "helpDialog": {
+          "x": 400,
+          "y": 67.22,
+          "w": 640,
+          "h": 765.56
+        },
+        "helpTitle": {
+          "x": 425,
+          "y": 84.22,
+          "w": 530,
+          "h": 28.59
+        },
+        "helpClose": {
+          "x": 971,
+          "y": 106.11,
+          "w": 44,
+          "h": 44
+        },
+        "windowsTab": {
+          "x": 425,
+          "y": 209,
+          "w": 291,
+          "h": 44.5
+        },
+        "macTab": {
+          "x": 724,
+          "y": 209,
+          "w": 291,
+          "h": 44.5
+        },
+        "helpEyebrow": {
+          "x": 425,
+          "y": 273.5,
+          "w": 590,
+          "h": 23.09
+        },
+        "helpHeading": {
+          "x": 425,
+          "y": 302.59,
+          "w": 590,
+          "h": 25.19
+        },
+        "helpSteps": {
+          "x": 425,
+          "y": 503.73,
+          "w": 590,
+          "h": 155.95
+        },
+        "helpStep1": {
+          "x": 449,
+          "y": 503.73,
+          "w": 566,
+          "h": 26.39
+        },
+        "helpStep2": {
+          "x": 449,
+          "y": 542.13,
+          "w": 566,
+          "h": 52.78
+        },
+        "helpStep3": {
+          "x": 449,
+          "y": 606.91,
+          "w": 566,
+          "h": 52.78
+        },
+        "helpNote": {
+          "x": 425,
+          "y": 671.69,
+          "w": 590,
+          "h": 23.09
+        },
+        "helpOther": {
+          "x": 425,
+          "y": 715.78,
+          "w": 590,
+          "h": 50.5
+        },
+        "understoodButton": {
+          "x": 890.8,
+          "y": 787.28,
+          "w": 124.2,
+          "h": 44.5
+        }
+      },
+      "url": "/games?import=1",
+      "scrollY": 0,
+      "focus": null
+    },
+    "site-05-fichier-charge": {
+      "file": "tuto/site-05-fichier-charge.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "7c"
+      ],
+      "state": "Juste après le choix du fichier : panneau « Fichier chargé · Rien n’est encore enregistré. », « Choisis ton équipe » avec « Côté bleu » (Victoire, reconnu et coché) et « Côté rouge » (Défaite), notification « Fichier chargé » en bas à droite.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 16,
+          "w": 1080,
+          "h": 868
+        },
+        "dialogHeader": {
+          "x": 181,
+          "y": 17,
+          "w": 1078,
+          "h": 77
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 40.7,
+          "w": 207.2,
+          "h": 28.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 33,
+          "w": 44,
+          "h": 44
+        },
+        "dialogContent": {
+          "x": 181,
+          "y": 94,
+          "w": 1078,
+          "h": 1497.34,
+          "visible": {
+            "x": 181,
+            "y": 94,
+            "w": 1078,
+            "h": 790
+          }
+        },
+        "filePanel": {
+          "x": 205,
+          "y": 114,
+          "w": 1030,
+          "h": 65
+        },
+        "filePanelTitle": {
+          "x": 237,
+          "y": 114.61,
+          "w": 188.41,
+          "h": 22.39
+        },
+        "filePanelText": {
+          "x": 237,
+          "y": 139,
+          "w": 188.41,
+          "h": 22.39
+        },
+        "changeFileButton": {
+          "x": 1041.06,
+          "y": 114,
+          "w": 193.94,
+          "h": 48
+        },
+        "fileCheck": {
+          "x": 205,
+          "y": 128,
+          "w": 20,
+          "h": 20
+        },
+        "sideSection": {
+          "x": 205,
+          "y": 203,
+          "w": 1030,
+          "h": 167.58
+        },
+        "sideTitle": {
+          "x": 205,
+          "y": 203,
+          "w": 162.89,
+          "h": 25.19
+        },
+        "recognitionText": {
+          "x": 205,
+          "y": 236.19,
+          "w": 671.23,
+          "h": 22.39
+        },
+        "blueSide": {
+          "x": 205,
+          "y": 270.58,
+          "w": 509,
+          "h": 100
+        },
+        "redSide": {
+          "x": 726,
+          "y": 270.58,
+          "w": 509,
+          "h": 100
+        },
+        "allyHeading": {
+          "x": 205,
+          "y": 394.58,
+          "w": 113.45,
+          "h": 25.19
+        },
+        "footer": {
+          "x": 181,
+          "y": 805,
+          "w": 1078,
+          "h": 78
+        },
+        "footerStatus": {
+          "x": 205,
+          "y": 822,
+          "w": 224.73,
+          "h": 45
+        },
+        "footerStatusTitle": {
+          "x": 205,
+          "y": 822,
+          "w": 224.73,
+          "h": 21
+        },
+        "resetButton": {
+          "x": 911.11,
+          "y": 822.25,
+          "w": 119.92,
+          "h": 44.5
+        },
+        "confirmButton": {
+          "x": 1039.03,
+          "y": 822.25,
+          "w": 195.97,
+          "h": 44.5
+        },
+        "toast": {
+          "x": 1024,
+          "y": 748.33,
+          "w": 400,
+          "h": 131.67
+        },
+        "toastTitle": {
+          "x": 1087,
+          "y": 765.33,
+          "w": 264,
+          "h": 26.5
+        },
+        "toastText": {
+          "x": 1087,
+          "y": 795.83,
+          "w": 264,
+          "h": 67.17
+        }
+      },
+      "url": "/games?import=1",
+      "scrollY": 0,
+      "focus": null
+    },
+    "site-05b-fichier-charge-sans-notification": {
+      "file": "tuto/site-05b-fichier-charge-sans-notification.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "7c"
+      ],
+      "state": "Même état que site-05 une fois la notification « Fichier chargé » disparue (4,5 s).",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 16,
+          "w": 1080,
+          "h": 868
+        },
+        "dialogHeader": {
+          "x": 181,
+          "y": 17,
+          "w": 1078,
+          "h": 77
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 40.7,
+          "w": 207.2,
+          "h": 28.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 33,
+          "w": 44,
+          "h": 44
+        },
+        "dialogContent": {
+          "x": 181,
+          "y": 94,
+          "w": 1078,
+          "h": 1497.34,
+          "visible": {
+            "x": 181,
+            "y": 94,
+            "w": 1078,
+            "h": 790
+          }
+        },
+        "filePanel": {
+          "x": 205,
+          "y": 114,
+          "w": 1030,
+          "h": 65
+        },
+        "filePanelTitle": {
+          "x": 237,
+          "y": 114.61,
+          "w": 188.41,
+          "h": 22.39
+        },
+        "filePanelText": {
+          "x": 237,
+          "y": 139,
+          "w": 188.41,
+          "h": 22.39
+        },
+        "changeFileButton": {
+          "x": 1041.06,
+          "y": 114,
+          "w": 193.94,
+          "h": 48
+        },
+        "fileCheck": {
+          "x": 205,
+          "y": 128,
+          "w": 20,
+          "h": 20
+        },
+        "sideSection": {
+          "x": 205,
+          "y": 203,
+          "w": 1030,
+          "h": 167.58
+        },
+        "sideTitle": {
+          "x": 205,
+          "y": 203,
+          "w": 162.89,
+          "h": 25.19
+        },
+        "recognitionText": {
+          "x": 205,
+          "y": 236.19,
+          "w": 671.23,
+          "h": 22.39
+        },
+        "blueSide": {
+          "x": 205,
+          "y": 270.58,
+          "w": 509,
+          "h": 100
+        },
+        "redSide": {
+          "x": 726,
+          "y": 270.58,
+          "w": 509,
+          "h": 100
+        },
+        "allyHeading": {
+          "x": 205,
+          "y": 394.58,
+          "w": 113.45,
+          "h": 25.19
+        },
+        "footer": {
+          "x": 181,
+          "y": 805,
+          "w": 1078,
+          "h": 78
+        },
+        "footerStatus": {
+          "x": 205,
+          "y": 822,
+          "w": 224.73,
+          "h": 45
+        },
+        "footerStatusTitle": {
+          "x": 205,
+          "y": 822,
+          "w": 224.73,
+          "h": 21
+        },
+        "resetButton": {
+          "x": 911.11,
+          "y": 822.25,
+          "w": 119.92,
+          "h": 44.5
+        },
+        "confirmButton": {
+          "x": 1039.03,
+          "y": 822.25,
+          "w": 195.97,
+          "h": 44.5
+        }
+      },
+      "url": "/games?import=1",
+      "scrollY": 0,
+      "focus": null
+    },
+    "site-06-notre-equipe": {
+      "file": "tuto/site-06-notre-equipe.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "7d"
+      ],
+      "state": "Section « Notre équipe · Côté bleu » : colonnes Poste / Champion joué / Profil lié, cinq lignes Top à Support liées aux profils de l’équipe.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 16,
+          "w": 1080,
+          "h": 868
+        },
+        "dialogHeader": {
+          "x": 181,
+          "y": 17,
+          "w": 1078,
+          "h": 77
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 40.7,
+          "w": 207.2,
+          "h": 28.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 33,
+          "w": 44,
+          "h": 44
+        },
+        "dialogContent": {
+          "x": 181,
+          "y": -191,
+          "w": 1078,
+          "h": 1497.34,
+          "visible": {
+            "x": 181,
+            "y": 16,
+            "w": 1078,
+            "h": 868
+          }
+        },
+        "footer": {
+          "x": 181,
+          "y": 805,
+          "w": 1078,
+          "h": 78
+        },
+        "footerStatus": {
+          "x": 205,
+          "y": 822,
+          "w": 224.73,
+          "h": 45
+        },
+        "footerStatusTitle": {
+          "x": 205,
+          "y": 822,
+          "w": 224.73,
+          "h": 21
+        },
+        "resetButton": {
+          "x": 911.11,
+          "y": 822.25,
+          "w": 119.92,
+          "h": 44.5
+        },
+        "confirmButton": {
+          "x": 1039.03,
+          "y": 822.25,
+          "w": 195.97,
+          "h": 44.5
+        },
+        "allySection": {
+          "x": 205,
+          "y": 109.58,
+          "w": 1030,
+          "h": 542.17
+        },
+        "allyHeading": {
+          "x": 205,
+          "y": 109.58,
+          "w": 113.45,
+          "h": 25.19
+        },
+        "allyRosterHead": {
+          "x": 205,
+          "y": 146.77,
+          "w": 1030,
+          "h": 33.5
+        },
+        "allyRoster": {
+          "x": 205,
+          "y": 180.27,
+          "w": 1030,
+          "h": 471.48
+        },
+        "allyRowTOP": {
+          "x": 205,
+          "y": 180.27,
+          "w": 1030,
+          "h": 94.3
+        },
+        "allyChampionTOP": {
+          "x": 325,
+          "y": 193.27,
+          "w": 447,
+          "h": 69.3
+        },
+        "allyProfileTOP": {
+          "x": 788,
+          "y": 193.27,
+          "w": 447,
+          "h": 69.3
+        },
+        "allyRowJGL": {
+          "x": 205,
+          "y": 274.56,
+          "w": 1030,
+          "h": 94.3
+        },
+        "allyChampionJGL": {
+          "x": 325,
+          "y": 287.56,
+          "w": 447,
+          "h": 69.3
+        },
+        "allyProfileJGL": {
+          "x": 788,
+          "y": 287.56,
+          "w": 447,
+          "h": 69.3
+        },
+        "allyRowMID": {
+          "x": 205,
+          "y": 368.86,
+          "w": 1030,
+          "h": 94.3
+        },
+        "allyChampionMID": {
+          "x": 325,
+          "y": 381.86,
+          "w": 447,
+          "h": 69.3
+        },
+        "allyProfileMID": {
+          "x": 788,
+          "y": 381.86,
+          "w": 447,
+          "h": 69.3
+        },
+        "allyRowADC": {
+          "x": 205,
+          "y": 463.16,
+          "w": 1030,
+          "h": 94.3
+        },
+        "allyChampionADC": {
+          "x": 325,
+          "y": 476.16,
+          "w": 447,
+          "h": 69.3
+        },
+        "allyProfileADC": {
+          "x": 788,
+          "y": 476.16,
+          "w": 447,
+          "h": 69.3
+        },
+        "allyRowSUP": {
+          "x": 205,
+          "y": 557.45,
+          "w": 1030,
+          "h": 94.3
+        },
+        "allyChampionSUP": {
+          "x": 325,
+          "y": 570.45,
+          "w": 447,
+          "h": 69.3
+        },
+        "allyProfileSUP": {
+          "x": 788,
+          "y": 570.45,
+          "w": 447,
+          "h": 69.3
+        }
+      },
+      "hiddenBoxes": [
+        "filePanel",
+        "filePanelTitle",
+        "filePanelText"
+      ],
+      "url": "/games?import=1",
+      "scrollY": 0,
+      "focus": null
+    },
+    "site-07-equipe-adverse": {
+      "file": "tuto/site-07-equipe-adverse.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "7e",
+        "7f"
+      ],
+      "state": "Fenêtre défilée jusqu’en bas (butée) : « Équipe adverse · Côté rouge » avec les cinq postes, puis les champs avant saisie : « Nom de la partie » pré-rempli avec l’ID de la partie, aucun tag (« Ajoute au moins un tag à la partie. »), « Équipe adverse (facultatif) » actif avec « Nouvelle équipe ». Pied « À compléter ». La ligne ADC passe sous l’en-tête collant de la fenêtre (défilement réel).",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 16,
+          "w": 1080,
+          "h": 868
+        },
+        "dialogHeader": {
+          "x": 181,
+          "y": 17,
+          "w": 1078,
+          "h": 77
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 40.7,
+          "w": 207.2,
+          "h": 28.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 33,
+          "w": 44,
+          "h": 44
+        },
+        "dialogContent": {
+          "x": 181,
+          "y": -570,
+          "w": 1078,
+          "h": 1497.34,
+          "visible": {
+            "x": 181,
+            "y": 16,
+            "w": 1078,
+            "h": 868
+          }
+        },
+        "footer": {
+          "x": 181,
+          "y": 805,
+          "w": 1078,
+          "h": 78
+        },
+        "footerStatus": {
+          "x": 205,
+          "y": 822,
+          "w": 224.73,
+          "h": 45
+        },
+        "footerStatusTitle": {
+          "x": 205,
+          "y": 822,
+          "w": 224.73,
+          "h": 21
+        },
+        "resetButton": {
+          "x": 911.11,
+          "y": 822.25,
+          "w": 119.92,
+          "h": 44.5
+        },
+        "confirmButton": {
+          "x": 1039.03,
+          "y": 822.25,
+          "w": 195.97,
+          "h": 44.5
+        },
+        "enemySection": {
+          "x": 205,
+          "y": 296.75,
+          "w": 1030,
+          "h": 222.67
+        },
+        "enemyHeading": {
+          "x": 205,
+          "y": 317.75,
+          "w": 136.02,
+          "h": 25.19
+        },
+        "enemyHelp": {
+          "x": 205,
+          "y": 346.94,
+          "w": 1030,
+          "h": 21
+        },
+        "enemyRoster": {
+          "x": 205,
+          "y": 383.94,
+          "w": 1030,
+          "h": 135.48
+        },
+        "enemy1": {
+          "x": 205,
+          "y": 383.94,
+          "w": 193.19,
+          "h": 135.48
+        },
+        "enemy1Role": {
+          "x": 205,
+          "y": 467.03,
+          "w": 193.19,
+          "h": 52.39
+        },
+        "enemy2": {
+          "x": 414.19,
+          "y": 383.94,
+          "w": 193.2,
+          "h": 135.48
+        },
+        "enemy2Role": {
+          "x": 414.19,
+          "y": 467.03,
+          "w": 193.2,
+          "h": 52.39
+        },
+        "enemy3": {
+          "x": 623.39,
+          "y": 383.94,
+          "w": 193.2,
+          "h": 135.48
+        },
+        "enemy3Role": {
+          "x": 623.39,
+          "y": 467.03,
+          "w": 193.2,
+          "h": 52.39
+        },
+        "enemy4": {
+          "x": 832.59,
+          "y": 383.94,
+          "w": 193.2,
+          "h": 135.48
+        },
+        "enemy4Role": {
+          "x": 832.59,
+          "y": 467.03,
+          "w": 193.2,
+          "h": 52.39
+        },
+        "enemy5": {
+          "x": 1041.8,
+          "y": 383.94,
+          "w": 193.19,
+          "h": 135.48
+        },
+        "enemy5Role": {
+          "x": 1041.8,
+          "y": 467.03,
+          "w": 193.19,
+          "h": 52.39
+        },
+        "fieldsBlock": {
+          "x": 205,
+          "y": 543.42,
+          "w": 1030,
+          "h": 305.92,
+          "visible": {
+            "x": 205,
+            "y": 543.42,
+            "w": 1030,
+            "h": 261.58
+          }
+        },
+        "nameInput": {
+          "x": 205,
+          "y": 598.17,
+          "w": 505,
+          "h": 52.39
+        },
+        "nameLabel": {
+          "x": 205,
+          "y": 568.42,
+          "w": 505,
+          "h": 21.75
+        },
+        "tagsGroup": {
+          "x": 730,
+          "y": 568.42,
+          "w": 505,
+          "h": 102
+        },
+        "tagsLabel": {
+          "x": 730,
+          "y": 568.42,
+          "w": 505,
+          "h": 21
+        },
+        "scrimTag": {
+          "x": 730,
+          "y": 597.42,
+          "w": 65.19,
+          "h": 44
+        },
+        "tagsHelp": {
+          "x": 730,
+          "y": 649.42,
+          "w": 505,
+          "h": 21
+        },
+        "opponentBlock": {
+          "x": 205,
+          "y": 690.42,
+          "w": 1030,
+          "h": 134.92,
+          "visible": {
+            "x": 205,
+            "y": 690.42,
+            "w": 1030,
+            "h": 114.58
+          }
+        },
+        "opponentSelect": {
+          "x": 205,
+          "y": 720.17,
+          "w": 841.56,
+          "h": 52.39
+        },
+        "newOpponentButton": {
+          "x": 1058.56,
+          "y": 724.56,
+          "w": 176.44,
+          "h": 48
+        },
+        "opponentHelp": {
+          "x": 205,
+          "y": 780.56,
+          "w": 600.58,
+          "h": 44.78,
+          "visible": {
+            "x": 205,
+            "y": 780.56,
+            "w": 600.58,
+            "h": 24.44
+          }
+        }
+      },
+      "hiddenBoxes": [
+        "filePanel",
+        "filePanelTitle",
+        "filePanelText"
+      ],
+      "url": "/games?import=1",
+      "scrollY": 0,
+      "focus": null,
+      "nameValue": "EUW1_7861632138"
+    },
+    "site-07b-nom-saisi": {
+      "file": "tuto/site-07b-nom-saisi.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "7f"
+      ],
+      "state": "Nom « Scrim Aurore · partie 1 » saisi (champ encore focalisé, comme pendant la frappe), aucun tag encore choisi (« Ajoute au moins un tag à la partie. »), pied « À compléter ». Même défilement que site-07 : seul le champ du nom change.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 16,
+          "w": 1080,
+          "h": 868
+        },
+        "dialogHeader": {
+          "x": 181,
+          "y": 17,
+          "w": 1078,
+          "h": 77
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 40.7,
+          "w": 207.2,
+          "h": 28.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 33,
+          "w": 44,
+          "h": 44
+        },
+        "dialogContent": {
+          "x": 181,
+          "y": -570,
+          "w": 1078,
+          "h": 1497.34,
+          "visible": {
+            "x": 181,
+            "y": 16,
+            "w": 1078,
+            "h": 868
+          }
+        },
+        "footer": {
+          "x": 181,
+          "y": 805,
+          "w": 1078,
+          "h": 78
+        },
+        "footerStatus": {
+          "x": 205,
+          "y": 822,
+          "w": 224.73,
+          "h": 45
+        },
+        "footerStatusTitle": {
+          "x": 205,
+          "y": 822,
+          "w": 224.73,
+          "h": 21
+        },
+        "resetButton": {
+          "x": 911.11,
+          "y": 822.25,
+          "w": 119.92,
+          "h": 44.5
+        },
+        "confirmButton": {
+          "x": 1039.03,
+          "y": 822.25,
+          "w": 195.97,
+          "h": 44.5
+        },
+        "enemySection": {
+          "x": 205,
+          "y": 296.75,
+          "w": 1030,
+          "h": 222.67
+        },
+        "enemyHeading": {
+          "x": 205,
+          "y": 317.75,
+          "w": 136.02,
+          "h": 25.19
+        },
+        "fieldsBlock": {
+          "x": 205,
+          "y": 543.42,
+          "w": 1030,
+          "h": 305.92,
+          "visible": {
+            "x": 205,
+            "y": 543.42,
+            "w": 1030,
+            "h": 261.58
+          }
+        },
+        "nameInput": {
+          "x": 205,
+          "y": 598.17,
+          "w": 505,
+          "h": 52.39
+        },
+        "nameLabel": {
+          "x": 205,
+          "y": 568.42,
+          "w": 505,
+          "h": 21.75
+        },
+        "tagsGroup": {
+          "x": 730,
+          "y": 568.42,
+          "w": 505,
+          "h": 102
+        },
+        "tagsLabel": {
+          "x": 730,
+          "y": 568.42,
+          "w": 505,
+          "h": 21
+        },
+        "scrimTag": {
+          "x": 730,
+          "y": 597.42,
+          "w": 65.19,
+          "h": 44
+        },
+        "tagsHelp": {
+          "x": 730,
+          "y": 649.42,
+          "w": 505,
+          "h": 21
+        },
+        "opponentBlock": {
+          "x": 205,
+          "y": 690.42,
+          "w": 1030,
+          "h": 134.92,
+          "visible": {
+            "x": 205,
+            "y": 690.42,
+            "w": 1030,
+            "h": 114.58
+          }
+        },
+        "opponentSelect": {
+          "x": 205,
+          "y": 720.17,
+          "w": 841.56,
+          "h": 52.39
+        },
+        "newOpponentButton": {
+          "x": 1058.56,
+          "y": 724.56,
+          "w": 176.44,
+          "h": 48
+        },
+        "opponentHelp": {
+          "x": 205,
+          "y": 780.56,
+          "w": 600.58,
+          "h": 44.78,
+          "visible": {
+            "x": 205,
+            "y": 780.56,
+            "w": 600.58,
+            "h": 24.44
+          }
+        }
+      },
+      "hiddenBoxes": [
+        "filePanel",
+        "filePanelTitle",
+        "filePanelText"
+      ],
+      "url": "/games?import=1",
+      "scrollY": 0,
+      "focus": "input.nxt5-input-shell.nxt5-control",
+      "nameValue": "Scrim Aurore · partie 1"
+    },
+    "site-08-nom-tags-pret-a-importer": {
+      "file": "tuto/site-08-nom-tags-pret-a-importer.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "7f",
+        "7g"
+      ],
+      "state": "Nom « Scrim Aurore · partie 1 », tag « Scrim » coché, équipe adverse « Non renseignée » (modifiable). Pied : « Prêt à importer · Confirme pour enregistrer la partie et ouvrir son bilan. » et « Confirmer l’import ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 16,
+          "w": 1080,
+          "h": 868
+        },
+        "dialogHeader": {
+          "x": 181,
+          "y": 17,
+          "w": 1078,
+          "h": 77
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 40.7,
+          "w": 207.2,
+          "h": 28.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 33,
+          "w": 44,
+          "h": 44
+        },
+        "dialogContent": {
+          "x": 181,
+          "y": -573,
+          "w": 1078,
+          "h": 1477.48,
+          "visible": {
+            "x": 181,
+            "y": 16,
+            "w": 1078,
+            "h": 868
+          }
+        },
+        "footer": {
+          "x": 181,
+          "y": 805,
+          "w": 1078,
+          "h": 78
+        },
+        "footerStatus": {
+          "x": 205,
+          "y": 822,
+          "w": 355.83,
+          "h": 45
+        },
+        "footerStatusTitle": {
+          "x": 205,
+          "y": 822,
+          "w": 355.83,
+          "h": 21
+        },
+        "resetButton": {
+          "x": 911.11,
+          "y": 822.25,
+          "w": 119.92,
+          "h": 44.5
+        },
+        "confirmButton": {
+          "x": 1039.03,
+          "y": 822.25,
+          "w": 195.97,
+          "h": 44.5
+        },
+        "fieldsBlock": {
+          "x": 205,
+          "y": 540.42,
+          "w": 1030,
+          "h": 286.06,
+          "visible": {
+            "x": 205,
+            "y": 540.42,
+            "w": 1030,
+            "h": 264.58
+          }
+        },
+        "nameInput": {
+          "x": 205,
+          "y": 595.17,
+          "w": 505,
+          "h": 52.39
+        },
+        "nameLabel": {
+          "x": 205,
+          "y": 565.42,
+          "w": 505,
+          "h": 21.75
+        },
+        "tagsGroup": {
+          "x": 730,
+          "y": 565.42,
+          "w": 505,
+          "h": 82.14
+        },
+        "tagsLabel": {
+          "x": 730,
+          "y": 565.42,
+          "w": 505,
+          "h": 21
+        },
+        "scrimTag": {
+          "x": 730,
+          "y": 594.42,
+          "w": 87.19,
+          "h": 44
+        },
+        "opponentBlock": {
+          "x": 205,
+          "y": 667.56,
+          "w": 1030,
+          "h": 134.92
+        },
+        "opponentSelect": {
+          "x": 205,
+          "y": 697.31,
+          "w": 841.56,
+          "h": 52.39
+        },
+        "newOpponentButton": {
+          "x": 1058.56,
+          "y": 701.7,
+          "w": 176.44,
+          "h": 48
+        },
+        "opponentHelp": {
+          "x": 205,
+          "y": 757.7,
+          "w": 600.58,
+          "h": 44.78
+        },
+        "enemySection": {
+          "x": 205,
+          "y": 293.75,
+          "w": 1030,
+          "h": 222.67
+        }
+      },
+      "hiddenBoxes": [
+        "filePanel",
+        "filePanelTitle",
+        "filePanelText"
+      ],
+      "url": "/games?import=1",
+      "scrollY": 0,
+      "focus": null,
+      "nameValue": "Scrim Aurore · partie 1",
+      "footerText": "Prêt à importer Confirme pour enregistrer la partie et ouvrir son bilan."
+    },
+    "site-09-partie-importee": {
+      "file": "tuto/site-09-partie-importee.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "8"
+      ],
+      "state": "Après « Confirmer l’import » : la partie s’ouvre (titre « Scrim Aurore · partie 1 », Victoire, « Durée : 25:00 », « Notre équipe : côté bleu ») et la notification « Partie importée » s’affiche. Défilement laissé par l’application (ajusté de quelques px si un bord coupait une ligne).",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "w": 264,
+          "h": 900
+        },
+        "sidebarParties": {
+          "x": 16,
+          "y": 244.39,
+          "w": 231,
+          "h": 44
+        },
+        "topbarTeam": {
+          "x": 955.2,
+          "y": 14.5,
+          "w": 179.52,
+          "h": 46
+        },
+        "matchContext": {
+          "x": 317,
+          "y": 126.78,
+          "w": 1070,
+          "h": 152.78
+        },
+        "matchTitle": {
+          "x": 317,
+          "y": 126.78,
+          "w": 285.61,
+          "h": 36.39
+        },
+        "resultBadge": {
+          "x": 614.61,
+          "y": 129.97,
+          "w": 74.53,
+          "h": 30
+        },
+        "matchMeta": {
+          "x": 317,
+          "y": 171.17,
+          "w": 1070,
+          "h": 22.39
+        },
+        "coachBrief": {
+          "x": 317,
+          "y": 303.56,
+          "w": 686.38,
+          "h": 372.95
+        },
+        "matchPanel": {
+          "x": 296,
+          "y": 105.78,
+          "w": 1112,
+          "h": 918.42,
+          "visible": {
+            "x": 296,
+            "y": 105.78,
+            "w": 1112,
+            "h": 794.22
+          }
+        },
+        "toast": {
+          "x": 1024,
+          "y": 748.33,
+          "w": 400,
+          "h": 131.67
+        },
+        "toastTitle": {
+          "x": 1087,
+          "y": 765.33,
+          "w": 264,
+          "h": 26.5
+        },
+        "toastText": {
+          "x": 1087,
+          "y": 795.83,
+          "w": 264,
+          "h": 67.17
+        }
+      },
+      "url": "/games?match=m-demo-1",
+      "scrollY": 325,
+      "focus": null
+    },
+    "site-10-liste-avec-partie": {
+      "file": "tuto/site-10-liste-avec-partie.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "storyboard": [
+        "8"
+      ],
+      "state": "Retour à « Toutes les parties » : nouvelle ligne « Scrim Aurore · partie 1 » (Victoire, EUW1_7861632138, tag Scrim, « À revoir »). L’application centre la ligne ; la page est ensuite remontée de quelques dizaines de px (comme à la molette) pour montrer la carte entière sous la barre du haut.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions interceptées avec des données fictives.",
+      "boxes": {
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "w": 264,
+          "h": 900
+        },
+        "sidebarParties": {
+          "x": 16,
+          "y": 244.39,
+          "w": 231,
+          "h": 44
+        },
+        "topbarTeam": {
+          "x": 955.2,
+          "y": 14.5,
+          "w": 179.52,
+          "h": 46
+        },
+        "newRow": {
+          "x": 317,
+          "y": 443.05,
+          "w": 1070,
+          "h": 109.5
+        },
+        "gamesCardTitle": {
+          "x": 317,
+          "y": 119.81,
+          "w": 158.83,
+          "h": 26.59
+        },
+        "gamesCountLabel": {
+          "x": 317,
+          "y": 119.81,
+          "w": 939.66,
+          "h": 26.59
+        },
+        "gamesCard": {
+          "x": 296,
+          "y": 89.86,
+          "w": 1112,
+          "h": 544.69
+        },
+        "rowResult": {
+          "x": 329,
+          "y": 486.3,
+          "w": 96,
+          "h": 24
+        },
+        "rowTitle": {
+          "x": 443,
+          "y": 462.05,
+          "w": 292,
+          "h": 22.5
+        },
+        "rowGameId": {
+          "x": 443,
+          "y": 488.55,
+          "w": 292,
+          "h": 21
+        },
+        "rowTag": {
+          "x": 443,
+          "y": 513.55,
+          "w": 292,
+          "h": 21
+        },
+        "rowReview": {
+          "x": 1245,
+          "y": 486.39,
+          "w": 96,
+          "h": 23.8
+        }
+      },
+      "url": "/games",
+      "scrollY": 361,
+      "focus": null
+    }
+  }
+}

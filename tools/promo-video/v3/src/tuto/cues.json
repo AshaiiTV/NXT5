@@ -1,0 +1,790 @@
+{
+  "composition": "TutoImporter",
+  "fps": 30,
+  "durationInFrames": 4389,
+  "duration": "2 min 26 s",
+  "note": "Frames are absolute (0-based) in the composition. kind: chapter | chapter-settle | transition (cross-fade between shots) | transition-dip (through night: app or page change) | click | hover | key (keycap pressed) | paste | state (instant swap inside a shot, placed on the click that causes it) | state-fade (dissolve, layout unchanged) | state-dip (another page through night inside a shot) | scroll | typing-start | typing-end | success | end. A hover is the cursor resting on a target without clicking (no click sound).",
+  "shots": {
+    "title": {
+      "start": 0,
+      "dur": 160
+    },
+    "prereq": {
+      "start": 150,
+      "dur": 220
+    },
+    "dlSite": {
+      "start": 360,
+      "dur": 380
+    },
+    "dlFile": {
+      "start": 730,
+      "dur": 164
+    },
+    "openHelp": {
+      "start": 884,
+      "dur": 230
+    },
+    "smartscreen": {
+      "start": 1104,
+      "dur": 254
+    },
+    "lolOpen": {
+      "start": 1348,
+      "dur": 182
+    },
+    "clientStatus": {
+      "start": 1520,
+      "dur": 330
+    },
+    "lolHistory": {
+      "start": 1840,
+      "dur": 232
+    },
+    "pasteId": {
+      "start": 2062,
+      "dur": 216
+    },
+    "exportRun": {
+      "start": 2268,
+      "dur": 222
+    },
+    "saveJson": {
+      "start": 2480,
+      "dur": 172
+    },
+    "ready": {
+      "start": 2642,
+      "dur": 160
+    },
+    "openSite": {
+      "start": 2792,
+      "dur": 100
+    },
+    "siteImport": {
+      "start": 2882,
+      "dur": 159
+    },
+    "pickFile": {
+      "start": 3031,
+      "dur": 156
+    },
+    "review": {
+      "start": 3177,
+      "dur": 682
+    },
+    "done": {
+      "start": 3849,
+      "dur": 300
+    },
+    "recap": {
+      "start": 4139,
+      "dur": 250
+    }
+  },
+  "subtitles": [
+    {
+      "id": "2a",
+      "from": 398,
+      "to": 546,
+      "text": "Sur nxt5.org, ouvre Parties puis clique sur « Importer une partie »."
+    },
+    {
+      "id": "2b",
+      "from": 546,
+      "to": 730,
+      "text": "Déplie « Obtenir NXT5 Importer », garde « Windows (64 bits) » et clique sur « Télécharger »."
+    },
+    {
+      "id": "2c",
+      "from": 730,
+      "to": 884,
+      "text": "Le fichier NXT5-Importer-Windows-0.3.8.exe arrive dans tes téléchargements."
+    },
+    {
+      "id": "3a",
+      "from": 922,
+      "to": 1104,
+      "text": "Pas d’installation : NXT5 Importer est un programme portable. Double-clique sur le fichier."
+    },
+    {
+      "id": "3b",
+      "from": 1104,
+      "to": 1348,
+      "text": "Si « Windows a protégé votre ordinateur » apparaît, clique sur « Informations complémentaires », puis « Exécuter quand même »."
+    },
+    {
+      "id": "4a",
+      "from": 1386,
+      "to": 1520,
+      "text": "Ouvre d’abord le client League of Legends, puis NXT5 Importer."
+    },
+    {
+      "id": "4b",
+      "from": 1520,
+      "to": 1660,
+      "text": "En haut à droite, « Client LoL connecté » : tout est prêt."
+    },
+    {
+      "id": "4c",
+      "from": 1660,
+      "to": 1840,
+      "text": "Sinon, ouvre le client puis clique sur l’icône d’actualisation."
+    },
+    {
+      "id": "5a",
+      "from": 1878,
+      "to": 2062,
+      "text": "Dans l’historique du client LoL, copie l’identifiant de la partie."
+    },
+    {
+      "id": "5b",
+      "from": 2062,
+      "to": 2268,
+      "text": "Colle-le dans « Identifiant du match ». Avec un ID complet, le serveur est reconnu tout seul."
+    },
+    {
+      "id": "6a",
+      "from": 2306,
+      "to": 2480,
+      "text": "Clique sur « Exporter la game ». L’Importer récupère la partie et sa timeline."
+    },
+    {
+      "id": "6b",
+      "from": 2480,
+      "to": 2642,
+      "text": "Enregistre le fichier .json (par défaut dans Téléchargements)."
+    },
+    {
+      "id": "6c",
+      "from": 2642,
+      "to": 2792,
+      "text": "Ta game est prête. Le fichier reste sur ton ordinateur."
+    },
+    {
+      "id": "7a",
+      "from": 2830,
+      "to": 3031,
+      "text": "Clique sur « Ouvrir NXT5 », puis « Importer une partie » et « Choisir mon fichier »."
+    },
+    {
+      "id": "7b",
+      "from": 3031,
+      "to": 3177,
+      "text": "Choisis le fichier nxt5-EUW1_7861632138.json."
+    },
+    {
+      "id": "7c",
+      "from": 3177,
+      "to": 3363,
+      "text": "Le fichier est chargé, rien n’est encore enregistré. Choisis le côté de ton équipe."
+    },
+    {
+      "id": "7d",
+      "from": 3363,
+      "to": 3483,
+      "text": "Vérifie les postes et les profils de ton équipe…"
+    },
+    {
+      "id": "7e",
+      "from": 3483,
+      "to": 3583,
+      "text": "… puis les postes adverses."
+    },
+    {
+      "id": "7f",
+      "from": 3583,
+      "to": 3759,
+      "text": "Nomme la partie et choisis au moins un tag, par exemple « Scrim »."
+    },
+    {
+      "id": "7g",
+      "from": 3759,
+      "to": 3861,
+      "text": "Clique sur « Confirmer l’import »."
+    },
+    {
+      "id": "8",
+      "from": 3861,
+      "to": 4139,
+      "text": "C’est fait : ta partie est dans NXT5, prête à revoir avec ton équipe."
+    }
+  ],
+  "cues": [
+    {
+      "frame": 0,
+      "time": "0:00.00",
+      "kind": "chapter",
+      "shot": "title",
+      "note": "Titre"
+    },
+    {
+      "frame": 150,
+      "time": "0:05.00",
+      "kind": "chapter",
+      "shot": "prereq",
+      "note": "Avant de commencer (entrée par le noir, 5 f + 5 f)"
+    },
+    {
+      "frame": 186,
+      "time": "0:06.06",
+      "kind": "success",
+      "shot": "prereq",
+      "note": "coche 1"
+    },
+    {
+      "frame": 222,
+      "time": "0:07.12",
+      "kind": "success",
+      "shot": "prereq",
+      "note": "coche 2"
+    },
+    {
+      "frame": 258,
+      "time": "0:08.18",
+      "kind": "success",
+      "shot": "prereq",
+      "note": "coche 3"
+    },
+    {
+      "frame": 360,
+      "time": "0:12.00",
+      "kind": "chapter",
+      "shot": "dlSite",
+      "note": "Étape 1/6 · Télécharge NXT5 Importer (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 384,
+      "time": "0:12.24",
+      "kind": "chapter-settle",
+      "shot": "dlSite",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 462,
+      "time": "0:15.12",
+      "kind": "click",
+      "shot": "dlSite",
+      "note": "« Parties » (menu latéral)"
+    },
+    {
+      "frame": 516,
+      "time": "0:17.06",
+      "kind": "click",
+      "shot": "dlSite",
+      "note": "« Importer une partie »"
+    },
+    {
+      "frame": 518,
+      "time": "0:17.08",
+      "kind": "state-fade",
+      "shot": "dlSite",
+      "note": "la fenêtre « Importer une partie » s’ouvre (fondu 6 f)"
+    },
+    {
+      "frame": 574,
+      "time": "0:19.04",
+      "kind": "click",
+      "shot": "dlSite",
+      "note": "« Pas encore de fichier ? Obtenir NXT5 Importer »"
+    },
+    {
+      "frame": 574,
+      "time": "0:19.04",
+      "kind": "state",
+      "shot": "dlSite",
+      "note": "la section « Obtenir NXT5 Importer » se déplie : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 686,
+      "time": "0:22.26",
+      "kind": "click",
+      "shot": "dlSite",
+      "note": "« Télécharger »"
+    },
+    {
+      "frame": 730,
+      "time": "0:24.10",
+      "kind": "transition-dip",
+      "shot": "dlFile",
+      "note": "passage par le noir vers dlFile (5 f + 5 f)"
+    },
+    {
+      "frame": 780,
+      "time": "0:26.00",
+      "kind": "success",
+      "shot": "dlFile",
+      "note": "fichier téléchargé"
+    },
+    {
+      "frame": 884,
+      "time": "0:29.14",
+      "kind": "chapter",
+      "shot": "openHelp",
+      "note": "Étape 2/6 · Ouvre l’Importer (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 908,
+      "time": "0:30.08",
+      "kind": "chapter-settle",
+      "shot": "openHelp",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 1104,
+      "time": "0:36.24",
+      "kind": "transition-dip",
+      "shot": "smartscreen",
+      "note": "passage par le noir vers smartscreen (5 f + 5 f)"
+    },
+    {
+      "frame": 1170,
+      "time": "0:39.00",
+      "kind": "click",
+      "shot": "smartscreen",
+      "note": "« Informations complémentaires » (schéma)"
+    },
+    {
+      "frame": 1248,
+      "time": "0:41.18",
+      "kind": "click",
+      "shot": "smartscreen",
+      "note": "« Exécuter quand même » (schéma)"
+    },
+    {
+      "frame": 1264,
+      "time": "0:42.04",
+      "kind": "success",
+      "shot": "smartscreen",
+      "note": "NXT5 Importer s’ouvre (schéma)"
+    },
+    {
+      "frame": 1348,
+      "time": "0:44.28",
+      "kind": "chapter",
+      "shot": "lolOpen",
+      "note": "Étape 3/6 · Lance League of Legends (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 1372,
+      "time": "0:45.22",
+      "kind": "chapter-settle",
+      "shot": "lolOpen",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 1400,
+      "time": "0:46.20",
+      "kind": "success",
+      "shot": "lolOpen",
+      "note": "point vert « client ouvert » (schéma)"
+    },
+    {
+      "frame": 1520,
+      "time": "0:50.20",
+      "kind": "transition-dip",
+      "shot": "clientStatus",
+      "note": "passage par le noir vers clientStatus (5 f + 5 f)"
+    },
+    {
+      "frame": 1660,
+      "time": "0:55.10",
+      "kind": "state-fade",
+      "shot": "clientStatus",
+      "note": "cas « Client LoL non détecté » (fondu 12 f)"
+    },
+    {
+      "frame": 1726,
+      "time": "0:57.16",
+      "kind": "click",
+      "shot": "clientStatus",
+      "note": "icône d’actualisation « Vérifier le client »"
+    },
+    {
+      "frame": 1728,
+      "time": "0:57.18",
+      "kind": "state-fade",
+      "shot": "clientStatus",
+      "note": "« Recherche du client… » (fondu 4 f)"
+    },
+    {
+      "frame": 1760,
+      "time": "0:58.20",
+      "kind": "success",
+      "shot": "clientStatus",
+      "note": "« Client LoL connecté » (point vert) (même instant, state-fade : retour à « Client LoL connecté » (fondu 8 f))"
+    },
+    {
+      "frame": 1840,
+      "time": "1:01.10",
+      "kind": "chapter",
+      "shot": "lolHistory",
+      "note": "Étape 4/6 · Copie l’identifiant de la partie (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 1864,
+      "time": "1:02.04",
+      "kind": "chapter-settle",
+      "shot": "lolHistory",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 1920,
+      "time": "1:04.00",
+      "kind": "click",
+      "shot": "lolHistory",
+      "note": "une partie de l’historique (schéma)"
+    },
+    {
+      "frame": 1972,
+      "time": "1:05.22",
+      "kind": "click",
+      "shot": "lolHistory",
+      "note": "icône de copie de l’identifiant (schéma générique)"
+    },
+    {
+      "frame": 1980,
+      "time": "1:06.00",
+      "kind": "success",
+      "shot": "lolHistory",
+      "note": "presse-papiers « EUW1_7861632138 »"
+    },
+    {
+      "frame": 2062,
+      "time": "1:08.22",
+      "kind": "transition-dip",
+      "shot": "pasteId",
+      "note": "passage par le noir vers pasteId (5 f + 5 f)"
+    },
+    {
+      "frame": 2110,
+      "time": "1:10.10",
+      "kind": "click",
+      "shot": "pasteId",
+      "note": "« Identifiant du match »"
+    },
+    {
+      "frame": 2112,
+      "time": "1:10.12",
+      "kind": "state-fade",
+      "shot": "pasteId",
+      "note": "champ focalisé, vide (fondu 3 f)"
+    },
+    {
+      "frame": 2128,
+      "time": "1:10.28",
+      "kind": "paste",
+      "shot": "pasteId",
+      "note": "Ctrl + V : « EUW1_7861632138 » est collé d’un coup"
+    },
+    {
+      "frame": 2136,
+      "time": "1:11.06",
+      "kind": "state-fade",
+      "shot": "pasteId",
+      "note": "fin du calque de collage = capture réelle de l’ID collé (fondu 4 f)"
+    },
+    {
+      "frame": 2268,
+      "time": "1:15.18",
+      "kind": "chapter",
+      "shot": "exportRun",
+      "note": "Étape 5/6 · Exporte la partie (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 2292,
+      "time": "1:16.12",
+      "kind": "chapter-settle",
+      "shot": "exportRun",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 2342,
+      "time": "1:18.02",
+      "kind": "click",
+      "shot": "exportRun",
+      "note": "« Exporter la game »"
+    },
+    {
+      "frame": 2342,
+      "time": "1:18.02",
+      "kind": "state",
+      "shot": "exportRun",
+      "note": "carte de progression, étape 1 Match : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 2398,
+      "time": "1:19.28",
+      "kind": "state-fade",
+      "shot": "exportRun",
+      "note": "étape 2 Timeline (fondu 8 f)"
+    },
+    {
+      "frame": 2440,
+      "time": "1:21.10",
+      "kind": "state-fade",
+      "shot": "exportRun",
+      "note": "étape 3 Fichier (fondu 8 f)"
+    },
+    {
+      "frame": 2480,
+      "time": "1:22.20",
+      "kind": "transition-dip",
+      "shot": "saveJson",
+      "note": "passage par le noir vers saveJson (5 f + 5 f)"
+    },
+    {
+      "frame": 2568,
+      "time": "1:25.18",
+      "kind": "click",
+      "shot": "saveJson",
+      "note": "« Enregistrer » (schéma)"
+    },
+    {
+      "frame": 2598,
+      "time": "1:26.18",
+      "kind": "success",
+      "shot": "saveJson",
+      "note": "fichier .json enregistré (schéma)"
+    },
+    {
+      "frame": 2642,
+      "time": "1:28.02",
+      "kind": "transition-dip",
+      "shot": "ready",
+      "note": "passage par le noir vers ready (5 f + 5 f)"
+    },
+    {
+      "frame": 2646,
+      "time": "1:28.06",
+      "kind": "success",
+      "shot": "ready",
+      "note": "« Ta game est prête. »"
+    },
+    {
+      "frame": 2792,
+      "time": "1:33.02",
+      "kind": "chapter",
+      "shot": "openSite",
+      "note": "Étape 6/6 · Importe la partie sur NXT5 (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 2816,
+      "time": "1:33.26",
+      "kind": "chapter-settle",
+      "shot": "openSite",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 2866,
+      "time": "1:35.16",
+      "kind": "click",
+      "shot": "openSite",
+      "note": "« Ouvrir NXT5 »"
+    },
+    {
+      "frame": 2882,
+      "time": "1:36.02",
+      "kind": "transition-dip",
+      "shot": "siteImport",
+      "note": "passage par le noir vers siteImport (5 f + 5 f)"
+    },
+    {
+      "frame": 2962,
+      "time": "1:38.22",
+      "kind": "click",
+      "shot": "siteImport",
+      "note": "« Importer une partie »"
+    },
+    {
+      "frame": 2964,
+      "time": "1:38.24",
+      "kind": "state-fade",
+      "shot": "siteImport",
+      "note": "la fenêtre « Importer une partie » s’ouvre (fondu 6 f)"
+    },
+    {
+      "frame": 3012,
+      "time": "1:40.12",
+      "kind": "click",
+      "shot": "siteImport",
+      "note": "« Choisir mon fichier »"
+    },
+    {
+      "frame": 3031,
+      "time": "1:41.01",
+      "kind": "transition-dip",
+      "shot": "pickFile",
+      "note": "passage par le noir vers pickFile (5 f + 5 f)"
+    },
+    {
+      "frame": 3079,
+      "time": "1:42.19",
+      "kind": "click",
+      "shot": "pickFile",
+      "note": "« nxt5-EUW1_7861632138.json » (schéma)"
+    },
+    {
+      "frame": 3123,
+      "time": "1:44.03",
+      "kind": "click",
+      "shot": "pickFile",
+      "note": "« Ouvrir » (schéma)"
+    },
+    {
+      "frame": 3129,
+      "time": "1:44.09",
+      "kind": "success",
+      "shot": "pickFile",
+      "note": "fichier choisi (schéma)"
+    },
+    {
+      "frame": 3177,
+      "time": "1:45.27",
+      "kind": "transition-dip",
+      "shot": "review",
+      "note": "passage par le noir vers review (5 f + 5 f)"
+    },
+    {
+      "frame": 3179,
+      "time": "1:45.29",
+      "kind": "success",
+      "shot": "review",
+      "note": "notification « Fichier chargé »"
+    },
+    {
+      "frame": 3239,
+      "time": "1:47.29",
+      "kind": "state-fade",
+      "shot": "review",
+      "note": "la notification « Fichier chargé » disparaît (fondu 12 f)"
+    },
+    {
+      "frame": 3301,
+      "time": "1:50.01",
+      "kind": "hover",
+      "shot": "review",
+      "note": "« Côté bleu », déjà choisi (équipe reconnue) : survol sans clic"
+    },
+    {
+      "frame": 3365,
+      "time": "1:52.05",
+      "kind": "scroll",
+      "shot": "review",
+      "note": "défilement vers « Notre équipe » (36 f)"
+    },
+    {
+      "frame": 3487,
+      "time": "1:56.07",
+      "kind": "scroll",
+      "shot": "review",
+      "note": "défilement vers « Équipe adverse » (36 f)"
+    },
+    {
+      "frame": 3627,
+      "time": "2:00.27",
+      "kind": "click",
+      "shot": "review",
+      "note": "« Nom de la partie »"
+    },
+    {
+      "frame": 3629,
+      "time": "2:00.29",
+      "kind": "state-fade",
+      "shot": "review",
+      "note": "champ « Nom de la partie » focalisé (capture réelle du nom saisi, sous le calque de frappe) (fondu 4 f)"
+    },
+    {
+      "frame": 3631,
+      "time": "2:01.01",
+      "kind": "key",
+      "shot": "review",
+      "note": "Ctrl + A : le texte pré-rempli est sélectionné"
+    },
+    {
+      "frame": 3637,
+      "time": "2:01.07",
+      "kind": "typing-start",
+      "shot": "review",
+      "note": "frappe « Scrim Aurore · partie 1 » (23 caractères, le premier remplace la sélection)"
+    },
+    {
+      "frame": 3677,
+      "time": "2:02.17",
+      "kind": "typing-end",
+      "shot": "review",
+      "note": "fin de la frappe"
+    },
+    {
+      "frame": 3709,
+      "time": "2:03.19",
+      "kind": "click",
+      "shot": "review",
+      "note": "tag « Scrim »"
+    },
+    {
+      "frame": 3709,
+      "time": "2:03.19",
+      "kind": "state",
+      "shot": "review",
+      "note": "tag « Scrim » choisi, « Prêt à importer » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 3805,
+      "time": "2:06.25",
+      "kind": "click",
+      "shot": "review",
+      "note": "« Confirmer l’import »"
+    },
+    {
+      "frame": 3849,
+      "time": "2:08.09",
+      "kind": "chapter",
+      "shot": "done",
+      "note": "C’est fait (entrée par le noir, 5 f + 5 f)"
+    },
+    {
+      "frame": 3857,
+      "time": "2:08.17",
+      "kind": "success",
+      "shot": "done",
+      "note": "notification « Partie importée »"
+    },
+    {
+      "frame": 3994,
+      "time": "2:13.04",
+      "kind": "state-dip",
+      "shot": "done",
+      "note": "retour à « Toutes les parties » (passage par le noir, caméra immobile) : 5 f vers le noir, 5 f pour entrer"
+    },
+    {
+      "frame": 4031,
+      "time": "2:14.11",
+      "kind": "success",
+      "shot": "done",
+      "note": "nouvelle ligne dans « Toutes les parties »"
+    },
+    {
+      "frame": 4139,
+      "time": "2:17.29",
+      "kind": "chapter",
+      "shot": "recap",
+      "note": "À retenir (entrée par le noir, 5 f + 5 f)"
+    },
+    {
+      "frame": 4257,
+      "time": "2:21.27",
+      "kind": "success",
+      "shot": "recap",
+      "note": "wordmark + nxt5.org"
+    },
+    {
+      "frame": 4375,
+      "time": "2:25.25",
+      "kind": "end",
+      "shot": "-",
+      "note": "fondu de fin"
+    }
+  ],
+  "checks": []
+}
