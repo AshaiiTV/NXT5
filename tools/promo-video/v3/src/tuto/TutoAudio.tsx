@@ -1,6 +1,6 @@
 // Sound of the TutoImporter tutorial: one low, steady music bed (Mixkit « tech house », bgm-tech-house.mp3, Mixkit
-// Stock Music Free License) and discreet foley pinned on the cue list (cues.json, from export-cues.mjs): a real
-// switch click on every click, a soft swoosh on chapter changes, keys on paste/typing, a light sparkle on the main
+// Stock Music Free License) and discreet foley pinned on the cue list (cues.json, from export-cues.mjs): a soft
+// synthesised mouse click (press + release, two alternating variants, analysis/make_click.py) on every click, a soft swoosh on chapter changes, keys on paste/typing, a light sparkle on the main
 // successes. Each cue is corrected for the sample's peak lag and the pipeline's output audio offset (1.27 f, as in
 // the promo: sound-design §4.6).
 import React from 'react';
@@ -8,7 +8,7 @@ import { Audio, interpolate, Sequence, staticFile } from 'remotion';
 import cues from './cues.json';
 
 const OUT_F = 1.27;
-const PEAK: Record<string, number> = { 'switch-click-quick.mp3': 0, 'swoosh-quick.mp3': 9.9, 'typewriter-hit-soft.mp3': 4.2, 'sparkle-touch.mp3': 14.1, 'keyboard.mp3': 0 };
+const PEAK: Record<string, number> = { 'mouse-click-a.wav': 0.12, 'mouse-click-b.wav': 0.12, 'swoosh-quick.mp3': 9.9, 'typewriter-hit-soft.mp3': 4.2, 'sparkle-touch.mp3': 14.1, 'keyboard.mp3': 0 };
 type Cue = { frame: number; kind: string; shot: string; note: string };
 type Hit = { from: number; src: string; volume: number; duration: number; trimBefore?: number; label: string };
 const hit = (peak: number, src: string, volume: number, label: string, duration = 60, trimBefore?: number): Hit => ({
@@ -18,9 +18,11 @@ const hit = (peak: number, src: string, volume: number, label: string, duration 
 const BIG = /téléchargé|connecté|Ta game est prête|Fichier chargé|Partie importée|nouvelle ligne/;
 
 const list = (cues as { cues: Cue[] }).cues;
+let clickN = 0;
+const mouse = () => (clickN++ % 2 === 0 ? 'mouse-click-a.wav' : 'mouse-click-b.wav');
 export const TUTO_SFX: Hit[] = list.flatMap((c): Hit[] => {
   switch (c.kind) {
-    case 'click': return [hit(c.frame, 'switch-click-quick.mp3', 0.24, c.note, 20)];
+    case 'click': return [hit(c.frame, mouse(), 0.5, c.note, 8)];
     case 'chapter': return c.frame > 0 ? [hit(c.frame + 4, 'swoosh-quick.mp3', 0.26, c.note, 30)] : [];
     case 'key': case 'paste': return [hit(c.frame, 'typewriter-hit-soft.mp3', 0.3, c.note, 20)];
     case 'typing-start': {
@@ -28,7 +30,7 @@ export const TUTO_SFX: Hit[] = list.flatMap((c): Hit[] => {
       return [{ from: Math.max(0, Math.round(c.frame - OUT_F)), src: 'keyboard.mp3', volume: 0.24, duration: (end ? end.frame : c.frame + 40) - c.frame, trimBefore: 120, label: c.note }];
     }
     case 'success':
-      if (c.shot === 'prereq') return [hit(c.frame, 'switch-click-quick.mp3', 0.2, c.note, 20)];
+      if (c.shot === 'prereq') return [hit(c.frame, mouse(), 0.32, c.note, 8)];
       return BIG.test(c.note) ? [hit(c.frame, 'sparkle-touch.mp3', 0.16, c.note, 60)] : [];
     default: return [];
   }
