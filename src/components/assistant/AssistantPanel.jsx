@@ -301,9 +301,8 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
             <button type="button" onClick={onClose} aria-label={t("Fermer l'assistant")} title={t("Fermer")} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/70"><X className="h-5 w-5" /></button>
           </div>
         </header>
-
+        <div className="shrink-0 px-4 pt-4 sm:px-5"><ImporterTutorialLink className="w-full" /></div>
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--nxt5-field)] px-4 py-5 sm:px-5" aria-live="polite" aria-busy={loading}>
-          <ImporterTutorialLink className="mb-4 w-full" />
           {!messages.length && !loading && (<div className="flex min-h-full flex-col justify-center py-6">
               <MessageCircleQuestion className="h-8 w-8 text-cyan-100" />
               <h3 className="mt-4 text-xl font-black text-white">{t("Que veux-tu faire sur cette page ?")}</h3>
