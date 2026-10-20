@@ -1,6 +1,7 @@
 // Prints the cue list of a tutorial film (clicks, chapter transitions, success moments…) for the sound pass, and checks
-// the film (engine.ts checkScript: subtitles, cursor) and its camera (camera.ts checkCamera: sharpness, speed and
-// smoothness; checkFraming: click points and halos inside the working area; the same maths as the render). Usage (from tools/promo-video/v3):
+// the film (engine.ts checkScript: subtitles, cursor) and its camera (camera.ts checkCamera: capture sizes, sharpness,
+// speed and smoothness; checkFraming: click points, halos and, when the film asks for it, the whole cursor path inside
+// the working area; the same maths as the render). Usage (from tools/promo-video/v3):
 //   node src/tuto/export-cues.mjs <film> [out.json | --write]
 // `--write` writes the cue list the film's composition reads (FILMS below). The importer: node src/tuto/export-cues.mjs
 // importer --write (→ src/tuto/cues.json); the Discord bot: discord --write (→ src/tuto-discord/cues.json). Captures

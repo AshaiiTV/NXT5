@@ -104,7 +104,7 @@ export const SHOTS = {
   prereq: { kind: 'card', view: 'prereq', dur: 220, t: { in: 0, check1: 36, check2: 72, check3: 108 }, clicks: [],
     success: [{ f: 36, label: 'coche 1' }, { f: 72, label: 'coche 2' }, { f: 108, label: 'coche 3' }] },
 
-  // Étape 1 — page Bot Discord (déjà ouverte : survol du menu, sans clic), défilement jusqu’à l’assistant, onglet
+  // Étape 1 — page Bot Discord (déjà ouverte : clic sur son entrée du menu), défilement jusqu’à l’assistant, onglet
   // « Serveur », « Ajouter à Discord » (Discord s’ouvre dans un nouvel onglet)
   botPage: {
     kind: 'capture', app: 'site', dur: 320,
@@ -123,22 +123,22 @@ export const SHOTS = {
       { f: 196, z: 1, at: [720, 450] },
       { f: 226, z: 1.75, at: [640, 444] },
     ],
-    // the cursor is gone before the dip to Discord (hide + 8 f = start of the transition)
+    // The arrow starts on the empty band under the page's introduction, inside the frame once the camera moves in. It
+    // is gone before the dip to Discord (hide + 8 f = start of the transition).
     cursor: {
-      start: [700, 640], show: 54, hide: 302,
+      start: [640, 285], show: 54, hide: 302,
       moves: [
         { f: 66, dur: 18, to: { box: 'S01.sidebarBot', ax: 0.45, ay: 0.7 } },
         { f: 260, dur: 20, to: { box: 'S07.inviteButton', ax: 0.86, ay: 0.78 } },
       ],
     },
-    clicks: [{ f: 294, label: '« Ajouter à Discord »' }],
+    // S01 is already the Bot Discord page (the item is highlighted in the menu): the click on it changes nothing.
+    clicks: [{ f: 92, label: '« Bot Discord » (menu « Préparation et partage »)' }, { f: 294, label: '« Ajouter à Discord »' }],
     halos: [
-      { f0: 84, f1: 124, at: { boxes: ['S01.sidebarGroup', 'S01.sidebarBot'] }, pad: 6, pulse: 92 },
+      { f0: 84, f1: 124, at: { boxes: ['S01.sidebarGroup', 'S01.sidebarBot'] }, pad: 6 },
       { f0: 228, f1: 262, at: 'S07.stepServer', pad: 6 },
       { f0: 276, f1: 294, at: 'S07.inviteButton', pad: 4 },
     ],
-    // S01 is already the Bot Discord page (the item is highlighted in the menu): the cursor only points it out.
-    hovers: [{ f: 92, label: '« Bot Discord » (menu « Préparation et partage »), page déjà ouverte : survol sans clic' }],
   },
 
   // Étape 1 (suite) — autorisation dans Discord : serveur, « Continuer », « Administrateur », « Autoriser »
@@ -153,6 +153,8 @@ export const SHOTS = {
       { f: 0, z: DISCORD_IN, at: [960, 516] },
       { f: 44, z: DISCORD_IN, at: [960, 516] },
       { f: 76, z: 1.25, at: { box: 'DC01.oauthCard' } },
+      // still through « Continuer » and its swap: the camera only reframes on DC02's card once the new page is shown
+      { f: 128, z: 1.25, at: { box: 'DC01.oauthCard' } },
       { f: 150, z: 1.25, at: { box: 'DC02.oauthCard' } },
       { f: 178, z: 1.4, at: { box: 'DC02.permissions', ay: 0.7 } },
       { f: 386, z: 1.4, at: { box: 'DC02.permissions', ay: 0.7 } },
@@ -185,11 +187,12 @@ export const SHOTS = {
 
   // Étape 2 — dans Discord : /nxt lier, la réponse privée du bot, « Ouvrir NXT5 »
   lier: {
-    kind: 'capture', app: 'discord', dur: 284,
+    kind: 'capture', app: 'discord', dur: 314,
+    // the typed command and Discord's command list stay 66 f, long enough to read the entry
     layers: [
       { f: 0, cap: 'DC04' },
       { f: 130, cap: 'DC05', xf: 8, note: '« /nxt lier » tapé, liste des commandes de Discord' },
-      { f: 166, cap: 'DC06', note: 'réponse privée du bot « Lier ton compte NXT5 » (coupe franche sur Entrée)' },
+      { f: 196, cap: 'DC06', note: 'réponse privée du bot « Lier ton compte NXT5 » (coupe franche sur Entrée)' },
     ],
     cam: [
       { f: 0, z: DISCORD_IN, at: [960, 516] },
@@ -198,21 +201,22 @@ export const SHOTS = {
       { f: 118, z: 1.35, at: { box: 'DC04.messageField', ax: 0.3, ay: 0 } },
     ],
     cursor: {
-      start: [1500, 640], show: 84, hide: 266,
+      start: [1500, 640], show: 84, hide: 296,
       moves: [
         { f: 96, dur: 18, to: { box: 'DC04.messageField', ax: 0.2, ay: 0.5 } },
-        { f: 222, dur: 18, to: { box: 'DC06.openButton', ax: 0.7, ay: 0.7 } },
+        { f: 252, dur: 18, to: { box: 'DC06.openButton', ax: 0.7, ay: 0.7 } },
       ],
     },
-    clicks: [{ f: 122, label: 'champ de message de #bot-nxt5' }, { f: 258, label: '« Ouvrir NXT5 » (message du bot)' }],
+    clicks: [{ f: 122, label: 'champ de message de #bot-nxt5' }, { f: 288, label: '« Ouvrir NXT5 » (message du bot)' }],
     halos: [
-      { f0: 138, f1: 160, at: 'DC05.commandLier', pad: 4 },
-      { f0: 172, f1: 226, at: 'DC06.botReply', pad: 6, spot: true },
-      { f0: 236, f1: 258, at: 'DC06.openButton', pad: 4 },
+      { f0: 138, f1: 190, at: 'DC05.commandLier', pad: 4 },
+      { f0: 202, f1: 256, at: 'DC06.botReply', pad: 6, spot: true },
+      { f0: 266, f1: 288, at: 'DC06.openButton', pad: 4 },
     ],
-    // keycaps above the right end of the field, clear of the messages (left-aligned) that the key brings in
-    keycaps: [{ f0: 158, f1: 180, keys: ['Entrée'], at: { box: 'DC05.messageField', ax: 0.8, ay: 0 }, dx: 0, dy: -36 }],
-    success: [{ f: 166, label: 'réponse privée du bot « Lier ton compte NXT5 »' }],
+    // keycap above the right end of Discord's command list, clear of its rows (the app's name at their right end) and,
+    // after the cut, of the messages (left-aligned) that the key brings in
+    keycaps: [{ f0: 188, f1: 210, keys: ['Entrée'], at: { box: 'DC05.commandList', ax: 0.8, ay: 0 }, dx: 0, dy: -36 }],
+    success: [{ f: 196, label: 'réponse privée du bot « Lier ton compte NXT5 »' }],
     context: { f0: 42, f1: 78, title: 'Discord', sub: 'salon #bot-nxt5', icon: 'messages' },
     tag: null,
   },
@@ -231,9 +235,10 @@ export const SHOTS = {
       // the account card from the main column's left edge: no sliver of the sidebar
       { f: 78, z: 2, at: [852, 485], slack: 8 },
     ],
-    // the confirmation box replaces the button under the arrow: the cursor and its ripple leave with the old screen
+    // The arrow waits on the empty right of the account card, inside the frame once the camera moves in. The
+    // confirmation box replaces the button under it: the cursor and its ripple leave with the old screen.
     cursor: {
-      start: [1100, 760], show: 60, cut: 142,
+      start: [1250, 615], show: 60, cut: 142,
       moves: [{ f: 110, dur: 18, to: { box: 'S04.confirm', ax: 0.86, ay: 0.75 } }],
     },
     clicks: [{ f: 140, label: '« Confirmer mon compte NXT5 »' }],
@@ -292,7 +297,7 @@ export const SHOTS = {
     ],
     // the cut slides « Ajouter à Discord » under the arrow: the cursor leaves with the old screen
     cursor: {
-      start: [1100, 820], show: 6, cut: 56,
+      start: [1000, 700], show: 6, cut: 56,
       moves: [{ f: 20, dur: 18, to: { box: 'S05.verify', ax: 0.88, ay: 0.75 } }],
     },
     clicks: [{ f: 54, label: '« J’ai confirmé dans Discord · Vérifier »' }],
@@ -331,6 +336,8 @@ export const SHOTS = {
         { f: 101, dur: 1, to: { box: 'S09.createNewCode', ax: 0.9, ay: 0.75 } },
         { f: 168, dur: 16, to: { box: 'S09.copyCommand', ax: 0.88, ay: 0.75 } },
         { f: 201, dur: 1, to: { box: 'S10.copyCommand', ax: 0.88, ay: 0.75 } },
+        // off « Commande copiée. » while it is read: just right of the message's end
+        { f: 206, dur: 12, to: { box: 'S10.copyNotice', ax: 1, ay: 0, dx: 24 } },
       ],
     },
     clicks: [{ f: 100, label: '« Créer le code de liaison »' }, { f: 200, label: '« Copier la commande »' }],
@@ -352,9 +359,10 @@ export const SHOTS = {
       { f: 100, cap: 'DC11', note: 'réponse du bot « Serveur relié à cette équipe NXT5. » (coupe franche sur Entrée)' },
     ],
     cam: [{ f: 0, z: 1.35, at: { box: 'DC09.messageField', ax: 0.3, ay: 0 } }],
+    // the click falls right of where the command is pasted (left-aligned), so the arrow never hides its code
     cursor: {
       start: [1500, 640], show: 4, hide: 150,
-      moves: [{ f: 12, dur: 18, to: { box: 'DC09.messageField', ax: 0.2, ay: 0.5 } }],
+      moves: [{ f: 12, dur: 18, to: { box: 'DC09.messageField', ax: 0.7, ay: 0.5 } }],
     },
     clicks: [{ f: 38, label: 'champ de message de #bot-nxt5' }],
     halos: [
@@ -419,19 +427,21 @@ export const SHOTS = {
       { f: 454, ...PANEL, at: on('S17.route', PANEL_X - 549, 169.2) },
       { f: 478, ...PANEL, at: on('S17.route', PANEL_X - 549, 242.2), ease: 'glide' },
     ],
+    // the arrow starts under the « À choisir » badge, right of the text, inside the frame at every zoom of the way in
     cursor: {
-      start: [1000, 700], show: 40, hide: 534,
+      start: [1300, 405], show: 40, hide: 534,
       moves: [
         { f: 118, dur: 18, to: { box: 'S11.commandSelect', ax: 0.8, ay: 0.6 } },
         { f: 149, dur: 1, to: { box: 'S13.commandSelect', ax: 0.8, ay: 0.6 } },
         // right part of « Associer ce salon »: after the swap the arrow rests on the empty panel, beside « Changer le
         // salon » and the saved message
         { f: 164, dur: 14, to: { box: 'S13.associate', ax: 0.75, ay: 0.8 } },
-        { f: 246, dur: 30, to: { box: 'S14.pickerSelect', ax: 0.8, ay: 0.6 } },
+        { f: 244, dur: 46, to: { box: 'S14.pickerSelect', ax: 0.8, ay: 0.6 } },
         { f: 297, dur: 1, to: { box: 'S15.pickerSelect', ax: 0.8, ay: 0.6 } },
         { f: 312, dur: 14, to: { box: 'S15.addChannel', ax: 0.86, ay: 0.78 } },
         { f: 337, dur: 1, to: { box: 'S16.addChannel', ax: 0.86, ay: 0.78 } },
-        { f: 418, dur: 16, to: { box: 'S16.save', ax: 0.88, ay: 0.75 } },
+        // down with the camera's glide to « Enregistrer les salons », where it waits while the new row is read
+        { f: 350, dur: 50, to: { box: 'S16.save', ax: 0.88, ay: 0.75 } },
         // « Salons enregistrés. » is inserted above the button: the arrow keeps its page point (match cut on the
         // channel row), over the message, then goes on
         { f: 447, dur: 1, to: on('S17.saved', 192.2, 50.4) },
@@ -478,9 +488,10 @@ export const SHOTS = {
       { f: 140, ...PANEL, at: on('S18.testSelect', PANEL_X - 549, 18.4), ease: 'glide' },
       { f: 152, ...PANEL, at: on('S20.testSelect', PANEL_X - 549, 18.4), cut: true },
     ],
-    // the receipt is inserted where the button was: the cursor leaves with the old screen
+    // The arrow waits under the channel select, right of « Envoyer le message de test » and off the warning text under
+    // it. The receipt is inserted where the button was: the cursor leaves with the old screen.
     cursor: {
-      start: [1100, 760], show: 60, cut: 152,
+      start: [1340, 712], show: 60, cut: 152,
       moves: [{ f: 118, dur: 18, to: { box: 'S18.sendTest', ax: 0.88, ay: 0.75 } }],
     },
     clicks: [{ f: 150, label: '« Envoyer le message de test »' }],
@@ -531,14 +542,15 @@ export const SHOTS = {
       // the frame's left edge in the gap between the sidebar and the panel (x 264 → 296)
       { f: 330, z: 2.1, at: [852, 637], ease: 'glide' },
     ],
-    // the overview replaces the assistant under the arrow: the cursor leaves with the old screen
+    // The arrow starts right of the receipt and travels down with the camera. The overview replaces the assistant
+    // under the arrow: the cursor leaves with the old screen.
     cursor: {
-      start: [1150, 700], show: 20, cut: 258,
+      start: [1350, 480], show: 20, cut: 258,
       moves: [
-        { f: 70, dur: 18, to: on('S20.newTest', 174.7, 218.1) }, // « Activer la diffusion » (ax .88, ay .75)
+        { f: 66, dur: 34, to: on('S20.newTest', 174.7, 218.1) }, // « Activer la diffusion » (ax .88, ay .75)
         { f: 121, dur: 1, to: on('S21.newTest', 174.7, 218.1) },
-        // out of the summary while it is read: the margin right of its box
-        { f: 132, dur: 18, to: { box: 'S21.confirm', ax: 1, ay: 0.6, dx: 24 } },
+        // out of the summary as soon as it is cut in: the margin right of its title
+        { f: 122, dur: 18, to: { box: 'S21.confirm', ax: 1, ay: 0.15, dx: 24 } },
         { f: 226, dur: 16, to: { box: 'S21.confirmButton', ax: 0.88, ay: 0.75 } },
       ],
     },
@@ -585,6 +597,8 @@ export const SHOTS = {
       start: [1000, 640], show: 50, cut: 204, back: 232, hide: 354,
       moves: [
         { f: 100, dur: 18, to: { box: 'S23.share', ax: 0.88, ay: 0.75 } },
+        // the dialog covers the button: the arrow moves into the dialog's right margin, above « Destination Discord »
+        { f: 138, dur: 14, to: { box: 'S24.dialog', ax: 0.96, ay: 0.3 } },
         { f: 170, dur: 18, to: { box: 'S24.prepare', ax: 0.88, ay: 0.75 } },
         { f: 210, dur: 1, to: [1060, 420] },
         { f: 318, dur: 18, to: { box: 'S26.publish', ax: 0.88, ay: 0.75 } },
@@ -691,7 +705,7 @@ export const SUBS: Sub<ShotId>[] = [
     verbatim: 'Clique sur « Autoriser » : le bot rejoint ton serveur.' },
   { id: '2a', shot: 'lier', f: SUB_AFTER_CARD, lines: ['Dans un salon de ton serveur, tape {/nxt lier}', 'et envoie la commande.'],
     verbatim: 'Dans un salon de ton serveur, tape /nxt lier et envoie la commande.' },
-  { id: '2b', shot: 'lier', f: 180, lines: ['Le bot te répond en privé :', 'clique sur « Ouvrir NXT5 ».'],
+  { id: '2b', shot: 'lier', f: 210, lines: ['Le bot te répond en privé :', 'clique sur « Ouvrir NXT5 ».'],
     verbatim: 'Le bot te répond en privé : clique sur « Ouvrir NXT5 ».' },
   { id: '2c', shot: 'confirmSite', f: 24, lines: ['Vérifie les deux comptes et clique', 'sur « Confirmer mon compte NXT5 ».'],
     verbatim: 'Vérifie les deux comptes et clique sur « Confirmer mon compte NXT5 ».' },
@@ -707,7 +721,7 @@ export const SUBS: Sub<ShotId>[] = [
     verbatim: 'Sur NXT5, le serveur apparaît : « Serveur relié ».' },
   { id: '4a', shot: 'channels', f: SUB_AFTER_CARD, lines: ['Onglet « Salons » : choisis le salon des commandes,', 'puis « Associer ce salon ».'],
     verbatim: 'Onglet « Salons » : choisis le salon des commandes, puis « Associer ce salon ».' },
-  { id: '4b', shot: 'channels', f: 200, lines: ['Choisis le salon des résultats, « Ajouter ce salon »,', 'puis « Enregistrer les salons ».'],
+  { id: '4b', shot: 'channels', f: 236, lines: ['Choisis le salon des résultats, « Ajouter ce salon »,', 'puis « Enregistrer les salons ».'],
     verbatim: 'Choisis le salon des résultats, « Ajouter ce salon », puis « Enregistrer les salons ».' },
   { id: '4c', shot: 'channels', f: 446, lines: ['Puis « Passer au test et à l’activation ».'],
     verbatim: 'Puis « Passer au test et à l’activation ».' },
@@ -768,4 +782,5 @@ export const FILM: FilmDef = {
   texts: { title: TITLE_TEXT, prereq: PREREQ_ITEMS, recap: RECAP_ITEMS, legal: RECAP_LEGAL },
   apps: APPS,
   capIds: CAP_IDS,
+  cursorInArea: true,
 };

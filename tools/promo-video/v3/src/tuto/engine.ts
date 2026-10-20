@@ -152,6 +152,10 @@ export type FilmDef = {
   apps: Record<string, AppSpec>;
   /** Capture alias → id in the film's captures.json. */
   capIds: Record<string, string>;
+  /** Framing QA of the whole cursor path (camera.ts checkFraming), not only of its click points: on every frame the
+   * arrow is drawn, it stays in the frame and the working area, never parked under the subtitle bar or off frame. Off
+   * for TutoImporter, edited before this check. */
+  cursorInArea?: boolean;
 };
 /** A timed film: shot starts (global frames), duration, number of « Étape » chapters, global subtitle track. */
 export type Film = FilmDef & { start: Record<string, number>; duration: number; steps: number; subTrack: SubSpan[] };
@@ -272,7 +276,7 @@ export function buildCues(film: Film): Cue[] {
 
 /** Reading speed ceiling of a settled subtitle (characters per second, French subtitling practice). */
 export const MAX_CPS = 17;
-/** Script sanity checks (thrown at import time in the studio/render, and by export-cues.mjs). */
+/** Script sanity checks (thrown by the film's composition in the studio/render, and reported by export-cues.mjs). */
 export function checkScript(film: Film): string[] {
   const errors: string[] = [];
   for (const id of film.order) if (!film.shots[id]) errors.push(`plan ${id} inconnu`);

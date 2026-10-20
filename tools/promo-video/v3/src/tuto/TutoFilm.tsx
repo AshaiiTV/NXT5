@@ -5,7 +5,7 @@
 // checklist and recap cards are the engine's; any other card view is one of the film's own schematics (`views`).
 // Sound: TutoAudio (music bed + foley pinned on the film's cue list).
 import React from 'react';
-import { AbsoluteFill, Sequence, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, Sequence, useCurrentFrame, useRemotionEnvironment } from 'remotion';
 import { entersByDip, type CardShot, type Cue } from './engine';
 import { FilmCtx, useFilm, type FilmRuntime } from './FilmContext';
 import { ShotCtx, TutoBackdrop } from './parts/Backdrop';
@@ -43,10 +43,23 @@ const FadeIn: React.FC<{ on: boolean; dip?: boolean; children: React.ReactNode }
   return <AbsoluteFill style={{ opacity: on ? ramp(f, 0, xf) : 1 }}>{children}</AbsoluteFill>;
 };
 
+/** Aliases of the film's captures still marked `placeholder` in its captures.json (stand-ins for a screenshot to
+ * come). */
+export const placeholdersOf = (film: FilmRuntime) => Object.keys(film.capIds).filter((a) => film.caps.entry(a).placeholder === true);
+
 /** `views`: the film's schematics by view name. `cues`: its cue list (export-cues.mjs). `sparkle`: which success notes
- * get a sparkle (TutoAudio). */
-export const TutoFilm: React.FC<{ film: FilmRuntime; views: CardViews; cues: Cue[]; sparkle: RegExp; bgm: boolean }> = ({ film, views, cues, sparkle, bgm }) => {
+ * get a sparkle (TutoAudio). `allowPlaceholders`: a render (CLI, renderer API, the studio's render button) of a film
+ * that still shows placeholder captures fails unless this input prop is true (working stills only:
+ * --props='{"allowPlaceholders":true}'); the studio preview is not affected. */
+export const TutoFilm: React.FC<{ film: FilmRuntime; views: CardViews; cues: Cue[]; sparkle: RegExp; bgm: boolean; allowPlaceholders?: boolean }> = ({
+  film, views, cues, sparkle, bgm, allowPlaceholders = false,
+}) => {
   const g = useCurrentFrame();
+  const { isRendering } = useRemotionEnvironment();
+  if (!allowPlaceholders && isRendering) {
+    const ph = placeholdersOf(film);
+    if (ph.length) throw new Error(`${film.id} : captures provisoires (${ph.join(', ')}), rendu refusé. Image de travail : --props='{"allowPlaceholders":true}'.`);
+  }
   return (
     <FilmCtx.Provider value={film}>
       <AbsoluteFill style={{ backgroundColor: '#111827' }}>

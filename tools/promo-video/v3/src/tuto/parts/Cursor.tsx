@@ -2,43 +2,16 @@
 // cursor-performance, toned down for a tutorial): calm in-out glide on a slight arc (~0.5 s), press (2 f down, 5 f
 // back), ripple whose diameter (out-cubic) and fade (linear) are decoupled, unmounted after. Positions are capture
 // (page) points mapped through the camera every frame, so the cursor stays pinned to its target while the camera zooms.
+// The path itself is in ../camera.ts, shared with the framing QA.
 import React from 'react';
 import { Easing, interpolate } from 'remotion';
+import { cursorPoint as pathPoint } from '../camera';
 import type { Click, Move, Pt, PtRef } from '../engine';
 import { clamp, COL, IO, ramp } from '../style';
 
-const bez = (p0: Pt, p1: Pt, p2: Pt, p3: Pt, t: number): Pt => {
-  const u = 1 - t;
-  const k = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
-  return [k[0] * p0[0] + k[1] * p1[0] + k[2] * p2[0] + k[3] * p3[0], k[0] * p0[1] + k[1] * p1[1] + k[2] * p2[1] + k[3] * p3[1]];
-};
-
-/** Glide from a to b with a gentle bow (8 % of the distance, max 50 px), eased in-out. */
-const glide = (a: Pt, b: Pt, t: number): Pt => {
-  const dx = b[0] - a[0];
-  const dy = b[1] - a[1];
-  const d = Math.hypot(dx, dy) || 1;
-  let nx = -dy / d;
-  let ny = dx / d;
-  if (nx + ny < 0) { nx = -nx; ny = -ny; }
-  const bend = Math.min(50, d * 0.08);
-  const p1: Pt = [a[0] + dx * 0.25 + nx * bend, a[1] + dy * 0.25 + ny * bend];
-  const p2: Pt = [a[0] + dx * 0.72 + nx * bend * 0.5, a[1] + dy * 0.72 + ny * bend * 0.5];
-  return bez(a, p1, p2, b, IO(t));
-};
-
-/** Cursor point (page space) at frame f. Works for capture points (resolve: the film's captures) and for schematic
- * (screen) points alike. */
-export const cursorPoint = (start: PtRef, moves: Move[], f: number, resolve: (p: PtRef) => Pt): Pt => {
-  let p = resolve(start);
-  for (const m of moves) {
-    if (f <= m.f) return p;
-    const to = resolve(m.to);
-    if (f < m.f + m.dur) return glide(p, to, (f - m.f) / m.dur);
-    p = to;
-  }
-  return p;
-};
+/** Cursor point (page space) at frame f (camera.ts cursorPoint, glides eased by IO). Works for capture points (resolve:
+ * the film's captures) and for schematic (screen) points alike. */
+export const cursorPoint = (start: PtRef, moves: Move[], f: number, resolve: (p: PtRef) => Pt): Pt => pathPoint(start, moves, f, resolve, IO);
 
 /** Press amount 0..1 (2 f down, 5 f back) summed over the clicks. */
 export const pressAt = (clicks: Click[], f: number) =>

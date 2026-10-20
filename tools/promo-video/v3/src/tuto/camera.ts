@@ -1,7 +1,7 @@
-// Zoom camera of the tutorials: one implementation shared by the renderer (shots/CaptureShot.tsx, parts/Stage.tsx) and
-// the QA (checkCamera and checkFraming, run at import by each film's composition and in Node by export-cues.mjs). Pure
-// TypeScript with type-only imports, so Node loads it with type stripping and the checks measure exactly what is
-// rendered.
+// Zoom camera and cursor path of the tutorials: one implementation shared by the renderer (shots/CaptureShot.tsx,
+// parts/Stage.tsx, parts/Cursor.tsx) and the QA (checkCamera and checkFraming, run by each film's composition and in
+// Node by export-cues.mjs). Pure TypeScript with type-only imports, so Node loads it with type stripping and the checks
+// measure exactly what is rendered.
 //
 // Camera model (PageCam2D maths, screen space): a capture point (cx, cy) sits at the centre of the working area and
 // the capture is drawn at screen scale S = fit × z (fitOf: the app's fit height fills the working area). Each key is
@@ -9,7 +9,7 @@
 // clamped keys (centre linear, zoom in log space) with the key's easing. Nothing is clamped after the interpolation,
 // so every move keeps its ease-in and ease-out: no collapsed pans, no teleport when the window crosses the frame width.
 // A key with `cut` jumps (used only while the stage is dipped to night).
-import type { AppSpec, CamKey, CaptureShot, Film, Pt, PtRef, Rect, RectRef } from './engine';
+import type { AppSpec, CamKey, CaptureShot, Film, Move, Pt, PtRef, Rect, RectRef } from './engine';
 
 /** Working area between the step header (top) and the subtitle bar (bottom): real UI and schematics live here. */
 export const AREA = { cx: 960, cy: 483, top: 116, bottom: 850 } as const;
@@ -148,6 +148,41 @@ export const camAt = (keys: CamKey[], f: number, fit: number, size: Size, pt: (p
   return pick(ks[ks.length - 1]);
 };
 
+// ───────────────────────── cursor path ─────────────────────────
+const bez = (p0: Pt, p1: Pt, p2: Pt, p3: Pt, t: number): Pt => {
+  const u = 1 - t;
+  const k = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+  return [k[0] * p0[0] + k[1] * p1[0] + k[2] * p2[0] + k[3] * p3[0], k[0] * p0[1] + k[1] * p1[1] + k[2] * p2[1] + k[3] * p3[1]];
+};
+
+/** Glide from a to b with a gentle bow (8 % of the distance, max 50 px), eased in-out. */
+const glide = (a: Pt, b: Pt, t: number, ease: (t: number) => number): Pt => {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  const d = Math.hypot(dx, dy) || 1;
+  let nx = -dy / d;
+  let ny = dx / d;
+  if (nx + ny < 0) { nx = -nx; ny = -ny; }
+  const bend = Math.min(50, d * 0.08);
+  const p1: Pt = [a[0] + dx * 0.25 + nx * bend, a[1] + dy * 0.25 + ny * bend];
+  const p2: Pt = [a[0] + dx * 0.72 + nx * bend * 0.5, a[1] + dy * 0.72 + ny * bend * 0.5];
+  return bez(a, p1, p2, b, ease(t));
+};
+
+/** Cursor point (page space) at frame f. Works for capture points (resolve: the film's captures) and for schematic
+ * (screen) points alike. `ease`: the glide's in-out curve (parts/Cursor.tsx passes the renderer's IO, Remotion's
+ * solver of the same bezier as CAM_EASE.io). */
+export const cursorPoint = (start: PtRef, moves: Move[], f: number, resolve: (p: PtRef) => Pt, ease: (t: number) => number = CAM_EASE.io): Pt => {
+  let p = resolve(start);
+  for (const m of moves) {
+    if (f <= m.f) return p;
+    const to = resolve(m.to);
+    if (f < m.f + m.dur) return glide(p, to, (f - m.f) / m.dur, ease);
+    p = to;
+  }
+  return p;
+};
+
 // ───────────────────────── motion QA ─────────────────────────
 /** Ceiling of the speed of the content at the centre of the working area (screen px per frame) and of its change
  * from one frame to the next (px/f²), outside camera cuts. Calm tutorial camera: no whip-pan, no pop, no stutter. */
@@ -179,6 +214,12 @@ export const checkCamera = (film: Film, r: Resolver): string[] => {
     for (let i = 1; i < s.cam.length; i++) if (s.cam[i].f <= s.cam[i - 1].f) errors.push(`${id} : clés caméra non croissantes`);
     const size = r.size(s.layers[0].cap);
     const fit = fitOf(app, size);
+    // The stage draws every capture of the shot at the first one's size (e.g. native screenshots must share one window
+    // size).
+    for (const l of s.layers) {
+      const o = r.size(l.cap);
+      if (o.w !== size.w || o.h !== size.h) errors.push(`${id} : ${l.cap} ${o.w}×${o.h} ≠ ${s.layers[0].cap} ${size.w}×${size.h} (même taille pour toutes les captures d’un plan)`);
+    }
     // Sharpness: the capture is never drawn larger than its texture (S = fit × z ≤ density). The zoom moves between
     // keys without overshoot (log-space interpolation, easings within 0..1), so its extremes are the keys.
     for (const k of s.cam) {
@@ -198,8 +239,8 @@ export const checkCamera = (film: Film, r: Resolver): string[] => {
 
 /** Framing checks of every capture shot of a film: each click point (where the cursor rests, at the click) lies inside
  * the working area, FEATHER px clear of its soft top and bottom edges and of the frame's sides; each halo at full
- * strength, until it fades or an instant capture swap removes it, stays inside the working area and the frame. Local
- * frames, global ones in brackets. */
+ * strength, until it fades or an instant capture swap removes it, stays inside the working area and the frame; for a
+ * film that asks for it (FilmDef.cursorInArea), the whole cursor path too. Local frames, global ones in brackets. */
 export const checkFraming = (film: Film, r: Resolver): string[] => {
   const errors: string[] = [];
   const { shots, order, start } = film;
@@ -231,6 +272,24 @@ export const checkFraming = (film: Film, r: Resolver): string[] => {
         const z = toScreen(f, [b.x + b.w + pad, b.y + b.h + pad]);
         if (off(a, 0) || off(z, 0)) {
           errors.push(`${id} f${f} (g${start[id] + f}) : halo f${h.f0}–f${h.f1} hors du cadre utile ${fmt(a)} → ${fmt(z)}`);
+          break;
+        }
+      }
+    }
+    // The cursor on every frame it is drawn (opacity > 0, as in shots/CaptureShot.tsx: after its 8 f fade-in from
+    // `show`, or from `back` once back; away from `cut` until `back`; until its 8 f fade-out from `hide` ends). The
+    // arrow is drawn unclipped, its body within 40 px right of and 50 px below its tip: the tip stays FEATHER px clear
+    // of the frame's left edge, 2 × FEATHER px of its right edge, and inside the working area, FEATHER px above its
+    // bottom so the arrow never runs under the subtitle bar.
+    const c = s.cursor;
+    if (film.cursorInArea && c) {
+      for (let f = 0; f < s.dur; f++) {
+        const returned = c.back !== undefined && f >= c.back;
+        const away = c.cut !== undefined && f >= c.cut && !returned;
+        if (away || f <= (returned ? c.back! : c.show) || (c.hide !== undefined && f >= c.hide + 8)) continue;
+        const p = toScreen(f, cursorPoint(c.start, c.moves, f, r.pt));
+        if (p[0] < FEATHER || p[0] > 1920 - 2 * FEATHER || p[1] < AREA.top || p[1] > AREA.bottom - FEATHER) {
+          errors.push(`${id} f${f} (g${start[id] + f}) : curseur hors du cadre utile ${fmt(p)}`);
           break;
         }
       }
