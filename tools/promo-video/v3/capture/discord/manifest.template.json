@@ -1,0 +1,53 @@
+{
+  "capturedAt": "",
+  "machine": {
+    "screen": "1920x1080",
+    "windowsScale": "100 %",
+    "discordClient": "application Windows",
+    "browser": "chrome",
+    "whoClicked": "Discord : session (contrôle de l’ordinateur) / navigateur : propriétaire"
+  },
+  "names": {
+    "server": "",
+    "category": "Tuto NXT5",
+    "commandChannel": "bot-nxt5",
+    "publishChannel": "résultats",
+    "team": "Équipe Démo",
+    "opponent": "Aurore",
+    "game": "Aurore",
+    "publicationTitle": "",
+    "botName": "",
+    "botAvatar": "",
+    "linkCommand": "/nxt connecter code:",
+    "linkCodeValidUntil": ""
+  },
+  "observations": {
+    "botAlreadyOnServer": null,
+    "accountWasLinked": null,
+    "externalLinkWarning": null,
+    "captcha": null,
+    "errors": [],
+    "notes": []
+  },
+  "privacy": {
+    "ownerNameVisible": false,
+    "rawKeptOnPcOnly": true
+  },
+  "captures": [
+    { "file": "dc01-oauth-serveur.png", "shows": "", "differences": "", "nextTarget": { "label": "Continuer", "x": null, "y": null } },
+    { "file": "dc02-oauth-autorisations.png", "shows": "", "differences": "", "nextTarget": { "label": "Autoriser", "x": null, "y": null } },
+    { "file": "dc03-oauth-autorise.png", "shows": "", "differences": "", "nextTarget": null },
+    { "file": "dc04-salon-bot-nxt5.png", "shows": "", "differences": "", "nextTarget": { "label": "champ de message", "x": null, "y": null } },
+    { "file": "dc05-commande-lier.png", "shows": "", "differences": "", "nextTarget": { "label": "commande /nxt lier", "x": null, "y": null } },
+    { "file": "dc06-reponse-lier.png", "shows": "", "differences": "", "nextTarget": { "label": "Ouvrir NXT5", "x": null, "y": null } },
+    { "file": "dc07-lien-externe.png", "shows": "", "differences": "", "nextTarget": null },
+    { "file": "dc08-verifier-comptes.png", "shows": "", "differences": "", "nextTarget": { "label": "Confirmer la liaison", "x": null, "y": null } },
+    { "file": "dc09-compte-lie.png", "shows": "", "differences": "", "nextTarget": null },
+    { "file": "dc10-commande-connecter.png", "shows": "", "differences": "", "nextTarget": null },
+    { "file": "dc11-serveur-relie.png", "shows": "", "differences": "", "nextTarget": null },
+    { "file": "dc12-message-test.png", "shows": "", "differences": "", "nextTarget": null },
+    { "file": "dc13-partie-publiee.png", "shows": "", "differences": "", "nextTarget": { "label": "visuel de la partie", "x": null, "y": null } },
+    { "file": "dc14-visuel-agrandi.png", "shows": "", "differences": "", "nextTarget": null },
+    { "file": "dc15-nxt-voir.png", "shows": "", "differences": "", "nextTarget": null }
+  ]
+}

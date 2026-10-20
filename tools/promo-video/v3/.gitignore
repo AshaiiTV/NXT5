@@ -3,3 +3,4 @@ node_modules/
 public/glass/*.png
 public/glass/render.log
 public/audio/bgm.wav
+capture/discord/raw-local/
