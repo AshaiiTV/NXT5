@@ -1,9 +1,18 @@
 import type { AssistantKnowledgeEntry } from './assistant-knowledge';
+import { IMPORTER_TUTORIAL_URL } from '../../../shared/importer-tutorial.js';
 
 type Translation = Omit<AssistantKnowledgeEntry, 'id' | 'path'>;
 
 export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>> = {
   en: {
+    'importer-video': {
+      title: 'NXT5 Importer video tutorial', actionLabel: 'Open the import tutorial',
+      summary: `This French video shows how to export a game with NXT5 Importer on Windows and add it to NXT5: ${IMPORTER_TUTORIAL_URL}. The YouTube link is also available in the assistant and beside the import controls.`,
+      keywords: ['tutorial', 'video', 'youtube', 'importer', 'windows', 'export', 'first game'],
+      steps: ['Open Video tutorial: import a game on Windows. The video is in French, lasts 2 min 31 and opens on YouTube in a new tab.', 'Keep the League of Legends client open, export the JSON file with NXT5 Importer, then add it in Games.'],
+      suggestions: ['Where is the video tutorial for importing a game?', 'How do I import my first game?'],
+      faq: [{ question: 'Where is the video tutorial for importing a game?', triggers: ['tutorial', 'video import', 'youtube', 'use importer'], answer: `Watch the NXT5 Importer tutorial for Windows: ${IMPORTER_TUTORIAL_URL}. The video is in French and lasts 2 min 31. You can also find it in the assistant, in Guide → Import, and beside the file picker in Games.` }],
+    },
     'getting-started': {
       title: 'Getting started with NXT5', actionLabel: 'Open Home',
       summary: 'Home suggests the next step based on your role and team activity: initial setup, a game to review, availability or player follow-up.',
@@ -311,6 +320,14 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     },
   },
   es: {
+    'importer-video': {
+      title: 'Vídeo tutorial de NXT5 Importer', actionLabel: 'Abrir el tutorial de importación',
+      summary: `Este vídeo en francés muestra cómo exportar una partida con NXT5 Importer en Windows y añadirla a NXT5: ${IMPORTER_TUTORIAL_URL}. El enlace de YouTube también está en el asistente y junto a los controles de importación.`,
+      keywords: ['tutorial', 'vídeo', 'youtube', 'importer', 'windows', 'exportar', 'primera partida'],
+      steps: ['Abre Vídeo tutorial: importar una partida en Windows. El vídeo está en francés, dura 2 min 31 y se abre en YouTube en una nueva pestaña.', 'Mantén abierto el cliente de League of Legends, exporta el archivo JSON con NXT5 Importer y añádelo en Partidas.'],
+      suggestions: ['¿Dónde está el vídeo tutorial para importar una partida?', '¿Cómo importo mi primera partida?'],
+      faq: [{ question: '¿Dónde está el vídeo tutorial para importar una partida?', triggers: ['tutorial', 'vídeo importar', 'youtube', 'usar importer'], answer: `Mira el tutorial de NXT5 Importer para Windows: ${IMPORTER_TUTORIAL_URL}. Está en francés y dura 2 min 31. También está en el asistente, en Guía → Importar y junto al selector de archivos en Partidas.` }],
+    },
     'getting-started': {
       title: 'Empezar en NXT5', actionLabel: 'Abrir Inicio',
       summary: 'Inicio propone el siguiente paso según tu rol y la actividad del equipo: configuración inicial, una partida que revisar, disponibilidad o seguimiento del jugador.',

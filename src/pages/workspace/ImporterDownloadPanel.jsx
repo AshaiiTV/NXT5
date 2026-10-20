@@ -4,6 +4,7 @@ import React, { useRef, useState } from "react";
 import { Check, Download, HelpCircle, Loader2, Upload } from "lucide-react";
 import { Button, SelectInput, Surface } from "../../components/ui/Core.jsx";
 import { ImporterOpeningHelp } from "../../components/importer/ImporterOpeningHelp.jsx";
+import { ImporterTutorialLink } from "../../components/importer/ImporterTutorialLink.jsx";
 import { NXT5_IMPORTER_MAC_URL, NXT5_IMPORTER_MAC_INTEL_URL, NXT5_IMPORTER_WINDOWS_URL } from "../../app/constants.jsx";
 
 const downloads = [
@@ -42,6 +43,7 @@ export function ImporterDownloadPanel({ fileImporting, hasTeam, hasPreview, onIm
           <input ref={fileInput} type="file" accept="application/json,.json" aria-label={t("Fichier JSON de la partie")} hidden disabled={fileImporting || !hasTeam} onChange={(event) => { onImport(event.target.files?.[0]); event.target.value = ""; }} />
           {!hasTeam && <p className="text-sm text-slate-300">{t("Sélectionne une équipe pour importer une partie.")}</p>}
         </div>
+        {!hasPreview && <ImporterTutorialLink className="mt-4" />}
         {children && <div className="importer-file-progress">{children}</div>}
         {!hasPreview && <details className="importer-download-details mt-5 border-t border-cyan-100/10">
           <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold text-white">{t("Pas encore de fichier ? Obtenir NXT5 Importer")}</summary>

@@ -1,4 +1,5 @@
 import { ASSISTANT_TRANSLATIONS } from './assistant-knowledge-locales';
+import { IMPORTER_TUTORIAL_URL } from '../../../shared/importer-tutorial.js';
 
 export type AssistantLanguage = 'fr' | 'en' | 'es';
 export function normalizeAssistantLanguage(value: unknown): AssistantLanguage {
@@ -61,6 +62,17 @@ export const ALLOWED_ASSISTANT_PATHS = [
 const ALLOWED_PATH_SET = new Set<string>(ALLOWED_ASSISTANT_PATHS);
 
 export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
+  {
+    id: 'importer-video',
+    title: 'Tutoriel vidéo NXT5 Importer',
+    path: '/guide?section=imports-and-games',
+    actionLabel: 'Ouvrir le tutoriel d’import',
+    summary: `Le tutoriel vidéo en français montre comment exporter une partie avec NXT5 Importer sur Windows, puis l’ajouter dans NXT5 : ${IMPORTER_TUTORIAL_URL}. Le lien YouTube est aussi disponible dans l’assistant et à côté de l’import.`,
+    keywords: ['tuto', 'tutoriel', 'vidéo', 'youtube', 'importer', 'windows', 'exporter', 'première partie'],
+    steps: ['Ouvre le lien Tuto vidéo : importer une partie sur Windows. La vidéo en français dure 2 min 31 et s’ouvre sur YouTube dans un nouvel onglet.', 'Garde le client League of Legends ouvert, exporte le fichier JSON avec NXT5 Importer, puis ajoute-le dans Parties.'],
+    suggestions: ['Où trouver le tutoriel vidéo pour importer une partie ?', 'Comment importer ma première partie ?'],
+    faq: [{ question: 'Où trouver le tutoriel vidéo pour importer une partie ?', triggers: ['tuto', 'tutoriel vidéo', 'vidéo import', 'youtube', 'utiliser importer'], answer: `Regarde le tutoriel NXT5 Importer sur Windows : ${IMPORTER_TUTORIAL_URL}. La vidéo est en français et dure 2 min 31. Utilise aussi le lien Tuto vidéo dans l’assistant, dans Guide → Importer ou près du choix de fichier dans Parties.` }],
+  },
   {
     id: 'getting-started',
     title: 'Démarrer sur NXT5',
@@ -795,6 +807,7 @@ function knownAssistantRoute(value: unknown): string | null {
   if (!ALLOWED_PATH_SET.has(route)) return null;
   // Preserve only documented public views, never private match/player/filter values.
   const params = new URLSearchParams(search);
+  if (route === '/guide' && params.get('section') === 'imports-and-games') return '/guide?section=imports-and-games';
   if (route === '/tendances') {
     const panel = params.get('rubrique') === 'ai-objectives' ? 'playstyle' : params.get('rubrique');
     if (['draft', 'drafts', 'statistics', 'playstyle'].includes(panel || '')) return `${route}?rubrique=${panel}`;

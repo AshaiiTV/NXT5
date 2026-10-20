@@ -54,4 +54,7 @@ const teamManagement = {
   "Supprimer définitivement l’équipe": "Permanently delete team",
   "Gère l’effectif, les invitations et les informations de ton équipe.": "Manage your team's roster, invitations and details.",
 };
-export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar };
+export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar,
+  "Tuto vidéo : importer une partie sur Windows": "Video tutorial: import a game on Windows",
+  "YouTube · 2 min 31 · En français · Nouvel onglet": "YouTube · 2 min 31 · In French · New tab",
+};
