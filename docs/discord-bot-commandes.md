@@ -18,6 +18,8 @@ L’aide, la liaison du compte et la connexion initiale de l’équipe peuvent �
 
 ## Tutoriel `/nxt help` dans Discord
 
+Dès l’accueil de `/nxt help`, **Tuto vidéo · importer une partie** donne le [lien du tutoriel NXT5 Importer sur Windows](https://youtu.be/hPoIqh9w_68), en français, d’une durée de 2 min 31. Il explique l’export de la partie puis l’ajout du fichier JSON dans NXT5. Le lien est public et accessible sans compte lié ; l’aide reste privée et ne charge aucune donnée d’équipe. Cet ajout de contenu ne nécessite pas de réenregistrer la commande Discord.
+
 L’aide s’ouvre dans un **embed visible uniquement par son auteur**. Elle donne un parcours en trois étapes, sans imposer de lire un long catalogue :
 
 1. **Lier son compte** — lancer `/nxt lier`, ouvrir le lien privé, se connecter à NXT5 et confirmer les deux comptes affichés en revenant dans Discord.

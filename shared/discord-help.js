@@ -1,4 +1,5 @@
 import { discordCommandCatalog, discordCommandCategories, discordHelpSections } from './discord-command.js';
+import { IMPORTER_TUTORIAL_URL } from './importer-tutorial.js';
 
 const HELP_PREFIX = 'nxt:help:';
 const COLOR = 0x5865f2;
@@ -10,6 +11,7 @@ const tutorialPages = [
     title: 'NXT5 dans le salon de ton équipe',
     description: 'Trois étapes suffisent pour consulter les données de ton équipe sur Discord.',
     fields: [
+      field('Tuto vidéo · importer une partie', `[Regarder le tutoriel NXT5 Importer sur Windows](${IMPORTER_TUTORIAL_URL})\nEn français · 2 min 31. Exporte ta partie avec NXT5 Importer, puis ajoute le fichier JSON dans NXT5.`),
       field('1 · Lie ton compte', 'Utilise `/nxt lier` et confirme la liaison de ton compte Discord sur NXT5. Ton profil NXT5 doit appartenir à l’équipe concernée. `/nxt profil` permet de vérifier ton compte lié.'),
       field('2 · Rejoins le bon salon', 'Un responsable choisit dans NXT5 un seul salon de commandes Discord pour chaque équipe. Ouvre le salon lié à ton équipe avant d’utiliser `/nxt voir`.'),
       field('3 · Demande ce que tu veux voir', 'Par exemple, `/nxt voir sujet:derniere`. Le bot retrouve l’équipe grâce au salon, puis vérifie ton compte, ton appartenance à cette équipe et, si nécessaire, ton rôle Discord. Tu n’as aucun nom d’équipe ni identifiant à saisir.'),
