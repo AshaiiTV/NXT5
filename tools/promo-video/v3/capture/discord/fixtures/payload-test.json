@@ -1,0 +1,36 @@
+{
+  "message": {
+    "content": "🧪 Test de connexion NXT5 — données fictives. Aucune game réelle et aucune mention.",
+    "embeds": [
+      {
+        "title": "TEST NXT5 · Exemple fictif",
+        "description": "Victoire · 19–13 kills · 28:30\nDÉMONSTRATION · aucune game réelle",
+        "color": 6809849,
+        "url": "https://nxt5.org/bot-discord",
+        "fields": [],
+        "footer": {
+          "text": "NXT5 · connection-test:preview"
+        },
+        "image": {
+          "url": "attachment://nxt5-game-demo-game.png"
+        }
+      }
+    ],
+    "allowed_mentions": {
+      "parse": [],
+      "roles": [],
+      "users": [],
+      "replied_user": false
+    },
+    "nonce": "3871d68d942380f9764c107c",
+    "enforce_nonce": true,
+    "attachments": [
+      {
+        "id": 0,
+        "filename": "nxt5-game-demo-game.png",
+        "description": "Exemple fictif de statistiques NXT5 pour tester la connexion Discord"
+      }
+    ],
+    "components": []
+  }
+}

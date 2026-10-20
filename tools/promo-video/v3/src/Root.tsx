@@ -8,15 +8,16 @@ import { Composition, Still } from 'remotion';
 import { Main } from './Main';
 import { DURATION, FPS } from './timeline';
 import { Thumbnail } from './Thumbnail';
-import { TutoImporter } from './tuto/TutoImporter';
+import { IMPORTER_FILM, TutoImporter } from './tuto/TutoImporter';
 import { TutoThumbnail } from './tuto/TutoThumbnail';
-import { DURATION as TUTO_DURATION, FPS as TUTO_FPS } from './tuto/script';
+import { DISCORD_FILM, TutoDiscord } from './tuto-discord/TutoDiscord';
 
 export const Root: React.FC = () => (
   <>
     <Composition id="Nxt5Promo" component={Main} durationInFrames={DURATION} fps={FPS} width={1920} height={1080} defaultProps={{ bgm: true }} />
     <Still id="Thumbnail" component={Thumbnail} width={1280} height={720} />
     <Still id="TutoThumbnail" component={TutoThumbnail} width={1280} height={720} />
-    <Composition id="TutoImporter" component={TutoImporter} durationInFrames={TUTO_DURATION} fps={TUTO_FPS} width={1920} height={1080} defaultProps={{ bgm: true }} />
+    <Composition id="TutoImporter" component={TutoImporter} durationInFrames={IMPORTER_FILM.duration} fps={IMPORTER_FILM.fps} width={1920} height={1080} defaultProps={{ bgm: true }} />
+    <Composition id="TutoDiscord" component={TutoDiscord} durationInFrames={DISCORD_FILM.duration} fps={DISCORD_FILM.fps} width={1920} height={1080} defaultProps={{ bgm: true }} />
   </>
 );

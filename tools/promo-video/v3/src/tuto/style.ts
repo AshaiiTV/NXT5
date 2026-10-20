@@ -3,12 +3,10 @@ import { Easing, interpolate } from 'remotion';
 import { C } from '../theme';
 import { clamp, EASE, lerp, outCubic } from '../lib/motion';
 
-/** Working area (AREA, between the step header and the subtitle bar) and fit scales (FIT) live in camera.ts, shared
- * with the Node QA. A zoomed capture never runs under the chrome: it is clipped to this band (FEATHER, areaMask). */
-export { AREA, AREA_H, FIT } from './camera';
-/** Soft edge (px) of the working-area clip when a zoomed capture is taller than the area. Click targets and halos
- * stay at least this far inside the area (checked by the framing QA). */
-export const FEATHER = 24;
+/** Working area (AREA, between the step header and the subtitle bar) and fit scales (fitOf, from the film's apps) live
+ * in camera.ts, shared with the Node QA. A zoomed capture never runs under the chrome: it is clipped to this band
+ * (FEATHER, areaMask). */
+export { AREA, AREA_H, FEATHER, fitOf } from './camera';
 
 /** Top bar slots: step header (left) and data tag (right), same top edge. */
 export const TOP = { y: 36, h: 64, left: 48, right: 48 } as const;

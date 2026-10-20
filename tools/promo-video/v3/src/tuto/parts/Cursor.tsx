@@ -4,8 +4,7 @@
 // (page) points mapped through the camera every frame, so the cursor stays pinned to its target while the camera zooms.
 import React from 'react';
 import { Easing, interpolate } from 'remotion';
-import type { Click, Move, Pt, PtRef } from '../script';
-import { resolvePt } from '../captures';
+import type { Click, Move, Pt, PtRef } from '../engine';
 import { clamp, COL, IO, ramp } from '../style';
 
 const bez = (p0: Pt, p1: Pt, p2: Pt, p3: Pt, t: number): Pt => {
@@ -28,8 +27,9 @@ const glide = (a: Pt, b: Pt, t: number): Pt => {
   return bez(a, p1, p2, b, IO(t));
 };
 
-/** Cursor point (page space) at frame f. Works for capture points and for schematic (screen) points alike. */
-export const cursorPoint = (start: PtRef, moves: Move[], f: number, resolve: (p: PtRef) => Pt = resolvePt): Pt => {
+/** Cursor point (page space) at frame f. Works for capture points (resolve: the film's captures) and for schematic
+ * (screen) points alike. */
+export const cursorPoint = (start: PtRef, moves: Move[], f: number, resolve: (p: PtRef) => Pt): Pt => {
   let p = resolve(start);
   for (const m of moves) {
     if (f <= m.f) return p;

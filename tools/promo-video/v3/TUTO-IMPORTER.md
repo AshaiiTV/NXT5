@@ -2,7 +2,7 @@
 
 Ce tutoriel YouTube montre le parcours complet, du téléchargement de NXT5 Importer jusqu’à la partie importée sur nxt5.org.
 
-- **Format.** Vidéo de 2 min 31 environ (4 529 images), en 1920×1080 à 30 i/s, composition Remotion `TutoImporter` de ce projet. Le code est dans `src/tuto/`, les captures dans `public/tuto/`.
+- **Format.** Vidéo de 2 min 31 environ (4 529 images), en 1920×1080 à 30 i/s, composition Remotion `TutoImporter` de ce projet. Le code est dans `src/tuto/`, les captures dans `public/tuto/`. Le film est décrit comme données dans `src/tuto/script.ts` ; le moteur commun des tutoriels (`engine.ts`, `TutoFilm.tsx`, `parts/`, `shots/`) le minute et le dessine. Les schémas restent propres à ce film (`shots/Schematics.tsx`). Liste des repères sonores et contrôles : `node src/tuto/export-cues.mjs importer --write` (écrit `src/tuto/cues.json`).
 - **Décisions du propriétaire (19 octobre 2026).**
   - Windows uniquement.
   - Prérequis annoncés sur un carton : pas d’inscription filmée.

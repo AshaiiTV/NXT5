@@ -1,24 +1,28 @@
-// The film's two typing overlays, both ending on the real captured typed state.
-// 5b · TypingOverlay over the real empty « Identifiant du match » field: on the paste a patch in the field's own colour
-// hides the placeholder « Ex. EUW1_7861632138 » and the ID appears (whole when f0 = f1, as a paste does; character by
-// character otherwise) in the field's font, size, colour and text position (captures.json → gameIdInputText), then the
-// real capture of the typed state (importer-04) takes over once it has fully replaced the empty one. Plus a
-// « Ctrl + V » keycap hint.
-// 7f · RevealTyping over « Nom de la partie »: Ctrl + A shows the pre-filled text selected, the first keystroke replaces
-// it; same patch technique, but the typed text is the capture's own (site-07b), uncovered glyph by glyph, so no font
-// substitution is involved.
+// The two typing overlays, both ending on the real captured typed state (examples from TutoImporter).
+// TypingOverlay (5b, over the real empty « Identifiant du match » field): on the paste a patch in the field's own
+// colour hides the placeholder « Ex. EUW1_7861632138 » and the ID appears (whole when f0 = f1, as a paste does;
+// character by character otherwise) in the field's font, size, colour and text position (captures.json, the entry's
+// `textStyle` key, e.g. gameIdInputText), then the real capture of the typed state (importer-04) takes over once it
+// has fully replaced the empty one. Plus a « Ctrl + V » keycap hint.
+// RevealTyping (7f, over « Nom de la partie »): Ctrl + A shows the pre-filled text selected, the first keystroke
+// replaces it; same patch technique, but the typed text is the capture's own (site-07b), uncovered glyph by glyph, so
+// no font substitution is involved.
 import React from 'react';
 import { Img } from 'remotion';
-import { cap, capSrc } from '../captures';
-import type { Reveal, Typing } from '../script';
+import type { Reveal, Typing } from '../engine';
+import { useFilm } from '../FilmContext';
 import type { View } from './Stage';
 import { BRAND, COL, ramp } from '../style';
 import { FONT } from '../../theme';
 
+/** A field's text as measured on its capture (captures.json): font, colour, text x and vertical centre (CSS px). */
+export type FieldText = { fontSize: string; fontWeight: string; color: string; textX: number; centerY: number };
+
 export const TypingOverlay: React.FC<{ t: Typing; f: number; view: View; until: number }> = ({ t, f, view, until }) => {
+  const { caps } = useFilm();
   if (f < t.f0 || f >= until + 5) return null;
-  const meta = cap(t.cap).gameIdInputText;
-  if (!meta) throw new Error('gameIdInputText manquant');
+  const meta = caps.entry(t.cap)[t.textStyle] as FieldText | undefined;
+  if (!meta) throw new Error(`${t.cap} : ${t.textStyle} manquant`);
   const n = Math.min(t.text.length, Math.floor(ramp(f, t.f0, t.f1) * t.text.length) + 1);
   const fade = 1 - ramp(f, until, until + 5);
   const c = view.rect(t.cover);
@@ -27,7 +31,7 @@ export const TypingOverlay: React.FC<{ t: Typing; f: number; view: View; until: 
   const caretOn = f < t.f1 + 2 || Math.floor((f - t.f1) / 8) % 2 === 0;
   return (
     <div style={{ position: 'absolute', inset: 0, opacity: fade }}>
-      <div style={{ position: 'absolute', left: c.x, top: c.y, width: c.w, height: c.h, background: COL.inputBg }} />
+      <div style={{ position: 'absolute', left: c.x, top: c.y, width: c.w, height: c.h, background: t.color }} />
       <div
         style={{
           position: 'absolute', left: tx, top: ty - fs, height: fs * 2, display: 'flex', alignItems: 'center', whiteSpace: 'pre',
@@ -80,6 +84,7 @@ export const KeycapHint: React.FC<{ keys: string[]; f: number; f0: number; f1: n
  * character, measured on the capture's ink gaps). A caret sits at the edge; from r.t1 the capture is fully uncovered
  * and only the caret blinks until r.f1. No text is drawn: every text pixel is a capture's. */
 export const RevealTyping: React.FC<{ r: Reveal; f: number; view: View; size: { w: number; h: number } }> = ({ r, f, view, size }) => {
+  const { caps } = useFilm();
   if (f < r.f0 || f >= r.f1) return null;
   const box = view.rect(r.cover);
   const W = size.w * view.S;
@@ -88,10 +93,10 @@ export const RevealTyping: React.FC<{ r: Reveal; f: number; view: View; size: { 
     const sel = f >= r.select ? view.rect(r.selection.rect) : null;
     return (
       <div style={{ position: 'absolute', left: box.x, top: box.y, width: box.w, height: box.h, overflow: 'hidden', isolation: 'isolate' }}>
-        <Img src={capSrc(r.from)} style={{ position: 'absolute', left: view.frame.x - box.x, top: view.frame.y - box.y, width: W, height: H }} />
+        <Img src={caps.src(r.from)} style={{ position: 'absolute', left: view.frame.x - box.x, top: view.frame.y - box.y, width: W, height: H }} />
         {sel ? (
           <div style={{ position: 'absolute', left: sel.x - box.x, top: sel.y - box.y, width: sel.w, height: sel.h, overflow: 'hidden', background: r.selection.color }}>
-            <Img src={capSrc(r.from)} style={{ position: 'absolute', left: view.frame.x - sel.x, top: view.frame.y - sel.y, width: W, height: H, mixBlendMode: 'lighten' }} />
+            <Img src={caps.src(r.from)} style={{ position: 'absolute', left: view.frame.x - sel.x, top: view.frame.y - sel.y, width: W, height: H, mixBlendMode: 'lighten' }} />
           </div>
         ) : null}
       </div>

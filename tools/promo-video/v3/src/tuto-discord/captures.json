@@ -1,0 +1,3967 @@
+{
+  "meta": {
+    "units": "Boîtes en px CSS, origine en haut à gauche du PNG. PNG = viewport complet au facteur 2 (multiplier par scale pour les pixels du PNG).",
+    "scale": 2,
+    "regenerate": "SITE_ROOT=<copie du site avec node_modules> tools/promo-video/v3/capture/discord/run-site.sh (voir l’en-tête de capture-site.cjs).",
+    "names": {
+      "server": "Horizon Esport",
+      "category": "Tuto NXT5",
+      "commandChannel": "bot-nxt5",
+      "publishChannel": "résultats",
+      "ownerDiscordName": "coachdemo",
+      "nxt5AccountName": "coach-demo",
+      "team": "Équipe Démo",
+      "opponent": "Aurore",
+      "game": "Aurore",
+      "publicationTitle": "Équipe Démo vs Aurore",
+      "botName": "NXT5",
+      "botAvatar": "",
+      "linkCommand": "/nxt connecter code:7F3A-92C1-D04E-B58B",
+      "linkCodeValidUntil": "18/10/2026 22:22:37"
+    },
+    "namesSource": "Valeurs fictives par défaut. sync-names.cjs les remplace par celles de public/tuto-discord/real/manifest.json dès qu’il est rempli, sauf ownerDiscordName et nxt5AccountName, qui restent fictifs (les vrais sont masqués et jamais écrits).",
+    "clock": {
+      "arrival": "18/10/2026 22:03:37",
+      "invite": "18/10/2026 22:04:37",
+      "lierRequested": "18/10/2026 22:06:07",
+      "lier": "18/10/2026 22:06:37",
+      "code": "18/10/2026 22:12:37",
+      "linked": "18/10/2026 22:14:07",
+      "test": "18/10/2026 22:16:07",
+      "activation": "18/10/2026 22:17:07",
+      "publish": "18/10/2026 22:18:37",
+      "activity": "18/10/2026 22:20:07"
+    },
+    "notes": {
+      "site": [
+        "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+        "Viewport 1440×900 CSS au facteur 2 (2880×1800), thème sombre, fr-FR, Europe/Paris, cookies refusés (« Tout refuser »).",
+        "Noms (serveur, salons, comptes, code de liaison, « Valable jusqu’au ») tirés de capture/discord/names.json, à aligner sur les captures Discord réelles (sync-names.cjs).",
+        "Horloge figée à chaque étape (meta.clock) : le code de liaison est créé 10 minutes avant « Valable jusqu’au », après l’import de la partie (18/10/2026 21:48).",
+        "Seule retouche : une feuille de style de capture masque le badge d’abonnement du menu latéral (.nxt5-sidebar-subscription). Coach Démo est capitaine (droits identiques au propriétaire pour le bot) : le menu affiche « Capitaine ».",
+        "Aperçus Discord rendus par le code serveur (render-payloads.cjs) : partie enrichie fixtures/game-discord.cjs, sans avertissement de combats. Le visuel, plus haut que la fenêtre, peut être coupé par ses bords.",
+        "Listes déroulantes natives non capturées : couper entre l’avant et l’après du choix (site-11 → site-13, site-14 → site-15).",
+        "Aucun texte, contrôle ou paragraphe coupé par la barre du haut, l’en-tête de la fenêtre ou le bord de l’écran (vérifié avant chaque capture) ; edgeNotes signale un simple liseré de cadre près d’un bord. Boîtes « visible » et hiddenBoxes comme pour le tutoriel Importer.",
+        "site-21 : aucun cadrage ne garde à la fois le reçu du test entier, les onglets d’étapes intacts et le pied de page du site hors champ ; seules les deux dernières lignes du reçu (entières) restent sous la barre du haut.",
+        "Fenêtre « Exporter sur Discord » ouverte depuis le haut de la page : le verrouillage du défilement décalerait sinon la barre du haut derrière la fenêtre (site-24 à site-27)."
+      ],
+      "discord": [
+        "Entrées dc* : captures Discord réelles (BRIEF-CAPTURES-DISCORD.md), en px de la PNG (densité 1).",
+        "Tant qu’une entrée porte placeholder: true, son image est une carte d’attente (capture/discord/make-placeholders.cjs) et ses boîtes sont supposées. Remplacement : TUTO-DISCORD.md, « Captures Discord »."
+      ]
+    },
+    "updatedAt": "2026-10-20T19:19:27.271Z"
+  },
+  "captures": {
+    "dc01-oauth-serveur": {
+      "file": "tuto-discord/real/placeholder/dc01.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 1,
+      "expected": "Page d’autorisation de Discord (navigateur, F11) : le serveur NXT est choisi dans la liste, liste refermée, avant « Continuer ».",
+      "boxes": {
+        "oauthCard": {
+          "x": 700,
+          "y": 120,
+          "w": 520,
+          "h": 800
+        },
+        "serverSelect": {
+          "x": 732,
+          "y": 560,
+          "w": 456,
+          "h": 48
+        },
+        "continueButton": {
+          "x": 1068,
+          "y": 852,
+          "w": 120,
+          "h": 40
+        }
+      }
+    },
+    "dc02-oauth-autorisations": {
+      "file": "tuto-discord/real/placeholder/dc02.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 2,
+      "expected": "Après « Continuer » : la liste des autorisations demandées, avec « Administrateur », et le bouton « Autoriser », avant le clic.",
+      "boxes": {
+        "oauthCard": {
+          "x": 700,
+          "y": 120,
+          "w": 520,
+          "h": 800
+        },
+        "permissions": {
+          "x": 732,
+          "y": 330,
+          "w": 456,
+          "h": 420
+        },
+        "adminPermission": {
+          "x": 732,
+          "y": 370,
+          "w": 456,
+          "h": 36
+        },
+        "authorizeButton": {
+          "x": 1068,
+          "y": 852,
+          "w": 120,
+          "h": 40
+        }
+      }
+    },
+    "dc03-oauth-autorise": {
+      "file": "tuto-discord/real/placeholder/dc03.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 3,
+      "expected": "Après « Autoriser » : la page de confirmation de Discord.",
+      "boxes": {
+        "oauthCard": {
+          "x": 700,
+          "y": 120,
+          "w": 520,
+          "h": 800
+        },
+        "confirmation": {
+          "x": 760,
+          "y": 380,
+          "w": 400,
+          "h": 240
+        }
+      }
+    },
+    "dc04-salon-bot-nxt5": {
+      "file": "tuto-discord/real/placeholder/dc04.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 4,
+      "expected": "Plan d’ensemble : serveur NXT, catégorie « Tuto NXT5 » dépliée avec #bot-nxt5 et #résultats, salon #bot-nxt5 ouvert, champ de message vide.",
+      "boxes": {
+        "channelList": {
+          "x": 72,
+          "y": 22,
+          "w": 240,
+          "h": 958
+        },
+        "category": {
+          "x": 80,
+          "y": 210,
+          "w": 224,
+          "h": 100
+        },
+        "channelBot": {
+          "x": 88,
+          "y": 242,
+          "w": 216,
+          "h": 32
+        },
+        "messageField": {
+          "x": 328,
+          "y": 964,
+          "w": 1576,
+          "h": 44
+        }
+      }
+    },
+    "dc05-commande-lier": {
+      "file": "tuto-discord/real/placeholder/dc05.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 5,
+      "expected": "Dans #bot-nxt5, « /nxt lier » tapé sans valider : la liste des commandes montre la commande et « Associer ton compte Discord à NXT5. ».",
+      "boxes": {
+        "commandList": {
+          "x": 328,
+          "y": 780,
+          "w": 1576,
+          "h": 176
+        },
+        "commandLier": {
+          "x": 336,
+          "y": 860,
+          "w": 1560,
+          "h": 52
+        },
+        "messageField": {
+          "x": 328,
+          "y": 964,
+          "w": 1576,
+          "h": 44
+        }
+      }
+    },
+    "dc06-reponse-lier": {
+      "file": "tuto-discord/real/placeholder/dc06.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 6,
+      "expected": "Réponse privée du bot « Lier ton compte NXT5 », ses trois étapes et les boutons « Ouvrir NXT5 » et « Vérifier la liaison ».",
+      "boxes": {
+        "botReply": {
+          "x": 328,
+          "y": 610,
+          "w": 1000,
+          "h": 330
+        },
+        "openButton": {
+          "x": 392,
+          "y": 888,
+          "w": 132,
+          "h": 36
+        },
+        "verifyButton": {
+          "x": 534,
+          "y": 888,
+          "w": 170,
+          "h": 36
+        },
+        "messageField": {
+          "x": 328,
+          "y": 964,
+          "w": 1576,
+          "h": 44
+        }
+      }
+    },
+    "dc08-verifier-comptes": {
+      "file": "tuto-discord/real/placeholder/dc08.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 8,
+      "expected": "Après « Vérifier la liaison » : nouveau message « Vérifie les deux comptes », lignes « Discord : … » et « Compte NXT5 : … » masquées, boutons « Confirmer la liaison » et « Annuler ».",
+      "boxes": {
+        "botReply": {
+          "x": 328,
+          "y": 640,
+          "w": 1000,
+          "h": 300
+        },
+        "accounts": {
+          "x": 392,
+          "y": 700,
+          "w": 700,
+          "h": 120
+        },
+        "confirmButton": {
+          "x": 392,
+          "y": 888,
+          "w": 190,
+          "h": 36
+        },
+        "cancelButton": {
+          "x": 592,
+          "y": 888,
+          "w": 100,
+          "h": 36
+        },
+        "messageField": {
+          "x": 328,
+          "y": 964,
+          "w": 1576,
+          "h": 44
+        }
+      }
+    },
+    "dc09-compte-lie": {
+      "file": "tuto-discord/real/placeholder/dc09.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 9,
+      "expected": "Après « Confirmer la liaison » : nouveau message « Compte lié ». Champ de message vide.",
+      "boxes": {
+        "linkedReply": {
+          "x": 328,
+          "y": 800,
+          "w": 1000,
+          "h": 140
+        },
+        "messageField": {
+          "x": 328,
+          "y": 964,
+          "w": 1576,
+          "h": 44
+        }
+      }
+    },
+    "dc10-commande-connecter": {
+      "file": "tuto-discord/real/placeholder/dc10.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 10,
+      "expected": "Dans #bot-nxt5, la commande « /nxt connecter » et son code collés (Ctrl + V), sans valider.",
+      "boxes": {
+        "command": {
+          "x": 344,
+          "y": 972,
+          "w": 640,
+          "h": 28
+        },
+        "messageField": {
+          "x": 328,
+          "y": 964,
+          "w": 1576,
+          "h": 44
+        }
+      }
+    },
+    "dc11-serveur-relie": {
+      "file": "tuto-discord/real/placeholder/dc11.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 11,
+      "expected": "Après validation : la réponse du bot « Serveur relié à cette équipe NXT5. Retourne dans Bot Discord… ».",
+      "boxes": {
+        "connectedReply": {
+          "x": 328,
+          "y": 800,
+          "w": 1100,
+          "h": 140
+        },
+        "messageField": {
+          "x": 328,
+          "y": 964,
+          "w": 1576,
+          "h": 44
+        }
+      }
+    },
+    "dc12-message-test": {
+      "file": "tuto-discord/real/placeholder/dc12.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 12,
+      "expected": "Salon #résultats : le message de test du bot en entier (« Test de connexion NXT5 — données fictives… », embed « TEST NXT5 · Exemple fictif » et son image).",
+      "boxes": {
+        "testMessage": {
+          "x": 328,
+          "y": 150,
+          "w": 1000,
+          "h": 800
+        },
+        "testText": {
+          "x": 392,
+          "y": 190,
+          "w": 900,
+          "h": 30
+        },
+        "testEmbed": {
+          "x": 392,
+          "y": 240,
+          "w": 560,
+          "h": 700
+        }
+      }
+    },
+    "dc13-partie-publiee": {
+      "file": "tuto-discord/real/placeholder/dc13.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 13,
+      "expected": "Salon #résultats : le message de la partie en entier (« Équipe Démo vs Aurore », « Victoire · 22–11 kills · 25:00 », « Scrim », visuel, « Voir la game sur NXT5 »).",
+      "boxes": {
+        "gameMessage": {
+          "x": 328,
+          "y": 110,
+          "w": 1000,
+          "h": 860
+        },
+        "gameTitle": {
+          "x": 400,
+          "y": 160,
+          "w": 540,
+          "h": 92
+        },
+        "gameImage": {
+          "x": 400,
+          "y": 262,
+          "w": 520,
+          "h": 600
+        },
+        "gameButton": {
+          "x": 392,
+          "y": 918,
+          "w": 220,
+          "h": 36
+        }
+      }
+    },
+    "dc14-visuel-agrandi": {
+      "file": "tuto-discord/real/placeholder/dc14.png",
+      "css": {
+        "w": 1920,
+        "h": 1032
+      },
+      "app": "discord",
+      "scale": 1,
+      "placeholder": true,
+      "brief": 14,
+      "expected": "Le visuel de la partie ouvert en grand dans la visionneuse d’images de Discord.",
+      "boxes": {
+        "viewerImage": {
+          "x": 660,
+          "y": 40,
+          "w": 600,
+          "h": 952
+        }
+      }
+    },
+    "site-01-page-bot-discord": {
+      "file": "tuto-discord/site-01-page-bot-discord.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d01",
+      "storyboard": [
+        "1"
+      ],
+      "state": "Page « Bot Discord » (menu « Préparation et partage » > « Bot Discord ») : « Toi sur Discord » avec « Compte non lié » et « Copier /nxt lier », « Le bot de Équipe Démo » « Serveur : aucun serveur relié » avec « À installer », assistant « Installer le bot » sur l’onglet « Serveur ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "w": 264,
+          "h": 900
+        },
+        "sidebarGroup": {
+          "x": 16,
+          "y": 404.39,
+          "w": 231,
+          "h": 44
+        },
+        "sidebarBot": {
+          "x": 16,
+          "y": 448.39,
+          "w": 231,
+          "h": 44
+        },
+        "topbarTeam": {
+          "x": 955.2,
+          "y": 14.5,
+          "w": 179.52,
+          "h": 46
+        },
+        "pageEyebrow": {
+          "x": 296,
+          "y": 123,
+          "w": 1112,
+          "h": 18
+        },
+        "pageTitle": {
+          "x": 296,
+          "y": 153,
+          "w": 800,
+          "h": 38.09
+        },
+        "pageSubtitle": {
+          "x": 296,
+          "y": 207.09,
+          "w": 585.44,
+          "h": 54.38
+        },
+        "accountPanel": {
+          "x": 296,
+          "y": 322.47,
+          "w": 1112,
+          "h": 215.06
+        },
+        "accountTitle": {
+          "x": 317,
+          "y": 343.47,
+          "w": 922.41,
+          "h": 28
+        },
+        "accountDescription": {
+          "x": 317,
+          "y": 377.86,
+          "w": 922.41,
+          "h": 25.59
+        },
+        "accountBadge": {
+          "x": 1263.41,
+          "y": 343.47,
+          "w": 123.59,
+          "h": 30
+        },
+        "accountCommand": {
+          "x": 317,
+          "y": 419.45,
+          "w": 1070,
+          "h": 44.5
+        },
+        "accountCommandCode": {
+          "x": 472.48,
+          "y": 434.33,
+          "w": 81.02,
+          "h": 17
+        },
+        "copyLier": {
+          "x": 1220.28,
+          "y": 419.45,
+          "w": 166.72,
+          "h": 44.5
+        },
+        "accountGuide": {
+          "x": 317,
+          "y": 471.95,
+          "w": 1070,
+          "h": 44.58
+        },
+        "teamPanel": {
+          "x": 296,
+          "y": 553.53,
+          "w": 1112,
+          "h": 995.67,
+          "visible": {
+            "x": 296,
+            "y": 553.53,
+            "w": 1112,
+            "h": 346.47
+          }
+        },
+        "teamHeading": {
+          "x": 317,
+          "y": 574.53,
+          "w": 1070,
+          "h": 107.11
+        },
+        "teamName": {
+          "x": 389,
+          "y": 601.63,
+          "w": 220.88,
+          "h": 27.03
+        },
+        "teamServer": {
+          "x": 389,
+          "y": 634.25,
+          "w": 220.88,
+          "h": 26.39
+        },
+        "teamBadge": {
+          "x": 1297.14,
+          "y": 602.58,
+          "w": 89.86,
+          "h": 30
+        },
+        "steps": {
+          "x": 317,
+          "y": 797.78,
+          "w": 200,
+          "h": 370.42,
+          "visible": {
+            "x": 317,
+            "y": 797.78,
+            "w": 200,
+            "h": 102.22
+          }
+        },
+        "stepServer": {
+          "x": 317,
+          "y": 797.78,
+          "w": 200,
+          "h": 108.28,
+          "visible": {
+            "x": 317,
+            "y": 797.78,
+            "w": 200,
+            "h": 102.22
+          }
+        }
+      },
+      "hiddenBoxes": [
+        "stepSalons",
+        "stepActivation"
+      ],
+      "url": "/bot-discord",
+      "scrollY": 5,
+      "clock": "18/10/2026 22:03:37",
+      "focus": null
+    },
+    "site-02-compte-comment-relier": {
+      "file": "tuto-discord/site-02-compte-comment-relier.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d02",
+      "storyboard": [
+        "3"
+      ],
+      "state": "« Toi sur Discord » : « Comment relier mon compte ? » déplié (Dans Discord / Sur NXT5 / De retour dans Discord). Non monté dans le déroulé actuel.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "w": 264,
+          "h": 900
+        },
+        "sidebarGroup": {
+          "x": 16,
+          "y": 404.39,
+          "w": 231,
+          "h": 44
+        },
+        "sidebarBot": {
+          "x": 16,
+          "y": 448.39,
+          "w": 231,
+          "h": 44
+        },
+        "topbarTeam": {
+          "x": 955.2,
+          "y": 14.5,
+          "w": 179.52,
+          "h": 46
+        },
+        "accountPanel": {
+          "x": 296,
+          "y": 113.47,
+          "w": 1112,
+          "h": 528.16
+        },
+        "accountTitle": {
+          "x": 317,
+          "y": 134.47,
+          "w": 922.41,
+          "h": 28
+        },
+        "accountDescription": {
+          "x": 317,
+          "y": 168.86,
+          "w": 922.41,
+          "h": 25.59
+        },
+        "accountBadge": {
+          "x": 1263.41,
+          "y": 134.47,
+          "w": 123.59,
+          "h": 30
+        },
+        "accountCommand": {
+          "x": 317,
+          "y": 210.45,
+          "w": 1070,
+          "h": 44.5
+        },
+        "accountCommandCode": {
+          "x": 472.48,
+          "y": 225.33,
+          "w": 81.02,
+          "h": 17
+        },
+        "copyLier": {
+          "x": 1220.28,
+          "y": 210.45,
+          "w": 166.72,
+          "h": 44.5
+        },
+        "accountGuide": {
+          "x": 317,
+          "y": 262.95,
+          "w": 1070,
+          "h": 44.58
+        },
+        "accountSteps": {
+          "x": 317,
+          "y": 321.13,
+          "w": 1070,
+          "h": 172.67
+        },
+        "accountStep1": {
+          "x": 317,
+          "y": 321.13,
+          "w": 1070,
+          "h": 50.3
+        },
+        "accountStep2": {
+          "x": 317,
+          "y": 385.02,
+          "w": 1070,
+          "h": 47.59
+        },
+        "accountStep3": {
+          "x": 317,
+          "y": 446.2,
+          "w": 1070,
+          "h": 47.59
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 214,
+      "clock": "18/10/2026 22:03:37",
+      "focus": null,
+      "edgeNotes": [
+        "bord nxt5-page-header"
+      ]
+    },
+    "site-03-copier-nxt-lier": {
+      "file": "tuto-discord/site-03-copier-nxt-lier.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d03",
+      "storyboard": [
+        "3a"
+      ],
+      "state": "Après « Copier /nxt lier » : bouton « Commande copiée » et « Commande copiée. Colle-la dans Discord, puis ouvre le lien du bot. ». Non monté dans le déroulé actuel.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "w": 264,
+          "h": 900
+        },
+        "sidebarGroup": {
+          "x": 16,
+          "y": 404.39,
+          "w": 231,
+          "h": 44
+        },
+        "sidebarBot": {
+          "x": 16,
+          "y": 448.39,
+          "w": 231,
+          "h": 44
+        },
+        "topbarTeam": {
+          "x": 955.2,
+          "y": 14.5,
+          "w": 179.52,
+          "h": 46
+        },
+        "accountPanel": {
+          "x": 296,
+          "y": 92.47,
+          "w": 1112,
+          "h": 561.55
+        },
+        "accountTitle": {
+          "x": 317,
+          "y": 113.47,
+          "w": 922.41,
+          "h": 28
+        },
+        "accountDescription": {
+          "x": 317,
+          "y": 147.86,
+          "w": 922.41,
+          "h": 25.59
+        },
+        "accountBadge": {
+          "x": 1263.41,
+          "y": 113.47,
+          "w": 123.59,
+          "h": 30
+        },
+        "accountCommand": {
+          "x": 317,
+          "y": 189.45,
+          "w": 1070,
+          "h": 44.5
+        },
+        "accountCommandCode": {
+          "x": 472.48,
+          "y": 204.33,
+          "w": 81.02,
+          "h": 17
+        },
+        "copyLier": {
+          "x": 1191.91,
+          "y": 189.45,
+          "w": 195.09,
+          "h": 44.5
+        },
+        "accountGuide": {
+          "x": 317,
+          "y": 275.34,
+          "w": 1070,
+          "h": 44.58
+        },
+        "copyNotice": {
+          "x": 317,
+          "y": 243.55,
+          "w": 1070,
+          "h": 23.8
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 235,
+      "clock": "18/10/2026 22:03:37",
+      "focus": null
+    },
+    "site-04-lien-personnel-confirmer": {
+      "file": "tuto-discord/site-04-lien-personnel-confirmer.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d04",
+      "storyboard": [
+        "3b"
+      ],
+      "state": "Arrivée par le lien personnel du bot (/bot-discord?lier=…) : « À confirmer ici », « Étape 2 sur 3 · Confirmation sur NXT5 », « Ton compte NXT5 » coach-demo / « Ton compte Discord » coachdemo, « Confirmer mon compte NXT5 ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "w": 264,
+          "h": 900
+        },
+        "sidebarGroup": {
+          "x": 16,
+          "y": 404.39,
+          "w": 231,
+          "h": 44
+        },
+        "sidebarBot": {
+          "x": 16,
+          "y": 448.39,
+          "w": 231,
+          "h": 44
+        },
+        "topbarTeam": {
+          "x": 955.2,
+          "y": 14.5,
+          "w": 179.52,
+          "h": 46
+        },
+        "accountPanel": {
+          "x": 296,
+          "y": 317.47,
+          "w": 1112,
+          "h": 458.67
+        },
+        "accountTitle": {
+          "x": 317,
+          "y": 338.47,
+          "w": 924.7,
+          "h": 28
+        },
+        "accountDescription": {
+          "x": 317,
+          "y": 372.86,
+          "w": 924.7,
+          "h": 25.59
+        },
+        "accountBadge": {
+          "x": 1265.7,
+          "y": 338.47,
+          "w": 121.3,
+          "h": 30
+        },
+        "request": {
+          "x": 317,
+          "y": 414.45,
+          "w": 1070,
+          "h": 340.69
+        },
+        "requestStep": {
+          "x": 317,
+          "y": 414.45,
+          "w": 1070,
+          "h": 23.8
+        },
+        "pair": {
+          "x": 317,
+          "y": 451.84,
+          "w": 1070,
+          "h": 107.17
+        },
+        "nxt5Account": {
+          "x": 317,
+          "y": 468.84,
+          "w": 525,
+          "h": 73.17
+        },
+        "nxt5AccountName": {
+          "x": 317,
+          "y": 497.23,
+          "w": 525,
+          "h": 22.39
+        },
+        "discordAccount": {
+          "x": 862,
+          "y": 468.84,
+          "w": 525,
+          "h": 73.17
+        },
+        "discordAccountName": {
+          "x": 862,
+          "y": 497.23,
+          "w": 525,
+          "h": 44.78
+        },
+        "lierExpiry": {
+          "x": 317,
+          "y": 668.3,
+          "w": 1070,
+          "h": 28.75
+        },
+        "requestText": {
+          "x": 317,
+          "y": 572.61,
+          "w": 1070,
+          "h": 24
+        },
+        "confirm": {
+          "x": 317,
+          "y": 610.2,
+          "w": 250.94,
+          "h": 44.5
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 10,
+      "clock": "18/10/2026 22:06:37",
+      "focus": null,
+      "lierExpiryText": "Ce lien personnel expire à 22:16. Pour recommencer, lance /nxt lier dans Discord."
+    },
+    "site-05-lien-personnel-confirme": {
+      "file": "tuto-discord/site-05-lien-personnel-confirme.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d05",
+      "storyboard": [
+        "3c"
+      ],
+      "state": "« À terminer dans Discord », « Étape 3 sur 3 · Retour dans Discord », « Compte NXT5 confirmé. Dernière étape dans Discord. », « J’ai confirmé dans Discord · Vérifier ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "w": 264,
+          "h": 900
+        },
+        "sidebarGroup": {
+          "x": 16,
+          "y": 404.39,
+          "w": 231,
+          "h": 44
+        },
+        "sidebarBot": {
+          "x": 16,
+          "y": 448.39,
+          "w": 231,
+          "h": 44
+        },
+        "topbarTeam": {
+          "x": 955.2,
+          "y": 14.5,
+          "w": 179.52,
+          "h": 46
+        },
+        "accountPanel": {
+          "x": 296,
+          "y": 315.47,
+          "w": 1112,
+          "h": 460.14
+        },
+        "accountTitle": {
+          "x": 317,
+          "y": 336.47,
+          "w": 860.61,
+          "h": 28
+        },
+        "accountDescription": {
+          "x": 317,
+          "y": 370.86,
+          "w": 860.61,
+          "h": 25.59
+        },
+        "accountBadge": {
+          "x": 1201.61,
+          "y": 336.47,
+          "w": 185.39,
+          "h": 30
+        },
+        "request": {
+          "x": 317,
+          "y": 412.45,
+          "w": 1070,
+          "h": 342.16
+        },
+        "requestStep": {
+          "x": 317,
+          "y": 412.45,
+          "w": 1070,
+          "h": 23.8
+        },
+        "pair": {
+          "x": 317,
+          "y": 449.84,
+          "w": 1070,
+          "h": 107.17
+        },
+        "nxt5Account": {
+          "x": 317,
+          "y": 466.84,
+          "w": 525,
+          "h": 73.17
+        },
+        "nxt5AccountName": {
+          "x": 317,
+          "y": 495.23,
+          "w": 525,
+          "h": 22.39
+        },
+        "discordAccount": {
+          "x": 862,
+          "y": 466.84,
+          "w": 525,
+          "h": 73.17
+        },
+        "discordAccountName": {
+          "x": 862,
+          "y": 495.23,
+          "w": 525,
+          "h": 44.78
+        },
+        "lierExpiry": {
+          "x": 317,
+          "y": 667.77,
+          "w": 1070,
+          "h": 28.75
+        },
+        "feedback": {
+          "x": 317,
+          "y": 570.61,
+          "w": 1070,
+          "h": 83.56
+        },
+        "feedbackTitle": {
+          "x": 334,
+          "y": 588.2,
+          "w": 419.47,
+          "h": 20
+        },
+        "verify": {
+          "x": 317,
+          "y": 710.11,
+          "w": 319.58,
+          "h": 44.5
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 12,
+      "clock": "18/10/2026 22:06:37",
+      "focus": null
+    },
+    "site-06-compte-lie": {
+      "file": "tuto-discord/site-06-compte-lie.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d06",
+      "storyboard": [
+        "3e"
+      ],
+      "state": "« Compte lié » : « coachdemo · ton compte personnel est reconnu par NXT5. », « Pour commencer : lance /nxt help… ». Le bot de l’équipe reste « À installer ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "w": 264,
+          "h": 900
+        },
+        "sidebarGroup": {
+          "x": 16,
+          "y": 404.39,
+          "w": 231,
+          "h": 44
+        },
+        "sidebarBot": {
+          "x": 16,
+          "y": 448.39,
+          "w": 231,
+          "h": 44
+        },
+        "topbarTeam": {
+          "x": 955.2,
+          "y": 14.5,
+          "w": 179.52,
+          "h": 46
+        },
+        "accountPanel": {
+          "x": 296,
+          "y": 135.47,
+          "w": 1112,
+          "h": 141.13
+        },
+        "accountTitle": {
+          "x": 317,
+          "y": 156.47,
+          "w": 864.61,
+          "h": 28
+        },
+        "accountDescription": {
+          "x": 317,
+          "y": 190.86,
+          "w": 864.61,
+          "h": 25.59
+        },
+        "accountBadge": {
+          "x": 1205.61,
+          "y": 163.72,
+          "w": 94.41,
+          "h": 30
+        },
+        "accountName": {
+          "x": 317,
+          "y": 192.86,
+          "w": 91.13,
+          "h": 20
+        },
+        "accountNext": {
+          "x": 317,
+          "y": 226.84,
+          "w": 1070,
+          "h": 28.75
+        },
+        "manage": {
+          "x": 1312.02,
+          "y": 156.47,
+          "w": 74.98,
+          "h": 44.5
+        },
+        "teamPanel": {
+          "x": 296,
+          "y": 292.59,
+          "w": 1112,
+          "h": 995.67,
+          "visible": {
+            "x": 296,
+            "y": 292.59,
+            "w": 1112,
+            "h": 607.41
+          }
+        },
+        "teamHeading": {
+          "x": 317,
+          "y": 313.59,
+          "w": 1070,
+          "h": 107.11
+        },
+        "teamName": {
+          "x": 389,
+          "y": 340.69,
+          "w": 220.88,
+          "h": 27.03
+        },
+        "teamServer": {
+          "x": 389,
+          "y": 373.31,
+          "w": 220.88,
+          "h": 26.39
+        },
+        "teamBadge": {
+          "x": 1297.14,
+          "y": 341.64,
+          "w": 89.86,
+          "h": 30
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 192,
+      "clock": "18/10/2026 22:06:37",
+      "focus": null,
+      "edgeNotes": [
+        "bord nxt5-page-header"
+      ]
+    },
+    "site-07-etape1-ajouter-a-discord": {
+      "file": "tuto-discord/site-07-etape1-ajouter-a-discord.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d07",
+      "storyboard": [
+        "2"
+      ],
+      "state": "Onglet « Serveur » : « 1. Ajouter NXT5 dans Discord » avec « Ajouter à Discord » (bouton principal) et la mention de l’autorisation Administrateur, « 2. Relier cette équipe au serveur » avec « Créer le code de liaison ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "teamPanel": {
+          "x": 296,
+          "y": 90.59,
+          "w": 1112,
+          "h": 995.67,
+          "visible": {
+            "x": 296,
+            "y": 90.59,
+            "w": 1112,
+            "h": 809.41
+          }
+        },
+        "teamHeading": {
+          "x": 317,
+          "y": 111.59,
+          "w": 1070,
+          "h": 107.11
+        },
+        "teamName": {
+          "x": 389,
+          "y": 138.69,
+          "w": 220.88,
+          "h": 27.03
+        },
+        "teamServer": {
+          "x": 389,
+          "y": 171.31,
+          "w": 220.88,
+          "h": 26.39
+        },
+        "teamBadge": {
+          "x": 1297.14,
+          "y": 139.64,
+          "w": 89.86,
+          "h": 30
+        },
+        "steps": {
+          "x": 317,
+          "y": 334.84,
+          "w": 200,
+          "h": 370.42
+        },
+        "stepServer": {
+          "x": 317,
+          "y": 334.84,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepSalons": {
+          "x": 317,
+          "y": 453.52,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepActivation": {
+          "x": 317,
+          "y": 572.19,
+          "w": 200,
+          "h": 133.08
+        },
+        "stepPanel": {
+          "x": 549,
+          "y": 338.84,
+          "w": 838,
+          "h": 557.83
+        },
+        "stepTitle": {
+          "x": 549,
+          "y": 338.84,
+          "w": 838,
+          "h": 31.67
+        },
+        "inviteTask": {
+          "x": 549,
+          "y": 386.52,
+          "w": 838,
+          "h": 235.72
+        },
+        "inviteTitle": {
+          "x": 549,
+          "y": 409.11,
+          "w": 838,
+          "h": 26.39
+        },
+        "inviteButton": {
+          "x": 549,
+          "y": 512.28,
+          "w": 191.5,
+          "h": 45.17
+        },
+        "adminNote": {
+          "x": 549,
+          "y": 569.45,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "linkTask": {
+          "x": 549,
+          "y": 638.23,
+          "w": 838,
+          "h": 170.27
+        },
+        "linkTitle": {
+          "x": 549,
+          "y": 660.83,
+          "w": 838,
+          "h": 26.39
+        },
+        "createCode": {
+          "x": 549,
+          "y": 764,
+          "w": 228.69,
+          "h": 44.5
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 394,
+      "clock": "18/10/2026 22:04:37",
+      "focus": null
+    },
+    "site-08-invitation-ouverte": {
+      "file": "tuto-discord/site-08-invitation-ouverte.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d08",
+      "storyboard": [
+        "2"
+      ],
+      "state": "Après « Ajouter à Discord » (nouvel onglet discord.com intercepté) : « Invitation ouverte. Termine l’autorisation dans Discord, puis utilise le code ci-dessous. », « Créer le code de liaison » devient le bouton principal. Le badge reste « À installer ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "teamPanel": {
+          "x": 296,
+          "y": 64.59,
+          "w": 1112,
+          "h": 1034.06,
+          "visible": {
+            "x": 296,
+            "y": 76,
+            "w": 1112,
+            "h": 824
+          }
+        },
+        "teamHeading": {
+          "x": 317,
+          "y": 85.59,
+          "w": 1070,
+          "h": 107.11
+        },
+        "teamName": {
+          "x": 389,
+          "y": 112.69,
+          "w": 220.88,
+          "h": 27.03
+        },
+        "teamServer": {
+          "x": 389,
+          "y": 145.31,
+          "w": 220.88,
+          "h": 26.39
+        },
+        "teamBadge": {
+          "x": 1297.14,
+          "y": 113.64,
+          "w": 89.86,
+          "h": 30
+        },
+        "steps": {
+          "x": 317,
+          "y": 308.84,
+          "w": 200,
+          "h": 370.42
+        },
+        "stepServer": {
+          "x": 317,
+          "y": 308.84,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepSalons": {
+          "x": 317,
+          "y": 427.52,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepActivation": {
+          "x": 317,
+          "y": 546.19,
+          "w": 200,
+          "h": 133.08
+        },
+        "stepPanel": {
+          "x": 549,
+          "y": 312.84,
+          "w": 838,
+          "h": 596.22,
+          "visible": {
+            "x": 549,
+            "y": 312.84,
+            "w": 838,
+            "h": 587.16
+          }
+        },
+        "stepTitle": {
+          "x": 549,
+          "y": 312.84,
+          "w": 838,
+          "h": 31.67
+        },
+        "inviteTask": {
+          "x": 549,
+          "y": 360.52,
+          "w": 838,
+          "h": 274.11
+        },
+        "inviteTitle": {
+          "x": 549,
+          "y": 383.11,
+          "w": 838,
+          "h": 26.39
+        },
+        "inviteButton": {
+          "x": 549,
+          "y": 486.28,
+          "w": 191.5,
+          "h": 45.17
+        },
+        "adminNote": {
+          "x": 549,
+          "y": 543.45,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "linkTask": {
+          "x": 549,
+          "y": 650.63,
+          "w": 838,
+          "h": 170.27
+        },
+        "linkTitle": {
+          "x": 549,
+          "y": 673.22,
+          "w": 838,
+          "h": 26.39
+        },
+        "createCode": {
+          "x": 549,
+          "y": 776.39,
+          "w": 230.09,
+          "h": 44.5
+        },
+        "inviteStatus": {
+          "x": 549,
+          "y": 608.23,
+          "w": 726.75,
+          "h": 26.39
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 420,
+      "clock": "18/10/2026 22:04:37",
+      "focus": null
+    },
+    "site-09-code-de-liaison": {
+      "file": "tuto-discord/site-09-code-de-liaison.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d09",
+      "storyboard": [
+        "4"
+      ],
+      "state": "Code créé : « Commande de liaison à usage unique », « /nxt connecter code:7F3A-92C1-D04E-B58B », « Valable jusqu’au 18/10/2026 22:22:37. Un nouveau code remplace le précédent. », « Copier la commande », « Vérifier la connexion », vérification automatique pendant deux minutes.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "stepPanel": {
+          "x": 549,
+          "y": 176.84,
+          "w": 838,
+          "h": 798.28,
+          "visible": {
+            "x": 549,
+            "y": 176.84,
+            "w": 838,
+            "h": 723.16
+          }
+        },
+        "stepTitle": {
+          "x": 549,
+          "y": 176.84,
+          "w": 838,
+          "h": 31.67
+        },
+        "inviteTask": {
+          "x": 549,
+          "y": 224.52,
+          "w": 838,
+          "h": 274.11
+        },
+        "inviteTitle": {
+          "x": 549,
+          "y": 247.11,
+          "w": 838,
+          "h": 26.39
+        },
+        "inviteButton": {
+          "x": 549,
+          "y": 350.28,
+          "w": 191.5,
+          "h": 45.17
+        },
+        "adminNote": {
+          "x": 549,
+          "y": 407.45,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "linkTask": {
+          "x": 549,
+          "y": 514.63,
+          "w": 838,
+          "h": 372.33
+        },
+        "linkTitle": {
+          "x": 549,
+          "y": 537.22,
+          "w": 838,
+          "h": 26.39
+        },
+        "createNewCode": {
+          "x": 549,
+          "y": 640.39,
+          "w": 228.3,
+          "h": 44.5
+        },
+        "codeBox": {
+          "x": 549,
+          "y": 696.89,
+          "w": 838,
+          "h": 190.06
+        },
+        "codeLabel": {
+          "x": 567,
+          "y": 704.89,
+          "w": 726.75,
+          "h": 26.39
+        },
+        "command": {
+          "x": 567,
+          "y": 739.28,
+          "w": 820,
+          "h": 26.39
+        },
+        "validUntil": {
+          "x": 567,
+          "y": 773.67,
+          "w": 726.75,
+          "h": 26.39
+        },
+        "copyCommand": {
+          "x": 567,
+          "y": 808.06,
+          "w": 210.17,
+          "h": 44.5
+        },
+        "verifyConnection": {
+          "x": 789.17,
+          "y": 808.06,
+          "w": 209.19,
+          "h": 44.5
+        },
+        "autoCheck": {
+          "x": 567,
+          "y": 852.56,
+          "w": 726.75,
+          "h": 26.39
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 556,
+      "clock": "18/10/2026 22:12:37",
+      "focus": null,
+      "validUntilText": "Valable jusqu’au 18/10/2026 22:22:37. Un nouveau code remplace le précédent."
+    },
+    "site-10-commande-copiee": {
+      "file": "tuto-discord/site-10-commande-copiee.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d10",
+      "storyboard": [
+        "4"
+      ],
+      "state": "Après « Copier la commande » : « Commande copiée. Colle-la dans le serveur Discord de l’équipe. » sous les boutons, même cadrage que site-09 à quelques px près.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "stepPanel": {
+          "x": 549,
+          "y": 113.84,
+          "w": 838,
+          "h": 824.67,
+          "visible": {
+            "x": 549,
+            "y": 113.84,
+            "w": 838,
+            "h": 786.16
+          }
+        },
+        "stepTitle": {
+          "x": 549,
+          "y": 113.84,
+          "w": 838,
+          "h": 31.67
+        },
+        "inviteTask": {
+          "x": 549,
+          "y": 161.52,
+          "w": 838,
+          "h": 274.11
+        },
+        "inviteTitle": {
+          "x": 549,
+          "y": 184.11,
+          "w": 838,
+          "h": 26.39
+        },
+        "inviteButton": {
+          "x": 549,
+          "y": 287.28,
+          "w": 191.5,
+          "h": 45.17
+        },
+        "adminNote": {
+          "x": 549,
+          "y": 344.45,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "linkTask": {
+          "x": 549,
+          "y": 451.63,
+          "w": 838,
+          "h": 398.72
+        },
+        "linkTitle": {
+          "x": 549,
+          "y": 474.22,
+          "w": 838,
+          "h": 26.39
+        },
+        "createNewCode": {
+          "x": 549,
+          "y": 577.39,
+          "w": 228.3,
+          "h": 44.5
+        },
+        "codeBox": {
+          "x": 549,
+          "y": 633.89,
+          "w": 838,
+          "h": 216.45
+        },
+        "codeLabel": {
+          "x": 567,
+          "y": 641.89,
+          "w": 726.75,
+          "h": 26.39
+        },
+        "command": {
+          "x": 567,
+          "y": 676.28,
+          "w": 820,
+          "h": 26.39
+        },
+        "validUntil": {
+          "x": 567,
+          "y": 710.67,
+          "w": 726.75,
+          "h": 26.39
+        },
+        "copyCommand": {
+          "x": 567,
+          "y": 745.06,
+          "w": 210.17,
+          "h": 44.5
+        },
+        "verifyConnection": {
+          "x": 789.17,
+          "y": 745.06,
+          "w": 209.19,
+          "h": 44.5
+        },
+        "autoCheck": {
+          "x": 567,
+          "y": 815.95,
+          "w": 726.75,
+          "h": 26.39
+        },
+        "copyNotice": {
+          "x": 567,
+          "y": 789.56,
+          "w": 726.75,
+          "h": 26.39
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 619,
+      "clock": "18/10/2026 22:12:37",
+      "focus": null
+    },
+    "site-11-serveur-relie-salons": {
+      "file": "tuto-discord/site-11-serveur-relie-salons.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d11",
+      "storyboard": [
+        "4",
+        "5"
+      ],
+      "state": "Serveur relié : en-tête « Serveur : Horizon Esport » avec « Serveur relié », onglet « Serveur » coché ; l’assistant passe seul à « Salons » (« Usage 1 · Les commandes », « Où utiliser le bot ? », « À choisir »).",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "teamPanel": {
+          "x": 296,
+          "y": 68.59,
+          "w": 1112,
+          "h": 1415.13,
+          "visible": {
+            "x": 296,
+            "y": 76,
+            "w": 1112,
+            "h": 824
+          }
+        },
+        "teamHeading": {
+          "x": 317,
+          "y": 89.59,
+          "w": 1070,
+          "h": 107.11
+        },
+        "teamName": {
+          "x": 389,
+          "y": 116.69,
+          "w": 220.88,
+          "h": 27.03
+        },
+        "teamServer": {
+          "x": 389,
+          "y": 149.31,
+          "w": 220.88,
+          "h": 26.39
+        },
+        "teamBadge": {
+          "x": 1278.81,
+          "y": 117.64,
+          "w": 108.19,
+          "h": 30
+        },
+        "steps": {
+          "x": 317,
+          "y": 312.84,
+          "w": 200,
+          "h": 370.42
+        },
+        "stepServer": {
+          "x": 317,
+          "y": 312.84,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepSalons": {
+          "x": 317,
+          "y": 431.52,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepActivation": {
+          "x": 317,
+          "y": 550.19,
+          "w": 200,
+          "h": 133.08
+        },
+        "commandSection": {
+          "x": 549,
+          "y": 312.84,
+          "w": 838,
+          "h": 349.19
+        },
+        "commandLabel": {
+          "x": 566,
+          "y": 329.84,
+          "w": 664.94,
+          "h": 23.09
+        },
+        "commandTitle": {
+          "x": 566,
+          "y": 366.73,
+          "w": 131.88,
+          "h": 26.39
+        },
+        "commandBadge": {
+          "x": 1288.45,
+          "y": 364.94,
+          "w": 81.55,
+          "h": 30
+        },
+        "commandText": {
+          "x": 566,
+          "y": 329.84,
+          "w": 664.94,
+          "h": 23.09
+        },
+        "commandField": {
+          "x": 566,
+          "y": 562.89,
+          "w": 602.73,
+          "h": 82.14
+        },
+        "commandSelect": {
+          "x": 566,
+          "y": 592.64,
+          "w": 602.73,
+          "h": 52.39
+        },
+        "associate": {
+          "x": 1180.73,
+          "y": 600.53,
+          "w": 189.27,
+          "h": 44.5
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 416,
+      "clock": "18/10/2026 22:14:07",
+      "focus": null
+    },
+    "site-12-etape1-serveur-associe": {
+      "file": "tuto-discord/site-12-etape1-serveur-associe.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d12",
+      "storyboard": [
+        "4"
+      ],
+      "state": "Onglet « Serveur » après la liaison : « Équipe et serveur associés », « Équipe Démo est reliée à Horizon Esport. », « Le bot ne voit pas un salon ? », « Choisir les salons ». Non monté dans le déroulé actuel.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "teamPanel": {
+          "x": 296,
+          "y": 81.59,
+          "w": 1112,
+          "h": 804.27
+        },
+        "teamHeading": {
+          "x": 317,
+          "y": 102.59,
+          "w": 1070,
+          "h": 107.11
+        },
+        "teamName": {
+          "x": 389,
+          "y": 129.69,
+          "w": 220.88,
+          "h": 27.03
+        },
+        "teamServer": {
+          "x": 389,
+          "y": 162.31,
+          "w": 220.88,
+          "h": 26.39
+        },
+        "teamBadge": {
+          "x": 1278.81,
+          "y": 130.64,
+          "w": 108.19,
+          "h": 30
+        },
+        "steps": {
+          "x": 317,
+          "y": 325.84,
+          "w": 200,
+          "h": 370.42
+        },
+        "stepServer": {
+          "x": 317,
+          "y": 325.84,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepSalons": {
+          "x": 317,
+          "y": 444.52,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepActivation": {
+          "x": 317,
+          "y": 563.19,
+          "w": 200,
+          "h": 133.08
+        },
+        "stepPanel": {
+          "x": 549,
+          "y": 329.84,
+          "w": 838,
+          "h": 243.73
+        },
+        "associatedBadge": {
+          "x": 549,
+          "y": 377.52,
+          "w": 204.11,
+          "h": 30
+        },
+        "associatedText": {
+          "x": 549,
+          "y": 423.52,
+          "w": 726.75,
+          "h": 26.39
+        },
+        "permissionHelp": {
+          "x": 565,
+          "y": 465.91,
+          "w": 822,
+          "h": 47.17
+        },
+        "chooseChannels": {
+          "x": 549,
+          "y": 529.08,
+          "w": 164.88,
+          "h": 44.5
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 403,
+      "clock": "18/10/2026 22:14:07",
+      "focus": null
+    },
+    "site-13-salon-commandes-choisi": {
+      "file": "tuto-discord/site-13-salon-commandes-choisi.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d13",
+      "storyboard": [
+        "5"
+      ],
+      "state": "« Usage 1 · Les commandes » « Où utiliser le bot ? » (« À choisir ») : « Salon des commandes de l’équipe » = #bot-nxt5, « Choix non enregistré. », « Associer ce salon » actif. La liste déroulante native n’est pas capturée : couper entre site-11 et site-13.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "steps": {
+          "x": 317,
+          "y": 109.84,
+          "w": 200,
+          "h": 370.42
+        },
+        "stepServer": {
+          "x": 317,
+          "y": 109.84,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepSalons": {
+          "x": 317,
+          "y": 228.52,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepActivation": {
+          "x": 317,
+          "y": 347.19,
+          "w": 200,
+          "h": 133.08
+        },
+        "commandSection": {
+          "x": 549,
+          "y": 109.84,
+          "w": 838,
+          "h": 387.58
+        },
+        "commandLabel": {
+          "x": 566,
+          "y": 126.84,
+          "w": 664.94,
+          "h": 23.09
+        },
+        "commandTitle": {
+          "x": 566,
+          "y": 163.73,
+          "w": 131.88,
+          "h": 26.39
+        },
+        "commandBadge": {
+          "x": 1288.45,
+          "y": 161.94,
+          "w": 81.55,
+          "h": 30
+        },
+        "commandText": {
+          "x": 566,
+          "y": 126.84,
+          "w": 664.94,
+          "h": 23.09
+        },
+        "commandField": {
+          "x": 566,
+          "y": 359.89,
+          "w": 602.73,
+          "h": 82.14
+        },
+        "commandSelect": {
+          "x": 566,
+          "y": 389.64,
+          "w": 602.73,
+          "h": 52.39
+        },
+        "associate": {
+          "x": 1180.73,
+          "y": 397.53,
+          "w": 189.27,
+          "h": 44.5
+        },
+        "commandUnsaved": {
+          "x": 566,
+          "y": 454.03,
+          "w": 726.75,
+          "h": 26.39
+        },
+        "routesForm": {
+          "x": 549,
+          "y": 513.42,
+          "w": 838,
+          "h": 555.59,
+          "visible": {
+            "x": 549,
+            "y": 513.42,
+            "w": 838,
+            "h": 386.58
+          }
+        },
+        "routesLabel": {
+          "x": 549,
+          "y": 538.42,
+          "w": 838,
+          "h": 23.09
+        },
+        "routesTitle": {
+          "x": 549,
+          "y": 575.11,
+          "w": 838,
+          "h": 26.39
+        },
+        "routesVisibility": {
+          "x": 549,
+          "y": 681.47,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "picker": {
+          "x": 549,
+          "y": 747.84,
+          "w": 838,
+          "h": 82.14
+        },
+        "pickerField": {
+          "x": 549,
+          "y": 747.84,
+          "w": 426.09,
+          "h": 82.14
+        },
+        "pickerSelect": {
+          "x": 549,
+          "y": 777.59,
+          "w": 426.09,
+          "h": 52.39
+        },
+        "addChannel": {
+          "x": 987.09,
+          "y": 785.48,
+          "w": 178.48,
+          "h": 44.5
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 619,
+      "clock": "18/10/2026 22:14:07",
+      "focus": null,
+      "commandValue": "#bot-nxt5"
+    },
+    "site-14-salon-commandes-associe": {
+      "file": "tuto-discord/site-14-salon-commandes-associe.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d14",
+      "storyboard": [
+        "5"
+      ],
+      "state": "« Associé » : « Les commandes lancées dans #bot-nxt5 concernent automatiquement Équipe Démo. », « Salon des commandes enregistré. », « Changer le salon » (inactif). Même cadrage que site-13 à quelques px près.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "steps": {
+          "x": 317,
+          "y": 109.84,
+          "w": 200,
+          "h": 370.42
+        },
+        "stepServer": {
+          "x": 317,
+          "y": 109.84,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepSalons": {
+          "x": 317,
+          "y": 228.52,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepActivation": {
+          "x": 317,
+          "y": 347.19,
+          "w": 200,
+          "h": 133.08
+        },
+        "commandSection": {
+          "x": 549,
+          "y": 109.84,
+          "w": 838,
+          "h": 390.38
+        },
+        "commandLabel": {
+          "x": 566,
+          "y": 126.84,
+          "w": 664.94,
+          "h": 23.09
+        },
+        "commandTitle": {
+          "x": 566,
+          "y": 163.73,
+          "w": 131.88,
+          "h": 26.39
+        },
+        "commandBadge": {
+          "x": 1293.91,
+          "y": 161.94,
+          "w": 76.09,
+          "h": 30
+        },
+        "commandText": {
+          "x": 566,
+          "y": 126.84,
+          "w": 664.94,
+          "h": 23.09
+        },
+        "commandField": {
+          "x": 566,
+          "y": 333.5,
+          "w": 611.17,
+          "h": 82.14
+        },
+        "commandSelect": {
+          "x": 566,
+          "y": 363.25,
+          "w": 611.17,
+          "h": 52.39
+        },
+        "changeChannel": {
+          "x": 1189.17,
+          "y": 371.14,
+          "w": 180.83,
+          "h": 44.5
+        },
+        "commandSaved": {
+          "x": 566,
+          "y": 427.64,
+          "w": 726.75,
+          "h": 55.58
+        },
+        "routesForm": {
+          "x": 549,
+          "y": 516.22,
+          "w": 838,
+          "h": 555.59,
+          "visible": {
+            "x": 549,
+            "y": 516.22,
+            "w": 838,
+            "h": 383.78
+          }
+        },
+        "routesLabel": {
+          "x": 549,
+          "y": 541.22,
+          "w": 838,
+          "h": 23.09
+        },
+        "routesTitle": {
+          "x": 549,
+          "y": 577.91,
+          "w": 838,
+          "h": 26.39
+        },
+        "routesVisibility": {
+          "x": 549,
+          "y": 684.27,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "picker": {
+          "x": 549,
+          "y": 750.64,
+          "w": 838,
+          "h": 82.14
+        },
+        "pickerField": {
+          "x": 549,
+          "y": 750.64,
+          "w": 426.09,
+          "h": 82.14
+        },
+        "pickerSelect": {
+          "x": 549,
+          "y": 780.39,
+          "w": 426.09,
+          "h": 52.39
+        },
+        "addChannel": {
+          "x": 987.09,
+          "y": 788.28,
+          "w": 178.48,
+          "h": 44.5
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 619,
+      "clock": "18/10/2026 22:14:07",
+      "focus": null
+    },
+    "site-15-salon-publication-choisi": {
+      "file": "tuto-discord/site-15-salon-publication-choisi.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d15a",
+      "storyboard": [
+        "5"
+      ],
+      "state": "« Usage 2 · Les publications » « Où recevoir les résultats ? » : « Choisir un salon du serveur » = #résultats, « Ajouter ce salon » actif, aucun salon encore ajouté.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "routesForm": {
+          "x": 549,
+          "y": 97.22,
+          "w": 838,
+          "h": 555.59
+        },
+        "routesLabel": {
+          "x": 549,
+          "y": 122.22,
+          "w": 838,
+          "h": 23.09
+        },
+        "routesTitle": {
+          "x": 549,
+          "y": 158.91,
+          "w": 838,
+          "h": 26.39
+        },
+        "routesVisibility": {
+          "x": 549,
+          "y": 265.27,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "picker": {
+          "x": 549,
+          "y": 331.64,
+          "w": 838,
+          "h": 82.14
+        },
+        "pickerField": {
+          "x": 549,
+          "y": 331.64,
+          "w": 426.09,
+          "h": 82.14
+        },
+        "pickerSelect": {
+          "x": 549,
+          "y": 361.39,
+          "w": 426.09,
+          "h": 52.39
+        },
+        "addChannel": {
+          "x": 987.09,
+          "y": 369.28,
+          "w": 178.48,
+          "h": 44.5
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 1038,
+      "clock": "18/10/2026 22:14:07",
+      "focus": null,
+      "pickerValue": "#résultats"
+    },
+    "site-16-salon-publication-ajoute": {
+      "file": "tuto-discord/site-16-salon-publication-ajoute.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d15",
+      "storyboard": [
+        "5"
+      ],
+      "state": "#résultats ajouté : « #résultats Automatique », « Publier automatiquement les nouvelles parties » coché, « Toutes les catégories », « Options du salon » ; « Enregistrer les salons » (principal) et « Modifications non enregistrées. ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "routesForm": {
+          "x": 549,
+          "y": 89.22,
+          "w": 838,
+          "h": 745.94
+        },
+        "routesLabel": {
+          "x": 549,
+          "y": 114.22,
+          "w": 838,
+          "h": 23.09
+        },
+        "routesTitle": {
+          "x": 549,
+          "y": 150.91,
+          "w": 838,
+          "h": 26.39
+        },
+        "routesVisibility": {
+          "x": 549,
+          "y": 257.27,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "picker": {
+          "x": 549,
+          "y": 323.64,
+          "w": 838,
+          "h": 82.14
+        },
+        "pickerField": {
+          "x": 549,
+          "y": 323.64,
+          "w": 427.8,
+          "h": 82.14
+        },
+        "pickerSelect": {
+          "x": 549,
+          "y": 353.39,
+          "w": 427.8,
+          "h": 52.39
+        },
+        "addChannel": {
+          "x": 988.8,
+          "y": 361.28,
+          "w": 176.78,
+          "h": 44.5
+        },
+        "route": {
+          "x": 549,
+          "y": 543.33,
+          "w": 838,
+          "h": 216.73
+        },
+        "routeName": {
+          "x": 549,
+          "y": 543.33,
+          "w": 181.91,
+          "h": 26.39
+        },
+        "routeMode": {
+          "x": 639.02,
+          "y": 545.33,
+          "w": 83.89,
+          "h": 23.09
+        },
+        "routeAuto": {
+          "x": 549,
+          "y": 599.31,
+          "w": 838,
+          "h": 44
+        },
+        "routeCategories": {
+          "x": 549,
+          "y": 656.91,
+          "w": 726.75,
+          "h": 26.39
+        },
+        "save": {
+          "x": 549,
+          "y": 790.66,
+          "w": 218.44,
+          "h": 44.5
+        },
+        "unsaved": {
+          "x": 779.44,
+          "y": 799.7,
+          "w": 238.61,
+          "h": 26.39
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 1046,
+      "clock": "18/10/2026 22:14:07",
+      "focus": null
+    },
+    "site-17-salons-enregistres": {
+      "file": "tuto-discord/site-17-salons-enregistres.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d16",
+      "storyboard": [
+        "5"
+      ],
+      "state": "« Salons enregistrés. », « Enregistrer les salons » redevenu inactif, puis « Passer au test et à l’activation » (bouton principal).",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "routesForm": {
+          "x": 549,
+          "y": 16.22,
+          "w": 838,
+          "h": 815.11,
+          "visible": {
+            "x": 549,
+            "y": 76,
+            "w": 838,
+            "h": 755.33
+          }
+        },
+        "routesTitle": {
+          "x": 549,
+          "y": 77.91,
+          "w": 838,
+          "h": 26.39
+        },
+        "routesVisibility": {
+          "x": 549,
+          "y": 184.27,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "picker": {
+          "x": 549,
+          "y": 250.64,
+          "w": 838,
+          "h": 82.14
+        },
+        "pickerField": {
+          "x": 549,
+          "y": 250.64,
+          "w": 427.8,
+          "h": 82.14
+        },
+        "pickerSelect": {
+          "x": 549,
+          "y": 280.39,
+          "w": 427.8,
+          "h": 52.39
+        },
+        "addChannel": {
+          "x": 988.8,
+          "y": 288.28,
+          "w": 176.78,
+          "h": 44.5
+        },
+        "route": {
+          "x": 549,
+          "y": 470.33,
+          "w": 838,
+          "h": 216.73
+        },
+        "routeName": {
+          "x": 549,
+          "y": 470.33,
+          "w": 181.91,
+          "h": 26.39
+        },
+        "routeMode": {
+          "x": 639.02,
+          "y": 472.33,
+          "w": 83.89,
+          "h": 23.09
+        },
+        "routeAuto": {
+          "x": 549,
+          "y": 526.31,
+          "w": 838,
+          "h": 44
+        },
+        "routeCategories": {
+          "x": 549,
+          "y": 583.91,
+          "w": 726.75,
+          "h": 26.39
+        },
+        "save": {
+          "x": 549,
+          "y": 786.83,
+          "w": 215.97,
+          "h": 44.5
+        },
+        "saved": {
+          "x": 549,
+          "y": 700.66,
+          "w": 726.75,
+          "h": 55.58
+        },
+        "nextStep": {
+          "x": 549,
+          "y": 847.33,
+          "w": 254.84,
+          "h": 44.5
+        }
+      },
+      "hiddenBoxes": [
+        "routesLabel"
+      ],
+      "url": "/bot-discord",
+      "scrollY": 1119,
+      "clock": "18/10/2026 22:14:07",
+      "focus": null
+    },
+    "site-18-etape3-test": {
+      "file": "tuto-discord/site-18-etape3-test.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d17",
+      "storyboard": [
+        "6"
+      ],
+      "state": "Onglet « Activation » : « Étape 3 », « Tester et activer », « 1. Vérifier la réception d’un exemple », « Prévisualiser l’exemple fictif », « Salon du message de test » = #résultats, « Envoyer le message de test ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "teamPanel": {
+          "x": 296,
+          "y": 83.59,
+          "w": 1112,
+          "h": 1004.59,
+          "visible": {
+            "x": 296,
+            "y": 83.59,
+            "w": 1112,
+            "h": 816.41
+          }
+        },
+        "teamHeading": {
+          "x": 317,
+          "y": 104.59,
+          "w": 1070,
+          "h": 107.11
+        },
+        "teamName": {
+          "x": 389,
+          "y": 131.69,
+          "w": 220.88,
+          "h": 27.03
+        },
+        "teamServer": {
+          "x": 389,
+          "y": 164.31,
+          "w": 220.88,
+          "h": 26.39
+        },
+        "teamBadge": {
+          "x": 1278.81,
+          "y": 132.64,
+          "w": 108.19,
+          "h": 30
+        },
+        "steps": {
+          "x": 317,
+          "y": 327.84,
+          "w": 200,
+          "h": 370.42
+        },
+        "stepServer": {
+          "x": 317,
+          "y": 327.84,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepSalons": {
+          "x": 317,
+          "y": 446.52,
+          "w": 200,
+          "h": 108.28
+        },
+        "stepActivation": {
+          "x": 317,
+          "y": 565.19,
+          "w": 200,
+          "h": 133.08
+        },
+        "activation": {
+          "x": 549,
+          "y": 327.84,
+          "w": 838,
+          "h": 570.75
+        },
+        "activationKicker": {
+          "x": 549,
+          "y": 327.84,
+          "w": 838,
+          "h": 23.09
+        },
+        "activationTitle": {
+          "x": 549,
+          "y": 364.53,
+          "w": 838,
+          "h": 26.39
+        },
+        "testTask": {
+          "x": 549,
+          "y": 404.52,
+          "w": 838,
+          "h": 393.92
+        },
+        "testTitle": {
+          "x": 549,
+          "y": 424.7,
+          "w": 838,
+          "h": 26.39
+        },
+        "previewSummary": {
+          "x": 549,
+          "y": 531.06,
+          "w": 838,
+          "h": 47.17
+        },
+        "testField": {
+          "x": 549,
+          "y": 591.83,
+          "w": 838,
+          "h": 82.14
+        },
+        "testSelect": {
+          "x": 549,
+          "y": 621.58,
+          "w": 838,
+          "h": 52.39
+        },
+        "testWarning": {
+          "x": 549,
+          "y": 745.66,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "sendTest": {
+          "x": 549,
+          "y": 687.56,
+          "w": 260.14,
+          "h": 44.5
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 401,
+      "clock": "18/10/2026 22:14:07",
+      "focus": null
+    },
+    "site-19-apercu-exemple-fictif": {
+      "file": "tuto-discord/site-19-apercu-exemple-fictif.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d18",
+      "storyboard": [
+        "6"
+      ],
+      "state": "« Prévisualiser l’exemple fictif » ouvert : « Exemple de message et de visuel », « Données fictives… », message « 🧪 Test de connexion NXT5 — données fictives… », embed « TEST NXT5 · Exemple fictif » et le haut du visuel fictif (coupé par le bas de la fenêtre). Non monté dans le déroulé actuel.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "previewSummary": {
+          "x": 549,
+          "y": 281.06,
+          "w": 838,
+          "h": 47.17
+        },
+        "preview": {
+          "x": 549,
+          "y": 341.83,
+          "w": 660,
+          "h": 1497.77,
+          "visible": {
+            "x": 549,
+            "y": 341.83,
+            "w": 660,
+            "h": 558.17
+          }
+        },
+        "previewTitle": {
+          "x": 549,
+          "y": 341.83,
+          "w": 660,
+          "h": 26.39
+        },
+        "content": {
+          "x": 549,
+          "y": 418.61,
+          "w": 660,
+          "h": 52.78
+        },
+        "embedTitle": {
+          "x": 568,
+          "y": 500.39,
+          "w": 624,
+          "h": 22.39
+        },
+        "embedDescription": {
+          "x": 568,
+          "y": 534.78,
+          "w": 624,
+          "h": 52.78
+        },
+        "image": {
+          "x": 568,
+          "y": 599.56,
+          "w": 624,
+          "h": 1134.03,
+          "visible": {
+            "x": 568,
+            "y": 599.56,
+            "w": 624,
+            "h": 300.44
+          }
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 651,
+      "clock": "18/10/2026 22:14:07",
+      "focus": null
+    },
+    "site-20-test-recu": {
+      "file": "tuto-discord/site-20-test-recu.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d19",
+      "storyboard": [
+        "6",
+        "7"
+      ],
+      "state": "Après « Envoyer le message de test » : « Test reçu sur Discord », « Le bot a confirmé la publication du message de test. », « Voir le message de test » ; « Envoyer un nouveau test » ; « 2. Autoriser les publications » avec « Activer la diffusion ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "activation": {
+          "x": 549,
+          "y": 86.84,
+          "w": 838,
+          "h": 730.03
+        },
+        "activationKicker": {
+          "x": 549,
+          "y": 86.84,
+          "w": 838,
+          "h": 23.09
+        },
+        "activationTitle": {
+          "x": 549,
+          "y": 123.53,
+          "w": 838,
+          "h": 26.39
+        },
+        "testTask": {
+          "x": 549,
+          "y": 163.52,
+          "w": 838,
+          "h": 535.09
+        },
+        "testTitle": {
+          "x": 549,
+          "y": 183.7,
+          "w": 838,
+          "h": 26.39
+        },
+        "previewSummary": {
+          "x": 549,
+          "y": 290.06,
+          "w": 838,
+          "h": 47.17
+        },
+        "testField": {
+          "x": 549,
+          "y": 350.83,
+          "w": 838,
+          "h": 82.14
+        },
+        "testSelect": {
+          "x": 549,
+          "y": 380.58,
+          "w": 838,
+          "h": 52.39
+        },
+        "testWarning": {
+          "x": 549,
+          "y": 645.83,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "receipt": {
+          "x": 549,
+          "y": 446.56,
+          "w": 838,
+          "h": 127.58
+        },
+        "receiptBadge": {
+          "x": 567,
+          "y": 446.56,
+          "w": 165.86,
+          "h": 30
+        },
+        "receiptText": {
+          "x": 567,
+          "y": 490.16,
+          "w": 726.75,
+          "h": 26.39
+        },
+        "testLink": {
+          "x": 567,
+          "y": 530.14,
+          "w": 203.72,
+          "h": 44
+        },
+        "newTest": {
+          "x": 549,
+          "y": 587.73,
+          "w": 238.89,
+          "h": 44.5
+        },
+        "activateTask": {
+          "x": 549,
+          "y": 712.2,
+          "w": 838,
+          "h": 104.67
+        },
+        "activateTitle": {
+          "x": 568,
+          "y": 509.39,
+          "w": 624,
+          "h": 22.39
+        },
+        "activate": {
+          "x": 549,
+          "y": 772.38,
+          "w": 198.53,
+          "h": 44.5
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 642,
+      "clock": "18/10/2026 22:16:07",
+      "focus": null
+    },
+    "site-21-confirmer-activation": {
+      "file": "tuto-discord/site-21-confirmer-activation.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d20",
+      "storyboard": [
+        "7"
+      ],
+      "state": "Récapitulatif « Activer pour Équipe Démo » : « Serveur : Horizon Esport. », « #résultats · nouvelles parties automatiques · toutes les catégories · aucune mention », « Toute personne ayant accès à ces salons… Les anciennes parties ne sont pas republiées automatiquement. », « Confirmer l’activation » et « Annuler l’activation ». En haut, les deux dernières lignes du reçu du test (« Le bot a confirmé… », « Voir le message de test »), entières ; le reçu complet est dans site-20.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "newTest": {
+          "x": 549,
+          "y": 174.73,
+          "w": 238.89,
+          "h": 44.5
+        },
+        "testWarning": {
+          "x": 549,
+          "y": 232.83,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "activateTask": {
+          "x": 549,
+          "y": 299.2,
+          "w": 838,
+          "h": 313.81
+        },
+        "activateTitle": {
+          "x": 568,
+          "y": 96.39,
+          "w": 624,
+          "h": 22.39
+        },
+        "confirm": {
+          "x": 549,
+          "y": 359.38,
+          "w": 838,
+          "h": 253.64
+        },
+        "confirmTitle": {
+          "x": 566,
+          "y": 373.97,
+          "w": 804,
+          "h": 26.39
+        },
+        "confirmServer": {
+          "x": 566,
+          "y": 412.36,
+          "w": 726.75,
+          "h": 26.39
+        },
+        "confirmRoute": {
+          "x": 586,
+          "y": 450.75,
+          "w": 784,
+          "h": 26.39
+        },
+        "confirmVisibility": {
+          "x": 566,
+          "y": 489.14,
+          "w": 726.75,
+          "h": 52.78
+        },
+        "confirmButton": {
+          "x": 566,
+          "y": 553.92,
+          "w": 220.17,
+          "h": 44.5
+        },
+        "cancelButton": {
+          "x": 798.17,
+          "y": 553.92,
+          "w": 176.5,
+          "h": 44.5
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 1055,
+      "clock": "18/10/2026 22:17:07",
+      "focus": null,
+      "edgeNotes": [
+        "bord discord-test-receipt"
+      ]
+    },
+    "site-22-diffusion-active": {
+      "file": "tuto-discord/site-22-diffusion-active.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d21",
+      "storyboard": [
+        "7"
+      ],
+      "state": "Vue d’ensemble : « Tout est en place », « Ton équipe peut utiliser le bot » ; « Utiliser les commandes » avec « Salon de ton équipe » #bot-nxt5 et /nxt voir ; « Recevoir les parties » avec « Diffusion active » et « #résultats Automatique ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "teamPanel": {
+          "x": 296,
+          "y": 62.59,
+          "w": 1112,
+          "h": 946.67,
+          "visible": {
+            "x": 296,
+            "y": 76,
+            "w": 1112,
+            "h": 824
+          }
+        },
+        "teamHeading": {
+          "x": 317,
+          "y": 83.59,
+          "w": 1070,
+          "h": 107.11
+        },
+        "teamName": {
+          "x": 389,
+          "y": 110.69,
+          "w": 220.88,
+          "h": 27.03
+        },
+        "teamServer": {
+          "x": 389,
+          "y": 143.31,
+          "w": 220.88,
+          "h": 26.39
+        },
+        "teamBadge": {
+          "x": 1278.81,
+          "y": 111.64,
+          "w": 108.19,
+          "h": 30
+        },
+        "nav": {
+          "x": 317,
+          "y": 210.7,
+          "w": 1070,
+          "h": 62.31
+        },
+        "nextAction": {
+          "x": 317,
+          "y": 293.02,
+          "w": 1070,
+          "h": 129.02
+        },
+        "nextKicker": {
+          "x": 340,
+          "y": 311.61,
+          "w": 577.7,
+          "h": 23.09
+        },
+        "nextTitle": {
+          "x": 340,
+          "y": 339.5,
+          "w": 577.7,
+          "h": 30.36
+        },
+        "usage": {
+          "x": 317,
+          "y": 446.03,
+          "w": 1070,
+          "h": 358.95
+        },
+        "usageCommands": {
+          "x": 317,
+          "y": 446.03,
+          "w": 535,
+          "h": 358.95
+        },
+        "commandChannel": {
+          "x": 317,
+          "y": 566.3,
+          "w": 511,
+          "h": 29.02
+        },
+        "usagePublications": {
+          "x": 852,
+          "y": 446.03,
+          "w": 535,
+          "h": 358.95
+        },
+        "activeBadge": {
+          "x": 877,
+          "y": 540.02,
+          "w": 127.67,
+          "h": 30
+        },
+        "destination": {
+          "x": 877,
+          "y": 582.81,
+          "w": 510,
+          "h": 48.17
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 422,
+      "clock": "18/10/2026 22:17:07",
+      "focus": null
+    },
+    "site-23-partie-exporter-discord": {
+      "file": "tuto-discord/site-23-partie-exporter-discord.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d22",
+      "storyboard": [
+        "8"
+      ],
+      "state": "Partie « Aurore » (Victoire, 25:00, équipe adverse Aurore) : barre d’actions avec « Exporter PNG » et « Exporter sur Discord ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "sidebar": {
+          "x": 0,
+          "y": 0,
+          "w": 264,
+          "h": 900
+        },
+        "sidebarGroup": {
+          "x": 16,
+          "y": 404.39,
+          "w": 231,
+          "h": 44
+        },
+        "sidebarBot": {
+          "x": 16,
+          "y": 448.39,
+          "w": 231,
+          "h": 44
+        },
+        "topbarTeam": {
+          "x": 955.2,
+          "y": 14.5,
+          "w": 179.52,
+          "h": 46
+        },
+        "sidebarParties": {
+          "x": 16,
+          "y": 244.39,
+          "w": 231,
+          "h": 44
+        },
+        "toolbar": {
+          "x": 296,
+          "y": 329.28,
+          "w": 1112,
+          "h": 61.5
+        },
+        "exportPng": {
+          "x": 982.03,
+          "y": 329.28,
+          "w": 157.23,
+          "h": 44.5
+        },
+        "share": {
+          "x": 1147.27,
+          "y": 329.28,
+          "w": 208.73,
+          "h": 44.5
+        },
+        "matchTitle": {
+          "x": 317,
+          "y": 431.78,
+          "w": 89.44,
+          "h": 36.39
+        },
+        "matchMeta": {
+          "x": 317,
+          "y": 476.17,
+          "w": 1070,
+          "h": 22.39
+        }
+      },
+      "url": "/games?match=6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b",
+      "scrollY": 20,
+      "clock": "18/10/2026 22:18:37",
+      "focus": null
+    },
+    "site-24-dialogue-exporter": {
+      "file": "tuto-discord/site-24-dialogue-exporter.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d23",
+      "storyboard": [
+        "8"
+      ],
+      "state": "Fenêtre « Exporter sur Discord » (« Aurore ») : « Destination Discord » = #résultats, déjà choisi (seul salon), « Préparer l’aperçu ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 228.64,
+          "w": 1080,
+          "h": 442.72
+        },
+        "dialogHeader": {
+          "x": 205,
+          "y": 253.64,
+          "w": 1030,
+          "h": 91.19
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 265.64,
+          "w": 221.08,
+          "h": 28.59
+        },
+        "dialogSubtitle": {
+          "x": 205,
+          "y": 302.23,
+          "w": 221.08,
+          "h": 25.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 265.64,
+          "w": 44,
+          "h": 44
+        },
+        "destinationField": {
+          "x": 205,
+          "y": 368.83,
+          "w": 1030,
+          "h": 82.14
+        },
+        "destinationSelect": {
+          "x": 205,
+          "y": 398.58,
+          "w": 1030,
+          "h": 52.39
+        },
+        "destinationHelp": {
+          "x": 205,
+          "y": 470.97,
+          "w": 1030,
+          "h": 26.39
+        },
+        "prepare": {
+          "x": 205,
+          "y": 517.36,
+          "w": 183.94,
+          "h": 44.5
+        },
+        "refreshChannels": {
+          "x": 205,
+          "y": 601.86,
+          "w": 209.42,
+          "h": 44.5
+        }
+      },
+      "url": "/games?match=6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b",
+      "scrollY": 0,
+      "clock": "18/10/2026 22:18:37",
+      "focus": null
+    },
+    "site-25-apercu-partie": {
+      "file": "tuto-discord/site-25-apercu-partie.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d24",
+      "storyboard": [
+        "8"
+      ],
+      "state": "« Aperçu de la publication » : « Équipe Démo vs Aurore », « Victoire · 22–11 kills · 25:00 », « Scrim », haut du visuel (rapport de partie complet, sans avertissement de combats). Fenêtre défilée jusqu’à l’aperçu.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 16,
+          "w": 1080,
+          "h": 868
+        },
+        "dialogHeader": {
+          "x": 205,
+          "y": 17,
+          "w": 1030,
+          "h": 91.19
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 29,
+          "w": 221.08,
+          "h": 28.59
+        },
+        "dialogSubtitle": {
+          "x": 205,
+          "y": 65.59,
+          "w": 221.08,
+          "h": 25.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 29,
+          "w": 44,
+          "h": 44
+        },
+        "destinationHelp": {
+          "x": 205,
+          "y": 9.33,
+          "w": 1030,
+          "h": 26.39,
+          "visible": {
+            "x": 205,
+            "y": 16,
+            "w": 1030,
+            "h": 1
+          }
+        },
+        "preview": {
+          "x": 205,
+          "y": 120.22,
+          "w": 660,
+          "h": 1438.84,
+          "visible": {
+            "x": 205,
+            "y": 120.22,
+            "w": 660,
+            "h": 763.78
+          }
+        },
+        "previewTitle": {
+          "x": 205,
+          "y": 120.22,
+          "w": 660,
+          "h": 26.39
+        },
+        "embed": {
+          "x": 205,
+          "y": 158.61,
+          "w": 660,
+          "h": 1288.06,
+          "visible": {
+            "x": 205,
+            "y": 158.61,
+            "w": 660,
+            "h": 725.39
+          }
+        },
+        "embedTitle": {
+          "x": 224,
+          "y": 175.61,
+          "w": 624,
+          "h": 22.39
+        },
+        "embedDescription": {
+          "x": 224,
+          "y": 210,
+          "w": 624,
+          "h": 52.78
+        },
+        "image": {
+          "x": 224,
+          "y": 274.78,
+          "w": 624,
+          "h": 1121.89,
+          "visible": {
+            "x": 224,
+            "y": 274.78,
+            "w": 624,
+            "h": 609.22
+          }
+        }
+      },
+      "hiddenBoxes": [
+        "destinationField",
+        "destinationSelect",
+        "prepare",
+        "embedFooter",
+        "gameButton",
+        "downloadVisual",
+        "revision",
+        "publish",
+        "refreshPreview"
+      ],
+      "url": "/games?match=6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b",
+      "scrollY": 0,
+      "clock": "18/10/2026 22:18:37",
+      "focus": null
+    },
+    "site-26-apercu-bouton-publier": {
+      "file": "tuto-discord/site-26-apercu-bouton-publier.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d25",
+      "storyboard": [
+        "8"
+      ],
+      "state": "Même aperçu défilé jusqu’au bas : fin du visuel, « NXT5 · aperçu », « Voir la game sur NXT5 », « Télécharger le visuel », « Version des données : 1 », « Publier dans #résultats » et « Actualiser l’aperçu ».",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 16,
+          "w": 1080,
+          "h": 868
+        },
+        "dialogHeader": {
+          "x": 205,
+          "y": 17,
+          "w": 1030,
+          "h": 91.19
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 29,
+          "w": 221.08,
+          "h": 28.59
+        },
+        "dialogSubtitle": {
+          "x": 205,
+          "y": 65.59,
+          "w": 221.08,
+          "h": 25.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 29,
+          "w": 44,
+          "h": 44
+        },
+        "preview": {
+          "x": 205,
+          "y": -643.78,
+          "w": 660,
+          "h": 1438.84,
+          "visible": {
+            "x": 205,
+            "y": 16,
+            "w": 660,
+            "h": 779.06
+          }
+        },
+        "embed": {
+          "x": 205,
+          "y": -605.39,
+          "w": 660,
+          "h": 1288.06,
+          "visible": {
+            "x": 205,
+            "y": 16,
+            "w": 660,
+            "h": 666.67
+          }
+        },
+        "image": {
+          "x": 224,
+          "y": -489.22,
+          "w": 624,
+          "h": 1121.89,
+          "visible": {
+            "x": 224,
+            "y": 16,
+            "w": 624,
+            "h": 616.67
+          }
+        },
+        "embedFooter": {
+          "x": 224,
+          "y": 644.67,
+          "w": 624,
+          "h": 21
+        },
+        "gameButton": {
+          "x": 205,
+          "y": 694.67,
+          "w": 221.89,
+          "h": 44.39
+        },
+        "downloadVisual": {
+          "x": 205,
+          "y": 751.06,
+          "w": 148.33,
+          "h": 44
+        },
+        "revision": {
+          "x": 685.95,
+          "y": 759.86,
+          "w": 179.05,
+          "h": 26.39
+        },
+        "publish": {
+          "x": 205,
+          "y": 815.06,
+          "w": 229.94,
+          "h": 44.5
+        },
+        "refreshPreview": {
+          "x": 446.94,
+          "y": 815.06,
+          "w": 195.23,
+          "h": 44.5
+        }
+      },
+      "hiddenBoxes": [
+        "destinationField",
+        "destinationSelect",
+        "destinationHelp",
+        "prepare",
+        "previewTitle",
+        "embedTitle",
+        "embedDescription"
+      ],
+      "url": "/games?match=6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b",
+      "scrollY": 0,
+      "clock": "18/10/2026 22:18:37",
+      "focus": null
+    },
+    "site-27-publie-sur-discord": {
+      "file": "tuto-discord/site-27-publie-sur-discord.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d26",
+      "storyboard": [
+        "8"
+      ],
+      "state": "Après « Publier dans #résultats » : « Publié sur Discord. » et « Voir le message sur Discord » sous les boutons de l’aperçu.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "dialog": {
+          "x": 180,
+          "y": 16,
+          "w": 1080,
+          "h": 868
+        },
+        "dialogHeader": {
+          "x": 205,
+          "y": 17,
+          "w": 1030,
+          "h": 91.19
+        },
+        "dialogTitle": {
+          "x": 205,
+          "y": 29,
+          "w": 221.08,
+          "h": 28.59
+        },
+        "dialogSubtitle": {
+          "x": 205,
+          "y": 65.59,
+          "w": 221.08,
+          "h": 25.59
+        },
+        "dialogClose": {
+          "x": 1191,
+          "y": 29,
+          "w": 44,
+          "h": 44
+        },
+        "preview": {
+          "x": 205,
+          "y": -754.78,
+          "w": 660,
+          "h": 1438.84,
+          "visible": {
+            "x": 205,
+            "y": 16,
+            "w": 660,
+            "h": 668.06
+          }
+        },
+        "embed": {
+          "x": 205,
+          "y": -716.39,
+          "w": 660,
+          "h": 1288.06,
+          "visible": {
+            "x": 205,
+            "y": 16,
+            "w": 660,
+            "h": 555.67
+          }
+        },
+        "image": {
+          "x": 224,
+          "y": -600.22,
+          "w": 624,
+          "h": 1121.89,
+          "visible": {
+            "x": 224,
+            "y": 16,
+            "w": 624,
+            "h": 505.67
+          }
+        },
+        "embedFooter": {
+          "x": 224,
+          "y": 533.67,
+          "w": 624,
+          "h": 21
+        },
+        "gameButton": {
+          "x": 205,
+          "y": 583.67,
+          "w": 221.89,
+          "h": 44.39
+        },
+        "downloadVisual": {
+          "x": 205,
+          "y": 640.06,
+          "w": 148.33,
+          "h": 44
+        },
+        "revision": {
+          "x": 685.95,
+          "y": 648.86,
+          "w": 179.05,
+          "h": 26.39
+        },
+        "publish": {
+          "x": 205,
+          "y": 704.06,
+          "w": 229.94,
+          "h": 44.5
+        },
+        "refreshPreview": {
+          "x": 446.94,
+          "y": 704.06,
+          "w": 195.23,
+          "h": 44.5
+        },
+        "published": {
+          "x": 205,
+          "y": 768.56,
+          "w": 1030,
+          "h": 99.58
+        },
+        "publishedText": {
+          "x": 205,
+          "y": 768.56,
+          "w": 1030,
+          "h": 55.58
+        },
+        "messageLink": {
+          "x": 205,
+          "y": 824.14,
+          "w": 239.39,
+          "h": 44
+        }
+      },
+      "hiddenBoxes": [
+        "destinationField",
+        "destinationSelect",
+        "destinationHelp",
+        "prepare",
+        "previewTitle",
+        "embedTitle",
+        "embedDescription"
+      ],
+      "url": "/games?match=6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b",
+      "scrollY": 0,
+      "clock": "18/10/2026 22:18:37",
+      "focus": null
+    },
+    "site-28-activite": {
+      "file": "tuto-discord/site-28-activite.png",
+      "app": "site",
+      "css": {
+        "w": 1440,
+        "h": 900
+      },
+      "scale": 2,
+      "px": {
+        "w": 2880,
+        "h": 1800
+      },
+      "journey": "d27",
+      "storyboard": [
+        "8"
+      ],
+      "state": "Bot Discord > « Activité » : « Dernière publication confirmée » Aurore · #résultats, « Ouvrir la dernière publication », historique « Publié » daté de la publication. Non monté dans le déroulé actuel.",
+      "method": "Site NXT5 (sources du dépôt) via Vite en local, API /.netlify/functions et discord.com interceptées avec des données fictives, horloge figée.",
+      "boxes": {
+        "teamPanel": {
+          "x": 296,
+          "y": 61.59,
+          "w": 1112,
+          "h": 768.19,
+          "visible": {
+            "x": 296,
+            "y": 76,
+            "w": 1112,
+            "h": 753.78
+          }
+        },
+        "teamHeading": {
+          "x": 317,
+          "y": 82.59,
+          "w": 1070,
+          "h": 107.11
+        },
+        "teamName": {
+          "x": 389,
+          "y": 109.69,
+          "w": 220.88,
+          "h": 27.03
+        },
+        "teamServer": {
+          "x": 389,
+          "y": 142.31,
+          "w": 220.88,
+          "h": 26.39
+        },
+        "teamBadge": {
+          "x": 1278.81,
+          "y": 110.64,
+          "w": 108.19,
+          "h": 30
+        },
+        "nav": {
+          "x": 317,
+          "y": 209.7,
+          "w": 1070,
+          "h": 62.31
+        },
+        "summary": {
+          "x": 317,
+          "y": 400.11,
+          "w": 1070,
+          "h": 104.78
+        },
+        "summaryTitle": {
+          "x": 335,
+          "y": 400.11,
+          "w": 1052,
+          "h": 26.39
+        },
+        "history": {
+          "x": 317,
+          "y": 569.39,
+          "w": 1070,
+          "h": 149.89
+        },
+        "historyItem": {
+          "x": 317,
+          "y": 569.39,
+          "w": 1070,
+          "h": 149.89
+        },
+        "historyStatus": {
+          "x": 1323.05,
+          "y": 586.39,
+          "w": 63.95,
+          "h": 30
+        },
+        "historyDate": {
+          "x": 317,
+          "y": 624.39,
+          "w": 726.75,
+          "h": 26.39
+        }
+      },
+      "url": "/bot-discord",
+      "scrollY": 423,
+      "clock": "18/10/2026 22:20:07",
+      "focus": null,
+      "historyText": "Aurore Publié #résultats · 18/10/2026 22:18:37 Voir sur Discord (nouvel onglet) Retirer le message"
+    }
+  }
+}

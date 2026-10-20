@@ -1,7 +1,7 @@
 // Highlight halo on a target (screen space): cyan ring + soft glow, optional spotlight that dims the rest of the frame.
 // One halo at a time on the hero element (Q4: no glint sweeps); it never changes the UI pixels underneath.
 import React from 'react';
-import type { Rect } from '../script';
+import type { Rect } from '../engine';
 import { BRAND, COL, IO, lerp, ramp } from '../style';
 
 /** `cut`: full strength from f0 (no fade-in), for a halo that takes over from another one on an instant swap. */

@@ -1,0 +1,953 @@
+{
+  "composition": "TutoDiscord",
+  "fps": 30,
+  "durationInFrames": 4864,
+  "duration": "2 min 42 s",
+  "note": "Frames are absolute (0-based) in the composition. kind: chapter | chapter-settle | transition (cross-fade between shots) | transition-dip (through night: app or page change) | click | hover | key (keycap pressed) | paste | state (instant swap inside a shot, placed on the click that causes it) | state-fade (dissolve, layout unchanged) | state-dip (another page through night inside a shot) | scroll | typing-start | typing-end | success | end. A hover is the cursor resting on a target without clicking (no click sound).",
+  "shots": {
+    "title": {
+      "start": 0,
+      "dur": 160
+    },
+    "prereq": {
+      "start": 150,
+      "dur": 220
+    },
+    "botPage": {
+      "start": 360,
+      "dur": 320
+    },
+    "oauth": {
+      "start": 670,
+      "dur": 460
+    },
+    "lier": {
+      "start": 1120,
+      "dur": 284
+    },
+    "confirmSite": {
+      "start": 1394,
+      "dur": 200
+    },
+    "verifyDiscord": {
+      "start": 1584,
+      "dur": 190
+    },
+    "linkedSite": {
+      "start": 1764,
+      "dur": 186
+    },
+    "codeSite": {
+      "start": 1940,
+      "dur": 250
+    },
+    "connectDiscord": {
+      "start": 2180,
+      "dur": 170
+    },
+    "linkedServer": {
+      "start": 2340,
+      "dur": 130
+    },
+    "channels": {
+      "start": 2460,
+      "dur": 552
+    },
+    "testSite": {
+      "start": 3002,
+      "dur": 214
+    },
+    "testDiscord": {
+      "start": 3206,
+      "dur": 150
+    },
+    "activateSite": {
+      "start": 3346,
+      "dur": 430
+    },
+    "exportSite": {
+      "start": 3766,
+      "dur": 440
+    },
+    "publishedDiscord": {
+      "start": 4196,
+      "dur": 162
+    },
+    "doneViewer": {
+      "start": 4348,
+      "dur": 276
+    },
+    "recap": {
+      "start": 4614,
+      "dur": 250
+    }
+  },
+  "subtitles": [
+    {
+      "id": "1a",
+      "from": 398,
+      "to": 544,
+      "text": "Sur nxt5.org, dans « Préparation et partage », ouvre « Bot Discord »."
+    },
+    {
+      "id": "1b",
+      "from": 544,
+      "to": 670,
+      "text": "Dans l’onglet « Serveur », clique sur « Ajouter à Discord »."
+    },
+    {
+      "id": "1c",
+      "from": 670,
+      "to": 800,
+      "text": "Discord s’ouvre : choisis ton serveur, puis « Continuer »."
+    },
+    {
+      "id": "1d",
+      "from": 800,
+      "to": 1000,
+      "text": "Le bot demande l’autorisation « Administrateur » : tous les droits, y compris dans les salons privés."
+    },
+    {
+      "id": "1e",
+      "from": 1000,
+      "to": 1120,
+      "text": "Clique sur « Autoriser » : le bot rejoint ton serveur."
+    },
+    {
+      "id": "2a",
+      "from": 1158,
+      "to": 1300,
+      "text": "Dans un salon de ton serveur, tape /nxt lier et envoie la commande."
+    },
+    {
+      "id": "2b",
+      "from": 1300,
+      "to": 1418,
+      "text": "Le bot te répond en privé : clique sur « Ouvrir NXT5 »."
+    },
+    {
+      "id": "2c",
+      "from": 1418,
+      "to": 1584,
+      "text": "Vérifie les deux comptes et clique sur « Confirmer mon compte NXT5 »."
+    },
+    {
+      "id": "2d",
+      "from": 1584,
+      "to": 1764,
+      "text": "De retour dans Discord : « Vérifier la liaison », puis « Confirmer la liaison »."
+    },
+    {
+      "id": "2e",
+      "from": 1764,
+      "to": 1940,
+      "text": "Sur NXT5, clique sur « J’ai confirmé dans Discord · Vérifier » : ton compte est lié."
+    },
+    {
+      "id": "3a",
+      "from": 1978,
+      "to": 2180,
+      "text": "Clique sur « Créer le code de liaison », puis « Copier la commande »."
+    },
+    {
+      "id": "3b",
+      "from": 2180,
+      "to": 2340,
+      "text": "Colle la commande dans ton serveur Discord et envoie-la."
+    },
+    {
+      "id": "3c",
+      "from": 2340,
+      "to": 2460,
+      "text": "Sur NXT5, le serveur apparaît : « Serveur relié »."
+    },
+    {
+      "id": "4a",
+      "from": 2498,
+      "to": 2660,
+      "text": "Onglet « Salons » : choisis le salon des commandes, puis « Associer ce salon »."
+    },
+    {
+      "id": "4b",
+      "from": 2660,
+      "to": 2906,
+      "text": "Choisis le salon des résultats, « Ajouter ce salon », puis « Enregistrer les salons »."
+    },
+    {
+      "id": "4c",
+      "from": 2906,
+      "to": 3002,
+      "text": "Puis « Passer au test et à l’activation »."
+    },
+    {
+      "id": "5a",
+      "from": 3040,
+      "to": 3206,
+      "text": "Onglet « Activation » : clique sur « Envoyer le message de test »."
+    },
+    {
+      "id": "5b",
+      "from": 3206,
+      "to": 3346,
+      "text": "Le message de test arrive dans le salon, visible par ses membres."
+    },
+    {
+      "id": "5c",
+      "from": 3346,
+      "to": 3500,
+      "text": "Sur NXT5, « Test reçu sur Discord » : clique sur « Activer la diffusion »."
+    },
+    {
+      "id": "5d",
+      "from": 3500,
+      "to": 3646,
+      "text": "Relis le récapitulatif, puis clique sur « Confirmer l’activation »."
+    },
+    {
+      "id": "5e",
+      "from": 3646,
+      "to": 3766,
+      "text": "« Diffusion active » : ton équipe peut utiliser le bot."
+    },
+    {
+      "id": "6a",
+      "from": 3804,
+      "to": 3926,
+      "text": "Ouvre une partie et clique sur « Exporter sur Discord »."
+    },
+    {
+      "id": "6b",
+      "from": 3926,
+      "to": 4026,
+      "text": "Clique sur « Préparer l’aperçu »."
+    },
+    {
+      "id": "6c",
+      "from": 4026,
+      "to": 4196,
+      "text": "Vérifie l’aperçu, puis clique sur « Publier dans #résultats »."
+    },
+    {
+      "id": "6d",
+      "from": 4196,
+      "to": 4360,
+      "text": "Ta partie est dans le salon."
+    },
+    {
+      "id": "7a",
+      "from": 4360,
+      "to": 4468,
+      "text": "C’est fait : ta partie est publiée sur Discord."
+    },
+    {
+      "id": "7b",
+      "from": 4468,
+      "to": 4614,
+      "text": "Les nouvelles parties importées sont ensuite publiées automatiquement."
+    }
+  ],
+  "cues": [
+    {
+      "frame": 0,
+      "time": "0:00.00",
+      "kind": "chapter",
+      "shot": "title",
+      "note": "Titre"
+    },
+    {
+      "frame": 150,
+      "time": "0:05.00",
+      "kind": "chapter",
+      "shot": "prereq",
+      "note": "Avant de commencer (entrée par le noir, 5 f + 5 f)"
+    },
+    {
+      "frame": 186,
+      "time": "0:06.06",
+      "kind": "success",
+      "shot": "prereq",
+      "note": "coche 1"
+    },
+    {
+      "frame": 222,
+      "time": "0:07.12",
+      "kind": "success",
+      "shot": "prereq",
+      "note": "coche 2"
+    },
+    {
+      "frame": 258,
+      "time": "0:08.18",
+      "kind": "success",
+      "shot": "prereq",
+      "note": "coche 3"
+    },
+    {
+      "frame": 360,
+      "time": "0:12.00",
+      "kind": "chapter",
+      "shot": "botPage",
+      "note": "Étape 1/6 · Invite le bot (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 384,
+      "time": "0:12.24",
+      "kind": "chapter-settle",
+      "shot": "botPage",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 452,
+      "time": "0:15.02",
+      "kind": "hover",
+      "shot": "botPage",
+      "note": "« Bot Discord » (menu « Préparation et partage »), page déjà ouverte : survol sans clic"
+    },
+    {
+      "frame": 510,
+      "time": "0:17.00",
+      "kind": "scroll",
+      "shot": "botPage",
+      "note": "défilement jusqu’à l’assistant « Installer le bot » (40 f)"
+    },
+    {
+      "frame": 654,
+      "time": "0:21.24",
+      "kind": "click",
+      "shot": "botPage",
+      "note": "« Ajouter à Discord »"
+    },
+    {
+      "frame": 670,
+      "time": "0:22.10",
+      "kind": "transition-dip",
+      "shot": "oauth",
+      "note": "passage par le noir vers oauth (5 f + 5 f)"
+    },
+    {
+      "frame": 772,
+      "time": "0:25.22",
+      "kind": "hover",
+      "shot": "oauth",
+      "note": "serveur choisi dans la liste (liste non capturée) : survol"
+    },
+    {
+      "frame": 796,
+      "time": "0:26.16",
+      "kind": "click",
+      "shot": "oauth",
+      "note": "« Continuer » (Discord)"
+    },
+    {
+      "frame": 796,
+      "time": "0:26.16",
+      "kind": "state",
+      "shot": "oauth",
+      "note": "liste des autorisations : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 1054,
+      "time": "0:35.04",
+      "kind": "click",
+      "shot": "oauth",
+      "note": "« Autoriser » (Discord)"
+    },
+    {
+      "frame": 1054,
+      "time": "0:35.04",
+      "kind": "state",
+      "shot": "oauth",
+      "note": "page de confirmation : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 1056,
+      "time": "0:35.06",
+      "kind": "success",
+      "shot": "oauth",
+      "note": "autorisation confirmée : le bot rejoint le serveur"
+    },
+    {
+      "frame": 1120,
+      "time": "0:37.10",
+      "kind": "chapter",
+      "shot": "lier",
+      "note": "Étape 2/6 · Lie ton compte Discord (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 1144,
+      "time": "0:38.04",
+      "kind": "chapter-settle",
+      "shot": "lier",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 1242,
+      "time": "0:41.12",
+      "kind": "click",
+      "shot": "lier",
+      "note": "champ de message de #bot-nxt5"
+    },
+    {
+      "frame": 1250,
+      "time": "0:41.20",
+      "kind": "state-fade",
+      "shot": "lier",
+      "note": "« /nxt lier » tapé, liste des commandes de Discord (fondu 8 f)"
+    },
+    {
+      "frame": 1286,
+      "time": "0:42.26",
+      "kind": "success",
+      "shot": "lier",
+      "note": "réponse privée du bot « Lier ton compte NXT5 » (même instant, state : réponse privée du bot « Lier ton compte NXT5 » (coupe franche sur Entrée))"
+    },
+    {
+      "frame": 1286,
+      "time": "0:42.26",
+      "kind": "key",
+      "shot": "lier",
+      "note": "Entrée"
+    },
+    {
+      "frame": 1378,
+      "time": "0:45.28",
+      "kind": "click",
+      "shot": "lier",
+      "note": "« Ouvrir NXT5 » (message du bot)"
+    },
+    {
+      "frame": 1394,
+      "time": "0:46.14",
+      "kind": "transition-dip",
+      "shot": "confirmSite",
+      "note": "passage par le noir vers confirmSite (5 f + 5 f)"
+    },
+    {
+      "frame": 1534,
+      "time": "0:51.04",
+      "kind": "click",
+      "shot": "confirmSite",
+      "note": "« Confirmer mon compte NXT5 »"
+    },
+    {
+      "frame": 1534,
+      "time": "0:51.04",
+      "kind": "state",
+      "shot": "confirmSite",
+      "note": "« À terminer dans Discord » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 1536,
+      "time": "0:51.06",
+      "kind": "success",
+      "shot": "confirmSite",
+      "note": "« Compte NXT5 confirmé. Dernière étape dans Discord. »"
+    },
+    {
+      "frame": 1584,
+      "time": "0:52.24",
+      "kind": "transition-dip",
+      "shot": "verifyDiscord",
+      "note": "passage par le noir vers verifyDiscord (5 f + 5 f)"
+    },
+    {
+      "frame": 1628,
+      "time": "0:54.08",
+      "kind": "click",
+      "shot": "verifyDiscord",
+      "note": "« Vérifier la liaison » (message du bot)"
+    },
+    {
+      "frame": 1628,
+      "time": "0:54.08",
+      "kind": "state",
+      "shot": "verifyDiscord",
+      "note": "nouveau message « Vérifie les deux comptes » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 1708,
+      "time": "0:56.28",
+      "kind": "click",
+      "shot": "verifyDiscord",
+      "note": "« Confirmer la liaison » (message du bot)"
+    },
+    {
+      "frame": 1708,
+      "time": "0:56.28",
+      "kind": "state",
+      "shot": "verifyDiscord",
+      "note": "nouveau message « Compte lié » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 1710,
+      "time": "0:57.00",
+      "kind": "success",
+      "shot": "verifyDiscord",
+      "note": "message du bot « Compte lié »"
+    },
+    {
+      "frame": 1764,
+      "time": "0:58.24",
+      "kind": "transition-dip",
+      "shot": "linkedSite",
+      "note": "passage par le noir vers linkedSite (5 f + 5 f)"
+    },
+    {
+      "frame": 1818,
+      "time": "1:00.18",
+      "kind": "click",
+      "shot": "linkedSite",
+      "note": "« J’ai confirmé dans Discord · Vérifier »"
+    },
+    {
+      "frame": 1818,
+      "time": "1:00.18",
+      "kind": "state",
+      "shot": "linkedSite",
+      "note": "« Compte lié » : la carte se replie : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 1820,
+      "time": "1:00.20",
+      "kind": "success",
+      "shot": "linkedSite",
+      "note": "« Compte lié » sur NXT5"
+    },
+    {
+      "frame": 1940,
+      "time": "1:04.20",
+      "kind": "chapter",
+      "shot": "codeSite",
+      "note": "Étape 3/6 · Relie l’équipe au serveur (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 1964,
+      "time": "1:05.14",
+      "kind": "chapter-settle",
+      "shot": "codeSite",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 2040,
+      "time": "1:08.00",
+      "kind": "click",
+      "shot": "codeSite",
+      "note": "« Créer le code de liaison »"
+    },
+    {
+      "frame": 2040,
+      "time": "1:08.00",
+      "kind": "state",
+      "shot": "codeSite",
+      "note": "commande de liaison à usage unique : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 2140,
+      "time": "1:11.10",
+      "kind": "click",
+      "shot": "codeSite",
+      "note": "« Copier la commande »"
+    },
+    {
+      "frame": 2140,
+      "time": "1:11.10",
+      "kind": "state",
+      "shot": "codeSite",
+      "note": "« Commande copiée. » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 2142,
+      "time": "1:11.12",
+      "kind": "success",
+      "shot": "codeSite",
+      "note": "« Commande copiée. »"
+    },
+    {
+      "frame": 2180,
+      "time": "1:12.20",
+      "kind": "transition-dip",
+      "shot": "connectDiscord",
+      "note": "passage par le noir vers connectDiscord (5 f + 5 f)"
+    },
+    {
+      "frame": 2218,
+      "time": "1:13.28",
+      "kind": "click",
+      "shot": "connectDiscord",
+      "note": "champ de message de #bot-nxt5"
+    },
+    {
+      "frame": 2232,
+      "time": "1:14.12",
+      "kind": "state",
+      "shot": "connectDiscord",
+      "note": "commande collée (coupe franche sur V, comme un collage)"
+    },
+    {
+      "frame": 2232,
+      "time": "1:14.12",
+      "kind": "key",
+      "shot": "connectDiscord",
+      "note": "Ctrl + V"
+    },
+    {
+      "frame": 2280,
+      "time": "1:16.00",
+      "kind": "success",
+      "shot": "connectDiscord",
+      "note": "réponse du bot « Serveur relié à cette équipe NXT5. » (même instant, state : réponse du bot « Serveur relié à cette équipe NXT5. » (coupe franche sur Entrée))"
+    },
+    {
+      "frame": 2280,
+      "time": "1:16.00",
+      "kind": "key",
+      "shot": "connectDiscord",
+      "note": "Entrée"
+    },
+    {
+      "frame": 2340,
+      "time": "1:18.00",
+      "kind": "transition-dip",
+      "shot": "linkedServer",
+      "note": "passage par le noir vers linkedServer (5 f + 5 f)"
+    },
+    {
+      "frame": 2350,
+      "time": "1:18.10",
+      "kind": "success",
+      "shot": "linkedServer",
+      "note": "« Serveur relié » sur NXT5"
+    },
+    {
+      "frame": 2460,
+      "time": "1:22.00",
+      "kind": "chapter",
+      "shot": "channels",
+      "note": "Étape 4/6 · Choisis les salons (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 2484,
+      "time": "1:22.24",
+      "kind": "chapter-settle",
+      "shot": "channels",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 2608,
+      "time": "1:26.28",
+      "kind": "click",
+      "shot": "channels",
+      "note": "« Salon des commandes de l’équipe » (liste)"
+    },
+    {
+      "frame": 2608,
+      "time": "1:26.28",
+      "kind": "state",
+      "shot": "channels",
+      "note": "#bot-nxt5 choisi : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 2648,
+      "time": "1:28.08",
+      "kind": "click",
+      "shot": "channels",
+      "note": "« Associer ce salon »"
+    },
+    {
+      "frame": 2648,
+      "time": "1:28.08",
+      "kind": "state",
+      "shot": "channels",
+      "note": "« Associé », « Salon des commandes enregistré. » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 2650,
+      "time": "1:28.10",
+      "kind": "success",
+      "shot": "channels",
+      "note": "« Associé » · « Salon des commandes enregistré. »"
+    },
+    {
+      "frame": 2756,
+      "time": "1:31.26",
+      "kind": "click",
+      "shot": "channels",
+      "note": "« Choisir un salon du serveur » (liste)"
+    },
+    {
+      "frame": 2756,
+      "time": "1:31.26",
+      "kind": "state",
+      "shot": "channels",
+      "note": "#résultats choisi : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 2796,
+      "time": "1:33.06",
+      "kind": "click",
+      "shot": "channels",
+      "note": "« Ajouter ce salon »"
+    },
+    {
+      "frame": 2796,
+      "time": "1:33.06",
+      "kind": "state",
+      "shot": "channels",
+      "note": "« #résultats Automatique » ajouté : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 2906,
+      "time": "1:36.26",
+      "kind": "click",
+      "shot": "channels",
+      "note": "« Enregistrer les salons »"
+    },
+    {
+      "frame": 2906,
+      "time": "1:36.26",
+      "kind": "state",
+      "shot": "channels",
+      "note": "« Salons enregistrés. » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 2908,
+      "time": "1:36.28",
+      "kind": "success",
+      "shot": "channels",
+      "note": "« Salons enregistrés. »"
+    },
+    {
+      "frame": 2986,
+      "time": "1:39.16",
+      "kind": "click",
+      "shot": "channels",
+      "note": "« Passer au test et à l’activation »"
+    },
+    {
+      "frame": 3002,
+      "time": "1:40.02",
+      "kind": "chapter",
+      "shot": "testSite",
+      "note": "Étape 5/6 · Teste et active (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 3026,
+      "time": "1:40.26",
+      "kind": "chapter-settle",
+      "shot": "testSite",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 3152,
+      "time": "1:45.02",
+      "kind": "click",
+      "shot": "testSite",
+      "note": "« Envoyer le message de test »"
+    },
+    {
+      "frame": 3152,
+      "time": "1:45.02",
+      "kind": "state",
+      "shot": "testSite",
+      "note": "« Test reçu sur Discord » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 3154,
+      "time": "1:45.04",
+      "kind": "success",
+      "shot": "testSite",
+      "note": "« Test reçu sur Discord »"
+    },
+    {
+      "frame": 3206,
+      "time": "1:46.26",
+      "kind": "transition-dip",
+      "shot": "testDiscord",
+      "note": "passage par le noir vers testDiscord (5 f + 5 f)"
+    },
+    {
+      "frame": 3346,
+      "time": "1:51.16",
+      "kind": "transition-dip",
+      "shot": "activateSite",
+      "note": "passage par le noir vers activateSite (5 f + 5 f)"
+    },
+    {
+      "frame": 3466,
+      "time": "1:55.16",
+      "kind": "click",
+      "shot": "activateSite",
+      "note": "« Activer la diffusion »"
+    },
+    {
+      "frame": 3466,
+      "time": "1:55.16",
+      "kind": "state",
+      "shot": "activateSite",
+      "note": "récapitulatif « Activer pour Équipe Démo » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 3602,
+      "time": "2:00.02",
+      "kind": "click",
+      "shot": "activateSite",
+      "note": "« Confirmer l’activation »"
+    },
+    {
+      "frame": 3602,
+      "time": "2:00.02",
+      "kind": "state",
+      "shot": "activateSite",
+      "note": "vue d’ensemble « Tout est en place » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 3604,
+      "time": "2:00.04",
+      "kind": "success",
+      "shot": "activateSite",
+      "note": "« Tout est en place » · « Diffusion active »"
+    },
+    {
+      "frame": 3766,
+      "time": "2:05.16",
+      "kind": "chapter",
+      "shot": "exportSite",
+      "note": "Étape 6/6 · Publie une partie (fondu enchaîné 10 f sous la carte d’étape)"
+    },
+    {
+      "frame": 3790,
+      "time": "2:06.10",
+      "kind": "chapter-settle",
+      "shot": "exportSite",
+      "note": "la carte d’étape glisse dans l’en-tête (14 f)"
+    },
+    {
+      "frame": 3898,
+      "time": "2:09.28",
+      "kind": "click",
+      "shot": "exportSite",
+      "note": "« Exporter sur Discord »"
+    },
+    {
+      "frame": 3898,
+      "time": "2:09.28",
+      "kind": "state",
+      "shot": "exportSite",
+      "note": "fenêtre « Exporter sur Discord » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 3968,
+      "time": "2:12.08",
+      "kind": "click",
+      "shot": "exportSite",
+      "note": "« Préparer l’aperçu »"
+    },
+    {
+      "frame": 3968,
+      "time": "2:12.08",
+      "kind": "state",
+      "shot": "exportSite",
+      "note": "« Aperçu de la publication » : coupe franche 2 f après le clic, sous son onde"
+    },
+    {
+      "frame": 4020,
+      "time": "2:14.00",
+      "kind": "scroll",
+      "shot": "exportSite",
+      "note": "défilement de l’aperçu jusqu’à « Publier dans #résultats » (48 f)"
+    },
+    {
+      "frame": 4116,
+      "time": "2:17.06",
+      "kind": "click",
+      "shot": "exportSite",
+      "note": "« Publier dans #résultats »"
+    },
+    {
+      "frame": 4118,
+      "time": "2:17.08",
+      "kind": "scroll",
+      "shot": "exportSite",
+      "note": "« Publié sur Discord. » apparaît sous les boutons (défilement de la fenêtre) (20 f)"
+    },
+    {
+      "frame": 4138,
+      "time": "2:17.28",
+      "kind": "success",
+      "shot": "exportSite",
+      "note": "« Publié sur Discord. »"
+    },
+    {
+      "frame": 4196,
+      "time": "2:19.26",
+      "kind": "transition-dip",
+      "shot": "publishedDiscord",
+      "note": "passage par le noir vers publishedDiscord (5 f + 5 f)"
+    },
+    {
+      "frame": 4206,
+      "time": "2:20.06",
+      "kind": "success",
+      "shot": "publishedDiscord",
+      "note": "message de la partie dans #résultats"
+    },
+    {
+      "frame": 4332,
+      "time": "2:24.12",
+      "kind": "click",
+      "shot": "publishedDiscord",
+      "note": "visuel de la partie (message du bot)"
+    },
+    {
+      "frame": 4348,
+      "time": "2:24.28",
+      "kind": "chapter",
+      "shot": "doneViewer",
+      "note": "C’est fait (entrée par le noir, 5 f + 5 f)"
+    },
+    {
+      "frame": 4356,
+      "time": "2:25.06",
+      "kind": "success",
+      "shot": "doneViewer",
+      "note": "visuel de la partie en grand"
+    },
+    {
+      "frame": 4614,
+      "time": "2:33.24",
+      "kind": "chapter",
+      "shot": "recap",
+      "note": "À retenir (entrée par le noir, 5 f + 5 f)"
+    },
+    {
+      "frame": 4732,
+      "time": "2:37.22",
+      "kind": "success",
+      "shot": "recap",
+      "note": "wordmark + nxt5.org"
+    },
+    {
+      "frame": 4850,
+      "time": "2:41.20",
+      "kind": "end",
+      "shot": "-",
+      "note": "fondu de fin"
+    }
+  ],
+  "checks": [],
+  "placeholders": [
+    "DC01 dc01-oauth-serveur",
+    "DC02 dc02-oauth-autorisations",
+    "DC03 dc03-oauth-autorise",
+    "DC04 dc04-salon-bot-nxt5",
+    "DC05 dc05-commande-lier",
+    "DC06 dc06-reponse-lier",
+    "DC08 dc08-verifier-comptes",
+    "DC09 dc09-compte-lie",
+    "DC10 dc10-commande-connecter",
+    "DC11 dc11-serveur-relie",
+    "DC12 dc12-message-test",
+    "DC13 dc13-partie-publiee",
+    "DC14 dc14-visuel-agrandi"
+  ]
+}

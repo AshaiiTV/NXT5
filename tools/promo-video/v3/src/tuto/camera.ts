@@ -1,21 +1,25 @@
-// Zoom camera of the tutorial: one implementation shared by the renderer (parts/Stage.tsx, via captures.ts) and the
-// QA (checkCamera, run at render time by TutoImporter.tsx and in Node by export-cues.mjs). Pure TypeScript with
-// type-only imports, so Node loads it with type stripping and the checks measure exactly what is rendered.
+// Zoom camera of the tutorials: one implementation shared by the renderer (shots/CaptureShot.tsx, parts/Stage.tsx) and
+// the QA (checkCamera and checkFraming, run at import by each film's composition and in Node by export-cues.mjs). Pure
+// TypeScript with type-only imports, so Node loads it with type stripping and the checks measure exactly what is
+// rendered.
 //
 // Camera model (PageCam2D maths, screen space): a capture point (cx, cy) sits at the centre of the working area and
-// the capture is drawn at screen scale S = FIT[app] × z. Each key is resolved and CLAMPED ON ITS OWN (full-bleed
-// framing at its own zoom and slack); the camera then interpolates between clamped keys (centre linear, zoom in log
-// space) with the key's easing. Nothing is clamped after the interpolation, so every move keeps its ease-in and
-// ease-out: no collapsed pans, no teleport when the window crosses the frame width. A key with `cut` jumps (used only
-// while the stage is dipped to night).
-import type { CamKey, CaptureShot, Pt, PtRef, Rect, RectRef, Shot, ShotId } from './script';
+// the capture is drawn at screen scale S = fit × z (fitOf: the app's fit height fills the working area). Each key is
+// resolved and CLAMPED ON ITS OWN (full-bleed framing at its own zoom and slack); the camera then interpolates between
+// clamped keys (centre linear, zoom in log space) with the key's easing. Nothing is clamped after the interpolation,
+// so every move keeps its ease-in and ease-out: no collapsed pans, no teleport when the window crosses the frame width.
+// A key with `cut` jumps (used only while the stage is dipped to night).
+import type { AppSpec, CamKey, CaptureShot, Film, Pt, PtRef, Rect, RectRef } from './engine';
 
 /** Working area between the step header (top) and the subtitle bar (bottom): real UI and schematics live here. */
 export const AREA = { cx: 960, cy: 483, top: 116, bottom: 850 } as const;
 export const AREA_H = AREA.bottom - AREA.top;
-/** Fit scale (CSS px → screen px) of each app's capture at z = 1: the whole viewport fills the working area height. */
-export const FIT = { site: AREA_H / 900, importer: AREA_H / 790 } as const;
-export type App = keyof typeof FIT;
+/** Soft edge (px) of the working-area clip when a zoomed capture is taller than the area (parts/Stage.tsx areaMask).
+ * Click points stay at least this far inside the area and the frame's sides (checkFraming). */
+export const FEATHER = 24;
+/** Fit scale (CSS px → screen px) of a capture at z = 1: the app's fit height (each capture's own height when the app
+ * has none) fills the working area height. */
+export const fitOf = (app: AppSpec, size: { w: number; h: number }) => AREA_H / (app.fitH ?? size.h);
 
 /** CSS cubic-bezier easing (same curve as Remotion's Easing.bezier), solved to 1e-7. */
 export const cubicBezier = (x1: number, y1: number, x2: number, y2: number) => {
@@ -57,10 +61,15 @@ export const CAM_EASE = {
 
 // ───────────────────────── capture boxes (captures.json) ─────────────────────────
 type Box = Rect & { visible?: Rect };
-export type CaptureEntry = { file: string; css: { w: number; h: number }; boxes: Record<string, Box>; gameIdInputText?: unknown };
-export type Resolver = { box: (ref: string) => Rect; pt: (p: PtRef) => Pt; rect: (r: RectRef) => Rect; size: (alias: string) => { w: number; h: number } };
+/** One capture of captures.json; other keys hold per-capture measurements (e.g. a field's text style, Typing). */
+export type CaptureEntry = { file: string; css: { w: number; h: number }; boxes: Record<string, Box>; [meta: string]: unknown };
+export type Resolver = {
+  entry: (alias: string) => CaptureEntry; box: (ref: string) => Rect; pt: (p: PtRef) => Pt; rect: (r: RectRef) => Rect;
+  size: (alias: string) => { w: number; h: number };
+};
 
-/** Box lookup on the parsed captures.json (`ALIAS.boxKey`, the visible part when the box runs under a sticky bar). */
+/** Box lookup on a film's parsed captures.json (`ALIAS.boxKey`, the visible part when the box runs under a sticky
+ * bar). */
 export const makeResolver = (caps: Record<string, CaptureEntry>, ids: Record<string, string>): Resolver => {
   const entry = (a: string) => {
     const c = caps[ids[a]];
@@ -89,7 +98,7 @@ export const makeResolver = (caps: Record<string, CaptureEntry>, ids: Record<str
     const y1 = Math.max(...bs.map((b) => b.y + b.h));
     return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   };
-  return { box, pt, rect, size: (a) => entry(a).css };
+  return { entry, box, pt, rect, size: (a) => entry(a).css };
 };
 
 // ───────────────────────── camera ─────────────────────────
@@ -110,11 +119,11 @@ export const clampCentre = ([x, y]: Pt, S: number, size: Size, slack = 0): Pt =>
 
 type RKey = { f: number; cx: number; cy: number; z: number; ease: (t: number) => number; cut: boolean };
 const cache = new WeakMap<CamKey[], RKey[]>();
-const resolveKeys = (keys: CamKey[], app: App, size: Size, pt: (p: PtRef) => Pt): RKey[] => {
+const resolveKeys = (keys: CamKey[], fit: number, size: Size, pt: (p: PtRef) => Pt): RKey[] => {
   let r = cache.get(keys);
   if (!r) {
     r = keys.map((k) => {
-      const [cx, cy] = clampCentre(pt(k.at), FIT[app] * k.z, size, k.slack ?? 0);
+      const [cx, cy] = clampCentre(pt(k.at), fit * k.z, size, k.slack ?? 0);
       return { f: k.f, cx, cy, z: k.z, ease: CAM_EASE[k.ease ?? 'io'], cut: !!k.cut };
     });
     cache.set(keys, r);
@@ -122,9 +131,9 @@ const resolveKeys = (keys: CamKey[], app: App, size: Size, pt: (p: PtRef) => Pt)
   return r;
 };
 
-/** Camera at frame f (already framed: no clamp needed downstream). */
-export const camAt = (keys: CamKey[], f: number, app: App, size: Size, pt: (p: PtRef) => Pt): Cam => {
-  const ks = resolveKeys(keys, app, size, pt);
+/** Camera at frame f (already framed: no clamp needed downstream). `fit`: fitOf the shot's app and capture size. */
+export const camAt = (keys: CamKey[], f: number, fit: number, size: Size, pt: (p: PtRef) => Pt): Cam => {
+  const ks = resolveKeys(keys, fit, size, pt);
   const pick = (k: RKey): Cam => ({ cx: k.cx, cy: k.cy, z: k.z });
   if (f <= ks[0].f) return pick(ks[0]);
   for (let i = 0; i < ks.length - 1; i++) {
@@ -146,26 +155,36 @@ export const MAX_CAM_SPEED = 35;
 export const MAX_CAM_ACCEL = 12;
 
 /** Speed (screen px/f) of the content at the centre of the working area between frames f and f + 1; null across a cut. */
-export const centreSpeeds = (shot: CaptureShot, pt: (p: PtRef) => Pt, size: Size): (number | null)[] => {
+export const centreSpeeds = (shot: CaptureShot, fit: number, pt: (p: PtRef) => Pt, size: Size): (number | null)[] => {
   const cuts = new Set(shot.cam.filter((k) => k.cut).map((k) => k.f));
   const out: (number | null)[] = [];
   for (let f = 0; f < shot.dur - 1; f++) {
     if (cuts.has(f + 1)) { out.push(null); continue; }
-    const a = camAt(shot.cam, f, shot.app, size, pt);
-    const b = camAt(shot.cam, f + 1, shot.app, size, pt);
-    out.push(Math.hypot(a.cx - b.cx, a.cy - b.cy) * FIT[shot.app] * b.z);
+    const a = camAt(shot.cam, f, fit, size, pt);
+    const b = camAt(shot.cam, f + 1, fit, size, pt);
+    out.push(Math.hypot(a.cx - b.cx, a.cy - b.cy) * fit * b.z);
   }
   return out;
 };
 
-/** Camera checks of every capture shot (speed and smoothness), with global frame numbers. */
-export const checkCamera = (shots: Record<ShotId, Shot>, order: ShotId[], start: Record<ShotId, number>, r: Resolver): string[] => {
+/** Camera checks of every capture shot of a film (sharpness, speed and smoothness), with global frame numbers. */
+export const checkCamera = (film: Film, r: Resolver): string[] => {
   const errors: string[] = [];
+  const { shots, order, start } = film;
   for (const id of order) {
     const s = shots[id];
     if (s.kind !== 'capture') continue;
+    const app = film.apps[s.app];
+    if (!app) { errors.push(`${id} : app « ${s.app} » absente de la table apps du film`); continue; }
     for (let i = 1; i < s.cam.length; i++) if (s.cam[i].f <= s.cam[i - 1].f) errors.push(`${id} : clés caméra non croissantes`);
-    const sp = centreSpeeds(s, r.pt, r.size(s.layers[0].cap));
+    const size = r.size(s.layers[0].cap);
+    const fit = fitOf(app, size);
+    // Sharpness: the capture is never drawn larger than its texture (S = fit × z ≤ density). The zoom moves between
+    // keys without overshoot (log-space interpolation, easings within 0..1), so its extremes are the keys.
+    for (const k of s.cam) {
+      if (fit * k.z > app.density + 1e-9) errors.push(`${id} clé f${k.f} : échelle ${(fit * k.z).toFixed(3)} (z ${k.z}) > ${app.density} (textures ${app.density}x)`);
+    }
+    const sp = centreSpeeds(s, fit, r.pt, size);
     sp.forEach((v, f) => {
       if (v !== null && v > MAX_CAM_SPEED) errors.push(`${id} f${f} (g${start[id] + f}) : caméra à ${v.toFixed(1)} px/f (> ${MAX_CAM_SPEED})`);
       const p = sp[f - 1];
@@ -173,6 +192,49 @@ export const checkCamera = (shots: Record<ShotId, Shot>, order: ShotId[], start:
         errors.push(`${id} f${f} (g${start[id] + f}) : à-coup caméra ${p.toFixed(1)} → ${v.toFixed(1)} px/f (> ${MAX_CAM_ACCEL})`);
       }
     });
+  }
+  return errors;
+};
+
+/** Framing checks of every capture shot of a film: each click point (where the cursor rests, at the click) lies inside
+ * the working area, FEATHER px clear of its soft top and bottom edges and of the frame's sides; each halo at full
+ * strength, until it fades or an instant capture swap removes it, stays inside the working area and the frame. Local
+ * frames, global ones in brackets. */
+export const checkFraming = (film: Film, r: Resolver): string[] => {
+  const errors: string[] = [];
+  const { shots, order, start } = film;
+  for (const id of order) {
+    const s = shots[id];
+    if (s.kind !== 'capture' || !film.apps[s.app]) continue;
+    const size = r.size(s.layers[0].cap);
+    const fit = fitOf(film.apps[s.app], size);
+    const toScreen = (f: number, [x, y]: Pt): Pt => {
+      const c = camAt(s.cam, f, fit, size, r.pt);
+      const S = fit * c.z;
+      return [AREA.cx + (x - c.cx) * S, AREA.cy + (y - c.cy) * S];
+    };
+    const off = ([x, y]: Pt, m: number) => x < m || x > 1920 - m || y < AREA.top + m || y > AREA.bottom - m;
+    const fmt = ([x, y]: Pt) => `(${Math.round(x)}, ${Math.round(y)})`;
+    for (const c of s.clicks) {
+      if (!s.cursor) continue;
+      const mv = s.cursor.moves.filter((m) => m.f + m.dur <= c.f).pop();
+      const p = toScreen(c.f, r.pt(mv ? mv.to : s.cursor.start));
+      if (off(p, FEATHER)) errors.push(`${id} f${c.f} (g${start[id] + c.f}) : clic ${c.label} hors du cadre utile ${fmt(p)}`);
+    }
+    for (const h of s.halos) {
+      const swap = s.layers.find((l) => !l.xf && !l.scroll && !l.dip && l.f > h.f0 && l.f <= h.f1 + 8);
+      const end = swap ? Math.min(h.f1, swap.f - 1) : h.f1;
+      const b = r.rect(h.at);
+      const pad = h.pad ?? 6;
+      for (let f = h.cut ? h.f0 : h.f0 + 9; f <= end; f++) {
+        const a = toScreen(f, [b.x - pad, b.y - pad]);
+        const z = toScreen(f, [b.x + b.w + pad, b.y + b.h + pad]);
+        if (off(a, 0) || off(z, 0)) {
+          errors.push(`${id} f${f} (g${start[id] + f}) : halo f${h.f0}–f${h.f1} hors du cadre utile ${fmt(a)} → ${fmt(z)}`);
+          break;
+        }
+      }
+    }
   }
   return errors;
 };

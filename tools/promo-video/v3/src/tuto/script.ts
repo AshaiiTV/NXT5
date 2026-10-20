@@ -1,11 +1,12 @@
 // Tutorial « Importer une partie dans NXT5 » — the whole film as data (storyboard: TUTO-IMPORTER.md).
 // One source of truth for every frame number: shots and their durations, chapters, subtitles (verbatim), camera keys,
-// cursor moves, clicks, highlight halos, capture swaps and success moments. The renderers in this folder read it, and
-// export-cues.mjs reads it (Node type stripping, so this file has no imports and only erasable TypeScript) to print
-// the cue list for the sound pass.
+// cursor moves, clicks, highlight halos, capture swaps and success moments. The tutorial engine (engine.ts) times it
+// and the renderers in this folder draw it; export-cues.mjs reads it too (Node type stripping, so this file has only
+// type imports and erasable TypeScript) to print the cue list for the sound pass. The types are the engine's.
 //
 // Frames are LOCAL to their shot unless stated otherwise. Shot i starts XF frames before shot i−1 ends (cross-fade).
 // Real-UI coordinates are CSS px of the capture (src/tuto/captures.json), written « ALIAS.boxKey ».
+import type { AppSpec, Chapter, FilmDef, FilmTexts, Shot, Sub } from './engine';
 
 export const FPS = 30;
 /** Cross-fade between consecutive shots (≤ 12 f, soft cut). */
@@ -15,8 +16,6 @@ export const CARD = 40;
 /** A subtitle that follows a chapter card starts here (local frame of the chapter's first shot). */
 export const SUB_AFTER_CARD = 38;
 
-export type Pt = [number, number];
-export type Rect = { x: number; y: number; w: number; h: number };
 export type CapAlias =
   | 'I01' | 'I02' | 'I02b' | 'I02c' | 'I03' | 'I04' | 'I05' | 'I06' | 'I07' | 'I08'
   | 'S01' | 'S02' | 'S03' | 'S04' | 'S05' | 'S05b' | 'S06' | 'S07' | 'S07b' | 'S08' | 'S09' | 'S10';
@@ -46,81 +45,21 @@ export const CAP_IDS: Record<CapAlias, string> = {
   S10: 'site-10-liste-avec-partie',
 };
 
-/** A point: CSS px of the capture, or a box (anchor fractions, default centre) plus an offset. */
-export type PtRef = Pt | { box: string; ax?: number; ay?: number; dx?: number; dy?: number };
-/** A rectangle: one box, the union of boxes, or a literal rect (CSS px). */
-export type RectRef = string | { boxes: string[] } | { rect: Rect };
+/** Capture apps (engine AppSpec): both are captured at 2x, so the screen scale stays ≤ 2. The site's import dialog
+ * scrolls between its sticky header and sticky footer (`scroll` layers, band identical in S05 → S08); its content box
+ * is `dialogContent`. */
+export const APPS = {
+  site: { fitH: 900, density: 2, scroll: { band: { x: 181, y: 94, w: 1078, h: 711 }, content: 'dialogContent' } },
+  importer: { fitH: 790, density: 2 },
+} satisfies Record<string, AppSpec>;
 
-/** Camera easings (camera.ts): io = calm in-out for zooms onto a target; glide = sine in-out (peak speed ≈ 1.6 × the
- * mean, against ≈ 3 × for io) for long lateral moves and pull-backs, so they stay under the speed ceiling. */
-export type Ease = 'io' | 'out' | 'brand' | 'glide';
-/** `slack`: screen px of night allowed beside the window horizontally at this key (default 0 = full-bleed once wider
- * than the frame). Used to keep a target near the page edge clear of the frame edge. Each key is framed on its own,
- * then the camera interpolates between framed keys (camera.ts). `cut`: the camera jumps to this key at its frame
- * (only while the stage is dipped to night). */
-export type CamKey = { f: number; z: number; at: PtRef; ease?: Ease; slack?: number; cut?: boolean };
-/** Capture shown from frame f. No `xf`/`scroll`/`dip`: instant swap (a state change that moves the layout, cut 2 f
- * after the click, under its ripple, or a label whose new width shifts its neighbours). `xf`: dissolve from the previous one, only where the layout stays put (a label
- * or a toast changes); `scroll`: pixel-true scroll of the import dialog from the previous capture to this one over
- * `scroll` frames (both captures share the dialog's sticky bars); `dip`: another page, through night (`dip` frames
- * out, `dip` frames in). */
-export type Layer = { f: number; cap: CapAlias; xf?: number; scroll?: number; dip?: number; note?: string };
-export type Move = { f: number; dur: number; to: PtRef };
-export type Click = { f: number; label: string };
-/** `pulse`: frame of one soft outline growing out of the halo (hover confirmation, no click). `cut`: the halo is at full
- * strength from f0 (no grow-in): it takes over, on an instant capture swap at f0, from a halo the swap cuts. */
-export type Halo = { f0: number; f1: number; at: RectRef; pad?: number; radius?: number; spot?: boolean; circle?: boolean; pulse?: number; cut?: boolean };
-export type Moment = { f: number; label: string };
-export type Typing = { f0: number; f1: number; text: string; cap: CapAlias; cover: Rect };
-export type Keycap = { f0: number; f1: number; keys: string[]; at: PtRef; dx: number; dy: number };
-/** Typing by reveal over the REAL typed state `cap` (shown from f0, when the field takes the focus). Until `t0` the
- * field still shows the previous text, copied from the same region of capture `from` (both fields share the same
- * uniform background, so the composite is exact). From `select` (Ctrl + A) that text is shown selected: the site's
- * ::selection colour (rgba(0, 216, 255, .38) over the field, `selection.color`) behind the captured glyphs (blended
- * with « lighten », so the glyph pixels stay the capture's). At t0 the first keystroke replaces the selection: a patch
- * in the field's own colour covers the rest of the field and the capture's own typed text is uncovered glyph by glyph
- * until t1 (`steps`: CSS x after each character, measured on the capture's ink gaps), with a caret at the edge until
- * f1. Every text pixel shown is a capture's. */
-export type Reveal = {
-  f0: number; select: number; t0: number; t1: number; f1: number; text: string; from: CapAlias; cap: CapAlias;
-  cover: Rect; color: string; textX: number; steps: number[]; caret: { y: number; h: number; color: string };
-  selection: { rect: Rect; color: string };
-};
-
-export type CaptureShot = {
-  kind: 'capture';
-  app: 'importer' | 'site';
-  dur: number;
-  layers: Layer[];
-  cam: CamKey[];
-  /** `cut`: the cursor and its ripple leave with the old screen at this instant capture swap (no fade): a click whose
-   * layout change would otherwise leave the arrow and its ripple over another control. */
-  cursor?: { start: PtRef; show: number; hide?: number; cut?: number; moves: Move[] };
-  clicks: Click[];
-  halos: Halo[];
-  typing?: Typing;
-  reveal?: Reveal;
-  keycaps?: Keycap[];
-  success?: Moment[];
-  /** Cursor rests on a target without clicking (no press, no ripple). */
-  hovers?: Moment[];
-  /** Context chip beside the window (e.g. the site opening in the browser): not a UI label. */
-  context?: { f0: number; f1: number; title: string; sub: string };
-};
-export type CardShot = {
-  kind: 'card';
-  view: 'title' | 'prereq' | 'recap' | 'download' | 'openFile' | 'smartscreen' | 'lolOpen' | 'lolHistory' | 'saveJson' | 'pickFile';
-  dur: number;
-  /** Schematic / card beats used by the view (local frames). */
-  t: Record<string, number>;
-  clicks: Click[];
-  success?: Moment[];
-};
-export type Shot = CaptureShot | CardShot;
+/** Card views of this film: title, prereq and recap are the engine's, the others are its shots/Schematics.tsx. */
+export type View = 'title' | 'prereq' | 'recap' | 'download' | 'openFile' | 'smartscreen' | 'lolOpen' | 'lolHistory' | 'saveJson' | 'pickFile';
 
 // ───────────────────────────────────────── shots ─────────────────────────────────────────
 // Camera: `at` is the capture point placed at the centre of the working area, `z` multiplies the fit scale
-// (whole capture in the area at z = 1). Sharpness: screen scale = fit × z stays ≤ 2 (2x textures).
+// (whole capture in the area at z = 1). Sharpness: screen scale = fit × z stays ≤ 2 (2x textures, APPS density,
+// checked by camera.ts checkCamera).
 
 export const SHOTS = {
   // 0 · Titre (5 s)
@@ -272,8 +211,12 @@ export const SHOTS = {
       { f0: 32, f1: 62, at: 'I01.gameIdInput', pad: 6 },
       { f0: 126, f1: 206, at: { boxes: ['I04.regionSelect', 'I04.regionHint'] }, pad: 8 },
     ],
-    // Ctrl + V: the ID appears whole on the V press (keycap f0 + 8), as a paste does (f0 = f1).
-    typing: { f0: 66, f1: 66, text: 'EUW1_7861632138', cap: 'I03', cover: { x: 629, y: 306, w: 476, h: 40 } },
+    // Ctrl + V: the ID appears whole on the V press (keycap f0 + 8), as a paste does (f0 = f1). The patch is the
+    // field's own colour (rgb 17,27,45, sampled), the text style its measured one (captures.json gameIdInputText).
+    typing: {
+      f0: 66, f1: 66, text: 'EUW1_7861632138', cap: 'I03', cover: { x: 629, y: 306, w: 476, h: 40 }, color: '#111B2D',
+      textStyle: 'gameIdInputText',
+    },
     keycaps: [{ f0: 58, f1: 104, keys: ['Ctrl', 'V'], at: { box: 'I03.gameIdInput', ax: 1, ay: 0 }, dx: -96, dy: -48 }],
   },
 
@@ -484,7 +427,7 @@ export const SHOTS = {
   // 9 · À retenir (8 s)
   recap: { kind: 'card', view: 'recap', dur: 250, t: { in: 0, item1: 24, item2: 54, item3: 84, brand: 118, out: 236 }, clicks: [],
     success: [{ f: 118, label: 'wordmark + nxt5.org' }] },
-} satisfies Record<string, Shot>;
+} satisfies Record<string, Shot<View, CapAlias>>;
 
 export type ShotId = keyof typeof SHOTS;
 export const ORDER: ShotId[] = [
@@ -499,8 +442,7 @@ export const ORDER: ShotId[] = [
 ];
 
 // ───────────────────────────────────────── chapters ─────────────────────────────────────────
-export type Chapter = { id: string; shot: ShotId; kind: 'title' | 'prereq' | 'step' | 'done' | 'recap'; n?: number; title: string };
-export const CHAPTERS: Chapter[] = [
+export const CHAPTERS: Chapter<ShotId>[] = [
   { id: 'c0', shot: 'title', kind: 'title', title: 'Titre' },
   { id: 'c1', shot: 'prereq', kind: 'prereq', title: 'Avant de commencer' },
   { id: 'c2', shot: 'dlSite', kind: 'step', n: 1, title: 'Télécharge NXT5 Importer' },
@@ -512,14 +454,12 @@ export const CHAPTERS: Chapter[] = [
   { id: 'c8', shot: 'done', kind: 'done', title: 'C’est fait' },
   { id: 'c9', shot: 'recap', kind: 'recap', title: 'À retenir' },
 ];
-export const STEPS = 6;
 
 // ───────────────────────────────────────── subtitles ─────────────────────────────────────────
 // Verbatim from TUTO-IMPORTER.md. Line breaks are chosen here (max 2 lines). Display markup only: «…» is drawn with
 // its content in cyan (UI label), {…} in violet (file name, braces not drawn), [..] in cyan (UI label, brackets not
 // drawn). French spacing (no-break space before ? ! : ; and inside « ») is applied at render time by `frSpaces`.
-export type Sub = { id: string; shot: ShotId; f: number; lines: string[]; verbatim: string };
-export const SUBS: Sub[] = [
+export const SUBS: Sub<ShotId>[] = [
   { id: '2a', shot: 'dlSite', f: SUB_AFTER_CARD, lines: ['Sur nxt5.org, dans [Parties],', 'clique sur « Importer une partie ».'],
     verbatim: 'Sur nxt5.org, dans Parties, clique sur « Importer une partie ».' },
   { id: '2b', shot: 'dlSite', f: 186, lines: ['Déplie « Obtenir NXT5 Importer »,', 'garde « Windows (64 bits) » et clique sur « Télécharger ».'],
@@ -563,147 +503,27 @@ export const SUBS: Sub[] = [
 ];
 
 // Cards (not subtitles): exact texts of the title, checklist and recap cards.
-export const TITLE_TEXT = { title: 'Importer une partie dans NXT5', sub: 'Du téléchargement à ta partie en ligne.', chip: 'Windows · NXT5 Importer 0.3.8' };
-export const PREREQ_ITEMS = ['Un compte NXT5 avec un e-mail vérifié.', 'Une équipe où tu es propriétaire ou staff.', 'Windows 64 bits et League of Legends installé.'];
+export const TITLE_TEXT: FilmTexts['title'] = { title: 'Importer une partie dans NXT5', sub: 'Du téléchargement à ta partie en ligne.', chip: 'Windows · NXT5 Importer 0.3.8', icon: 'monitor' };
+export const PREREQ_ITEMS: FilmTexts['prereq'] = [
+  { text: 'Un compte NXT5 avec un e-mail vérifié.', icon: 'mailCheck' },
+  { text: 'Une équipe où tu es propriétaire ou staff.', icon: 'users' },
+  { text: 'Windows 64 bits et League of Legends installé.', icon: 'monitor' },
+];
 /** Riot legal line, small at the bottom of the recap card (same wording as the promo's end card, src/shots/Outro.tsx). */
 export const RECAP_LEGAL = 'NXT5 n’est ni approuvé ni sponsorisé par Riot Games. Riot Games et les propriétés associées sont des marques de Riot Games, Inc.';
 export const RECAP_ITEMS = ['Ouvre le client LoL avant l’Importer.', 'Numéro seul ? Choisis le serveur de la partie.', 'Le fichier .json reste sur ton ordinateur jusqu’à l’import.'];
 
-// ───────────────────────────────────────── text helpers ─────────────────────────────────────────
-const NBSP = ' ';
-/** French spacing: no-break space before ? ! : ; and inside « ». Idempotent. */
-export const frSpaces = (s: string) =>
-  s.replace(/ ([?!:;»])/g, `${NBSP}$1`).replace(/« /g, `«${NBSP}`);
-/** Removes display markup ({…} and […]) and joins the lines: must equal the verbatim subtitle. */
-export const plainSub = (lines: string[]) => lines.join(' ').replace(/[{}[\]]/g, '');
-
-// ───────────────────────────────────────── global timeline ─────────────────────────────────────────
-export const START: Record<ShotId, number> = (() => {
-  const out = {} as Record<ShotId, number>;
-  let t = 0;
-  ORDER.forEach((id, i) => {
-    out[id] = t;
-    t += SHOTS[id].dur - (i < ORDER.length - 1 ? XF : 0);
-  });
-  return out;
-})();
-const last = ORDER[ORDER.length - 1];
-export const DURATION = START[last] + SHOTS[last].dur;
-
-export const chapterAt = (g: number) => {
-  let c = CHAPTERS[0];
-  for (const ch of CHAPTERS) if (g >= START[ch.shot]) c = ch;
-  return c;
+// ───────────────────────────────────────── the film ─────────────────────────────────────────
+export const FILM: FilmDef = {
+  id: 'TutoImporter',
+  fps: FPS,
+  xf: XF,
+  card: CARD,
+  shots: SHOTS,
+  order: ORDER,
+  chapters: CHAPTERS,
+  subs: SUBS,
+  texts: { title: TITLE_TEXT, prereq: PREREQ_ITEMS, recap: RECAP_ITEMS, legal: RECAP_LEGAL },
+  apps: APPS,
+  capIds: CAP_IDS,
 };
-
-/** Global subtitle track: start, end (next subtitle, or the next step's chapter card, or the recap). */
-export type SubSpan = Sub & { g0: number; g1: number };
-export const SUB_TRACK: SubSpan[] = SUBS.map((s, i) => {
-  const g0 = START[s.shot] + s.f;
-  const next = SUBS[i + 1];
-  let g1 = next ? START[next.shot] + next.f : START.recap;
-  for (const ch of CHAPTERS) {
-    const c0 = START[ch.shot];
-    if ((ch.kind === 'step' || ch.kind === 'recap') && c0 > g0 && c0 < g1) g1 = c0;
-  }
-  return { ...s, g0, g1 };
-});
-
-/** How a shot enters. A shot that opens a step chapter cross-fades (XF) under the chapter card and its dim (and the
- * two shots around a step change show the same capture where the story continues in the same app). Every other shot
- * enters through night: the previous one fades to the backdrop over XF/2 frames, this one fades in over XF/2, so two
- * unrelated full-screen views (another app, another page, a schematic) never overlap. */
-export const entersByDip = (id: ShotId) => ORDER.indexOf(id) > 0 && !CHAPTERS.some((c) => c.shot === id && c.kind === 'step');
-
-// ───────────────────────────────────────── cues for the sound pass ─────────────────────────────────────────
-export type Cue = { frame: number; time: string; kind: string; shot: ShotId | '-'; note: string };
-const tc = (f: number) => {
-  const s = Math.floor(f / FPS);
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}.${String(f % FPS).padStart(2, '0')}`;
-};
-/** Cue kinds. Between shots: `transition` (cross-fade) or `transition-dip` (through night, app or page change). Inside
- * a shot: `state` (instant swap, put on the click that causes it), `state-fade` (dissolve, layout unchanged),
- * `state-dip` (another page through night), `scroll`. Inputs: `click`, `hover`, `key` (keycap pressed), `paste`,
- * `typing-start` / `typing-end`. Feedback: `success`. */
-export function buildCues(): Cue[] {
-  const cues: Cue[] = [];
-  const add = (frame: number, kind: string, shot: ShotId | '-', note: string) => cues.push({ frame, time: tc(frame), kind, shot, note });
-  for (const ch of CHAPTERS) {
-    const via = ORDER.indexOf(ch.shot) === 0 ? '' : entersByDip(ch.shot) ? ` (entrée par le noir, ${XF / 2} f + ${XF / 2} f)` : ` (fondu enchaîné ${XF} f sous la carte d’étape)`;
-    add(START[ch.shot], 'chapter', ch.shot, `${ch.kind === 'step' ? `Étape ${ch.n}/${STEPS} · ${ch.title}` : ch.title}${via}`);
-    if (ch.kind === 'step') add(START[ch.shot] + CARD - 16, 'chapter-settle', ch.shot, 'la carte d’étape glisse dans l’en-tête (14 f)');
-  }
-  ORDER.forEach((id, i) => {
-    const g = START[id];
-    const s: Shot = SHOTS[id];
-    if (i > 0 && !CHAPTERS.some((c) => c.shot === id)) {
-      if (entersByDip(id)) add(g, 'transition-dip', id, `passage par le noir vers ${id} (${XF / 2} f + ${XF / 2} f)`);
-      else add(g, 'transition', id, `fondu enchaîné (${XF} f) vers ${id}`);
-    }
-    for (const c of s.clicks) add(g + c.f, 'click', id, c.label);
-    for (const m of s.success ?? []) add(g + m.f, 'success', id, m.label);
-    if (s.kind === 'capture') {
-      for (const h of s.hovers ?? []) add(g + h.f, 'hover', id, h.label);
-      for (const l of s.layers.slice(1)) {
-        const note = l.note ?? l.cap;
-        if (l.scroll) add(g + l.f, 'scroll', id, `${note} (${l.scroll} f)`);
-        else if (l.dip) add(g + l.f - l.dip, 'state-dip', id, `${note} : ${l.dip} f vers le noir, ${l.dip} f pour entrer`);
-        else if (l.xf) add(g + l.f, 'state-fade', id, `${note} (fondu ${l.xf} f)`);
-        else {
-          const click = s.clicks.filter((c) => c.f <= l.f && l.f - c.f <= 3).pop();
-          add(g + (click ? click.f : l.f), 'state', id, click ? `${note.replace(/ \(coupe franche[^)]*\)/, '')} : coupe franche ${l.f - click.f} f après le clic, sous son onde` : note);
-        }
-      }
-      for (const k of s.keycaps ?? []) {
-        const paste = s.typing && s.typing.f0 === s.typing.f1 && s.typing.f0 === k.f0 + 8;
-        const select = s.reveal && s.reveal.select === k.f0 + 8;
-        if (paste) add(g + k.f0 + 8, 'paste', id, `${k.keys.join(' + ')} : « ${s.typing!.text} » est collé d’un coup`);
-        else add(g + k.f0 + 8, 'key', id, `${k.keys.join(' + ')}${select ? ' : le texte pré-rempli est sélectionné' : ''}`);
-      }
-      if (s.typing && s.typing.f1 > s.typing.f0) {
-        add(g + s.typing.f0, 'typing-start', id, `frappe « ${s.typing.text} »`);
-        add(g + s.typing.f1, 'typing-end', id, 'fin de la frappe');
-      }
-      if (s.reveal) {
-        add(g + s.reveal.t0, 'typing-start', id, `frappe « ${s.reveal.text} » (${s.reveal.steps.length} caractères, le premier remplace la sélection)`);
-        add(g + s.reveal.t1, 'typing-end', id, 'fin de la frappe');
-      }
-    }
-  });
-  add(DURATION - 14, 'end', '-', 'fondu de fin');
-  // One cue per moment: a success and a dissolve that show the same change at the same frame are merged.
-  const out: Cue[] = [];
-  for (const c of cues.sort((a, b) => a.frame - b.frame)) {
-    const twin = out.find((o) => o.frame === c.frame && o.shot === c.shot && ((o.kind === 'success' && c.kind.startsWith('state')) || (c.kind === 'success' && o.kind.startsWith('state'))));
-    if (!twin) { out.push(c); continue; }
-    const [succ, st] = twin.kind === 'success' ? [twin, c] : [c, twin];
-    Object.assign(twin, { kind: 'success', note: `${succ.note} (même instant, ${st.kind} : ${st.note})` });
-  }
-  return out;
-}
-
-/** Reading speed ceiling of a settled subtitle (characters per second, French subtitling practice). */
-export const MAX_CPS = 17;
-/** Script sanity checks (thrown at import time in the studio/render, and by export-cues.mjs). */
-export function checkScript(): string[] {
-  const errors: string[] = [];
-  for (const s of SUBS) if (plainSub(s.lines) !== s.verbatim) errors.push(`sous-titre ${s.id} : texte différent du verbatim`);
-  for (const sp of SUB_TRACK) {
-    const settled = sp.g1 - sp.g0 - 20; // 12 f entrance, 8 f exit
-    if (settled < 75) errors.push(`sous-titre ${sp.id} : ${settled} f lisibles (< 75)`);
-    const cps = sp.verbatim.length / (settled / FPS);
-    if (cps > MAX_CPS + 1e-9) errors.push(`sous-titre ${sp.id} : ${cps.toFixed(1)} caractères/s (> ${MAX_CPS})`);
-    if (sp.lines.length > 2) errors.push(`sous-titre ${sp.id} : plus de 2 lignes`);
-  }
-  for (const id of ORDER) {
-    const s: Shot = SHOTS[id];
-    if (s.kind !== 'capture') continue;
-    for (const c of [...s.clicks, ...(s.hovers ?? [])]) {
-      const mv = s.cursor?.moves.filter((m) => m.f <= c.f).pop();
-      if (!mv) errors.push(`${id} : clic/survol f${c.f} sans déplacement du curseur`);
-      else if (c.f < mv.f + mv.dur + (s.clicks.includes(c as Click) ? 6 : 0)) errors.push(`${id} : clic/survol f${c.f} avant l’arrivée du curseur (+6 f) (f${mv.f + mv.dur})`);
-    }
-    for (let i = 1; i < s.cam.length; i++) if (s.cam[i].f <= s.cam[i - 1].f) errors.push(`${id} : clés caméra non croissantes`);
-  }
-  return errors;
-}

@@ -1,0 +1,17 @@
+{
+  "source": "Valeurs fictives par défaut. sync-names.cjs les remplace par celles de public/tuto-discord/real/manifest.json dès qu’il est rempli, sauf ownerDiscordName et nxt5AccountName, qui restent fictifs (les vrais sont masqués et jamais écrits).",
+  "server": "Horizon Esport",
+  "category": "Tuto NXT5",
+  "commandChannel": "bot-nxt5",
+  "publishChannel": "résultats",
+  "ownerDiscordName": "coachdemo",
+  "nxt5AccountName": "coach-demo",
+  "team": "Équipe Démo",
+  "opponent": "Aurore",
+  "game": "Aurore",
+  "publicationTitle": "Équipe Démo vs Aurore",
+  "botName": "NXT5",
+  "botAvatar": "",
+  "linkCommand": "/nxt connecter code:7F3A-92C1-D04E-B58B",
+  "linkCodeValidUntil": "18/10/2026 22:22:37"
+}

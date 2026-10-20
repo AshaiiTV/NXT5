@@ -1,0 +1,49 @@
+{
+  "message": {
+    "content": "",
+    "embeds": [
+      {
+        "title": "Équipe Démo vs Aurore",
+        "description": "Victoire · 22–11 kills · 25:00\nScrim",
+        "color": 6809849,
+        "url": "https://nxt5.org/statistiques?team=0b6c7d8e-9f10-4a21-b32c-d43e54f65a76&match=6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b",
+        "fields": [],
+        "footer": {
+          "text": "NXT5 · aperçu"
+        },
+        "image": {
+          "url": "attachment://nxt5-game-6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b.png"
+        }
+      }
+    ],
+    "allowed_mentions": {
+      "parse": [],
+      "roles": [],
+      "users": [],
+      "replied_user": false
+    },
+    "nonce": "8fec3a0d3cb4d67ad0af9628",
+    "enforce_nonce": true,
+    "attachments": [
+      {
+        "id": 0,
+        "filename": "nxt5-game-6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b.png",
+        "description": "Équipe Démo vs Aurore. Victoire · 22–11 kills · 25:00. Or 49 k–41,7 k · Dragons 3–1 · Tours 8–3"
+      }
+    ],
+    "components": [
+      {
+        "type": 1,
+        "components": [
+          {
+            "type": 2,
+            "style": 5,
+            "label": "Voir la game sur NXT5",
+            "url": "https://nxt5.org/statistiques?team=0b6c7d8e-9f10-4a21-b32c-d43e54f65a76&match=6f1d2c3b-4a5e-4f60-8a7b-9c0d1e2f3a4b"
+          }
+        ]
+      }
+    ]
+  },
+  "snapshotRevision": 1
+}

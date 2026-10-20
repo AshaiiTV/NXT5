@@ -1,12 +1,13 @@
-// Schematic cards for what is not captured: browser download, Windows protection message, League of Legends client
-// (open, history), save dialog, file picker. They are drawn in the NXT5 charte (night, violet glass, Inter, lucide
-// icons, 2 px buttons) and tagged « Illustration »: they imitate neither Windows (no logo, colours, fonts or window
-// chrome) nor Riot (no logo, client styling or game art). Only real texts from the product and the storyboard are
-// quoted; content the schematic does not know is drawn as neutral skeleton bars.
+// TutoImporter's own schematic cards (its `views`, TutoImporter.tsx) for what is not captured: browser download,
+// Windows protection message, League of Legends client (open, history), save dialog, file picker. They are drawn in the
+// NXT5 charte (night, violet glass, Inter, lucide icons, 2 px buttons) and tagged « Illustration »: they imitate
+// neither Windows (no logo, colours, fonts or window chrome) nor Riot (no logo, client styling or game art). Only real
+// texts from the product and the storyboard are quoted; content the schematic does not know is drawn as neutral
+// skeleton bars.
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
-import type { CardShot, Click, Move, Pt } from '../script';
-import { frSpaces } from '../script';
+import type { CardShot, Click, Move, Pt } from '../engine';
+import { frSpaces } from '../engine';
 import { TutoBackdrop } from '../parts/Backdrop';
 import { Btn, Emblem, IconTile, Panel, Skel, StepBadge, Txt } from '../parts/Glass';
 import { Icon } from '../parts/icons';

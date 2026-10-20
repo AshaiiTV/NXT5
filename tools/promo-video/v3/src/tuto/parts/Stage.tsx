@@ -1,21 +1,24 @@
 // Zoom camera over a real capture (PageCam2D maths, screen-space rendering).
 // The capture is drawn as a window whose on-screen rectangle is computed every frame: the <Img> is laid out at its
 // final pixel size (no transform scale), so Chromium samples the 2x texture directly and text stays crisp at every
-// zoom (Q2). Screen scale S = fit × z is kept ≤ 2 by the script. Overlays (cursor, halo, typing) use the same mapping.
+// zoom (Q2). Screen scale S = fit × z is kept ≤ the app's texture density (camera.ts checkCamera). Overlays (cursor,
+// halo, typing) use the same mapping.
 // The camera path itself (keys framed one by one, then interpolated) is in ../camera.ts, shared with the QA.
 // Once the window is taller than the working area, it is clipped to the area (areaMask) so that no real UI ever runs
 // under the step header, the data tag or the subtitle bar.
 import React from 'react';
 import { Img } from 'remotion';
-import { capSrc, DIALOG_BAND, dialogScroll } from '../captures';
+import type { Captures } from '../captures';
 import type { Cam } from '../camera';
-import type { CapAlias, Layer, Pt, Rect } from '../script';
-import { AREA, FEATHER, FIT, IO, lerp, ramp } from '../style';
+import type { AppSpec, Layer, Pt, Rect } from '../engine';
+import { useFilm } from '../FilmContext';
+import { AREA, FEATHER, IO, lerp, ramp } from '../style';
 
 export type View = { S: number; toScreen: (p: Pt) => Pt; rect: (r: Rect) => Rect; frame: Rect };
-/** Screen mapping of a framed camera (camera.ts camAt: already clamped key by key, nothing to clamp here). */
-export const makeView = (app: 'site' | 'importer', cam: Cam, size: { w: number; h: number }): View => {
-  const S = FIT[app] * cam.z;
+/** Screen mapping of a framed camera (camera.ts camAt: already clamped key by key, nothing to clamp here). `fit`:
+ * fitOf the shot's app and capture size. */
+export const makeView = (fit: number, cam: Cam, size: { w: number; h: number }): View => {
+  const S = fit * cam.z;
   const toScreen = ([x, y]: Pt): Pt => [AREA.cx + (x - cam.cx) * S, AREA.cy + (y - cam.cy) * S];
   const rect = (r: Rect): Rect => {
     const [x, y] = toScreen([r.x, r.y]);
@@ -45,8 +48,8 @@ export const areaMask = (frame: Rect): React.CSSProperties => {
 
 /** Which captures are visible at frame f, with their opacity, or a scroll composite between two captures. */
 export type LayerState =
-  | { kind: 'fade'; items: { cap: CapAlias; o: number }[] }
-  | { kind: 'scroll'; from: CapAlias; to: CapAlias; t: number };
+  | { kind: 'fade'; items: { cap: string; o: number }[] }
+  | { kind: 'scroll'; from: string; to: string; t: number };
 export const layerStateAt = (layers: Layer[], f: number): LayerState => {
   let i = 0;
   while (i < layers.length - 1 && f >= layers[i + 1].f) i++;
@@ -70,7 +73,14 @@ export const stageAlphaAt = (layers: Layer[], f: number) => {
   return a;
 };
 
-const img = (a: CapAlias, style: React.CSSProperties) => <Img key={a + JSON.stringify(style.top ?? 0)} src={capSrc(a)} style={{ position: 'absolute', display: 'block', ...style }} />;
+const img = (caps: Captures, a: string, style: React.CSSProperties) => <Img key={a + JSON.stringify(style.top ?? 0)} src={caps.src(a)} style={{ position: 'absolute', display: 'block', ...style }} />;
+
+/** Scroll offset (CSS px) of the app's scrolling band in a capture: 0 when its content is at the top of the band. */
+const scrollOf = (caps: Captures, scroll: NonNullable<AppSpec['scroll']>, a: string) => {
+  const c = caps.entry(a).boxes[scroll.content];
+  if (!c) throw new Error(`${a} : pas de ${scroll.content}`);
+  return scroll.band.y - c.y;
+};
 
 /** The window's drop shadow, drawn outside the area clip (an outer box-shadow paints only outside the box). It fades
  * out as the window outgrows the working area, where its edges are clipped anyway. */
@@ -89,7 +99,8 @@ export const StageShadow: React.FC<{ view: View; size: { w: number; h: number } 
 };
 
 /** The window: rounded frame, violet hairline, capture layers (drawn inside the area clip). */
-export const Stage: React.FC<{ view: View; state: LayerState; size: { w: number; h: number } }> = ({ view, state, size }) => {
+export const Stage: React.FC<{ view: View; state: LayerState; size: { w: number; h: number }; app: AppSpec }> = ({ view, state, size, app }) => {
+  const { caps } = useFilm();
   const { frame, S } = view;
   const W = size.w * S;
   const H = size.h * S;
@@ -98,16 +109,18 @@ export const Stage: React.FC<{ view: View; state: LayerState; size: { w: number;
   if (state.kind === 'fade') {
     content = state.items.map((it, k) => (
       <div key={`${it.cap}-${k}`} style={{ position: 'absolute', inset: 0, opacity: it.o }}>
-        {img(it.cap, { left: 0, top: 0, width: W, height: H })}
+        {img(caps, it.cap, { left: 0, top: 0, width: W, height: H })}
       </div>
     ));
   } else {
-    // Pixel-true scroll of the import dialog: outside the dialog's scrolling band both captures are identical (sticky
-    // header and footer, page behind); inside it the content of A slides up and B's content follows exactly below.
-    const sA = dialogScroll(state.from);
-    const sB = dialogScroll(state.to);
+    // Pixel-true scroll of the app's scrolling band (e.g. the site's import dialog): outside the band both captures are
+    // identical (sticky header and footer, page behind); inside it the content of A slides up and B's content follows
+    // exactly below.
+    if (!app.scroll) throw new Error(`défilement ${state.from} → ${state.to} : l’app n’a pas de bande de défilement`);
+    const sA = scrollOf(caps, app.scroll, state.from);
+    const sB = scrollOf(caps, app.scroll, state.to);
     const sigma = lerp(sA, sB, state.t);
-    const band = DIALOG_BAND;
+    const band = app.scroll.band;
     const shiftA = -(sigma - sA); // CSS px applied to A inside the band
     const shiftB = sB - sigma;
     const seam = band.y + band.h + shiftA; // A's band ends here (CSS y)
@@ -116,12 +129,12 @@ export const Stage: React.FC<{ view: View; state: LayerState; size: { w: number;
     });
     content = (
       <>
-        {img(state.to, { left: 0, top: 0, width: W, height: H })}
+        {img(caps, state.to, { left: 0, top: 0, width: W, height: H })}
         <div style={bandStyle(band.y, Math.min(seam, band.y + band.h))}>
-          {img(state.from, { left: -band.x * S, top: (-band.y + shiftA) * S, width: W, height: H })}
+          {img(caps, state.from, { left: -band.x * S, top: (-band.y + shiftA) * S, width: W, height: H })}
         </div>
         <div style={bandStyle(Math.max(seam, band.y), band.y + band.h)}>
-          {img(state.to, { left: -band.x * S, top: (-Math.max(seam, band.y) + shiftB) * S, width: W, height: H })}
+          {img(caps, state.to, { left: -band.x * S, top: (-Math.max(seam, band.y) + shiftB) * S, width: W, height: H })}
         </div>
       </>
     );
