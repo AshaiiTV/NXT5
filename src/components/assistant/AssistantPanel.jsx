@@ -7,6 +7,7 @@ import { apiFetch } from "../../api/client.js";
 import { isSafeInternalPath } from "../../app/routing.js";
 import { guideSectionForRoute } from "../../app/guide-navigation.js";
 import { cx } from "../../app/helpers.js";
+import { ImporterTutorialLink } from "../importer/ImporterTutorialLink.jsx";
 
 const DEFAULT_SUGGESTIONS = [
   "Comment utiliser cette page ?",
@@ -269,6 +270,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
   }
 
   function openGuide(sectionId = guideSectionForRoute(route)) {
+    if (sectionId === "importer-video") sectionId = "imports-and-games";
     const query = sectionId ? `?section=${encodeURIComponent(sectionId)}` : "";
     navigate?.(`/guide${query}`);
     onClose?.();
@@ -301,6 +303,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--nxt5-field)] px-4 py-5 sm:px-5" aria-live="polite" aria-busy={loading}>
+          <ImporterTutorialLink className="mb-4 w-full" />
           {!messages.length && !loading && (<div className="flex min-h-full flex-col justify-center py-6">
               <MessageCircleQuestion className="h-8 w-8 text-cyan-100" />
               <h3 className="mt-4 text-xl font-black text-white">{t("Que veux-tu faire sur cette page ?")}</h3>

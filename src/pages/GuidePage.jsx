@@ -5,6 +5,7 @@ import { Activity, AlertTriangle, ArrowRight, BarChart3, BookOpen, CalendarDays,
 import "./guide.css";
 import { cx } from "../app/helpers.js";
 import { Button, PageHeader } from "../components/ui/Core.jsx";
+import { ImporterTutorialLink } from "../components/importer/ImporterTutorialLink.jsx";
 
 export const GUIDE_SECTIONS = [
   { id: "getting-started", label: "Premiers pas", icon: BookOpen, title: "Retrouver la prochaine action sur l’accueil", intro: "Accueil s’adapte à l’activité de l’équipe : démarrage sans partie, prochaine séance, partie à débriefer ou dernier débrief. Tu peux reprendre le guide de démarrage à tout moment.", path: "/accueil", action: "Revenir à l’accueil", steps: ["À la première arrivée, choisir Créer mon équipe ou Rejoindre mon équipe.", "Pour le responsable : importer une partie, ouvrir son résumé, puis préparer le premier débrief. Les profils peuvent être créés pendant l’import.", "Pour le joueur : ouvrir son profil, renseigner ses disponibilités et découvrir une partie ou un débrief de l’équipe.", "Utiliser Aide en haut de l’écran pour retrouver les explications de la rubrique en cours."] },
@@ -97,6 +98,7 @@ export default function GuidePage({ route, navigate, onOpenAssistant }) {
       <section className="nxt5-guide-reading min-w-0 p-5 sm:p-7 xl:p-10">
         <div className="nxt5-guide-content">
           <div><h3 className="nxt5-guide-section-heading text-2xl font-bold text-white"><CurrentIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-cyan-100" /><span>{t(current.title)}</span></h3><p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t(current.intro)}</p></div>
+          {current.id === "imports-and-games" && <ImporterTutorialLink className="mt-5" />}
           <ol className="nxt5-guide-steps mt-8 divide-y divide-white/10 border-y border-white/10">{current.steps.map((step, index) => <li key={step} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 py-4"><span className="font-black tabular-nums text-cyan-100/70">{String(index + 1).padStart(2, "0")}</span><p className="text-sm font-normal leading-6 text-slate-100">{t(step)}</p></li>)}</ol>
           <div className="nxt5-guide-actions mt-6 flex flex-wrap gap-2"><Button icon={ArrowRight} onClick={() => navigate?.(current.path)}>{t(current.action)}</Button><Button variant="ghost" icon={MessageCircleQuestion} onClick={() => onOpenAssistant?.(t("Explique-moi la section {0} du guide.", [t(current.label)]))}>{t("Poser une question")}</Button></div>
           {current.id === "getting-started" && <details className="nxt5-guide-vocabulary"><summary>{t("Les mots utiles : roster, draft, review…")}</summary><dl>{FIRST_WORDS.map(([term, meaning]) => <div key={term}><dt>{t(term)}</dt><dd>{t(meaning)}</dd></div>)}</dl></details>}

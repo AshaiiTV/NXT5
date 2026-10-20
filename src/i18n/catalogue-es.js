@@ -54,4 +54,7 @@ const teamManagement = {
   "Supprimer définitivement l’équipe": "Eliminar equipo definitivamente",
   "Gère l’effectif, les invitations et les informations de ton équipe.": "Gestiona la plantilla, las invitaciones y los datos de tu equipo.",
 };
-export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar };
+export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar,
+  "Tuto vidéo : importer une partie sur Windows": "Vídeo tutorial: importar una partida en Windows",
+  "YouTube · 2 min 31 · En français · Nouvel onglet": "YouTube · 2 min 31 · En francés · Nueva pestaña",
+};

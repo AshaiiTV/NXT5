@@ -7,6 +7,7 @@ import { LegalLinks, LinkButton, PublicTextLink, SiteHeader } from "./PublicPage
 import { DemoMatchSummary } from "./DemoMatchSummary.jsx";
 import { PublicScene } from "./PublicScene.jsx";
 import { DEMO_MATCHES } from "./demo-data.js";
+import { ImporterTutorialLink } from "../../components/importer/ImporterTutorialLink.jsx";
 import "./features-page.css";
 import "./public-guides.css";
 
@@ -74,7 +75,7 @@ export function PublicGuidePage({ path, navigate, user }) {
     <SiteHeader navigate={navigate}><PublicTextLink href="/demo" navigate={navigate} className="nxt5-entry-header-link">{t("Démonstration")}</PublicTextLink><LinkButton href={user ? "/mon-equipe" : "/connexion"} navigate={navigate} variant="ghost">{user ? t("Mon équipe") : t("Se connecter")}</LinkButton></SiteHeader>
     <main className="nxt5-entry-main"><nav aria-label={t("Fil d’Ariane")} className="nxt5-features-breadcrumb"><PublicTextLink href="/" navigate={navigate}>{t("Accueil")}</PublicTextLink><span aria-hidden="true">/</span><span aria-current="page">{t(guide.label)}</span></nav>
       <header className="nxt5-features-intro public-guide-intro nxt5-public-intro"><div className="public-guide-intro-copy"><p className="nxt5-entry-eyebrow"><Icon aria-hidden="true" size={18} />{t(" Guide pratique NXT5")}</p><h1>{t(guide.title)}</h1><p>{t(guide.intro)}</p><div className="public-guide-byline">{t("Documentation de l’équipe NXT5 · Révisée le ")}<time dateTime="2026-10-12">{t("12 octobre 2026")}</time></div></div><PublicScene className="public-guide-cover" /></header>
-      <div className="public-guide-layout"><article><aside className="public-guide-prerequisite"><h2>{t("Avant de commencer")}</h2><p>{t(guide.prerequisite)}</p></aside><ol className="public-guide-steps">{guide.steps.map(([title, ...paragraphs], index) => <li key={title}><span aria-hidden="true">0{index + 1}</span><div><h2>{t(title)}</h2>{paragraphs.map((paragraph) => <p key={paragraph}>{t(paragraph)}</p>)}</div></li>)}</ol>
+      <div className="public-guide-layout"><article><aside className="public-guide-prerequisite"><h2>{t("Avant de commencer")}</h2><p>{t(guide.prerequisite)}</p></aside>{isImportGuide && <ImporterTutorialLink className="my-4" />}<ol className="public-guide-steps">{guide.steps.map(([title, ...paragraphs], index) => <li key={title}><span aria-hidden="true">0{index + 1}</span><div><h2>{t(title)}</h2>{paragraphs.map((paragraph) => <p key={paragraph}>{t(paragraph)}</p>)}</div></li>)}</ol>
         {isImportGuide && <>
           <section className="public-guide-help" aria-labelledby="guide-help-title"><h2 id="guide-help-title">{t("Résoudre un problème d’import")}</h2>{guide.help.map(([title, description]) => <details key={title}><summary>{t(title)}</summary><p>{t(description)}</p></details>)}</section>
           <aside className="public-guide-prerequisite"><h2>{t("Une alerte à l’ouverture de l’Importer ?")}</h2><p>{t("L’« Aide à l’ouverture », près du téléchargement, décrit les messages Windows et Mac. La version Mac n’est pas encore notarisée par Apple. Si le message diffère de celui de l’aide ou indique une menace précise, contacte l’équipe en conservant tes protections activées.")}</p><PublicTextLink href="/contact" navigate={navigate} className="nxt5-entry-text-link">{t("Contacter NXT5")}</PublicTextLink></aside>

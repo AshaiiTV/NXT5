@@ -11,6 +11,19 @@ import {
 } from '../../netlify/functions/_lib/assistant-knowledge';
 
 describe('assistant knowledge', () => {
+  it.each([
+    ['fr', 'Où trouver le tutoriel vidéo pour importer une partie ?'],
+    ['en', 'Where is the video tutorial for importing a game?'],
+    ['es', '¿Dónde está el vídeo tutorial para importar una partida?'],
+  ] as const)('finds the importer video and preserves its guide action in %s', (language, question) => {
+    const matches = retrieveAssistantKnowledge(question, '/games', 4, language);
+    expect(matches[0].id).toBe('importer-video');
+    const result = buildFallbackAssistantResponse(question, matches, language);
+    expect(result.answer).toContain('https://youtu.be/hPoIqh9w_68');
+    expect(sanitizeAssistantActions(result.actions)[0].path).toBe('/guide?section=imports-and-games');
+    expect(safeAssistantRoute('/guide?section=imports-and-games&match=private')).toBe('/guide?section=imports-and-games');
+    expect(safeAssistantRoute('/guide?section=unknown')).toBe('/guide');
+  });
   it('accepts only documented help topics, including the player champions alias', () => {
     expect(normalizeAssistantSection('champion-analysis')).toBe('champion-analysis');
     for (const section of ['opponents', 'match-drafter', 'drafter-analysis']) {
