@@ -6,9 +6,10 @@
 // Frames are LOCAL to their shot unless stated otherwise. Shot i starts XF frames before shot i−1 ends (cross-fade).
 // Real-UI coordinates are CSS px of the capture (src/tuto-discord/captures.json), written « ALIAS.boxKey ».
 // - Site captures (S..): nxt5.org, 1440×900 CSS at 2x, fictitious data.
-// - Discord captures (DC..): the owner's real screenshots, PNG px at 1x. Until they are delivered, their entries are
-//   placeholders (`placeholder: true`, guessed boxes, marked « PLACEHOLDER » in the render). Every Discord target below
-//   is a box reference, so swapping in a real capture and its measured boxes is a change of captures.json only.
+// - Discord: no screenshot could be taken, so each Discord beat is an illustration in the NXT5 charte (card shots whose
+//   views are ./Schematics.tsx, tagged « Illustration »); their beats (t), clicks, keys and typing are below. The
+//   Discord capture slots (dc… entries of captures.json, placeholders) stay unused: TUTO-DISCORD.md says how to switch
+//   a beat back to a real capture.
 import type { AppSpec, Chapter, FilmDef, FilmTexts, PtRef, Shot, Sub } from '../tuto/engine';
 
 export const FPS = 30;
@@ -21,8 +22,7 @@ export const SUB_AFTER_CARD = 38;
 
 export type CapAlias =
   | 'S01' | 'S04' | 'S05' | 'S06' | 'S07' | 'S08' | 'S09' | 'S10' | 'S11' | 'S13' | 'S14' | 'S15' | 'S16' | 'S17'
-  | 'S18' | 'S20' | 'S21' | 'S22' | 'S23' | 'S24' | 'S25' | 'S26' | 'S27'
-  | 'DC01' | 'DC02' | 'DC03' | 'DC04' | 'DC05' | 'DC06' | 'DC08' | 'DC09' | 'DC10' | 'DC11' | 'DC12' | 'DC13' | 'DC14';
+  | 'S18' | 'S20' | 'S21' | 'S22' | 'S23' | 'S24' | 'S25' | 'S26' | 'S27';
 
 export const CAP_IDS: Record<CapAlias, string> = {
   S01: 'site-01-page-bot-discord',
@@ -48,19 +48,6 @@ export const CAP_IDS: Record<CapAlias, string> = {
   S25: 'site-25-apercu-partie',
   S26: 'site-26-apercu-bouton-publier',
   S27: 'site-27-publie-sur-discord',
-  DC01: 'dc01-oauth-serveur',
-  DC02: 'dc02-oauth-autorisations',
-  DC03: 'dc03-oauth-autorise',
-  DC04: 'dc04-salon-bot-nxt5',
-  DC05: 'dc05-commande-lier',
-  DC06: 'dc06-reponse-lier',
-  DC08: 'dc08-verifier-comptes',
-  DC09: 'dc09-compte-lie',
-  DC10: 'dc10-commande-connecter',
-  DC11: 'dc11-serveur-relie',
-  DC12: 'dc12-message-test',
-  DC13: 'dc13-partie-publiee',
-  DC14: 'dc14-visuel-agrandi',
 };
 
 /** Capture apps (engine AppSpec). The site is captured at 2x (screen scale ≤ 2). Its Bot Discord page scrolls under
@@ -71,11 +58,12 @@ export const CAP_IDS: Record<CapAlias, string> = {
 export const APPS = {
   site: { fitH: 900, density: 2, scroll: { band: { x: 264, y: 76, w: 1176, h: 824 }, content: 'teamPanel' } },
   siteExport: { fitH: 900, density: 2, scroll: { band: { x: 182, y: 108, w: 1076, h: 775 }, content: 'preview' } },
+  // native Discord screenshots (1x), for a beat switched back to a real capture (TUTO-DISCORD.md): unused today
   discord: { density: 1 },
 } satisfies Record<string, AppSpec>;
 
-/** Card views of this film: only the engine's (no schematic: Discord is shown by its real captures alone). */
-export type View = 'title' | 'prereq' | 'recap';
+/** Card views of this film: the engine's (title, prereq, recap) and the Discord illustrations (./Schematics.tsx). */
+export type View = 'title' | 'prereq' | 'recap' | 'oauth' | 'lier' | 'verify' | 'connect' | 'testMsg' | 'published' | 'visual';
 
 /** The same page point in any capture of the page: the top-left of `box`, a control present in both captures, plus
  * (dx, dy). A match cut (engine CamKey `cut`) names the same control and offsets on both sides of an instant swap, so
@@ -86,15 +74,15 @@ const on = (box: string, dx: number, dy: number): PtRef => ({ box, ax: 0, ay: 0,
  * camera is then at x 1020.5 (PANEL_X), which also keeps the fixed sidebar and top bar out of frame for match cuts. */
 const PANEL = { z: 2.4, slack: 140 } as const;
 const PANEL_X = 1020.5;
-/** Discord windows enter at z 0.86 (as wide as a site capture at z = 1), so the context chip beside them stays legible;
- * the camera then moves in. */
-const DISCORD_IN = 0.86;
 
 // ───────────────────────────────────────── shots ─────────────────────────────────────────
 // Camera: `at` is the capture point placed at the centre of the working area, `z` multiplies the fit scale (whole
-// capture in the area at z = 1). Sharpness: screen scale = fit × z stays ≤ the app's density (site z ≤ 2.45, Discord
-// z ≤ 1.40 at 1032 px high). Match cuts on the site are taken at z = 2.4 (PANEL), so the fixed sidebar (x < 264) and
-// top bar (y < 76) are out of frame and nothing jumps.
+// capture in the area at z = 1). Sharpness: screen scale = fit × z stays ≤ the app's density (site z ≤ 2.45). Match
+// cuts on the site are taken at z = 2.4 (PANEL), so the fixed sidebar (x < 264) and top bar (y < 76) are out of frame
+// and nothing jumps.
+// Discord illustrations (card shots): each view lays out its own panel; `t` holds its beats (cursor shown / hidden,
+// message arrivals, halos, zoom), `clicks` the clicks (the view glides the cursor onto each target, arriving 8 f
+// before), `keys` the keycaps (Entrée, Ctrl + V) and `typing` the typed command, which also time the sound (cues).
 
 export const SHOTS = {
   // 0 · Titre (5 s)
@@ -141,84 +129,29 @@ export const SHOTS = {
     ],
   },
 
-  // Étape 1 (suite) — autorisation dans Discord : serveur, « Continuer », « Administrateur », « Autoriser »
+  // Étape 1 (suite) — dans Discord (illustration) : choisir le serveur, « Continuer », autorisation « Administrateur »,
+  // « Autoriser ». The real invitation has two pages (server, then permissions): « Continuer » is shown and cited.
+  // After the success, the shot holds just long enough to read it (1e, set by the reading-speed check, ends the shot).
   oauth: {
-    kind: 'capture', app: 'discord', dur: 460,
-    layers: [
-      { f: 0, cap: 'DC01' },
-      { f: 128, cap: 'DC02', note: 'liste des autorisations (coupe franche 2 f après le clic)' },
-      { f: 386, cap: 'DC03', note: 'page de confirmation (coupe franche 2 f après le clic)' },
+    kind: 'card', view: 'oauth', dur: 460,
+    t: { show: 16, perm: 130, spot0: 148, spot1: 318, done: 376, hide: 390 },
+    clicks: [
+      { f: 58, label: 'liste des serveurs (illustration)' },
+      { f: 96, label: '« Horizon Esport » dans la liste (illustration)' },
+      { f: 128, label: '« Continuer » (illustration)' },
+      { f: 374, label: '« Autoriser » (illustration)' },
     ],
-    cam: [
-      { f: 0, z: DISCORD_IN, at: [960, 516] },
-      { f: 44, z: DISCORD_IN, at: [960, 516] },
-      { f: 76, z: 1.25, at: { box: 'DC01.oauthCard' } },
-      // still through « Continuer » and its swap: the camera only reframes on DC02's card once the new page is shown
-      { f: 128, z: 1.25, at: { box: 'DC01.oauthCard' } },
-      { f: 150, z: 1.25, at: { box: 'DC02.oauthCard' } },
-      { f: 178, z: 1.4, at: { box: 'DC02.permissions', ay: 0.7 } },
-      { f: 386, z: 1.4, at: { box: 'DC02.permissions', ay: 0.7 } },
-      { f: 414, z: 1.25, at: { box: 'DC03.confirmation' } },
-    ],
-    cursor: {
-      start: [1500, 720], show: 46, hide: 400,
-      moves: [
-        { f: 76, dur: 18, to: { box: 'DC01.serverSelect', ax: 0.8, ay: 0.6 } },
-        { f: 104, dur: 16, to: { box: 'DC01.continueButton', ax: 0.7, ay: 0.7 } },
-        // « Autoriser » may take the place of « Continuer »: once the ripple is over, the arrow waits beside the card
-        { f: 150, dur: 18, to: { box: 'DC02.oauthCard', ax: 1, ay: 0.6, dx: 160 } },
-        { f: 342, dur: 20, to: { box: 'DC02.authorizeButton', ax: 0.7, ay: 0.7 } },
-      ],
-    },
-    clicks: [{ f: 126, label: '« Continuer » (Discord)' }, { f: 384, label: '« Autoriser » (Discord)' }],
-    halos: [
-      { f0: 82, f1: 106, at: 'DC01.serverSelect', pad: 6, pulse: 102 },
-      { f0: 112, f1: 126, at: 'DC01.continueButton', pad: 4 },
-      { f0: 178, f1: 320, at: 'DC02.adminPermission', pad: 6, spot: true },
-      { f0: 360, f1: 384, at: 'DC02.authorizeButton', pad: 4 },
-      { f0: 396, f1: 446, at: 'DC03.confirmation', pad: 6, spot: true },
-    ],
-    // the server list is a native list, not captured: the chosen server is shown, then pointed out
-    hovers: [{ f: 102, label: 'serveur choisi dans la liste (liste non capturée) : survol' }],
-    success: [{ f: 386, label: 'autorisation confirmée : le bot rejoint le serveur' }],
-    context: { f0: 8, f1: 44, title: 'Discord', sub: 'autorisation du bot', icon: 'messages' },
-    tag: null,
+    success: [{ f: 376, label: 'autorisation confirmée : le bot rejoint le serveur (illustration)' }],
   },
 
-  // Étape 2 — dans Discord : /nxt lier, la réponse privée du bot, « Ouvrir NXT5 »
+  // Étape 2 — dans Discord (illustration) : /nxt lier tapé et envoyé, la réponse privée du bot, « Ouvrir NXT5 »
   lier: {
-    kind: 'capture', app: 'discord', dur: 314,
-    // the typed command and Discord's command list stay 66 f, long enough to read the entry
-    layers: [
-      { f: 0, cap: 'DC04' },
-      { f: 130, cap: 'DC05', xf: 8, note: '« /nxt lier » tapé, liste des commandes de Discord' },
-      { f: 196, cap: 'DC06', note: 'réponse privée du bot « Lier ton compte NXT5 » (coupe franche sur Entrée)' },
-    ],
-    cam: [
-      { f: 0, z: DISCORD_IN, at: [960, 516] },
-      // the chip fades out (78 + 10 f) before the window grows towards it
-      { f: 88, z: DISCORD_IN, at: [960, 516] },
-      { f: 118, z: 1.35, at: { box: 'DC04.messageField', ax: 0.3, ay: 0 } },
-    ],
-    cursor: {
-      start: [1500, 640], show: 84, hide: 296,
-      moves: [
-        { f: 96, dur: 18, to: { box: 'DC04.messageField', ax: 0.2, ay: 0.5 } },
-        { f: 252, dur: 18, to: { box: 'DC06.openButton', ax: 0.7, ay: 0.7 } },
-      ],
-    },
-    clicks: [{ f: 122, label: 'champ de message de #bot-nxt5' }, { f: 288, label: '« Ouvrir NXT5 » (message du bot)' }],
-    halos: [
-      { f0: 138, f1: 190, at: 'DC05.commandLier', pad: 4 },
-      { f0: 202, f1: 256, at: 'DC06.botReply', pad: 6, spot: true },
-      { f0: 266, f1: 288, at: 'DC06.openButton', pad: 4 },
-    ],
-    // keycap above the right end of Discord's command list, clear of its rows (the app's name at their right end) and,
-    // after the cut, of the messages (left-aligned) that the key brings in
-    keycaps: [{ f0: 188, f1: 210, keys: ['Entrée'], at: { box: 'DC05.commandList', ax: 0.8, ay: 0 }, dx: 0, dy: -36 }],
-    success: [{ f: 196, label: 'réponse privée du bot « Lier ton compte NXT5 »' }],
-    context: { f0: 42, f1: 78, title: 'Discord', sub: 'salon #bot-nxt5', icon: 'messages' },
-    tag: null,
+    kind: 'card', view: 'lier', dur: 304,
+    t: { show: 46, reply: 166, spot0: 180, spot1: 226, hide: 280 },
+    clicks: [{ f: 80, label: 'champ de message de #bot-nxt5 (illustration)' }, { f: 262, label: '« Ouvrir NXT5 » (réponse du bot, illustration)' }],
+    typing: { f0: 88, f1: 115, text: '/nxt lier' },
+    keys: [{ f: 150, label: 'Entrée : « /nxt lier » est envoyé' }],
+    success: [{ f: 166, label: 'réponse privée du bot « Lier ton compte NXT5 »' }],
   },
 
   // Étape 2 (suite) — nxt5.org, ouvert par le lien du bot : vérifier les deux comptes, « Confirmer mon compte NXT5 »
@@ -251,35 +184,13 @@ export const SHOTS = {
     context: { f0: 8, f1: 44, title: 'nxt5.org', sub: 'depuis le lien du bot' },
   },
 
-  // Étape 2 (suite) — retour dans Discord : « Vérifier la liaison », puis « Confirmer la liaison »
+  // Étape 2 (suite) — retour dans Discord (illustration) : « Vérifier la liaison », puis « Confirmer la liaison »
   verifyDiscord: {
-    kind: 'capture', app: 'discord', dur: 190,
-    layers: [
-      { f: 0, cap: 'DC06' },
-      { f: 46, cap: 'DC08', note: 'nouveau message « Vérifie les deux comptes » (coupe franche 2 f après le clic)' },
-      { f: 126, cap: 'DC09', note: 'nouveau message « Compte lié » (coupe franche 2 f après le clic)' },
-    ],
-    cam: [{ f: 0, z: 1.35, at: { box: 'DC06.messageField', ax: 0.3, ay: 0 } }],
-    // The new message brings « Annuler » where « Vérifier la liaison » was: the arrow and its ripple leave with the old
-    // screen, and the arrow comes back right of the messages while the accounts are checked. After the last click, the
-    // new message « Compte lié » comes under the arrow: it fades out.
-    cursor: {
-      start: [1500, 640], show: 4, cut: 46, back: 64, hide: 126,
-      moves: [
-        { f: 12, dur: 18, to: { box: 'DC06.verifyButton', ax: 0.7, ay: 0.7 } },
-        { f: 50, dur: 1, to: { box: 'DC08.botReply', ax: 1, ay: 0.6, dx: 200 } },
-        { f: 98, dur: 16, to: { box: 'DC08.confirmButton', ax: 0.7, ay: 0.7 } },
-      ],
-    },
-    clicks: [{ f: 44, label: '« Vérifier la liaison » (message du bot)' }, { f: 124, label: '« Confirmer la liaison » (message du bot)' }],
-    halos: [
-      { f0: 28, f1: 44, at: 'DC06.verifyButton', pad: 4 },
-      { f0: 52, f1: 100, at: 'DC08.accounts', pad: 8, spot: true },
-      { f0: 110, f1: 124, at: 'DC08.confirmButton', pad: 4 },
-      { f0: 132, f1: 180, at: 'DC09.linkedReply', pad: 6, spot: true },
-    ],
-    success: [{ f: 126, label: 'message du bot « Compte lié »' }],
-    tag: null,
+    kind: 'card', view: 'verify', dur: 230,
+    // « Compte lié » stays ≈ 2 s once settled (its title and two lines are read under the spotlight)
+    t: { show: 4, review: 52, accounts0: 72, accounts1: 108, done: 140, spot0: 156, spot1: 216, hide: 210 },
+    clicks: [{ f: 46, label: '« Vérifier la liaison » (réponse du bot, illustration)' }, { f: 134, label: '« Confirmer la liaison » (illustration)' }],
+    success: [{ f: 140, label: 'message du bot « Compte lié »' }],
   },
 
   // Étape 2 (fin) — nxt5.org : « J’ai confirmé dans Discord · Vérifier », « Compte lié »
@@ -350,31 +261,17 @@ export const SHOTS = {
     success: [{ f: 202, label: '« Commande copiée. »' }],
   },
 
-  // Étape 3 (suite) — Discord : coller la commande, l’envoyer
+  // Étape 3 (suite) — Discord (illustration) : coller la commande (Ctrl + V), l’envoyer (Entrée), la réponse du bot
   connectDiscord: {
-    kind: 'capture', app: 'discord', dur: 170,
-    layers: [
-      { f: 0, cap: 'DC09' },
-      { f: 52, cap: 'DC10', note: 'commande collée (coupe franche sur V, comme un collage)' },
-      { f: 100, cap: 'DC11', note: 'réponse du bot « Serveur relié à cette équipe NXT5. » (coupe franche sur Entrée)' },
+    kind: 'card', view: 'connect', dur: 222,
+    // the bot's 3-line reply (it names the next step) stays ≈ 2.5 s once settled
+    t: { show: 4, ring0: 58, reply: 116, spot0: 132, spot1: 208, hide: 202 },
+    clicks: [{ f: 38, label: 'champ de message de #bot-nxt5 (illustration)' }],
+    keys: [
+      { f: 50, paste: true, label: 'Ctrl + V : « /nxt connecter code:7F3A-92C1-D04E-B58B » est collé d’un coup' },
+      { f: 102, label: 'Entrée : la commande est envoyée' },
     ],
-    cam: [{ f: 0, z: 1.35, at: { box: 'DC09.messageField', ax: 0.3, ay: 0 } }],
-    // the click falls right of where the command is pasted (left-aligned), so the arrow never hides its code
-    cursor: {
-      start: [1500, 640], show: 4, hide: 150,
-      moves: [{ f: 12, dur: 18, to: { box: 'DC09.messageField', ax: 0.7, ay: 0.5 } }],
-    },
-    clicks: [{ f: 38, label: 'champ de message de #bot-nxt5' }],
-    halos: [
-      { f0: 58, f1: 92, at: 'DC10.command', pad: 6 },
-      { f0: 108, f1: 160, at: 'DC11.connectedReply', pad: 6, spot: true },
-    ],
-    keycaps: [
-      { f0: 44, f1: 72, keys: ['Ctrl', 'V'], at: { box: 'DC09.messageField', ax: 0.8, ay: 0 }, dx: 0, dy: -36 },
-      { f0: 92, f1: 114, keys: ['Entrée'], at: { box: 'DC10.messageField', ax: 0.8, ay: 0 }, dx: 0, dy: -36 },
-    ],
-    success: [{ f: 100, label: 'réponse du bot « Serveur relié à cette équipe NXT5. »' }],
-    tag: null,
+    success: [{ f: 116, label: 'réponse du bot « Serveur relié à cette équipe NXT5. »' }],
   },
 
   // Étape 3 (fin) — nxt5.org : « Serveur : Horizon Esport », « Serveur relié »
@@ -503,19 +400,12 @@ export const SHOTS = {
     success: [{ f: 152, label: '« Test reçu sur Discord »' }],
   },
 
-  // Étape 5 (suite) — Discord : le message de test dans #résultats
+  // Étape 5 (suite) — Discord (illustration) : le message de test arrive dans #résultats, puis le haut de son visuel
   testDiscord: {
-    kind: 'capture', app: 'discord', dur: 150,
-    layers: [{ f: 0, cap: 'DC12' }],
-    cam: [
-      { f: 0, z: DISCORD_IN, at: [960, 516] },
-      { f: 48, z: DISCORD_IN, at: [960, 516] },
-      { f: 78, z: 1.25, at: { box: 'DC12.testMessage' } },
-    ],
+    kind: 'card', view: 'testMsg', dur: 200,
+    t: { msg: 16, spot0: 34, spot1: 84, zoom0: 96, zoom1: 136 },
     clicks: [],
-    halos: [{ f0: 82, f1: 138, at: 'DC12.testMessage', pad: 6, spot: true }],
-    context: { f0: 8, f1: 44, title: 'Discord', sub: 'salon #résultats', icon: 'messages' },
-    tag: 'fictiveGame',
+    success: [{ f: 16, label: 'message de test dans #résultats (illustration)' }],
   },
 
   // Étape 5 (fin) — « Activer la diffusion », récapitulatif, « Confirmer l’activation », « Diffusion active »
@@ -618,43 +508,20 @@ export const SHOTS = {
     success: [{ f: 372, label: '« Publié sur Discord. »' }],
   },
 
-  // Étape 6 (fin) — Discord : la partie dans #résultats, clic sur le visuel
+  // Étape 6 (fin) — Discord (illustration) : la partie arrive dans #résultats, clic sur son visuel
   publishedDiscord: {
-    kind: 'capture', app: 'discord', dur: 162,
-    layers: [{ f: 0, cap: 'DC13' }],
-    cam: [
-      { f: 0, z: DISCORD_IN, at: [960, 516] },
-      { f: 48, z: DISCORD_IN, at: [960, 516] },
-      { f: 78, z: 1.25, at: { box: 'DC13.gameMessage' } },
-    ],
-    // the cursor is gone before the dip to the image viewer (hide + 8 f = start of the transition)
-    cursor: {
-      start: [1500, 640], show: 70, hide: 144,
-      moves: [{ f: 104, dur: 18, to: { box: 'DC13.gameImage', ax: 0.6, ay: 0.5 } }],
-    },
-    clicks: [{ f: 136, label: 'visuel de la partie (message du bot)' }],
-    halos: [
-      { f0: 80, f1: 116, at: 'DC13.gameTitle', pad: 6 },
-      { f0: 118, f1: 136, at: 'DC13.gameImage', pad: 4 },
-    ],
-    success: [{ f: 10, label: 'message de la partie dans #résultats' }],
-    context: { f0: 8, f1: 44, title: 'Discord', sub: 'salon #résultats', icon: 'messages' },
-    tag: 'fictiveGame',
+    kind: 'card', view: 'published', dur: 160,
+    t: { msg: 18, show: 36, title0: 44, title1: 84, hide: 136 },
+    clicks: [{ f: 120, label: 'visuel de la partie (message du bot, illustration)' }],
+    success: [{ f: 18, label: 'message de la partie dans #résultats (illustration)' }],
   },
 
-  // C’est fait — le visuel en grand dans Discord
+  // C’est fait — le visuel de la partie en grand (illustration : la PNG publiée par le bot), lent panoramique vertical
   doneViewer: {
-    kind: 'capture', app: 'discord', dur: 276,
-    layers: [{ f: 0, cap: 'DC14' }],
-    cam: [
-      { f: 0, z: 1, at: [960, 516] },
-      { f: 20, z: 1, at: [960, 516] },
-      { f: 120, z: 1.15, at: { box: 'DC14.viewerImage', ay: 0.4 }, ease: 'glide' },
-    ],
+    kind: 'card', view: 'visual', dur: 276,
+    t: { pan0: 120, pan1: 262, chip1: 110 },
     clicks: [],
-    halos: [],
     success: [{ f: 8, label: 'visuel de la partie en grand' }],
-    tag: 'fictiveGame',
   },
 
   // À retenir (8 s)
@@ -701,11 +568,11 @@ export const SUBS: Sub<ShotId>[] = [
     verbatim: 'Discord s’ouvre : choisis ton serveur, puis « Continuer ».' },
   { id: '1d', shot: 'oauth', f: 130, lines: ['Le bot demande l’autorisation « Administrateur » :', 'tous les droits, y compris dans les salons privés.'],
     verbatim: 'Le bot demande l’autorisation « Administrateur » : tous les droits, y compris dans les salons privés.' },
-  { id: '1e', shot: 'oauth', f: 330, lines: ['Clique sur « Autoriser » : le bot rejoint ton serveur.'],
+  { id: '1e', shot: 'oauth', f: 332, lines: ['Clique sur « Autoriser » : le bot rejoint ton serveur.'],
     verbatim: 'Clique sur « Autoriser » : le bot rejoint ton serveur.' },
   { id: '2a', shot: 'lier', f: SUB_AFTER_CARD, lines: ['Dans un salon de ton serveur, tape {/nxt lier}', 'et envoie la commande.'],
     verbatim: 'Dans un salon de ton serveur, tape /nxt lier et envoie la commande.' },
-  { id: '2b', shot: 'lier', f: 210, lines: ['Le bot te répond en privé :', 'clique sur « Ouvrir NXT5 ».'],
+  { id: '2b', shot: 'lier', f: 196, lines: ['Le bot te répond en privé :', 'clique sur « Ouvrir NXT5 ».'],
     verbatim: 'Le bot te répond en privé : clique sur « Ouvrir NXT5 ».' },
   { id: '2c', shot: 'confirmSite', f: 24, lines: ['Vérifie les deux comptes et clique', 'sur « Confirmer mon compte NXT5 ».'],
     verbatim: 'Vérifie les deux comptes et clique sur « Confirmer mon compte NXT5 ».' },
@@ -740,7 +607,8 @@ export const SUBS: Sub<ShotId>[] = [
   { id: '6b', shot: 'exportSite', f: 160, lines: ['Clique sur « Préparer l’aperçu ».'], verbatim: 'Clique sur « Préparer l’aperçu ».' },
   { id: '6c', shot: 'exportSite', f: 260, lines: ['Vérifie l’aperçu, puis clique', 'sur « Publier dans #résultats ».'],
     verbatim: 'Vérifie l’aperçu, puis clique sur « Publier dans #résultats ».' },
-  { id: '6d', shot: 'publishedDiscord', f: 0, lines: ['Ta partie est dans le salon.'], verbatim: 'Ta partie est dans le salon.' },
+  { id: '6d', shot: 'publishedDiscord', f: 0, lines: ['Ta partie est dans le salon :', 'clique sur son visuel pour l’agrandir.'],
+    verbatim: 'Ta partie est dans le salon : clique sur son visuel pour l’agrandir.' },
   { id: '7a', shot: 'doneViewer', f: 12, lines: ['C’est fait : ta partie est publiée sur Discord.'],
     verbatim: 'C’est fait : ta partie est publiée sur Discord.' },
   { id: '7b', shot: 'doneViewer', f: 120, lines: ['Les nouvelles parties importées', 'sont ensuite publiées automatiquement.'],

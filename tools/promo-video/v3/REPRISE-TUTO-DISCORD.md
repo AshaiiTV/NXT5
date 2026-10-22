@@ -23,8 +23,8 @@ Une vidéo YouTube tutoriel en français, au même format que celle de l’Impor
 **Déjà fait :**
 - **Moteur de tutoriel partagé.** `src/tuto/engine.ts`, `TutoFilm.tsx` et `FilmContext.ts` servent aux deux films. `TutoImporter` en sort identique au pixel près.
 - **Captures du site.** 28 PNG dans `public/tuto-discord/site-*.png`, avec leurs cadres dans `src/tuto-discord/captures.json`. Le script est `capture/discord/run-site.sh`, et tous les noms viennent de `capture/discord/names.json`.
-- **Film `TutoDiscord`** (`src/tuto-discord/`, storyboard `TUTO-DISCORD.md`) : 2 min 43 environ, 6 étapes.
-- **Pendant l’attente des vraies captures**, les passages Discord étaient soit des emplacements provisoires « PLACEHOLDER » (le rendu final les refuse), soit des illustrations dans la charte NXT5, selon le dernier commit de la branche. Lire l’en-tête de `TUTO-DISCORD.md` pour l’état exact.
+- **Film `TutoDiscord`** (`src/tuto-discord/`, storyboard `TUTO-DISCORD.md`) : 2 min 47 environ (5 024 images), 6 étapes.
+- **Version de secours pour Discord.** En attendant les vraies captures, les passages Discord sont 7 illustrations dans la charte NXT5 (`src/tuto-discord/Schematics.tsx`, marquées « Illustration ») : autorisation du bot en deux temps, `/nxt lier`, vérification et confirmation de la liaison, `/nxt connecter`, message de test, partie publiée, visuel en grand. Elles citent mot pour mot les textes du bot et montrent les vraies images publiées. Elles ont été relues et corrigées, et le film peut déjà être rendu tel quel. Les vraies captures les remplacent : procédure « Revenir à une vraie capture » de `TUTO-DISCORD.md` (les plans de capture d’origine sont au commit `cd159d0`).
 
 **Reste à faire, dans l’ordre :**
 1. **Les captures Discord réelles.** Suivre `capture/discord/BRIEF-CAPTURES-DISCORD.md` à la lettre : qui fait quoi, écritures annoncées, masquage avec `mask.ps1`, manifeste, push.
@@ -34,7 +34,7 @@ Une vidéo YouTube tutoriel en français, au même format que celle de l’Impor
    - Si une séance précédente a déjà rempli `capture/discord/raw-local/`, réutiliser ces captures brutes : les masquer, les vérifier, remplir le manifeste et pousser.
 2. **L’intégration.**
    - Relancer la capture du site : `run-site.sh` recopie dans `names.json` le nom du serveur, la commande de liaison et sa date depuis `public/tuto-discord/real/manifest.json`. Il faut `SITE_ROOT` vers une copie du site avec ses `node_modules` (`npm ci` à la racine du dépôt). Le rendu des aperçus a besoin du réseau (icônes Data Dragon).
-   - Remplacer chaque passage Discord par la vraie capture, en suivant la procédure de `TUTO-DISCORD.md` : alias dans le script, cadres mesurés sur la PNG (`captures.json`, application `discord` en densité 1), même taille pour toutes les captures d’un plan.
+   - Remplacer chaque illustration Discord par la vraie capture, en suivant la procédure « Revenir à une vraie capture » de `TUTO-DISCORD.md` : alias dans le script, cadres mesurés sur la PNG (`captures.json`, application `discord` en densité 1), même taille pour toutes les captures d’un plan.
    - Recouvrir les aplats magenta de `masks.json` par un cache soigné dans la charte.
    - Retirer le marquage provisoire.
 3. **Les contrôles.** `npx tsc --noEmit`, `node src/tuto/export-cues.mjs discord --write`, puis `node src/tuto/export-cues.mjs importer`, dont la sortie doit rester identique à `src/tuto/cues.json`.

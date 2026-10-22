@@ -25,6 +25,8 @@ mkdir -p "$HERE/.logs"
 node "$HERE/sync-names.cjs"
 # 2. Test message and game preview, rendered by the server code (Data Dragon icons: global fetch honours HTTPS_PROXY).
 SITE_ROOT="$SITE_ROOT" NODE_PATH="$SITE_ROOT/node_modules" NODE_USE_ENV_PROXY="${NODE_USE_ENV_PROXY:-1}" node "$HERE/render-payloads.cjs"
+# The film's Discord illustrations show the very PNGs the bot attaches (src/tuto-discord/Schematics.tsx).
+cp "$HERE/fixtures/payload-test.png" "$HERE/fixtures/payload-preview.png" "$HERE/../../public/tuto-discord/"
 # 3. Vite + capture.
 (cd "$SITE_ROOT" && exec node node_modules/vite/bin/vite.js --host 127.0.0.1 --port "$PORT" --strictPort) > "$HERE/.logs/vite.log" 2>&1 &
 VITE_PID=$!

@@ -98,6 +98,10 @@ export type CardShot<V extends string = string> = {
   t: Record<string, number>;
   clicks: Click[];
   success?: Moment[];
+  /** Keys pressed in the schematic, whose keycap the view draws (pressed at f): cue `key`, or `paste` for a paste. */
+  keys?: (Moment & { paste?: boolean })[];
+  /** Text typed in the schematic, character by character from f0 to f1 (cues typing-start and typing-end). */
+  typing?: { f0: number; f1: number; text: string };
   /** Corner tag, when it differs from the default (none on title, prereq and recap; « Illustration » otherwise). */
   tag?: Tag;
 };
@@ -259,6 +263,12 @@ export function buildCues(film: Film): Cue[] {
       if (s.reveal) {
         add(g + s.reveal.t0, 'typing-start', id, `frappe « ${s.reveal.text} » (${s.reveal.steps.length} caractères, le premier remplace la sélection)`);
         add(g + s.reveal.t1, 'typing-end', id, 'fin de la frappe');
+      }
+    } else {
+      for (const k of s.keys ?? []) add(g + k.f, k.paste ? 'paste' : 'key', id, k.label);
+      if (s.typing) {
+        add(g + s.typing.f0, 'typing-start', id, `frappe « ${s.typing.text} » (schéma)`);
+        add(g + s.typing.f1, 'typing-end', id, 'fin de la frappe');
       }
     }
   });
