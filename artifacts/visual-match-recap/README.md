@@ -8,9 +8,39 @@ La disposition compacte du Face-à-face (version 1.100) et la courbe d’or bleu
 
 Le contrôle de cette publication confirme les 86 ressources publiques JS/CSS en HTTP 200, le module de fiche identique à l’aperçu après normalisation des références, la courbe bleue/rouge interactive et le Face-à-face compact dans un parcours authentifié en lecture seule. Le rendu à 1440 et 320 px, le clavier, le dialogue de rôle et son retour de focus sont vérifiés, sans erreur console observée ni donnée de compte modifiée. Preuves : `release214.json`, `release214-preview-http.json`, `release214-production-http.json` et captures `release214-*-production*.png`.
 
-La **version 1.102 — carte des éliminations — est locale et non publiée**, sur `codex/match-kill-map`. La production attestée ci-dessus reste en version 1.101 ; les contrôles de carte ci-dessous portent uniquement sur l’aperçu local et ses données fictives.
+La **version 1.102 — carte des éliminations — est publiée** par la [PR nº 215](https://github.com/AshaiiTV/NXT5/pull/215), fusionnée au commit `03d44d6cb3206ec24cc2f583f4b41ff371dab923`. Le contenu correspond au head vérifié `0b9b7f2526716d09db98653cab211cc4695c3d19` (arbre commun `c2620909726d1bbf81359041a670a4712e475a43`). Les workflows de [la PR](https://github.com/AshaiiTV/NXT5/actions/runs/40025264488) et de [main](https://github.com/AshaiiTV/NXT5/actions/runs/40026091830) réussissent, audit inclus. Le [déploiement Netlify](https://app.netlify.com/projects/nxt5/deploys/6adbcfb80bd0f3dfb05d3a5f) est `READY` et publié le 23 octobre 2026 à 23 h 23 min 48 s, heure de Paris.
 
-## Version 1.102 locale — Carte des éliminations
+Le contrôle de production de la carte confirme cinq routes et 83 ressources JS/CSS en HTTP 200, le module identique à l’aperçu après normalisation des références et le fond de carte identique au fichier local. Le parcours authentifié en lecture seule montre 25 points, dont neuf alliés et seize adverses, une carte par vue, le bloc d’impact retiré, le survol et le clavier fonctionnels à 1440 et 320 px, sans débordement ni nouvelle erreur console. Aucune donnée de compte modifiée. Preuves : `release215.json`, `release215-main-workflow.json`, `release215-preview-http.json`, `release215-production-http.json`, `release215-browser-results.json` et les quatre captures `release215-*-production*.png`.
+
+Les **versions 1.103 — filtre d’équipe de la carte — et 1.104 — courbe commune au Récap et à Chronologie — sont locales et non publiées**, réunies dans la [PR nº 216](https://github.com/AshaiiTV/NXT5/pull/216), sur `codex/kill-map-team-filter`. Les contrôles suivants portent sur l’aperçu local avec données fictives ; ils restent distincts de la publication de la version 1.102 attestée ci-dessus.
+
+## Version 1.104 locale — La même courbe dans Récap et Chronologie
+
+24 octobre 2026, heure de Paris. Chronologie réutilise exactement `MatchGoldChart` et le même instantané de publication que le Récap : mêmes relevés, tracés, points, couleurs bleu/rouge, survol dans tout le cadre, clavier, tableau accessible et interruptions en cas de données manquantes. L’ancien SVG autonome, les repères économiques 10/15/20 minutes et les relevés présentés une seconde fois sont retirés. La carte des éliminations, son filtre partagé et le journal des moments clés sont conservés.
+
+- **Navigateur local :** identité exacte des 32 points et cinq portions bleues/rouges entre Récap et Chronologie. Le survol hors du tracé affiche 5:00 / +1 800 ; Début revient à 0:00 et Fin atteint le dernier relevé à 31:00 / −9 484. Largeurs contrôlées : 320, 360, 390 (rendu mesuré à 391), 768, 1024 et 1440 px, sans débordement. Sur mobile, les valeurs restent sous la courbe. Noms longs, espagnol et état indisponible sont inspectés.
+- **Captures inspectées :** `timeline-shared-chart-desktop.png`, `timeline-shared-chart-320.png`, `timeline-shared-chart-390.png`, `timeline-shared-chart-long-es-320.png`, `timeline-shared-chart-empty-320.png` et `timeline-shared-recap-320.png`, avec données fictives. Aucune nouvelle erreur console après le dernier rechargement ; l’ancien avertissement `createRoot` concernait le rechargement à chaud. Revue indépendante finale sans défaut restant identifié ; le nom adverse de repli est couvert par les tests.
+- **Contrôle complet :** `npm run verify` réussit : 234 suites, 4 477 tests, 3 778 messages explicitement traduits en anglais et espagnol, typage et compilation en 7,01 s avec 13 pages prérendues. Journal : `timeline-shared-chart-verify.log`.
+- **Portée :** évolution locale incluse dans la PR nº 216 avec le filtre de la version 1.103 ; aucune publication de cet ensemble n’est attestée.
+
+## Version 1.103 locale — Filtrer les éliminations par équipe
+
+- Trois boutons permettent de choisir « Les deux » (`ALL`, valeur initiale), « Mon équipe » (`ALLY`) ou « Adversaires » (`ENEMY`). Les exécutions et les éliminations d’équipe indéterminée apparaissent uniquement dans « Les deux ». La couleur bleue/rouge continue de suivre notre équipe/l’adversaire, indépendamment du côté joué.
+- Les points, compteurs, légende, détails de survol et commandes de parcours utilisent tous le sous-ensemble choisi. Changer de filtre efface la sélection précédente ; les points superposés du sous-ensemble restent accessibles au clavier et avec précédent/suivant. Un filtre sans point garde un état explicite.
+- Les informations de qualité des données concernent toujours la partie entière. Sous « Mon équipe » ou « Adversaires », leur préfixe « Toute la partie » distingue ces informations des compteurs filtrés ; aucun événement non attribuable n’est artificiellement affecté à une équipe.
+- La préférence est partagée entre Récap et Chronologie, conservée lors d’un changement de vue ou de l’actualisation de la même partie, puis réinitialisée à « Les deux » au changement de partie ou d’équipe.
+- Le contrôle réutilise trois `Button` dans un groupe accessible, avec `aria-pressed`, une hauteur minimale de 44 px et 8 px d’espacement. À 300 px de largeur du conteneur ou moins, les choix passent sur deux lignes. Entrée et Espace activent les boutons ; aucun sous-onglet n’est ajouté.
+
+### Vérification locale du filtre
+
+- **Tests ciblés :** 34 tests de vue et quatre suites d’intégration, totalisant 90 tests, réussissent. Revue indépendante sans défaut restant identifié.
+- **Contrôle complet :** `npm run verify` réussit : 234 suites, 4 474 tests, 3 790 messages explicitement traduits en anglais et espagnol, typage et compilation avec 13 pages prérendues. Journal : `kill-filter-verify.log`.
+- **Navigateur :** aperçu local avec données fictives contrôlé à 1440 et 320 px, en FR/EN/ES, avec noms longs et filtre vide. Le scénario principal passe de 34 points dans « Les deux » (dont une exécution grise) à 12 alliés ou 21 adverses. Persistance entre vues et après actualisation, remise à zéro au changement de partie, et activation par Espace/Entrée vérifiées.
+- **Captures :** `kill-filter-recap-desktop.png`, `kill-filter-timeline-320.png`, `kill-filter-empty-320.png` et `kill-filter-long-es-320.png`.
+- **Portée :** validation locale uniquement, sans mutation de données ni publication de la version 1.103. Les contrôles tactiles antérieurs reposent sur des tests de `pointerdown` ; aucun appareil tactile réel n’est attesté.
+
+
+## Version 1.102 publiée — Carte des éliminations
 
 - La carte remplace entièrement « Qui a le plus d’impact ? » dans le Récap et apparaît aussi dans Chronologie, à côté de l’économie sur ordinateur et dans une disposition verticale sur petit écran. Le Face-à-face reste accessible directement par son onglet ; aucun sous-onglet n’est ajouté.
 - Les points bleus (`#60a5fa`) désignent les éliminations réalisées par notre équipe ; les rouges (`#f87171`), celles de l’adversaire. Ces couleurs suivent les équipes, même si notre équipe joue côté rouge. Les exécutions et les équipes non identifiées restent grises ; ne pas attribuer une exécution à l’équipe opposée à la victime.
@@ -18,7 +48,7 @@ La **version 1.102 — carte des éliminations — est locale et non publiée**,
 - Le survol près d’un point, le toucher, les flèches, Début/Fin et les boutons précédent/suivant donnent accès à la minute, aux champions impliqués et aux assistances connues. Les événements superposés restent tous accessibles par les commandes de parcours. Les boutons de 44 px conservent leur focus aux extrémités ; Échap efface la sélection.
 - Le chargement et l’échec du détail de partie sont transmis aux deux emplacements. Une absence de chronologie, des positions manquantes ou invalides, un fond indisponible et une carte non prise en charge gardent des états distincts. Les compteurs décrivent les points localisés ; le nombre d’éliminations non localisables ou l’incomplétude des événements reste explicite. « Aucune élimination enregistrée » est réservé à une chronologie disponible sans élimination et sans statistique finale contradictoire.
 
-### Vérification locale de la carte
+### Vérification locale historique de la carte
 
 - **Contrôle complet :** `npm run verify` réussit : 234 suites, 4 453 tests, 3 788 messages explicitement traduits en anglais et espagnol, typage et compilation avec 13 pages prérendues. Journal : `kill-map-verify-final.log`.
 - **Navigateur :** composants réels dans l’aperçu local avec données fictives uniquement, contrôlés à 320, 391, 768, 1024 et 1440 px sans débordement. Vérifications FR/EN/ES, survol des points bleus et rouges, commandes Début/Fin et précédent/suivant, avec conservation du focus.
@@ -26,7 +56,7 @@ La **version 1.102 — carte des éliminations — est locale et non publiée**,
 - **Toucher :** la sélection par `pointerdown` est couverte par les tests de composant ; aucun appareil tactile réel n’a été utilisé pour cette validation.
 - **Revue et preuves :** revue indépendante finale sans défaut restant identifié. Résultats détaillés du navigateur : `kill-map-browser-results.json`.
 - **Captures finales :** `kill-map-recap-desktop.png`, `kill-map-timeline-desktop.png`, `kill-map-recap-320.png`, `kill-map-timeline-320.png` et `kill-map-long-en-320.png`. Aucune nouvelle erreur console après le dernier rechargement.
-- **Portée :** aucune donnée de compte ni permission modifiée, aucune publication de la version 1.102. Les preuves de production des versions précédentes sont conservées séparément.
+- **Portée :** aucune donnée de compte ni permission modifiée pendant ces contrôles locaux. La version 1.102 a ensuite été publiée selon les preuves de production distinctes ci-dessus.
 
 
 ## Version 1.101 publiée — Courbe d’or bleue/rouge

@@ -56,6 +56,10 @@ const teamManagement = {
   "Gère l’effectif, les invitations et les informations de ton équipe.": "Manage your team's roster, invitations and details.",
 };
 const matchKillMap = {
+  "Filtrer les éliminations": "Filter kills",
+  "Les deux": "Both",
+  "Mon équipe": "My team",
+  "Aucune élimination localisée pour cette équipe": "No located kills for this team",
   "1 élimination localisée": "1 located kill",
   "1 élimination non localisable": "1 kill cannot be located",
   "Carte des éliminations": "Kill map",

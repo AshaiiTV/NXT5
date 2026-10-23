@@ -1,6 +1,12 @@
 .match-kill-map { --mkm-ally:#60a5fa; --mkm-enemy:#f87171; --mkm-neutral:var(--nxt5-muted); min-width:0; padding:20px; border:1px solid var(--nxt5-glass-border); border-radius:var(--nxt5-radius-panel,16px); background:var(--nxt5-glass-background); color:var(--nxt5-text); container-type:inline-size; }
 .mkm-header h4 { display:flex; align-items:center; gap:9px; margin:0; font-size:18px; line-height:1.4; font-weight:650; }
 .mkm-header svg { width:20px; height:20px; flex:none; color:var(--nxt5-accent-2); }
+.mkm-filters { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:14px; }
+.mkm-filters .nxt5-control { --mkm-filter-color:var(--nxt5-accent-2); min-height:44px; padding:8px 6px; border-radius:8px; font-size:var(--nxt5-font-small); line-height:1.3; }
+.mkm-filters .nxt5-control[data-team="ALLY"] { --mkm-filter-color:var(--mkm-ally); }
+.mkm-filters .nxt5-control[data-team="ENEMY"] { --mkm-filter-color:var(--mkm-enemy); }
+.mkm-filters .nxt5-control[aria-pressed="true"] { color:var(--nxt5-text) !important; border-color:var(--mkm-filter-color) !important; background:color-mix(in srgb,var(--mkm-filter-color) 16%,transparent) !important; box-shadow:inset 0 -2px var(--mkm-filter-color); }
+.mkm-filters .nxt5-control:focus-visible { outline:2px solid var(--nxt5-accent); outline-offset:3px; }
 .mkm-legend { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 16px; margin:14px 0; font-size:var(--nxt5-font-small); line-height:1.4; }
 .mkm-legend > span { display:flex; align-items:center; gap:6px; min-width:0; }
 .mkm-legend > span > span { overflow-wrap:anywhere; color:var(--nxt5-text-secondary); }
@@ -42,6 +48,7 @@
 .mkm-empty p { margin:0; }
 .mkm-loader { animation:mkm-spin 1s linear infinite; }
 @keyframes mkm-spin { to { transform:rotate(360deg); } }
+@container (max-width:300px) { .mkm-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } .mkm-filters [data-team="ALL"] { grid-column:1 / -1; } }
 @container (max-width:270px) { .mkm-champion { flex-direction:column; align-items:flex-start; } .mkm-readout { min-height:120px; } }
 @media (max-width:600px) { .match-kill-map { padding:16px; } }
 @media (prefers-reduced-motion:reduce) { .mkm-loader { animation:none; } }

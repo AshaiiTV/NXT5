@@ -28,6 +28,11 @@ const text = (node) => typeof node === "string" ? node : (node?.children || []).
 const plot = (r) => r.root.findByProps({ className: "mkm-plot" });
 const readout = (r) => r.root.findByProps({ className: "mkm-readout" });
 const button = (r, label) => r.root.findAllByType("button").find((node) => node.props["aria-label"] === t(label));
+const filters = (r) => r.root.findByProps({ role: "group", "aria-label": t("Filtrer les éliminations") });
+const filterButton = (r, label) => filters(r).findAllByType("button").find((node) => text(node) === t(label));
+const chooseFilter = (r, label) => act(() => filterButton(r, label).props.onClick());
+const visiblePoints = (r) => r.root.findByProps({ className: "mkm-points" }).children.filter((node) => node.type === "circle" && node.props.className === "mkm-point");
+const legendTeams = (r) => r.root.findByProps({ className: "mkm-legend" }).children.map((node) => node.props["data-team"]);
 const pointEvent = (x, y, pointerType = "mouse") => ({ clientX: rect.left + ((x + 120) / 14990) * rect.width, clientY: rect.top + (1 - ((y + 120) / 15100)) * rect.height, pointerType });
 const key = (r, value) => {
   const preventDefault = vi.fn();
@@ -169,7 +174,8 @@ describe("Match kill map interactions", () => {
     expect(plot(r).props.tabIndex).toBeUndefined();
     expect(plot(r).props["aria-valuenow"]).toBeUndefined();
     expect(r.root.findAllByProps({ className: "mkm-point" })).toHaveLength(0);
-    expect(r.root.findAllByType("button")).toHaveLength(0);
+    expect(filters(r).findAllByType("button")).toHaveLength(3);
+    expect(r.root.findAllByProps({ className: "mkm-navigation" })).toHaveLength(0);
   });
 
   it("announces a failed map image while keeping chronological event access", () => {
@@ -229,5 +235,182 @@ describe("Match kill map interactions", () => {
     key(r, "End");
     expect(text(readout(r))).toContain(t("Adversaires"));
     expect(plot(r).props["aria-valuetext"]).toBe(t("À {0} : {1} → {2}. {3}.", ["2:30", "Lux", "Ahri", t("Adversaires")]));
+  });
+});
+
+describe("Match kill map team filter", () => {
+  it("starts with both teams and keeps unassigned executions visible only in the combined view", () => {
+    const r = mount(game([event(), event({ timestamp: 90000, killerId: 0 }), event({ timestamp: 120000, killerId: 6, victimId: 1 })]));
+    expect(filters(r).findAllByType("button").map((node) => [text(node), node.props["aria-pressed"]])).toEqual([
+      ["Les deux", true], ["Mon équipe", false], ["Adversaires", false],
+    ]);
+    expect(visiblePoints(r).map((node) => node.props["data-team"])).toEqual(["ALLY", "UNKNOWN", "ENEMY"]);
+    expect(legendTeams(r)).toEqual(["ALLY", "ENEMY", "UNKNOWN"]);
+    expect(text(r.root.findByProps({ className: "mkm-navigation" }))).toContain("3 éliminations localisées");
+    chooseFilter(r, "Mon équipe");
+    expect(visiblePoints(r).map((node) => node.props["data-team"])).toEqual(["ALLY"]);
+    expect(legendTeams(r)).toEqual(["ALLY"]);
+    chooseFilter(r, "Adversaires");
+    expect(visiblePoints(r).map((node) => node.props["data-team"])).toEqual(["ENEMY"]);
+    expect(legendTeams(r)).toEqual(["ENEMY"]);
+    chooseFilter(r, "Les deux");
+    expect(visiblePoints(r).map((node) => node.props["data-team"])).toEqual(["ALLY", "UNKNOWN", "ENEMY"]);
+    expect(legendTeams(r)).toEqual(["ALLY", "ENEMY", "UNKNOWN"]);
+  });
+
+  it("clears a hidden selection on a new filter, retains it on the same filter and follows allegiance on red side", () => {
+    const match = game(); match.side = "Red Side";
+    for (const row of match.participants) row.raw.teamId = row.team_key === "ALLY" ? 200 : 100;
+    const r = mount(match);
+    key(r, "End");
+    expect(readout(r).props["data-team"]).toBe("ENEMY");
+    chooseFilter(r, "Mon équipe");
+    expect(r.root.findAllByType("time")).toHaveLength(0);
+    expect(r.root.findAllByProps({ className: "mkm-selection" })).toHaveLength(0);
+    expect(text(readout(r))).toContain("Survolez ou touchez un point.");
+    expect(text(r.root.findByProps({ role: "status", "aria-live": "polite" }))).toBe("");
+    expect(visiblePoints(r).map((node) => node.props["data-team"])).toEqual(["ALLY"]);
+    expect(text(r.root.findByProps({ className: "mkm-navigation" }))).toContain("1 élimination localisée");
+    key(r, "Home");
+    expect(text(r.root.findByType("time"))).toBe("1:00");
+    chooseFilter(r, "Mon équipe");
+    expect(text(r.root.findByType("time"))).toBe("1:00");
+    expect(readout(r).props["data-team"]).toBe("ALLY");
+  });
+
+  it("ignores hidden enemy points during hover or touch while retaining visible point interaction", () => {
+    const r = mount();
+    chooseFilter(r, "Mon équipe");
+    act(() => plot(r).props.onPointerMove(pointEvent(11000, 4000)));
+    act(() => plot(r).props.onPointerDown(pointEvent(11000, 4000, "touch")));
+    expect(r.root.findAllByType("time")).toHaveLength(0);
+    act(() => plot(r).props.onPointerMove(pointEvent(3000, 12000)));
+    expect(text(r.root.findByType("time"))).toBe("1:00");
+    expect(readout(r).props["data-team"]).toBe("ALLY");
+    act(() => plot(r).props.onPointerMove(pointEvent(11000, 4000)));
+    expect(text(r.root.findByType("time"))).toBe("1:00");
+    expect(readout(r).props["data-team"]).toBe("ALLY");
+  });
+
+  it("limits keyboard and previous/next exploration to the filtered chronological sequence", () => {
+    const r = mount(game([event(), event({ timestamp: 90000, killerId: 6, victimId: 1 }), event({ timestamp: 120000, killerId: 0 }), event({ timestamp: 180000 })]));
+    chooseFilter(r, "Mon équipe");
+    expect(plot(r).props["aria-valuemax"]).toBe(1);
+    key(r, "Home");
+    expect(text(r.root.findByType("time"))).toBe("1:00");
+    key(r, "ArrowRight");
+    expect(text(r.root.findByType("time"))).toBe("3:00");
+    expect(readout(r).props["data-team"]).toBe("ALLY");
+    expect(text(r.root.findByProps({ className: "mkm-navigation" }))).toContain("2 / 2");
+    expect(button(r, "Élimination suivante").props["aria-disabled"]).toBe(true);
+    act(() => button(r, "Élimination suivante").props.onClick());
+    expect(text(r.root.findByType("time"))).toBe("3:00");
+    act(() => button(r, "Élimination précédente").props.onClick());
+    expect(text(r.root.findByType("time"))).toBe("1:00");
+    key(r, "End");
+    expect(text(r.root.findByType("time"))).toBe("3:00");
+    chooseFilter(r, "Adversaires");
+    expect(plot(r).props["aria-valuemax"]).toBe(0);
+    key(r, "Home");
+    expect(text(r.root.findByType("time"))).toBe("1:30");
+    expect(readout(r).props["data-team"]).toBe("ENEMY");
+    expect(text(r.root.findByProps({ className: "mkm-navigation" }))).toContain("1 / 1");
+  });
+
+  it("keeps the filters available when one team has no localized kills and can return to both", () => {
+    const r = mount(game([event()]));
+    chooseFilter(r, "Adversaires");
+    expect(text(r.root)).toContain("Aucune élimination localisée pour cette équipe");
+    expect(plot(r).props.role).toBe("img");
+    expect(plot(r).props.tabIndex).toBeUndefined();
+    expect(plot(r).props["aria-valuenow"]).toBeUndefined();
+    expect(visiblePoints(r)).toHaveLength(0);
+    expect(legendTeams(r)).toEqual(["ENEMY"]);
+    expect(filters(r).findAllByType("button")).toHaveLength(3);
+    expect(r.root.findAllByProps({ className: "mkm-navigation" })).toHaveLength(0);
+    expect(r.root.findAllByProps({ className: "mkm-readout" })).toHaveLength(0);
+    expect(key(r, "Home")).not.toHaveBeenCalled();
+    act(() => plot(r).props.onPointerDown(pointEvent(3000, 12000, "touch")));
+    expect(r.root.findAllByType("time")).toHaveLength(0);
+    chooseFilter(r, "Les deux");
+    expect(plot(r).props.role).toBe("slider");
+    expect(visiblePoints(r)).toHaveLength(1);
+    expect(text(readout(r))).toContain("Survolez ou touchez un point.");
+  });
+
+  it.each(["match", "team"])("resets an uncontrolled filter when the %s identity changes", (identity) => {
+    const match = game(undefined, { team_id: "team-a" });
+    const r = mount(match);
+    chooseFilter(r, "Mon équipe");
+    key(r, "Home");
+    const next = { ...match, ...(identity === "match" ? { id: "map-b" } : { team_id: "team-b" }) };
+    act(() => r.update(<MatchKillMap match={next} />));
+    expect(filterButton(r, "Les deux").props["aria-pressed"]).toBe(true);
+    expect(visiblePoints(r)).toHaveLength(2);
+    expect(r.root.findAllByType("time")).toHaveLength(0);
+    expect(text(readout(r))).toContain("Survolez ou touchez un point.");
+    act(() => r.update(<MatchKillMap match={{ ...match }} />));
+    expect(filterButton(r, "Les deux").props["aria-pressed"]).toBe(true);
+    expect(visiblePoints(r)).toHaveLength(2);
+  });
+
+  it("keeps the filter but clears the old event when the same match snapshot refreshes", () => {
+    const r = mount(game(undefined, { team_id: "team-a" }));
+    chooseFilter(r, "Adversaires");
+    key(r, "Home");
+    const next = game([event(), event({ timestamp: 210000, killerId: 6, victimId: 1 })], { team_id: "team-a" });
+    act(() => r.update(<MatchKillMap match={next} />));
+    expect(filterButton(r, "Adversaires").props["aria-pressed"]).toBe(true);
+    expect(visiblePoints(r).map((node) => node.props["data-team"])).toEqual(["ENEMY"]);
+    expect(r.root.findAllByType("time")).toHaveLength(0);
+    key(r, "Home");
+    expect(text(r.root.findByType("time"))).toBe("3:30");
+  });
+
+  it("supports a controlled filter without overriding its parent and clears selection when the prop changes", () => {
+    const match = game();
+    const onTeamFilterChange = vi.fn();
+    const r = mount(match, { teamFilter: "ENEMY", onTeamFilterChange });
+    expect(filterButton(r, "Adversaires").props["aria-pressed"]).toBe(true);
+    expect(visiblePoints(r).map((node) => node.props["data-team"])).toEqual(["ENEMY"]);
+    key(r, "Home");
+    chooseFilter(r, "Mon équipe");
+    expect(onTeamFilterChange).toHaveBeenCalledWith("ALLY");
+    expect(filterButton(r, "Adversaires").props["aria-pressed"]).toBe(true);
+    expect(visiblePoints(r).map((node) => node.props["data-team"])).toEqual(["ENEMY"]);
+    act(() => r.update(<MatchKillMap match={match} teamFilter="ALLY" onTeamFilterChange={onTeamFilterChange} />));
+    expect(filterButton(r, "Mon équipe").props["aria-pressed"]).toBe(true);
+    expect(visiblePoints(r).map((node) => node.props["data-team"])).toEqual(["ALLY"]);
+    expect(r.root.findAllByType("time")).toHaveLength(0);
+    expect(text(readout(r))).toContain("Survolez ou touchez un point.");
+    key(r, "Home");
+    expect(text(r.root.findByType("time"))).toBe("1:00");
+  });
+
+  it("keeps the global unlocatable-event note separate from either team's visible count", () => {
+    const r = mount(game([event(), event({ timestamp: 150000, killerId: 6, victimId: 1, position: null })]));
+    chooseFilter(r, "Mon équipe");
+    expect(text(r.root.findByProps({ className: "mkm-navigation" }))).toContain("1 élimination localisée");
+    expect(text(r.root.findByProps({ className: "mkm-incomplete" }))).toBe("Toute la partie · 1 élimination non localisable");
+    chooseFilter(r, "Adversaires");
+    expect(visiblePoints(r)).toHaveLength(0);
+    expect(text(r.root.findByProps({ className: "mkm-incomplete" }))).toBe("Toute la partie · 1 élimination non localisable");
+    expect(text(r.root.findByProps({ className: "mkm-legend" }))).toContain("0");
+    chooseFilter(r, "Les deux");
+    expect(text(r.root.findByProps({ className: "mkm-incomplete" }))).toBe("1 élimination non localisable");
+  });
+
+  it.each(["fr", "en", "es"])("translates the filters and filtered-empty message in %s", (language) => {
+    act(() => { setLanguage(language, { persist: false }); });
+    const r = mount(game([event()]));
+    expect(filters(r).findAllByType("button").map(text)).toEqual([t("Les deux"), t("Mon équipe"), t("Adversaires")]);
+    if (language !== "fr") {
+      expect(filters(r).props["aria-label"]).not.toBe("Filtrer les éliminations");
+      expect(text(filterButton(r, "Les deux"))).not.toBe("Les deux");
+      expect(text(filterButton(r, "Mon équipe"))).not.toBe("Mon équipe");
+    }
+    chooseFilter(r, "Adversaires");
+    expect(text(r.root)).toContain(t("Aucune élimination localisée pour cette équipe"));
+    if (language !== "fr") expect(text(r.root)).not.toContain("Aucune élimination localisée pour cette équipe");
   });
 });
