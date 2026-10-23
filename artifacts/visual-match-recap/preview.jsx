@@ -18,7 +18,12 @@ function Preview() {
       <strong>NXT5 · Aperçu local · Données fictives</strong>
       <div>
         <label>Scénario <select value={variant} onChange={(event) => changeVariant(event.target.value)}>
-          <option value="complete">Complet</option><option value="lead-changes">Avantage alterné</option><option value="incomplete">Incomplet</option><option value="zero">Zéro mesuré</option><option value="red">Côté rouge</option><option value="long">Noms longs</option><option value="tie">Leaders ex æquo</option>
+          <option value="complete">Carte avec éliminations et exécution</option>
+          <option value="map-partial">Carte · Positions partielles</option>
+          <option value="map-empty">Carte · Aucune élimination</option>
+          <option value="map-missing">Carte · Chronologie absente</option>
+          <option value="map-unsupported">Carte · Mode non pris en charge</option>
+          <option value="lead-changes">Avantage alterné</option><option value="incomplete">Statistiques incomplètes</option><option value="zero">Or à égalité, dégâts et vision à zéro</option><option value="red">Notre équipe côté rouge</option><option value="long">Noms longs</option><option value="tie">Dégâts ex æquo</option>
         </select></label>
         <label>Langue <select defaultValue="fr" onChange={(event) => setLanguage(event.target.value, { persist: false })}><option value="fr">Français</option><option value="en">English</option><option value="es">Español</option></select></label>
         <button onClick={() => setMatch((current) => ({ ...current, duration: current.duration === "31:11" ? "31:12" : "31:11" }))}>Rafraîchir la partie</button>

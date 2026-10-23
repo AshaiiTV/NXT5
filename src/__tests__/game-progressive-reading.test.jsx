@@ -5,6 +5,7 @@ import { openAppPath } from "../app/routing.js";
 import { Button } from "../components/ui/Core.jsx";
 import { MatchLineups, MatchHeadToHead } from "../components/games/MatchHeadToHead.jsx";
 import MatchGoldChart from "../components/games/MatchGoldChart.jsx";
+import { MatchKillMap } from "../components/games/MatchKillMap.jsx";
 import {
   MatchDataPanel, MatchVersusOverview, MatchTimelineReview,
   MatchReadingIntro, DeathContextPanel, DraftImpactPanel, ObjectiveHud,
@@ -84,7 +85,8 @@ describe("progressive game reading", () => {
     expect(text(renderer.root)).toContain("Victoire");
     expect(text(renderer.root)).toContain("Durée : 24:30");
     expect(text(renderer.root)).toContain("Notre équipe : côté bleu");
-    expect(text(brief)).toContain("Qui a le plus d’impact ?");
+    expect(brief.findAllByType(MatchKillMap)).toHaveLength(1);
+    expect(text(brief)).not.toContain("Qui a le plus d’impact ?");
     expect(renderer.root.findAllByProps({ role: "tab" }).map(text)).toEqual(["Récap", "Face-à-face", "Drafting", "Chronologie"]);
     expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
     expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(1);
@@ -154,6 +156,7 @@ describe("progressive game reading", () => {
     expect(renderer.root.findAllByType(MatchReadingIntro)).toHaveLength(0);
     selectTab(renderer, "Chronologie");
     expect(renderer.root.findByType(MatchTimelineReview).props.teamName).toBe("Équipe Atlas");
+    expect(renderer.root.findByType(MatchTimelineReview).findAllByType(MatchKillMap)).toHaveLength(1);
     expect(text(renderer.root.findByType(MatchTimelineReview))).toContain("Chronologie indisponible");
     expect(renderer.root.findAllByType(DraftImpactPanel)).toHaveLength(0);
     expect(text(renderer.root)).not.toContain("EUW1_123");
@@ -214,8 +217,8 @@ describe("progressive game reading", () => {
     const match = draftedGame();
     match.participants.find((row) => row.team_key === "ALLY" && row.role === "ADC").gold = 5000;
     const renderer = render({ match });
-    expect(text(renderer.root)).toContain("Qui a le plus d’impact ?");
-    act(() => action(renderer, "Comparer les équipes").props.onClick());
+    expect(renderer.root.findAllByType(MatchKillMap)).toHaveLength(1);
+    selectTab(renderer, "Face-à-face");
     expect(tab(renderer, "Face-à-face").props["aria-selected"]).toBe(true);
     const comparison = renderer.root.findByType(MatchHeadToHead);
     expect(comparison.props.selectedRole).toBeUndefined();
@@ -226,6 +229,25 @@ describe("progressive game reading", () => {
     selectTab(renderer, "Récap");
     expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(1);
     expect(renderer.root.findAllByType(MatchHeadToHead)).toHaveLength(0);
+  });
+
+  it("uses the same game, team names and detail availability for both map placements", () => {
+    const match = draftedGame();
+    const renderer = render({ match, loading: true });
+    const readMap = () => renderer.root.findByType(MatchKillMap);
+    expect(readMap().props).toMatchObject({ match, allyName: "Équipe Atlas", enemyName: "Adversaires", loading: true, error: "" });
+    selectTab(renderer, "Chronologie");
+    expect(renderer.root.findAllByType(MatchKillMap)).toHaveLength(1);
+    expect(readMap().props).toMatchObject({ match, allyName: "Équipe Atlas", enemyName: "Adversaires", loading: true, error: "" });
+    expect(renderer.root.findAllByProps({ role: "tablist" })).toHaveLength(1);
+    act(() => renderer.update(<MatchDataPanel match={match} teamName="Équipe Atlas" error="Détails indisponibles" />));
+    expect(readMap().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
+    selectTab(renderer, "Récap");
+    expect(readMap().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
+    act(() => renderer.update(<MatchDataPanel match={{ ...match, id: "other-map-game" }} teamName="Nouvelle équipe" loading />));
+    expect(readMap().props.match.id).toBe("other-map-game");
+    expect(readMap().props).toMatchObject({ allyName: "Nouvelle équipe", loading: true, error: "" });
+    expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
   });
 
   it("keeps the selected tab on refresh and resets it for another game", () => {
@@ -276,6 +298,9 @@ describe("progressive game reading", () => {
     const firstCallback = callbacks.at(-1);
     act(() => firstCallback("Orion"));
     expect(renderer.root.findByType(MatchLineups).props.snapshot.context.opponentName).toBe("Orion");
+    expect(renderer.root.findByType(MatchKillMap).props.enemyName).toBe("Orion");
+    selectTab(renderer, "Chronologie");
+    expect(renderer.root.findByType(MatchKillMap).props.enemyName).toBe("Orion");
     selectTab(renderer, "Face-à-face");
     expect(renderer.root.findByType(MatchHeadToHead).props.snapshot.context.opponentName).toBe("Orion");
     act(() => renderer.update(<MatchDataPanel match={{ ...match, duration: "25:00" }} contextControls={controls} />));
