@@ -6,6 +6,7 @@ import { DEFAULT_DATA } from "../app/constants.jsx";
 import { readRoute } from "../app/routing.js";
 import DiscordGroupShare from "../components/discord/DiscordGroupShare.jsx";
 import { ImportedGames } from "../components/games/ImportedGames.jsx";
+import { MatchHeadToHead } from "../components/games/MatchHeadToHead.jsx";
 import OpponentsWorkspace from "../components/opponents/OpponentsWorkspace.jsx";
 import MatchDrafterPanel from "../components/opponents/MatchDrafterPanel.jsx";
 import MatchOpponentPanel from "../components/opponents/MatchOpponentPanel.jsx";
@@ -414,21 +415,25 @@ describe("unified Games workspace", () => {
     expect(new URLSearchParams(window.location.search).get("match")).toBe(selectedId);
     const statistics = renderer.root.findByType(MatchDataPanel);
     expect(statistics.props.match.id).toBe(selectedId);
-    expect(text(statistics)).toContain("Point à explorer");
+    expect(text(statistics)).toContain("Qui a le plus d’impact ?");
     expect(button(renderer, "Récap").props["aria-selected"]).toBe(true);
     expect(text(statistics)).not.toContain("Vue 5v5");
     await click(renderer, "Face-à-face");
-    const detail = statistics.findAllByType("details").find((node) => text(node.findByType("summary")).startsWith("Statistiques et comparaison"));
-    expect(detail.props.open).toBe(false);
-    await act(async () => detail.props.onToggle({ currentTarget: { open: true } }));
+    expect(button(renderer, "Face-à-face").props["aria-selected"]).toBe(true);
+    const comparison = statistics.findByType(MatchHeadToHead);
+    expect(statistics.findAllByType(MatchHeadToHead)).toHaveLength(1);
+    expect(statistics.findAllByProps({ role: "tablist" })).toHaveLength(1);
+    expect(comparison.findAllByProps({ role: "tablist" })).toHaveLength(0);
+    expect(comparison.findAllByType("details")).toHaveLength(0);
+    expect(statistics.findAllByProps({ className: "games-analysis-disclosure" })).toHaveLength(0);
+    for (const metric of ["gold", "damage", "vision", "cs", "cs10", "cs20", "kda"]) expect(comparison.findAllByProps({ "data-metric": metric })).toHaveLength(5);
+    for (const metric of ["gold", "damage", "vision"]) expect(comparison.findAllByProps({ "data-team-metric": metric })).toHaveLength(1);
     const statsText = text(statistics);
-    const versusIndex = statsText.indexOf("Vue 5v5");
     const reviewIndex = statsText.indexOf("Préparer le débrief");
     expect(reviewIndex).toBeGreaterThanOrEqual(0);
-    expect(reviewIndex).toBeLessThan(versusIndex);
-    for (const metric of ["Éliminations / morts / assistances", "Écart dégâts", "Écart or", "Écart vision"]) {
+    expect(statsText).not.toContain("Vue 5v5");
+    for (const metric of ["K / D / A", "Dégâts aux champions", "Or final", "Score de vision"]) {
       expect(statsText.indexOf(metric)).toBeGreaterThan(reviewIndex);
-      expect(statsText.indexOf(metric)).toBeLessThan(versusIndex);
     }
     expect(button(renderer, "Créer review")).toBeUndefined();
     expect(renderer.root.findAllByType("h3").filter((heading) => text(heading) === `Game ${selectedId}`)).toHaveLength(1);

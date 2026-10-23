@@ -1,4 +1,12 @@
 const copy = [
+  ["Données incomplètes", "Incomplete data", "Datos incompletos"],
+  ["Totaux des équipes", "Team totals", "Totales de los equipos"],
+  ["Qui a le plus d’impact ?", "Who has the most impact?", "¿Quién tiene más impacto?"],
+  ["Ex æquo", "Tied", "Empate"],
+  ["{0} % de l’équipe", "{0}% of team damage", "{0} % del daño del equipo"],
+  ["Aucun dégât aux champions", "No champion damage dealt", "Sin daño a campeones"],
+  ["Relevé à {0}", "Sample at {0}", "Registro a las {0}"],
+  ["Utilisez les flèches pour parcourir les relevés d’or.", "Use the arrow keys to browse gold samples.", "Usa las flechas para recorrer los registros de oro."],
   ["Gérer la draft", "Manage draft", "Gestionar la draft"],
   ["Récap", "Recap", "Resumen"],
   ["Chronologie", "Timeline", "Cronología"],

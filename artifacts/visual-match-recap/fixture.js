@@ -3,14 +3,23 @@ const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
 const champions = [["Ornn", "Sejuani", "Ahri", "Jinx", "Lulu"], ["Gnar", "Viego", "Syndra", "Caitlyn", "Nautilus"]];
 const names = [["Atlas", "Nova", "Lune", "Pulse", "Echo"], ["Orion", "Nox", "Solis", "Vega", "Astra"]];
 
+export function syntheticTeamName(variant = "complete", teamKey = "ALLY") {
+  if (variant === "long") return teamKey === "ENEMY"
+    ? "Orion · Collectif international des explorateurs de la Faille · Équipe fictive"
+    : "Atlas · Académie interrégionale des gardiens du Nexus · Équipe fictive";
+  return teamKey === "ENEMY" ? "Orion" : "Atlas";
+}
+
 export function syntheticDraft(variant = "complete") {
   if (variant === "incomplete") return null;
   const redSide = variant === "red";
+  const allyName = syntheticTeamName(variant);
+  const enemyName = syntheticTeamName(variant, "ENEMY");
   return {
     id: "synthetic-draft-3", gameNumber: 3, allySide: redSide ? "red" : "blue",
     snapshot: {
       source: "drafter.lol", sourceId: "NXT5demo", sourceUrl: "https://drafter.lol/draft/NXT5demo?game=3", gameNumber: 3,
-      blueName: redSide ? "Orion" : "Atlas", redName: redSide ? "Atlas" : "Orion",
+      blueName: redSide ? enemyName : allyName, redName: redSide ? allyName : enemyName,
       bluePicks: redSide ? [...champions[1]] : [...champions[0]], redPicks: redSide ? [...champions[0]] : [...champions[1]],
       blueBans: ["Aurora", "Vi", "Rakan", "Poppy", "Yone"], redBans: ["Kalista", "Skarner", "Orianna", "Renekton", "Braum"],
       status: "completed", fearless: false, ironman: false, warnings: [], firstPick: "blue",
@@ -83,6 +92,21 @@ export function syntheticMatch(variant = "complete") {
     match.raw.timeline.info.frames.forEach((frame) => frame.events.forEach((event) => {
       if (event.killerTeamId) event.killerTeamId = event.killerTeamId === 100 ? 200 : 100;
     }));
+  }
+  if (variant === "long") {
+    match.opponent = syntheticTeamName(variant, "ENEMY");
+    match.raw.nxt5Label = "Partie fictive · Finale interrégionale des académies Atlas et Orion · Manche décisive";
+    match.participants.forEach((row, index) => {
+      row.summoner_name = index % 2 === 0
+        ? `${row.summoner_name}LeGardienDuNexusAuxMilleConstellations#DEMO`
+        : `${row.summoner_name} · Capitaine de l’académie des explorateurs · Joueur fictif`;
+    });
+  }
+  if (variant === "tie") {
+    match.raw.nxt5Label = "Partie fictive · Deux leaders de dégâts ex æquo dans chaque équipe";
+    match.participants.forEach((row) => {
+      if (row.role === "MID" || row.role === "ADC") row.damage = row.team_key === "ALLY" ? 27200 : 38500;
+    });
   }
   return match;
 }
