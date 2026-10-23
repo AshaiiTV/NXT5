@@ -21,9 +21,93 @@ const text = (node) => typeof node === "string" ? node : (node?.children || []).
 const plot = (r) => r.root.findByProps({ className: "match-gold-chart-plot" });
 const readout = (r) => r.root.findAllByProps({ className: "match-gold-chart-readout" });
 const move = (r, clientX, clientY = 0) => act(() => plot(r).props.onPointerMove({ clientX, clientY, pointerType: "mouse" }));
+const coordinates = (node) => node.props.points.trim().split(/\s+/).map((point) => point.split(",").map(Number));
 afterEach(() => { if (renderer) act(() => renderer.unmount()); renderer = null; setLanguage("fr", { persist: false }); });
 
 describe("Match recap gold chart", () => {
+  it("changes the fill exactly at zero and uses uniform stroke colors on each side", () => {
+    const r = mount(game([frame(0, 1100, 1000), frame(60000, 700, 1000)], { duration: "1:00" }));
+    const gradient = r.root.findByType("linearGradient");
+    const baseline = r.root.findByProps({ className: "match-gold-chart-baseline" });
+    expect(gradient.props.gradientUnits).toBe("userSpaceOnUse");
+    expect(gradient.props.x1).toBe(gradient.props.x2);
+    expect(Number(gradient.props.y1)).toBeLessThan(Number(gradient.props.y2));
+    const stops = gradient.findAllByType("stop");
+    expect(stops.map((stop) => stop.props.className)).toEqual(["match-gold-chart-stop-positive", "match-gold-chart-stop-negative"]);
+    for (const stop of stops) {
+      const offset = String(stop.props.offset).endsWith("%") ? parseFloat(stop.props.offset) / 100 : Number(stop.props.offset);
+      expect(Number(gradient.props.y1) + offset * (Number(gradient.props.y2) - Number(gradient.props.y1))).toBe(baseline.props.y1);
+    }
+    const lines = r.root.findAllByProps({ className: "match-gold-chart-line" });
+    expect(lines.map((line) => line.props["data-tone"])).toEqual(["positive", "negative"]);
+    expect(lines.every((line) => !String(line.props.stroke || line.props.style?.stroke || "").includes("url("))).toBe(true);
+    expect(r.root.findByProps({ className: "match-gold-chart-area" }).props.fill).toBe(`url(#${gradient.props.id})`);
+    const [positive, negative] = lines.map(coordinates);
+    expect(positive[0][1]).toBeLessThan(baseline.props.y1);
+    // +500 to −1500 reaches zero after one quarter of the straight edge.
+    expect(positive.at(-1)).toEqual([144, baseline.props.y1]);
+    expect(negative[0]).toEqual(positive.at(-1));
+    expect(negative.at(-1)[1]).toBeGreaterThan(baseline.props.y1);
+    expect(r.root.findAllByProps({ className: "match-gold-chart-sample" })).toHaveLength(2);
+    expect(r.root.findByType("tbody").findAllByType("tr")).toHaveLength(2);
+  });
+
+  it.each([[1001, "positive", 5], [999, "negative", -5]])("keeps a small constant lead uniformly colored even when the stroke straddles zero (%s)", (ally, tone, diff) => {
+    const match = game([frame(0, ally), frame(60000, ally)], { duration: "1:00" });
+    const r = mount(match);
+    const lines = r.root.findAllByProps({ className: "match-gold-chart-line" });
+    expect(lines).toHaveLength(1);
+    expect(lines[0].props["data-tone"]).toBe(tone);
+    expect(String(lines[0].props.stroke || lines[0].props.style?.stroke || "")).not.toContain("url(");
+    const points = coordinates(lines[0]);
+    expect(points).toHaveLength(2);
+    expect(points[0][1]).toBe(points[1][1]);
+    expect(series(match).points.map((point) => point.diff)).toEqual([diff, diff]);
+    expect(r.root.findAllByProps({ className: "match-gold-chart-sample" }).map((sample) => sample.props["data-tone"])).toEqual([tone, tone]);
+  });
+
+  it("closes each measured segment's fill at zero and leaves missing intervals unconnected", () => {
+    const missing = frame(120000);
+    missing.participantFrames["7"].totalGold = null;
+    const match = game([
+      frame(0, 1100, 1000), frame(60000, 900, 1000), missing,
+      frame(180000), frame(240000), frame(300000, 1200, 1000), frame(480000, 900, 1000),
+    ], { duration: "8:00" });
+    const r = mount(match);
+    const baseline = r.root.findByProps({ className: "match-gold-chart-baseline" }).props.y1;
+    const lines = r.root.findAllByProps({ className: "match-gold-chart-line" });
+    const samples = r.root.findAllByProps({ className: "match-gold-chart-sample" }).map((sample) => [Number(sample.props.cx.toFixed(1)), Number(sample.props.cy.toFixed(1))]);
+    const areas = r.root.findAllByProps({ className: "match-gold-chart-area" }).map(coordinates);
+    expect(lines.map((line) => line.props["data-tone"])).toEqual(["positive", "negative", "neutral", "positive"]);
+    expect(areas).toHaveLength(2);
+    areas.forEach((area, index) => {
+      const measured = index === 0 ? samples.slice(0, 2) : samples.slice(2, 5);
+      expect(area).toEqual([[measured[0][0], baseline], ...measured, [measured.at(-1)[0], baseline]]);
+    });
+    expect(areas[0].at(-1)[0]).toBeLessThan(areas[1][0][0]);
+    const neutralEdges = lines.filter((line) => line.props["data-tone"] === "neutral");
+    expect(neutralEdges).toHaveLength(1);
+    expect(coordinates(neutralEdges[0])).toEqual([samples[2], samples[3]]);
+    expect(coordinates(neutralEdges[0]).every((point) => point[1] === baseline)).toBe(true);
+    expect(r.root.findAllByProps({ className: "match-gold-chart-sample" })).toHaveLength(6);
+    expect(r.root.findByType("tbody").findAllByType("tr")).toHaveLength(6);
+  });
+
+  it.each(["Blue Side", "Red Side"])("keeps our lead positive, the opponent lead negative, and measured zero neutral (%s)", (side) => {
+    const r = mount(game([frame(0, 900, 1000), frame(60000, 1100, 1000), frame(120000)], { duration: "2:00", side }));
+    const legend = r.root.findByProps({ className: "match-gold-chart-legend" }).findAllByType("span");
+    expect(legend.map((node) => [node.props["data-tone"], text(node)])).toEqual([["positive", "+NXT"], ["negative", "−Adversaires"]]);
+    expect(r.root.findAllByProps({ className: "match-gold-chart-sample" }).map((node) => node.props["data-tone"])).toEqual(["negative", "positive", "neutral"]);
+    expect(r.root.findByProps({ className: "match-gold-chart-end" }).props["data-tone"]).toBe("neutral");
+    expect(r.root.findAllByProps({ className: "match-gold-chart-line" }).filter((line) => line.props["data-tone"] === "neutral")).toHaveLength(0);
+    act(() => plot(r).props.onFocus());
+    for (const [key, tone] of [["Home", "negative"], ["ArrowRight", "positive"], ["End", "neutral"]]) {
+      act(() => plot(r).props.onKeyDown({ key, preventDefault() {} }));
+      expect(r.root.findByProps({ className: "match-gold-chart-selected" }).props["data-tone"]).toBe(tone);
+      expect(r.root.findByProps({ className: "match-gold-chart-difference" }).findByType("strong").props["data-tone"]).toBe(tone);
+    }
+  });
+
   it("uses only measured totals and preserves a measured zero", () => {
     const match = game([frame(0, 500, 500), frame(60000, 1000, 900), frame(120000, 1100, 1500)]);
     const value = series(match);
@@ -141,6 +225,33 @@ describe("Match recap gold chart", () => {
     expect(readout(r)).toHaveLength(0);
   });
 
+  it("keeps pointer and keyboard inspection on the two real samples when the line crosses zero", () => {
+    const match = game([frame(0, 1100, 1000), frame(60000, 900, 1000)], { duration: "1:00" });
+    const r = mount(match);
+    expect(series(match).points.map(({ timestamp, diff }) => [timestamp, diff])).toEqual([[0, 500], [60000, -500]]);
+    expect(r.root.findAllByProps({ className: "match-gold-chart-sample" })).toHaveLength(2);
+    expect(r.root.findByType("tbody").findAllByType("tr").map(text)).toEqual(["0:00+500", "1:00−500"]);
+    expect(plot(r).props["aria-valuemax"]).toBe(1);
+
+    // The visual crossing is at 0:30, but a tie still selects the earlier real sample.
+    move(r, 380);
+    expect(plot(r).props["aria-valuenow"]).toBe(0);
+    expect(text(readout(r)[0])).toContain("Relevé à 0:00");
+    expect(text(readout(r)[0])).toContain("+500");
+    expect(text(readout(r)[0])).not.toContain("0:30");
+    move(r, 381);
+    expect(plot(r).props["aria-valuenow"]).toBe(1);
+    expect(text(readout(r)[0])).toContain("Relevé à 1:00");
+    expect(text(readout(r)[0])).toContain("−500");
+
+    act(() => plot(r).props.onFocus());
+    act(() => plot(r).props.onKeyDown({ key: "Home", preventDefault() {} }));
+    expect(plot(r).props["aria-valuenow"]).toBe(0);
+    act(() => plot(r).props.onKeyDown({ key: "ArrowRight", preventDefault() {} }));
+    expect(plot(r).props["aria-valuenow"]).toBe(1);
+    expect(text(readout(r)[0])).toContain("Relevé à 1:00");
+  });
+
   it("uses the rendered SVG offset and width after resizing, and clamps both outer edges", () => {
     const rect = { left: 140, width: 280 };
     const r = mount(game([frame(0), frame(60000, 1100), frame(120000, 1500)], { duration: "2:00" }), {}, rect);
@@ -168,6 +279,7 @@ describe("Match recap gold chart", () => {
     expect(text(readout(r)[0])).toContain("+1 500");
     expect(text(readout(r)[0])).not.toContain("4:00");
     expect(r.root.findAllByType("polyline")).toHaveLength(0);
+    expect(r.root.findAllByProps({ className: "match-gold-chart-area" })).toHaveLength(0);
   });
 
   it("provides the same measured values through keyboard navigation and keeps focus selection on pointer leave", () => {
@@ -199,6 +311,7 @@ describe("Match recap gold chart", () => {
     expect(text(readout(r)[0])).toContain("Relevé à 1:00");
     expect(text(readout(r)[0])).toContain("2 500");
     expect(r.root.findAllByType("polyline")).toHaveLength(0);
+    expect(r.root.findAllByProps({ className: "match-gold-chart-area" })).toHaveLength(0);
     act(() => plot(r).props.onPointerCancel());
     expect(readout(r)).toHaveLength(0);
   });

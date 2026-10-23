@@ -73,6 +73,14 @@ export function syntheticMatch(variant = "complete") {
       })) } },
     },
   };
+  if (variant === "lead-changes") {
+    const differences = [0, -500, -900, -400, 600, 1800, 1200, 2200, 3200, 1800, 600, -300, -1200, -500, 600, 2400, 3600, 4200, 3600, 1800, 300, -800, -2200, -3100, -1800, -2400, -4600, -5100, -6200, -7800, -8800, -9484];
+    match.raw.timeline.info.frames.forEach((frame, minute) => {
+      const enemyTotal = [6, 7, 8, 9, 10].reduce((total, id) => total + frame.participantFrames[id].totalGold, 0);
+      const allyTotal = enemyTotal + differences[minute];
+      for (let id = 1; id <= 5; id++) frame.participantFrames[id].totalGold = Math.floor(allyTotal / 5) + (id <= allyTotal % 5 ? 1 : 0);
+    });
+  }
   if (variant === "incomplete") {
     delete match.raw.timeline;
     match.participants = participants.filter((row) => row.team_key === "ENEMY" || row.role === "MID");

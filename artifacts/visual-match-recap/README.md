@@ -1,10 +1,23 @@
-# Récap visuel des parties — versions publiées et Face-à-face compact local
+# Récap visuel des parties — versions publiées et affinements locaux
 
 23 octobre 2026. La version initiale et l’ajustement Drafting ont été publiés par la [PR nº 211](https://github.com/AshaiiTV/NXT5/pull/211), fusionnée au commit `c5720a31b7d7f299734a7c53f73c7ce59839adf0`. Le [déploiement Netlify](https://app.netlify.com/projects/nxt5/deploys/6adbaaa9bdee1cd79aa97038) est confirmé prêt et publié sur [nxt5.org](https://nxt5.org) à 20 h 46 min 13 s, heure de Paris. Les preuves de cette publication sont conservées dans `release.json` et les captures `production-drafting-desktop.png` et `production-drafting-bans-320.png`.
 
 Les affinements de la version 1.99 ont été publiés par la [PR nº 213](https://github.com/AshaiiTV/NXT5/pull/213), fusionnée au commit `3fc79b4b4ae896c15388d9b49bf0c84761058c71`. Le [déploiement Netlify](https://app.netlify.com/projects/nxt5/deploys/6adbb7143598bf7b122ed417) est confirmé prêt et publié le 23 octobre 2026 à 21 h 38 min 57 s, heure de Paris. Preuves : `release213.json`, `release213-production-http.json` et captures `release213-*-production*.png`.
 
-La nouvelle disposition compacte du Face-à-face, version 1.100 de la charte, est réalisée localement sur `codex/compact-head-to-head` et n’est pas publiée. Son aperçu emploie uniquement des données fictives ; les validations ci-dessous ne certifient pas cette nouvelle version en production.
+La disposition compacte du Face-à-face (version 1.100) et la courbe d’or bleue/rouge (version 1.101) sont réalisées localement sur `codex/compact-head-to-head`, dans la même [PR nº 214 ouverte](https://github.com/AshaiiTV/NXT5/pull/214), et ne sont pas publiées. La production reste en version 1.99 / PR nº 213. L’aperçu emploie uniquement des données fictives ; les validations ci-dessous ne certifient pas ces nouvelles versions en production.
+
+## Version 1.101 locale — Courbe d’or bleue/rouge
+
+- À la demande de l’utilisateur, la courbe est bleue (`#60a5fa`) quand notre équipe mène, rouge (`#f87171`) quand l’adversaire mène et neutre à zéro. La convention suit le signe de l’écart « Notre équipe − adversaires » ; elle ne change pas quand notre équipe joue côté rouge.
+- Des variables locales `match-gold` appliquent ces couleurs au trait, à un aplat à 16 % jusqu’à zéro, à la légende, aux points de fin, au repère et aux valeurs affichées au survol. Les couleurs globales de l’application ne sont pas modifiées.
+- Le trait est découpé par signe aux croisements géométriques de zéro. Ce découpage de dessin ne crée aucun relevé interpolé et les interruptions restent visibles. Le survol dans tout le cadre, la sélection du relevé mesuré le plus proche et les commandes clavier restent inchangés.
+
+### Vérification de la courbe bleue/rouge
+
+- **Tests :** 29 tests ciblés de courbe réussissent. Le contrôle complet `npm run verify` réussit : 232 suites, 4 395 tests, 3 774 messages explicitement traduits en anglais et espagnol, typage et compilation avec 13 pages prérendues ; journal `blue-red-gold-verify.log`. La revue finale du découpage du trait est validée.
+- **Navigateur :** scénario fictif « Avantage alterné » de 32 relevés, avec croisements bleu/rouge contrôlés à 1440 et 320 px. Le survol hors de la courbe a affiché 5:00 / +1 800 en bleu et 25:00 / −2 400 en rouge avant la dernière correction du dessin, qui ne change pas la sélection des relevés. Le clavier est vérifié à 320 px sur la version finale. Le scénario de zéros mesurés garde tous les points gris et un trait uniformément neutre ; l’état incomplet montre le message d’indisponibilité sans sélecteur de relevé ni débordement.
+- **Captures et console :** `blue-red-gold-desktop.png` et `blue-red-gold-320.png` ont été refaites avec le trait final découpé par signe ; `blue-red-gold-zero-320.png` confirme le zéro neutre. Aucune nouvelle erreur console après le dernier chargement neuf.
+- **Portée :** vrais composants avec fixtures synthétiques, sans modification de données, de permissions ou de production. Le Face-à-face compact de la version 1.100 reste inclus dans la même PR nº 214.
 
 ## Version 1.100 locale — Face-à-face compact
 

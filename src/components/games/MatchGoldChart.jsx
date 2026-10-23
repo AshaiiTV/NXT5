@@ -10,9 +10,33 @@ const clock = (timestamp) => `${Math.floor(timestamp / 60000)}:${String(Math.flo
 const signed = (value) => `${value > 0 ? "+" : value < 0 ? "−" : ""}${Math.abs(value).toLocaleString(getLocale(), { maximumFractionDigits: 0 })}`;
 const compact = (value) => new Intl.NumberFormat(getLocale(), { notation: "compact", maximumFractionDigits: 1 }).format(value);
 const displayName = (value, fallback) => !value || value === fallback ? t(fallback) : value;
+const tone = (value) => value < 0 ? "negative" : value > 0 ? "positive" : "neutral";
 const W = 560;
 const H = 180;
 const INSET = 8;
+
+function coloredPaths(segments) {
+  return segments.flatMap((segment) => {
+    const paths = [];
+    const append = (from, to, pathTone) => {
+      const previous = paths.at(-1);
+      if (previous?.tone === pathTone) previous.points.push(to);
+      else paths.push({ tone: pathTone, points: [from, to] });
+    };
+    for (let index = 1; index < segment.length; index++) {
+      const from = segment[index - 1];
+      const to = segment[index];
+      if ((from.diff < 0 && to.diff > 0) || (from.diff > 0 && to.diff < 0)) {
+        // A paint boundary on the existing straight edge, never a recorded sample.
+        const ratio = Math.abs(from.diff) / (Math.abs(from.diff) + Math.abs(to.diff));
+        const crossing = { timestamp: from.timestamp + (to.timestamp - from.timestamp) * ratio, diff: 0 };
+        append(from, crossing, tone(from.diff));
+        append(crossing, to, tone(to.diff));
+      } else append(from, to, tone(from.diff || to.diff));
+    }
+    return paths;
+  });
+}
 
 export default function MatchGoldChart({ match, publication, teamName }) {
   useLanguage();
@@ -64,8 +88,8 @@ export default function MatchGoldChart({ match, publication, teamName }) {
   return <figure className="match-gold-chart">
     <figcaption>
       <p className="match-gold-chart-title">{t("Évolution de l’écart d’or")}</p>
-      <div className="match-gold-chart-legend"><span><i aria-hidden="true">+</i>{allyName}</span>
-        <span><i aria-hidden="true">−</i>{enemyName}</span></div>
+      <div className="match-gold-chart-legend"><span data-tone="positive"><i aria-hidden="true">+</i>{allyName}</span>
+        <span data-tone="negative"><i aria-hidden="true">−</i>{enemyName}</span></div>
     </figcaption>
     <p id={`${id}-keys`} className="sr-only">{t("Utilisez les flèches pour parcourir les relevés d’or.")}</p>
     <div className="match-gold-chart-plot" role="slider" tabIndex={0}
@@ -78,21 +102,29 @@ export default function MatchGoldChart({ match, publication, teamName }) {
       <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" role="img" aria-labelledby={`${id}-title ${id}-description`}>
         <title id={`${id}-title`}>{t("Évolution de l’écart d’or")}</title>
         <desc id={`${id}-description`}>{t("Valeur positive : notre équipe mène. Valeur négative : l’adversaire mène.")} {summary}. {series.partial ? t("Les interruptions du tracé signalent des relevés manquants.") : ""}</desc>
+        <defs>
+          {/* Keep each area blue above zero and red below it. */}
+          <linearGradient id={`${id}-lead`} gradientUnits="userSpaceOnUse" x1={0} y1={0} x2={0} y2={H}>
+            <stop offset="50%" className="match-gold-chart-stop-positive" />
+            <stop offset="50%" className="match-gold-chart-stop-negative" />
+          </linearGradient>
+        </defs>
+        {series.segments.filter((segment) => segment.length > 1).map((segment) => <polygon key={segment[0].timestamp} className="match-gold-chart-area" fill={`url(#${id}-lead)`} points={`${x(segment[0].timestamp).toFixed(1)},${H / 2} ${segment.map(coords).join(" ")} ${x(segment.at(-1).timestamp).toFixed(1)},${H / 2}`} />)}
         <line className="match-gold-chart-grid" x1={INSET} y1={INSET} x2={W - INSET} y2={INSET} />
         <line className="match-gold-chart-baseline" x1={INSET} y1={H / 2} x2={W - INSET} y2={H / 2} />
         <line className="match-gold-chart-grid" x1={INSET} y1={H - INSET} x2={W - INSET} y2={H - INSET} />
-        {series.segments.filter((segment) => segment.length > 1).map((segment) => <polyline key={segment[0].timestamp} className="match-gold-chart-line" points={segment.map(coords).join(" ")} vectorEffect="non-scaling-stroke" />)}
-        {series.points.map((point) => <circle key={point.timestamp} className="match-gold-chart-sample" cx={x(point.timestamp)} cy={y(point.diff)} r={2} />)}
-        <circle className="match-gold-chart-end" data-tone={last.diff < 0 ? "negative" : last.diff > 0 ? "positive" : "neutral"} cx={x(last.timestamp)} cy={y(last.diff)} r={5} vectorEffect="non-scaling-stroke" />
+        {coloredPaths(series.segments).map((path) => <polyline key={`${path.points[0].timestamp}-${path.tone}`} className="match-gold-chart-line" data-tone={path.tone} points={path.points.map(coords).join(" ")} vectorEffect="non-scaling-stroke" />)}
+        {series.points.map((point) => <circle key={point.timestamp} className="match-gold-chart-sample" data-tone={tone(point.diff)} cx={x(point.timestamp)} cy={y(point.diff)} r={3} vectorEffect="non-scaling-stroke" />)}
+        <circle className="match-gold-chart-end" data-tone={tone(last.diff)} cx={x(last.timestamp)} cy={y(last.diff)} r={5} vectorEffect="non-scaling-stroke" />
         {inspecting && <g aria-hidden="true" className="match-gold-chart-selection">
           <line className="match-gold-chart-cursor" x1={x(selected.timestamp)} x2={x(selected.timestamp)} y1={0} y2={H} vectorEffect="non-scaling-stroke" />
-          <circle className="match-gold-chart-selected" cx={x(selected.timestamp)} cy={y(selected.diff)} r={5} vectorEffect="non-scaling-stroke" />
+          <circle className="match-gold-chart-selected" data-tone={tone(selected.diff)} cx={x(selected.timestamp)} cy={y(selected.diff)} r={5} vectorEffect="non-scaling-stroke" />
         </g>}
       </svg>
       <div aria-hidden="true" className="match-gold-chart-xaxis"><span>0:00</span>{series.domainEndMs > 0 && <><span>{clock(middle)}</span><span>{clock(series.domainEndMs)}</span></>}</div>
       {inspecting && <div className="match-gold-chart-readout" aria-hidden="true" data-edge={x(selected.timestamp) > W / 2 ? "left" : "right"}>
         <span className="match-gold-chart-time">{t("Relevé à {0}", [clock(selected.timestamp)])}</span>
-        <div className="match-gold-chart-difference"><span>{t("Écart d’or")}</span><strong data-tone={selected.diff < 0 ? "negative" : selected.diff > 0 ? "positive" : "neutral"}>{gold(signed(selected.diff))}</strong></div>
+        <div className="match-gold-chart-difference"><span>{t("Écart d’or")}</span><strong data-tone={tone(selected.diff)}>{gold(signed(selected.diff))}</strong></div>
         <div><span>{allyName}</span><b>{gold(selected.ally)}</b></div>
         <div><span>{enemyName}</span><b>{gold(selected.enemy)}</b></div>
       </div>}
