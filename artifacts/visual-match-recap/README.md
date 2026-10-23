@@ -28,6 +28,10 @@ L’onglet affiche directement le `DraftBoard` de la draft liée : picks, bans, 
 - Revue finale : conservation du bouton déclencheur après ajout ou détachement pour que la fermeture du dialogue lui rende le focus. Après ce correctif, les 25 tests du panneau, les traductions, le typage et la compilation repassent ; journaux : `inline-draft-tests.log` et `build-inline-draft-final.log`.
 - Captures locales inspectées : `drafting-desktop.png` et `drafting-bans-320.png`.
 
+## Préparation de publication
+
+La préparation de publication a révélé des alertes de sécurité dans les outils de développement : la CI et Netlify validaient les 4 352 tests et la compilation, puis bloquaient sur l’audit. Vite est corrigé de 7.3.6 à 7.3.7 et Vitest de 5.0.2 à 5.0.5, avec leurs dépendances associées dans le lockfile. L’audit npm ne signale plus de vulnérabilité et la politique de contrôle reste inchangée. La vérification complète repasse avec ces versions : 231 suites, 4 352 tests, 3 783 messages EN/ES, typage, compilation et 13 pages prérendues. Preuves locales : `audit-security-patches.json`, `audit-security-patches.log` et `verify-security-patches.log`.
+
 ## Reproduire l’aperçu
 
 Depuis la racine du dépôt :
