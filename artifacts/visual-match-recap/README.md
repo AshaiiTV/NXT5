@@ -8,7 +8,7 @@ La fiche ouvre le récap : compositions, écart final disponible, relevés d’o
 
 La courbe ne crée ni zéro ni point final ; ses interruptions reflètent les relevés absents. Les rôles ambigus, les participants manquants et les statistiques indisponibles restent explicites. Notre équipe reste à gauche, même côté rouge.
 
-## Vérification
+## Vérification initiale du récap
 
 - `npm run verify` : 231 suites, 4 338 tests, 3 782 messages EN/ES, typage et compilation avec 13 pages prérendues. Journal : `verify.log`.
 - Relecture indépendante des données, du comparateur, des liens ARIA et de la synchronisation du nom adverse.
@@ -17,6 +17,16 @@ La courbe ne crée ni zéro ni point final ; ses interruptions reflètent les re
 - Correctifs issus du navigateur : grille d’onglets mobile, icônes au-dessus des libellés sur le plus petit format, repositionnement du focus et du défilement après passage au comparateur.
 
 Les tests de composants couvrent aussi le rafraîchissement d’une même partie, le changement de partie, les données ambiguës et les réponses tardives ou refusées du chargement d’adversaire. Les derniers contrôles après ajustements figurent dans `final-targeted.log` et `final-build.log`.
+
+## Ajustement de Drafting
+
+L’onglet affiche directement le `DraftBoard` de la draft liée : picks, bans, source et commandes de relecture. L’analyse indicative « La leur / La nôtre » est retirée de cet onglet. L’ajout, le remplacement et le détachement restent dans le dialogue de gestion. Sans draft liée, l’état vide propose au staff d’en ajouter une ; aucun ban n’est déduit des participants de la partie.
+
+- `npm run verify` : 231 suites, 4 351 tests, 3 783 messages EN/ES, typage et compilation avec 13 pages prérendues. Journal : `verify-inline-draft.log`.
+- Les tests couvrent la draft unique, les droits de gestion, le chargement, l’erreur et la reprise, les réponses tardives, le changement de partie et la conservation de la relecture sans requête supplémentaire. Les réponses reçues dans un onglet masqué ne déplacent pas le focus.
+- Navigateur : dix picks et dix bans affichés dans l’aperçu synthétique, relecture et clavier fonctionnels, position conservée après changement d’onglet. Inspection visuelle sur ordinateur et dans un cadre de 320 px (`mobile.html`) ; les bans deviennent des lignes compactes sur petit écran.
+- Revue finale : conservation du bouton déclencheur après ajout ou détachement pour que la fermeture du dialogue lui rende le focus. Après ce correctif, les 25 tests du panneau, les traductions, le typage et la compilation repassent ; journaux : `inline-draft-tests.log` et `build-inline-draft-final.log`.
+- Captures locales inspectées : `drafting-desktop.png` et `drafting-bans-320.png`.
 
 ## Reproduire l’aperçu
 
@@ -28,6 +38,6 @@ npx vite --config artifacts/visual-match-recap/preview-vite.config.mjs
 
 Ouvrir `http://127.0.0.1:5177/artifacts/visual-match-recap/preview.html`.
 
-L’aperçu utilise les vrais composants de fiche, avec des parties synthétiques. Son serveur d’images réutilise les portraits locaux disponibles ou les sources publiques Riot autorisées. Il n’appelle aucune API de compte et ne modifie aucune donnée utilisateur. Les actions externes de son bandeau sont simulées.
+L’aperçu utilise les vrais composants de fiche et de draft, avec des parties et des drafts synthétiques. Son serveur d’images réutilise les portraits locaux disponibles ou les sources publiques Riot autorisées. Il n’appelle aucune API de compte et ne modifie aucune donnée utilisateur. L’action de gestion de draft est simulée ; les mutations réelles sont vérifiées dans les tests de composants.
 
 La vérification locale ne certifie ni une session authentifiée complète ni le site publié. La charte graphique unique a été actualisée à sa source, sans copie dans ce checkout.

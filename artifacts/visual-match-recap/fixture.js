@@ -2,6 +2,22 @@
 const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
 const champions = [["Ornn", "Sejuani", "Ahri", "Jinx", "Lulu"], ["Gnar", "Viego", "Syndra", "Caitlyn", "Nautilus"]];
 const names = [["Atlas", "Nova", "Lune", "Pulse", "Echo"], ["Orion", "Nox", "Solis", "Vega", "Astra"]];
+
+export function syntheticDraft(variant = "complete") {
+  if (variant === "incomplete") return null;
+  const redSide = variant === "red";
+  return {
+    id: "synthetic-draft-3", gameNumber: 3, allySide: redSide ? "red" : "blue",
+    snapshot: {
+      source: "drafter.lol", sourceId: "NXT5demo", sourceUrl: "https://drafter.lol/draft/NXT5demo?game=3", gameNumber: 3,
+      blueName: redSide ? "Orion" : "Atlas", redName: redSide ? "Atlas" : "Orion",
+      bluePicks: redSide ? [...champions[1]] : [...champions[0]], redPicks: redSide ? [...champions[0]] : [...champions[1]],
+      blueBans: ["Aurora", "Vi", "Rakan", "Poppy", "Yone"], redBans: ["Kalista", "Skarner", "Orianna", "Renekton", "Braum"],
+      status: "completed", fearless: false, ironman: false, warnings: [], firstPick: "blue",
+      orderEvidence: { version: 1, basis: "reconstructed-public-slots", format: "standard-20", firstPick: "blue", reason: "public-slot-fields-v1" },
+    },
+  };
+}
 const gold = [[11800, 10600, 12600, 14000, 9000], [12200, 11900, 13400, 19681, 10303]];
 const damage = [[17100, 14100, 27200, 25400, 8800], [19200, 23200, 28500, 38500, 10400]];
 const vision = [[25, 41, 30, 27, 88], [28, 38, 35, 32, 96]];

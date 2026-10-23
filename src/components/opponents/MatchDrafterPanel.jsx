@@ -9,7 +9,33 @@ import { DraftSnapshot, SnapshotContext, SourceLink } from "./OpponentsWorkspace
 import DraftBoard from "../draft/DraftBoard.jsx";
 import "./match-drafter-panel.css";
 
-function MatchDraft({ teamId, matchId, onChanged }) {
+export function MatchDraftingView({ draft, status = "ready", canEdit = false, error = "", onRetry, onManage, manageRef }) {
+  useLanguage();
+  return <section className="opponents-workspace match-drafter-content match-drafter-inline" aria-label={t("Draft de la partie")}>
+    {status === "loading" && <p role="status" className="opponents-help"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{t("Chargement de la draft liée…")}</p>}
+    {status === "error" && <><p role="alert" className="opponents-error">{error || t("Impossible de charger la draft liée.")}</p><Button type="button" variant="ghost" icon={RefreshCw} onClick={onRetry}>{t("Réessayer")}</Button></>}
+    {status === "ready" && <>
+      <div className={draft ? "match-drafter-inline-toolbar" : "match-drafter-empty"}>
+        {draft ? <>
+          <strong>{t("Game {0}", [draft.gameNumber])}</strong>
+          <SourceLink snapshot={draft.snapshot} />
+          <a className="opponents-source" href={`/tendances?rubrique=drafts&draft=${encodeURIComponent(draft.id)}`}>{t("Analyser cette draft")}<ArrowRight size={16} aria-hidden="true" /></a>
+        </> : <>
+          <Link aria-hidden="true" />
+          <h4>{t("Draft de la partie")}</h4>
+          <p>{canEdit ? t("Ajoute un lien Drafter pour retrouver les picks et bans de cette partie.") : t("Aucune draft liée à cette partie. Le staff peut en ajouter une.")}</p>
+        </>}
+        {canEdit && <span ref={manageRef}><Button type="button" variant={draft ? "ghost" : undefined} icon={Link} aria-haspopup="dialog" onClick={onManage}>{t(draft ? "Gérer la draft" : "Ajouter une draft")}</Button></span>}
+      </div>
+      {draft && <>
+        <DraftBoard snapshot={draft.snapshot} allySide={draft.allySide} />
+        <SnapshotContext snapshot={draft.snapshot} importedAt={draft.importedAt} />
+      </>}
+    </>}
+  </section>;
+}
+
+function MatchDraft({ teamId, matchId, onChanged, presentation, active }) {
   const id = useId();
   const [draft, setDraft] = useState(null);
   const [canEdit, setCanEdit] = useState(false);
@@ -33,7 +59,7 @@ function MatchDraft({ teamId, matchId, onChanged }) {
   const triggerRef = useRef(null);
   const noticeRef = useRef(null);
 
-  useEffect(() => { if (notice) noticeRef.current?.focus(); }, [notice]);
+  useEffect(() => { if (notice && active && dialogOpen) noticeRef.current?.focus(); }, [notice, active, dialogOpen]);
 
   useEffect(() => {
     mounted.current = true;
@@ -90,7 +116,7 @@ function MatchDraft({ teamId, matchId, onChanged }) {
       if (mounted.current && revision === previewRevision.current) setBusy("");
     }
   }
-  useEffect(() => { if (preview) previewTitle.current?.focus(); }, [preview]);
+  useEffect(() => { if (preview && active && dialogOpen) previewTitle.current?.focus(); }, [preview, active, dialogOpen]);
 
   async function refreshAfterSave() {
     try { await onChanged?.(); }
@@ -132,7 +158,8 @@ function MatchDraft({ teamId, matchId, onChanged }) {
     setDialogOpen(false);
   }
 
-  return <div className="match-context-control match-drafter-control">
+  return <div className={presentation === "inline" ? "match-drafter-tab" : "match-context-control match-drafter-control"}>
+    {presentation === "inline" ? <MatchDraftingView draft={draft} status={load} canEdit={canEdit} error={error} onRetry={() => setReload((value) => value + 1)} onManage={() => setDialogOpen(true)} manageRef={triggerRef} /> : <>
     <span className="match-context-label">{t(draft ? "Draft liée" : "Draft")}</span>
     {load === "loading" && <span role="status" className="match-context-value">{t("Chargement de la draft liée…")}</span>}
     {load === "error" && <>
@@ -143,7 +170,8 @@ function MatchDraft({ teamId, matchId, onChanged }) {
       <span className="match-context-value">{draft ? t("Game {0}", [draft.gameNumber]) : t("Non liée")}</span>
       {(draft || canEdit) && <span ref={triggerRef}><Button type="button" variant="ghost" className="match-context-trigger" icon={draft ? ArrowRight : Link} aria-haspopup="dialog" onClick={() => setDialogOpen(true)}>{t(draft ? "Voir la draft" : "Ajouter une draft")}</Button></span>}
     </>}
-    {dialogOpen && <GameOperationDialog title={t("Draft de la partie")} description={!draft ? t("Ajoute un lien Drafter pour retrouver les picks et bans de cette partie.") : undefined} onClose={closeDialog} busy={mutating} dirty={Boolean(url.trim() || preview)} returnFocusRef={triggerRef} className="match-drafter-dialog">
+    </>}
+    {dialogOpen && active && <GameOperationDialog title={t("Draft de la partie")} description={!draft ? t("Ajoute un lien Drafter pour retrouver les picks et bans de cette partie.") : undefined} onClose={closeDialog} busy={mutating} dirty={Boolean(url.trim() || preview)} returnFocusRef={triggerRef} className="match-drafter-dialog">
     <div className="opponents-workspace match-drafter-content">
       {error && <p role="alert" className="opponents-error">{t(error)}</p>}
       <p ref={noticeRef} tabIndex={-1} role="status" aria-live="polite" aria-atomic="true" className={notice ? "opponents-notice" : "sr-only"}>{notice}</p>
@@ -151,7 +179,7 @@ function MatchDraft({ teamId, matchId, onChanged }) {
         {draft ? <div className="match-drafter-linked">
           <div className="match-drafter-summary"><div><strong>{draft.snapshot.blueName} / {draft.snapshot.redName}</strong><p>{t("Game {0}", [draft.gameNumber])}</p></div><SourceLink snapshot={draft.snapshot} /></div>
           <a className="opponents-source" href={`/tendances?rubrique=drafts&draft=${encodeURIComponent(draft.id)}`}>{t("Analyser cette draft")}<ArrowRight size={16} aria-hidden="true" /></a>
-          <div className="match-drafter-details"><DraftBoard snapshot={draft.snapshot} allySide={draft.allySide} /><SnapshotContext snapshot={draft.snapshot} importedAt={draft.importedAt} /></div>
+          {presentation !== "inline" && <div className="match-drafter-details"><DraftBoard snapshot={draft.snapshot} allySide={draft.allySide} /><SnapshotContext snapshot={draft.snapshot} importedAt={draft.importedAt} /></div>}
           {canEdit && !editorOpen && <div className="match-drafter-actions"><Button type="button" variant="ghost" icon={Link} disabled={mutating} onClick={() => toggleEditor(true)}>{t("Remplacer la draft")}</Button><Button type="button" variant="ghost" icon={Unlink} disabled={mutating} aria-expanded={unlinkOpen} aria-controls={`${id}-unlink`} onClick={() => { setUnlinkOpen((value) => !value); setError(""); }}>{t("Détacher la draft")}</Button></div>}
           {canEdit && unlinkOpen && <div id={`${id}-unlink`} className="match-drafter-unlink"><p>{t("Retirer cette draft de la partie ? Elle restera disponible dans l’historique des analyses.")}</p><div className="match-drafter-actions"><Button type="button" variant="ghost" disabled={mutating} onClick={() => setUnlinkOpen(false)}>{t("Annuler")}</Button><Button type="button" variant="danger" icon={busy === "unlink" ? Loader2 : Unlink} disabled={mutating} onClick={unlink}>{t(busy === "unlink" ? "Détachement…" : "Confirmer le détachement")}</Button></div></div>}
         </div> : !canEdit && <p className="opponents-help">{t("Aucune draft liée à cette partie. Le staff peut en ajouter une.")}</p>}
@@ -178,10 +206,10 @@ function MatchDraft({ teamId, matchId, onChanged }) {
   </div>;
 }
 
-export function MatchDrafterPanel({ teamId, match, user, onChanged }) {
+export function MatchDrafterPanel({ teamId, match, user, onChanged, presentation = "context", active = true }) {
   useLanguage();
   if (!teamId || !match?.id || (match.team_id && match.team_id !== teamId)) return null;
-  return <MatchDraft key={`${teamId}:${match.id}:${user?.id || ""}`} teamId={teamId} matchId={match.id} onChanged={onChanged} />;
+  return <MatchDraft key={`${teamId}:${match.id}:${user?.id || ""}`} teamId={teamId} matchId={match.id} onChanged={onChanged} presentation={presentation} active={active} />;
 }
 
 export default MatchDrafterPanel;

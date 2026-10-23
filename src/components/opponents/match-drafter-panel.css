@@ -11,9 +11,24 @@
 .match-drafter-replace { margin-bottom: 20px; }
 .match-drafter-content .opponents-notice { margin: 12px 0; }
 .match-drafter-content .opponents-preview-heading h4 { font-size: 1.125rem; font-weight: 700; }
+.match-drafter-tab { min-width:0; }
+.match-drafter-inline-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:12px 24px; margin-bottom:20px; }
+.match-drafter-inline-toolbar > strong { color:var(--nxt5-text); }
+.match-drafter-inline-toolbar > span:last-child { margin-left:auto; }
+.match-drafter-inline > .opponents-help { display:flex; align-items:center; gap:8px; }
+.match-drafter-empty { padding:28px 0; max-width:60ch; }
+.match-drafter-empty > svg { width:36px; height:36px; color:var(--nxt5-accent-2); margin-bottom:16px; }
+.match-drafter-empty h4 { font-size:20px; font-weight:650; color:var(--nxt5-text); }
+.match-drafter-empty p { margin-block:12px 20px; color:var(--nxt5-text-secondary); line-height:1.6; }
 @container (max-width: 720px) {
   .match-drafter-content .opponents-draft-camps { grid-template-columns: minmax(0, 1fr); }
 }
 @container (max-width: 420px) {
   .match-drafter-actions > button { flex: 1 1 100%; }
+  .match-drafter-inline-toolbar > span:last-child { margin-left:0; }
+}
+@container draftboard (max-width: 400px) {
+  .match-drafter-inline .draft-board-bans { grid-template-columns:minmax(0,1fr); }
+  .match-drafter-inline .draft-board-ban > :is(button,div) { display:grid; grid-template-columns:36px minmax(0,1fr); align-items:center; }
+  .match-drafter-inline .draft-board-ban-art { width:36px; aspect-ratio:1; }
 }

@@ -1,4 +1,5 @@
 const copy = [
+  ["Gérer la draft", "Manage draft", "Gestionar la draft"],
   ["Récap", "Recap", "Resumen"],
   ["Chronologie", "Timeline", "Cronología"],
   ["Face-à-face", "Head-to-head", "Cara a cara"],

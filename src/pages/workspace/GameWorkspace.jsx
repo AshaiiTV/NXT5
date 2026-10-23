@@ -21,7 +21,7 @@ import { ImportedGames } from "../../components/games/ImportedGames.jsx";
 import { MatchVisualRecap, MatchDuelDetails, recapNumber } from "../../components/games/MatchVisualRecap.jsx";
 import { MatchHeadToHead, getMatchRolePairs } from "../../components/games/MatchHeadToHead.jsx";
 import OpponentsWorkspace from "../../components/opponents/OpponentsWorkspace.jsx";
-import MatchDrafterPanel from "../../components/opponents/MatchDrafterPanel.jsx";
+import MatchDrafterPanel, { MatchDraftingView } from "../../components/opponents/MatchDrafterPanel.jsx";
 import MatchOpponentPanel from "../../components/opponents/MatchOpponentPanel.jsx";
 import GroupOpponentPanel from "../../components/opponents/GroupOpponentPanel.jsx";
 
@@ -1319,7 +1319,7 @@ function MatchDataPanel(props) {
   return <MatchDataContent key={`${match.team_id || ""}:${match.id || ""}`} {...props} />;
 }
 
-function MatchDataContent({ match, teamName, onReview, hasReview = false, contextControls }) {
+function MatchDataContent({ match, teamName, onReview, hasReview = false, contextControls, draftContent }) {
   useLanguage();
   const id = useId();
   const [tab, setTab] = useState("recap");
@@ -1383,7 +1383,9 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
             {(match.game_id || match.patch) && <section className="games-analysis-section games-match-info"><h4 className="games-section-heading">{t("Informations de la partie")}</h4>{match.game_id && <p>{t("Identifiant : ")}{match.game_id}</p>}{match.patch && <p>{t("Version du jeu : ")}{match.patch}</p>}</section>}
           </GameAnalysisDisclosure></div>
       </>}
-      {tab === "draft" && <DraftImpactPanel match={match} teamName={teamName} />}
+      <div hidden={tab !== "draft"} className="match-recap-draft-content">
+        {typeof draftContent === "function" ? draftContent({ active: tab === "draft" }) : draftContent || <MatchDraftingView />}
+      </div>
       {tab === "timeline" && <MatchTimelineReview match={match} teamName={teamName} />}
     </div>
   </Surface>;
@@ -1665,8 +1667,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && t(" Les statistiques déjà chargées restent disponibles.")}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>{t("Réessayer")}</Button></Surface>}
       {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} onReview={openReview} hasReview={Boolean(selectedReport)} contextControls={({ onOpponentResolved }) => <>
         <MatchOpponentPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={() => refreshAll({ throwOnError: true })} onResolvedName={onOpponentResolved} />
-        <MatchDrafterPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={refreshAll} />
-      </>} />}
+      </>} draftContent={({ active }) => <MatchDrafterPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={refreshAll} presentation="inline" active={active} />} />}
       {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title={t("Partie introuvable")} text={t("Elle n’est plus disponible dans cette équipe.")} /></Surface>}
     </div>}
 

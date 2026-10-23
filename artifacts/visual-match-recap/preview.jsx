@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { MatchDataPanel } from "../../src/pages/workspace/GameWorkspace.jsx";
 import { Button } from "../../src/components/ui/Core.jsx";
+import { MatchDraftingView } from "../../src/components/opponents/MatchDrafterPanel.jsx";
 import { setLanguage } from "../../src/i18n/locale.js";
-import { syntheticMatch } from "./fixture.js";
+import { syntheticMatch, syntheticDraft } from "./fixture.js";
 import "../../src/index.css";
 import "./preview.css";
 
@@ -27,7 +28,8 @@ function Preview() {
     <main className="preview-main">
       <header className="preview-heading"><span>Parties</span><h1>Comprends ta partie.</h1></header>
       <MatchDataPanel match={match} teamName="Atlas" hasReview onReview={() => setNotice("Le débrief serait ouvert ici.")}
-        contextControls={<><span>Équipe adverse <strong>Orion</strong></span><Button variant="ghost" onClick={() => setNotice("Modification de l’adversaire demandée.")}>Modifier</Button><span>Draft liée <strong>Partie 3</strong></span><Button variant="ghost" onClick={() => setNotice("La draft serait ouverte ici.")}>Voir la draft</Button></>} />
+        contextControls={<><span>Équipe adverse <strong>Orion</strong></span><Button variant="ghost" onClick={() => setNotice("Modification de l’adversaire demandée.")}>Modifier</Button></>}
+        draftContent={<MatchDraftingView draft={syntheticDraft(variant)} canEdit onManage={() => setNotice("La gestion de la draft serait ouverte ici.")} />} />
       <p role="status" className="preview-status">{notice}</p>
     </main>
   </div>;
