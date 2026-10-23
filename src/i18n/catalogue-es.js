@@ -12,6 +12,7 @@ import { es as draftIntelligence } from './draft-intelligence-overrides.js';
 import { es as helpFeatures } from './help-features-overrides.js';
 import { es as playerComparison } from './player-comparison-overrides.js';
 import { es as socialCalendar } from './social-calendar-overrides.js';
+import { es as matchRecap } from './match-recap-overrides.js';
 const teamManagement = {
   "Effectif": "Plantilla",
   "Encadrement": "Cuerpo técnico",
@@ -54,7 +55,7 @@ const teamManagement = {
   "Supprimer définitivement l’équipe": "Eliminar equipo definitivamente",
   "Gère l’effectif, les invitations et les informations de ton équipe.": "Gestiona la plantilla, las invitaciones y los datos de tu equipo.",
 };
-export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar,
+export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap,
   "Tuto vidéo : importer une partie sur Windows": "Vídeo tutorial: importar una partida en Windows",
   "YouTube · 2 min 31 · En français · Nouvel onglet": "YouTube · 2 min 31 · En francés · Nueva pestaña",
 };

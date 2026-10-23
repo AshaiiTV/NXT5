@@ -6,7 +6,7 @@ import { assetProxyUrl } from "../../utils/matches.js";
 import { availableNumber } from "../../utils/statistics.js";
 import { buildGamePublicationSnapshot } from "../../../shared/publications/game-publication.js";
 import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumeric, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
-import React, { useEffect, useState, useCallback, useDeferredValue, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useDeferredValue, useMemo, useRef, useId } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput, ReadingDetails } from "../../components/ui/Core.jsx";
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft, Settings } from "lucide-react";
@@ -18,6 +18,8 @@ import "./match-timeline-reading.css";
 import "./match-deep-reading.css";
 import { MatchDrafting as DraftImpactPanel } from "../../components/games/MatchDrafting.jsx";
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
+import { MatchVisualRecap, MatchDuelDetails, recapNumber } from "../../components/games/MatchVisualRecap.jsx";
+import { MatchHeadToHead, getMatchRolePairs } from "../../components/games/MatchHeadToHead.jsx";
 import OpponentsWorkspace from "../../components/opponents/OpponentsWorkspace.jsx";
 import MatchDrafterPanel from "../../components/opponents/MatchDrafterPanel.jsx";
 import MatchOpponentPanel from "../../components/opponents/MatchOpponentPanel.jsx";
@@ -1311,55 +1313,79 @@ function GameAnalysisDisclosure({ title, description, children }) {
   </details>;
 }
 
-function MatchDataPanel({ match, teamName, onReview, hasReview = false, contextControls }) {
-  useLanguage();
+function MatchDataPanel(props) {
+  const { match } = props;
   if (!match) return null;
-  const ally = teamRows(match, "ALLY");
-  const enemy = teamRows(match, "ENEMY");
-  const allyKills = sumRows(ally, "kills");
-  const allyDeaths = sumRows(ally, "deaths");
-  const allyAssists = sumRows(ally, "assists");
-  const enemyKills = sumRows(enemy, "kills");
-  const damageDiff = sumRows(ally, "damage") - sumRows(enemy, "damage");
-  const goldDiff = sumRows(ally, "gold") - sumRows(enemy, "gold");
-  const visionDiff = sumRows(ally, "vision") - sumRows(enemy, "vision");
-  const side = matchTeamSideKey(match, "ALLY");
-  const status = timelineStatus(match);
-  const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4"><MetricCard compact icon={Swords} label={t("Éliminations / morts / assistances")} value={`${allyKills}/${allyDeaths}/${allyAssists}`} hint={t("{0} éliminations adverses", [enemyKills])} tone="cyan" /><MetricCard compact icon={Flame} label={t("Écart dégâts")} value={(damageDiff >= 0 ? "+" : "") + formatPoints(damageDiff)} hint={t("Notre équipe moins l’adversaire")} tone={damageDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, damageDiff)} /><MetricCard compact icon={Gauge} label={t("Écart or")} value={formatGoldDiff(goldDiff)} hint={t("Or de notre équipe moins l’adversaire")} tone={goldDiff >= 0 ? "green" : "red"} sideMarker={winningSideForDiff(match, goldDiff)} /><MetricCard compact icon={Eye} label={t("Écart vision")} value={(visionDiff >= 0 ? "+" : "") + formatPoints(visionDiff)} hint={t("Score de vision : notre équipe moins l’adversaire")} tone={visionDiff >= 0 ? "cyan" : "red"} sideMarker={winningSideForDiff(match, visionDiff)} /></div>;
-  return <Surface variant="scene" className="nxt5-match-panel mt-5">
-    <div className="games-match-context">
-      <div className="games-match-title">
-        <h3 tabIndex={-1}>{matchDisplayName(match)}</h3>
-        <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{t(match.result) || t("Résultat non renseigné")}</Badge>
+  return <MatchDataContent key={`${match.team_id || ""}:${match.id || ""}`} {...props} />;
+}
+
+function MatchDataContent({ match, teamName, onReview, hasReview = false, contextControls }) {
+  useLanguage();
+  const id = useId();
+  const [tab, setTab] = useState("recap");
+  const [selectedRole, setSelectedRole] = useState("");
+  const [opponentName, setOpponentName] = useState(undefined);
+  const panelRef = useRef(null);
+  const detailsRef = useRef(null);
+  const focusDetails = useRef(false);
+  const focusComparison = useRef(false);
+  const publication = useMemo(() => buildGamePublicationSnapshot({
+    match: opponentName === undefined ? match : { ...match, opponent: opponentName },
+    team: { name: teamName || "Notre équipe" },
+  }), [match, teamName, opponentName]);
+  const { facts, context } = publication;
+  const side = context.allySide;
+  const pair = getMatchRolePairs(publication).find((entry) => entry.role === selectedRole);
+  const tabs = [{ id: "recap", label: "Récap", icon: BarChart3 }, { id: "versus", label: "Face-à-face", icon: Swords }, { id: "draft", label: "Drafting", icon: Clipboard }, { id: "timeline", label: "Chronologie", icon: Gauge }];
+  useEffect(() => {
+    if (focusComparison.current) {
+      panelRef.current?.focus({ preventScroll: true });
+      panelRef.current?.scrollIntoView?.({ block: "start", behavior: "instant" });
+      focusComparison.current = false;
+    }
+  }, [tab]);
+  useEffect(() => {
+    if (focusDetails.current && pair?.ally && pair?.enemy) {
+      detailsRef.current?.focus();
+      focusDetails.current = false;
+    }
+  }, [selectedRole, pair?.ally, pair?.enemy]);
+  function selectRole(role) { focusDetails.current = Boolean(role); setSelectedRole(role); }
+  function showComparison(role) { focusComparison.current = true; setSelectedRole(role); setTab("versus"); }
+  const review = onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(match.id)}&compose=1`));
+  const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+    <MetricCard compact icon={Swords} label={t("Éliminations / morts / assistances")} value={[facts.kills.ally, facts.deaths.ally, facts.assists.ally].map((value) => recapNumber(value)).join("/")} hint={t("{0} éliminations adverses", [recapNumber(facts.kills.enemy)])} tone="cyan" />
+    {[["damage", Flame, "Écart dégâts"], ["gold", Gauge, "Écart or"], ["vision", Eye, "Écart vision"]].map(([key, Icon, label]) => <MetricCard key={key} compact icon={Icon} label={t(label)} value={recapNumber(facts[key].diff, true)} hint={t("Notre équipe moins l’adversaire")} tone={Number.isFinite(facts[key].diff) ? facts[key].diff < 0 ? "red" : "green" : "slate"} />)}
+  </div>;
+  return <Surface variant="scene" className="nxt5-match-panel match-recap-page mt-5">
+    <div className="match-recap-header">
+      <div className="games-match-context">
+        <div className="games-match-title">
+          <h3 tabIndex={-1}>{matchDisplayName(match)}</h3>
+          <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{t(match.result) || t("Résultat non renseigné")}</Badge>
+        </div>
+        <div className="games-match-meta">
+          <span>{match.duration ? t("Durée : {0}", [match.duration]) : t("Durée non renseignée")}</span>
+          <span>{side === "blue" ? t("Notre équipe : côté bleu") : side === "red" ? t("Notre équipe : côté rouge") : t("Côté non renseigné")}</span>
+        </div>
       </div>
-      <div className="games-match-meta">
-        <span>{match.duration ? t("Durée : {0}", [match.duration]) : t("Durée non renseignée")}</span>
-        <span>{side === "blue" ? t("Notre équipe : côté bleu") : side === "red" ? t("Notre équipe : côté rouge") : t("Côté non renseigné")}</span>
-      </div>
-      {contextControls && <div className="games-match-links">{contextControls}</div>}
+      <Button type="button" icon={hasReview ? FileText : Plus} onClick={review} disabled={!match.id}>{hasReview ? t("Ouvrir le débrief") : t("Préparer le débrief")}</Button>
     </div>
-    <MatchCoachBrief match={match} onReview={onReview} hasReview={hasReview} />
-    <section className="games-explore" aria-label={t("Détails de la partie")}>
-      <h4 className="games-section-heading">{t("Détails de la partie")}</h4>
-      <div key={match.id}>
-        <GameAnalysisDisclosure title={t("Statistiques et comparaison 5 contre 5")} description={t("Or, dégâts, vision, joueurs, équipements et objectifs.")}>
-          {metrics}
-          <MatchVersusOverview match={match} teamName={teamName} />
-          <CoachSupportingMetrics match={match} />
-          {(match.game_id || match.patch) && <section className="games-analysis-section games-match-info">
-            <h4 className="games-section-heading">{t("Informations de la partie")}</h4>
-            {match.game_id && <p>{t("Identifiant : ")}{match.game_id}</p>}
-            {match.patch && <p>{t("Version du jeu : ")}{match.patch}</p>}
-          </section>}
-        </GameAnalysisDisclosure>
-        <GameAnalysisDisclosure title={t("Drafting")} description={t("La leur / La nôtre")}>
-          <DraftImpactPanel match={match} teamName={teamName} />
-        </GameAnalysisDisclosure>
-        <GameAnalysisDisclosure title={t("Chronologie de la partie")} description={`${t(status.label)} · ${t(status.detail)}`}>
-          <MatchTimelineReview match={match} teamName={teamName} />
-        </GameAnalysisDisclosure>
-      </div>
-    </section>
+    {contextControls && <div className="games-match-links">{typeof contextControls === "function" ? contextControls({ onOpponentResolved: setOpponentName }) : contextControls}</div>}
+    <TabNav idPrefix={id} panelId={`${id}-panel`} label={t("Vues de la partie")} items={tabs} activeId={tab} onChange={setTab} className="match-recap-tabs" />
+    <div ref={panelRef} id={`${id}-panel`} role="tabpanel" tabIndex={0} aria-labelledby={`${id}-tab-${tab}`} className="match-recap-tab-content">
+      {tab === "recap" && <MatchVisualRecap match={match} snapshot={publication} onCompare={showComparison} />}
+      {tab === "versus" && <>
+        <MatchHeadToHead snapshot={publication} selectedRole={selectedRole} onSelectRole={selectRole} detailsId={`${id}-duel`} />
+        <MatchDuelDetails pair={pair} snapshot={publication} id={`${id}-duel`} detailsRef={detailsRef} />
+        <div className="match-recap-supporting"><GameAnalysisDisclosure title={t("Statistiques et comparaison 5 contre 5")} description={t("Joueurs, équipements et objectifs.")}>
+            {metrics}<MatchVersusOverview match={match} teamName={teamName} /><CoachSupportingMetrics match={match} />
+            {(match.game_id || match.patch) && <section className="games-analysis-section games-match-info"><h4 className="games-section-heading">{t("Informations de la partie")}</h4>{match.game_id && <p>{t("Identifiant : ")}{match.game_id}</p>}{match.patch && <p>{t("Version du jeu : ")}{match.patch}</p>}</section>}
+          </GameAnalysisDisclosure></div>
+      </>}
+      {tab === "draft" && <DraftImpactPanel match={match} teamName={teamName} />}
+      {tab === "timeline" && <MatchTimelineReview match={match} teamName={teamName} />}
+    </div>
   </Surface>;
 }
 
@@ -1637,8 +1663,8 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {!selectedMatch && <div className="games-detail-title"><h3>{t("Analyse de la partie")}</h3></div>}
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{t("Chargement des statistiques détaillées…")}</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && t(" Les statistiques déjà chargées restent disponibles.")}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>{t("Réessayer")}</Button></Surface>}
-      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} onReview={openReview} hasReview={Boolean(selectedReport)} contextControls={<>
-        <MatchOpponentPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={() => refreshAll({ throwOnError: true })} />
+      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} onReview={openReview} hasReview={Boolean(selectedReport)} contextControls={({ onOpponentResolved }) => <>
+        <MatchOpponentPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={() => refreshAll({ throwOnError: true })} onResolvedName={onOpponentResolved} />
         <MatchDrafterPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={refreshAll} />
       </>} />}
       {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title={t("Partie introuvable")} text={t("Elle n’est plus disponible dans cette équipe.")} /></Surface>}

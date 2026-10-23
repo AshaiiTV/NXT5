@@ -278,7 +278,7 @@ describe("unified Games workspace", () => {
     const renderer = await mount("/games?match=one");
     expect(renderer.root.findByType(MatchDrafterPanel).props.match.id).toBe("one");
     expect(renderer.root.findByType(MatchOpponentPanel).props.match.id).toBe("one");
-    const context = renderer.root.findByProps({ className: "games-match-context" });
+    const context = renderer.root.findByProps({ className: "games-match-links" });
     expect(context.findAllByType(MatchOpponentPanel)).toHaveLength(1);
     expect(context.findAllByType(MatchDrafterPanel)).toHaveLength(1);
     expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
@@ -397,17 +397,20 @@ describe("unified Games workspace", () => {
     expect(new URLSearchParams(window.location.search).get("match")).toBe(selectedId);
     const statistics = renderer.root.findByType(MatchDataPanel);
     expect(statistics.props.match.id).toBe(selectedId);
-    expect(text(statistics)).toContain("À vérifier en débrief");
+    expect(text(statistics)).toContain("Point à explorer");
+    expect(button(renderer, "Récap").props["aria-selected"]).toBe(true);
     expect(text(statistics)).not.toContain("Vue 5v5");
+    await click(renderer, "Face-à-face");
     const detail = statistics.findAllByType("details").find((node) => text(node.findByType("summary")).startsWith("Statistiques et comparaison"));
     expect(detail.props.open).toBe(false);
     await act(async () => detail.props.onToggle({ currentTarget: { open: true } }));
     const statsText = text(statistics);
     const versusIndex = statsText.indexOf("Vue 5v5");
-    const coachIndex = statsText.indexOf("À vérifier en débrief");
-    expect(coachIndex).toBeLessThan(versusIndex);
+    const reviewIndex = statsText.indexOf("Préparer le débrief");
+    expect(reviewIndex).toBeGreaterThanOrEqual(0);
+    expect(reviewIndex).toBeLessThan(versusIndex);
     for (const metric of ["Éliminations / morts / assistances", "Écart dégâts", "Écart or", "Écart vision"]) {
-      expect(statsText.indexOf(metric)).toBeGreaterThan(coachIndex);
+      expect(statsText.indexOf(metric)).toBeGreaterThan(reviewIndex);
       expect(statsText.indexOf(metric)).toBeLessThan(versusIndex);
     }
     expect(button(renderer, "Créer review")).toBeUndefined();

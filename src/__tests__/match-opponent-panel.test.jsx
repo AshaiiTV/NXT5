@@ -32,7 +32,7 @@ async function mount(overrides = {}) {
   await act(async () => { renderer = TestRenderer.create(<MatchOpponentPanel {...props} />); });
 }
 async function update(overrides) { props = { ...props, ...overrides }; await act(async () => renderer.update(<MatchOpponentPanel {...props} />)); }
-function defer() { let resolve; const promise = new Promise((yes) => { resolve = yes; }); return { promise, resolve }; }
+function defer() { let resolve; let reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
 function mockApi(overrides = {}) {
   apiFetch.mockImplementation((_path, options) => {
     const body = JSON.parse(options.body);
@@ -46,6 +46,47 @@ function mockApi(overrides = {}) {
 }
 
 describe("independent match opponent association", () => {
+  it("clears the shared opponent while a new user's access loads and remains clear after refusal", async () => {
+    mockApi({ "get-match-opponent": { opponentId: "opif", opponents: [opponent], canEdit: true } });
+    const onResolvedName = vi.fn();
+    await mount({ onResolvedName });
+    expect(onResolvedName).toHaveBeenLastCalledWith("OPIF");
+
+    const pending = defer();
+    mockApi({ "get-match-opponent": () => pending.promise });
+    onResolvedName.mockClear();
+    await update({ user: { id: "new-member" } });
+    expect(content()).toContain("Chargement de l’équipe adverse…");
+    expect(content()).not.toContain("OPIF");
+    expect(onResolvedName).toHaveBeenLastCalledWith("");
+
+    await act(async () => pending.reject(Object.assign(new Error("Accès refusé."), { status: 403 })));
+    expect(content()).toContain("Accès refusé.");
+    expect(content()).not.toContain("OPIF");
+    expect(onResolvedName).toHaveBeenLastCalledWith("");
+    expect(onResolvedName).not.toHaveBeenCalledWith("OPIF");
+    expect(calls("get-match-opponent")).toHaveLength(2);
+    expect(calls("set-match-opponent")).toHaveLength(0);
+  });
+
+  it("shares the resolved saved name without refetching or publishing unsaved selection", async () => {
+    const other = { id: "atlas", name: "Atlas" };
+    mockApi({ "get-match-opponent": { opponentId: "opif", opponents: [opponent, other], canEdit: true } });
+    const onResolvedName = vi.fn();
+    await mount({ onResolvedName });
+    expect(onResolvedName).toHaveBeenLastCalledWith("OPIF");
+    await openEditor();
+    change("Équipe adverse de cette partie", "atlas");
+    expect(onResolvedName).toHaveBeenLastCalledWith("OPIF");
+    await submit("Enregistrer l’adversaire");
+    expect(onResolvedName).toHaveBeenLastCalledWith("Atlas");
+    await update({ match: { ...props.match, participants: [{ champion: "Ahri" }] } });
+    expect(calls("get-match-opponent")).toHaveLength(1);
+    change("Équipe adverse de cette partie", "");
+    await submit("Enregistrer l’adversaire");
+    expect(onResolvedName).toHaveBeenLastCalledWith("");
+  });
+
   it("does not fetch for a missing team or a match from another team", async () => {
     await mount({ teamId: null });
     expect(apiFetch).not.toHaveBeenCalled();
@@ -127,15 +168,18 @@ describe("independent match opponent association", () => {
   it("ignores a late load after switching teams and matches", async () => {
     const pending = defer();
     let signal;
+    const onResolvedName = vi.fn();
     mockApi({ "get-match-opponent": (body, options) => {
       if (body.matchId === "match-1") { signal = options.signal; return pending.promise; }
       return Promise.resolve({ opponentId: null, opponents: [], canEdit: true });
     } });
-    await mount();
+    await mount({ onResolvedName });
     await update({ teamId: "team-2", match: { id: "match-2", team_id: "team-2" } });
     expect(signal.aborted).toBe(true);
     await act(async () => pending.resolve({ opponentId: "opif", opponents: [opponent], canEdit: true }));
     expect(content()).not.toContain("OPIF");
+    expect(onResolvedName).not.toHaveBeenCalledWith("OPIF");
+    expect(onResolvedName).toHaveBeenLastCalledWith("");
     expect(renderer.root.findAllByType(GameOperationDialog)).toHaveLength(0);
     await openEditor();
     expect(field("Équipe adverse de cette partie").props.value).toBe("");
