@@ -7,6 +7,7 @@ import { readRoute } from "../app/routing.js";
 import DiscordGroupShare from "../components/discord/DiscordGroupShare.jsx";
 import { ImportedGames } from "../components/games/ImportedGames.jsx";
 import { MatchHeadToHead } from "../components/games/MatchHeadToHead.jsx";
+import { MatchKillMap } from "../components/games/MatchKillMap.jsx";
 import OpponentsWorkspace from "../components/opponents/OpponentsWorkspace.jsx";
 import MatchDrafterPanel from "../components/opponents/MatchDrafterPanel.jsx";
 import MatchOpponentPanel from "../components/opponents/MatchOpponentPanel.jsx";
@@ -401,6 +402,31 @@ describe("unified Games workspace", () => {
     expect(button(renderer, "Importer une partie")).toBeTruthy();
   });
 
+  it("keeps both map placements aware of detail loading, failure and retry", async () => {
+    const original = apiFetch.getMockImplementation();
+    const requests = [];
+    apiFetch.mockImplementation((endpoint, options) => endpoint === "match-details"
+      ? new Promise((resolve, reject) => requests.push({ resolve, reject }))
+      : original(endpoint, options));
+    const renderer = await mount("/games?match=one");
+    const map = () => renderer.root.findByType(MatchKillMap);
+    expect(map().props).toMatchObject({ loading: true, error: "" });
+    await click(renderer, "Chronologie");
+    expect(map().props).toMatchObject({ loading: true, error: "" });
+    await act(async () => requests[0].reject(new Error("Détails indisponibles")));
+    expect(map().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
+    await click(renderer, "Récap");
+    expect(map().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
+    await click(renderer, "Réessayer");
+    expect(map().props).toMatchObject({ loading: true, error: "" });
+    const detail = game("one", { raw: { nxt5Label: "Partie chargée", nxt5: { timelineEvents: [] } } });
+    await act(async () => requests[1].resolve({ matches: [detail] }));
+    expect(map().props).toMatchObject({ loading: false, error: "", match: { raw: detail.raw } });
+    await click(renderer, "Chronologie");
+    expect(map().props).toMatchObject({ loading: false, error: "", match: { raw: detail.raw } });
+    expect(requests).toHaveLength(2);
+  });
+
   it("keeps one library and opens a clicked game immediately with a canonical URL", async () => {
     const renderer = await mount("/integration?context=scrim");
     expect(renderer.root.findAllByType(ImportedGames)).toHaveLength(1);
@@ -415,7 +441,8 @@ describe("unified Games workspace", () => {
     expect(new URLSearchParams(window.location.search).get("match")).toBe(selectedId);
     const statistics = renderer.root.findByType(MatchDataPanel);
     expect(statistics.props.match.id).toBe(selectedId);
-    expect(text(statistics)).toContain("Qui a le plus d’impact ?");
+    expect(statistics.findAllByType(MatchKillMap)).toHaveLength(1);
+    expect(text(statistics)).not.toContain("Qui a le plus d’impact ?");
     expect(button(renderer, "Récap").props["aria-selected"]).toBe(true);
     expect(text(statistics)).not.toContain("Vue 5v5");
     await click(renderer, "Face-à-face");

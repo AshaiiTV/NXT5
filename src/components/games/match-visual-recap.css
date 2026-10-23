@@ -8,7 +8,7 @@
 .match-recap-tabs .nxt5-tab > span > span { white-space:normal; overflow-wrap:anywhere; }
 .match-recap-tab-content { min-width:0; }
 .match-recap-tab-content:focus-visible { outline:2px solid var(--nxt5-accent); outline-offset:4px; }
-.match-recap-grid { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(230px,1fr); gap:18px; margin-top:18px; }
+.match-recap-grid { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(230px,1fr); align-items:start; gap:18px; margin-top:18px; }
 .match-recap-grid > .nxt5-surface { margin:0; padding:20px; }
 .match-recap-chart .match-gold-chart { margin-top:20px; }
 .match-recap-stat { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
@@ -18,40 +18,25 @@
 .match-recap-stat > strong[data-tone="negative"] { color:var(--nxt5-danger); }
 .match-recap-stat > strong[data-tone="positive"] { color:#a7f3d0; }
 .match-recap-stat > strong[data-tone="neutral"] { color:var(--nxt5-text); }
-.match-recap-focus.nxt5-surface { background:radial-gradient(ellipse at 100% 0%,rgba(196,181,253,.16),transparent 65%),var(--nxt5-glass-background); border-color:var(--nxt5-glass-border); }
-.match-recap-focus > div { height:100%; }
-.match-recap-focus-inner { display:flex; flex-direction:column; gap:20px; height:100%; min-width:0; }
-.match-recap-focus-label { display:flex; align-items:center; gap:8px; font-size:var(--nxt5-font-small); color:var(--nxt5-accent-2); }
-.match-recap-focus-label svg { width:18px; height:18px; flex:0 0 18px; }
-.match-recap-focus h4 { font-size:22px; font-weight:650; line-height:1.3; color:var(--nxt5-text); }
-.match-recap-focus-inner > button { margin-top:auto; width:100%; }
-.match-impact-heading .match-recap-focus-label { margin-top:8px; }
-.match-impact-teams { display:grid; gap:20px; min-width:0; }
-.match-impact-team { min-width:0; --match-impact-accent:var(--nxt5-accent); }
-.match-impact-team[data-team="ENEMY"] { --match-impact-accent:var(--nxt5-accent-2); }
-.match-impact-team + .match-impact-team { padding-top:20px; border-top:1px solid var(--nxt5-border); }
-.match-impact-team-heading { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; margin-bottom:12px; }
-.match-impact-team-heading h5 { color:var(--match-impact-accent); font-size:var(--nxt5-font-ui); line-height:1.5; font-weight:600; overflow-wrap:anywhere; }
-.match-impact-team-heading > span,.match-impact-tie { color:var(--nxt5-muted); font-size:var(--nxt5-font-small); line-height:1.5; }
-.match-impact-tie { margin-bottom:10px; }
-.match-impact-leaders { display:grid; gap:16px; list-style:none; margin:0; padding:0; }
-.match-impact-leaders > li { min-width:0; }
-.match-impact-player { display:flex; align-items:center; gap:12px; }
-.match-impact-portrait { display:block; width:48px; height:48px; flex:0 0 48px; border-radius:10px; overflow:hidden; }
-.match-impact-portrait > *,.match-impact-portrait img { width:100%; height:100%; object-fit:cover; }
-.match-impact-identity { min-width:0; }
-.match-impact-identity strong { display:block; color:var(--nxt5-text); font-size:var(--nxt5-font-ui); line-height:1.5; font-weight:650; overflow-wrap:anywhere; }
-.match-impact-identity > span { display:block; color:var(--nxt5-text-secondary); font-size:var(--nxt5-font-small); line-height:1.5; overflow-wrap:anywhere; }
-.match-impact-damage { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline; gap:2px 8px; margin-top:8px; font-variant-numeric:tabular-nums; }
-.match-impact-damage > strong { color:var(--nxt5-text); font-size:24px; font-weight:700; line-height:1.4; }
-.match-impact-damage > span { color:var(--nxt5-text-secondary); font-size:var(--nxt5-font-small); line-height:1.5; }
-.match-impact-track { height:5px; margin-top:6px; border-radius:3px; background:var(--nxt5-surface-soft); overflow:hidden; }
-.match-impact-track > span { display:block; height:100%; border-radius:inherit; background:var(--match-impact-accent); }
-.match-impact-unavailable { color:var(--nxt5-text-secondary); font-size:var(--nxt5-font-small); line-height:1.6; }
+/* The same map sits beside the economic recap in both reading views. */
+.match-timeline-overview { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr); align-items:start; gap:18px; margin-top:28px; }
+.match-timeline-overview > .match-timeline-economy { margin-top:0; container-type:inline-size; }
+@container (max-width:680px) {
+  .match-timeline-overview .match-timeline-gold-layout { grid-template-columns:minmax(0,1fr); gap:24px; }
+  .match-timeline-overview .match-timeline-checkpoints { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px 20px; padding:20px 0 0; border-left:0; border-top:1px solid var(--nxt5-border); }
+  .match-timeline-overview .match-timeline-checkpoint { margin:0; padding:0; border:0; }
+  .match-timeline-overview .match-timeline-checkpoints > p { grid-column:1 / -1; max-width:none; }
+}
+@container (max-width:370px) {
+  .match-timeline-overview .match-timeline-checkpoints { grid-template-columns:minmax(0,1fr); gap:14px; }
+  .match-timeline-overview .match-timeline-checkpoint { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0 8px; }
+  .match-timeline-overview .match-timeline-checkpoint + .match-timeline-checkpoint { padding-top:14px; border-top:1px solid var(--nxt5-border); }
+  .match-timeline-overview .match-timeline-checkpoint > strong { grid-column:2; grid-row:1 / 3; align-self:center; margin:0; }
+  .match-timeline-overview .match-timeline-checkpoint > span { grid-column:1; }
+  .match-timeline-overview .match-timeline-axis-mark { display:none; }
+}
 @container (max-width:760px) {
-  .match-recap-grid { grid-template-columns:minmax(0,1fr); }
-  .match-impact-teams { grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; }
-  .match-impact-team + .match-impact-team { padding-top:0; border-top:0; }
+  .match-recap-grid,.match-timeline-overview { grid-template-columns:minmax(0,1fr); }
 }
 @container (max-width:510px) {
   .match-recap-header { flex-direction:column; gap:16px; }
@@ -60,9 +45,6 @@
   .match-recap-tabs { margin-block:20px; }
   .match-recap-grid > .nxt5-surface { padding:16px; }
   .match-recap-stat { flex-direction:column; gap:10px; }
-  .match-recap-focus-inner > button { margin-top:4px; }
-  .match-impact-teams { grid-template-columns:minmax(0,1fr); gap:20px; }
-  .match-impact-team + .match-impact-team { padding-top:20px; border-top:1px solid var(--nxt5-border); }
 }
 @container (max-width:350px) {
   .match-recap-tabs .nxt5-tab { flex-direction:column; text-align:center; gap:4px; padding-inline:6px; }

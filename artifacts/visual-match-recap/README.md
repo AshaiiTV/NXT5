@@ -4,29 +4,52 @@
 
 Les affinements de la version 1.99 ont été publiés par la [PR nº 213](https://github.com/AshaiiTV/NXT5/pull/213), fusionnée au commit `3fc79b4b4ae896c15388d9b49bf0c84761058c71`. Le [déploiement Netlify](https://app.netlify.com/projects/nxt5/deploys/6adbb7143598bf7b122ed417) est confirmé prêt et publié le 23 octobre 2026 à 21 h 38 min 57 s, heure de Paris. Preuves : `release213.json`, `release213-production-http.json` et captures `release213-*-production*.png`.
 
-La disposition compacte du Face-à-face (version 1.100) et la courbe d’or bleue/rouge (version 1.101) sont réalisées localement sur `codex/compact-head-to-head`, dans la même [PR nº 214 ouverte](https://github.com/AshaiiTV/NXT5/pull/214), et ne sont pas publiées. La production reste en version 1.99 / PR nº 213. L’aperçu emploie uniquement des données fictives ; les validations ci-dessous ne certifient pas ces nouvelles versions en production.
+La disposition compacte du Face-à-face (version 1.100) et la courbe d’or bleue/rouge (version 1.101) sont publiées ensemble par la [PR nº 214](https://github.com/AshaiiTV/NXT5/pull/214), fusionnée au commit `4fcb0ad1f56da0ad39736099c905051b72dcefc1`. Son contenu est identique au head vérifié `3f3bf9753cc8a50da88ec013ad79d2d4f633048c` (arbre Git `8d378845b49ceef36ed399b5354d318db178140e`). Les [contrôles de la PR](https://github.com/AshaiiTV/NXT5/actions/runs/40020399033) et de [main](https://github.com/AshaiiTV/NXT5/actions/runs/40021186523) réussissent. Le [déploiement Netlify](https://app.netlify.com/projects/nxt5/deploys/6adbc682a7b0a88c6a4a8139) est `READY` et publié le 23 octobre 2026 à 22 h 45 min 03 s, heure de Paris.
 
-## Version 1.101 locale — Courbe d’or bleue/rouge
+Le contrôle de cette publication confirme les 86 ressources publiques JS/CSS en HTTP 200, le module de fiche identique à l’aperçu après normalisation des références, la courbe bleue/rouge interactive et le Face-à-face compact dans un parcours authentifié en lecture seule. Le rendu à 1440 et 320 px, le clavier, le dialogue de rôle et son retour de focus sont vérifiés, sans erreur console observée ni donnée de compte modifiée. Preuves : `release214.json`, `release214-preview-http.json`, `release214-production-http.json` et captures `release214-*-production*.png`.
+
+La **version 1.102 — carte des éliminations — est locale et non publiée**, sur `codex/match-kill-map`. La production attestée ci-dessus reste en version 1.101 ; les contrôles de carte ci-dessous portent uniquement sur l’aperçu local et ses données fictives.
+
+## Version 1.102 locale — Carte des éliminations
+
+- La carte remplace entièrement « Qui a le plus d’impact ? » dans le Récap et apparaît aussi dans Chronologie, à côté de l’économie sur ordinateur et dans une disposition verticale sur petit écran. Le Face-à-face reste accessible directement par son onglet ; aucun sous-onglet n’est ajouté.
+- Les points bleus (`#60a5fa`) désignent les éliminations réalisées par notre équipe ; les rouges (`#f87171`), celles de l’adversaire. Ces couleurs suivent les équipes, même si notre équipe joue côté rouge. Les exécutions et les équipes non identifiées restent grises ; ne pas attribuer une exécution à l’équipe opposée à la victime.
+- Seules les positions enregistrées dans les événements `CHAMPION_KILL` sont projetées. Aucun point n’est estimé ou déplacé pour remplacer une donnée absente. Le fond de Faille de l’invocateur reste carré, sans rotation ni recadrage ; sa source et les limites de projection sont documentées dans [la provenance du fond de carte](../../public/assets/maps/README.md).
+- Le survol près d’un point, le toucher, les flèches, Début/Fin et les boutons précédent/suivant donnent accès à la minute, aux champions impliqués et aux assistances connues. Les événements superposés restent tous accessibles par les commandes de parcours. Les boutons de 44 px conservent leur focus aux extrémités ; Échap efface la sélection.
+- Le chargement et l’échec du détail de partie sont transmis aux deux emplacements. Une absence de chronologie, des positions manquantes ou invalides, un fond indisponible et une carte non prise en charge gardent des états distincts. Les compteurs décrivent les points localisés ; le nombre d’éliminations non localisables ou l’incomplétude des événements reste explicite. « Aucune élimination enregistrée » est réservé à une chronologie disponible sans élimination et sans statistique finale contradictoire.
+
+### Vérification locale de la carte
+
+- **Contrôle complet :** `npm run verify` réussit : 234 suites, 4 453 tests, 3 788 messages explicitement traduits en anglais et espagnol, typage et compilation avec 13 pages prérendues. Journal : `kill-map-verify-final.log`.
+- **Navigateur :** composants réels dans l’aperçu local avec données fictives uniquement, contrôlés à 320, 391, 768, 1024 et 1440 px sans débordement. Vérifications FR/EN/ES, survol des points bleus et rouges, commandes Début/Fin et précédent/suivant, avec conservation du focus.
+- **États :** positions partielles avec 25 événements non localisables, zéro élimination avec statistiques cohérentes, chronologie absente, carte non prise en charge (`mapId: 12`), notre équipe côté rouge et noms longs. Le scénario principal comporte 35 événements, 34 points, quatre positions superposées, une exécution à 18:30 et une élimination sans coordonnées à 27:15.
+- **Toucher :** la sélection par `pointerdown` est couverte par les tests de composant ; aucun appareil tactile réel n’a été utilisé pour cette validation.
+- **Revue et preuves :** revue indépendante finale sans défaut restant identifié. Résultats détaillés du navigateur : `kill-map-browser-results.json`.
+- **Captures finales :** `kill-map-recap-desktop.png`, `kill-map-timeline-desktop.png`, `kill-map-recap-320.png`, `kill-map-timeline-320.png` et `kill-map-long-en-320.png`. Aucune nouvelle erreur console après le dernier rechargement.
+- **Portée :** aucune donnée de compte ni permission modifiée, aucune publication de la version 1.102. Les preuves de production des versions précédentes sont conservées séparément.
+
+
+## Version 1.101 publiée — Courbe d’or bleue/rouge
 
 - À la demande de l’utilisateur, la courbe est bleue (`#60a5fa`) quand notre équipe mène, rouge (`#f87171`) quand l’adversaire mène et neutre à zéro. La convention suit le signe de l’écart « Notre équipe − adversaires » ; elle ne change pas quand notre équipe joue côté rouge.
 - Des variables locales `match-gold` appliquent ces couleurs au trait, à un aplat à 16 % jusqu’à zéro, à la légende, aux points de fin, au repère et aux valeurs affichées au survol. Les couleurs globales de l’application ne sont pas modifiées.
 - Le trait est découpé par signe aux croisements géométriques de zéro. Ce découpage de dessin ne crée aucun relevé interpolé et les interruptions restent visibles. Le survol dans tout le cadre, la sélection du relevé mesuré le plus proche et les commandes clavier restent inchangés.
 
-### Vérification de la courbe bleue/rouge
+### Vérification locale historique de la courbe bleue/rouge
 
 - **Tests :** 29 tests ciblés de courbe réussissent. Le contrôle complet `npm run verify` réussit : 232 suites, 4 395 tests, 3 774 messages explicitement traduits en anglais et espagnol, typage et compilation avec 13 pages prérendues ; journal `blue-red-gold-verify.log`. La revue finale du découpage du trait est validée.
 - **Navigateur :** scénario fictif « Avantage alterné » de 32 relevés, avec croisements bleu/rouge contrôlés à 1440 et 320 px. Le survol hors de la courbe a affiché 5:00 / +1 800 en bleu et 25:00 / −2 400 en rouge avant la dernière correction du dessin, qui ne change pas la sélection des relevés. Le clavier est vérifié à 320 px sur la version finale. Le scénario de zéros mesurés garde tous les points gris et un trait uniformément neutre ; l’état incomplet montre le message d’indisponibilité sans sélecteur de relevé ni débordement.
 - **Captures et console :** `blue-red-gold-desktop.png` et `blue-red-gold-320.png` ont été refaites avec le trait final découpé par signe ; `blue-red-gold-zero-320.png` confirme le zéro neutre. Aucune nouvelle erreur console après le dernier chargement neuf.
-- **Portée :** vrais composants avec fixtures synthétiques, sans modification de données, de permissions ou de production. Le Face-à-face compact de la version 1.100 reste inclus dans la même PR nº 214.
+- **Portée :** vrais composants avec fixtures synthétiques, sans modification de données ou de permissions lors de ces contrôles locaux. Le Face-à-face compact de la version 1.100 a ensuite été publié avec cette courbe par la PR nº 214, selon les preuves distinctes ci-dessus.
 
-## Version 1.100 locale — Face-à-face compact
+## Version 1.100 publiée — Face-à-face compact
 
 - Les cinq rôles deviennent des lignes compactes. Chaque portrait et chaque équipement ou sort apparaît une seule fois, avec jusqu’à neuf icônes par joueur. Les K/D/A et CS sont intégrés à l’identité.
 - Trois barres Or/Dégâts/Vision restent visibles simultanément, avec les valeurs exactes des deux joueurs et l’écart signé. L’échelle est commune aux cinq rôles pour chaque métrique. Les icônes et une légende partagée remplacent les titres répétés.
 - Les cinq boutons de rôle, d’au moins 44 px, ouvrent le `ModalDialog` commun. Il contient uniquement sept repères secondaires : CS à 10 et 20 minutes, participation aux éliminations, parts des dégâts, de l’or, de la vision et des morts. Aucun sous-onglet ni tableau ne répète les portraits, équipements ou comparaisons principales.
 - Les totaux collectifs, objectifs, données absentes, rôles incertains et droits existants sont conservés. L’ordre reste notre équipe à gauche, y compris côté rouge. Cette itération ne modifie ni les données ni les permissions.
 
-### Vérification de la disposition compacte
+### Vérification locale historique de la disposition compacte
 
 - **Tests :** 89 tests ciblés réussissent ; journal `compact-face-tests.log`. Le contrôle complet `npm run verify` réussit ensuite : 232 suites, 4 388 tests, 3 774 messages explicitement traduits en anglais et espagnol, typage et compilation avec 13 pages prérendues ; journal `compact-verify.log`.
 - **Navigateur à 320 px :** vrais composants avec données fictives, scénario complet avec neuf icônes par joueur, scénario incomplet avec treize comparaisons indisponibles, scénario de zéros mesurés avec quinze comparaisons égales, notre équipe côté rouge et noms longs. Aucun débordement ni texte coupé dans ces contrôles.

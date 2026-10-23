@@ -19,6 +19,7 @@ import "./match-deep-reading.css";
 import { MatchDrafting as DraftImpactPanel } from "../../components/games/MatchDrafting.jsx";
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
 import { MatchVisualRecap } from "../../components/games/MatchVisualRecap.jsx";
+import { MatchKillMap } from "../../components/games/MatchKillMap.jsx";
 import { MatchHeadToHead } from "../../components/games/MatchHeadToHead.jsx";
 import OpponentsWorkspace from "../../components/opponents/OpponentsWorkspace.jsx";
 import MatchDrafterPanel, { MatchDraftingView } from "../../components/opponents/MatchDrafterPanel.jsx";
@@ -766,7 +767,7 @@ function timelineMilestones(match, teamName) {
   return [...objectives, ...fights, ...towers].sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
 }
 
-function MatchTimelineReview({ match, teamName }) {
+function MatchTimelineReview({ match, teamName, enemyName, loading = false, error = "" }) {
   useLanguage();
   const [selectedPhase, setSelectedPhase] = useState("all");
   const chartId = React.useId();
@@ -819,6 +820,7 @@ function MatchTimelineReview({ match, teamName }) {
       </div>
     </header>
 
+    <div className="match-timeline-overview">
     <section className="match-timeline-economy" aria-label={t("Lecture de l’économie")}>
       <div className="match-timeline-economy-heading">
         <div><span className="match-timeline-section-index" aria-hidden="true">01</span><h5>{t("L’équilibre économique")}</h5></div>
@@ -853,6 +855,9 @@ function MatchTimelineReview({ match, teamName }) {
       </div>
       {goldReadings.length > 0 && <details className="match-timeline-readings"><summary>{t("Voir les relevés d’or")}<ChevronDown aria-hidden="true" /></summary><div className="match-timeline-readings-list"><dl>{goldReadings.map((reading, index) => <div key={`${reading.timestamp}-${index}`}><dt>{formatReadingTime(reading.timestamp)}</dt><dd className={reading.diff === null ? "is-missing" : reading.diff > 0 ? "is-positive" : reading.diff < 0 ? "is-negative" : ""}>{reading.diff === null ? t("Indisponible") : t("{0} or", [formatSignedShort(reading.diff)])}</dd></div>)}</dl></div></details>}
     </section>
+
+    <MatchKillMap match={match} allyName={teamName} enemyName={enemyName} loading={loading} error={error} />
+    </div>
 
     <section className="match-timeline-journal">
       <div className="match-timeline-journal-heading"><div><span className="match-timeline-section-index" aria-hidden="true">02</span><h5>{t("Les moments à relire")}</h5></div><span>{t("{0} moments clés", [events.length])}</span></div>
@@ -1319,13 +1324,11 @@ function MatchDataPanel(props) {
   return <MatchDataContent key={`${match.team_id || ""}:${match.id || ""}`} {...props} />;
 }
 
-function MatchDataContent({ match, teamName, onReview, hasReview = false, contextControls, draftContent }) {
+function MatchDataContent({ match, teamName, onReview, hasReview = false, contextControls, draftContent, loading = false, error = "" }) {
   useLanguage();
   const id = useId();
   const [tab, setTab] = useState("recap");
   const [opponentName, setOpponentName] = useState(undefined);
-  const panelRef = useRef(null);
-  const focusComparison = useRef(false);
   const publication = useMemo(() => buildGamePublicationSnapshot({
     match: opponentName === undefined ? match : { ...match, opponent: opponentName },
     team: { name: teamName || "Notre équipe" },
@@ -1333,14 +1336,6 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
   const { context } = publication;
   const side = context.allySide;
   const tabs = [{ id: "recap", label: "Récap", icon: BarChart3 }, { id: "versus", label: "Face-à-face", icon: Swords }, { id: "draft", label: "Drafting", icon: Clipboard }, { id: "timeline", label: "Chronologie", icon: Gauge }];
-  useEffect(() => {
-    if (focusComparison.current) {
-      panelRef.current?.focus({ preventScroll: true });
-      panelRef.current?.scrollIntoView?.({ block: "start", behavior: "instant" });
-      focusComparison.current = false;
-    }
-  }, [tab]);
-  function showComparison() { focusComparison.current = true; setTab("versus"); }
   const review = onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(match.id)}&compose=1`));
   return <Surface variant="scene" className="nxt5-match-panel match-recap-page mt-5">
     <div className="match-recap-header">
@@ -1358,8 +1353,8 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
     </div>
     {contextControls && <div className="games-match-links">{typeof contextControls === "function" ? contextControls({ onOpponentResolved: setOpponentName }) : contextControls}</div>}
     <TabNav idPrefix={id} panelId={`${id}-panel`} label={t("Vues de la partie")} items={tabs} activeId={tab} onChange={setTab} className="match-recap-tabs" />
-    <div ref={panelRef} id={`${id}-panel`} role="tabpanel" tabIndex={0} aria-labelledby={`${id}-tab-${tab}`} className="match-recap-tab-content">
-      {tab === "recap" && <MatchVisualRecap match={match} snapshot={publication} onCompare={showComparison} />}
+    <div id={`${id}-panel`} role="tabpanel" tabIndex={0} aria-labelledby={`${id}-tab-${tab}`} className="match-recap-tab-content">
+      {tab === "recap" && <MatchVisualRecap match={match} snapshot={publication} loading={loading} error={error} />}
       {tab === "versus" && <>
         <MatchHeadToHead snapshot={publication} match={match} />
         <ObjectiveHud match={match} compact />
@@ -1368,7 +1363,7 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
       <div hidden={tab !== "draft"} className="match-recap-draft-content">
         {typeof draftContent === "function" ? draftContent({ active: tab === "draft" }) : draftContent || <MatchDraftingView />}
       </div>
-      {tab === "timeline" && <MatchTimelineReview match={match} teamName={teamName} />}
+      {tab === "timeline" && <MatchTimelineReview match={match} teamName={publication.context.teamName} enemyName={publication.context.opponentName} loading={loading} error={error} />}
     </div>
   </Surface>;
 }
@@ -1647,7 +1642,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {!selectedMatch && <div className="games-detail-title"><h3>{t("Analyse de la partie")}</h3></div>}
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{t("Chargement des statistiques détaillées…")}</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && t(" Les statistiques déjà chargées restent disponibles.")}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>{t("Réessayer")}</Button></Surface>}
-      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} onReview={openReview} hasReview={Boolean(selectedReport)} contextControls={({ onOpponentResolved }) => <>
+      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} loading={loadingMatchDetail} error={selectedMatchDetailError} onReview={openReview} hasReview={Boolean(selectedReport)} contextControls={({ onOpponentResolved }) => <>
         <MatchOpponentPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={() => refreshAll({ throwOnError: true })} onResolvedName={onOpponentResolved} />
       </>} draftContent={({ active }) => <MatchDrafterPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={refreshAll} presentation="inline" active={active} />} />}
       {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title={t("Partie introuvable")} text={t("Elle n’est plus disponible dans cette équipe.")} /></Surface>}
