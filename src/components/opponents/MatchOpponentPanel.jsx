@@ -7,7 +7,7 @@ import { Button, SelectInput, TextInput } from "../ui/Core.jsx";
 import { GameOperationDialog } from "../games/GameOperationDialog.jsx";
 import "./match-opponent-panel.css";
 
-function MatchOpponent({ teamId, matchId, onChanged }) {
+function MatchOpponent({ teamId, matchId, onChanged, onResolvedName }) {
   const id = useId();
   const [opponents, setOpponents] = useState([]);
   const [linkedGroups, setLinkedGroups] = useState([]);
@@ -92,6 +92,9 @@ function MatchOpponent({ teamId, matchId, onChanged }) {
   }
 
   const savedOpponent = opponents.find((item) => item.id === savedId);
+  useEffect(() => {
+    onResolvedName?.(load === "ready" ? savedOpponent?.name || "" : "");
+  }, [load, savedOpponent?.name, onResolvedName]);
   return <div className="match-context-control match-opponent-control">
     <span className="match-context-label">{t("Équipe adverse")}</span>
     {load === "loading" && <span role="status" className="match-context-value">{t("Chargement de l’équipe adverse…")}</span>}
@@ -125,10 +128,10 @@ function MatchOpponent({ teamId, matchId, onChanged }) {
   </div>;
 }
 
-export function MatchOpponentPanel({ teamId, match, user, onChanged }) {
+export function MatchOpponentPanel({ teamId, match, user, onChanged, onResolvedName }) {
   useLanguage();
   if (!teamId || !match?.id || (match.team_id && match.team_id !== teamId)) return null;
-  return <MatchOpponent key={`${teamId}:${match.id}:${user?.id || ""}`} teamId={teamId} matchId={match.id} onChanged={onChanged} />;
+  return <MatchOpponent key={`${teamId}:${match.id}:${user?.id || ""}`} teamId={teamId} matchId={match.id} onChanged={onChanged} onResolvedName={onResolvedName} />;
 }
 
 export default MatchOpponentPanel;

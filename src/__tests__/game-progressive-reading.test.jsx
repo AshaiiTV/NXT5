@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { openAppPath } from "../app/routing.js";
 import { Button } from "../components/ui/Core.jsx";
+import { MatchLineups, MatchHeadToHead } from "../components/games/MatchHeadToHead.jsx";
+import { MatchDuelDetails } from "../components/games/MatchVisualRecap.jsx";
+import MatchGoldChart from "../components/games/MatchGoldChart.jsx";
 import {
   MatchDataPanel, MatchVersusOverview, MatchTimelineReview,
   MatchReadingIntro, DeathContextPanel, DraftImpactPanel,
@@ -43,12 +46,30 @@ function render(props = {}) {
   renderers.push(renderer);
   return renderer;
 }
+function renderComposition(props = {}) {
+  let renderer;
+  act(() => { renderer = TestRenderer.create(<DraftImpactPanel match={game()} teamName="Équipe Atlas" {...props} />); });
+  renderers.push(renderer);
+  return renderer;
+}
 function text(node) { return typeof node === "string" ? node : (node.children || []).map(text).join(""); }
+function visible(node) {
+  for (let ancestor = node; ancestor; ancestor = ancestor.parent) if (ancestor.props.hidden) return false;
+  return true;
+}
 function disclosure(renderer, title) {
   return renderer.root.findAllByProps({ className: "games-analysis-disclosure" }).find((node) => text(node.children.find((child) => child.type === "summary")).startsWith(title));
 }
 function toggle(renderer, title, open) {
   act(() => disclosure(renderer, title).props.onToggle({ currentTarget: { open } }));
+}
+
+function tab(renderer, label) {
+  return renderer.root.findAllByProps({ role: "tab" }).find((node) => text(node) === label);
+}
+function selectTab(renderer, label) { act(() => tab(renderer, label).props.onClick()); }
+function action(renderer, label) {
+  return renderer.root.findAllByType(Button).find((node) => text(node) === label);
 }
 
 function drafting(renderer, label) {
@@ -59,7 +80,7 @@ function draftSlots(section) {
 }
 
 describe("progressive game reading", () => {
-  it("starts with one review lead while keeping supporting content behind three disclosures", () => {
+  it("starts with the visual recap and offers each deeper view in one tab", () => {
     const renderer = render();
     const brief = renderer.root.findByProps({ "aria-label": "Bilan de la partie" });
     expect(text(renderer.root)).toContain("Partie contre Atlas");
@@ -67,28 +88,24 @@ describe("progressive game reading", () => {
     expect(text(renderer.root)).toContain("Victoire");
     expect(text(renderer.root)).toContain("Durée : 24:30");
     expect(text(renderer.root)).toContain("Notre équipe : côté bleu");
-    expect(text(brief)).toContain("À vérifier en débrief");
-    expect(text(renderer.root)).not.toContain("À garder");
-    expect(text(renderer.root)).not.toContain("Prochaine action");
+    expect(text(brief)).toContain("Point à explorer");
+    expect(renderer.root.findAllByProps({ role: "tab" }).map(text)).toEqual(["Récap", "Face-à-face", "Drafting", "Chronologie"]);
+    expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
+    expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(1);
+    expect(renderer.root.findAllByType(MatchGoldChart)).toHaveLength(1);
     expect(text(renderer.root)).not.toContain("EUW1_123");
     expect(text(renderer.root)).not.toContain("16.19");
-    expect(text(renderer.root)).not.toContain("L’essentiel de la partie");
-    expect(text(renderer.root)).not.toContain("débrief d’équipe (review)");
     expect(text(renderer.root)).not.toContain("Tous les débriefs");
-    expect(text(renderer.root)).not.toMatch(/\b(VOD|setup|game|CS10)\b/);
-    expect(text(disclosure(renderer, "Drafting").findByType("summary"))).toContain("La leur / La nôtre");
-    expect(renderer.root.findAllByType("details")).toHaveLength(3);
-    expect(renderer.root.findAllByType("details").every((node) => node.props.open === false)).toBe(true);
-    for (const Component of [MatchVersusOverview, MatchReadingIntro, DeathContextPanel, DraftImpactPanel, MatchTimelineReview]) {
+    for (const Component of [MatchHeadToHead, MatchVersusOverview, MatchReadingIntro, DeathContextPanel, DraftImpactPanel, MatchTimelineReview]) {
       expect(renderer.root.findAllByType(Component)).toHaveLength(0);
     }
   });
 
   it.each([
     ["Écart d’or final", { enemy: { gold: 11000 } }, "-5 000"],
-    ["Écart de dégâts aux champions", { ally: { damage: 17000 } }, "+10 000"],
-    ["Écart de score de vision", { enemy: { vision: 20 } }, "-25"],
-  ])("names the measured signal and its direction: %s", (label, stats, value) => {
+    ["Écart de dégâts aux champions", { ally: { gold: null, damage: 17000 }, enemy: { gold: null } }, "+10 000"],
+    ["Écart de score de vision", { ally: { gold: null, damage: null }, enemy: { gold: null, damage: null, vision: 20 } }, "-25"],
+  ])("names the first available measured signal and its direction: %s", (label, stats, value) => {
     const renderer = render({ match: completeGame(stats) });
     const brief = renderer.root.findByProps({ "aria-label": "Bilan de la partie" });
     const reading = text(brief).replace(/\s/g, " ");
@@ -107,7 +124,7 @@ describe("progressive game reading", () => {
     expect(text(brief)).not.toContain("Notre équipe − adversaires");
     expect(text(brief)).not.toContain("Écart d’or final");
     expect(text(brief)).not.toContain("+0");
-    expect(text(brief)).toContain("Préparer le débrief");
+    expect(action(renderer, "Préparer le débrief")).toBeDefined();
   });
 
   it("preserves a measured zero as an available statistic", () => {
@@ -118,56 +135,173 @@ describe("progressive game reading", () => {
     expect(text(brief)).not.toContain("Statistiques incomplètes");
   });
 
-  it("reveals statistics, drafts and timeline only when their native disclosure opens", () => {
+  it("keeps full statistics and information reachable under the face-to-face view", () => {
     const renderer = render();
+    selectTab(renderer, "Face-à-face");
+    expect(renderer.root.findAllByType(MatchHeadToHead)).toHaveLength(1);
+    expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(0);
+    expect(renderer.root.findAllByType(MatchVersusOverview)).toHaveLength(0);
     toggle(renderer, "Statistiques et comparaison", true);
     expect(renderer.root.findAllByType(MatchVersusOverview)).toHaveLength(1);
-    expect(text(disclosure(renderer, "Statistiques et comparaison"))).toContain("Éliminations / morts / assistances");
-    expect(text(disclosure(renderer, "Statistiques et comparaison"))).toContain("Repères de l’analyse");
-    expect(text(disclosure(renderer, "Statistiques et comparaison"))).toContain("Informations de la partie");
-    expect(text(disclosure(renderer, "Statistiques et comparaison"))).toContain("EUW1_123");
-    expect(text(disclosure(renderer, "Statistiques et comparaison"))).toContain("16.19");
+    const stats = text(disclosure(renderer, "Statistiques et comparaison"));
+    for (const value of ["Éliminations / morts / assistances", "Repères de l’analyse", "Informations de la partie", "EUW1_123", "16.19"]) expect(stats).toContain(value);
     expect(renderer.root.findAllByType(MatchReadingIntro)).toHaveLength(0);
-    toggle(renderer, "Drafting", true);
-    const supportingReading = text(disclosure(renderer, "Drafting"));
-    expect(supportingReading).toContain("La leur");
-    expect(supportingReading).toContain("La nôtre");
-    expect(supportingReading).not.toContain("Ce qui entoure les morts");
-    expect(supportingReading).not.toContain("La composition, en situation");
-    for (const duplicate of ["Les contributions par rôle", "Économie finale", "Autres repères chiffrés", "À garder", "Prochaine action"]) {
-      expect(supportingReading).not.toContain(duplicate);
-    }
-    expect(renderer.root.findAllByType(DraftImpactPanel)).toHaveLength(1);
-    for (const Component of [MatchReadingIntro, DeathContextPanel]) {
-      expect(renderer.root.findAllByType(Component)).toHaveLength(0);
-    }
-    toggle(renderer, "Chronologie de la partie", true);
+    selectTab(renderer, "Chronologie");
     expect(renderer.root.findByType(MatchTimelineReview).props.teamName).toBe("Équipe Atlas");
-    const chronologicalReading = text(disclosure(renderer, "Chronologie de la partie"));
-    expect(chronologicalReading).toContain("Chronologie indisponible");
-    expect(chronologicalReading).not.toContain("Écart d’or final");
-    expect(chronologicalReading).not.toContain("Objectifs neutres relevés");
-    expect(disclosure(renderer, "Drafting").findAllByType("button")).toHaveLength(0);
-    expect(disclosure(renderer, "Statistiques et comparaison").findAllByProps({ className: "nxt5-objective-timeline" })).toHaveLength(0);
-    toggle(renderer, "Statistiques et comparaison", false);
-    expect(renderer.root.findAllByType(MatchVersusOverview)).toHaveLength(0);
+    expect(text(renderer.root.findByType(MatchTimelineReview))).toContain("Chronologie indisponible");
+    expect(renderer.root.findAllByType(DraftImpactPanel)).toHaveLength(0);
     expect(text(renderer.root)).not.toContain("EUW1_123");
-    expect(disclosure(renderer, "Drafting").props.open).toBe(true);
   });
 
-  it("keeps opened details on refresh of the same game and resets them when another game opens", () => {
-    const renderer = render();
-    toggle(renderer, "Drafting", true);
-    act(() => renderer.update(<MatchDataPanel match={{ ...game(), duration: "25:00" }} />));
-    expect(disclosure(renderer, "Drafting").props.open).toBe(true);
-    act(() => renderer.update(<MatchDataPanel match={game("game-2")} />));
-    expect(renderer.root.findAllByType("details").every((node) => node.props.open === false)).toBe(true);
-    expect(renderer.root.findAllByType(MatchReadingIntro)).toHaveLength(0);
+  it("shows the caller's linked draft only in Drafting and preserves it across view changes", () => {
+    const onMount = vi.fn();
+    const onUnmount = vi.fn();
+    function DraftContent() {
+      const [value, setValue] = useState("");
+      useEffect(() => { onMount(); return onUnmount; }, []);
+      return <section aria-label="Draft liée"><p>Picks et bans de la draft liée</p><input aria-label="Note de draft" value={value} onChange={(event) => setValue(event.target.value)} /></section>;
+    }
+    const match = game();
+    const draftContent = <DraftContent />;
+    const renderer = render({ match, draftContent });
+    const draft = renderer.root.findByProps({ "aria-label": "Draft liée" });
+    expect(visible(draft)).toBe(false);
+    expect(onMount).toHaveBeenCalledOnce();
+    selectTab(renderer, "Drafting");
+    expect(visible(draft)).toBe(true);
+    expect(renderer.root.findAllByType(DraftImpactPanel)).toHaveLength(0);
+    act(() => draft.findByType("input").props.onChange({ target: { value: "Picks à revoir" } }));
+    for (const label of ["Face-à-face", "Chronologie", "Récap"]) {
+      selectTab(renderer, label);
+      expect(renderer.root.findByProps({ "aria-label": "Draft liée" })).toBe(draft);
+      expect(visible(draft)).toBe(false);
+    }
+    selectTab(renderer, "Drafting");
+    act(() => renderer.update(<MatchDataPanel match={{ ...match, duration: "25:00" }} draftContent={draftContent} />));
+    expect(visible(draft)).toBe(true);
+    expect(draft.findByType("input").props.value).toBe("Picks à revoir");
+    expect(onMount).toHaveBeenCalledOnce();
+    expect(onUnmount).not.toHaveBeenCalled();
+    act(() => renderer.update(<MatchDataPanel match={{ ...match, id: "another-game" }} draftContent={draftContent} />));
+    expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
+    expect(onMount).toHaveBeenCalledTimes(2);
+    expect(onUnmount).toHaveBeenCalledOnce();
+    const nextDraft = renderer.root.findByProps({ "aria-label": "Draft liée" });
+    expect(visible(nextDraft)).toBe(false);
+    expect(nextDraft.findByType("input").props.value).toBe("");
   });
 
-  it("shows their draft before ours and orders each team's champions by role", () => {
+  it("does not invent picks and bans from match participants when no linked draft is supplied", () => {
     const renderer = render({ match: draftedGame() });
-    toggle(renderer, "Drafting", true);
+    const draft = renderer.root.findByProps({ "aria-label": "Draft de la partie" });
+    expect(visible(draft)).toBe(false);
+    selectTab(renderer, "Drafting");
+    expect(visible(draft)).toBe(true);
+    expect(text(draft)).toContain("Aucune draft liée à cette partie. Le staff peut en ajouter une.");
+    expect(text(draft)).not.toContain("La leur");
+    expect(text(draft)).not.toContain("La nôtre");
+    for (const champion of Object.values(draftChampions).flat()) expect(text(draft)).not.toContain(champion);
+    expect(renderer.root.findAllByType(DraftImpactPanel)).toHaveLength(0);
+  });
+
+  it("opens the suggested role with one click and can return to the recap", () => {
+    const match = draftedGame();
+    match.participants.find((row) => row.team_key === "ALLY" && row.role === "ADC").gold = 5000;
+    const renderer = render({ match });
+    expect(text(renderer.root)).toContain("Le duel ADC");
+    act(() => action(renderer, "Comparer ce duel").props.onClick());
+    expect(tab(renderer, "Face-à-face").props["aria-selected"]).toBe(true);
+    expect(renderer.root.findByType(MatchHeadToHead).props.selectedRole).toBe("ADC");
+    expect(renderer.root.findByType(MatchDuelDetails).props.pair.role).toBe("ADC");
+    expect(text(renderer.root.findByType(MatchDuelDetails))).toContain("Jinx");
+    expect(text(renderer.root.findByType(MatchDuelDetails))).toContain("Caitlyn");
+    selectTab(renderer, "Récap");
+    expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(1);
+    expect(renderer.root.findAllByType(MatchDuelDetails)).toHaveLength(0);
+  });
+
+  it("keeps the selected tab and role on refresh and resets them for another game", () => {
+    const match = draftedGame();
+    const renderer = render({ match });
+    selectTab(renderer, "Face-à-face");
+    act(() => renderer.root.findByType(MatchHeadToHead).props.onSelectRole("MID"));
+    act(() => renderer.update(<MatchDataPanel match={{ ...match, duration: "25:00" }} />));
+    expect(tab(renderer, "Face-à-face").props["aria-selected"]).toBe(true);
+    expect(renderer.root.findByType(MatchHeadToHead).props.selectedRole).toBe("MID");
+    act(() => renderer.update(<MatchDataPanel match={{ ...match, id: "game-2" }} />));
+    expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
+    selectTab(renderer, "Face-à-face");
+    expect(renderer.root.findByType(MatchHeadToHead).props.selectedRole).toBe("");
+    expect(renderer.root.findAllByProps({ "aria-label": "Détail du duel MID" })).toHaveLength(0);
+  });
+
+  it("preserves missing values and measured zero in a selected duel", () => {
+    const match = draftedGame();
+    Object.assign(match.participants.find((row) => row.team_key === "ALLY" && row.role === "MID"), {
+      gold: null, damage: 0, vision: null, kills: null, deaths: 0, assists: null,
+    });
+    const renderer = render({ match });
+    selectTab(renderer, "Face-à-face");
+    act(() => renderer.root.findByType(MatchHeadToHead).props.onSelectRole("MID"));
+    const details = renderer.root.findByType(MatchDuelDetails);
+    const values = (label) => details.findAllByType("tr").find((node) => text(node.findAllByType("th")[0]) === label).findAllByType("td").map(text);
+    expect(values("Or")[0]).toBe("—");
+    expect(values("Dégâts aux champions")[0]).toBe("0");
+    expect(values("Score de vision")[0]).toBe("—");
+    expect(values("Éliminations / morts / assistances")[0]).toBe("— / 0 / —");
+    expect(values("CS à 10 min")).toEqual(["—", "—"]);
+    expect(text(details)).toContain("Un tiret indique une donnée indisponible.");
+  });
+
+  it("shares the resolved opponent with the visual views and clears it for another match", () => {
+    const callbacks = [];
+    const controls = ({ onOpponentResolved }) => {
+      callbacks.push(onOpponentResolved);
+      return <span>Contexte conservé</span>;
+    };
+    const match = draftedGame();
+    const renderer = render({ match, contextControls: controls });
+    const firstCallback = callbacks.at(-1);
+    act(() => firstCallback("Orion"));
+    expect(renderer.root.findByType(MatchLineups).props.snapshot.context.opponentName).toBe("Orion");
+    selectTab(renderer, "Face-à-face");
+    expect(renderer.root.findByType(MatchHeadToHead).props.snapshot.context.opponentName).toBe("Orion");
+    act(() => renderer.update(<MatchDataPanel match={{ ...match, duration: "25:00" }} contextControls={controls} />));
+    expect(renderer.root.findByType(MatchHeadToHead).props.snapshot.context.opponentName).toBe("Orion");
+    act(() => renderer.update(<MatchDataPanel match={{ ...match, id: "other-game" }} contextControls={controls} />));
+    act(() => firstCallback("Ancien adversaire"));
+    expect(renderer.root.findByType(MatchLineups).props.snapshot.context.opponentName).toBe("Adversaires");
+    expect(text(renderer.root)).not.toContain("Orion");
+    expect(text(renderer.root)).not.toContain("Ancien adversaire");
+  });
+
+  it("links keyboard-operable tabs to their visible panel", () => {
+    const renderer = render();
+    const preventDefault = vi.fn();
+    act(() => tab(renderer, "Récap").props.onKeyDown({ key: "ArrowRight", preventDefault }));
+    expect(preventDefault).toHaveBeenCalledOnce();
+    const active = tab(renderer, "Face-à-face");
+    const panel = renderer.root.findAllByProps({ role: "tabpanel" }).find(visible);
+    expect(active.props["aria-selected"]).toBe(true);
+    expect(active.props.tabIndex).toBe(0);
+    expect(panel.props.id).toBe(active.props["aria-controls"]);
+    expect(panel.props["aria-labelledby"]).toBe(active.props.id);
+  });
+
+  it("preserves caller-provided context actions across all tabs", () => {
+    const onModify = vi.fn();
+    const renderer = render({ contextControls: <><strong>Atlas adversaire</strong><button type="button" onClick={onModify}>Modifier l’adversaire</button></> });
+    for (const label of ["Récap", "Face-à-face", "Drafting", "Chronologie"]) {
+      selectTab(renderer, label);
+      expect(text(renderer.root)).toContain("Atlas adversaire");
+      const modify = renderer.root.findAllByType("button").find((node) => text(node) === "Modifier l’adversaire");
+      act(() => modify.props.onClick());
+    }
+    expect(onModify).toHaveBeenCalledTimes(4);
+  });
+
+  it("shows their draft before ours and orders each team's champions by role in the standalone composition analysis", () => {
+    const renderer = renderComposition({ match: draftedGame() });
     const panel = renderer.root.findByType(DraftImpactPanel);
     expect(panel.findAllByType("section").map((section) => section.props["aria-label"])).toEqual(["La leur", "La nôtre"]);
     for (const [label, teamKey, otherTeamKey] of [["La leur", "ENEMY", "ALLY"], ["La nôtre", "ALLY", "ENEMY"]]) {
@@ -185,8 +319,7 @@ describe("progressive game reading", () => {
     const match = draftedGame();
     const riotRoles = { TOP: "TOP", JGL: "JUNGLE", MID: "MIDDLE", ADC: "BOTTOM", SUP: "UTILITY" };
     match.participants = match.participants.map((row) => ({ ...row, role: riotRoles[row.role] }));
-    const renderer = render({ match });
-    toggle(renderer, "Drafting", true);
+    const renderer = renderComposition({ match });
     for (const [label, teamKey] of [["La leur", "ENEMY"], ["La nôtre", "ALLY"]]) {
       const slots = draftSlots(drafting(renderer, label));
       draftChampions[teamKey].forEach((champion, index) => expect(text(slots[index])).toContain(champion));
@@ -198,8 +331,7 @@ describe("progressive game reading", () => {
     const champions = ["Ahri", "Corki", "Jinx", "Zyra", "Bard"];
     const ally = match.participants.filter((row) => row.team_key === "ALLY").map((row, index) => ({ ...row, champion: champions[index] }));
     const enemy = match.participants.filter((row) => row.team_key === "ENEMY");
-    const renderer = render({ match: { ...match, participants: [...ally, ...enemy] } });
-    toggle(renderer, "Drafting", true);
+    const renderer = renderComposition({ match: { ...match, participants: [...ally, ...enemy] } });
     const readPlan = () => {
       const heading = drafting(renderer, "La nôtre").findAllByType("h5").find((node) => text(node) === "Plan possible");
       expect(heading).toBeDefined();
@@ -208,7 +340,7 @@ describe("progressive game reading", () => {
     const initialPlan = readPlan();
     expect(initialPlan).not.toBe("");
     for (const reordered of [[...ally].reverse(), [ally[3], ally[0], ally[4], ally[1], ally[2]]]) {
-      act(() => renderer.update(<MatchDataPanel match={{ ...match, participants: [...reordered, ...enemy] }} />));
+      act(() => renderer.update(<DraftImpactPanel match={{ ...match, participants: [...reordered, ...enemy] }} />));
       expect(readPlan()).toBe(initialPlan);
     }
   });
@@ -216,8 +348,7 @@ describe("progressive game reading", () => {
   it("keeps missing champions visible without borrowing the opposing team's draft or inventing a plan", () => {
     const match = game();
     match.participants = match.participants.filter((row) => row.team_key === "ENEMY");
-    const renderer = render({ match });
-    toggle(renderer, "Drafting", true);
+    const renderer = renderComposition({ match });
     const ours = drafting(renderer, "La nôtre");
     const theirs = drafting(renderer, "La leur");
     expect(draftSlots(ours)).toHaveLength(5);
@@ -234,8 +365,7 @@ describe("progressive game reading", () => {
   it.each([undefined, "FLEX"])("preserves a champion with a missing or unknown role under positions to confirm (%s)", (role) => {
     const match = draftedGame();
     match.participants = match.participants.map((row) => row.team_key === "ALLY" && row.role === "TOP" ? { ...row, role } : row);
-    const renderer = render({ match });
-    toggle(renderer, "Drafting", true);
+    const renderer = renderComposition({ match });
     const ours = drafting(renderer, "La nôtre");
     expect(text(draftSlots(ours)[0])).toContain("Non renseigné");
     expect(text(draftSlots(ours)[0])).not.toContain("Ornn");
@@ -247,8 +377,7 @@ describe("progressive game reading", () => {
   it("marks a recorded role with no champion as incomplete", () => {
     const match = draftedGame();
     match.participants = match.participants.map((row) => row.team_key === "ALLY" && row.role === "TOP" ? { ...row, champion: null } : row);
-    const renderer = render({ match });
-    toggle(renderer, "Drafting", true);
+    const renderer = renderComposition({ match });
     const ours = drafting(renderer, "La nôtre");
     expect(text(draftSlots(ours)[0])).toContain("Non renseigné");
     expect(text(ours)).not.toContain("Ornn");
@@ -259,8 +388,7 @@ describe("progressive game reading", () => {
   it("does not present an unknown champion's composition as a known game plan", () => {
     const match = draftedGame();
     match.participants = match.participants.map((row) => row.team_key === "ALLY" && row.role === "TOP" ? { ...row, champion: "ChampionAbsentDuCatalogue" } : row);
-    const renderer = render({ match });
-    toggle(renderer, "Drafting", true);
+    const renderer = renderComposition({ match });
     const ours = drafting(renderer, "La nôtre");
     expect(text(draftSlots(ours)[0])).toContain("Champion Absent Du Catalogue");
     expect(text(ours)).toContain("Le plan de jeu reste à confirmer pour cette composition.");
@@ -271,9 +399,8 @@ describe("progressive game reading", () => {
   it("bases drafting on champions without displaying final damage percentages", () => {
     const match = draftedGame();
     match.participants = match.participants.map((row) => ({ ...row, raw: { ...row.raw, physicalDamageDealtToChampions: 90000, magicDamageDealtToChampions: 5000, trueDamageDealtToChampions: 5000 } }));
-    const renderer = render({ match });
-    toggle(renderer, "Drafting", true);
-    const reading = text(disclosure(renderer, "Drafting"));
+    const renderer = renderComposition({ match });
+    const reading = text(renderer.root.findByType(DraftImpactPanel));
     expect(reading).not.toContain("%");
     expect(reading).not.toContain("Dégâts AD très dominants");
     expect(reading).not.toContain("Magique");

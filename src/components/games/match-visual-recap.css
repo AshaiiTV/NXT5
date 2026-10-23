@@ -1,0 +1,85 @@
+.match-recap-page { container-type: inline-size; }
+.match-recap-header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
+.match-recap-header > .games-match-context { flex:1; min-width:0; padding-bottom:0; border-bottom:0; }
+.match-recap-header > button { flex:0 1 auto; }
+.match-recap-tabs { margin-block:24px; }
+.match-recap-tabs.nxt5-tab-nav > div { display:grid; width:100%; grid-template-columns:repeat(4,minmax(0,1fr)); min-width:0; }
+.match-recap-tabs .nxt5-tab { min-width:0; }
+.match-recap-tabs .nxt5-tab > span > span { white-space:normal; overflow-wrap:anywhere; }
+.match-recap-tab-content { min-width:0; }
+.match-recap-tab-content:focus-visible { outline:2px solid var(--nxt5-accent); outline-offset:4px; }
+.match-recap-grid { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(230px,1fr); gap:18px; margin-top:18px; }
+.match-recap-grid > .nxt5-surface { margin:0; padding:20px; }
+.match-recap-chart .match-gold-chart { margin-top:20px; }
+.match-recap-stat { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.match-recap-stat h4 { color:var(--nxt5-text); font-size:18px; font-weight:650; line-height:1.4; }
+.match-recap-stat p { margin-top:6px; color:var(--nxt5-text-secondary); font-size:var(--nxt5-font-small); line-height:1.5; }
+.match-recap-stat > strong { font-size:clamp(28px,3vw,38px); font-weight:700; line-height:1.2; letter-spacing:-1px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.match-recap-stat > strong[data-tone="negative"] { color:var(--nxt5-danger); }
+.match-recap-stat > strong[data-tone="positive"] { color:#a7f3d0; }
+.match-recap-stat > strong[data-tone="neutral"] { color:var(--nxt5-text); }
+.match-recap-focus.nxt5-surface { background:radial-gradient(ellipse at 100% 0%,rgba(196,181,253,.16),transparent 65%),var(--nxt5-glass-background); border-color:var(--nxt5-glass-border); }
+.match-recap-focus > div { height:100%; }
+.match-recap-focus-inner { display:flex; flex-direction:column; align-items:flex-start; gap:14px; height:100%; }
+.match-recap-focus-label { display:flex; align-items:center; gap:8px; font-size:var(--nxt5-font-small); color:var(--nxt5-accent-2); }
+.match-recap-focus-label svg { width:18px; height:18px; }
+.match-recap-focus h4 { font-size:22px; font-weight:650; line-height:1.3; color:var(--nxt5-text); }
+.match-recap-duel { display:flex; align-items:center; gap:16px; }
+.match-recap-duel > :not(span) { width:58px; height:58px; border-radius:10px; overflow:hidden; }
+.match-recap-duel > span { font-size:14px; color:var(--nxt5-muted); }
+.match-recap-duel img { width:58px; height:58px; object-fit:cover; }
+.match-recap-role-stat { font-variant-numeric:tabular-nums; }
+.match-recap-role-stat > strong { font-size:29px; line-height:1.2; font-weight:700; }
+.match-recap-role-stat > span { margin-left:7px; color:var(--nxt5-text-secondary); font-size:var(--nxt5-font-small); }
+.match-recap-role-stat > p { margin-top:4px; color:var(--nxt5-muted); font-size:var(--nxt5-font-small); }
+.match-recap-hint { color:var(--nxt5-text-secondary); font-size:var(--nxt5-font-small); line-height:1.6; }
+.match-recap-focus-inner > button { margin-top:auto; width:100%; }
+.match-recap-collective { width:56px; height:56px; color:var(--nxt5-accent-2); margin-block:8px; }
+.match-recap-interpretation { color:var(--nxt5-muted); font-size:var(--nxt5-font-small); line-height:1.6; margin-top:16px; }
+.match-recap-supporting { margin-top:24px; }
+.match-duel-details { margin-top:20px; padding:20px; background:var(--nxt5-field); border:1px solid var(--nxt5-border); border-radius:var(--nxt5-radius-panel); }
+.match-duel-details:focus-visible { outline:2px solid var(--nxt5-accent); outline-offset:4px; }
+.match-duel-details > h4 { font-size:18px; font-weight:650; color:var(--nxt5-text); }
+.match-duel-players { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-top:16px; }
+.match-duel-player { min-width:0; }
+.match-duel-team { display:block; margin-bottom:12px; font-size:var(--nxt5-font-small); color:var(--nxt5-muted); overflow-wrap:anywhere; }
+.match-duel-identity { display:flex; align-items:center; gap:12px; }
+.match-duel-identity > :first-child { width:48px; height:48px; flex:0 0 48px; border-radius:10px; overflow:hidden; }
+.match-duel-identity > div:last-child { min-width:0; }
+.match-duel-identity strong,.match-duel-identity span { display:block; overflow-wrap:anywhere; }
+.match-duel-identity strong { font-size:var(--nxt5-font-ui); color:var(--nxt5-text); }
+.match-duel-identity span { margin-top:3px; font-size:var(--nxt5-font-small); color:var(--nxt5-text-secondary); }
+.match-duel-loadout { display:flex; flex-wrap:wrap; gap:5px; margin-top:12px; }
+.match-duel-table-wrap { margin-top:20px; }
+.match-duel-table { width:100%; border-collapse:collapse; font-size:var(--nxt5-font-small); line-height:1.5; table-layout:fixed; }
+.match-duel-table caption { text-align:left; margin-bottom:12px; color:var(--nxt5-text-secondary); }
+.match-duel-table th,.match-duel-table td { padding:11px 8px; border-bottom:1px solid var(--nxt5-border); overflow-wrap:anywhere; }
+.match-duel-table th { font-weight:600; text-align:left; }
+.match-duel-table th:first-child { width:44%; }
+.match-duel-table td { text-align:right; font-variant-numeric:tabular-nums; }
+.match-duel-table thead th:not(:first-child) { text-align:right; }
+@container (max-width:760px) {
+  .match-recap-grid { grid-template-columns:minmax(0,1fr); }
+  .match-recap-focus-inner { display:grid; grid-template-columns:auto minmax(0,1fr); gap:12px 24px; }
+  .match-recap-focus-label,.match-recap-focus h4 { grid-column:1 / -1; }
+  .match-recap-focus .match-recap-duel { grid-column:1; grid-row:3 / 5; }
+  .match-recap-focus .match-recap-role-stat,.match-recap-focus .match-recap-hint { grid-column:2; }
+  .match-recap-focus-inner > button { grid-column:1 / -1; }
+}
+@container (max-width:510px) {
+  .match-recap-header { flex-direction:column; gap:16px; }
+  .match-recap-header > button { width:100%; }
+  .match-recap-tabs.nxt5-tab-nav > div { grid-template-columns:repeat(2,minmax(0,1fr)); grid-auto-flow:row; }
+  .match-recap-tabs { margin-block:20px; }
+  .match-recap-grid > .nxt5-surface { padding:16px; }
+  .match-recap-stat { flex-direction:column; gap:10px; }
+  .match-recap-focus-inner { display:flex; }
+  .match-recap-focus-inner > button { margin-top:4px; }
+  .match-duel-details { padding:16px; }
+  .match-duel-players { grid-template-columns:minmax(0,1fr); }
+  .match-duel-table th,.match-duel-table td { padding:10px 4px; }
+  .match-duel-table th:first-child { width:40%; }
+}
+@container (max-width:350px) {
+  .match-recap-tabs .nxt5-tab { flex-direction:column; text-align:center; gap:4px; padding-inline:6px; }
+}

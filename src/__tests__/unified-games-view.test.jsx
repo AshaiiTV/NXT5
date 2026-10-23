@@ -274,16 +274,28 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType(OpponentsWorkspace)).toHaveLength(1);
   });
 
-  it("integrates opponent and draft controls in the match context and removes both on return", async () => {
+  it("keeps opponent controls in the match context and the linked draft in its own persistent tab", async () => {
     const renderer = await mount("/games?match=one");
-    expect(renderer.root.findByType(MatchDrafterPanel).props.match.id).toBe("one");
+    const draft = renderer.root.findByType(MatchDrafterPanel);
+    expect(draft.props.match.id).toBe("one");
+    expect(draft.props.presentation).toBe("inline");
     expect(renderer.root.findByType(MatchOpponentPanel).props.match.id).toBe("one");
-    const context = renderer.root.findByProps({ className: "games-match-context" });
+    const context = renderer.root.findByProps({ className: "games-match-links" });
     expect(context.findAllByType(MatchOpponentPanel)).toHaveLength(1);
-    expect(context.findAllByType(MatchDrafterPanel)).toHaveLength(1);
+    expect(context.findAllByType(MatchDrafterPanel)).toHaveLength(0);
+    expect(visible(draft)).toBe(false);
+    expect(draft.props.active).toBe(false);
     expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
     const calls = apiFetch.mock.calls.filter(([endpoint]) => endpoint === "opponents-drafts").map(([, options]) => JSON.parse(options.body));
     expect(calls).toEqual([{ action: "get-match-opponent", teamId: "team", matchId: "one" }, { action: "get-match-draft", teamId: "team", matchId: "one" }]);
+    for (const label of ["Drafting", "Face-à-face", "Drafting", "Chronologie", "Récap"]) {
+      await click(renderer, label);
+      expect(renderer.root.findByType(MatchDrafterPanel)).toBe(draft);
+      expect(visible(draft)).toBe(label === "Drafting");
+      expect(draft.props.active).toBe(label === "Drafting");
+    }
+    expect(opponentCalls("get-match-draft")).toHaveLength(1);
+    expect(opponentCalls("get-match-opponent")).toHaveLength(1);
     await click(renderer, "Retour aux parties");
     expect(renderer.root.findAllByType(MatchDrafterPanel)).toHaveLength(0);
     expect(renderer.root.findAllByType(MatchOpponentPanel)).toHaveLength(0);
@@ -292,12 +304,17 @@ describe("unified Games workspace", () => {
   it("retains both association panels and avoids refetching them when match statistics refresh", async () => {
     const props = settings();
     const renderer = await mount("/games?match=one", props);
+    await click(renderer, "Drafting");
+    const draft = renderer.root.findByType(MatchDrafterPanel);
     await act(async () => renderer.update(<Suspense fallback="loading"><RouteHarness props={{ ...props, data: { ...props.data, bootstrapRevision: "new-revision" } }} /></Suspense>));
     const draftCalls = apiFetch.mock.calls.filter(([endpoint]) => endpoint === "opponents-drafts").map(([, options]) => JSON.parse(options.body).action);
     expect(draftCalls).toEqual(["get-match-opponent", "get-match-draft"]);
     expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "match-details")).toHaveLength(2);
     expect(renderer.root.findAllByType(MatchOpponentPanel)).toHaveLength(1);
     expect(renderer.root.findAllByType(MatchDrafterPanel)).toHaveLength(1);
+    expect(renderer.root.findByType(MatchDrafterPanel)).toBe(draft);
+    expect(visible(draft)).toBe(true);
+    expect(button(renderer, "Drafting").props["aria-selected"]).toBe(true);
   });
 
   it("opens import for an owner before the roster is complete", async () => {
@@ -397,17 +414,20 @@ describe("unified Games workspace", () => {
     expect(new URLSearchParams(window.location.search).get("match")).toBe(selectedId);
     const statistics = renderer.root.findByType(MatchDataPanel);
     expect(statistics.props.match.id).toBe(selectedId);
-    expect(text(statistics)).toContain("À vérifier en débrief");
+    expect(text(statistics)).toContain("Point à explorer");
+    expect(button(renderer, "Récap").props["aria-selected"]).toBe(true);
     expect(text(statistics)).not.toContain("Vue 5v5");
+    await click(renderer, "Face-à-face");
     const detail = statistics.findAllByType("details").find((node) => text(node.findByType("summary")).startsWith("Statistiques et comparaison"));
     expect(detail.props.open).toBe(false);
     await act(async () => detail.props.onToggle({ currentTarget: { open: true } }));
     const statsText = text(statistics);
     const versusIndex = statsText.indexOf("Vue 5v5");
-    const coachIndex = statsText.indexOf("À vérifier en débrief");
-    expect(coachIndex).toBeLessThan(versusIndex);
+    const reviewIndex = statsText.indexOf("Préparer le débrief");
+    expect(reviewIndex).toBeGreaterThanOrEqual(0);
+    expect(reviewIndex).toBeLessThan(versusIndex);
     for (const metric of ["Éliminations / morts / assistances", "Écart dégâts", "Écart or", "Écart vision"]) {
-      expect(statsText.indexOf(metric)).toBeGreaterThan(coachIndex);
+      expect(statsText.indexOf(metric)).toBeGreaterThan(reviewIndex);
       expect(statsText.indexOf(metric)).toBeLessThan(versusIndex);
     }
     expect(button(renderer, "Créer review")).toBeUndefined();
