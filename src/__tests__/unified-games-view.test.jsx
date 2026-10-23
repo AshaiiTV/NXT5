@@ -426,7 +426,10 @@ describe("unified Games workspace", () => {
     expect(comparison.findAllByProps({ role: "tablist" })).toHaveLength(0);
     expect(comparison.findAllByType("details")).toHaveLength(0);
     expect(statistics.findAllByProps({ className: "games-analysis-disclosure" })).toHaveLength(0);
-    for (const metric of ["gold", "damage", "vision", "cs", "cs10", "cs20", "kda"]) expect(comparison.findAllByProps({ "data-metric": metric })).toHaveLength(5);
+    for (const metric of ["gold", "damage", "vision"]) expect(comparison.findAllByProps({ "data-metric": metric })).toHaveLength(5);
+    for (const stat of ["kda", "cs"]) expect(comparison.findAllByProps({ "data-player-stat": stat })).toHaveLength(10);
+    for (const metric of ["cs10", "cs20", "participation", "damage-share", "gold-share", "vision-share", "deaths-share"]) expect(comparison.findAllByProps({ "data-metric": metric })).toHaveLength(0);
+    expect(comparison.findAllByType("dialog")).toHaveLength(0);
     for (const metric of ["gold", "damage", "vision"]) expect(comparison.findAllByProps({ "data-team-metric": metric })).toHaveLength(1);
     const statsText = text(statistics);
     const reviewIndex = statsText.indexOf("Préparer le débrief");

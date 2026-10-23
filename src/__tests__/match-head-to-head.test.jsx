@@ -1,11 +1,15 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { MatchHeadToHead, MatchLineups, getMatchRolePairs, matchRoleSlots } from "../components/games/MatchHeadToHead.jsx";
 import { HudIcon } from "../pages/workspace/workspace-shared.jsx";
+import { ModalDialog } from "../components/ui/ModalDialog.jsx";
 import { buildGamePublicationSnapshot } from "../../shared/publications/game-publication.js";
 
 const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
+vi.mock("../components/ui/ModalDialog.jsx", () => ({
+  ModalDialog: ({ children, onClose, returnFocusRef, ...props }) => <dialog {...props} onCancel={onClose}>{children}</dialog>,
+}));
 const renderers = [];
 afterEach(() => renderers.splice(0).forEach((renderer) => act(() => renderer.unmount())));
 function game() {
@@ -27,6 +31,13 @@ const visibleText = (node) => typeof node === "string" ? node : node.props.class
 const row = (renderer, role) => renderer.root.findByProps({ "data-role": role }).findByProps({ className: "mhh-row" });
 const metric = (renderer, role, name) => row(renderer, role).findByProps({ "data-metric": name });
 const secondaryValues = (node) => node.children.map(visibleText);
+function openRole(renderer, role) {
+  const previous = renderer.root.findAllByType(ModalDialog)[0];
+  if (previous) act(() => previous.props.onClose());
+  act(() => row(renderer, role).findByProps({ "aria-label": `Repères du rôle ${role}` }).props.onClick({ currentTarget: { focus: vi.fn() } }));
+  return renderer.root.findByType("dialog");
+}
+const secondaryMetric = (renderer, role, name) => openRole(renderer, role).findByProps({ "data-metric": name });
 
 describe("visual match role assignments", () => {
   it("orders roles explicitly and accepts canonical Riot aliases", () => {
@@ -76,23 +87,25 @@ describe("match head-to-head", () => {
     expect(metric(renderer, "JGL", "damage").findByProps({ className: "mhh-fill" }).props.style.width).toBe("50%");
   });
 
-  it("shows every metric together without metric buttons or nested tabs", () => {
+  it("keeps three comparisons and each player's KDA and CS visible without nested tabs", () => {
     const renderer = render();
     expect(text(metric(renderer, "TOP", "damage"))).toContain("+500");
     expect(text(renderer.root)).toContain("Dégâts aux champions");
     for (const role of roles) {
-      for (const name of ["gold", "damage", "vision", "cs", "cs10", "cs20", "kda", "damage-share", "gold-share", "vision-share", "deaths-share"]) expect(row(renderer, role).findAllByProps({ "data-metric": name })).toHaveLength(1);
+      for (const name of ["gold", "damage", "vision"]) expect(row(renderer, role).findAllByProps({ "data-metric": name })).toHaveLength(1);
+      for (const name of ["kda", "cs"]) expect(row(renderer, role).findAllByProps({ "data-player-stat": name })).toHaveLength(2);
+      expect(row(renderer, role).findAllByType("button").filter((button) => button.props["aria-label"] === `Repères du rôle ${role}` && button.props["aria-haspopup"] === "dialog")).toHaveLength(1);
       const vision = metric(renderer, role, "vision");
       expect(vision.props["data-tone"]).toBe("equal");
       expect(vision.findByProps({ className: "mhh-fill" }).props.style.width).toBe("0%");
       expect(text(vision)).not.toContain("Comparaison indisponible");
     }
-    expect(renderer.root.findAllByType("button")).toHaveLength(0);
+    expect(renderer.root.findAllByType("button")).toHaveLength(5);
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+    for (const name of ["cs10", "cs20", "participation", "damage-share", "gold-share", "vision-share", "deaths-share"]) expect(renderer.root.findAllByProps({ "data-metric": name })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ role: "tablist" })).toHaveLength(0);
     expect(renderer.root.findAllByType("details")).toHaveLength(0);
     for (const name of ["gold", "damage", "vision"]) expect(renderer.root.findAllByProps({ "data-team-metric": name })).toHaveLength(1);
-    expect(text(metric(renderer, "TOP", "cs").children[0])).toContain("Team Atlas : ");
-    expect(text(metric(renderer, "TOP", "cs").children[2])).toContain("Rivals : ");
   });
 
   it("distinguishes missing, invalid and zero measures", () => {
@@ -137,20 +150,52 @@ describe("match head-to-head", () => {
     expect(text(identities[1])).toContain("RivalsAdversairesCôté bleu");
   });
 
-  it("renders each identity and loadout once with all role statistics already visible", () => {
+  it("renders each identity and loadout once with KDA and final CS in the player identity", () => {
     const value = snapshot();
     const ally = value.participants.find((item) => item.teamKey === "ALLY" && item.role === "TOP");
     Object.assign(ally, { spells: [4, 12], items: [1001, 0, null, -1], trinket: 3340, kills: 5, deaths: 0, assists: 7, cs: 220, cs10: 75 });
     const renderer = render(MatchHeadToHead, { snapshot: value });
     const identities = renderer.root.findAllByProps({ className: "mhh-player-text" });
     expect(identities).toHaveLength(10);
-    expect(identities.map((identity) => text(identity.findByType("strong"))).sort()).toEqual(value.participants.map((participant) => participant.name).sort());
+    expect(identities.map((identity) => text(identity.findAllByType("strong")[0])).sort()).toEqual(value.participants.map((participant) => participant.name).sort());
     expect(renderer.root.findAllByProps({ className: "mhh-loadout" })).toHaveLength(10);
     const loadout = renderer.root.findByProps({ "aria-label": "Équipements et sorts de ALLY TOP" });
     expect(loadout.findAllByType(HudIcon).map((icon) => icon.props.label)).toEqual(["Sort 4", "Sort 12", "Objet 1001", "Objet 3340"]);
-    expect(text(metric(renderer, "TOP", "kda"))).toContain("5 / 0 / 7");
-    expect(text(metric(renderer, "TOP", "cs"))).toContain("220");
-    expect(text(metric(renderer, "TOP", "cs10"))).toContain("75");
+    expect(text(row(renderer, "TOP").findAllByProps({ "data-player-stat": "kda" })[0])).toContain("5/0/7");
+    expect(text(row(renderer, "TOP").findAllByProps({ "data-player-stat": "cs" })[0])).toContain("220");
+    expect(text(secondaryMetric(renderer, "TOP", "cs10"))).toContain("75");
+    expect(renderer.root.findAllByProps({ className: "mhh-player-text" })).toHaveLength(10);
+    expect(renderer.root.findAllByProps({ className: "mhh-loadout" })).toHaveLength(10);
+  });
+
+  it("opens only secondary role measures in one dialog and closes it through the close action", () => {
+    const renderer = render();
+    const dialog = openRole(renderer, "TOP");
+    expect(dialog.props.className).toContain("mhh-details-dialog");
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+    expect(dialog.findAllByType("img")).toHaveLength(0);
+    expect(dialog.findAllByProps({ className: "mhh-loadout" })).toHaveLength(0);
+    for (const name of ["gold", "damage", "vision", "kda", "cs"]) expect(dialog.findAllByProps({ "data-metric": name })).toHaveLength(0);
+    for (const name of ["cs10", "cs20", "participation", "damage-share", "gold-share", "vision-share", "deaths-share"]) expect(dialog.findAllByProps({ "data-metric": name })).toHaveLength(1);
+    const cs10 = dialog.findByProps({ "data-metric": "cs10" });
+    expect(text(cs10.children[0])).toContain("Team Atlas : ");
+    expect(text(cs10.children[2])).toContain("Rivals : ");
+    const close = dialog.findAllByType("button").find((button) => button.props["aria-label"] === "Fermer" || text(button) === "Fermer");
+    expect(close).toBeDefined();
+    act(() => close.props.onClick());
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+    openRole(renderer, "JGL");
+    act(() => renderer.root.findByType(ModalDialog).props.onClose());
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+  });
+
+  it("closes the selected role's dialog when the match snapshot changes", () => {
+    const value = snapshot();
+    const renderer = render(MatchHeadToHead, { snapshot: value });
+    openRole(renderer, "MID");
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+    act(() => renderer.update(<MatchHeadToHead snapshot={snapshot({ ...game(), id: "next-game" })} />));
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
   });
 
   it("shows CS20 from the matching participant's recorded timeline and preserves measured zero", () => {
@@ -159,15 +204,15 @@ describe("match head-to-head", () => {
       6: { participantId: 6, minionsKilled: 0, jungleMinionsKilled: 0 },
     } }] } } } };
     const renderer = render(MatchHeadToHead, { snapshot: snapshot(match), match });
-    expect(secondaryValues(metric(renderer, "TOP", "cs20"))).toEqual(["170", "CS à 20 min", "0"]);
-    expect(secondaryValues(metric(renderer, "JGL", "cs20"))).toEqual(["—", "CS à 20 min", "—"]);
+    expect(secondaryValues(secondaryMetric(renderer, "TOP", "cs20"))).toEqual(["170", "CS à 20 min", "0"]);
+    expect(secondaryValues(secondaryMetric(renderer, "JGL", "cs20"))).toEqual(["—", "CS à 20 min", "—"]);
     expect(renderer.root.findAllByProps({ className: "mhh-player-text" })).toHaveLength(10);
   });
 
   it("does not show CS20 from a stored summary when the game ended before twenty minutes", () => {
     const match = { ...game(), duration: "19:30", raw: { nxt5: { timelineSummary: { csMilestones: { 1: { cs20: 170 }, 6: { cs20: 150 } } } } } };
     const renderer = render(MatchHeadToHead, { snapshot: snapshot(match), match });
-    expect(secondaryValues(metric(renderer, "TOP", "cs20"))).toEqual(["—", "CS à 20 min", "—"]);
+    expect(secondaryValues(secondaryMetric(renderer, "TOP", "cs20"))).toEqual(["—", "CS à 20 min", "—"]);
   });
 
   it.each([
@@ -186,8 +231,8 @@ describe("match head-to-head", () => {
       ...participant, raw: JSON.stringify({ [index % 2 ? "stats" : "participant"]: participant.raw }),
     })) };
     const renderer = render(MatchHeadToHead, { snapshot: snapshot(match), match });
-    expect(secondaryValues(metric(renderer, "TOP", "cs20"))).toEqual(["160", "CS à 20 min", "152"]);
-    expect(secondaryValues(metric(renderer, "JGL", "cs20"))).toEqual(["—", "CS à 20 min", "—"]);
+    expect(secondaryValues(secondaryMetric(renderer, "TOP", "cs20"))).toEqual(["160", "CS à 20 min", "152"]);
+    expect(secondaryValues(secondaryMetric(renderer, "JGL", "cs20"))).toEqual(["—", "CS à 20 min", "—"]);
   });
 
   it("shows each player's share within their own team and preserves legitimate zero shares", () => {
@@ -197,11 +242,11 @@ describe("match head-to-head", () => {
     }
     const renderer = render(MatchHeadToHead, { snapshot: value });
     for (const key of ["damage", "gold", "vision", "deaths"]) {
-      const top = secondaryValues(metric(renderer, "TOP", `${key}-share`));
+      const top = secondaryValues(secondaryMetric(renderer, "TOP", `${key}-share`));
       expect([top[0], top[2]]).toEqual(["0 %", "20 %"]);
-      const jungle = secondaryValues(metric(renderer, "JGL", `${key}-share`));
+      const jungle = secondaryValues(secondaryMetric(renderer, "JGL", `${key}-share`));
       expect([jungle[0], jungle[2]]).toEqual(["25 %", "20 %"]);
-      expect(renderer.root.findAllByProps({ "data-metric": `${key}-share` })).toHaveLength(5);
+      expect(renderer.root.findAllByProps({ "data-metric": `${key}-share` })).toHaveLength(1);
     }
   });
 
@@ -209,11 +254,11 @@ describe("match head-to-head", () => {
     const value = snapshot();
     value.participants.find((participant) => participant.teamKey === "ALLY" && participant.role === "SUP").damage = null;
     const renderer = render(MatchHeadToHead, { snapshot: value });
-    const damage = secondaryValues(metric(renderer, "TOP", "damage-share"));
+    const damage = secondaryValues(secondaryMetric(renderer, "TOP", "damage-share"));
     expect([damage[0], damage[2]]).toEqual(["—", "20 %"]);
-    const vision = secondaryValues(metric(renderer, "TOP", "vision-share"));
+    const vision = secondaryValues(secondaryMetric(renderer, "TOP", "vision-share"));
     expect([vision[0], vision[2]]).toEqual(["—", "—"]);
-    const deaths = secondaryValues(metric(renderer, "TOP", "deaths-share"));
+    const deaths = secondaryValues(secondaryMetric(renderer, "TOP", "deaths-share"));
     expect([deaths[0], deaths[2]]).toEqual(["—", "—"]);
   });
 
@@ -222,7 +267,7 @@ describe("match head-to-head", () => {
     value.participants = value.participants.filter((participant) => !(participant.teamKey === "ALLY" && participant.role === "SUP"));
     const renderer = render(MatchHeadToHead, { snapshot: value });
     for (const key of ["damage", "gold"]) {
-      const values = secondaryValues(metric(renderer, "TOP", `${key}-share`));
+      const values = secondaryValues(secondaryMetric(renderer, "TOP", `${key}-share`));
       expect(values[0]).toBe("—");
       expect(values[2]).toBe("20 %");
     }

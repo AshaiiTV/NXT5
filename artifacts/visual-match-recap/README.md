@@ -1,10 +1,28 @@
-# Récap visuel des parties — publication initiale et affinements locaux
+# Récap visuel des parties — versions publiées et Face-à-face compact local
 
 23 octobre 2026. La version initiale et l’ajustement Drafting ont été publiés par la [PR nº 211](https://github.com/AshaiiTV/NXT5/pull/211), fusionnée au commit `c5720a31b7d7f299734a7c53f73c7ce59839adf0`. Le [déploiement Netlify](https://app.netlify.com/projects/nxt5/deploys/6adbaaa9bdee1cd79aa97038) est confirmé prêt et publié sur [nxt5.org](https://nxt5.org) à 20 h 46 min 13 s, heure de Paris. Les preuves de cette publication sont conservées dans `release.json` et les captures `production-drafting-desktop.png` et `production-drafting-bans-320.png`.
 
-Les affinements ci-dessous, correspondant à la version 1.99 de la charte, sont réalisés localement sur `codex/gold-chart-hover` et ne sont pas encore publiés. Leur aperçu emploie uniquement des données fictives ; il ne certifie pas le comportement de cette nouvelle version en production.
+Les affinements de la version 1.99 ont été publiés par la [PR nº 213](https://github.com/AshaiiTV/NXT5/pull/213), fusionnée au commit `3fc79b4b4ae896c15388d9b49bf0c84761058c71`. Le [déploiement Netlify](https://app.netlify.com/projects/nxt5/deploys/6adbb7143598bf7b122ed417) est confirmé prêt et publié le 23 octobre 2026 à 21 h 38 min 57 s, heure de Paris. Preuves : `release213.json`, `release213-production-http.json` et captures `release213-*-production*.png`.
 
-## Affinements locaux — quatre demandes complémentaires
+La nouvelle disposition compacte du Face-à-face, version 1.100 de la charte, est réalisée localement sur `codex/compact-head-to-head` et n’est pas publiée. Son aperçu emploie uniquement des données fictives ; les validations ci-dessous ne certifient pas cette nouvelle version en production.
+
+## Version 1.100 locale — Face-à-face compact
+
+- Les cinq rôles deviennent des lignes compactes. Chaque portrait et chaque équipement ou sort apparaît une seule fois, avec jusqu’à neuf icônes par joueur. Les K/D/A et CS sont intégrés à l’identité.
+- Trois barres Or/Dégâts/Vision restent visibles simultanément, avec les valeurs exactes des deux joueurs et l’écart signé. L’échelle est commune aux cinq rôles pour chaque métrique. Les icônes et une légende partagée remplacent les titres répétés.
+- Les cinq boutons de rôle, d’au moins 44 px, ouvrent le `ModalDialog` commun. Il contient uniquement sept repères secondaires : CS à 10 et 20 minutes, participation aux éliminations, parts des dégâts, de l’or, de la vision et des morts. Aucun sous-onglet ni tableau ne répète les portraits, équipements ou comparaisons principales.
+- Les totaux collectifs, objectifs, données absentes, rôles incertains et droits existants sont conservés. L’ordre reste notre équipe à gauche, y compris côté rouge. Cette itération ne modifie ni les données ni les permissions.
+
+### Vérification de la disposition compacte
+
+- **Tests :** 89 tests ciblés réussissent ; journal `compact-face-tests.log`. Le contrôle complet `npm run verify` réussit ensuite : 232 suites, 4 388 tests, 3 774 messages explicitement traduits en anglais et espagnol, typage et compilation avec 13 pages prérendues ; journal `compact-verify.log`.
+- **Navigateur à 320 px :** vrais composants avec données fictives, scénario complet avec neuf icônes par joueur, scénario incomplet avec treize comparaisons indisponibles, scénario de zéros mesurés avec quinze comparaisons égales, notre équipe côté rouge et noms longs. Aucun débordement ni texte coupé dans ces contrôles.
+- **Autres formats et langues :** contrôles des formats 390, 768, 1024 et 1440 px sans débordement, avec des largeurs intérieures effectivement mesurées de 391, 759, 1015 et 1431 px. Les lignes du scénario complet à neuf icônes par joueur mesurent 124 px sur ordinateur et 344 px à 320 px. Le dialogue à 320 px reste sans débordement en français, anglais et espagnol.
+- **Dialogue et clavier :** Entrée et Espace ouvrent le dialogue natif modal ; le focus arrive sur « Fermer ». Échap ferme le dialogue et restitue le focus au bouton de rôle. Les sept repères secondaires sont distincts des données déjà visibles dans les lignes principales.
+- **Captures :** `compact-face-desktop.png`, `compact-face-320.png`, `compact-details-320.png` et `compact-long-320.png`. Aucune nouvelle erreur console après chargement neuf. Les trois avertissements antérieurs concernent le remontage de l’aperçu pendant le rechargement à chaud. Après le dernier ajustement d’alignement des boutons de rôle, la compilation et les 13 pages prérendues repassent (`compact-final-build.log`).
+- **Portée :** inspection de l’aperçu local et de ses composants réels, avec les seules fixtures synthétiques. Aucune publication ou mutation de données de production n’est effectuée par ces contrôles. Les résultats des versions précédentes ci-dessous sont historiques et ne remplacent pas la validation de cette itération.
+
+## Version 1.99 publiée — quatre demandes complémentaires
 
 1. **Courbe d’or :** afficher dynamiquement l’heure, l’or des deux équipes et l’écart selon la position horizontale du pointeur dans tout le cadre. Le point retenu est le relevé mesuré le plus proche ; aucune interpolation ni valeur inventée. Le parcours au clavier et le tableau des relevés restent disponibles.
 2. **Texte retiré :** supprimer de cette page « Un écart final ne suffit pas à expliquer le résultat. ».
