@@ -18,8 +18,8 @@ import "./match-timeline-reading.css";
 import "./match-deep-reading.css";
 import { MatchDrafting as DraftImpactPanel } from "../../components/games/MatchDrafting.jsx";
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
-import { MatchVisualRecap, MatchDuelDetails, recapNumber } from "../../components/games/MatchVisualRecap.jsx";
-import { MatchHeadToHead, getMatchRolePairs } from "../../components/games/MatchHeadToHead.jsx";
+import { MatchVisualRecap } from "../../components/games/MatchVisualRecap.jsx";
+import { MatchHeadToHead } from "../../components/games/MatchHeadToHead.jsx";
 import OpponentsWorkspace from "../../components/opponents/OpponentsWorkspace.jsx";
 import MatchDrafterPanel, { MatchDraftingView } from "../../components/opponents/MatchDrafterPanel.jsx";
 import MatchOpponentPanel from "../../components/opponents/MatchOpponentPanel.jsx";
@@ -1323,19 +1323,15 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
   useLanguage();
   const id = useId();
   const [tab, setTab] = useState("recap");
-  const [selectedRole, setSelectedRole] = useState("");
   const [opponentName, setOpponentName] = useState(undefined);
   const panelRef = useRef(null);
-  const detailsRef = useRef(null);
-  const focusDetails = useRef(false);
   const focusComparison = useRef(false);
   const publication = useMemo(() => buildGamePublicationSnapshot({
     match: opponentName === undefined ? match : { ...match, opponent: opponentName },
     team: { name: teamName || "Notre équipe" },
   }), [match, teamName, opponentName]);
-  const { facts, context } = publication;
+  const { context } = publication;
   const side = context.allySide;
-  const pair = getMatchRolePairs(publication).find((entry) => entry.role === selectedRole);
   const tabs = [{ id: "recap", label: "Récap", icon: BarChart3 }, { id: "versus", label: "Face-à-face", icon: Swords }, { id: "draft", label: "Drafting", icon: Clipboard }, { id: "timeline", label: "Chronologie", icon: Gauge }];
   useEffect(() => {
     if (focusComparison.current) {
@@ -1344,19 +1340,8 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
       focusComparison.current = false;
     }
   }, [tab]);
-  useEffect(() => {
-    if (focusDetails.current && pair?.ally && pair?.enemy) {
-      detailsRef.current?.focus();
-      focusDetails.current = false;
-    }
-  }, [selectedRole, pair?.ally, pair?.enemy]);
-  function selectRole(role) { focusDetails.current = Boolean(role); setSelectedRole(role); }
-  function showComparison(role) { focusComparison.current = true; setSelectedRole(role); setTab("versus"); }
+  function showComparison() { focusComparison.current = true; setTab("versus"); }
   const review = onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(match.id)}&compose=1`));
-  const metrics = <div className="nxt5-kpi-grid mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-    <MetricCard compact icon={Swords} label={t("Éliminations / morts / assistances")} value={[facts.kills.ally, facts.deaths.ally, facts.assists.ally].map((value) => recapNumber(value)).join("/")} hint={t("{0} éliminations adverses", [recapNumber(facts.kills.enemy)])} tone="cyan" />
-    {[["damage", Flame, "Écart dégâts"], ["gold", Gauge, "Écart or"], ["vision", Eye, "Écart vision"]].map(([key, Icon, label]) => <MetricCard key={key} compact icon={Icon} label={t(label)} value={recapNumber(facts[key].diff, true)} hint={t("Notre équipe moins l’adversaire")} tone={Number.isFinite(facts[key].diff) ? facts[key].diff < 0 ? "red" : "green" : "slate"} />)}
-  </div>;
   return <Surface variant="scene" className="nxt5-match-panel match-recap-page mt-5">
     <div className="match-recap-header">
       <div className="games-match-context">
@@ -1376,12 +1361,9 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
     <div ref={panelRef} id={`${id}-panel`} role="tabpanel" tabIndex={0} aria-labelledby={`${id}-tab-${tab}`} className="match-recap-tab-content">
       {tab === "recap" && <MatchVisualRecap match={match} snapshot={publication} onCompare={showComparison} />}
       {tab === "versus" && <>
-        <MatchHeadToHead snapshot={publication} selectedRole={selectedRole} onSelectRole={selectRole} detailsId={`${id}-duel`} />
-        <MatchDuelDetails pair={pair} snapshot={publication} id={`${id}-duel`} detailsRef={detailsRef} />
-        <div className="match-recap-supporting"><GameAnalysisDisclosure title={t("Statistiques et comparaison 5 contre 5")} description={t("Joueurs, équipements et objectifs.")}>
-            {metrics}<MatchVersusOverview match={match} teamName={teamName} /><CoachSupportingMetrics match={match} />
-            {(match.game_id || match.patch) && <section className="games-analysis-section games-match-info"><h4 className="games-section-heading">{t("Informations de la partie")}</h4>{match.game_id && <p>{t("Identifiant : ")}{match.game_id}</p>}{match.patch && <p>{t("Version du jeu : ")}{match.patch}</p>}</section>}
-          </GameAnalysisDisclosure></div>
+        <MatchHeadToHead snapshot={publication} match={match} />
+        <ObjectiveHud match={match} compact />
+        {(match.game_id || match.patch) && <section className="games-analysis-section games-match-info"><h4 className="games-section-heading">{t("Informations de la partie")}</h4>{match.game_id && <p>{t("Identifiant : ")}{match.game_id}</p>}{match.patch && <p>{t("Version du jeu : ")}{match.patch}</p>}</section>}
       </>}
       <div hidden={tab !== "draft"} className="match-recap-draft-content">
         {typeof draftContent === "function" ? draftContent({ active: tab === "draft" }) : draftContent || <MatchDraftingView />}

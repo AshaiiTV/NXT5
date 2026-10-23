@@ -1,8 +1,8 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { MatchHeadToHead, MatchLineups, getMatchRolePairs, matchRoleSlots } from "../components/games/MatchHeadToHead.jsx";
-import { Button } from "../components/ui/Core.jsx";
+import { HudIcon } from "../pages/workspace/workspace-shared.jsx";
 import { buildGamePublicationSnapshot } from "../../shared/publications/game-publication.js";
 
 const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
@@ -23,11 +23,10 @@ function render(Component = MatchHeadToHead, props = {}) {
   return renderer;
 }
 const text = (node) => typeof node === "string" ? node : (node.children || []).map(text).join("");
+const visibleText = (node) => typeof node === "string" ? node : node.props.className?.split(" ").includes("sr-only") ? "" : (node.children || []).map(visibleText).join("");
 const row = (renderer, role) => renderer.root.findByProps({ "data-role": role }).findByProps({ className: "mhh-row" });
-function chooseMetric(renderer, name) {
-  const button = renderer.root.findAllByType(Button).find((node) => text(node) === name);
-  act(() => button.props.onClick());
-}
+const metric = (renderer, role, name) => row(renderer, role).findByProps({ "data-metric": name });
+const secondaryValues = (node) => node.children.map(visibleText);
 
 describe("visual match role assignments", () => {
   it("orders roles explicitly and accepts canonical Riot aliases", () => {
@@ -63,30 +62,37 @@ describe("visual match role assignments", () => {
 });
 
 describe("match head-to-head", () => {
-  it("compares five roles at one common signed scale and keeps measured zero empty", () => {
+  it("compares five roles at one common signed scale per statistic and keeps measured zero empty", () => {
     const renderer = render();
-    const top = row(renderer, "TOP");
-    const jungle = row(renderer, "JGL");
+    const top = metric(renderer, "TOP", "gold");
+    const jungle = metric(renderer, "JGL", "gold");
     expect(top.props["data-tone"]).toBe("positive");
     expect(top.findByProps({ className: "mhh-fill" }).props.style).toEqual({ width: "50%", left: "0%" });
     expect(jungle.props["data-tone"]).toBe("negative");
     expect(jungle.findByProps({ className: "mhh-fill" }).props.style).toEqual({ width: "25%", left: "50%" });
-    expect(row(renderer, "MID").findByProps({ className: "mhh-fill" }).props.style.width).toBe("0%");
-    expect(row(renderer, "MID").props["data-tone"]).toBe("equal");
+    expect(metric(renderer, "MID", "gold").findByProps({ className: "mhh-fill" }).props.style.width).toBe("0%");
+    expect(metric(renderer, "MID", "gold").props["data-tone"]).toBe("equal");
+    expect(metric(renderer, "TOP", "damage").findByProps({ className: "mhh-fill" }).props.style.width).toBe("50%");
+    expect(metric(renderer, "JGL", "damage").findByProps({ className: "mhh-fill" }).props.style.width).toBe("50%");
   });
 
-  it("switches one chosen metric, including all-zero vision without fabricating missing values", () => {
+  it("shows every metric together without metric buttons or nested tabs", () => {
     const renderer = render();
-    chooseMetric(renderer, "Dégâts");
-    expect(text(row(renderer, "TOP"))).toContain("+500");
+    expect(text(metric(renderer, "TOP", "damage"))).toContain("+500");
     expect(text(renderer.root)).toContain("Dégâts aux champions");
-    chooseMetric(renderer, "Vision");
     for (const role of roles) {
-      expect(row(renderer, role).props["data-tone"]).toBe("equal");
-      expect(row(renderer, role).findByProps({ className: "mhh-fill" }).props.style.width).toBe("0%");
+      for (const name of ["gold", "damage", "vision", "cs", "cs10", "cs20", "kda", "damage-share", "gold-share", "vision-share", "deaths-share"]) expect(row(renderer, role).findAllByProps({ "data-metric": name })).toHaveLength(1);
+      const vision = metric(renderer, role, "vision");
+      expect(vision.props["data-tone"]).toBe("equal");
+      expect(vision.findByProps({ className: "mhh-fill" }).props.style.width).toBe("0%");
+      expect(text(vision)).not.toContain("Comparaison indisponible");
     }
-    expect(text(renderer.root)).not.toContain("Comparaison indisponible");
-    expect(renderer.root.findAllByType(Button).map((node) => node.props["aria-pressed"])).toEqual([false, false, true]);
+    expect(renderer.root.findAllByType("button")).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ role: "tablist" })).toHaveLength(0);
+    expect(renderer.root.findAllByType("details")).toHaveLength(0);
+    for (const name of ["gold", "damage", "vision"]) expect(renderer.root.findAllByProps({ "data-team-metric": name })).toHaveLength(1);
+    expect(text(metric(renderer, "TOP", "cs").children[0])).toContain("Team Atlas : ");
+    expect(text(metric(renderer, "TOP", "cs").children[2])).toContain("Rivals : ");
   });
 
   it("distinguishes missing, invalid and zero measures", () => {
@@ -95,24 +101,30 @@ describe("match head-to-head", () => {
     value.participants.find((item) => item.teamKey === "ALLY" && item.role === "JGL").gold = -1;
     const renderer = render(MatchHeadToHead, { snapshot: value });
     for (const role of ["TOP", "JGL"]) {
-      expect(row(renderer, role).props["data-tone"]).toBe("missing");
-      expect(text(row(renderer, role))).toContain("Comparaison indisponible");
-      expect(text(row(renderer, role).findByProps({ className: "mhh-difference" }))).toBe("Écart : —");
-      expect(row(renderer, role).findByProps({ className: "mhh-fill" }).props.style.width).toBe("0%");
+      const gold = metric(renderer, role, "gold");
+      expect(gold.props["data-tone"]).toBe("missing");
+      expect(text(gold.findByProps({ className: "mhh-difference" }))).toBe("Écart : —");
+      expect(gold.findByProps({ className: "mhh-fill" }).props.style.width).toBe("0%");
+      expect(metric(renderer, role, "damage").props["data-tone"]).toBe("positive");
     }
-    expect(row(renderer, "MID").props["data-tone"]).toBe("equal");
+    expect(metric(renderer, "MID", "gold").props["data-tone"]).toBe("equal");
+    expect(text(renderer.root)).toContain("Un tiret indique une donnée indisponible.");
   });
 
-  it("opens and closes only reliable roles while keeping the selected state explicit", () => {
-    const onSelectRole = vi.fn();
+  it("keeps missing and ambiguous roles visible without borrowing another player's statistics", () => {
     const value = snapshot();
     value.participants = value.participants.filter((item) => !(item.teamKey === "ALLY" && item.role === "SUP"));
-    const renderer = render(MatchHeadToHead, { snapshot: value, selectedRole: "TOP", onSelectRole });
-    expect(row(renderer, "TOP").props["aria-expanded"]).toBe(true);
-    act(() => row(renderer, "TOP").props.onClick());
-    act(() => row(renderer, "MID").props.onClick());
-    expect(onSelectRole.mock.calls).toEqual([[""], ["MID"]]);
-    expect(row(renderer, "SUP").props.disabled).toBe(true);
+    value.participants.find((item) => item.teamKey === "ALLY" && item.role === "TOP").role = "MID";
+    const renderer = render(MatchHeadToHead, { snapshot: value });
+    expect(text(row(renderer, "SUP"))).toContain("Joueur absent");
+    expect(text(row(renderer, "MID"))).toContain("Rôle ambigu");
+    for (const role of ["TOP", "MID", "SUP"]) {
+      for (const name of ["gold", "damage", "vision"]) expect(metric(renderer, role, name).props["data-tone"]).toBe("missing");
+      expect(row(renderer, role).props.onClick).toBeUndefined();
+      expect(row(renderer, role).props["aria-controls"]).toBeUndefined();
+    }
+    expect(text(renderer.root.findByProps({ className: "mhh-unresolved" }))).toContain("ALLY TOP");
+    expect(text(renderer.root.findByProps({ className: "mhh-unresolved" }))).toContain("ALLY MID");
   });
 
   it("keeps our team left even on red side, without translating user names", () => {
@@ -125,17 +137,95 @@ describe("match head-to-head", () => {
     expect(text(identities[1])).toContain("RivalsAdversairesCôté bleu");
   });
 
-  it("links reliable role controls to the supplied detail panel without linking missing roles", () => {
+  it("renders each identity and loadout once with all role statistics already visible", () => {
     const value = snapshot();
-    value.participants = value.participants.filter((item) => !(item.teamKey === "ALLY" && item.role === "SUP"));
-    const renderer = render(MatchHeadToHead, { snapshot: value, selectedRole: "MID", onSelectRole: vi.fn(), detailsId: "match-role-details" });
-    expect(row(renderer, "MID").props["aria-controls"]).toBe("match-role-details");
-    expect(row(renderer, "MID").props["aria-expanded"]).toBe(true);
-    expect(row(renderer, "TOP").props["aria-controls"]).toBe("match-role-details");
-    expect(row(renderer, "TOP").props["aria-expanded"]).toBe(false);
-    expect(row(renderer, "SUP").props["aria-controls"]).toBeUndefined();
-    const standalone = render(MatchHeadToHead, { onSelectRole: vi.fn() });
-    expect(row(standalone, "MID").props["aria-controls"]).toBeUndefined();
+    const ally = value.participants.find((item) => item.teamKey === "ALLY" && item.role === "TOP");
+    Object.assign(ally, { spells: [4, 12], items: [1001, 0, null, -1], trinket: 3340, kills: 5, deaths: 0, assists: 7, cs: 220, cs10: 75 });
+    const renderer = render(MatchHeadToHead, { snapshot: value });
+    const identities = renderer.root.findAllByProps({ className: "mhh-player-text" });
+    expect(identities).toHaveLength(10);
+    expect(identities.map((identity) => text(identity.findByType("strong"))).sort()).toEqual(value.participants.map((participant) => participant.name).sort());
+    expect(renderer.root.findAllByProps({ className: "mhh-loadout" })).toHaveLength(10);
+    const loadout = renderer.root.findByProps({ "aria-label": "Équipements et sorts de ALLY TOP" });
+    expect(loadout.findAllByType(HudIcon).map((icon) => icon.props.label)).toEqual(["Sort 4", "Sort 12", "Objet 1001", "Objet 3340"]);
+    expect(text(metric(renderer, "TOP", "kda"))).toContain("5 / 0 / 7");
+    expect(text(metric(renderer, "TOP", "cs"))).toContain("220");
+    expect(text(metric(renderer, "TOP", "cs10"))).toContain("75");
+  });
+
+  it("shows CS20 from the matching participant's recorded timeline and preserves measured zero", () => {
+    const match = { ...game(), duration: "25:00", raw: { timeline: { info: { frames: [{ timestamp: 1200000, participantFrames: {
+      1: { participantId: 1, minionsKilled: 150, jungleMinionsKilled: 20 },
+      6: { participantId: 6, minionsKilled: 0, jungleMinionsKilled: 0 },
+    } }] } } } };
+    const renderer = render(MatchHeadToHead, { snapshot: snapshot(match), match });
+    expect(secondaryValues(metric(renderer, "TOP", "cs20"))).toEqual(["170", "CS à 20 min", "0"]);
+    expect(secondaryValues(metric(renderer, "JGL", "cs20"))).toEqual(["—", "CS à 20 min", "—"]);
+    expect(renderer.root.findAllByProps({ className: "mhh-player-text" })).toHaveLength(10);
+  });
+
+  it("does not show CS20 from a stored summary when the game ended before twenty minutes", () => {
+    const match = { ...game(), duration: "19:30", raw: { nxt5: { timelineSummary: { csMilestones: { 1: { cs20: 170 }, 6: { cs20: 150 } } } } } };
+    const renderer = render(MatchHeadToHead, { snapshot: snapshot(match), match });
+    expect(secondaryValues(metric(renderer, "TOP", "cs20"))).toEqual(["—", "CS à 20 min", "—"]);
+  });
+
+  it.each([
+    ["timeline.info.frames", (frames) => ({ timeline: { info: { frames } } })],
+    ["metadata.timeline.info.frames", (frames) => ({ metadata: { timeline: { info: { frames } } } })],
+    ["timeline.frames", (frames) => ({ timeline: { frames } })],
+    ["timeline.timeline.info.frames", (frames) => ({ timeline: { timeline: { info: { frames } } } })],
+    ["timeline.timeline.frames", (frames) => ({ timeline: { timeline: { frames } } })],
+  ])("uses normalized participant identities and JSON raw data for CS20 from %s", (_, wrap) => {
+    const base = game();
+    const frames = [{ timestamp: 1200000, participantFrames: {
+      1: { participantId: 1, minionsKilled: 142, jungleMinionsKilled: 18 },
+      6: { participantId: 6, minionsKilled: 145, jungleMinionsKilled: 7 },
+    } }];
+    const match = { ...base, duration: "25:00", raw: JSON.stringify(wrap(frames)), participants: base.participants.map((participant, index) => ({
+      ...participant, raw: JSON.stringify({ [index % 2 ? "stats" : "participant"]: participant.raw }),
+    })) };
+    const renderer = render(MatchHeadToHead, { snapshot: snapshot(match), match });
+    expect(secondaryValues(metric(renderer, "TOP", "cs20"))).toEqual(["160", "CS à 20 min", "152"]);
+    expect(secondaryValues(metric(renderer, "JGL", "cs20"))).toEqual(["—", "CS à 20 min", "—"]);
+  });
+
+  it("shows each player's share within their own team and preserves legitimate zero shares", () => {
+    const value = snapshot();
+    for (const participant of value.participants) {
+      for (const key of ["damage", "gold", "vision", "deaths"]) participant[key] = participant.teamKey === "ALLY" && participant.role === "TOP" ? 0 : 10;
+    }
+    const renderer = render(MatchHeadToHead, { snapshot: value });
+    for (const key of ["damage", "gold", "vision", "deaths"]) {
+      const top = secondaryValues(metric(renderer, "TOP", `${key}-share`));
+      expect([top[0], top[2]]).toEqual(["0 %", "20 %"]);
+      const jungle = secondaryValues(metric(renderer, "JGL", `${key}-share`));
+      expect([jungle[0], jungle[2]]).toEqual(["25 %", "20 %"]);
+      expect(renderer.root.findAllByProps({ "data-metric": `${key}-share` })).toHaveLength(5);
+    }
+  });
+
+  it("does not fabricate zero shares from missing measures or a zero team total", () => {
+    const value = snapshot();
+    value.participants.find((participant) => participant.teamKey === "ALLY" && participant.role === "SUP").damage = null;
+    const renderer = render(MatchHeadToHead, { snapshot: value });
+    const damage = secondaryValues(metric(renderer, "TOP", "damage-share"));
+    expect([damage[0], damage[2]]).toEqual(["—", "20 %"]);
+    const vision = secondaryValues(metric(renderer, "TOP", "vision-share"));
+    expect([vision[0], vision[2]]).toEqual(["—", "—"]);
+    const deaths = secondaryValues(metric(renderer, "TOP", "deaths-share"));
+    expect([deaths[0], deaths[2]]).toEqual(["—", "—"]);
+  });
+
+  it("keeps team shares unavailable when the team's roster is incomplete", () => {
+    const value = snapshot();
+    value.participants = value.participants.filter((participant) => !(participant.teamKey === "ALLY" && participant.role === "SUP"));
+    const renderer = render(MatchHeadToHead, { snapshot: value });
+    for (const key of ["damage", "gold"]) {
+      const values = secondaryValues(metric(renderer, "TOP", `${key}-share`));
+      expect(values[0]).toBe("—");
+      expect(values[2]).toBe("20 %");
+    }
   });
 });
 

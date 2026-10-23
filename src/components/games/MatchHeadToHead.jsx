@@ -1,9 +1,10 @@
-import React, { useId, useState } from "react";
-import { Coins, Eye, Swords, ChevronDown, UserRound } from "lucide-react";
+import React, { useId } from "react";
+import { Coins, Eye, Swords, UserRound } from "lucide-react";
 import { ROLES, canonicalRole } from "../../../shared/roles.js";
 import { RoleIcon } from "../brand/BrandAssets.jsx";
-import { Badge, Button } from "../ui/Core.jsx";
-import { ChampionPortrait, championDisplayName } from "../../pages/workspace/workspace-shared.jsx";
+import { Badge } from "../ui/Core.jsx";
+import { ChampionPortrait, championDisplayName, HudIcon, itemIconSources, summonerSpellIconSources } from "../../pages/workspace/workspace-shared.jsx";
+import { csAtMinute } from "../../utils/match-timeline.js";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { getLocale } from "../../i18n/locale.js";
@@ -15,6 +16,10 @@ const METRICS = [
   { id: "vision", label: "Vision", title: "Score de vision", Icon: Eye },
 ];
 const measured = (value) => typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+const readObject = (value) => {
+  if (typeof value === "string") { try { return JSON.parse(value) || {}; } catch { return {}; } }
+  return value && typeof value === "object" ? value : {};
+};
 
 /** A slot requires one unambiguous participant; never infer a role from its position. */
 export function matchRoleSlots(snapshot) {
@@ -104,52 +109,81 @@ function PlayerIdentity({ slot, teamKey }) {
   </span>;
 }
 
-export function MatchHeadToHead({ snapshot, selectedRole = "", onSelectRole, detailsId }) {
+function PlayerLoadout({ row }) {
+  if (!row) return null;
+  const name = !row.name || row.name === "Joueur inconnu" ? t("Joueur inconnu") : row.name;
+  return <div className="mhh-loadout" aria-label={t("Équipements et sorts de {0}", [name])}>
+    {(row.spells || []).filter((id) => Number.isFinite(id) && id > 0).map((id, index) => <HudIcon key={`spell-${index}`} sources={summonerSpellIconSources(id)} label={t("Sort {0}", [id])} fallback="—" emptyText="—" className="mhh-loadout-icon" />)}
+    {[...(row.items || []), row.trinket].filter((id) => Number.isFinite(id) && id > 0).map((id, index) => <HudIcon key={`item-${index}`} sources={itemIconSources(id)} label={t("Objet {0}", [id])} fallback="—" emptyText="—" className="mhh-loadout-icon" />)}
+  </div>;
+}
+
+export function MatchHeadToHead({ snapshot, match }) {
   const language = useLanguage();
   const titleId = useId();
-  const [metricId, setMetricId] = useState("gold");
-  const metric = METRICS.find((entry) => entry.id === metricId) || METRICS[0];
   const { teams, unresolved } = matchRoleSlots(snapshot);
-  const rows = ROLES.map((role, index) => {
-    const allySlot = teams.ALLY[index];
-    const enemySlot = teams.ENEMY[index];
-    const ally = measured(allySlot.row?.[metric.id]);
-    const enemy = measured(enemySlot.row?.[metric.id]);
-    return { role, allySlot, enemySlot, ally, enemy, diff: ally !== null && enemy !== null ? ally - enemy : null };
-  });
-  const maxDiff = Math.max(0, ...rows.map((row) => Math.abs(row.diff ?? 0)));
+  const rows = ROLES.map((role, index) => ({ role, allySlot: teams.ALLY[index], enemySlot: teams.ENEMY[index] }));
+  const difference = (ally, enemy) => ally !== null && enemy !== null ? ally - enemy : null;
+  const scales = Object.fromEntries(METRICS.map(({ id }) => [id, Math.max(0, ...rows.map(({ allySlot, enemySlot }) => Math.abs(difference(measured(allySlot.row?.[id]), measured(enemySlot.row?.[id])) ?? 0)))]));
   const number = (value, signed = false) => value === null ? "—" : `${signed && value > 0 ? "+" : ""}${value.toLocaleString(getLocale(language), { maximumFractionDigits: 0 })}`;
+  const kda = (row) => ["kills", "deaths", "assists"].map((key) => number(measured(row?.[key]))).join(" / ");
+  const raw = readObject(match?.raw);
+  const frames = [raw.timeline?.info, raw.metadata?.timeline?.info, raw.timeline, raw.timeline?.timeline?.info, raw.timeline?.timeline].find((source) => Array.isArray(source?.frames) && source.frames.length)?.frames;
+  const cs20 = (row) => {
+    if (!row?.participantId || !match) return null;
+    return measured(csAtMinute({ participantId: row.participantId, match: { ...match, raw: frames ? { ...raw, timeline: { info: { frames } } } : raw } }, 20));
+  };
+  const teamTotal = (teamKey, key) => {
+    const players = snapshot.participants.filter((row) => row.teamKey === teamKey);
+    if (players.length !== 5 || players.some((row) => measured(row[key]) === null || (row.participantId && snapshot.participants.filter((other) => other.participantId === row.participantId).length !== 1))) return null;
+    const total = players.reduce((sum, row) => sum + row[key], 0);
+    return Number.isFinite(total) ? total : null;
+  };
+  const share = (row, key) => {
+    const total = row ? teamTotal(row.teamKey, key) : null;
+    return measured(row?.[key]) === null || total === null || total === 0 ? "—" : `${number(row[key] / total * 100)} %`;
+  };
+  const teamValue = (teamKey, key) => <><span className="sr-only">{teamName(snapshot, teamKey)} : </span>{number(teamTotal(teamKey, key))}</>;
+  const teamKda = (teamKey) => ["kills", "deaths", "assists"].map((key) => number(teamTotal(teamKey, key))).join(" / ");
+  const secondary = [
+    { id: "cs", label: "CS", value: (row) => number(measured(row?.cs)) },
+    { id: "cs10", label: "CS à 10 min", value: (row) => number(measured(row?.cs10)) },
+    { id: "cs20", label: "CS à 20 min", value: (row) => number(cs20(row)) },
+    { id: "participation", label: "Participation aux éliminations", value: (row) => measured(row?.participation) === null ? "—" : `${number(row.participation)} %` },
+    { id: "damage-share", label: "Part des dégâts", value: (row) => share(row, "damage") },
+    { id: "gold-share", label: "Part de l'or", value: (row) => share(row, "gold") },
+    { id: "vision-share", label: "Part vision", value: (row) => share(row, "vision") },
+    { id: "deaths-share", label: "Part des morts", value: (row) => share(row, "deaths") },
+  ];
   return <section className="match-head-to-head" aria-labelledby={titleId}>
-    <div className="mhh-heading"><h4 id={titleId}>{t("Face-à-face")}</h4>
-      <div className="mhh-metrics" role="group" aria-label={t("Statistique à comparer")}>
-        {METRICS.map((entry) => <Button key={entry.id} type="button" variant="ghost" icon={entry.Icon} aria-pressed={metric.id === entry.id} onClick={() => setMetricId(entry.id)}>{t(entry.label)}</Button>)}
-      </div>
-    </div>
+    <h4 id={titleId} className="sr-only">{t("Face-à-face")}</h4>
     <div className="mhh-teams"><TeamIdentity snapshot={snapshot} teamKey="ALLY" /><TeamIdentity snapshot={snapshot} teamKey="ENEMY" /></div>
-    <p className="mhh-legend"><strong>{t(metric.title)}</strong><span>{t("Écart : notre équipe − adversaires")}</span></p>
-    <ol className="mhh-rows">{rows.map(({ role, allySlot, enemySlot, ally, enemy, diff }) => {
-      const available = diff !== null;
-      const selectable = Boolean(onSelectRole && allySlot.row && enemySlot.row);
-      const Row = onSelectRole ? "button" : "div";
-      const width = available && maxDiff > 0 ? Math.abs(diff) / maxDiff * 50 : 0;
-      const tone = !available ? "missing" : diff > 0 ? "positive" : diff < 0 ? "negative" : "equal";
-      return <li key={role} data-role={role}>
-        <Row className="mhh-row" data-tone={tone} data-selected={selectedRole === role || undefined}
-          {...(onSelectRole ? { type: "button", disabled: !selectable, "aria-expanded": selectedRole === role, "aria-controls": selectable && detailsId ? detailsId : undefined, onClick: () => onSelectRole(selectedRole === role ? "" : role) } : {})}>
-          <PlayerIdentity slot={allySlot} teamKey="ALLY" />
-          <span className="mhh-role"><span aria-hidden="true"><RoleIcon role={role} /></span><strong>{role}</strong>{selectable && <ChevronDown aria-hidden="true" />}</span>
-          <PlayerIdentity slot={enemySlot} teamKey="ENEMY" />
-          <span className="mhh-comparison">
-            <span className="mhh-values"><span><span className="sr-only">{t("Notre équipe")} : </span>{number(ally)}</span>
-              <strong className="mhh-difference"><span className="sr-only">{t("Écart")} : </span>{number(diff, true)}</strong>
-              <span><span className="sr-only">{t("Adversaires")} : </span>{number(enemy)}</span></span>
+    <div className="mhh-team-summary" aria-label={t("Totaux des équipes")}>
+      <div className="mhh-secondary-values"><strong><span className="sr-only">{teamName(snapshot, "ALLY")} : </span>{teamKda("ALLY")}</strong><span aria-label={t("Éliminations / morts / assistances")}>K / D / A</span><strong><span className="sr-only">{teamName(snapshot, "ENEMY")} : </span>{teamKda("ENEMY")}</strong></div>
+      <div className="mhh-stat-grid">{METRICS.map(({ id, title, Icon }) => <div key={id} data-team-metric={id}><span className="mhh-stat-title"><Icon aria-hidden="true" />{t(title)}</span><div className="mhh-values"><span>{teamValue("ALLY", id)}</span><strong className="mhh-difference">{number(difference(teamTotal("ALLY", id), teamTotal("ENEMY", id)), true)}</strong><span>{teamValue("ENEMY", id)}</span></div></div>)}</div>
+    </div>
+    <p className="mhh-legend">{t("Écart : notre équipe − adversaires")}</p>
+    <ol className="mhh-rows">{rows.map(({ role, allySlot, enemySlot }) => <li key={role} data-role={role}>
+      <div className="mhh-row">
+        <div className="mhh-player-block"><PlayerIdentity slot={allySlot} teamKey="ALLY" /><PlayerLoadout row={allySlot.row} /></div>
+        <span className="mhh-role"><span aria-hidden="true"><RoleIcon role={role} /></span><strong>{role}</strong></span>
+        <div className="mhh-player-block mhh-player-block-enemy"><PlayerIdentity slot={enemySlot} teamKey="ENEMY" /><PlayerLoadout row={enemySlot.row} /></div>
+        <div className="mhh-kda mhh-secondary-values" data-metric="kda"><strong><span className="sr-only">{teamName(snapshot, "ALLY")} : </span>{kda(allySlot.row)}</strong><span aria-label={t("Éliminations / morts / assistances")}>K / D / A</span><strong><span className="sr-only">{teamName(snapshot, "ENEMY")} : </span>{kda(enemySlot.row)}</strong></div>
+        <div className="mhh-stat-grid">{METRICS.map(({ id, title, Icon }) => {
+          const ally = measured(allySlot.row?.[id]);
+          const enemy = measured(enemySlot.row?.[id]);
+          const diff = difference(ally, enemy);
+          const width = diff !== null && scales[id] > 0 ? Math.abs(diff) / scales[id] * 50 : 0;
+          return <div key={id} className="mhh-comparison" data-metric={id} data-tone={diff === null ? "missing" : diff > 0 ? "positive" : diff < 0 ? "negative" : "equal"}>
+            <span className="mhh-stat-title"><Icon aria-hidden="true" />{t(title)}</span>
+            <span className="mhh-values"><span><span className="sr-only">{t("Notre équipe")} : </span>{number(ally)}</span><strong className="mhh-difference"><span className="sr-only">{t("Écart")} : </span>{number(diff, true)}</strong><span><span className="sr-only">{t("Adversaires")} : </span>{number(enemy)}</span></span>
             <span className="mhh-track" aria-hidden="true"><span className="mhh-fill" style={{ width: `${width}%`, left: diff > 0 ? `${50 - width}%` : "50%" }} /></span>
-            {!available && <span className="mhh-unavailable">{t("Comparaison indisponible")}</span>}
-          </span>
-        </Row>
-      </li>;
-    })}</ol>
-    <p className="mhh-scale">{t("Même échelle pour les cinq rôles.")}{onSelectRole && <> {t("Sélectionne un rôle pour les détails.")}</>}</p>
+          </div>;
+        })}</div>
+        <div className="mhh-secondary-grid">{secondary.map(({ id, label, value }) => <div key={id} className="mhh-secondary-values" data-metric={id}><span><span className="sr-only">{teamName(snapshot, "ALLY")} : </span>{value(allySlot.row)}</span><span>{t(label)}</span><span><span className="sr-only">{teamName(snapshot, "ENEMY")} : </span>{value(enemySlot.row)}</span></div>)}</div>
+      </div>
+    </li>)}</ol>
+    <p className="mhh-scale">{t("Même échelle pour les cinq rôles.")} {t("Un tiret indique une donnée indisponible.")}</p>
     <UnresolvedParticipants rows={unresolved} />
   </section>;
 }

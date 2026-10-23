@@ -16,8 +16,11 @@ const game = (frames = [], overrides = {}) => ({
 });
 const series = (match) => buildMatchGoldSeries(match, buildGamePublicationSnapshot({ match }));
 let renderer;
-const mount = (match, props = {}) => { act(() => { renderer = TestRenderer.create(<MatchGoldChart match={match} publication={buildGamePublicationSnapshot({ match })} teamName="NXT" {...props} />); }); return renderer; };
+const mount = (match, props = {}, rect = { left: 100, width: 560 }) => { act(() => { renderer = TestRenderer.create(<MatchGoldChart match={match} publication={buildGamePublicationSnapshot({ match })} teamName="NXT" {...props} />, { createNodeMock: (element) => element.type === "svg" ? { getBoundingClientRect: () => rect } : null }); }); return renderer; };
 const text = (node) => typeof node === "string" ? node : (node?.children || []).map(text).join("");
+const plot = (r) => r.root.findByProps({ className: "match-gold-chart-plot" });
+const readout = (r) => r.root.findAllByProps({ className: "match-gold-chart-readout" });
+const move = (r, clientX, clientY = 0) => act(() => plot(r).props.onPointerMove({ clientX, clientY, pointerType: "mouse" }));
 afterEach(() => { if (renderer) act(() => renderer.unmount()); renderer = null; setLanguage("fr", { persist: false }); });
 
 describe("Match recap gold chart", () => {
@@ -120,5 +123,89 @@ describe("Match recap gold chart", () => {
     expect(text(r.root.findByProps({ className: "match-gold-chart-legend" }))).toBe("+Récap−Chronologie");
     act(() => setLanguage("es", { persist: false }));
     expect(text(r.root.findByProps({ className: "match-gold-chart-legend" }))).toBe("+Récap−Chronologie");
+  });
+
+  it("reads both team totals anywhere vertically in the frame, without targeting the curve", () => {
+    const r = mount(game([frame(0, 500, 500), frame(60000, 1000, 900), frame(120000, 1100, 1500)], { duration: "2:00" }));
+    expect(readout(r)).toHaveLength(0);
+    for (const clientY of [-500, 0, 180, 900]) {
+      move(r, 380, clientY);
+      expect(text(readout(r)[0])).toContain("1:00");
+      expect(text(readout(r)[0])).toContain("+500");
+      expect(text(readout(r)[0])).toContain("5 000");
+      expect(text(readout(r)[0])).toContain("4 500");
+      expect(text(readout(r)[0])).toContain("NXT");
+      expect(r.root.findByProps({ className: "match-gold-chart-cursor" }).props.x1).toBe(280);
+    }
+    act(() => plot(r).props.onPointerLeave());
+    expect(readout(r)).toHaveLength(0);
+  });
+
+  it("uses the rendered SVG offset and width after resizing, and clamps both outer edges", () => {
+    const rect = { left: 140, width: 280 };
+    const r = mount(game([frame(0), frame(60000, 1100), frame(120000, 1500)], { duration: "2:00" }), {}, rect);
+    move(r, 280);
+    expect(text(readout(r)[0])).toContain("1:00");
+    rect.left = 35;
+    rect.width = 1120;
+    move(r, 595);
+    expect(text(readout(r)[0])).toContain("1:00");
+    move(r, 0);
+    expect(text(readout(r)[0])).toContain("0:00");
+    move(r, 2000);
+    expect(text(readout(r)[0])).toContain("2:00");
+    expect(text(readout(r)[0])).toContain("+2 500");
+  });
+
+  it("snaps gaps and the unrecorded game end to real samples, resolving a tie to the earlier one", () => {
+    const r = mount(game([frame(0, 500, 500), frame(120000, 1500, 1200)], { duration: "4:00" }));
+    // 1:00 is exactly between the two observed samples; there is no measured point there.
+    move(r, 244);
+    expect(text(readout(r)[0])).toContain("Relevé à 0:00");
+    expect(text(readout(r)[0])).not.toContain("1:00");
+    move(r, 650);
+    expect(text(readout(r)[0])).toContain("Relevé à 2:00");
+    expect(text(readout(r)[0])).toContain("+1 500");
+    expect(text(readout(r)[0])).not.toContain("4:00");
+    expect(r.root.findAllByType("polyline")).toHaveLength(0);
+  });
+
+  it("provides the same measured values through keyboard navigation and keeps focus selection on pointer leave", () => {
+    const r = mount(game([frame(0), frame(60000, 1100), frame(120000, 1500)], { duration: "2:00" }));
+    expect(plot(r).props.role).toBe("slider");
+    expect(plot(r).props.tabIndex).toBe(0);
+    act(() => plot(r).props.onFocus());
+    expect(readout(r)).toHaveLength(1);
+    const key = (value) => act(() => plot(r).props.onKeyDown({ key: value, preventDefault() {} }));
+    key("Home");
+    expect(text(readout(r)[0])).toContain("Relevé à 0:00");
+    key("ArrowRight");
+    expect(text(readout(r)[0])).toContain("Relevé à 1:00");
+    key("End");
+    expect(text(readout(r)[0])).toContain("Relevé à 2:00");
+    key("ArrowRight");
+    expect(text(readout(r)[0])).toContain("Relevé à 2:00");
+    key("ArrowLeft");
+    expect(text(readout(r)[0])).toContain("Relevé à 1:00");
+    act(() => plot(r).props.onPointerLeave());
+    expect(text(readout(r)[0])).toContain("Relevé à 1:00");
+    act(() => plot(r).props.onBlur());
+    expect(readout(r)).toHaveLength(0);
+  });
+
+  it("supports touch selection and pointer cancellation without creating data for a single sample", () => {
+    const r = mount(game([frame(60000, 500, 500)], { duration: "2:00" }));
+    act(() => plot(r).props.onPointerDown({ clientX: 600, clientY: 30, pointerType: "touch" }));
+    expect(text(readout(r)[0])).toContain("Relevé à 1:00");
+    expect(text(readout(r)[0])).toContain("2 500");
+    expect(r.root.findAllByType("polyline")).toHaveLength(0);
+    act(() => plot(r).props.onPointerCancel());
+    expect(readout(r)).toHaveLength(0);
+  });
+
+  it("ignores pointer coordinates while the plot has no measurable width", () => {
+    const r = mount(game([frame(0), frame(60000)]), {}, { left: 100, width: 0 });
+    move(r, 200);
+    expect(readout(r)).toHaveLength(0);
   });
 });

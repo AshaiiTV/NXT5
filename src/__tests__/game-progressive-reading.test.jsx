@@ -4,11 +4,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { openAppPath } from "../app/routing.js";
 import { Button } from "../components/ui/Core.jsx";
 import { MatchLineups, MatchHeadToHead } from "../components/games/MatchHeadToHead.jsx";
-import { MatchDuelDetails } from "../components/games/MatchVisualRecap.jsx";
 import MatchGoldChart from "../components/games/MatchGoldChart.jsx";
 import {
   MatchDataPanel, MatchVersusOverview, MatchTimelineReview,
-  MatchReadingIntro, DeathContextPanel, DraftImpactPanel,
+  MatchReadingIntro, DeathContextPanel, DraftImpactPanel, ObjectiveHud,
 } from "../pages/workspace/GameWorkspace.jsx";
 
 vi.mock("../app/routing.js", async (load) => ({ ...await load(), openAppPath: vi.fn() }));
@@ -53,17 +52,11 @@ function renderComposition(props = {}) {
   return renderer;
 }
 function text(node) { return typeof node === "string" ? node : (node.children || []).map(text).join(""); }
+function visibleText(node) { return typeof node === "string" ? node : node.props.className?.split(" ").includes("sr-only") ? "" : (node.children || []).map(visibleText).join(""); }
 function visible(node) {
   for (let ancestor = node; ancestor; ancestor = ancestor.parent) if (ancestor.props.hidden) return false;
   return true;
 }
-function disclosure(renderer, title) {
-  return renderer.root.findAllByProps({ className: "games-analysis-disclosure" }).find((node) => text(node.children.find((child) => child.type === "summary")).startsWith(title));
-}
-function toggle(renderer, title, open) {
-  act(() => disclosure(renderer, title).props.onToggle({ currentTarget: { open } }));
-}
-
 function tab(renderer, label) {
   return renderer.root.findAllByProps({ role: "tab" }).find((node) => text(node) === label);
 }
@@ -88,7 +81,7 @@ describe("progressive game reading", () => {
     expect(text(renderer.root)).toContain("Victoire");
     expect(text(renderer.root)).toContain("Durée : 24:30");
     expect(text(renderer.root)).toContain("Notre équipe : côté bleu");
-    expect(text(brief)).toContain("Point à explorer");
+    expect(text(brief)).toContain("Qui a le plus d’impact ?");
     expect(renderer.root.findAllByProps({ role: "tab" }).map(text)).toEqual(["Récap", "Face-à-face", "Drafting", "Chronologie"]);
     expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
     expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(1);
@@ -112,7 +105,7 @@ describe("progressive game reading", () => {
     expect(reading).toContain(label);
     expect(reading).toContain(value);
     expect(reading).toContain("Notre équipe − adversaires");
-    expect(reading).toContain("Un écart final ne suffit pas à expliquer le résultat.");
+    expect(reading).not.toContain("Un écart final ne suffit pas à expliquer le résultat.");
     expect(reading).not.toContain("Statistiques incomplètes");
   });
 
@@ -135,16 +128,26 @@ describe("progressive game reading", () => {
     expect(text(brief)).not.toContain("Statistiques incomplètes");
   });
 
-  it("keeps full statistics and information reachable under the face-to-face view", () => {
-    const renderer = render();
+  it("shows one complete face-to-face view with objectives and information, without nested navigation or duplicated statistics", () => {
+    const renderer = render({ match: draftedGame() });
     selectTab(renderer, "Face-à-face");
     expect(renderer.root.findAllByType(MatchHeadToHead)).toHaveLength(1);
     expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(0);
     expect(renderer.root.findAllByType(MatchVersusOverview)).toHaveLength(0);
-    toggle(renderer, "Statistiques et comparaison", true);
-    expect(renderer.root.findAllByType(MatchVersusOverview)).toHaveLength(1);
-    const stats = text(disclosure(renderer, "Statistiques et comparaison"));
-    for (const value of ["Éliminations / morts / assistances", "Repères de l’analyse", "Informations de la partie", "EUW1_123", "16.19"]) expect(stats).toContain(value);
+    expect(renderer.root.findAllByType(ObjectiveHud)).toHaveLength(1);
+    expect(renderer.root.findAllByProps({ role: "tablist" })).toHaveLength(1);
+    const panel = renderer.root.findAllByProps({ role: "tabpanel" }).find(visible);
+    expect(panel.findAllByProps({ role: "tablist" })).toHaveLength(0);
+    expect(panel.findAllByType("details")).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ className: "games-analysis-disclosure" })).toHaveLength(0);
+    for (const value of ["K / D / A", "Informations de la partie", "EUW1_123", "16.19"]) expect(text(panel)).toContain(value);
+    const kdaComparisons = panel.findAllByProps({ "data-metric": "kda" });
+    expect(kdaComparisons).toHaveLength(5);
+    for (const kda of kdaComparisons) expect(kda.findAllByProps({ "aria-label": "Éliminations / morts / assistances" })).toHaveLength(1);
+    for (const metric of ["gold", "damage", "vision", "cs", "cs10"]) expect(panel.findAllByProps({ "data-metric": metric })).toHaveLength(5);
+    for (const champion of Object.values(draftChampions).flat()) {
+      expect(panel.findAllByType("img").filter((image) => image.props.alt === champion)).toHaveLength(1);
+    }
     expect(renderer.root.findAllByType(MatchReadingIntro)).toHaveLength(0);
     selectTab(renderer, "Chronologie");
     expect(renderer.root.findByType(MatchTimelineReview).props.teamName).toBe("Équipe Atlas");
@@ -204,53 +207,55 @@ describe("progressive game reading", () => {
     expect(renderer.root.findAllByType(DraftImpactPanel)).toHaveLength(0);
   });
 
-  it("opens the suggested role with one click and can return to the recap", () => {
+  it("opens all team comparisons with one click and can return to the recap", () => {
     const match = draftedGame();
     match.participants.find((row) => row.team_key === "ALLY" && row.role === "ADC").gold = 5000;
     const renderer = render({ match });
-    expect(text(renderer.root)).toContain("Le duel ADC");
-    act(() => action(renderer, "Comparer ce duel").props.onClick());
+    expect(text(renderer.root)).toContain("Qui a le plus d’impact ?");
+    act(() => action(renderer, "Comparer les équipes").props.onClick());
     expect(tab(renderer, "Face-à-face").props["aria-selected"]).toBe(true);
-    expect(renderer.root.findByType(MatchHeadToHead).props.selectedRole).toBe("ADC");
-    expect(renderer.root.findByType(MatchDuelDetails).props.pair.role).toBe("ADC");
-    expect(text(renderer.root.findByType(MatchDuelDetails))).toContain("Jinx");
-    expect(text(renderer.root.findByType(MatchDuelDetails))).toContain("Caitlyn");
+    const comparison = renderer.root.findByType(MatchHeadToHead);
+    expect(comparison.props.selectedRole).toBeUndefined();
+    expect(comparison.props.onSelectRole).toBeUndefined();
+    expect(comparison.findAllByProps({ "data-metric": "gold" })).toHaveLength(5);
+    expect(text(comparison)).toContain("Jinx");
+    expect(text(comparison)).toContain("Caitlyn");
     selectTab(renderer, "Récap");
     expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(1);
-    expect(renderer.root.findAllByType(MatchDuelDetails)).toHaveLength(0);
+    expect(renderer.root.findAllByType(MatchHeadToHead)).toHaveLength(0);
   });
 
-  it("keeps the selected tab and role on refresh and resets them for another game", () => {
+  it("keeps the selected tab on refresh and resets it for another game", () => {
     const match = draftedGame();
     const renderer = render({ match });
     selectTab(renderer, "Face-à-face");
-    act(() => renderer.root.findByType(MatchHeadToHead).props.onSelectRole("MID"));
     act(() => renderer.update(<MatchDataPanel match={{ ...match, duration: "25:00" }} />));
     expect(tab(renderer, "Face-à-face").props["aria-selected"]).toBe(true);
-    expect(renderer.root.findByType(MatchHeadToHead).props.selectedRole).toBe("MID");
+    expect(renderer.root.findByType(MatchHeadToHead).findAllByProps({ "data-metric": "gold" })).toHaveLength(5);
     act(() => renderer.update(<MatchDataPanel match={{ ...match, id: "game-2" }} />));
     expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
     selectTab(renderer, "Face-à-face");
-    expect(renderer.root.findByType(MatchHeadToHead).props.selectedRole).toBe("");
+    expect(renderer.root.findByType(MatchHeadToHead).props.selectedRole).toBeUndefined();
     expect(renderer.root.findAllByProps({ "aria-label": "Détail du duel MID" })).toHaveLength(0);
   });
 
-  it("preserves missing values and measured zero in a selected duel", () => {
+  it("preserves missing values and measured zero in the immediately visible comparisons", () => {
     const match = draftedGame();
     Object.assign(match.participants.find((row) => row.team_key === "ALLY" && row.role === "MID"), {
       gold: null, damage: 0, vision: null, kills: null, deaths: 0, assists: null,
     });
     const renderer = render({ match });
     selectTab(renderer, "Face-à-face");
-    act(() => renderer.root.findByType(MatchHeadToHead).props.onSelectRole("MID"));
-    const details = renderer.root.findByType(MatchDuelDetails);
-    const values = (label) => details.findAllByType("tr").find((node) => text(node.findAllByType("th")[0]) === label).findAllByType("td").map(text);
-    expect(values("Or")[0]).toBe("—");
-    expect(values("Dégâts aux champions")[0]).toBe("0");
-    expect(values("Score de vision")[0]).toBe("—");
-    expect(values("Éliminations / morts / assistances")[0]).toBe("— / 0 / —");
-    expect(values("CS à 10 min")).toEqual(["—", "—"]);
-    expect(text(details)).toContain("Un tiret indique une donnée indisponible.");
+    const comparison = renderer.root.findByType(MatchHeadToHead);
+    const middle = comparison.findByProps({ "data-role": "MID" });
+    for (const metric of ["gold", "vision"]) {
+      expect(middle.findByProps({ "data-metric": metric }).props["data-tone"]).toBe("missing");
+    }
+    expect(middle.findByProps({ "data-metric": "cs10" }).children.map(visibleText)).toEqual(["—", "CS à 10 min", "—"]);
+    const damage = middle.findByProps({ "data-metric": "damage" });
+    expect(text(damage.findByProps({ className: "mhh-values" }).children[0])).toBe("Notre équipe : 0");
+    expect(text(middle)).toContain("— / 0 / —");
+    expect(text(comparison)).toContain("Un tiret indique une donnée indisponible.");
   });
 
   it("shares the resolved opponent with the visual views and clears it for another match", () => {

@@ -1,8 +1,24 @@
-# Récap visuel des parties — validation locale
+# Récap visuel des parties — publication initiale et affinements locaux
 
-23 octobre 2026. Données entièrement fictives. Aucune publication en production confirmée.
+23 octobre 2026. La version initiale et l’ajustement Drafting ont été publiés par la [PR nº 211](https://github.com/AshaiiTV/NXT5/pull/211), fusionnée au commit `c5720a31b7d7f299734a7c53f73c7ce59839adf0`. Le [déploiement Netlify](https://app.netlify.com/projects/nxt5/deploys/6adbaaa9bdee1cd79aa97038) est confirmé prêt et publié sur [nxt5.org](https://nxt5.org) à 20 h 46 min 13 s, heure de Paris. Les preuves de cette publication sont conservées dans `release.json` et les captures `production-drafting-desktop.png` et `production-drafting-bans-320.png`.
 
-## Changement
+Les affinements ci-dessous, correspondant à la version 1.99 de la charte, sont réalisés localement sur `codex/gold-chart-hover` et ne sont pas encore publiés. Leur aperçu emploie uniquement des données fictives ; il ne certifie pas le comportement de cette nouvelle version en production.
+
+## Affinements locaux — quatre demandes complémentaires
+
+1. **Courbe d’or :** afficher dynamiquement l’heure, l’or des deux équipes et l’écart selon la position horizontale du pointeur dans tout le cadre. Le point retenu est le relevé mesuré le plus proche ; aucune interpolation ni valeur inventée. Le parcours au clavier et le tableau des relevés restent disponibles.
+2. **Texte retiré :** supprimer de cette page « Un écart final ne suffit pas à expliquer le résultat. ».
+3. **Impact dans chaque équipe :** remplacer le duel au plus fort écart d’or par « Qui a le plus d’impact ? ». Le critère affiché est « Dégâts aux champions » : portraits, noms, dégâts et parts d’équipe des leaders, avec tous les ex æquo. Un effectif incomplet, une valeur manquante ou une identité dupliquée ne produit pas de leader définitif ; cinq zéros mesurés ne produisent pas de classement. Le bouton « Comparer les équipes » ouvre le Face-à-face sans présélection de rôle.
+4. **Face-à-face unique :** présenter les totaux collectifs, puis les statistiques, équipements et sorts directement avec les cinq confrontations de rôles, et enfin les objectifs. Retirer le sélecteur de métrique, le second détail de duel et la comparaison complète répétée dans un volet. Conserver les données absentes, les rôles incertains, les côtés et l’ordre de notre équipe à gauche.
+
+### Vérification des affinements
+
+- **Tests :** `npm run verify` réussit : 232 suites, 4 386 tests, 3 773 messages EN/ES, typage et compilation avec 13 pages prérendues. Journal : `refinements-final-verify.log`. Les tests ciblés couvrent le survol du cadre et les relevés proches, le clavier, les leaders par équipe et leurs égalités, les valeurs manquantes et nulles, les identités ambiguës, les contenus uniques du Face-à-face, les équipements, objectifs, formats historiques du CS à 20 minutes et changements de partie. Relecture indépendante finale sans défaut restant identifié sur ces changements.
+- **Navigateur :** vérification des vrais composants et styles communs dans l’aperçu local de 320 à 1440 px (320, 360, 390, 768, 1024 et 1440). Les scénarios synthétiques couvrent les équipes complètes, les données incomplètes, les zéros mesurés, notre équipe côté rouge, les noms longs et deux leaders ex æquo dans chaque équipe. Le contrôle porte sur la lisibilité dans le cadre complet, les débordements, le survol hors du tracé, l’accès au Face-à-face et la navigation au clavier. Traductions FR/EN/ES vérifiées ; aucune erreur console dans la session finale.
+- **Captures de cette passe :** `refinements-recap-desktop.png`, `refinements-recap-320.png`, `refinements-face-desktop.png` et `refinements-face-320.png`. Les captures et journaux historiques ci-dessous correspondent à leurs versions respectives.
+- **Sources et portée :** `preview.jsx` utilise les composants réels de l’application ; `fixture.js` fournit les seules données de parties, joueurs, équipes et drafts. L’en-tête de l’aperçu indique « Données fictives ». Aucun compte, partie ou équipe de production n’est modifié ou interrogé par cet aperçu. Les dialogues et actions externes y sont simulés ; les scénarios automatisés vérifient leurs contrats séparément.
+
+## Version 1.98 publiée — changement initial
 
 La fiche ouvre le récap : compositions, écart final disponible, relevés d’or et piste à explorer. Face-à-face, Drafting et Chronologie restent accessibles par les quatre onglets. Le face-à-face compare Or, Dégâts ou Vision par rôle ; un rôle fiable ouvre ses détails. L’action de débrief et les associations adversaire/draft restent disponibles.
 

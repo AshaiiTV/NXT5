@@ -4,7 +4,7 @@ import { MatchDataPanel } from "../../src/pages/workspace/GameWorkspace.jsx";
 import { Button } from "../../src/components/ui/Core.jsx";
 import { MatchDraftingView } from "../../src/components/opponents/MatchDrafterPanel.jsx";
 import { setLanguage } from "../../src/i18n/locale.js";
-import { syntheticMatch, syntheticDraft } from "./fixture.js";
+import { syntheticMatch, syntheticDraft, syntheticTeamName } from "./fixture.js";
 import "../../src/index.css";
 import "./preview.css";
 
@@ -18,7 +18,7 @@ function Preview() {
       <strong>NXT5 · Aperçu local · Données fictives</strong>
       <div>
         <label>Scénario <select value={variant} onChange={(event) => changeVariant(event.target.value)}>
-          <option value="complete">Complet</option><option value="incomplete">Incomplet</option><option value="zero">Zéro mesuré</option><option value="red">Côté rouge</option>
+          <option value="complete">Complet</option><option value="incomplete">Incomplet</option><option value="zero">Zéro mesuré</option><option value="red">Côté rouge</option><option value="long">Noms longs</option><option value="tie">Leaders ex æquo</option>
         </select></label>
         <label>Langue <select defaultValue="fr" onChange={(event) => setLanguage(event.target.value, { persist: false })}><option value="fr">Français</option><option value="en">English</option><option value="es">Español</option></select></label>
         <button onClick={() => setMatch((current) => ({ ...current, duration: current.duration === "31:11" ? "31:12" : "31:11" }))}>Rafraîchir la partie</button>
@@ -27,8 +27,8 @@ function Preview() {
     </aside>
     <main className="preview-main">
       <header className="preview-heading"><span>Parties</span><h1>Comprends ta partie.</h1></header>
-      <MatchDataPanel match={match} teamName="Atlas" hasReview onReview={() => setNotice("Le débrief serait ouvert ici.")}
-        contextControls={<><span>Équipe adverse <strong>Orion</strong></span><Button variant="ghost" onClick={() => setNotice("Modification de l’adversaire demandée.")}>Modifier</Button></>}
+      <MatchDataPanel match={match} teamName={syntheticTeamName(variant)} hasReview onReview={() => setNotice("Le débrief serait ouvert ici.")}
+        contextControls={<><span>Équipe adverse <strong>{match.opponent}</strong></span><Button variant="ghost" onClick={() => setNotice("Modification de l’adversaire demandée.")}>Modifier</Button></>}
         draftContent={<MatchDraftingView draft={syntheticDraft(variant)} canEdit onManage={() => setNotice("La gestion de la draft serait ouverte ici.")} />} />
       <p role="status" className="preview-status">{notice}</p>
     </main>
