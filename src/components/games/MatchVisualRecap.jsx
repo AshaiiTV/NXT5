@@ -13,7 +13,7 @@ export function recapNumber(value, signed = false) {
   return finite(value) ? `${signed && value >= 0 ? "+" : ""}${value.toLocaleString(getLocale(), { maximumFractionDigits: 0 })}` : "—";
 }
 
-export function MatchVisualRecap({ match, snapshot, loading = false, error = "" }) {
+export function MatchVisualRecap({ match, snapshot, loading = false, error = "", teamFilter, onTeamFilterChange }) {
   useLanguage();
   const primaryKey = ["gold", "damage", "vision"].find((key) => finite(snapshot.facts[key].diff));
   const labels = { gold: t("Écart d’or final"), damage: t("Écart de dégâts aux champions"), vision: t("Écart de score de vision") };
@@ -27,7 +27,7 @@ export function MatchVisualRecap({ match, snapshot, loading = false, error = "" 
         </div>
         <MatchGoldChart match={match} publication={snapshot} teamName={snapshot.context.teamName} />
       </Surface>
-      <MatchKillMap match={match} allyName={snapshot.context.teamName} enemyName={snapshot.context.opponentName} loading={loading} error={error} />
+      <MatchKillMap match={match} allyName={snapshot.context.teamName} enemyName={snapshot.context.opponentName} loading={loading} error={error} teamFilter={teamFilter} onTeamFilterChange={onTeamFilterChange} />
     </div>
   </section>;
 }

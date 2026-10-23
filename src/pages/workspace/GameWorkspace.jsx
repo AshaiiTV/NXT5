@@ -767,7 +767,7 @@ function timelineMilestones(match, teamName) {
   return [...objectives, ...fights, ...towers].sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
 }
 
-function MatchTimelineReview({ match, teamName, enemyName, loading = false, error = "" }) {
+function MatchTimelineReview({ match, teamName, enemyName, loading = false, error = "", teamFilter, onTeamFilterChange }) {
   useLanguage();
   const [selectedPhase, setSelectedPhase] = useState("all");
   const chartId = React.useId();
@@ -856,7 +856,7 @@ function MatchTimelineReview({ match, teamName, enemyName, loading = false, erro
       {goldReadings.length > 0 && <details className="match-timeline-readings"><summary>{t("Voir les relevés d’or")}<ChevronDown aria-hidden="true" /></summary><div className="match-timeline-readings-list"><dl>{goldReadings.map((reading, index) => <div key={`${reading.timestamp}-${index}`}><dt>{formatReadingTime(reading.timestamp)}</dt><dd className={reading.diff === null ? "is-missing" : reading.diff > 0 ? "is-positive" : reading.diff < 0 ? "is-negative" : ""}>{reading.diff === null ? t("Indisponible") : t("{0} or", [formatSignedShort(reading.diff)])}</dd></div>)}</dl></div></details>}
     </section>
 
-    <MatchKillMap match={match} allyName={teamName} enemyName={enemyName} loading={loading} error={error} />
+    <MatchKillMap match={match} allyName={teamName} enemyName={enemyName} loading={loading} error={error} teamFilter={teamFilter} onTeamFilterChange={onTeamFilterChange} />
     </div>
 
     <section className="match-timeline-journal">
@@ -1328,6 +1328,7 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
   useLanguage();
   const id = useId();
   const [tab, setTab] = useState("recap");
+  const [mapTeamFilter, setMapTeamFilter] = useState("ALL");
   const [opponentName, setOpponentName] = useState(undefined);
   const publication = useMemo(() => buildGamePublicationSnapshot({
     match: opponentName === undefined ? match : { ...match, opponent: opponentName },
@@ -1354,7 +1355,7 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
     {contextControls && <div className="games-match-links">{typeof contextControls === "function" ? contextControls({ onOpponentResolved: setOpponentName }) : contextControls}</div>}
     <TabNav idPrefix={id} panelId={`${id}-panel`} label={t("Vues de la partie")} items={tabs} activeId={tab} onChange={setTab} className="match-recap-tabs" />
     <div id={`${id}-panel`} role="tabpanel" tabIndex={0} aria-labelledby={`${id}-tab-${tab}`} className="match-recap-tab-content">
-      {tab === "recap" && <MatchVisualRecap match={match} snapshot={publication} loading={loading} error={error} />}
+      {tab === "recap" && <MatchVisualRecap match={match} snapshot={publication} loading={loading} error={error} teamFilter={mapTeamFilter} onTeamFilterChange={setMapTeamFilter} />}
       {tab === "versus" && <>
         <MatchHeadToHead snapshot={publication} match={match} />
         <ObjectiveHud match={match} compact />
@@ -1363,7 +1364,7 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
       <div hidden={tab !== "draft"} className="match-recap-draft-content">
         {typeof draftContent === "function" ? draftContent({ active: tab === "draft" }) : draftContent || <MatchDraftingView />}
       </div>
-      {tab === "timeline" && <MatchTimelineReview match={match} teamName={publication.context.teamName} enemyName={publication.context.opponentName} loading={loading} error={error} />}
+      {tab === "timeline" && <MatchTimelineReview match={match} teamName={publication.context.teamName} enemyName={publication.context.opponentName} loading={loading} error={error} teamFilter={mapTeamFilter} onTeamFilterChange={setMapTeamFilter} />}
     </div>
   </Surface>;
 }

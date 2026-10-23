@@ -250,6 +250,57 @@ describe("progressive game reading", () => {
     expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
   });
 
+  it("shares the elimination team filter between Recap and Chronology across other views", () => {
+    const renderer = render({ match: draftedGame() });
+    const readMap = () => renderer.root.findByType(MatchKillMap);
+    expect(readMap().props.teamFilter).toBe("ALL");
+    act(() => readMap().props.onTeamFilterChange("ALLY"));
+    expect(readMap().props.teamFilter).toBe("ALLY");
+    selectTab(renderer, "Chronologie");
+    expect(readMap().props.teamFilter).toBe("ALLY");
+    act(() => readMap().props.onTeamFilterChange("ENEMY"));
+    expect(readMap().props.teamFilter).toBe("ENEMY");
+    selectTab(renderer, "Face-à-face");
+    expect(renderer.root.findAllByType(MatchKillMap)).toHaveLength(0);
+    selectTab(renderer, "Drafting");
+    selectTab(renderer, "Récap");
+    expect(readMap().props.teamFilter).toBe("ENEMY");
+    act(() => readMap().props.onTeamFilterChange("ALL"));
+    selectTab(renderer, "Chronologie");
+    expect(readMap().props.teamFilter).toBe("ALL");
+    expect(renderer.root.findAllByType(MatchKillMap)).toHaveLength(1);
+  });
+
+  it.each(["Récap", "Chronologie"])("preserves the team filter when refreshing the same game in %s", (view) => {
+    const match = { ...draftedGame(), team_id: "team-a" };
+    const renderer = render({ match });
+    const readMap = () => renderer.root.findByType(MatchKillMap);
+    selectTab(renderer, view);
+    act(() => readMap().props.onTeamFilterChange("ENEMY"));
+    act(() => renderer.update(<MatchDataPanel match={match} loading />));
+    expect(readMap().props).toMatchObject({ teamFilter: "ENEMY", loading: true });
+    act(() => renderer.update(<MatchDataPanel match={{ ...match, duration: "25:00" }} />));
+    expect(tab(renderer, view).props["aria-selected"]).toBe(true);
+    expect(readMap().props).toMatchObject({ teamFilter: "ENEMY", loading: false });
+    selectTab(renderer, view === "Récap" ? "Chronologie" : "Récap");
+    expect(readMap().props.teamFilter).toBe("ENEMY");
+  });
+
+  it.each([
+    ["game", { id: "other-map-game" }],
+    ["team", { team_id: "team-b" }],
+  ])("resets the team filter when changing the %s context", (_scope, changed) => {
+    const match = { ...draftedGame(), team_id: "team-a" };
+    const renderer = render({ match });
+    selectTab(renderer, "Chronologie");
+    act(() => renderer.root.findByType(MatchKillMap).props.onTeamFilterChange("ALLY"));
+    act(() => renderer.update(<MatchDataPanel match={{ ...match, ...changed }} />));
+    expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
+    expect(renderer.root.findByType(MatchKillMap).props.teamFilter).toBe("ALL");
+    selectTab(renderer, "Chronologie");
+    expect(renderer.root.findByType(MatchKillMap).props.teamFilter).toBe("ALL");
+  });
+
   it("keeps the selected tab on refresh and resets it for another game", () => {
     const match = draftedGame();
     const renderer = render({ match });

@@ -56,6 +56,10 @@ const teamManagement = {
   "Gère l’effectif, les invitations et les informations de ton équipe.": "Gestiona la plantilla, las invitaciones y los datos de tu equipo.",
 };
 const matchKillMap = {
+  "Filtrer les éliminations": "Filtrar eliminaciones",
+  "Les deux": "Ambos",
+  "Mon équipe": "Mi equipo",
+  "Aucune élimination localisée pour cette équipe": "No hay eliminaciones localizadas para este equipo",
   "1 élimination localisée": "1 eliminación ubicada",
   "1 élimination non localisable": "1 eliminación no se puede ubicar",
   "Carte des éliminations": "Mapa de eliminaciones",

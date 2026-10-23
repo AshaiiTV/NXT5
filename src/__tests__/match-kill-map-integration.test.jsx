@@ -1,6 +1,6 @@
 import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildGamePublicationSnapshot } from "../../shared/publications/game-publication.js";
 import { MatchKillMap } from "../components/games/MatchKillMap.jsx";
 import { MatchVisualRecap } from "../components/games/MatchVisualRecap.jsx";
@@ -47,5 +47,15 @@ describe("visual recap map integration", () => {
     const map = renderer.root.findByType(MatchKillMap);
     expect(map.props.loading).toBe(availability.loading);
     expect(map.props.error).toBe(availability.error);
+  });
+
+  it.each(["ALL", "ALLY", "ENEMY"])("passes the shared %s filter and its callback to the recap map", (teamFilter) => {
+    const onTeamFilterChange = vi.fn();
+    const renderer = render({ teamFilter, onTeamFilterChange });
+    const map = renderer.root.findByType(MatchKillMap);
+    expect(map.props.teamFilter).toBe(teamFilter);
+    expect(map.props.onTeamFilterChange).toBe(onTeamFilterChange);
+    act(() => map.props.onTeamFilterChange("ALLY"));
+    expect(onTeamFilterChange).toHaveBeenCalledExactlyOnceWith("ALLY");
   });
 });
