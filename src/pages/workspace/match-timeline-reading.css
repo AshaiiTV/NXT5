@@ -47,46 +47,10 @@
 .match-timeline-economy { position: relative; margin-top: 28px; padding: 24px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel, 16px); background: linear-gradient(125deg, rgba(167,139,250,.075), transparent 55%), rgba(12,20,36,.36); box-shadow: inset 0 1px 0 rgba(226,232,255,.055); }
 .match-timeline-economy-heading, .match-timeline-journal-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
 .match-timeline-economy-heading > div, .match-timeline-journal-heading > div { display: flex; align-items: center; gap: 12px; }
-.match-timeline-section-index { color: #a99acb; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.match-timeline-section-index { flex: none; white-space: nowrap; color: #a99acb; font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .match-timeline-economy-heading h5, .match-timeline-journal-heading h5 { color: var(--nxt5-text); font-size: 20px; line-height: 1.35; font-weight: 650; letter-spacing: -.02em; }
 .match-timeline-economy-heading > p { color: var(--nxt5-muted); font-size: 14px; }
-.match-timeline-gold-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(136px, .24fr); gap: 28px; margin-top: 28px; }
-.match-timeline-chart { display: flex; flex-direction: column; }
-.match-timeline-chart-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-bottom: 20px; color: var(--nxt5-text-secondary); font-size: 14px; line-height: 1.55; }
-.match-timeline-chart-legend > span { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.match-timeline-chart-legend i { display: inline-block; flex-shrink: 0; width: 12px; height: 3px; background: currentColor; }
-.match-timeline-plot { display: grid; grid-template-columns: minmax(42px, max-content) minmax(0, 1fr); gap: 6px 10px; }
-.match-timeline-plot > svg { display: block; width: 100%; height: 200px; overflow: visible; }
-.match-timeline-y-axis { display: flex; flex-direction: column; justify-content: space-between; padding-block: 1px; color: var(--nxt5-muted); font-size: 14px; line-height: 1.5; font-variant-numeric: tabular-nums; text-align: right; }
-.match-timeline-x-axis { position: relative; grid-column: 2; display: flex; justify-content: space-between; gap: 6px; color: var(--nxt5-muted); font-size: 14px; font-variant-numeric: tabular-nums; }
-.match-timeline-axis-mark { position: absolute; top: 0; transform: translateX(-50%); }
-.match-timeline-grid-line { stroke: rgba(181,200,225,.1); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.match-timeline-zero-line { stroke: rgba(203,213,225,.5); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.match-timeline-marker-line { stroke: rgba(196,181,253,.22); stroke-dasharray: 3 6; stroke-width: 1; vector-effect: non-scaling-stroke; }
-.match-timeline-area { fill: currentColor; opacity: .08; }
-.match-timeline-line { fill: none; stroke: currentColor; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
-.match-timeline-dot { fill: currentColor; }
-.match-timeline-reading .match-timeline-chart-note { margin-top: 16px; color: var(--nxt5-muted); font-size: 14px; line-height: 1.6; }
-.match-timeline-chart-empty { display: flex; flex: 1; min-height: 228px; flex-direction: column; align-items: center; justify-content: center; padding: 24px; border: 1px dashed var(--nxt5-border); text-align: center; }
-.match-timeline-chart-empty > svg { width: 32px; height: 32px; margin-bottom: 12px; color: #a99acb; stroke-width: 1.5; }
-.match-timeline-chart-empty > strong { font-size: 16px; font-weight: 600; }
-.match-timeline-chart-empty > p { max-width: 44ch; margin-top: 6px; color: var(--nxt5-muted); font-size: 14px; }
-.match-timeline-checkpoints { border-left: 1px solid var(--nxt5-border); padding-left: 24px; }
-.match-timeline-checkpoint { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--nxt5-border); }
-.match-timeline-checkpoint > p { color: var(--nxt5-text-secondary); font-size: 14px; }
-.match-timeline-checkpoint > strong { display: block; margin-top: 2px; font-size: 25px; line-height: 1.4; font-weight: 650; letter-spacing: -.035em; font-variant-numeric: tabular-nums; }
-.match-timeline-checkpoint > strong > span { font-size: 14px; letter-spacing: 0; font-weight: 400; }
-.match-timeline-checkpoint > span, .match-timeline-checkpoints > p { display: block; color: var(--nxt5-muted); font-size: 14px; line-height: 1.5; }
-.match-timeline-checkpoints > p { max-width: 25ch; }
-.match-timeline-readings { margin-top: 20px; border-top: 1px solid var(--nxt5-border); }
-.match-timeline-readings > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 44px; padding: 10px 0; list-style: none; color: var(--nxt5-text-secondary); font-size: 14px; cursor: pointer; }
-.match-timeline-readings > summary::-webkit-details-marker { display: none; }
-.match-timeline-readings > summary > svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--nxt5-accent); }
-.match-timeline-readings[open] > summary > svg { transform: rotate(180deg); }
-.match-timeline-readings-list > dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 0 24px; padding-bottom: 16px; }
-.match-timeline-readings-list > dl > div { display: flex; justify-content: space-between; gap: 12px; padding-block: 8px; border-bottom: 1px solid var(--nxt5-border); font-size: 14px; font-variant-numeric: tabular-nums; }
-.match-timeline-readings-list dt { color: var(--nxt5-muted); }
-.match-timeline-readings-list dd { margin: 0; font-weight: 600; }
+.match-timeline-economy .match-gold-chart { margin-top: 20px; }
 .match-timeline-journal { margin-top: 40px; }
 .match-timeline-journal-heading > span { color: var(--nxt5-muted); font-size: 14px; }
 .match-timeline-reading .match-timeline-journal-lead { max-width: 65ch; margin-top: 10px; color: var(--nxt5-text-secondary); font-size: 15px; }
@@ -147,26 +111,15 @@
 @container match-timeline (max-width: 760px) {
   .match-timeline-intro { flex-direction: column; align-items: flex-start; gap: 20px; }
   .match-timeline-source { flex-basis: auto; }
-  .match-timeline-gold-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-  .match-timeline-checkpoints { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 20px; padding: 20px 0 0; border-left: 0; border-top: 1px solid var(--nxt5-border); }
-  .match-timeline-checkpoint { margin: 0; padding: 0; border: 0; }
-  .match-timeline-checkpoints > p { grid-column: 1 / -1; max-width: none; }
   .match-timeline-event { grid-template-columns: 100px minmax(0, 1fr); }
   .match-timeline-event-stats { grid-column: 2; grid-template-columns: repeat(2, minmax(0, 1fr)); padding-left: 52px; border: 0; }
   .match-timeline-event-time { grid-row: 1 / 3; }
 }
 @container match-timeline (max-width: 520px) {
-  /* The 10/15/20-minute values remain in the readouts below the chart. */
-  .match-timeline-axis-mark { display: none; }
   .match-timeline-intro { padding-top: 16px; }
   .match-timeline-economy { padding: 18px 14px; margin-top: 20px; }
   .match-timeline-economy-heading h5, .match-timeline-journal-heading h5 { font-size: 19px; }
   .match-timeline-economy-heading > div, .match-timeline-journal-heading > div { gap: 9px; }
-  .match-timeline-gold-layout { margin-top: 20px; }
-  .match-timeline-chart-legend { gap: 6px; }
-  .match-timeline-plot > svg { height: 168px; }
-  .match-timeline-plot { column-gap: 5px; }
-  .match-timeline-checkpoint > strong { font-size: 23px; }
   .match-timeline-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .match-timeline-filters > button { padding: 10px 12px; }
   .match-timeline-perspective > p { flex-basis: 100%; margin-top: 3px; }
@@ -185,11 +138,6 @@
   .match-timeline-empty { padding: 20px 14px; gap: 12px; }
 }
 @container match-timeline (max-width: 370px) {
-  .match-timeline-checkpoints { grid-template-columns: minmax(0, 1fr); gap: 14px; }
-  .match-timeline-checkpoint { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 8px; }
-  .match-timeline-checkpoint + .match-timeline-checkpoint { padding-top: 14px; border-top: 1px solid var(--nxt5-border); }
-  .match-timeline-checkpoint > strong { grid-column: 2; grid-row: 1 / 3; align-self: center; margin: 0; }
-  .match-timeline-checkpoint > span { grid-column: 1; }
   .match-timeline-event { grid-template-columns: minmax(0, 1fr); }
   .match-timeline-event-time { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; grid-row: auto; }
   .match-timeline-event-time::before { display: none; }

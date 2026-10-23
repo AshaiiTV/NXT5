@@ -12,7 +12,16 @@ La **version 1.102 — carte des éliminations — est publiée** par la [PR nº
 
 Le contrôle de production de la carte confirme cinq routes et 83 ressources JS/CSS en HTTP 200, le module identique à l’aperçu après normalisation des références et le fond de carte identique au fichier local. Le parcours authentifié en lecture seule montre 25 points, dont neuf alliés et seize adverses, une carte par vue, le bloc d’impact retiré, le survol et le clavier fonctionnels à 1440 et 320 px, sans débordement ni nouvelle erreur console. Aucune donnée de compte modifiée. Preuves : `release215.json`, `release215-main-workflow.json`, `release215-preview-http.json`, `release215-production-http.json`, `release215-browser-results.json` et les quatre captures `release215-*-production*.png`.
 
-La **version 1.103 — filtre d’équipe de la carte — est locale et non publiée**, sur `codex/kill-map-team-filter`. Les contrôles suivants portent sur l’aperçu local avec données fictives ; ils restent distincts de la publication de la version 1.102 attestée ci-dessus.
+Les **versions 1.103 — filtre d’équipe de la carte — et 1.104 — courbe commune au Récap et à Chronologie — sont locales et non publiées**, réunies dans la [PR nº 216](https://github.com/AshaiiTV/NXT5/pull/216), sur `codex/kill-map-team-filter`. Les contrôles suivants portent sur l’aperçu local avec données fictives ; ils restent distincts de la publication de la version 1.102 attestée ci-dessus.
+
+## Version 1.104 locale — La même courbe dans Récap et Chronologie
+
+24 octobre 2026, heure de Paris. Chronologie réutilise exactement `MatchGoldChart` et le même instantané de publication que le Récap : mêmes relevés, tracés, points, couleurs bleu/rouge, survol dans tout le cadre, clavier, tableau accessible et interruptions en cas de données manquantes. L’ancien SVG autonome, les repères économiques 10/15/20 minutes et les relevés présentés une seconde fois sont retirés. La carte des éliminations, son filtre partagé et le journal des moments clés sont conservés.
+
+- **Navigateur local :** identité exacte des 32 points et cinq portions bleues/rouges entre Récap et Chronologie. Le survol hors du tracé affiche 5:00 / +1 800 ; Début revient à 0:00 et Fin atteint le dernier relevé à 31:00 / −9 484. Largeurs contrôlées : 320, 360, 390 (rendu mesuré à 391), 768, 1024 et 1440 px, sans débordement. Sur mobile, les valeurs restent sous la courbe. Noms longs, espagnol et état indisponible sont inspectés.
+- **Captures inspectées :** `timeline-shared-chart-desktop.png`, `timeline-shared-chart-320.png`, `timeline-shared-chart-390.png`, `timeline-shared-chart-long-es-320.png`, `timeline-shared-chart-empty-320.png` et `timeline-shared-recap-320.png`, avec données fictives. Aucune nouvelle erreur console après le dernier rechargement ; l’ancien avertissement `createRoot` concernait le rechargement à chaud. Revue indépendante finale sans défaut restant identifié ; le nom adverse de repli est couvert par les tests.
+- **Contrôle complet :** `npm run verify` réussit : 234 suites, 4 477 tests, 3 778 messages explicitement traduits en anglais et espagnol, typage et compilation en 7,01 s avec 13 pages prérendues. Journal : `timeline-shared-chart-verify.log`.
+- **Portée :** évolution locale incluse dans la PR nº 216 avec le filtre de la version 1.103 ; aucune publication de cet ensemble n’est attestée.
 
 ## Version 1.103 locale — Filtrer les éliminations par équipe
 

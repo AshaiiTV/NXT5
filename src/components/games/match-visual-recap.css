@@ -21,20 +21,6 @@
 /* The same map sits beside the economic recap in both reading views. */
 .match-timeline-overview { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr); align-items:start; gap:18px; margin-top:28px; }
 .match-timeline-overview > .match-timeline-economy { margin-top:0; container-type:inline-size; }
-@container (max-width:680px) {
-  .match-timeline-overview .match-timeline-gold-layout { grid-template-columns:minmax(0,1fr); gap:24px; }
-  .match-timeline-overview .match-timeline-checkpoints { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px 20px; padding:20px 0 0; border-left:0; border-top:1px solid var(--nxt5-border); }
-  .match-timeline-overview .match-timeline-checkpoint { margin:0; padding:0; border:0; }
-  .match-timeline-overview .match-timeline-checkpoints > p { grid-column:1 / -1; max-width:none; }
-}
-@container (max-width:370px) {
-  .match-timeline-overview .match-timeline-checkpoints { grid-template-columns:minmax(0,1fr); gap:14px; }
-  .match-timeline-overview .match-timeline-checkpoint { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0 8px; }
-  .match-timeline-overview .match-timeline-checkpoint + .match-timeline-checkpoint { padding-top:14px; border-top:1px solid var(--nxt5-border); }
-  .match-timeline-overview .match-timeline-checkpoint > strong { grid-column:2; grid-row:1 / 3; align-self:center; margin:0; }
-  .match-timeline-overview .match-timeline-checkpoint > span { grid-column:1; }
-  .match-timeline-overview .match-timeline-axis-mark { display:none; }
-}
 @container (max-width:760px) {
   .match-recap-grid,.match-timeline-overview { grid-template-columns:minmax(0,1fr); }
 }

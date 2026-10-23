@@ -20,6 +20,7 @@ import { MatchDrafting as DraftImpactPanel } from "../../components/games/MatchD
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
 import { MatchVisualRecap } from "../../components/games/MatchVisualRecap.jsx";
 import { MatchKillMap } from "../../components/games/MatchKillMap.jsx";
+import MatchGoldChart from "../../components/games/MatchGoldChart.jsx";
 import { MatchHeadToHead } from "../../components/games/MatchHeadToHead.jsx";
 import OpponentsWorkspace from "../../components/opponents/OpponentsWorkspace.jsx";
 import MatchDrafterPanel, { MatchDraftingView } from "../../components/opponents/MatchDrafterPanel.jsx";
@@ -767,47 +768,23 @@ function timelineMilestones(match, teamName) {
   return [...objectives, ...fights, ...towers].sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
 }
 
-function MatchTimelineReview({ match, teamName, enemyName, loading = false, error = "", teamFilter, onTeamFilterChange }) {
+function MatchTimelineReview({ match, teamName, enemyName, publication, loading = false, error = "", teamFilter, onTeamFilterChange }) {
   useLanguage();
   const [selectedPhase, setSelectedPhase] = useState("all");
-  const chartId = React.useId();
+  const goldPublication = useMemo(() => publication || buildGamePublicationSnapshot({
+    match: enemyName ? { ...match, opponent: enemyName } : match,
+    team: { name: teamName },
+  }), [publication, match, teamName, enemyName]);
   useEffect(() => { setSelectedPhase("all"); }, [match?.id]);
   const status = timelineStatus(match);
   const kills = championKillEvents(match);
   const events = timelineMilestones(match, teamName);
   const ownName = timelineTeamLabel("ALLY", teamName);
-  const goldMarks = [10, 15, 20].map((minute) => {
-    const own = teamGoldAtMinute(match, "ALLY", minute);
-    const other = teamGoldAtMinute(match, "ENEMY", minute);
-    return { minute, diff: Number.isFinite(own) && Number.isFinite(other) ? own - other : null };
-  });
   const phases = [
     { id: "early", label: "Début de partie", range: "0–14", toneName: "cyan" },
     { id: "mid", label: "Milieu de partie", range: "14–24", toneName: "purple" },
     { id: "late", label: "Fin de partie", range: "24+", toneName: "yellow" },
   ].map((phase) => ({ ...phase, events: events.filter((event) => timelinePhaseMeta(event.timestamp).id === phase.id) }));
-  // Preserve missing frames as breaks in the chart instead of implying continuous data.
-  const goldReadings = storedTimelineFrames(match).filter((frame) => Number.isFinite(frame.timestamp))
-    .slice().sort((a, b) => a.timestamp - b.timestamp).map((frame) => {
-      const own = frameTeamGold(match, "ALLY", frame);
-      const other = frameTeamGold(match, "ENEMY", frame);
-      return { timestamp: frame.timestamp, diff: own !== null && other !== null ? own - other : null };
-    });
-  const validReadings = goldReadings.filter((reading) => reading.diff !== null);
-  const canDrawChart = new Set(validReadings.map((reading) => reading.timestamp)).size > 1;
-  const firstTimestamp = goldReadings[0]?.timestamp || 0;
-  const lastTimestamp = goldReadings[goldReadings.length - 1]?.timestamp || 0;
-  const goldScale = Math.max(1000, Math.ceil(Math.max(...validReadings.map((reading) => Math.abs(reading.diff)), 0) / 1000) * 1000);
-  const pointX = (timestamp) => 8 + (timestamp - firstTimestamp) / Math.max(1, lastTimestamp - firstTimestamp) * 704;
-  const pointY = (diff) => 100 - diff / goldScale * 88;
-  const chartSegments = [];
-  goldReadings.forEach((reading, index) => {
-    if (reading.diff === null) return;
-    const previous = goldReadings[index - 1];
-    if (!previous || previous.diff === null || reading.timestamp - previous.timestamp > 120000) chartSegments.push([]);
-    chartSegments[chartSegments.length - 1].push(reading);
-  });
-  const formatReadingTime = (timestamp) => formatCountdown(Math.floor(timestamp / 1000));
   return <div className="games-timeline-content match-timeline-reading">
     <header className="match-timeline-intro">
       <div>
@@ -826,34 +803,7 @@ function MatchTimelineReview({ match, teamName, enemyName, loading = false, erro
         <div><span className="match-timeline-section-index" aria-hidden="true">01</span><h5>{t("L’équilibre économique")}</h5></div>
         <p>{t("Écart d’or : {0} − Adversaire", [ownName])}</p>
       </div>
-      <div className="match-timeline-gold-layout">
-        <figure className="match-timeline-chart">
-          <figcaption className="match-timeline-chart-legend"><span><i className="is-positive" />{t("Au-dessus de 0 : avantage {0}", [ownName])}</span><span><i className="is-negative" />{t("Sous 0 : avantage adverse")}</span></figcaption>
-          {canDrawChart ? <>
-            <div className="match-timeline-plot">
-              <div className="match-timeline-y-axis" aria-hidden="true"><span>+{formatPoints(goldScale)}</span><span>0</span><span>−{formatPoints(goldScale)}</span></div>
-              <svg viewBox="0 0 720 200" preserveAspectRatio="none" role="img" aria-label={t("Évolution de l’écart d’or sur {0} relevés. Les valeurs détaillées suivent le graphique.", [validReadings.length])}>
-                <defs><clipPath id={`${chartId}-positive`}><rect width="720" height="100" /></clipPath><clipPath id={`${chartId}-negative`}><rect y="100" width="720" height="100" /></clipPath></defs>
-                {[12, 56, 144, 188].map((y) => <line key={y} x1="8" x2="712" y1={y} y2={y} className="match-timeline-grid-line" />)}
-                <line x1="8" x2="712" y1="100" y2="100" className="match-timeline-zero-line" />
-                {[10, 15, 20].filter((minute) => minute * 60000 >= firstTimestamp && minute * 60000 <= lastTimestamp).map((minute) => <line key={minute} x1={pointX(minute * 60000)} x2={pointX(minute * 60000)} y1="12" y2="188" className="match-timeline-marker-line" />)}
-                {chartSegments.map((segment, index) => {
-                  const path = segment.map((reading, pointIndex) => `${pointIndex ? "L" : "M"}${pointX(reading.timestamp)},${pointY(reading.diff)}`).join(" ");
-                  const area = `${path} L${pointX(segment[segment.length - 1].timestamp)},100 L${pointX(segment[0].timestamp)},100 Z`;
-                  return <g key={index}><path d={area} clipPath={`url(#${chartId}-positive)`} className="match-timeline-area is-positive" /><path d={area} clipPath={`url(#${chartId}-negative)`} className="match-timeline-area is-negative" /><path d={path} clipPath={`url(#${chartId}-positive)`} className="match-timeline-line is-positive" /><path d={path} clipPath={`url(#${chartId}-negative)`} className="match-timeline-line is-negative" />{segment.map((reading) => <circle key={reading.timestamp} cx={pointX(reading.timestamp)} cy={pointY(reading.diff)} r="2.5" className={reading.diff >= 0 ? "match-timeline-dot is-positive" : "match-timeline-dot is-negative"} />)}</g>;
-                })}
-              </svg>
-              <div className="match-timeline-x-axis" aria-hidden="true"><span>{formatReadingTime(firstTimestamp)}</span><span>{formatReadingTime(lastTimestamp)}</span>{[10, 15, 20].filter((minute) => pointX(minute * 60000) > 75 && pointX(minute * 60000) < 645).map((minute) => <span className="match-timeline-axis-mark" key={minute} style={{ left: `${pointX(minute * 60000) / 720 * 100}%` }}>{formatReadingTime(minute * 60000)}</span>)}</div>
-            </div>
-            <p className="match-timeline-chart-note">{t("La ligne relie les relevés disponibles ; les interruptions signalent des données manquantes.")}</p>
-          </> : <div className="match-timeline-chart-empty"><BarChart3 aria-hidden="true" /><strong>{t("Courbe indisponible")}</strong><p>{t("Il faut au moins deux relevés complets d’or pour comparer les dix joueurs dans le temps.")}</p></div>}
-        </figure>
-        <div className="match-timeline-checkpoints" aria-label={t("Écart d’or aux repères de partie")}>
-          {goldMarks.map((item) => <TimelineGoldCheckpoint key={item.minute} minute={item.minute} diff={item.diff} />)}
-          <p>{t("Un tiret indique un relevé absent, pas un écart nul.")}</p>
-        </div>
-      </div>
-      {goldReadings.length > 0 && <details className="match-timeline-readings"><summary>{t("Voir les relevés d’or")}<ChevronDown aria-hidden="true" /></summary><div className="match-timeline-readings-list"><dl>{goldReadings.map((reading, index) => <div key={`${reading.timestamp}-${index}`}><dt>{formatReadingTime(reading.timestamp)}</dt><dd className={reading.diff === null ? "is-missing" : reading.diff > 0 ? "is-positive" : reading.diff < 0 ? "is-negative" : ""}>{reading.diff === null ? t("Indisponible") : t("{0} or", [formatSignedShort(reading.diff)])}</dd></div>)}</dl></div></details>}
+      <MatchGoldChart match={match} publication={goldPublication} teamName={teamName} />
     </section>
 
     <MatchKillMap match={match} allyName={teamName} enemyName={enemyName} loading={loading} error={error} teamFilter={teamFilter} onTeamFilterChange={onTeamFilterChange} />
@@ -872,16 +822,6 @@ function MatchTimelineReview({ match, teamName, enemyName, loading = false, erro
       </div>
       <aside className="match-timeline-method"><AlertTriangle aria-hidden="true" /><div><strong>{t("Des repères, à confirmer en replay")}</strong><p>{t("Les échanges regroupent des éliminations espacées de 24 secondes au maximum. Ils peuvent réunir des actions éloignées : ils ne prouvent ni un combat collectif ni sa cause.")}</p><p>{t("Le journal retient les objectifs, certaines structures et les échanges de 3 éliminations ou plus, ou avec un écart d’au moins 2. L’or provient du dernier relevé antérieur disponible, pas de la seconde exacte de l’action.")}</p></div></aside>
     </section>
-  </div>;
-}
-
-function TimelineGoldCheckpoint({ minute, diff }) {
-  useLanguage();
-  const missing = !Number.isFinite(diff);
-  return <div className="match-timeline-checkpoint">
-    <p>{t("À {0} minutes", [minute])}</p>
-    <strong className={missing ? "is-missing" : diff > 0 ? "is-positive" : diff < 0 ? "is-negative" : ""}>{missing ? "—" : formatSignedShort(diff)}{!missing && <span>{t(" or")}</span>}</strong>
-    <span>{missing ? t("Relevé indisponible") : diff === 0 ? t("Égalité") : t("Écart entre les équipes")}</span>
   </div>;
 }
 
@@ -1364,7 +1304,7 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
       <div hidden={tab !== "draft"} className="match-recap-draft-content">
         {typeof draftContent === "function" ? draftContent({ active: tab === "draft" }) : draftContent || <MatchDraftingView />}
       </div>
-      {tab === "timeline" && <MatchTimelineReview match={match} teamName={publication.context.teamName} enemyName={publication.context.opponentName} loading={loading} error={error} teamFilter={mapTeamFilter} onTeamFilterChange={setMapTeamFilter} />}
+      {tab === "timeline" && <MatchTimelineReview match={match} publication={publication} teamName={publication.context.teamName} enemyName={publication.context.opponentName} loading={loading} error={error} teamFilter={mapTeamFilter} onTeamFilterChange={setMapTeamFilter} />}
     </div>
   </Surface>;
 }
@@ -2369,4 +2309,4 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   );
 }
 
-export { renderStatsPng, exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelineGoldCheckpoint, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, MatchReadingIntro, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
+export { renderStatsPng, exportStatsPng, GameWorkspace, Matches, matchImportTitle, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor, matchCategoriesForMatch, GAME_WORKSPACE_TABS, Statistics, MatchDataPanel, MetricCard, MetricSideMarker, metricSideMarkerMeta, winningSideForDiff, oppositeSideKey, matchTeamSideKey, timelineStatus, MatchTimelineReview, championKillEvents, teamKeyFromTeamId, rowByParticipantId, teamGoldAtMinute, objectiveContext, timelineTeamLabel, formatSignedShort, timelinePhaseMeta, fightWindows, timelineTeamTone, timelineMilestones, importantBuildingEvents, buildingEvents, TimelinePhaseColumn, TimelineEventCard, timelineGoldDiff, teamGoldAtTimestamp, killScoreAtTimestamp, TimelineEventGlyph, objectiveEventIcon, objectivePictogramType, objectiveDragonIconType, objectiveDragonElementKey, ObjectivePictogram, OBJECTIVE_ICON_SOURCES, ObjectiveFallbackIcon, roleDiffRows, DeathContextPanel, deathContext, DraftImpactPanel, MatchReadingIntro, roleScore, MatchVersusOverview, formatCompactGoldDiff, ObjectiveHud, objectiveEventTone, objectiveTeamKeyForSide, objectiveSummaryHasData, ObjectiveTeamCard, objectiveDragonElement, VersusPlayerMini, LaneComparisonPanel, SideColumnHeader, MatchCoachBrief, matchCoachSnapshot, teamObjectiveScore, matchPlayerCoachReads, playerReviewName, playerSideTimings, archiveMatchIds, ScrimArchiveSummary, winningTeamForDiff, reportMatchIds, buildArchiveReportContent, REPORT_REWRITE_MARKER, reportRawGameLine, reportRawSummaryLines, Reports, ReviewQueuePanel, reportTitleFromMatchIds, reportDisplayName, reportRows, ReportPreview, renderReportContent, commandResult, roleRows, buildGameReviewContent, buildRetroactiveCoachContent, stripGeneratedReportContent };
