@@ -1,8 +1,9 @@
-import React, { useId } from "react";
-import { Coins, Eye, Swords, UserRound } from "lucide-react";
+import React, { useId, useRef, useState } from "react";
+import { Coins, Eye, Info, Swords, UserRound, X } from "lucide-react";
 import { ROLES, canonicalRole } from "../../../shared/roles.js";
 import { RoleIcon } from "../brand/BrandAssets.jsx";
-import { Badge } from "../ui/Core.jsx";
+import { Badge, Button } from "../ui/Core.jsx";
+import { ModalDialog } from "../ui/ModalDialog.jsx";
 import { ChampionPortrait, championDisplayName, HudIcon, itemIconSources, summonerSpellIconSources } from "../../pages/workspace/workspace-shared.jsx";
 import { csAtMinute } from "../../utils/match-timeline.js";
 import { t } from "../../i18n/translate.js";
@@ -99,12 +100,13 @@ export function MatchLineups({ snapshot }) {
   </section>;
 }
 
-function PlayerIdentity({ slot, teamKey }) {
+function PlayerIdentity({ slot, teamKey, kda, number }) {
   const row = slot.row;
   return <span className={`mhh-player mhh-player-${teamKey.toLowerCase()}`}>
     <SlotPortrait slot={slot} />
     <span className="mhh-player-text"><strong>{row ? row.name === "Joueur inconnu" || !row.name ? t("Joueur inconnu") : row.name : missingLabel(slot)}</strong>
-      <span>{row ? row.champion ? championDisplayName(row.champion) : t("Champion inconnu") : "—"}</span>
+      <span className="sr-only">{row ? row.champion ? championDisplayName(row.champion) : t("Champion inconnu") : "—"}</span>
+      <span className="mhh-player-stats"><span data-player-stat="kda"><span className="sr-only">{t("Éliminations / morts / assistances")} : </span>{kda(row)}</span><span data-player-stat="cs">{number(measured(row?.cs))} <span>CS</span></span></span>
     </span>
   </span>;
 }
@@ -121,12 +123,15 @@ function PlayerLoadout({ row }) {
 export function MatchHeadToHead({ snapshot, match }) {
   const language = useLanguage();
   const titleId = useId();
+  const detailsTitleId = useId();
+  const returnFocusRef = useRef(null);
+  const [details, setDetails] = useState(null);
   const { teams, unresolved } = matchRoleSlots(snapshot);
   const rows = ROLES.map((role, index) => ({ role, allySlot: teams.ALLY[index], enemySlot: teams.ENEMY[index] }));
   const difference = (ally, enemy) => ally !== null && enemy !== null ? ally - enemy : null;
   const scales = Object.fromEntries(METRICS.map(({ id }) => [id, Math.max(0, ...rows.map(({ allySlot, enemySlot }) => Math.abs(difference(measured(allySlot.row?.[id]), measured(enemySlot.row?.[id])) ?? 0)))]));
   const number = (value, signed = false) => value === null ? "—" : `${signed && value > 0 ? "+" : ""}${value.toLocaleString(getLocale(language), { maximumFractionDigits: 0 })}`;
-  const kda = (row) => ["kills", "deaths", "assists"].map((key) => number(measured(row?.[key]))).join(" / ");
+  const kda = (row) => ["kills", "deaths", "assists"].map((key) => number(measured(row?.[key]))).join("/");
   const raw = readObject(match?.raw);
   const frames = [raw.timeline?.info, raw.metadata?.timeline?.info, raw.timeline, raw.timeline?.timeline?.info, raw.timeline?.timeline].find((source) => Array.isArray(source?.frames) && source.frames.length)?.frames;
   const cs20 = (row) => {
@@ -144,9 +149,8 @@ export function MatchHeadToHead({ snapshot, match }) {
     return measured(row?.[key]) === null || total === null || total === 0 ? "—" : `${number(row[key] / total * 100)} %`;
   };
   const teamValue = (teamKey, key) => <><span className="sr-only">{teamName(snapshot, teamKey)} : </span>{number(teamTotal(teamKey, key))}</>;
-  const teamKda = (teamKey) => ["kills", "deaths", "assists"].map((key) => number(teamTotal(teamKey, key))).join(" / ");
+  const teamKda = (teamKey) => ["kills", "deaths", "assists"].map((key) => number(teamTotal(teamKey, key))).join("/");
   const secondary = [
-    { id: "cs", label: "CS", value: (row) => number(measured(row?.cs)) },
     { id: "cs10", label: "CS à 10 min", value: (row) => number(measured(row?.cs10)) },
     { id: "cs20", label: "CS à 20 min", value: (row) => number(cs20(row)) },
     { id: "participation", label: "Participation aux éliminations", value: (row) => measured(row?.participation) === null ? "—" : `${number(row.participation)} %` },
@@ -155,35 +159,41 @@ export function MatchHeadToHead({ snapshot, match }) {
     { id: "vision-share", label: "Part vision", value: (row) => share(row, "vision") },
     { id: "deaths-share", label: "Part des morts", value: (row) => share(row, "deaths") },
   ];
+  const selected = details && details.snapshot === snapshot && details.match === match ? rows.find(({ role }) => role === details.role) : null;
   return <section className="match-head-to-head" aria-labelledby={titleId}>
     <h4 id={titleId} className="sr-only">{t("Face-à-face")}</h4>
     <div className="mhh-teams"><TeamIdentity snapshot={snapshot} teamKey="ALLY" /><TeamIdentity snapshot={snapshot} teamKey="ENEMY" /></div>
     <div className="mhh-team-summary" aria-label={t("Totaux des équipes")}>
       <div className="mhh-secondary-values"><strong><span className="sr-only">{teamName(snapshot, "ALLY")} : </span>{teamKda("ALLY")}</strong><span aria-label={t("Éliminations / morts / assistances")}>K / D / A</span><strong><span className="sr-only">{teamName(snapshot, "ENEMY")} : </span>{teamKda("ENEMY")}</strong></div>
-      <div className="mhh-stat-grid">{METRICS.map(({ id, title, Icon }) => <div key={id} data-team-metric={id}><span className="mhh-stat-title"><Icon aria-hidden="true" />{t(title)}</span><div className="mhh-values"><span>{teamValue("ALLY", id)}</span><strong className="mhh-difference">{number(difference(teamTotal("ALLY", id), teamTotal("ENEMY", id)), true)}</strong><span>{teamValue("ENEMY", id)}</span></div></div>)}</div>
+      <div className="mhh-team-metrics">{METRICS.map(({ id, title, Icon }) => <div key={id} data-team-metric={id}><span className="mhh-stat-title" title={t(title)}><Icon aria-hidden="true" /><span className="sr-only">{t(title)}</span></span><div className="mhh-values"><span>{teamValue("ALLY", id)}</span><strong className="mhh-difference"><span className="sr-only">{t("Écart")} : </span>{number(difference(teamTotal("ALLY", id), teamTotal("ENEMY", id)), true)}</strong><span>{teamValue("ENEMY", id)}</span></div></div>)}</div>
     </div>
-    <p className="mhh-legend">{t("Écart : notre équipe − adversaires")}</p>
+    <div className="mhh-legend"><div className="mhh-metric-key">{METRICS.map(({ id, label, title, Icon }) => <span key={id} title={t(title)}><Icon aria-hidden="true" />{t(label)}</span>)}<span aria-label={t("Éliminations / morts / assistances")}>K/D/A</span></div><span>{t("Écart : notre équipe − adversaires")}</span></div>
     <ol className="mhh-rows">{rows.map(({ role, allySlot, enemySlot }) => <li key={role} data-role={role}>
       <div className="mhh-row">
-        <div className="mhh-player-block"><PlayerIdentity slot={allySlot} teamKey="ALLY" /><PlayerLoadout row={allySlot.row} /></div>
-        <span className="mhh-role"><span aria-hidden="true"><RoleIcon role={role} /></span><strong>{role}</strong></span>
-        <div className="mhh-player-block mhh-player-block-enemy"><PlayerIdentity slot={enemySlot} teamKey="ENEMY" /><PlayerLoadout row={enemySlot.row} /></div>
-        <div className="mhh-kda mhh-secondary-values" data-metric="kda"><strong><span className="sr-only">{teamName(snapshot, "ALLY")} : </span>{kda(allySlot.row)}</strong><span aria-label={t("Éliminations / morts / assistances")}>K / D / A</span><strong><span className="sr-only">{teamName(snapshot, "ENEMY")} : </span>{kda(enemySlot.row)}</strong></div>
+        <div className="mhh-player-block"><PlayerIdentity slot={allySlot} teamKey="ALLY" kda={kda} number={number} /><PlayerLoadout row={allySlot.row} /></div>
+        <div className="mhh-duel">
+        <Button type="button" variant="ghost" className="mhh-role" aria-label={t("Repères du rôle {0}", [role])} title={t("Repères du rôle {0}", [role])} aria-haspopup="dialog" onClick={(event) => { returnFocusRef.current = event.currentTarget; setDetails({ role, snapshot, match }); }}><span aria-hidden="true"><RoleIcon role={role} /></span><strong>{role}</strong><Info aria-hidden="true" /></Button>
         <div className="mhh-stat-grid">{METRICS.map(({ id, title, Icon }) => {
           const ally = measured(allySlot.row?.[id]);
           const enemy = measured(enemySlot.row?.[id]);
           const diff = difference(ally, enemy);
           const width = diff !== null && scales[id] > 0 ? Math.abs(diff) / scales[id] * 50 : 0;
           return <div key={id} className="mhh-comparison" data-metric={id} data-tone={diff === null ? "missing" : diff > 0 ? "positive" : diff < 0 ? "negative" : "equal"}>
-            <span className="mhh-stat-title"><Icon aria-hidden="true" />{t(title)}</span>
+            <span className="mhh-stat-title" title={t(title)}><Icon aria-hidden="true" /><span className="sr-only">{t(title)}</span></span>
             <span className="mhh-values"><span><span className="sr-only">{t("Notre équipe")} : </span>{number(ally)}</span><strong className="mhh-difference"><span className="sr-only">{t("Écart")} : </span>{number(diff, true)}</strong><span><span className="sr-only">{t("Adversaires")} : </span>{number(enemy)}</span></span>
             <span className="mhh-track" aria-hidden="true"><span className="mhh-fill" style={{ width: `${width}%`, left: diff > 0 ? `${50 - width}%` : "50%" }} /></span>
           </div>;
         })}</div>
-        <div className="mhh-secondary-grid">{secondary.map(({ id, label, value }) => <div key={id} className="mhh-secondary-values" data-metric={id}><span><span className="sr-only">{teamName(snapshot, "ALLY")} : </span>{value(allySlot.row)}</span><span>{t(label)}</span><span><span className="sr-only">{teamName(snapshot, "ENEMY")} : </span>{value(enemySlot.row)}</span></div>)}</div>
+        </div>
+        <div className="mhh-player-block mhh-player-block-enemy"><PlayerIdentity slot={enemySlot} teamKey="ENEMY" kda={kda} number={number} /><PlayerLoadout row={enemySlot.row} /></div>
       </div>
     </li>)}</ol>
     <p className="mhh-scale">{t("Même échelle pour les cinq rôles.")} {t("Un tiret indique une donnée indisponible.")}</p>
     <UnresolvedParticipants rows={unresolved} />
+    {selected && <ModalDialog className="mhh-details-dialog" aria-labelledby={detailsTitleId} returnFocusRef={returnFocusRef} onClose={() => setDetails(null)}>
+      <header className="mhh-details-header"><h3 id={detailsTitleId}>{t("Repères du rôle {0}", [selected.role])}</h3><Button type="button" variant="ghost" icon={X} aria-label={t("Fermer")} onClick={() => setDetails(null)} /></header>
+      <div className="mhh-details-players">{[selected.allySlot, selected.enemySlot].map((slot, index) => <span key={index}>{teamName(snapshot, index === 0 ? "ALLY" : "ENEMY")}<strong>{slot.row ? !slot.row.name || slot.row.name === "Joueur inconnu" ? t("Joueur inconnu") : slot.row.name : missingLabel(slot)}</strong></span>)}</div>
+      <div className="mhh-secondary-grid">{secondary.map(({ id, label, value }) => <div key={id} className="mhh-secondary-values" data-metric={id}><span><span className="sr-only">{teamName(snapshot, "ALLY")} : </span>{value(selected.allySlot.row)}</span><span>{t(label)}</span><span><span className="sr-only">{teamName(snapshot, "ENEMY")} : </span>{value(selected.enemySlot.row)}</span></div>)}</div>
+    </ModalDialog>}
   </section>;
 }

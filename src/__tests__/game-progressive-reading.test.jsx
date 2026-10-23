@@ -11,6 +11,9 @@ import {
 } from "../pages/workspace/GameWorkspace.jsx";
 
 vi.mock("../app/routing.js", async (load) => ({ ...await load(), openAppPath: vi.fn() }));
+vi.mock("../components/ui/ModalDialog.jsx", () => ({
+  ModalDialog: ({ children, onClose, returnFocusRef, ...props }) => <dialog {...props} onCancel={onClose}>{children}</dialog>,
+}));
 const renderers = [];
 afterEach(() => { renderers.splice(0).forEach((renderer) => act(() => renderer.unmount())); vi.clearAllMocks(); });
 const game = (id = "game/1") => ({
@@ -141,10 +144,10 @@ describe("progressive game reading", () => {
     expect(panel.findAllByType("details")).toHaveLength(0);
     expect(renderer.root.findAllByProps({ className: "games-analysis-disclosure" })).toHaveLength(0);
     for (const value of ["K / D / A", "Informations de la partie", "EUW1_123", "16.19"]) expect(text(panel)).toContain(value);
-    const kdaComparisons = panel.findAllByProps({ "data-metric": "kda" });
-    expect(kdaComparisons).toHaveLength(5);
-    for (const kda of kdaComparisons) expect(kda.findAllByProps({ "aria-label": "Éliminations / morts / assistances" })).toHaveLength(1);
-    for (const metric of ["gold", "damage", "vision", "cs", "cs10"]) expect(panel.findAllByProps({ "data-metric": metric })).toHaveLength(5);
+    for (const stat of ["kda", "cs"]) expect(panel.findAllByProps({ "data-player-stat": stat })).toHaveLength(10);
+    for (const metric of ["gold", "damage", "vision"]) expect(panel.findAllByProps({ "data-metric": metric })).toHaveLength(5);
+    for (const metric of ["cs10", "cs20", "participation", "damage-share", "gold-share", "vision-share", "deaths-share"]) expect(panel.findAllByProps({ "data-metric": metric })).toHaveLength(0);
+    expect(panel.findAllByType("dialog")).toHaveLength(0);
     for (const champion of Object.values(draftChampions).flat()) {
       expect(panel.findAllByType("img").filter((image) => image.props.alt === champion)).toHaveLength(1);
     }
@@ -239,7 +242,7 @@ describe("progressive game reading", () => {
     expect(renderer.root.findAllByProps({ "aria-label": "Détail du duel MID" })).toHaveLength(0);
   });
 
-  it("preserves missing values and measured zero in the immediately visible comparisons", () => {
+  it("preserves missing values and measured zero in the compact comparison and role details", () => {
     const match = draftedGame();
     Object.assign(match.participants.find((row) => row.team_key === "ALLY" && row.role === "MID"), {
       gold: null, damage: 0, vision: null, kills: null, deaths: 0, assists: null,
@@ -251,10 +254,14 @@ describe("progressive game reading", () => {
     for (const metric of ["gold", "vision"]) {
       expect(middle.findByProps({ "data-metric": metric }).props["data-tone"]).toBe("missing");
     }
-    expect(middle.findByProps({ "data-metric": "cs10" }).children.map(visibleText)).toEqual(["—", "CS à 10 min", "—"]);
     const damage = middle.findByProps({ "data-metric": "damage" });
     expect(text(damage.findByProps({ className: "mhh-values" }).children[0])).toBe("Notre équipe : 0");
-    expect(text(middle)).toContain("— / 0 / —");
+    expect(text(middle.findAllByProps({ "data-player-stat": "kda" })[0])).toContain("—/0/—");
+    act(() => middle.findByProps({ "aria-label": "Repères du rôle MID" }).props.onClick({ currentTarget: { focus: vi.fn() } }));
+    const dialog = comparison.findByType("dialog");
+    expect(dialog.findByProps({ "data-metric": "cs10" }).children.map(visibleText)).toEqual(["—", "CS à 10 min", "—"]);
+    expect(dialog.findAllByType("img")).toHaveLength(0);
+    expect(dialog.findAllByProps({ "data-metric": "damage" })).toHaveLength(0);
     expect(text(comparison)).toContain("Un tiret indique une donnée indisponible.");
   });
 

@@ -1,4 +1,5 @@
 const copy = [
+  ["Repères du rôle {0}", "Role details: {0}", "Detalles del rol {0}"],
   ["Données incomplètes", "Incomplete data", "Datos incompletos"],
   ["Totaux des équipes", "Team totals", "Totales de los equipos"],
   ["Qui a le plus d’impact ?", "Who has the most impact?", "¿Quién tiene más impacto?"],

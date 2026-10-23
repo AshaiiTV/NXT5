@@ -47,7 +47,7 @@ export function syntheticMatch(variant = "complete") {
     kills: kills[side][index], deaths: deaths[side][index], assists: 4 + index,
     gold: gold[side][index], damage: damage[side][index], vision: vision[side][index],
     cs: [211, 176, 232, 256, 39][index], kill_participation: 46 + index * 6,
-    raw: { participantId: side * 5 + index + 1, teamId: side ? 200 : 100, item0: 3006, item1: 3031, summoner1Id: 4, summoner2Id: 14 },
+    raw: { participantId: side * 5 + index + 1, teamId: side ? 200 : 100, item0: 3006, item1: 3031, item2: 3085, item3: 3036, item4: 3072, item5: 3026, item6: 3363, summoner1Id: 4, summoner2Id: 14 },
   })));
   const match = {
     id: "synthetic-recap-1", game_id: "EUW1_DEMO", patch: "16.19", duration: "31:11", side: "blue", result: "Défaite", opponent: "Orion",
@@ -73,6 +73,14 @@ export function syntheticMatch(variant = "complete") {
       })) } },
     },
   };
+  if (variant === "lead-changes") {
+    const differences = [0, -500, -900, -400, 600, 1800, 1200, 2200, 3200, 1800, 600, -300, -1200, -500, 600, 2400, 3600, 4200, 3600, 1800, 300, -800, -2200, -3100, -1800, -2400, -4600, -5100, -6200, -7800, -8800, -9484];
+    match.raw.timeline.info.frames.forEach((frame, minute) => {
+      const enemyTotal = [6, 7, 8, 9, 10].reduce((total, id) => total + frame.participantFrames[id].totalGold, 0);
+      const allyTotal = enemyTotal + differences[minute];
+      for (let id = 1; id <= 5; id++) frame.participantFrames[id].totalGold = Math.floor(allyTotal / 5) + (id <= allyTotal % 5 ? 1 : 0);
+    });
+  }
   if (variant === "incomplete") {
     delete match.raw.timeline;
     match.participants = participants.filter((row) => row.team_key === "ENEMY" || row.role === "MID");
