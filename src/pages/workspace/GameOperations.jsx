@@ -29,6 +29,114 @@ function canManageTeamCategories(data, selectedTeamId, currentMember, user) {
   return Boolean(user?.id && (team?.owner_id === user.id || canStaffManage(currentMember?.role)));
 }
 
+function canCreateTeamCategories(data, selectedTeamId, currentMember, user) {
+  const team = (data.teams || []).find((item) => item.id === selectedTeamId);
+  return Boolean(user?.id && (team?.owner_id === user.id || (
+    currentMember?.team_id === selectedTeamId && currentMember?.user_id === user.id && canStaffManage(currentMember?.role)
+  )));
+}
+
+function useMatchCategoryCreator({ data, selectedTeamId, userId, allowed, disabled, contextKey, onSelect, refreshAll, pushToast }) {
+  const [createdCategories, setCreatedCategories] = useState([]);
+  const [categoryCreatorOpen, setCategoryCreatorOpen] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({ name: "", color: "cyan" });
+  const [categoryError, setCategoryError] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const categoryRequestRef = useRef(null);
+  const categoryScopeRef = useRef(0);
+  const categoryTriggerRef = useRef(null);
+  const categoryRestoreFocusRef = useRef(false);
+  const categoryCreatorId = useId();
+  const matchCategories = [...new Map([...createdCategories, ...(data.matchCategories || [])].filter((category) => category.team_id === selectedTeamId).map((category) => [String(category.id), category])).values()];
+  const categoryContextRef = useRef(null);
+  categoryContextRef.current = { teamId: selectedTeamId, userId, allowed, contextKey };
+  useEffect(() => {
+    setCreatingCategory(false);
+    closeCategoryCreator(false);
+    return () => {
+      categoryScopeRef.current += 1;
+      categoryRequestRef.current?.controller.abort();
+      categoryRequestRef.current = null;
+    };
+  }, [selectedTeamId, userId, allowed, contextKey]);
+  useEffect(() => { setCreatedCategories([]); }, [selectedTeamId, userId]);
+  useEffect(() => {
+    setCreatedCategories((current) => current.filter((category) => !(data.matchCategories || []).some((item) => String(item.id) === String(category.id))));
+  }, [data.matchCategories]);
+  useEffect(() => {
+    if (categoryRestoreFocusRef.current && !categoryCreatorOpen && !creatingCategory) {
+      categoryTriggerRef.current?.focus();
+      categoryRestoreFocusRef.current = false;
+    }
+  }, [categoryCreatorOpen, creatingCategory]);
+  function closeCategoryCreator(restoreFocus = true) {
+    categoryRestoreFocusRef.current = restoreFocus;
+    setCategoryCreatorOpen(false);
+    setCategoryForm({ name: "", color: "cyan" });
+    setCategoryError("");
+  }
+  async function createCategory(event) {
+    event?.preventDefault();
+    const name = categoryForm.name.trim();
+    if (!allowed || disabled || categoryRequestRef.current || !name) return;
+    const selectCategory = (category) => {
+      onSelect(category);
+      closeCategoryCreator();
+    };
+    const existing = matchCategories.find((category) => category.name.toLowerCase() === name.toLowerCase());
+    if (existing) { selectCategory(existing); return; }
+    const request = { controller: new AbortController(), teamId: selectedTeamId, userId, scope: categoryScopeRef.current, contextKey };
+    const sameContext = () => categoryScopeRef.current === request.scope && categoryContextRef.current?.teamId === request.teamId && categoryContextRef.current?.userId === request.userId && categoryContextRef.current?.allowed && categoryContextRef.current?.contextKey === request.contextKey;
+    categoryRequestRef.current = request;
+    setCreatingCategory(true);
+    setCategoryError("");
+    let created = false;
+    try {
+      const result = await apiFetch("match-categories-manage", { method: "POST", signal: request.controller.signal, body: JSON.stringify({ action: "create", teamId: request.teamId, name, color: categoryForm.color }) });
+      if (categoryRequestRef.current !== request || !sameContext()) return;
+      if (!result?.category?.id || result.category.team_id !== request.teamId) throw new Error("NXT5 a reçu une réponse inattendue. Recharge la page puis réessaie.");
+      setCreatedCategories((current) => [...current.filter((category) => String(category.id) !== String(result.category.id)), result.category]);
+      selectCategory(result.category);
+      pushToast({ type: "green", title: "Catégorie créée", text: "La catégorie est sélectionnée pour cette partie." });
+      created = true;
+    } catch (error) {
+      if (categoryRequestRef.current === request && sameContext()) setCategoryError(error.message);
+    } finally {
+      if (categoryRequestRef.current === request) {
+        categoryRequestRef.current = null;
+        setCreatingCategory(false);
+      }
+    }
+    if (created) {
+      try { await refreshAll(); }
+      catch (error) { if (sameContext() && !request.controller.signal.aborted) pushToast(errorToast(error, "Actualisation impossible")); }
+    }
+  }
+  return { matchCategories, creatingCategory, categoryRequestRef, categoryCreatorOpen, categoryForm, categoryError, categoryTriggerRef, categoryCreatorId, setCategoryCreatorOpen, setCategoryForm, setCategoryError, closeCategoryCreator, createCategory };
+}
+
+function InlineCategoryCreator({ creator, nested = false }) {
+  const { creatingCategory, categoryCreatorOpen, categoryForm, categoryError, categoryTriggerRef, categoryCreatorId, setCategoryCreatorOpen, setCategoryForm, setCategoryError, closeCategoryCreator, createCategory } = creator;
+  const Container = nested ? "div" : "form";
+  return <>
+    <Button ref={categoryTriggerRef} type="button" variant="ghost" icon={Plus} disabled={creatingCategory} aria-expanded={categoryCreatorOpen} aria-controls={categoryCreatorOpen ? categoryCreatorId : undefined} onClick={() => { if (categoryCreatorOpen) closeCategoryCreator(); else { setCategoryCreatorOpen(true); setCategoryError(""); } }}>{t("Nouvelle catégorie")}</Button>
+    {categoryCreatorOpen && <Container id={categoryCreatorId} role={nested ? "group" : undefined} className="game-import-category-create" onSubmit={nested ? undefined : createCategory} aria-label={t("Nouvelle catégorie")} aria-busy={creatingCategory} onKeyDown={(event) => {
+      if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); if (!creatingCategory) closeCategoryCreator(); }
+      if (nested && event.key === "Enter" && event.target?.tagName === "INPUT" && !event.nativeEvent?.isComposing && !event.isComposing) {
+        event.preventDefault(); event.stopPropagation(); return createCategory(event);
+      }
+    }}>
+      <div className="game-import-category-fields">
+        <TextInput label={t("Nom de la catégorie")} value={categoryForm.name} onChange={(name) => { setCategoryForm((current) => ({ ...current, name })); setCategoryError(""); }} placeholder={t("Ligue, Bootcamp…")} required={!nested} aria-required="true" maxLength={80} autoFocus aria-describedby={categoryError ? `${categoryCreatorId}-error` : undefined} />
+        <SelectInput label={t("Couleur")} value={categoryForm.color} onChange={(color) => setCategoryForm((current) => ({ ...current, color }))}>{MATCH_CATEGORY_COLORS.map(([color, label]) => <option key={color} value={color}>{t(label)}</option>)}</SelectInput>
+      </div>
+      <p className="game-import-category-help">{nested ? t("Enregistre la partie pour lui appliquer cette catégorie. La catégorie restera disponible même si tu annules les modifications.") : t("La catégorie restera disponible dans ton équipe même si tu annules l’import.")}</p>
+      {categoryError && <p id={`${categoryCreatorId}-error`} role="alert" className="game-import-category-error">{t(categoryError)}</p>}
+      <div className="game-import-category-actions"><Button type={nested ? "button" : "submit"} onClick={nested ? createCategory : undefined} icon={creatingCategory ? Loader2 : Plus} disabled={creatingCategory || !categoryForm.name.trim()}>{creatingCategory ? t("Création…") : t("Créer et sélectionner")}</Button><Button type="button" variant="ghost" disabled={creatingCategory} onClick={() => closeCategoryCreator()}>{t("Annuler")}</Button></div>
+    </Container>}
+  </>;
+}
+
 export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast, currentMember, user, onDeleted, onUpdated, disabled = false }) {
   useLanguage();
   const [mode, setMode] = useState("");
@@ -38,13 +146,18 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
   const [sideForm, setSideForm] = useState({ allyTeamSide: "", playerAssignments: {} });
   const triggerRef = useRef(null);
   const editorBaseline = useRef({});
-  const dirty = ["update", "roles", "side"].includes(mode) && JSON.stringify(mode === "update" ? editForm : mode === "roles" ? roleForm : sideForm) !== editorBaseline.current[mode];
-  const cancelEdit = () => { if (!dirty || window.confirm(t("Fermer cette fenêtre et abandonner les modifications non enregistrées ?"))) close(); };
   const allowed = Boolean(match?.id && match.team_id === selectedTeamId && user?.id && (canManageTeamCategories(data, selectedTeamId, currentMember, user) || String(match.created_by || "") === String(user.id)));
-  const categories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
+  const canCreateCategories = allowed && canCreateTeamCategories(data, selectedTeamId, currentMember, user);
+  const categoryCreator = useMatchCategoryCreator({ data, selectedTeamId, userId: user?.id, allowed: canCreateCategories && mode === "update", disabled: saving, contextKey: `${match?.id || ""}:${mode}`, refreshAll, pushToast,
+    onSelect: (category) => setEditForm((current) => ({ ...current, categoryIds: [...new Set([...(current.categoryIds || []).map(String), String(category.id)])] })),
+  });
+  const categories = categoryCreator.matchCategories;
+  const busy = saving || categoryCreator.creatingCategory;
+  const dirty = (["update", "roles", "side"].includes(mode) && JSON.stringify(mode === "update" ? editForm : mode === "roles" ? roleForm : sideForm) !== editorBaseline.current[mode]) || (mode === "update" && categoryCreator.categoryCreatorOpen && Boolean(categoryCreator.categoryForm.name.trim()));
+  const cancelEdit = () => { if (saving || categoryCreator.categoryRequestRef.current) return; if (!dirty || window.confirm(t("Fermer cette fenêtre et abandonner les modifications non enregistrées ?"))) close(); };
   const roster = (data.players || []).filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role));
   useEffect(() => { setMode(""); setEditForm({ label: "", categoryIds: [] }); setRoleForm({}); setSideForm({ allyTeamSide: "", playerAssignments: {} }); }, [match?.id, selectedTeamId]);
-  const close = () => { if (!saving) setMode(""); };
+  const close = () => { if (!saving && !categoryCreator.categoryRequestRef.current) setMode(""); };
   const openEditor = (nextMode) => {
     const nextEdit = { label: matchImportTitle(match), categoryIds: matchCategoryIds(match) };
     const nextRoles = Object.fromEntries((match.participants || []).map((row) => [row.id, { role: row.role || "", playerId: row.player_id || "" }]));
@@ -60,7 +173,7 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
     setMode(nextMode);
   };
   async function save(action) {
-    if (!allowed || saving || (action === "update" && (!editForm.label.trim() || !hasSelectedMatchCategory(categories, editForm.categoryIds))) || (action === "roles" && !match.participants?.length) || (action === "side" && !gameSideFormReady(match, sideForm, roster))) return;
+    if (!allowed || saving || categoryCreator.categoryRequestRef.current || (action === "update" && (!editForm.label.trim() || !hasSelectedMatchCategory(categories, editForm.categoryIds))) || (action === "roles" && !match.participants?.length) || (action === "side" && !gameSideFormReady(match, sideForm, roster))) return;
     const matchId = match.id;
     const body = { action, teamId: selectedTeamId, matchId, ...(action === "update" ? { label: editForm.label, categoryIds: editForm.categoryIds || [] } : action === "roles" ? { roles: Object.fromEntries(Object.entries(roleForm).map(([id, { playerId, ...role }]) => [id, { ...role, ...(playerId ? { playerId: playerId === "__unlink__" ? null : playerId } : {}) }])) } : action === "side" ? sideForm : {}) };
     setSaving(true);
@@ -85,15 +198,15 @@ export function GameActions({ match, data, selectedTeamId, refreshAll, pushToast
   if (!allowed) return null;
   const title = mode === "update" ? "Modifier les informations" : mode === "roles" ? "Corriger les rôles et profils" : mode === "side" ? "Changer le côté de notre équipe" : mode === "delete" ? "Supprimer cette game ?" : "Options de la game";
   return <>
-    <button ref={triggerRef} type="button" className="game-options-trigger" disabled={disabled || saving} aria-label={t("Options de la game")} title={t("Options de la game")} aria-haspopup="dialog" aria-expanded={Boolean(mode)} onClick={() => setMode("menu")}><Ellipsis aria-hidden="true" className="h-5 w-5" /></button>
-    {mode && <GameOperationDialog key={mode} title={title} description={matchImportTitle(match)} onClose={close} busy={saving} dirty={dirty} returnFocusRef={triggerRef} compact={mode !== "roles" && mode !== "side"}>
+    <button ref={triggerRef} type="button" className="game-options-trigger" disabled={disabled || busy} aria-label={t("Options de la game")} title={t("Options de la game")} aria-haspopup="dialog" aria-expanded={Boolean(mode)} onClick={() => setMode("menu")}><Ellipsis aria-hidden="true" className="h-5 w-5" /></button>
+    {mode && <GameOperationDialog key={mode} title={title} description={matchImportTitle(match)} onClose={close} busy={busy} dirty={dirty} returnFocusRef={triggerRef} compact={mode !== "roles" && mode !== "side"}>
       {mode === "menu" && <div className="game-operation-menu">
         <Button type="button" variant="ghost" icon={Pencil} onClick={() => openEditor("update")}>{t("Modifier les informations")}</Button>
         <Button type="button" variant="ghost" icon={Settings} disabled={!match.participants?.length} onClick={() => openEditor("roles")}>{t("Corriger les rôles et profils")}</Button>
         <Button type="button" variant="ghost" icon={ArrowLeftRight} disabled={!match.participants?.length} onClick={() => openEditor("side")}>{t("Changer le côté de notre équipe")}</Button>
         <Button type="button" variant="danger" icon={Trash2} onClick={() => setMode("delete")}>{t("Supprimer")}</Button>
       </div>}
-      {(mode === "update" || mode === "roles") && <ImportHistoryEditor match={match} categories={categories} roster={roster} editing={mode === "update"} editForm={editForm} roleForm={roleForm} saving={saving} showHeading={false} onCancel={cancelEdit} onSave={() => save(mode)} onChange={setEditForm} onRoleChange={(id, role) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], role } }))} onPlayerChange={(id, playerId) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], playerId } }))} />}
+      {(mode === "update" || mode === "roles") && <ImportHistoryEditor match={match} categories={categories} roster={roster} editing={mode === "update"} editForm={editForm} roleForm={roleForm} saving={saving} categoryCreator={canCreateCategories ? categoryCreator : null} showHeading={false} onCancel={cancelEdit} onSave={() => save(mode)} onChange={setEditForm} onRoleChange={(id, role) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], role } }))} onPlayerChange={(id, playerId) => setRoleForm((current) => ({ ...current, [id]: { ...current[id], playerId } }))} />}
       {mode === "side" && <GameSideEditor match={match} roster={roster} form={sideForm} onChange={setSideForm} saving={saving} onCancel={cancelEdit} onSave={() => save("side")} />}
       {mode === "delete" && <div>
         <p className="text-sm leading-6 text-slate-300">{t("Cette partie sera supprimée. Les statistiques, les débriefs automatiques et les groupes concernés seront mis à jour.")}</p>
@@ -307,15 +420,19 @@ export function GameSideEditor({ match, roster, form, onChange, saving, onCancel
   </form>;
 }
 
-export function ImportHistoryEditor({ match, categories, roster, editing, editForm, saving, roleForm, onCancel, onSave, onChange, onRoleChange, onPlayerChange, showHeading = true }) {
+export function ImportHistoryEditor({ match, categories, roster, editing, editForm, saving, roleForm, onCancel, onSave, onChange, onRoleChange, onPlayerChange, categoryCreator, showHeading = true }) {
   useLanguage();
+  const busy = saving || categoryCreator?.creatingCategory;
   const ready = editing ? Boolean(editForm.label.trim() && hasSelectedMatchCategory(categories, editForm.categoryIds)) : Boolean(match.participants?.length);
-  return <form className="ih-editor" onSubmit={(event) => { event.preventDefault(); if (!saving && ready) onSave(); }}>
+  return <form className="ih-editor" onSubmit={(event) => { event.preventDefault(); if (!busy && ready) onSave(); }}>
     {showHeading && <header><h4>{editing ? t("Modifier la game") : t("Réassigner postes et profils")}</h4><p>{editing ? t("Modifie le nom et les catégories de la partie dans les statistiques et les débriefs.") : t("Associe chaque champion au bon poste et au bon profil NXT5.")}</p></header>}
-    <fieldset disabled={saving}>
+    <fieldset disabled={busy}>
       {editing ? <div className="ih-edit-fields">
         <TextInput label={t("Nom de la game")} value={editForm.label} onChange={(label) => onChange({ ...editForm, label })} placeholder={t("Game 1 vs BK, Finale LB…")} required icon={FileText} />
-        <CategoryMultiSelect categories={categories} selectedIds={editForm.categoryIds || []} onChange={(categoryIds) => onChange({ ...editForm, categoryIds })} required />
+        <div className="game-import-categories">
+          <CategoryMultiSelect categories={categories} selectedIds={editForm.categoryIds || []} onChange={(categoryIds) => onChange({ ...editForm, categoryIds })} required />
+          {categoryCreator && <InlineCategoryCreator creator={categoryCreator} nested />}
+        </div>
       </div> : <div className="ih-teams">{["ALLY", "ENEMY"].map((teamKey) => <section key={teamKey} className={`ih-team ih-team-${teamKey.toLowerCase()}`}>
         <h5>{teamKey === "ALLY" ? t("Notre équipe") : t("Adversaires")}</h5>
         <div className="ih-roster">{(match.participants || []).filter((row) => row.team_key === teamKey).map((row) => {
@@ -332,7 +449,7 @@ export function ImportHistoryEditor({ match, categories, roster, editing, editFo
         })}</div>
         {!(match.participants || []).some((row) => row.team_key === teamKey) && <p className="ih-no-participants">{t("Aucun participant disponible.")}</p>}
       </section>)}</div>}
-      <div className="ih-editor-actions"><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={saving}>{t("Annuler")}</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={saving || !ready}>{saving ? t("Enregistrement…") : t("Enregistrer")}</Button></div>
+      <div className="ih-editor-actions"><Button type="button" variant="ghost" icon={X} onClick={onCancel} disabled={busy}>{t("Annuler")}</Button><Button type="submit" icon={saving ? Loader2 : Check} disabled={busy || !ready}>{saving ? t("Enregistrement…") : t("Enregistrer")}</Button></div>
     </fieldset>
   </form>;
 }
@@ -403,43 +520,14 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   const [fileImporting, setFileImporting] = useState(false);
   const [fileError, setFileError] = useState("");
   const [uploadProgress, setUploadProgress] = useState(null);
-  const [createdCategories, setCreatedCategories] = useState([]);
-  const [categoryCreatorOpen, setCategoryCreatorOpen] = useState(false);
-  const [categoryForm, setCategoryForm] = useState({ name: "", color: "cyan" });
-  const [categoryError, setCategoryError] = useState("");
-  const [creatingCategory, setCreatingCategory] = useState(false);
-  const categoryRequestRef = useRef(null);
-  const categoryScopeRef = useRef(0);
-  const categoryTriggerRef = useRef(null);
-  const categoryRestoreFocusRef = useRef(false);
-  const categoryCreatorId = useId();
-  const matchCategories = [...new Map([...createdCategories, ...(data.matchCategories || [])].filter((category) => category.team_id === selectedTeamId).map((category) => [String(category.id), category])).values()];
   const gameplayRoster = [...new Map([...(data.players || []), ...createdRoster].filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role)).map(player => [player.id, player])).values()];
-  const importTeam = (data.teams || []).find((team) => team.id === selectedTeamId);
-  const canImport = Boolean(user?.id && (importTeam?.owner_id === user.id || (
-    currentMember?.team_id === selectedTeamId && currentMember?.user_id === user.id && canStaffManage(currentMember?.role)
-  )));
-  const categoryContextRef = useRef(null);
-  categoryContextRef.current = { teamId: selectedTeamId, userId: user?.id, allowed: canImport };
+  const canImport = canCreateTeamCategories(data, selectedTeamId, currentMember, user);
+  const categoryCreator = useMatchCategoryCreator({ data, selectedTeamId, userId: user?.id, allowed: canImport, disabled: importing || fileImporting || creatingProfiles, refreshAll, pushToast,
+    onSelect: (category) => setImportDetails((current) => ({ ...current, categoryIds: [...new Set([...(current.categoryIds || []).map(String), String(category.id)])] })),
+  });
+  const { matchCategories, creatingCategory, categoryRequestRef, closeCategoryCreator } = categoryCreator;
   const progressTimer = useRef(null);
   useEffect(() => { onBusyChange?.(importing || fileImporting || creatingProfiles || creatingCategory); }, [importing, fileImporting, creatingProfiles, creatingCategory, onBusyChange]);
-  useEffect(() => {
-    setCreatingCategory(false);
-    return () => {
-      categoryScopeRef.current += 1;
-      categoryRequestRef.current?.controller.abort();
-      categoryRequestRef.current = null;
-    };
-  }, [selectedTeamId, user?.id, canImport]);
-  useEffect(() => {
-    setCreatedCategories((current) => current.filter((category) => !(data.matchCategories || []).some((item) => String(item.id) === String(category.id))));
-  }, [data.matchCategories]);
-  useEffect(() => {
-    if (categoryRestoreFocusRef.current && !categoryCreatorOpen && !creatingCategory) {
-      categoryTriggerRef.current?.focus();
-      categoryRestoreFocusRef.current = false;
-    }
-  }, [categoryCreatorOpen, creatingCategory]);
   useEffect(() => { onDirtyChange?.(Boolean(previewPayload)); }, [previewPayload, onDirtyChange]);
   useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
   useEffect(() => {
@@ -449,7 +537,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     return () => window.removeEventListener("beforeunload", protectImport);
   }, [previewPayload]);
   useEffect(() => () => { window.clearTimeout(progressTimer.current); }, []);
-  useEffect(() => { resetImportDraft(); setCreatedRoster([]); setCreatedCategories([]); setUploadProgress(null); }, [selectedTeamId]);
+  useEffect(() => { resetImportDraft(); setCreatedRoster([]); setUploadProgress(null); }, [selectedTeamId]);
   function updateUploadProgress(next) {
     setUploadProgress((current) => ({ ...(current || {}), ...(next || {}), active: true }));
   }
@@ -620,49 +708,6 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     setLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setEnemyLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setPlayerAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
-  }
-  function closeCategoryCreator(restoreFocus = true) {
-    categoryRestoreFocusRef.current = restoreFocus;
-    setCategoryCreatorOpen(false);
-    setCategoryForm({ name: "", color: "cyan" });
-    setCategoryError("");
-  }
-  async function createImportCategory(event) {
-    event.preventDefault();
-    const name = categoryForm.name.trim();
-    if (!canImport || importing || fileImporting || creatingProfiles || categoryRequestRef.current || !name) return;
-    const selectCategory = (category) => {
-      setImportDetails((current) => ({ ...current, categoryIds: [...new Set([...(current.categoryIds || []).map(String), String(category.id)])] }));
-      closeCategoryCreator();
-    };
-    const existing = matchCategories.find((category) => category.name.toLowerCase() === name.toLowerCase());
-    if (existing) { selectCategory(existing); return; }
-    const request = { controller: new AbortController(), teamId: selectedTeamId, userId: user.id, scope: categoryScopeRef.current };
-    const sameContext = () => categoryScopeRef.current === request.scope && categoryContextRef.current?.teamId === request.teamId && categoryContextRef.current?.userId === request.userId && categoryContextRef.current?.allowed;
-    categoryRequestRef.current = request;
-    setCreatingCategory(true);
-    setCategoryError("");
-    let created = false;
-    try {
-      const result = await apiFetch("match-categories-manage", { method: "POST", signal: request.controller.signal, body: JSON.stringify({ action: "create", teamId: request.teamId, name, color: categoryForm.color }) });
-      if (categoryRequestRef.current !== request || !sameContext()) return;
-      if (!result?.category?.id || result.category.team_id !== request.teamId) throw new Error("NXT5 a reçu une réponse inattendue. Recharge la page puis réessaie.");
-      setCreatedCategories((current) => [...current.filter((category) => String(category.id) !== String(result.category.id)), result.category]);
-      selectCategory(result.category);
-      pushToast({ type: "green", title: "Catégorie créée", text: "La catégorie est sélectionnée pour cette partie." });
-      created = true;
-    } catch (error) {
-      if (categoryRequestRef.current === request && sameContext()) setCategoryError(error.message);
-    } finally {
-      if (categoryRequestRef.current === request) {
-        categoryRequestRef.current = null;
-        setCreatingCategory(false);
-      }
-    }
-    if (created) {
-      try { await refreshAll(); }
-      catch (error) { if (sameContext() && !request.controller.signal.aborted) pushToast(errorToast(error, "Actualisation impossible")); }
-    }
   }
   async function createProposedProfiles() {
     if (creatingProfiles || categoryRequestRef.current || !canImport || !profilesReady) return;
@@ -849,16 +894,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                   <TextInput label={t("Nom de la partie")} value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder={t("Entraînement contre Otters · Partie 1")} required icon={FileText} />
                   <div className="game-import-categories">
                     <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} required />
-                    <Button ref={categoryTriggerRef} type="button" variant="ghost" icon={Plus} aria-expanded={categoryCreatorOpen} aria-controls={categoryCreatorOpen ? categoryCreatorId : undefined} onClick={() => { if (categoryCreatorOpen) closeCategoryCreator(); else { setCategoryCreatorOpen(true); setCategoryError(""); } }}>{t("Nouvelle catégorie")}</Button>
-                    {categoryCreatorOpen && <form id={categoryCreatorId} className="game-import-category-create" onSubmit={createImportCategory} aria-label={t("Nouvelle catégorie")} aria-busy={creatingCategory} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); if (!creatingCategory) closeCategoryCreator(); } }}>
-                      <div className="game-import-category-fields">
-                        <TextInput label={t("Nom de la catégorie")} value={categoryForm.name} onChange={(name) => { setCategoryForm((current) => ({ ...current, name })); setCategoryError(""); }} placeholder={t("Ligue, Bootcamp…")} required maxLength={80} autoFocus aria-describedby={categoryError ? `${categoryCreatorId}-error` : undefined} />
-                        <SelectInput label={t("Couleur")} value={categoryForm.color} onChange={(color) => setCategoryForm((current) => ({ ...current, color }))}>{MATCH_CATEGORY_COLORS.map(([color, label]) => <option key={color} value={color}>{t(label)}</option>)}</SelectInput>
-                      </div>
-                      <p className="game-import-category-help">{t("La catégorie restera disponible dans ton équipe même si tu annules l’import.")}</p>
-                      {categoryError && <p id={`${categoryCreatorId}-error`} role="alert" className="game-import-category-error">{t(categoryError)}</p>}
-                      <div className="game-import-category-actions"><Button type="submit" icon={creatingCategory ? Loader2 : Plus} disabled={creatingCategory || !categoryForm.name.trim()}>{creatingCategory ? t("Création…") : t("Créer et sélectionner")}</Button><Button type="button" variant="ghost" disabled={creatingCategory} onClick={() => closeCategoryCreator()}>{t("Annuler")}</Button></div>
-                    </form>}
+                    <InlineCategoryCreator creator={categoryCreator} />
                   </div>
                   {previewTeamId === selectedTeamId && <ImportOpponentField key={selectedTeamId} teamId={selectedTeamId} value={importOpponent} onChange={setImportOpponent} disabled={importing || fileImporting || creatingProfiles || creatingCategory} />}
                 </div>}
