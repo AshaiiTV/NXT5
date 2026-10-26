@@ -357,6 +357,253 @@ describe("game mutations from the options dialog", () => {
   });
 });
 
+describe("category creation while editing an imported game", () => {
+  const createdCategory = { id: "bootcamp", team_id: "team", name: "Bootcamp", color: "purple" };
+  const creator = (renderer) => renderer.root.findAllByType("div").find((node) => node.props.role === "group" && node.props["aria-label"] === "Nouvelle catégorie");
+  const creatorButton = (renderer, label) => creator(renderer)?.findAllByType("button").find((node) => text(node).trim() === label);
+  const editorButton = (renderer, label) => renderer.root.findByType(ImportHistoryEditor).findAllByType("button").find((node) => text(node).trim() === label);
+  function defer() {
+    let resolve, reject;
+    const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+    return { promise, resolve, reject };
+  }
+  async function openCreator(renderer, name = "Bootcamp") {
+    await click(renderer, "Nouvelle catégorie");
+    await fill(renderer, "Nom de la catégorie", name);
+  }
+
+  it("creates a category, preserves the edited name and tags, and saves before the shared refresh finishes", async () => {
+    const refresh = defer();
+    const props = settings({ refreshAll: vi.fn().mockResolvedValue(undefined).mockImplementationOnce(() => refresh.promise), onUpdated: vi.fn() });
+    const renderer = await render(props);
+    await openAction(renderer, "Modifier les informations");
+    await fill(renderer, "Nom de la game", "Finale vs Aurora · Partie 2");
+    await click(renderer, "Ligue");
+    await openCreator(renderer);
+    expect(input(renderer, "Nom de la catégorie").props.maxLength).toBe(80);
+    expect(select(renderer, "Couleur").props.value).toBe("cyan");
+    await filter(renderer, "Couleur", "purple");
+    apiFetch.mockResolvedValueOnce({ category: createdCategory });
+    let pending;
+    await act(async () => { pending = activate(creatorButton(renderer, "Créer et sélectionner")); });
+
+    expect(payload()).toEqual({ endpoint: "match-categories-manage", method: "POST", body: { action: "create", teamId: "team", name: "Bootcamp", color: "purple" } });
+    expect(props.refreshAll).toHaveBeenCalledOnce();
+    expect(button(renderer, "Bootcamp").props["aria-pressed"]).toBe(true);
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim", "league", "bootcamp"]);
+    expect(input(renderer, "Nom de la game").props.value).toBe("Finale vs Aurora · Partie 2");
+    expect(input(renderer, "Nom de la catégorie")).toBeUndefined();
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(false);
+    await click(renderer, "Enregistrer");
+    expect(payload()).toEqual({ endpoint: "matches-manage", method: "POST", body: { action: "update", teamId: "team", matchId: "team-game-1", label: "Finale vs Aurora · Partie 2", categoryIds: ["scrim", "league", "bootcamp"] } });
+    expect(props.onUpdated).toHaveBeenCalledWith(expect.objectContaining({ action: "update", matchId: "team-game-1" }));
+    await act(async () => { refresh.resolve(); await pending; });
+  });
+
+  it("uses Enter to create the category without submitting the game editor", async () => {
+    const renderer = await render();
+    await openAction(renderer, "Modifier les informations");
+    await openCreator(renderer);
+    const group = creator(renderer);
+    expect(group.findAllByType("form")).toHaveLength(0);
+    expect(renderer.root.findAllByType("form")).toHaveLength(1);
+    expect(creatorButton(renderer, "Créer et sélectionner").props.type).toBe("button");
+    apiFetch.mockResolvedValueOnce({ category: createdCategory });
+    const event = { key: "Enter", target: { tagName: "INPUT" }, preventDefault: vi.fn(), stopPropagation: vi.fn(), nativeEvent: { isComposing: false } };
+    await act(async () => group.props.onKeyDown(event));
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(event.stopPropagation).toHaveBeenCalled();
+    expect(apiFetch).toHaveBeenCalledOnce();
+    expect(apiFetch.mock.calls[0][0]).toBe("match-categories-manage");
+    expect(button(renderer, "Bootcamp").props["aria-pressed"]).toBe(true);
+    expect(input(renderer, "Nom de la game").props.value).toBe("Aurora 01");
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+  });
+
+  it.each([{ tagName: "SELECT", composing: false }, { tagName: "INPUT", composing: true }])("does not create or save on Enter from %j", async ({ tagName, composing }) => {
+    const renderer = await render();
+    await openAction(renderer, "Modifier les informations");
+    await openCreator(renderer);
+    const event = { key: "Enter", target: { tagName }, preventDefault: vi.fn(), stopPropagation: vi.fn(), isComposing: composing, nativeEvent: { isComposing: composing } };
+    await act(async () => creator(renderer).props.onKeyDown(event));
+    expect(apiFetch).not.toHaveBeenCalled();
+    expect(input(renderer, "Nom de la catégorie").props.value).toBe("Bootcamp");
+  });
+
+  it("selects an existing category regardless of case and preserves the game draft", async () => {
+    const props = settings();
+    const renderer = await render(props);
+    await openAction(renderer, "Modifier les informations");
+    await fill(renderer, "Nom de la game", "Brouillon privé");
+    await openCreator(renderer, "  lIGUE  ");
+    await click(renderer, "Créer et sélectionner");
+    expect(apiFetch).not.toHaveBeenCalled();
+    expect(props.refreshAll).not.toHaveBeenCalled();
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim", "league"]);
+    expect(input(renderer, "Nom de la game").props.value).toBe("Brouillon privé");
+    expect(creator(renderer)).toBeUndefined();
+  });
+
+  it("blocks a blank category and cancels only its draft", async () => {
+    const renderer = await render();
+    await openAction(renderer, "Modifier les informations");
+    await fill(renderer, "Nom de la game", "Brouillon de partie");
+    await openCreator(renderer, "   ");
+    expect(creatorButton(renderer, "Créer et sélectionner").props.disabled).toBe(true);
+    await act(async () => activate(creatorButton(renderer, "Créer et sélectionner")));
+    expect(apiFetch).not.toHaveBeenCalled();
+    await fill(renderer, "Nom de la catégorie", "À abandonner");
+    await act(async () => activate(creatorButton(renderer, "Annuler")));
+    expect(input(renderer, "Nom de la catégorie")).toBeUndefined();
+    expect(input(renderer, "Nom de la game").props.value).toBe("Brouillon de partie");
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim"]);
+    await click(renderer, "Nouvelle catégorie");
+    expect(input(renderer, "Nom de la catégorie").props.value).toBe("");
+  });
+
+  it("keeps category fields, the game name and tags after a 403 and allows retry", async () => {
+    const props = settings();
+    const renderer = await render(props);
+    await openAction(renderer, "Modifier les informations");
+    await fill(renderer, "Nom de la game", "Finale à conserver");
+    await openCreator(renderer);
+    await filter(renderer, "Couleur", "purple");
+    apiFetch.mockRejectedValueOnce(Object.assign(new Error("Accès team refusé."), { status: 403 }));
+    await click(renderer, "Créer et sélectionner");
+    expect(creator(renderer).findAllByProps({ role: "alert" }).some((node) => text(node).includes("Accès team refusé."))).toBe(true);
+    expect(input(renderer, "Nom de la catégorie").props.value).toBe("Bootcamp");
+    expect(select(renderer, "Couleur").props.value).toBe("purple");
+    expect(input(renderer, "Nom de la game").props.value).toBe("Finale à conserver");
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim"]);
+    expect(props.refreshAll).not.toHaveBeenCalled();
+    expect(creatorButton(renderer, "Créer et sélectionner").props.disabled).toBe(false);
+    apiFetch.mockResolvedValueOnce({ category: createdCategory });
+    await click(renderer, "Créer et sélectionner");
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim", "bootcamp"]);
+  });
+
+  it("retains the created category across reopening before shared data includes it", async () => {
+    const props = settings();
+    const renderer = await render(props);
+    await openAction(renderer, "Modifier les informations");
+    await openCreator(renderer);
+    apiFetch.mockResolvedValueOnce({ category: createdCategory });
+    await click(renderer, "Créer et sélectionner");
+    window.confirm.mockReturnValueOnce(true);
+    await act(async () => activate(editorButton(renderer, "Annuler")));
+    await openAction(renderer, "Modifier les informations");
+    expect(button(renderer, "Bootcamp").props["aria-pressed"]).toBe(false);
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim"]);
+    await openCreator(renderer, "bootcamp");
+    await click(renderer, "Créer et sélectionner");
+    expect(apiFetch).toHaveBeenCalledOnce();
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim", "bootcamp"]);
+  });
+
+  it("retains the created tag when shared-data refresh fails", async () => {
+    const props = settings({ refreshAll: vi.fn().mockRejectedValue(new Error("Actualisation indisponible")) });
+    const renderer = await render(props);
+    await openAction(renderer, "Modifier les informations");
+    await openCreator(renderer);
+    apiFetch.mockResolvedValueOnce({ category: createdCategory });
+    await click(renderer, "Créer et sélectionner");
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim", "bootcamp"]);
+    expect(creator(renderer)).toBeUndefined();
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(false);
+    expect(apiFetch).toHaveBeenCalledOnce();
+  });
+
+  it("protects the category name draft when dismissing the game dialog", async () => {
+    const renderer = await render();
+    await openAction(renderer, "Modifier les informations");
+    await openCreator(renderer);
+    await click(renderer, "Fermer la fenêtre");
+    expect(window.confirm).toHaveBeenCalledOnce();
+    expect(input(renderer, "Nom de la catégorie").props.value).toBe("Bootcamp");
+    expect(apiFetch).not.toHaveBeenCalled();
+    window.confirm.mockReturnValueOnce(true);
+    await click(renderer, "Fermer la fenêtre");
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+  });
+
+  it("serializes same-tick creation requests and blocks game saves and closing while pending", async () => {
+    const props = settings();
+    const renderer = await render(props);
+    await openAction(renderer, "Modifier les informations");
+    await openCreator(renderer);
+    const request = defer();
+    apiFetch.mockImplementationOnce(() => request.promise);
+    const create = creatorButton(renderer, "Créer et sélectionner").props.onClick;
+    let pending;
+    await act(async () => { pending = create(); void create(); });
+    expect(apiFetch).toHaveBeenCalledOnce();
+    expect(button(renderer, "Création…").props.disabled).toBe(true);
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(true);
+    expect(editorButton(renderer, "Annuler").props.disabled).toBe(true);
+    expect(button(renderer, "Fermer la fenêtre").props.disabled).toBe(true);
+    const cancel = { preventDefault: vi.fn(), stopPropagation: vi.fn() };
+    await act(async () => {
+      renderer.root.findByType("dialog").props.onCancel(cancel);
+      renderer.root.findByType(ImportHistoryEditor).props.onSave();
+    });
+    expect(window.confirm).not.toHaveBeenCalled();
+    expect(apiFetch).toHaveBeenCalledOnce();
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+    await act(async () => { request.resolve({ category: createdCategory }); await pending; });
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(false);
+    expect(button(renderer, "Fermer la fenêtre").props.disabled).toBe(false);
+  });
+
+  it.each([
+    ["owner", { role: "player", team_id: "team", user_id: "owner" }, true],
+    ["coach", { role: "coach", team_id: "team", user_id: "coach" }, true],
+    ["author", { role: "player", team_id: "team", user_id: "author" }, false],
+    ["author", { role: "coach", team_id: "other-team", user_id: "author" }, false],
+    ["author", { role: "coach", team_id: "team", user_id: "another-user" }, false],
+  ])("limits category creation to the current team's staff or owner (%s / %j)", async (userId, currentMember, canCreate) => {
+    const props = settings({ user: { id: userId }, currentMember });
+    props.match = { ...props.data.matches[0], created_by: userId };
+    const renderer = await render(props);
+    await openAction(renderer, "Modifier les informations");
+    expect(input(renderer, "Nom de la game")).toBeTruthy();
+    expect(Boolean(button(renderer, "Nouvelle catégorie"))).toBe(canCreate);
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it.each(["match", "team", "user", "permission", "unmount"])("aborts category creation after %s changes and ignores a late private result", async (interruption) => {
+    const props = settings();
+    props.match = { ...props.data.matches[0], created_by: "coach" };
+    const renderer = await render(props);
+    await openAction(renderer, "Modifier les informations");
+    await openCreator(renderer);
+    const request = defer();
+    apiFetch.mockImplementationOnce(() => request.promise);
+    let pending;
+    await act(async () => { pending = activate(creatorButton(renderer, "Créer et sélectionner")); });
+    const signal = apiFetch.mock.calls[0][1].signal;
+    expect(signal?.aborted).toBe(false);
+    const next = interruption === "match" ? { ...props, match: props.data.matches[1] }
+      : interruption === "team" ? { ...props, selectedTeamId: "other-team", match: props.data.matches.at(-1), currentMember: { role: "coach", team_id: "other-team", user_id: "coach" } }
+      : interruption === "user" ? { ...props, user: { id: "another-coach" }, currentMember: { role: "coach", team_id: "team", user_id: "another-coach" } }
+      : { ...props, currentMember: { role: "player", team_id: "team", user_id: "coach" } };
+    await act(async () => {
+      if (interruption === "unmount") renderer.unmount();
+      else renderer.update(<Controls {...next} />);
+    });
+    expect(signal.aborted).toBe(true);
+    props.pushToast.mockClear();
+    await act(async () => { request.resolve({ category: createdCategory }); await pending; });
+    expect(props.refreshAll).not.toHaveBeenCalled();
+    expect(props.pushToast).not.toHaveBeenCalled();
+    if (interruption !== "unmount") {
+      if (!renderer.root.findAllByType(ImportHistoryEditor).length) await openAction(renderer, "Modifier les informations");
+      expect(button(renderer, "Bootcamp")).toBeUndefined();
+      expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).not.toContain("bootcamp");
+      if (interruption === "permission") expect(button(renderer, "Nouvelle catégorie")).toBeUndefined();
+    }
+  });
+});
+
 describe("category management on demand", () => {
   it.each([
     ["player", "member", false],
