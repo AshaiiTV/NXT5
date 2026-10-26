@@ -57,6 +57,8 @@
 .match-timeline-event-summary:hover { background: var(--nxt5-surface-soft); }
 .match-timeline-event-summary:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 2px; }
 .match-timeline-event-time { color: var(--nxt5-muted); font-size: var(--nxt5-font-small); font-weight: 500; font-variant-numeric: tabular-nums; }
+.match-timeline-event-time time { display: grid; }
+.match-timeline-event-time time > span { white-space: nowrap; }
 .match-timeline-event-glyph { display: flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; flex-shrink: 0; color: var(--nxt5-accent-2); }
 .match-timeline-event-glyph > svg { width: 1.4rem; height: 1.4rem; stroke-width: 1.5; }
 .match-timeline-event-glyph > img, .match-timeline-event-glyph > span { max-width: 2rem; max-height: 2rem; }
@@ -96,7 +98,7 @@
   .match-timeline-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .match-timeline-filters > button { padding: 10px 12px; }
   .match-timeline-perspective > p { flex-basis: 100%; margin-top: 3px; }
-  .match-timeline-event-summary { grid-template-columns: 2.7rem 1.75rem minmax(0, 1fr) 1rem; gap: .35rem .5rem; }
+  .match-timeline-event-summary { grid-template-columns: 3.25rem 1.75rem minmax(0, 1fr) 1rem; gap: .35rem .5rem; }
   .match-timeline-event-time { grid-column: 1; grid-row: 1; }
   .match-timeline-event-glyph { grid-column: 2; grid-row: 1; width: 1.75rem; height: 1.75rem; }
   .match-timeline-event-glyph > img, .match-timeline-event-glyph > span { max-width: 1.75rem; max-height: 1.75rem; }

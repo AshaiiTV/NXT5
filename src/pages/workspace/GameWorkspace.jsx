@@ -836,7 +836,7 @@ function TimelineEventCard({ event, index, kills, match, teamName }) {
   return <article className={`match-timeline-event is-${knownTeam ? event.teamKey.toLowerCase() : "unknown"}`}>
     <details className="match-timeline-event-disclosure">
       <summary className="match-timeline-event-summary">
-        <span className="match-timeline-event-time"><time>{event.time}</time></span>
+        <span className="match-timeline-event-time"><time>{String(event.time || "").split(/\s*[-–—]\s*/).map((bound, boundIndex) => <span key={boundIndex}>{boundIndex > 0 ? `– ${bound}` : bound}</span>)}</time></span>
         <span className="match-timeline-event-glyph" aria-hidden="true"><TimelineEventGlyph event={event} /></span>
         <span className="match-timeline-event-copy"><strong>{title}</strong><span className="match-timeline-event-team">{teamLabel}</span></span>
         {gold !== null && <span className="match-timeline-event-gold"><span aria-hidden="true">{t("Or")}</span><span className="sr-only">{t("Écart d’or")} : </span><strong className={gold > 0 ? "is-positive" : gold < 0 ? "is-negative" : ""}>{formatSignedShort(gold)}</strong></span>}
