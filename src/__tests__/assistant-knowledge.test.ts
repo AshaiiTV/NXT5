@@ -104,9 +104,9 @@ describe('assistant knowledge', () => {
     ['fr', 'Pourquoi le débrief reprend-il le nom du groupe ?', ['exactement', 'Une sélection partielle']],
     ['en', 'Why does the debrief use the group’s name?', ['exactly match', 'A partial selection']],
     ['es', '¿Por qué el análisis postpartida usa el nombre del grupo?', ['coinciden exactamente', 'Una selección parcial']],
-    ['fr', 'Où retrouver l’analyse automatique d’un débrief ?', ['Notes de l’équipe apparaissent en premier', 'Analyse automatique des parties']],
-    ['en', 'Where can I find a debrief’s automated analysis?', ['Team notes appear first', 'Automated match analysis']],
-    ['es', '¿Dónde encuentro el análisis automático de un análisis postpartida?', ['Notas del equipo aparece primero', 'Análisis automático de las partidas']],
+    ['fr', 'Où retrouver l’analyse automatique d’un débrief ?', ['En 10 secondes', 'Choisis la partie', 'Les écarts par poste', 'or final', 'dégâts aux champions', 'score de vision', '—', 'accessibles au clic']],
+    ['en', 'Where can I find a debrief’s automated analysis?', ['In 10 seconds', 'Choose the game', 'Role differences', 'final gold', 'damage to champions', 'vision score', '—', 'one click away']],
+    ['es', '¿Dónde encuentro el análisis automático de un análisis postpartida?', ['En 10 segundos', 'Elige la partida', 'Diferencias por posición', 'oro final', 'daño a campeones', 'puntuación de visión', '—', 'con un clic']],
     ['fr', 'Comment réunir plusieurs parties dans un débrief ?', ['20 au maximum', 'enregistre']],
     ['en', 'How do I combine several games in a debrief?', ['up to 20', 'save']],
     ['es', '¿Cómo reúno varias partidas en un análisis postpartida?', ['máximo 20', 'guarda']],
@@ -115,6 +115,7 @@ describe('assistant knowledge', () => {
     expect(matches[0].id).toBe('reviews');
     const response = buildFallbackAssistantResponse(question, matches, language);
     for (const fact of facts) expect(response.answer).toContain(fact);
+    expect(response.answer).not.toMatch(/\b(?:vod|v[ií]d[eé]o|replay)\b/i);
     expect(response.sources[0].id).toBe('reviews');
     expect(response.actions[0].path).toBe('/rapports');
   });

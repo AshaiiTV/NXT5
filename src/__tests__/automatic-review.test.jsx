@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { Button, ReadingDetails } from "../components/ui/Core.jsx";
+import VisualDebrief from "../components/games/VisualDebrief.jsx";
 import { reviewDrafts } from "../utils/review-drafts.js";
 import { Reports, ReportPreview, buildRetroactiveCoachContent, buildGameReviewContent, stripGeneratedReportContent, REPORT_REWRITE_MARKER, matchPlayerCoachReads, reportTitleFromMatchIds, reportDisplayName } from "../pages/workspace/GameWorkspace.jsx";
 
@@ -112,13 +113,14 @@ describe("complete automatic coaching", () => {
     expect(html).not.toContain(REPORT_REWRITE_MARKER);
     expect(html).toContain("Notes de l’équipe");
     expect(html).toContain("Aucune observation enregistrée");
-    expect(html).toContain("Analyse automatique des parties");
+    expect(html).not.toContain("Analyse automatique des parties");
+    expect(html).not.toMatch(/VERDICT COACH|VOD|vidéo/i);
   });
-  it("puts staff decisions before generated analysis without hiding legacy corrections", () => {
+  it("keeps staff decisions without exposing generated prose or losing legacy corrections", () => {
     const content = buildRetroactiveCoachContent({ content: "Décision collective à conserver", match_ids: ["one"] }, [game("one")]);
     const html = renderToStaticMarkup(<ReportPreview content={content} rows={[]} />);
-    expect(html.indexOf("Décision collective à conserver")).toBeLessThan(html.indexOf("<details"));
-    expect(html.indexOf("VERDICT COACH")).toBeGreaterThan(html.indexOf("<details"));
+    expect(html).toContain("Décision collective à conserver");
+    expect(html).not.toMatch(/VERDICT COACH|VOD|vidéo/i);
     expect(html).not.toContain("open=\"\"");
     const legacy = renderToStaticMarkup(<ReportPreview content={"VERDICT COACH\nCorrection du staff\n[NXT5_REPORT_V2]\nNotes staff\nSuite des notes"} rows={[]} />);
     expect(legacy).not.toContain("<details");
@@ -174,7 +176,8 @@ describe("automatic reviews in the workspace", () => {
     expect(requests.flatMap((request) => request.ids)).toEqual(["one", "two"]);
     expect(apiFetch.mock.calls.every(([, options]) => JSON.parse(options.body).teamId === "team")).toBe(true);
     await act(async () => requests.forEach((request) => request.resolve({ matches: request.ids.map(game) })));
-    expect(output(renderer)).toContain("LECTURE PAR JOUEUR");
+    expect(output(renderer)).toContain("Les écarts par poste");
+    expect(output(renderer)).not.toMatch(/LECTURE PAR JOUEUR|VOD|vidéo/i);
     expect(output(renderer)).toContain("Notes historiques");
     expect(output(renderer)).not.toContain("Préparation du bilan visuel");
     expect(output(renderer)).toContain("Bilan visuel du débrief");
@@ -192,11 +195,11 @@ describe("automatic reviews in the workspace", () => {
     expect(button(renderer, "Créer le débrief").props.disabled).toBe(true);
     await act(async () => requests.forEach((request) => request.resolve({ matches: request.ids.map(game) })));
     expect(renderer.root.findByType("textarea").props.value).toBe(notes);
-    expect(output(renderer)).toContain("GAME 2 · Game two");
+    expect(renderer.root.findByType(VisualDebrief).props.matches.map((match) => match.id)).toEqual(["one", "two"]);
     expect(button(renderer, "Créer le débrief").props.disabled).toBe(false);
     const gameTwo = renderer.root.findAllByType("button").find((item) => item.findAllByType("p").some((p) => p.children.join("") === "Game two"));
     await act(async () => gameTwo.props.onClick());
-    expect(output(renderer)).not.toContain("GAME 2 · Game two");
+    expect(renderer.root.findByType(VisualDebrief).props.matches.map((match) => match.id)).toEqual(["one"]);
     expect(renderer.root.findByType("textarea").props.value).toBe(notes);
     apiFetch.mockResolvedValueOnce({ report: { id: "new" } });
     await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault: vi.fn() }));
@@ -212,7 +215,8 @@ describe("automatic reviews in the workspace", () => {
     expect(renderer.root.findByType("textarea").props.value).toBe("");
     expect(renderer.root.findByType("textarea").props.required).toBe(false);
     expect(button(renderer, "Enregistrer").props.disabled).toBe(false);
-    expect(output(renderer)).toContain("LECTURE PAR JOUEUR");
+    expect(output(renderer)).toContain("Les écarts par poste");
+    expect(output(renderer)).not.toMatch(/LECTURE PAR JOUEUR|VOD|vidéo/i);
   });
   it("preserves the saved review and permits retry after a failed automatic load", async () => {
     apiFetch.mockRejectedValueOnce(new Error("Connexion interrompue"));
@@ -221,7 +225,7 @@ describe("automatic reviews in the workspace", () => {
     expect(output(renderer)).toContain("Bilan et notes conservés");
     apiFetch.mockResolvedValueOnce({ matches: [game("one")] });
     await act(async () => button(renderer, "Réessayer").props.onClick());
-    expect(output(renderer)).toContain("LECTURE PAR JOUEUR");
+    expect(output(renderer)).toContain("Les écarts par poste");
     expect(output(renderer)).not.toContain("Connexion interrompue");
   });
 });
