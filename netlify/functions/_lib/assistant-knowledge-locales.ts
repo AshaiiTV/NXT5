@@ -83,12 +83,12 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     },
     reviews: {
       title: 'Preparing a debrief', actionLabel: 'Open Debriefs',
-      summary: "A debrief brings together observations and decisions after one or more games. Team notes come before the automated analysis, which you can expand to check an observation.",
+      summary: "A debrief brings together observations and decisions after one or more games. In 10 seconds shows a visual summary of the selected game. Role differences compares final gold, damage to champions and vision score; team notes remain one click away.",
       keywords: ["review","report","decision","notes","source game","library","staff","group","create review","edit review","debrief","prepare a debrief","linked games","gear","manage this review","automated analysis","group title"],
       steps: [
       "Open a game or group from Games, then choose Prepare a debrief.",
       "Write what the team should keep, what needs checking and the next action to try, then save. Edit lets you update notes if you have permission.",
-      "Read Team notes, then open Automated match analysis if needed. Linked games let you check the findings.",
+      "Choose a game in the In 10 seconds summary, then use Role differences to compare the five matchups. Missing data stays displayed as —. Open team notes to read the complete observations.",
       "In the library, the Manage this review gear menu contains Duplicate and, if permitted, Delete. When the linked games exactly match a group of several games, the title uses that group’s name."
     ],
       suggestions: [
@@ -124,7 +124,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       "find automated analysis",
       "notes before analysis"
     ],
-    "answer": "In the debrief, Team notes appear first. Then open Automated match analysis to find the observations and suggested points to investigate. Check them against the linked games and video before drawing a conclusion."
+    "answer": "A debrief with linked games starts with In 10 seconds. Choose the game, then use Role differences: the five matchups compare final gold, damage to champions and vision score against the opponents. Missing data stays displayed as —. Team notes are one click away."
   }
 
     ,
@@ -398,12 +398,12 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     },
     reviews: {
       title: 'Preparar una revisión', actionLabel: 'Abrir Revisiones',
-      summary: "Un análisis postpartida reúne observaciones y decisiones tras una o varias partidas. Las notas del equipo aparecen antes del análisis automático, que puedes desplegar para comprobar una observación.",
+      summary: "Un análisis postpartida reúne observaciones y decisiones tras una o varias partidas. En 10 segundos muestra el resumen visual de la partida seleccionada. Diferencias por posición compara el oro final, el daño a campeones y la puntuación de visión; las notas del equipo siguen disponibles con un clic.",
       keywords: ["revisión","review","informe","decisión","notas","partida de origen","biblioteca","cuerpo técnico","grupo","crear revisión","modificar revisión","debrief","partidas vinculadas","análisis postpartida","preparar un análisis postpartida","engranaje","gestionar este análisis postpartida","análisis automático","nombre del grupo"],
       steps: [
       "Abre una partida o grupo desde Partidas y elige preparar un informe.",
       "Escribe lo que el equipo debe conservar, lo que hay que comprobar y la próxima acción, y guarda. Editar permite completar las notas si tienes permiso.",
-      "Lee Notas del equipo y abre Análisis automático de las partidas si lo necesitas. Las partidas vinculadas permiten comprobar las observaciones.",
+      "Elige la partida en En 10 segundos y consulta Diferencias por posición para comparar los cinco duelos. Los datos que faltan se muestran como —. Abre las notas del equipo para leer las observaciones completas.",
       "En la biblioteca, el engranaje Gestionar este análisis postpartida contiene Duplicar y, si tienes permiso, Eliminar. Si las partidas vinculadas coinciden exactamente con un grupo de varias partidas, el título usa el nombre del grupo."
     ],
       suggestions: [
@@ -439,7 +439,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       "encontrar análisis automático",
       "notas antes del análisis"
     ],
-    "answer": "En el análisis postpartida, Notas del equipo aparece primero. Después, abre Análisis automático de las partidas para consultar las observaciones y las ideas que investigar. Compruébalas en las partidas vinculadas y el vídeo antes de concluir."
+    "answer": "El análisis con partidas vinculadas empieza por En 10 segundos. Elige la partida y consulta Diferencias por posición: los cinco duelos comparan el oro final, el daño a campeones y la puntuación de visión frente a los rivales. Los datos que faltan se muestran como —. Las notas del equipo están disponibles con un clic."
   }
 
     ,

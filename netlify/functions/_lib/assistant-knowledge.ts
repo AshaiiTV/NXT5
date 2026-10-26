@@ -321,12 +321,12 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: "Préparer un débrief",
     path: '/rapports',
     actionLabel: "Ouvrir Débriefs",
-    summary: "Un débrief rassemble les observations et décisions après une ou plusieurs parties. Les notes de l’équipe viennent avant l’analyse automatique, que tu peux déplier pour vérifier une observation.",
+    summary: "Un débrief rassemble les observations et décisions après une ou plusieurs parties. En 10 secondes présente le résumé visuel de la partie sélectionnée. La rubrique Les écarts par poste compare l’or final, les dégâts aux champions et le score de vision ; les notes de l’équipe restent accessibles au clic.",
     keywords: ["review","rapport","décision","notes","game source","bibliothèque","staff","groupe","créer review","modifier review","débrief","debrief","préparer un débrief","parties liées","engrenage","gérer ce débrief","analyse automatique","titre du groupe"],
     steps: [
       "Ouvre une partie ou un groupe depuis Parties, puis choisis Préparer un débrief.",
       "Note ce que l’équipe garde, ce qu’elle doit vérifier et l’action à essayer, puis enregistre. Éditer permet de compléter les notes selon tes droits.",
-      "Lis les Notes de l’équipe, puis ouvre Analyse automatique des parties si besoin. Les parties liées permettent de vérifier les constats.",
+      "Choisis la partie dans En 10 secondes, puis consulte Les écarts par poste pour comparer les cinq duels. Une donnée manquante reste affichée « — ». Ouvre les notes de l’équipe pour retrouver les observations complètes.",
       "Dans la bibliothèque, l’engrenage Gérer ce débrief donne accès à Dupliquer et, selon tes droits, Supprimer. Si les parties liées correspondent exactement à un groupe de plusieurs parties, le titre reprend son nom."
     ],
     suggestions: [
@@ -374,7 +374,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       "retrouver l’analyse automatique",
       "notes avant analyse"
     ],
-    "answer": "Dans le débrief, les Notes de l’équipe apparaissent en premier. Ouvre ensuite le volet Analyse automatique des parties pour retrouver les constats et les pistes. Vérifie-les dans les parties liées et dans la vidéo avant de retenir une conclusion."
+    "answer": "Le débrief lié à des parties commence par En 10 secondes. Choisis la partie, puis consulte Les écarts par poste : les cinq duels comparent l’or final, les dégâts aux champions et le score de vision face aux adversaires. Les données manquantes restent affichées « — ». Les notes de l’équipe sont accessibles au clic."
   }
 
     ,
