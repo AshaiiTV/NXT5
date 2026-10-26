@@ -53,6 +53,11 @@ const click = node => act(() => node.props.onClick());
 const propsFor = extra => ({ data: fixture(), teamId: "team", slots: { TOP: { playerId: top.id }, MID: { playerId: mid.id } }, champions: ["Ornn", "Malphite", "Ahri", "Syndra", "Darius", "Kai'Sa", "Wukong"], onPick: vi.fn(), ...extra });
 
 describe("draft assistance interaction", () => {
+  it("excludes a champion already chosen outside the pool at another role", () => {
+    mount(<DraftAssistance {...propsFor({ slots: { TOP: { playerId: top.id }, MID: { playerId: mid.id, poolId: "", champion: "Ornn" } } })} />);
+    expect(names()).toEqual(["Malphite"]);
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
   it("changes role and opponent while retaining only the active player's available manual champions", () => {
     mount(<DraftAssistance {...propsFor()} />);
     expect(names()).toEqual(["Ornn", "Malphite"]);
