@@ -38,5 +38,3 @@ export const ALL_CHAMPION_STYLE_TAGS = {
 
 export const CHAMPION_IDS = Object.freeze([...new Set(Object.keys(ALL_CHAMPION_STYLE_TAGS).map(canonicalChampion))]);
 const championIdsByKey = new Map(CHAMPION_IDS.map(id => [id.toLowerCase(), id]));
-
-
