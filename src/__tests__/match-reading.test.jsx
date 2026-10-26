@@ -3,6 +3,7 @@ import './helpers/i18n.js';
 import TestRenderer, { act } from 'react-test-renderer';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { setLanguage } from '../i18n/locale.js';
+import { t } from '../i18n/translate.js';
 import MatchGoldChart from '../components/games/MatchGoldChart.jsx';
 import { MatchKillMap } from '../components/games/MatchKillMap.jsx';
 import {
@@ -45,11 +46,12 @@ describe('match detail reading data contracts', () => {
     const renderer = mount(<MatchTimelineReview match={match()} teamName="Notre équipe fictive" />);
     expect(text(renderer.root)).not.toContain('Écart d’or final');
     expect(text(renderer.root)).not.toContain('Objectifs neutres relevés');
-    expect(renderer.root.findAllByType(MatchGoldChart)).toHaveLength(1);
+    expect(renderer.root.findAllByType(MatchGoldChart)).toHaveLength(0);
+    expect(renderer.root.findAllByType(MatchKillMap)).toHaveLength(0);
     expect(byClass(renderer, 'match-timeline-checkpoints')).toHaveLength(0);
     expect(byClass(renderer, 'match-timeline-line')).toHaveLength(0);
     expect(byClass(renderer, 'match-gold-chart-sample')).toHaveLength(0);
-    expect(text(renderer.root)).toContain('Courbe d’or indisponible');
+    expect(text(renderer.root)).toContain('Aucun moment clé exploitable');
     expect(text(renderer.root)).toContain('Chronologie indisponible');
   });
 
@@ -58,16 +60,69 @@ describe('match detail reading data contracts', () => {
     const renderer = mount(<MatchTimelineReview match={game} />);
     expect(renderer.root.findAllByType('article')).toHaveLength(2);
     expect(byClass(renderer, 'match-timeline-line')).toHaveLength(0);
-    expect(renderer.root.findAllByType(MatchGoldChart)).toHaveLength(1);
+    expect(renderer.root.findAllByType(MatchGoldChart)).toHaveLength(0);
     expect(byClass(renderer, 'match-gold-chart-sample')).toHaveLength(0);
-    expect(text(renderer.root)).toContain('Aucun relevé d’or enregistré');
+    expect(renderer.root.findAllByType(MatchKillMap)).toHaveLength(0);
     expect(byClass(renderer, 'match-timeline-event-stats').map(node => text(node.findAllByType('dd')[0]))).toEqual(['—', '—']);
     expect(text(renderer.root)).toContain('Chronologie résumée');
   });
 
+  it.each([[1000, '+0'], [1200, '+1k']])('keeps a moment closed with a native summary and its measured gold intact (%i)', (allyGold, expectedGold) => {
+    const frames = [
+      { ...goldFrame(240000, { allyGold }), events: [{ type: 'CHAMPION_KILL', timestamp: 240000, killerId: 1, victimId: 6 }] },
+      { ...goldFrame(360000, { allyGold: 1600 }), events: [monster(300000)] },
+    ];
+    const renderer = mount(<MatchDataPanel match={match({ raw: { timeline: { info: { frames } } } })} teamName="Atlas" draftContent={<span />} />);
+    const article = renderer.root.findByType(MatchTimelineReview).findByType('article');
+    const disclosure = article.findByType('details');
+    const summary = disclosure.findByType('summary');
+    expect(disclosure.props.open).not.toBe(true);
+    expect(disclosure.children[0]).toBe(summary);
+    expect(summary.props.role).toBeUndefined();
+    expect(summary.findAll(node => ['button', 'a', 'input'].includes(node.type))).toHaveLength(0);
+    expect(text(summary)).toContain('5:00');
+    expect(text(summary)).toContain('Dragon');
+    expect(text(summary)).toContain('Atlas');
+    const stats = article.findByType('dl');
+    expect(summary.findAllByType('dl')).toHaveLength(0);
+    expect(stats.findAllByType('dt').map(text)).toEqual(['Écart d’or', 'Éliminations relevées']);
+    const values = stats.findAllByType('dd').map(text);
+    expect(values[0]).toBe(expectedGold);
+    expect(values[1]).toBe('1 – 0');
+    expect(text(summary)).toContain(values[0]);
+    for (const label of ['Face-à-face', 'Drafting', 'Débrief']) {
+      act(() => renderer.root.findAllByProps({ role: 'tab' }).find(node => text(node) === label).props.onClick());
+      expect(renderer.root.findByType(MatchTimelineReview).findByType('article').findByType('details')).toBe(disclosure);
+    }
+  });
+
+  it('does not promote missing compact-event measurements into a summary statistic', () => {
+    const renderer = mount(<MatchTimelineReview match={match({ raw: { nxt5: { timelineEvents: [monster(300000)] } } })} />);
+    const article = renderer.root.findByType('article');
+    const summary = article.findByType('summary');
+    expect(article.findByType('details').props.open).not.toBe(true);
+    expect(text(summary)).not.toContain('Écart d’or');
+    expect(article.findByType('dl').findAllByType('dd').map(text)).toEqual(['—', '—']);
+  });
+
+  it.each(['en', 'es'])('translates the opponent fallback but preserves actual and resolved names in %s', language => {
+    setLanguage(language);
+    const game = match();
+    let resolveOpponent;
+    const controls = ({ onOpponentResolved }) => { resolveOpponent = onOpponentResolved; return null; };
+    const renderer = mount(<MatchDataPanel match={game} teamName="Atlas" contextControls={controls} draftContent={<span />} />);
+    const opponent = () => text(renderer.root.findByType(MatchTimelineReview).findByProps({ className: 'match-timeline-perspective' }).findAllByType('span')[1]);
+    expect(opponent()).toBe(t('Adversaire'));
+    expect(opponent()).not.toBe('Adversaires');
+    act(() => renderer.update(<MatchDataPanel match={{ ...game, opponent: 'Accueil' }} teamName="Atlas" contextControls={controls} draftContent={<span />} />));
+    expect(opponent()).toBe('Accueil');
+    act(() => resolveOpponent('Paramètres'));
+    expect(opponent()).toBe('Paramètres');
+  });
+
   it('uses the shared curve gaps and keeps only actual samples in a single accessible table', () => {
     const frames = [goldFrame(0), goldFrame(60000), goldFrame(120000, { missing: true }), goldFrame(180000), goldFrame(240000), goldFrame(420000), goldFrame(480000)];
-    const renderer = mount(<MatchTimelineReview match={match({ raw: { timeline: { info: { frames } } } })} />);
+    const renderer = mount(<MatchDataPanel match={match({ raw: { timeline: { info: { frames } } } })} draftContent={<span />} />);
     const lines = byClass(renderer, 'match-gold-chart-line');
     expect(lines).toHaveLength(3);
     expect(lines.every(node => node.props.points.trim().split(/\s+/).length === 2)).toBe(true);
@@ -82,15 +137,24 @@ describe('match detail reading data contracts', () => {
     expect(byClass(renderer, 'match-timeline-checkpoints')).toHaveLength(0);
   });
 
-  it('reuses the recap chart and the exact publication when switching to chronology', () => {
+  it('keeps one chart, map and journal mounted when moving between game views', () => {
     const frames = [goldFrame(0, { allyGold: 900 }), goldFrame(60000, { allyGold: 1200 }), goldFrame(120000, { allyGold: 800 })];
     const game = match({ duration: '2:00', opponent: 'Rivals', raw: { timeline: { info: { frames } } } });
     const renderer = mount(<MatchDataPanel match={game} teamName="Atlas" draftContent={<span />} />);
     const recapChart = renderer.root.findByType(MatchGoldChart);
+    const journal = renderer.root.findByType(MatchTimelineReview);
+    const map = renderer.root.findByType(MatchKillMap);
+    expect(journal.findAllByType(MatchGoldChart)).toHaveLength(0);
+    expect(journal.findAllByType(MatchKillMap)).toHaveLength(0);
     const publication = recapChart.props.publication;
     const recapLines = byClass(renderer, 'match-gold-chart-line').map(node => ({ tone: node.props['data-tone'], points: node.props.points }));
     const recapLegend = text(byClass(renderer, 'match-gold-chart-legend')[0]);
-    act(() => renderer.root.findAllByProps({ role: 'tab' }).find(node => text(node) === 'Chronologie').props.onClick());
+    for (const label of ['Face-à-face', 'Drafting', 'Débrief']) {
+      act(() => renderer.root.findAllByProps({ role: 'tab' }).find(node => text(node) === label).props.onClick());
+      expect(renderer.root.findByType(MatchGoldChart)).toBe(recapChart);
+      expect(renderer.root.findByType(MatchTimelineReview)).toBe(journal);
+      expect(renderer.root.findByType(MatchKillMap)).toBe(map);
+    }
     expect(renderer.root.findAllByType(MatchGoldChart)).toHaveLength(1);
     expect(renderer.root.findByType(MatchGoldChart).props.publication).toBe(publication);
     expect(renderer.root.findByType(MatchGoldChart).props.match).toBe(game);
@@ -108,10 +172,10 @@ describe('match detail reading data contracts', () => {
     expect(renderer.root.findAllByType('table')).toHaveLength(1);
   });
 
-  it('allows whole-frame hover and keyboard sample inspection through the chronology view', () => {
+  it('allows whole-frame hover and keyboard sample inspection in the combined debrief', () => {
     const frames = [goldFrame(0), goldFrame(60000, { allyGold: 1200 }), goldFrame(120000, { allyGold: 800 })];
-    const game = match({ duration: '2:00', raw: { timeline: { info: { frames } } } });
-    const renderer = mount(<MatchTimelineReview match={game} teamName="Atlas" enemyName="Rivals" />);
+    const game = match({ duration: '2:00', opponent: 'Rivals', raw: { timeline: { info: { frames } } } });
+    const renderer = mount(<MatchDataPanel match={game} teamName="Atlas" draftContent={<span />} />);
     const plot = () => byClass(renderer, 'match-gold-chart-plot')[0];
     const readout = () => byClass(renderer, 'match-gold-chart-readout')[0];
     expect(plot().props.role).toBe('slider');
@@ -133,16 +197,22 @@ describe('match detail reading data contracts', () => {
     }
     expect(plot().props['aria-valuetext']).toContain('Atlas');
     expect(plot().props['aria-valuetext']).toContain('Rivals');
+    for (const label of ['Face-à-face', 'Drafting', 'Débrief']) {
+      act(() => renderer.root.findAllByProps({ role: 'tab' }).find(node => text(node) === label).props.onClick());
+    }
+    expect(plot().props['aria-valuenow']).toBe(2);
+    act(() => plot().props.onFocus());
+    expect(text(readout())).toContain('Relevé à 2:00');
   });
 
   it('preserves a lone measured zero and rejects incomplete participant identities in chronology', () => {
     const game = match({ raw: { timeline: { info: { frames: [goldFrame(60000)] } } } });
-    const renderer = mount(<MatchTimelineReview match={game} />);
+    const renderer = mount(<MatchDataPanel match={game} draftContent={<span />} />);
     expect(byClass(renderer, 'match-gold-chart-sample')).toHaveLength(1);
     expect(byClass(renderer, 'match-gold-chart-sample')[0].props['data-tone']).toBe('neutral');
     expect(byClass(renderer, 'match-gold-chart-line')).toHaveLength(0);
     expect(text(renderer.root.findByType('tbody'))).toBe('1:000');
-    act(() => renderer.update(<MatchTimelineReview match={{ ...game, participants: game.participants.slice(1) }} />));
+    act(() => renderer.update(<MatchDataPanel match={{ ...game, participants: game.participants.slice(1) }} draftContent={<span />} />));
     expect(byClass(renderer, 'match-gold-chart-sample')).toHaveLength(0);
     expect(byClass(renderer, 'match-gold-chart-plot')).toHaveLength(0);
     expect(text(renderer.root)).toContain('Participants incomplets ou non identifiables');
@@ -163,6 +233,26 @@ describe('match detail reading data contracts', () => {
     act(() => renderer.update(<MatchTimelineReview match={{ ...game, id: 'reading-two' }} />));
     expect(filter()[0].props['aria-pressed']).toBe(true);
     expect(renderer.root.findAllByType('article')).toHaveLength(10);
+  });
+
+  it('keeps the method available in a closed disclosure without unsupported instructions', () => {
+    const renderer = mount(<MatchTimelineReview match={match({ raw: { nxt5: { timelineEvents: [monster(300000)] } } })} />);
+    const method = renderer.root.findAllByType('details').find(node => text(node.findByType('summary')) === 'Comment lire ces données');
+    expect(method).toBeDefined();
+    expect(method.props.open).not.toBe(true);
+    expect(text(method)).toContain('24 secondes');
+    expect(text(method)).toContain('dernier relevé antérieur');
+    expect(text(renderer.root)).not.toMatch(/\b(?:vod|v[ií]d[eé]o|replay)\b/i);
+  });
+
+  it.each([
+    [{ loading: true }, 'Chargement des moments de la partie…'],
+    [{ error: 'Détails indisponibles' }, 'Les moments de la partie n’ont pas pu être chargés.'],
+  ])('does not report an empty journal while details are unavailable (%j)', (state, message) => {
+    const renderer = mount(<MatchTimelineReview match={match()} {...state} />);
+    expect(renderer.root.findAllByProps({ role: 'status' }).some(node => text(node).includes(message))).toBe(true);
+    expect(text(renderer.root)).not.toContain('Aucun moment clé exploitable');
+    expect(renderer.root.findAllByType('article')).toHaveLength(0);
   });
 
   it('keeps drafting independent of missing final damage statistics', () => {

@@ -75,11 +75,11 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     },
     statistics: {
       title: 'Reading a game summary', actionLabel: 'View games',
-      summary: 'The summary starts with the game essentials. Statistics, points to investigate and the timeline can then be opened depending on your question.',
-      keywords: ['statistics', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'gold', 'vision', 'build', 'objective', 'timeline', 'group', 'summary', 'difference', 'minions'],
-      steps: ['In Games, find and open the game you are interested in.', 'Read the result, points to keep or check, and the suggested next action.', 'Open Statistics and 5v5 comparison for numbers, or Game timeline for events.', 'Use a group to bring together games from the same session.'],
+      summary: 'Review brings together the team compositions, gold chart, kill map and key moments. How to read this data explains the indicators and missing data.',
+      keywords: ['statistics', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'gold', 'vision', 'build', 'objective', 'timeline', 'group', 'summary', 'difference', 'minions', 'key moments', 'game review', 'kill map', 'head-to-head', 'drafting', 'how to read this data'],
+      steps: ['In Games, find and open the game you are interested in.', 'In Review, read the result and team compositions, then explore the gold chart, kill map and key moments. Filter the map by team; choose a phase in key moments.', 'Use Head-to-head to compare players and Drafting to view champion choices.', 'Choose Prepare a debrief to save team notes about this game or group.'],
       suggestions: ['How do I read the difference at 20 minutes?', 'How do I create a group of games?', 'How do I go from a summary to a debrief?'],
-      faq: [{ question: 'How do I read the differences at 10 and 20 minutes?', triggers: ['diff10', 'diff20', 'lane difference', 'cs10', 'cs20', 'difference at 20', 'difference at 10'], answer: 'CS 10 and CS 20 show minions and monsters killed at 10 and 20 minutes. In the position comparison, the displayed difference compares these counts between the two opponents. Relate the difference to gold, deaths and game events before drawing a conclusion.' }],
+      faq: [{ question: 'How do I read the differences at 10 and 20 minutes?', triggers: ['diff10', 'diff20', 'lane difference', 'cs10', 'cs20', 'difference at 20', 'difference at 10'], answer: 'CS 10 and CS 20 show minions and monsters killed at 10 and 20 minutes. In Head-to-head, select a role to see the available checkpoints for both players. Compare these values with gold, deaths and the key moments in Review. Missing data remains displayed as —.' }],
     },
     reviews: {
       title: 'Preparing a debrief', actionLabel: 'Open Debriefs',
@@ -390,11 +390,11 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     },
     statistics: {
       title: 'Leer el resumen de una partida', actionLabel: 'Ver las partidas',
-      summary: 'El resumen empieza por lo esencial de la partida. Después puedes abrir las estadísticas, los puntos que investigar y la cronología según tu pregunta.',
-      keywords: ['estadísticas', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'oro', 'visión', 'objetos', 'objetivo', 'cronología', 'grupo', 'resumen', 'diferencia', 'súbditos'],
-      steps: ['En Partidas, busca y abre la partida que te interesa.', 'Lee el resultado, los puntos que conservar o comprobar y la siguiente acción sugerida.', 'Abre Estadísticas y comparación 5 contra 5 para las cifras, o Cronología de la partida para los eventos.', 'Utiliza un grupo para reunir las partidas de una misma sesión.'],
+      summary: 'Análisis postpartida reúne las composiciones, la curva de oro, el mapa de eliminaciones y los momentos clave. Cómo interpretar estos datos explica los indicadores y los datos que faltan.',
+      keywords: ['estadísticas', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'oro', 'visión', 'objetos', 'objetivo', 'cronología', 'grupo', 'resumen', 'diferencia', 'súbditos', 'momentos clave', 'análisis de la partida', 'mapa de eliminaciones', 'cara a cara', 'drafting', 'cómo interpretar estos datos'],
+      steps: ['En Partidas, busca y abre la partida que te interesa.', 'En Análisis postpartida, consulta el resultado y las composiciones, y recorre la curva de oro, el mapa de eliminaciones y los momentos clave. Filtra el mapa por equipo y elige una fase en los momentos clave.', 'Usa Cara a cara para comparar jugadores y Drafting para consultar las elecciones de campeones.', 'Elige preparar un informe para guardar las notas del equipo sobre esta partida o grupo.'],
       suggestions: ['¿Cómo leo la diferencia a los 20 minutos?', '¿Cómo creo un grupo de partidas?', '¿Cómo paso del resumen a una revisión?'],
-      faq: [{ question: '¿Cómo leo las diferencias a los 10 y 20 minutos?', triggers: ['diff10', 'diff20', 'diferencia de calle', 'cs10', 'cs20', 'diferencia a los 20', 'diferencia a los 10'], answer: 'CS 10 y CS 20 indican los súbditos y monstruos eliminados a los 10 y 20 minutos. En la comparación por posición, la diferencia compara estas cifras entre los dos rivales. Relaciónala con el oro, las muertes y los eventos de la partida antes de sacar conclusiones.' }],
+      faq: [{ question: '¿Cómo leo las diferencias a los 10 y 20 minutos?', triggers: ['diff10', 'diff20', 'diferencia de calle', 'cs10', 'cs20', 'diferencia a los 20', 'diferencia a los 10'], answer: 'CS 10 y CS 20 indican los súbditos y monstruos eliminados a los 10 y 20 minutos. En Cara a cara, selecciona un rol para consultar los registros disponibles de ambos jugadores. Compara estos valores con el oro, las muertes y los momentos clave de Análisis postpartida. Los datos ausentes se muestran como —.' }],
     },
     reviews: {
       title: 'Preparar una revisión', actionLabel: 'Abrir Revisiones',

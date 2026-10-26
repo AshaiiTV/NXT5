@@ -287,13 +287,13 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: "Lire le bilan d’une partie",
     path: '/games',
     actionLabel: "Voir les parties",
-    summary: "Le bilan commence par L’essentiel de la partie. Les statistiques, les points à approfondir et la chronologie s’ouvrent ensuite selon ta question.",
-    keywords: ['statistiques', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'or', 'vision', 'build', 'objectif', 'timeline', 'groupe', "bilan", "chronologie", "écart", "sbires"],
+    summary: "Débrief réunit les compositions, la courbe d’or, la carte des éliminations et les moments clés. Comment lire ces données explique les repères et les données manquantes.",
+    keywords: ['statistiques', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'or', 'vision', 'build', 'objectif', 'timeline', 'groupe', "bilan", "chronologie", "écart", "sbires", "moments clés", "débrief de la partie", "carte des éliminations", "face-à-face", "drafting", "comment lire ces données"],
     steps: [
       "Dans Parties, recherche puis ouvre la partie qui t’intéresse.",
-      "Lis le résultat, les points à garder ou à vérifier et la prochaine action proposée.",
-      "Ouvre Statistiques et comparaison 5 contre 5 pour les chiffres, ou Chronologie de la partie pour les événements.",
-      "Utilise un groupe pour rapprocher les parties d’une même séance."
+      "Dans Débrief, lis le résultat et les compositions, puis parcours la courbe d’or, la carte des éliminations et les moments clés. Sur la carte, filtre par équipe ; dans les moments clés, choisis une phase.",
+      "Utilise Face-à-face pour comparer les joueurs et Drafting pour consulter les choix de champions.",
+      "Choisis Préparer un débrief pour enregistrer les notes de l’équipe sur cette partie ou ce groupe."
     ],
     suggestions: [
       "Comment lire l’écart à 20 minutes ?",
@@ -312,7 +312,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
           "écart à 20",
           "écart à 10"
         ],
-        "answer": "CS 10 et CS 20 indiquent les sbires et monstres éliminés à 10 et 20 minutes. Dans la comparaison par poste, l’écart affiché compare ces nombres entre les deux adversaires. Relie cet écart à l’or, aux morts et aux événements de la partie avant de conclure."
+        "answer": "CS 10 et CS 20 indiquent les sbires et monstres éliminés à 10 et 20 minutes. Dans Face-à-face, sélectionne un rôle pour consulter les repères disponibles des deux joueurs. Compare ces valeurs avec l’or, les morts et les moments clés de Débrief. Une donnée absente reste affichée « — »."
       }
     ]
   },
