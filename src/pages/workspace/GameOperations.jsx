@@ -22,6 +22,7 @@ import { openAppPath } from "../../app/routing.js";
 
 export { GameOperationDialog };
 
+const MATCH_CATEGORY_COLORS = [["cyan", "Cyan"], ["purple", "Violet"], ["green", "Vert"], ["yellow", "Jaune"], ["pink", "Rose"], ["red", "Rouge"], ["blue", "Bleu"], ["slate", "Ardoise"]];
 
 function canManageTeamCategories(data, selectedTeamId, currentMember, user) {
   const team = (data.teams || []).find((item) => item.id === selectedTeamId);
@@ -149,7 +150,7 @@ export function GameCategoryManager({ data, selectedTeamId, refreshAll, pushToas
         {!categories.length && <p>{t("Aucune catégorie pour le moment.")}</p>}
         {creatorOpen && <form className="ih-category-create" onSubmit={createCategory}><fieldset disabled={saving}>
           <TextInput label={t("Nom de la catégorie")} value={form.name} onChange={(name) => setForm((current) => ({ ...current, name }))} placeholder={t("Ligue, Bootcamp…")} required />
-          <SelectInput label={t("Couleur")} value={form.color} onChange={(color) => setForm((current) => ({ ...current, color }))}>{[["cyan", "Cyan"], ["purple", "Violet"], ["green", "Vert"], ["yellow", "Jaune"], ["pink", "Rose"], ["red", "Rouge"], ["blue", "Bleu"], ["slate", "Ardoise"]].map(([color, label]) => <option key={color} value={color}>{t(label)}</option>)}</SelectInput>
+          <SelectInput label={t("Couleur")} value={form.color} onChange={(color) => setForm((current) => ({ ...current, color }))}>{MATCH_CATEGORY_COLORS.map(([color, label]) => <option key={color} value={color}>{t(label)}</option>)}</SelectInput>
           <Button type="submit" icon={saving ? Loader2 : Plus} disabled={saving || !form.name.trim()}>{saving ? t("Création…") : t("Créer")}</Button>
           <Button type="button" variant="ghost" disabled={saving} onClick={() => { setCreatorOpen(false); setForm({ name: "", color: "cyan" }); }}>{t("Annuler")}</Button>
         </fieldset></form>}
@@ -402,14 +403,43 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   const [fileImporting, setFileImporting] = useState(false);
   const [fileError, setFileError] = useState("");
   const [uploadProgress, setUploadProgress] = useState(null);
-  const matchCategories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
+  const [createdCategories, setCreatedCategories] = useState([]);
+  const [categoryCreatorOpen, setCategoryCreatorOpen] = useState(false);
+  const [categoryForm, setCategoryForm] = useState({ name: "", color: "cyan" });
+  const [categoryError, setCategoryError] = useState("");
+  const [creatingCategory, setCreatingCategory] = useState(false);
+  const categoryRequestRef = useRef(null);
+  const categoryScopeRef = useRef(0);
+  const categoryTriggerRef = useRef(null);
+  const categoryRestoreFocusRef = useRef(false);
+  const categoryCreatorId = useId();
+  const matchCategories = [...new Map([...createdCategories, ...(data.matchCategories || [])].filter((category) => category.team_id === selectedTeamId).map((category) => [String(category.id), category])).values()];
   const gameplayRoster = [...new Map([...(data.players || []), ...createdRoster].filter((player) => player.team_id === selectedTeamId && isGameplayRole(player.role)).map(player => [player.id, player])).values()];
   const importTeam = (data.teams || []).find((team) => team.id === selectedTeamId);
   const canImport = Boolean(user?.id && (importTeam?.owner_id === user.id || (
     currentMember?.team_id === selectedTeamId && currentMember?.user_id === user.id && canStaffManage(currentMember?.role)
   )));
+  const categoryContextRef = useRef(null);
+  categoryContextRef.current = { teamId: selectedTeamId, userId: user?.id, allowed: canImport };
   const progressTimer = useRef(null);
-  useEffect(() => { onBusyChange?.(importing || fileImporting || creatingProfiles); }, [importing, fileImporting, creatingProfiles, onBusyChange]);
+  useEffect(() => { onBusyChange?.(importing || fileImporting || creatingProfiles || creatingCategory); }, [importing, fileImporting, creatingProfiles, creatingCategory, onBusyChange]);
+  useEffect(() => {
+    setCreatingCategory(false);
+    return () => {
+      categoryScopeRef.current += 1;
+      categoryRequestRef.current?.controller.abort();
+      categoryRequestRef.current = null;
+    };
+  }, [selectedTeamId, user?.id, canImport]);
+  useEffect(() => {
+    setCreatedCategories((current) => current.filter((category) => !(data.matchCategories || []).some((item) => String(item.id) === String(category.id))));
+  }, [data.matchCategories]);
+  useEffect(() => {
+    if (categoryRestoreFocusRef.current && !categoryCreatorOpen && !creatingCategory) {
+      categoryTriggerRef.current?.focus();
+      categoryRestoreFocusRef.current = false;
+    }
+  }, [categoryCreatorOpen, creatingCategory]);
   useEffect(() => { onDirtyChange?.(Boolean(previewPayload)); }, [previewPayload, onDirtyChange]);
   useEffect(() => () => onDirtyChange?.(false), [onDirtyChange]);
   useEffect(() => {
@@ -419,7 +449,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     return () => window.removeEventListener("beforeunload", protectImport);
   }, [previewPayload]);
   useEffect(() => () => { window.clearTimeout(progressTimer.current); }, []);
-  useEffect(() => { resetImportDraft(); setCreatedRoster([]); setUploadProgress(null); }, [selectedTeamId]);
+  useEffect(() => { resetImportDraft(); setCreatedRoster([]); setCreatedCategories([]); setUploadProgress(null); }, [selectedTeamId]);
   function updateUploadProgress(next) {
     setUploadProgress((current) => ({ ...(current || {}), ...(next || {}), active: true }));
   }
@@ -578,6 +608,8 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
 
   }
   function resetImportDraft() {
+    if (categoryRequestRef.current) return;
+    closeCategoryCreator(false);
     setImportPreview(null);
     setPreviewTeamId("");
     setPreviewPayload(null);
@@ -589,8 +621,51 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     setEnemyLaneAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
     setPlayerAssignments({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   }
+  function closeCategoryCreator(restoreFocus = true) {
+    categoryRestoreFocusRef.current = restoreFocus;
+    setCategoryCreatorOpen(false);
+    setCategoryForm({ name: "", color: "cyan" });
+    setCategoryError("");
+  }
+  async function createImportCategory(event) {
+    event.preventDefault();
+    const name = categoryForm.name.trim();
+    if (!canImport || importing || fileImporting || creatingProfiles || categoryRequestRef.current || !name) return;
+    const selectCategory = (category) => {
+      setImportDetails((current) => ({ ...current, categoryIds: [...new Set([...(current.categoryIds || []).map(String), String(category.id)])] }));
+      closeCategoryCreator();
+    };
+    const existing = matchCategories.find((category) => category.name.toLowerCase() === name.toLowerCase());
+    if (existing) { selectCategory(existing); return; }
+    const request = { controller: new AbortController(), teamId: selectedTeamId, userId: user.id, scope: categoryScopeRef.current };
+    const sameContext = () => categoryScopeRef.current === request.scope && categoryContextRef.current?.teamId === request.teamId && categoryContextRef.current?.userId === request.userId && categoryContextRef.current?.allowed;
+    categoryRequestRef.current = request;
+    setCreatingCategory(true);
+    setCategoryError("");
+    let created = false;
+    try {
+      const result = await apiFetch("match-categories-manage", { method: "POST", signal: request.controller.signal, body: JSON.stringify({ action: "create", teamId: request.teamId, name, color: categoryForm.color }) });
+      if (categoryRequestRef.current !== request || !sameContext()) return;
+      if (!result?.category?.id || result.category.team_id !== request.teamId) throw new Error("NXT5 a reçu une réponse inattendue. Recharge la page puis réessaie.");
+      setCreatedCategories((current) => [...current.filter((category) => String(category.id) !== String(result.category.id)), result.category]);
+      selectCategory(result.category);
+      pushToast({ type: "green", title: "Catégorie créée", text: "La catégorie est sélectionnée pour cette partie." });
+      created = true;
+    } catch (error) {
+      if (categoryRequestRef.current === request && sameContext()) setCategoryError(error.message);
+    } finally {
+      if (categoryRequestRef.current === request) {
+        categoryRequestRef.current = null;
+        setCreatingCategory(false);
+      }
+    }
+    if (created) {
+      try { await refreshAll(); }
+      catch (error) { if (sameContext() && !request.controller.signal.aborted) pushToast(errorToast(error, "Actualisation impossible")); }
+    }
+  }
   async function createProposedProfiles() {
-    if (creatingProfiles || !canImport || !profilesReady) return;
+    if (creatingProfiles || categoryRequestRef.current || !canImport || !profilesReady) return;
     setCreatingProfiles(true);
     try {
       const result = await apiFetch("players-import-roster", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, profiles: missingProfileRoles.map(role => ({ role, ...profileDraft[role] })) }) });
@@ -603,7 +678,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   }
   async function confirmImport(event) {
     event?.preventDefault();
-    if (importing || creatingProfiles || !importReady || !canImport) return;
+    if (importing || creatingProfiles || categoryRequestRef.current || !importReady || !canImport) return;
     window.clearTimeout(progressTimer.current);
     const payload = { teamId: selectedTeamId, payload: previewPayload, laneAssignments, enemyLaneAssignments, playerAssignments, allyTeamSide, label: importDetails.label, categoryIds: importDetails.categoryIds || [], ...(importOpponent.creating ? { newOpponentName: importOpponent.name.trim() } : importOpponent.id ? { opponentId: importOpponent.id } : {}) };
     setFileError("");
@@ -628,7 +703,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     }
   }
   async function importLocalFile(file) {
-    if (!file || importing || fileImporting || creatingProfiles || !selectedTeamId || !canImport) return;
+    if (!file || importing || fileImporting || creatingProfiles || categoryRequestRef.current || !selectedTeamId || !canImport) return;
     setFileError("");
     if (file.size > 5 * 1024 * 1024) { setFileError("Choisis un fichier JSON de 5 Mo maximum."); pushToast({ type: "red", title: "Fichier trop volumineux", text: "Choisis un fichier JSON de 5 Mo maximum." }); return; }
     window.clearTimeout(progressTimer.current);
@@ -699,11 +774,11 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   </Surface>;
   return <div className="nxt5-data-dense nxt5-import-page game-import-flow">
         {fileError && <p role="alert" className="mb-4 rounded-xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm text-rose-100">{fileError}</p>}
-        <ImporterDownloadPanel fileImporting={fileImporting || importing || creatingProfiles} hasTeam={Boolean(selectedTeamId)} hasPreview={Boolean(importPreview)} onImport={importLocalFile}>
+        <ImporterDownloadPanel fileImporting={fileImporting || importing || creatingProfiles || creatingCategory} hasTeam={Boolean(selectedTeamId)} hasPreview={Boolean(importPreview)} onImport={importLocalFile}>
           {uploadProgress?.active && <div className="mt-4"><JsonUploadProgress progress={uploadProgress} /></div>}
         </ImporterDownloadPanel>
 
-        {importPreview && <fieldset disabled={importing || fileImporting || creatingProfiles} className="game-import-review">
+        {importPreview && <fieldset disabled={importing || fileImporting || creatingProfiles || creatingCategory} className="game-import-review">
                 <legend className="sr-only">{t("Vérification avant import")}</legend>
                 <section className="game-import-side-section" aria-labelledby="game-import-side-title">
                   <div className="game-import-section-heading"><h3 id="game-import-side-title">{t("Choisis ton équipe")}</h3></div>
@@ -772,15 +847,27 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                 </>}
                 {allyTeamSide && <div className="game-import-confirmation-fields">
                   <TextInput label={t("Nom de la partie")} value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder={t("Entraînement contre Otters · Partie 1")} required icon={FileText} />
-                  <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} required />
-                  {previewTeamId === selectedTeamId && <ImportOpponentField key={selectedTeamId} teamId={selectedTeamId} value={importOpponent} onChange={setImportOpponent} disabled={importing || fileImporting || creatingProfiles} />}
+                  <div className="game-import-categories">
+                    <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} required />
+                    <Button ref={categoryTriggerRef} type="button" variant="ghost" icon={Plus} aria-expanded={categoryCreatorOpen} aria-controls={categoryCreatorOpen ? categoryCreatorId : undefined} onClick={() => { if (categoryCreatorOpen) closeCategoryCreator(); else { setCategoryCreatorOpen(true); setCategoryError(""); } }}>{t("Nouvelle catégorie")}</Button>
+                    {categoryCreatorOpen && <form id={categoryCreatorId} className="game-import-category-create" onSubmit={createImportCategory} aria-label={t("Nouvelle catégorie")} aria-busy={creatingCategory} onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); if (!creatingCategory) closeCategoryCreator(); } }}>
+                      <div className="game-import-category-fields">
+                        <TextInput label={t("Nom de la catégorie")} value={categoryForm.name} onChange={(name) => { setCategoryForm((current) => ({ ...current, name })); setCategoryError(""); }} placeholder={t("Ligue, Bootcamp…")} required maxLength={80} autoFocus aria-describedby={categoryError ? `${categoryCreatorId}-error` : undefined} />
+                        <SelectInput label={t("Couleur")} value={categoryForm.color} onChange={(color) => setCategoryForm((current) => ({ ...current, color }))}>{MATCH_CATEGORY_COLORS.map(([color, label]) => <option key={color} value={color}>{t(label)}</option>)}</SelectInput>
+                      </div>
+                      <p className="game-import-category-help">{t("La catégorie restera disponible dans ton équipe même si tu annules l’import.")}</p>
+                      {categoryError && <p id={`${categoryCreatorId}-error`} role="alert" className="game-import-category-error">{t(categoryError)}</p>}
+                      <div className="game-import-category-actions"><Button type="submit" icon={creatingCategory ? Loader2 : Plus} disabled={creatingCategory || !categoryForm.name.trim()}>{creatingCategory ? t("Création…") : t("Créer et sélectionner")}</Button><Button type="button" variant="ghost" disabled={creatingCategory} onClick={() => closeCategoryCreator()}>{t("Annuler")}</Button></div>
+                    </form>}
+                  </div>
+                  {previewTeamId === selectedTeamId && <ImportOpponentField key={selectedTeamId} teamId={selectedTeamId} value={importOpponent} onChange={setImportOpponent} disabled={importing || fileImporting || creatingProfiles || creatingCategory} />}
                 </div>}
                 <footer className="game-import-footer">
                   <div id="game-import-status" role="status" className="game-import-status">
                     <strong>{importReady ? <><Check size={16} aria-hidden="true" />{t("Prêt à importer")}</> : t("À compléter")}</strong>
                     <p>{t(importBlockReason) || t("Confirme pour enregistrer la partie et ouvrir son bilan.")}</p>
                   </div>
-                  <div className="game-import-footer-actions"><Button type="button" variant="ghost" onClick={() => resetImportDraft()} disabled={importing}>{t("Réinitialiser")}</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || !importReady} aria-describedby="game-import-status">{importing ? t("Enregistrement…") : t("Confirmer l’import")}</Button></div>
+                  <div className="game-import-footer-actions"><Button type="button" variant="ghost" onClick={() => resetImportDraft()} disabled={importing || creatingCategory}>{t("Réinitialiser")}</Button><Button type="button" icon={importing ? Loader2 : Check} onClick={confirmImport} disabled={importing || creatingCategory || !importReady} aria-describedby="game-import-status">{importing ? t("Enregistrement…") : t("Confirmer l’import")}</Button></div>
                 </footer>
         </fieldset>}
 

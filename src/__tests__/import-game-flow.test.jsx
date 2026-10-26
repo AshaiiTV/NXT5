@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch, apiUploadJson } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import { CategoryMultiSelect, ImportGameFlow } from "../pages/workspace/GameOperations.jsx";
-import { TextInput } from "../components/ui/Core.jsx";
+import { SelectInput, TextInput } from "../components/ui/Core.jsx";
 import { ImporterDownloadPanel } from "../pages/workspace/ImporterDownloadPanel.jsx";
 import { championDisplayName } from "../pages/workspace/workspace-shared.jsx";
 import { roleLabel } from "../pages/workspace/shell-shared.jsx";
@@ -450,6 +450,211 @@ describe("required match tags", () => {
     await chooseSide(renderer, "BLUE", { selectTag: false });
     expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual([]);
     expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+  });
+});
+
+
+describe("category creation inside an import", () => {
+  const categoryField = (renderer) => renderer.root.findAllByType(TextInput).find((node) => node.props.label === "Nom de la catégorie");
+  const colorField = (renderer) => renderer.root.findAllByType(SelectInput).find((node) => node.props.label === "Couleur");
+  const creator = (renderer) => renderer.root.findAllByType("form").find((node) => node.findAllByType(TextInput).some((field) => field.props.label === "Nom de la catégorie"));
+  const submitEvent = () => ({ preventDefault: vi.fn() });
+  const createdCategory = { id: "bootcamp", team_id: "team", name: "Bootcamp", color: "purple" };
+  async function openCreator(renderer, name = "Bootcamp") {
+    await click(renderer, "Nouvelle catégorie");
+    await act(async () => categoryField(renderer).props.onChange(name));
+  }
+  async function submitCreator(renderer) {
+    expect(button(renderer, "Créer et sélectionner").props.disabled).not.toBe(true);
+    await act(async () => creator(renderer).props.onSubmit(submitEvent()));
+  }
+
+  it("creates and immediately selects a category while preserving existing tags and the import draft", async () => {
+    const { renderer, props } = await mount();
+    const source = await load(renderer);
+    await chooseSide(renderer, "BLUE");
+    await change(enemySelect(renderer, "RED", 0), "MID");
+    await openCreator(renderer);
+    expect(categoryField(renderer).props.maxLength).toBe(80);
+    expect(colorField(renderer).props.value).toBe("cyan");
+    await act(async () => colorField(renderer).props.onChange("purple"));
+    apiFetch.mockResolvedValueOnce({ category: createdCategory });
+    await submitCreator(renderer);
+
+    expect(mutationRequests()).toHaveLength(1);
+    const [endpoint, options] = mutationRequests()[0];
+    expect(endpoint).toBe("match-categories-manage");
+    expect(options.method).toBe("POST");
+    expect(JSON.parse(options.body)).toEqual({ action: "create", teamId: "team", name: "Bootcamp", color: "purple" });
+    expect(button(renderer, "Bootcamp").props["aria-pressed"]).toBe(true);
+    expect(button(renderer, "Scrim").props["aria-pressed"]).toBe(true);
+    expect(categoryField(renderer)).toBeUndefined();
+    expect(props.refreshAll).toHaveBeenCalledOnce();
+    expect(enemySelect(renderer, "RED", 0).props.value).toBe("MID");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+
+    apiUploadJson.mockResolvedValueOnce({ match: { id: "saved" } });
+    await click(renderer, "Confirmer l’import");
+    expect(apiUploadJson.mock.calls.at(-1)[1]).toEqual(expect.objectContaining({
+      payload: source, categoryIds: ["scrim", "bootcamp"],
+      enemyLaneAssignments: { TOP: participantValue(8), JGL: participantValue(7), MID: participantValue(6), ADC: participantValue(9), SUP: participantValue(10) },
+    }));
+    expect(props.onImported).toHaveBeenCalledWith({ match: { id: "saved" } });
+  });
+
+  it("selects a category already present with different casing without creating a duplicate", async () => {
+    const { renderer, props } = await mount();
+    await load(renderer);
+    await chooseSide(renderer, "BLUE");
+    await openCreator(renderer, "  lIGUE  ");
+    await submitCreator(renderer);
+    expect(mutationRequests()).toHaveLength(0);
+    expect(props.refreshAll).not.toHaveBeenCalled();
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim", "league"]);
+    expect(button(renderer, "Ligue").props["aria-pressed"]).toBe(true);
+    expect(categoryField(renderer)).toBeUndefined();
+  });
+
+  it("blocks empty creation and clears a cancelled draft without changing selected tags", async () => {
+    const { renderer } = await mount();
+    await load(renderer);
+    await chooseSide(renderer, "BLUE");
+    await openCreator(renderer, "   ");
+    expect(button(renderer, "Créer et sélectionner").props.disabled).toBe(true);
+    await act(async () => creator(renderer).props.onSubmit(submitEvent()));
+    expect(mutationRequests()).toHaveLength(0);
+    await act(async () => categoryField(renderer).props.onChange("À annuler"));
+    await click(renderer, "Annuler");
+    expect(categoryField(renderer)).toBeUndefined();
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim"]);
+    await click(renderer, "Nouvelle catégorie");
+    expect(categoryField(renderer).props.value).toBe("");
+  });
+
+  it("serializes repeated submission and blocks import, reset and another file until creation finishes", async () => {
+    const onBusyChange = vi.fn();
+    const { renderer } = await mount({ onBusyChange });
+    await load(renderer);
+    await chooseSide(renderer, "BLUE");
+    await openCreator(renderer);
+    let resolveCreate;
+    apiFetch.mockImplementationOnce(() => new Promise((resolve) => { resolveCreate = resolve; }));
+    const submit = creator(renderer).props.onSubmit;
+    let pending;
+    await act(async () => {
+      pending = submit(submitEvent());
+      void submit(submitEvent());
+    });
+    expect(mutationRequests()).toHaveLength(1);
+    expect(onBusyChange).toHaveBeenLastCalledWith(true);
+    expect(button(renderer, "Création…").props.disabled).toBe(true);
+    expect(button(renderer, "Réinitialiser").props.disabled).toBe(true);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    expect(renderer.root.findByType(ImporterDownloadPanel).props.fileImporting).toBe(true);
+    await act(async () => {
+      button(renderer, "Confirmer l’import").props.onClick();
+      await renderer.root.findByType(ImporterDownloadPanel).props.onImport({ name: "another.json", size: 2, text: async () => "{}" });
+    });
+    expect(apiUploadJson).toHaveBeenCalledTimes(1);
+    await act(async () => { resolveCreate({ category: createdCategory }); await pending; });
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+  });
+
+  it("keeps the category draft, other tags and assignments after access is refused", async () => {
+    const onBusyChange = vi.fn();
+    const { renderer } = await mount({ onBusyChange });
+    await load(renderer);
+    await chooseSide(renderer, "BLUE");
+    await openCreator(renderer);
+    await act(async () => colorField(renderer).props.onChange("purple"));
+    apiFetch.mockRejectedValueOnce(Object.assign(new Error("Accès team refusé."), { status: 403 }));
+    await submitCreator(renderer);
+    expect(renderer.root.findAllByProps({ role: "alert" }).some((node) => text(node).includes("Accès team refusé."))).toBe(true);
+    expect(categoryField(renderer).props.value).toBe("Bootcamp");
+    expect(colorField(renderer).props.value).toBe("purple");
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim"]);
+    expect(enemySelect(renderer, "RED", 0).props.value).toBe("TOP");
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+    expect(button(renderer, "Créer et sélectionner").props.disabled).toBe(false);
+    expect(apiUploadJson).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["pending", "failed"])("keeps a created tag usable when refreshing shared data is %s", async (refreshState) => {
+    let resolveRefresh;
+    const refreshAll = refreshState === "pending"
+      ? vi.fn(() => new Promise((resolve) => { resolveRefresh = resolve; }))
+      : vi.fn().mockRejectedValue(new Error("Actualisation indisponible"));
+    const onBusyChange = vi.fn();
+    const { renderer } = await mount({ refreshAll, onBusyChange });
+    await load(renderer, undefined, undefined, { selectTag: false });
+    await chooseSide(renderer, "BLUE", { selectTag: false });
+    await openCreator(renderer);
+    apiFetch.mockResolvedValueOnce({ category: createdCategory });
+    let pending;
+    await act(async () => { pending = creator(renderer).props.onSubmit(submitEvent()); });
+    expect(button(renderer, "Bootcamp").props["aria-pressed"]).toBe(true);
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+    expect(onBusyChange).toHaveBeenLastCalledWith(false);
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["bootcamp"]);
+    expect(categoryField(renderer)).toBeUndefined();
+    expect(refreshAll).toHaveBeenCalledOnce();
+    await act(async () => { resolveRefresh?.(); await pending; });
+  });
+
+  it("ignores a shared-data refresh failure after the import has been closed", async () => {
+    let rejectRefresh;
+    const refreshAll = vi.fn(() => new Promise((_resolve, reject) => { rejectRefresh = reject; }));
+    const { renderer, props } = await mount({ refreshAll });
+    await load(renderer);
+    await chooseSide(renderer, "BLUE");
+    await openCreator(renderer);
+    apiFetch.mockResolvedValueOnce({ category: createdCategory });
+    let pending;
+    await act(async () => { pending = creator(renderer).props.onSubmit(submitEvent()); });
+    expect(button(renderer, "Bootcamp").props["aria-pressed"]).toBe(true);
+    expect(refreshAll).toHaveBeenCalledOnce();
+    await act(async () => renderer.unmount());
+    props.pushToast.mockClear();
+    await act(async () => { rejectRefresh(new Error("Actualisation tardive impossible")); await pending; });
+    expect(props.pushToast).not.toHaveBeenCalled();
+  });
+
+  it.each(["team", "permission", "unmount"])("aborts creation on %s changes and ignores a late successful response", async (interruption) => {
+    const onBusyChange = vi.fn();
+    const { renderer, props } = await mount({ onBusyChange });
+    await load(renderer);
+    await chooseSide(renderer, "BLUE");
+    await openCreator(renderer);
+    let resolveCreate;
+    apiFetch.mockImplementationOnce(() => new Promise((resolve) => { resolveCreate = resolve; }));
+    let pending;
+    await act(async () => { pending = creator(renderer).props.onSubmit(submitEvent()); });
+    const signal = mutationRequests()[0][1].signal;
+    expect(signal?.aborted).toBe(false);
+    const interruptedProps = interruption === "team" ? {
+      ...props, selectedTeamId: "other-team", data: {
+        ...props.data,
+        teams: [...props.data.teams, { id: "other-team", owner_id: "owner" }],
+        players: [...props.data.players, ...roles.map((role) => ({ id: `other-${role}`, team_id: "other-team", name: `Autre ${role}`, role }))],
+      },
+    } : { ...props, user: { id: "visitor" }, currentMember: { role: "player", team_id: "team", user_id: "visitor" } };
+    await act(async () => {
+      if (interruption === "unmount") renderer.unmount();
+      else renderer.update(<ImportGameFlow {...interruptedProps} />);
+    });
+    expect(signal.aborted).toBe(true);
+    props.pushToast.mockClear();
+    await act(async () => { resolveCreate({ category: createdCategory }); await pending; });
+    expect(props.refreshAll).not.toHaveBeenCalled();
+    expect(props.pushToast).not.toHaveBeenCalled();
+    if (interruption === "team") {
+      await load(renderer, undefined, undefined, { selectTag: false });
+      await chooseSide(renderer, "BLUE", { selectTag: false });
+      expect(button(renderer, "Bootcamp")).toBeUndefined();
+      expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual([]);
+      expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    }
   });
 });
 

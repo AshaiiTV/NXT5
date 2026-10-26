@@ -107,6 +107,23 @@
 .game-import-enemy select { padding-left: 12px; }
 .game-import-confirmation-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; margin-top: 24px; padding: 24px 0; border-top: 1px solid var(--nxt5-border); }
 .game-import-confirmation-fields > * { min-width: 0; }
+.game-import-categories { display: grid; align-content: start; gap: 12px; min-width: 0; container-type: inline-size; }
+.game-import-categories > button { justify-self: start; }
+.game-import-categories > [role="group"] { min-width: 0; }
+.game-import-categories button[aria-pressed] { max-width: 100%; overflow-wrap: anywhere; }
+.game-import-category-create { display: grid; gap: 12px; padding-top: 16px; border-top: 1px solid var(--nxt5-border); }
+.game-import-category-fields { display: grid; gap: 12px; grid-template-columns: minmax(0, 1fr); }
+.game-import-category-fields > * { min-width: 0; }
+.game-import-category-help, .game-import-category-error { font-size: var(--nxt5-font-small); line-height: 1.6; overflow-wrap: anywhere; }
+.game-import-category-help { color: var(--nxt5-muted); }
+.game-import-category-error { color: var(--nxt5-danger); }
+.game-import-category-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+@container (min-width: 360px) {
+  .game-import-category-fields { grid-template-columns: minmax(0, 1fr) 128px; }
+}
+@container (max-width: 359px) {
+  .game-import-category-actions > button { width: 100%; }
+}
 .game-import-opponent { grid-column: 1 / -1; display: grid; gap: 8px; }
 .game-import-opponent-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
 .game-import-opponent-controls > .nxt5-field { flex: 1 1 18rem; min-width: 0; }
