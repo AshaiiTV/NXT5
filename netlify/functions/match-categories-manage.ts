@@ -63,7 +63,7 @@ export default async function handler(request: Request, context: Context): Promi
     if (!category) throw Object.assign(new Error('Catégorie introuvable.'), { status: 404 });
 
     if (action === 'delete') {
-      if (category.is_default) throw Object.assign(new Error('Scrim est une catégorie de base et ne peut pas être supprimée.'), { status: 400 });
+      if (category.is_default) throw Object.assign(new Error('La catégorie par défaut ne peut pas être supprimée.'), { status: 400 });
       const untaggedMatches = await sql`
         select m.id from matches m
         where m.team_id = ${teamId}
@@ -105,7 +105,6 @@ export default async function handler(request: Request, context: Context): Promi
     }
 
     if (action === 'update') {
-      if (category.is_default && name && name !== category.name) throw Object.assign(new Error('La catégorie Scrim ne peut pas être renommée.'), { status: 400 });
       const results = await sql.transaction(tx => [
         // Share the lock used by membership changes and category deletion.
         // Authorization and the category may have changed since the first read.
@@ -118,7 +117,7 @@ export default async function handler(request: Request, context: Context): Promi
           ))
         ), updated as (
           update match_categories
-          set name = case when is_default then name else coalesce(nullif(${name}, ''), name) end,
+          set name = coalesce(nullif(${name}, ''), name),
               color = ${color}, updated_at = now()
           where id = ${categoryId} and team_id = ${teamId}
             and exists (select 1 from permission)

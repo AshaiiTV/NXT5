@@ -708,18 +708,32 @@ describe("editing existing game categories", () => {
     await act(async () => { refresh.resolve(); await pending; });
   });
 
-  it("keeps the default Scrim name fixed while allowing its color to change", async () => {
-    const renderer = await render();
+  it("renames the default category while preserving its id, game associations and default status", async () => {
+    const props = settings();
+    const associations = props.data.matches.map((match) => ({ id: match.id, categories: [...match.category_ids] }));
+    const renamedDefault = { ...categories[0], name: "Entraînements", color: "blue" };
+    const renderer = await render(props);
     await openCategoryEditor(renderer, "Scrim");
     expect(input(renderer, "Nom de la catégorie").props.value).toBe("Scrim");
-    expect(input(renderer, "Nom de la catégorie").props.disabled).toBe(true);
-    expect(editForm(renderer).findAllByType("p").some((node) => /nom|couleur/i.test(text(node)))).toBe(true);
+    expect(input(renderer, "Nom de la catégorie").props.disabled).not.toBe(true);
+    expect(text(editForm(renderer))).toContain("Cette catégorie reste la catégorie par défaut de l’équipe.");
     expect(button(renderer, "Supprimer la catégorie Scrim")).toBeUndefined();
+    await fill(renderer, "Nom de la catégorie", "Entraînements");
     await filter(renderer, "Couleur", "blue");
-    apiFetch.mockResolvedValueOnce({ category: { ...categories[0], color: "blue" } });
+    apiFetch.mockResolvedValueOnce({ category: renamedDefault });
     await click(renderer, "Enregistrer");
-    expect(payload().body).toEqual({ action: "update", teamId: "team", categoryId: "scrim", name: "Scrim", color: "blue" });
-    expect(button(renderer, "Modifier la catégorie Scrim")).toBeTruthy();
+    expect(payload().body).toEqual({ action: "update", teamId: "team", categoryId: "scrim", name: "Entraînements", color: "blue" });
+    expect(button(renderer, "Modifier la catégorie Entraînements")).toBeTruthy();
+    expect(button(renderer, "Modifier la catégorie Scrim")).toBeUndefined();
+    expect(button(renderer, "Supprimer la catégorie Entraînements")).toBeUndefined();
+    expect(props.data.matches.map((match) => ({ id: match.id, categories: match.category_ids }))).toEqual(associations);
+    const refreshedProps = { ...props, data: { ...props.data, matchCategories: props.data.matchCategories.map((category) => category.id === "scrim" ? renamedDefault : category) } };
+    await act(async () => renderer.update(<Controls {...refreshedProps} />));
+    await click(renderer, "Fermer la fenêtre");
+    await openAction(renderer, "Modifier les informations");
+    expect(button(renderer, "Entraînements").props["aria-pressed"]).toBe(true);
+    expect(renderer.root.findByType(CategoryMultiSelect).props.selectedIds).toEqual(["scrim"]);
+    expect(button(renderer, "Scrim")).toBeUndefined();
   });
 
   it("rejects a blank name locally and restores original values after cancelling", async () => {

@@ -331,10 +331,10 @@ export function GameCategoryManager({ data, selectedTeamId, refreshAll, pushToas
   }}>
     <fieldset disabled={saving}>
       <div className="ih-category-editor-fields">
-        <TextInput label={t("Nom de la catégorie")} value={form.name} onChange={(name) => { setForm((current) => ({ ...current, name })); setError(""); }} placeholder={t("Ligue, Bootcamp…")} required maxLength={80} disabled={Boolean(editingCategory?.is_default)} autoFocus={!editingCategory?.is_default} aria-describedby={error ? `${editorId}-error` : editingCategory?.is_default ? `${editorId}-default` : undefined} />
-        <SelectInput label={t("Couleur")} value={form.color} onChange={(color) => { setForm((current) => ({ ...current, color })); setError(""); }} autoFocus={Boolean(editingCategory?.is_default)}>{form.color === "orange" && <option value="orange">{t("Fuchsia")}</option>}{MATCH_CATEGORY_COLORS.map(([color, label]) => <option key={color} value={color}>{t(label)}</option>)}</SelectInput>
+        <TextInput label={t("Nom de la catégorie")} value={form.name} onChange={(name) => { setForm((current) => ({ ...current, name })); setError(""); }} placeholder={t("Ligue, Bootcamp…")} required maxLength={80} autoFocus aria-describedby={error ? `${editorId}-error` : editingCategory?.is_default ? `${editorId}-default` : undefined} />
+        <SelectInput label={t("Couleur")} value={form.color} onChange={(color) => { setForm((current) => ({ ...current, color })); setError(""); }}>{form.color === "orange" && <option value="orange">{t("Fuchsia")}</option>}{MATCH_CATEGORY_COLORS.map(([color, label]) => <option key={color} value={color}>{t(label)}</option>)}</SelectInput>
       </div>
-      {editingCategory?.is_default && <p id={`${editorId}-default`}>{t("Scrim est la catégorie de base : son nom est conservé, sa couleur est modifiable.")}</p>}
+      {editingCategory?.is_default && <p id={`${editorId}-default`}>{t("Cette catégorie reste la catégorie par défaut de l’équipe.")}</p>}
       <div className="ih-category-preview"><span>{t("Aperçu")}</span><Badge tone={matchCategoryTone({ color: form.color })}>{form.name.trim() || t("Catégorie")}</Badge></div>
       {editingCategory && <p>{t("Le nom et la couleur seront mis à jour sur toutes les parties associées.")}</p>}
       {error && <p id={`${editorId}-error`} role="alert" className="ih-category-error">{t(error)}</p>}

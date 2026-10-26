@@ -7,7 +7,8 @@ const database = vi.hoisted(() => ({
   statements: [] as string[],
   matchQuery: null as null | { query: string; params: unknown[] },
   afterQuery: null as null | ((query: string) => void),
-  beforeBatch: null as null | (() => Promise<void>)
+  beforeBatch: null as null | (() => Promise<void>),
+  beforeCategorySeed: null as null | (() => Promise<void>)
 }));
 
 // Keep the real Neon query builder, parameter encoding and HTTP batch protocol.
@@ -39,8 +40,10 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
       // Inject concurrent changes immediately before a mutation, whether the
       // endpoint uses an atomic batch or the former standalone write.
       if (body.queries || /update matches\s+set review_status|(?:insert into|update|delete from) match_archives/.test(body.query || '')) {
-        const beforeBatch = database.beforeBatch;
-        database.beforeBatch = null;
+        const categorySeed = body.queries?.some((statement: any) => /insert into match_categories/.test(statement.query) && /where not exists/.test(statement.query));
+        const hook = categorySeed ? 'beforeCategorySeed' : 'beforeBatch';
+        const beforeBatch = database[hook];
+        database[hook] = null;
         await beforeBatch?.();
       }
       if (body.queries) {
@@ -66,6 +69,7 @@ import importRiot from '../../netlify/functions/matches-import';
 import { fetchRiotMatch } from '../../netlify/functions/_lib/riot';
 import importFile from '../../netlify/functions/matches-import-file';
 import manageCategories from '../../netlify/functions/match-categories-manage';
+import { seedDefaultMatchCategories } from '../../netlify/functions/_lib/match-categories';
 import manageMatches from '../../netlify/functions/matches-manage';
 import manageArchives from '../../netlify/functions/match-archives-manage';
 import linkAccount from '../../netlify/functions/players-link-account';
@@ -157,6 +161,7 @@ beforeEach(async () => {
   for (const key of ['AWS_LAMBDA_FUNCTION_NAME', 'LAMBDA_TASK_ROOT', 'SITE_ID']) vi.stubEnv(key, '');
   vi.stubEnv('CONTEXT', 'dev');
   database.beforeBatch = null;
+  database.beforeCategorySeed = null;
   database.afterQuery = null;
   await database.pg.exec('alter table match_participants drop constraint if exists reject_test_stat; alter table champion_pool drop constraint if exists reject_pool_refresh; truncate users cascade');
   await database.pg.query('insert into users(id, account_name, name, password_hash) values ($1, $2, $3, $4)', [userId, 'test', 'Test account', 'unused']);
@@ -778,15 +783,64 @@ describe('editing match categories against PostgreSQL', () => {
     expect(await audit()).toEqual([]);
   });
 
-  it('protects the default Scrim name but allows its color to change', async () => {
+  it('renames the default without replacing its ID, associations or default status across reloads and imports', async () => {
     await query('update match_categories set is_default=true where id=$1', [categoryId]);
-    const refused = await submit({ categoryId, name: 'Renamed Scrim' });
+    await persistAnalyzedMatch(importArgs());
+    const before = await storedMatch();
+    const original = await category(categoryId);
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await submit({ categoryId, name: 'Entraînement', color: 'pink' });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ category: { id: categoryId, name: 'Entraînement', color: 'pink', is_default: true } });
+      expect(await storedMatch()).toEqual(before);
+      const reload = await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}`), {} as any);
+      expect(reload.status).toBe(200);
+      const categories = (await reload.json()).matchCategories;
+      expect(categories.filter((row: any) => row.is_default)).toEqual([expect.objectContaining({ id: categoryId, name: 'Entraînement', color: 'pink' })]);
+      expect(categories.some((row: any) => row.name === 'Scrim')).toBe(false);
+    }
+    const reimported = await persistAnalyzedMatch(importArgs(3));
+    expect(reimported.id).toBe(before.matches[0].id);
+    expect((await storedMatch()).matches[0]).toMatchObject({ category_id: categoryId, category_ids: [categoryId] });
+    const created = await submit({ action: 'create', name: 'Practice', color: 'blue' });
+    expect(created.status).toBe(200);
+    expect(await category(categoryId)).toMatchObject({ id: categoryId, created_at: original.created_at, name: 'Entraînement', color: 'pink', is_default: true });
+    expect(await query('select id from match_categories where team_id=$1 and is_default', [teamId])).toEqual([{ id: categoryId }]);
+    expect(await query("select id from match_categories where team_id=$1 and lower(name)='scrim'", [teamId])).toEqual([]);
+    expect((await audit()).map((row: any) => row.metadata)).toEqual([
+      { teamId, name: 'Entraînement', color: 'pink' }, { teamId, name: 'Entraînement', color: 'pink' }
+    ]);
+  });
+
+  it('keeps deletion protection after renaming the default', async () => {
+    await query('update match_categories set is_default=true where id=$1', [categoryId]);
+    expect((await submit({ categoryId, name: 'Entraînement' })).status).toBe(200);
+    const before = await category(categoryId);
+    const refused = await submit({ action: 'delete', categoryId });
     expect(refused.status).toBe(400);
-    expect(await refused.json()).toMatchObject({ error: 'La catégorie Scrim ne peut pas être renommée.' });
+    expect(await refused.json()).toEqual({ error: 'La catégorie par défaut ne peut pas être supprimée.' });
+    expect(await category(categoryId)).toEqual(before);
+    expect(await query("select id from audit_logs where action='match_categories.delete'")).toEqual([]);
+  });
+
+  it('rejects a duplicate name when renaming the default without changing it', async () => {
+    await query('update match_categories set is_default=true where id=$1', [categoryId]);
+    const before = await category(categoryId);
+    const response = await submit({ categoryId, name: 'TOURNAMENT' });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'NXT5_CATEGORY_NAME_CONFLICT' });
+    expect(await category(categoryId)).toEqual(before);
     expect(await audit()).toEqual([]);
-    const accepted = await submit({ categoryId, name: 'Scrim', color: 'pink' });
-    expect(accepted.status).toBe(200);
-    expect(await category(categoryId)).toMatchObject({ name: 'Scrim', color: 'pink', is_default: true });
+  });
+
+  it('does not seed another default when a rename commits while initialization is pending', async () => {
+    await query('update match_categories set is_default=true where id=$1', [categoryId]);
+    database.beforeCategorySeed = async () => {
+      expect((await submit({ categoryId, name: 'Entraînement' })).status).toBe(200);
+    };
+    await Promise.all(Array.from({ length: 4 }, () => seedDefaultMatchCategories([teamId], userId)));
+    expect(await query('select id,name from match_categories where team_id=$1 and is_default', [teamId])).toEqual([{ id: categoryId, name: 'Entraînement' }]);
+    expect(await query("select id from match_categories where team_id=$1 and lower(name)='scrim'", [teamId])).toEqual([]);
   });
 
   it.each([false, true])('reports an existing or concurrently created duplicate name (concurrent=%s)', async concurrent => {
@@ -845,6 +899,36 @@ describe('editing match categories against PostgreSQL', () => {
     } finally {
       await database.pg.exec('alter table audit_logs drop constraint reject_category_update_audit');
     }
+  });
+});
+
+describe('default match category initialization against PostgreSQL', () => {
+  const query = async (statement: string, params: unknown[] = []) => (await database.pg.query(statement, params)).rows;
+
+  it('initializes a new team exactly once across concurrent and repeated calls', async () => {
+    await query('delete from match_categories where team_id=$1', [teamId]);
+    await Promise.all(Array.from({ length: 4 }, () => seedDefaultMatchCategories([teamId, teamId], userId)));
+    const before = await query('select * from match_categories where team_id=$1', [teamId]);
+    expect(before).toEqual([expect.objectContaining({ team_id: teamId, created_by: userId, name: 'Scrim', color: 'cyan', is_default: true })]);
+    await seedDefaultMatchCategories([teamId], userId);
+    expect(await query('select * from match_categories where team_id=$1', [teamId])).toEqual(before);
+  });
+
+  it('does not let a renamed default in another team prevent initialization', async () => {
+    await query('delete from match_categories where team_id=$1', [teamId]);
+    await query("update match_categories set is_default=true,name='Entraînement privé' where id=$1", [foreignCategoryId]);
+    const foreignBefore = await query('select * from match_categories where team_id=$1', [otherTeamId]);
+    await seedDefaultMatchCategories([teamId], userId);
+    expect(await query('select name,is_default from match_categories where team_id=$1', [teamId])).toEqual([{ name: 'Scrim', is_default: true }]);
+    expect(await query('select * from match_categories where team_id=$1', [otherTeamId])).toEqual(foreignBefore);
+  });
+
+  it('preserves an existing custom Scrim instead of promoting or recoloring it', async () => {
+    await query("update match_categories set color='blue' where id=$1", [categoryId]);
+    const before = await query('select * from match_categories where team_id=$1 order by id', [teamId]);
+    await seedDefaultMatchCategories([teamId], userId);
+    await seedDefaultMatchCategories([teamId], userId);
+    expect(await query('select * from match_categories where team_id=$1 order by id', [teamId])).toEqual(before);
   });
 });
 
