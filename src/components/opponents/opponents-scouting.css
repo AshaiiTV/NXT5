@@ -1,0 +1,81 @@
+/* Compact scouting keeps the current groups, results and draft replays. */
+.opponents-scouting-layout { display: grid; grid-template-columns: minmax(15rem,.8fr) minmax(0,2fr); align-items: start; gap: 20px; }
+.opponents-scouting-layout[data-selected="false"] { grid-template-columns: minmax(0,1fr); }
+.opponents-directory-wrap, .opponents-dossier-wrap { min-width: 0; }
+.opponents-dossier-wrap { display: grid; gap: 12px; }
+.opponents-mobile-picker { display: none; }
+.opponents-scouting-layout[data-selected="true"] .opponent-directory-heading { gap: 12px; }
+.opponents-scouting-layout[data-selected="true"] .opponent-directory-heading > div:first-child { flex-basis: 100%; }
+.opponents-scouting-layout[data-selected="true"] .opponent-directory-heading h2 { font-size: 18px; }
+.opponents-scouting-layout[data-selected="true"] .opponent-directory-actions, .opponents-scouting-layout[data-selected="true"] .opponent-directory-actions > button { width: 100%; }
+.opponents-scouting-layout[data-selected="true"] .opponent-directory-filters { grid-template-columns: minmax(0,1fr); gap: 12px; margin-top: 16px; }
+.opponents-scouting-layout[data-selected="true"] .opponent-directory-grid { grid-template-columns: minmax(0,1fr); max-height: 36rem; overflow-y: auto; padding: 4px; margin: 0 -4px; gap: 10px; scrollbar-width: thin; }
+.opponents-scouting-layout[data-selected="true"] .opponent-directory-card { padding: 12px; gap: 10px; border-radius: 10px; }
+.opponents-scouting-layout[data-selected="true"] .opponent-card-title > strong { font-size: 16px; }
+.opponents-scouting-layout[data-selected="true"] .opponent-card-last { display: flex; flex-wrap: wrap; gap: 4px 8px; }
+.opponent-directory-card[aria-pressed="true"] { border-color: var(--nxt5-accent); box-shadow: inset 3px 0 var(--nxt5-accent), inset 0 1px var(--nxt5-glass-highlight); }
+.opponents-scouting-layout .opponent-dossier-identity { flex-basis: 15rem; align-items: center; }
+.opponents-scouting-layout .opponent-dossier-identity h2 { font-size: 26px; }
+.opponents-scouting-layout .opponent-dossier-identity > .opponent-team-mark { width: 48px; height: 48px; }
+.opponents-scouting-layout .opponent-dossier-heading { align-items: center; gap: 12px; }
+.opponents-scouting-layout .opponent-dossier-metrics { margin: 16px 0; }
+.opponents-scouting-layout .opponent-dossier-metrics > div { padding: 12px; }
+.opponents-scouting-layout .opponent-dossier-metrics dd { font-size: 20px; margin: 2px 0; }
+.opponents-scouting-layout .opponent-dossier-metrics > div > span { font-size: 14px; }
+.opponents-scouting-layout .opponent-dossier-metrics > div:first-child > span, .opponents-scouting-layout .opponent-dossier-metrics > div:last-child > span { display: none; }
+.opponents-scouting-layout .opponent-staff-notes { margin-bottom: 12px; }
+.opponents-scouting-layout .opponent-dossier-tabs { margin-top: 12px; }
+.opponents-scouting-layout .opponent-dossier-panel { padding-top: 20px; }
+.opponents-scouting-layout .opponents-frequencies { gap: 16px; }
+.opponents-scouting-layout .opponents-frequency { min-width: 0; padding: 16px; border: 1px solid var(--nxt5-glass-border); border-radius: 12px; background: radial-gradient(ellipse at 0 0,rgba(103,232,249,.08),transparent 65%),var(--nxt5-field); }
+.opponents-scouting-layout .opponents-frequency[data-kind="bans"] { background: radial-gradient(ellipse at 100% 0,rgba(232,121,249,.09),transparent 65%),var(--nxt5-field); }
+.opponents-frequency > h3 { margin: 0 0 8px; font-size: 16px; font-weight: 650; }
+.opponents-scouting-layout .opponents-frequency ul { list-style: none; margin: 0; padding: 0; }
+.opponents-scouting-layout .opponents-frequency li { display: block; min-width: 0; padding: 0; border-bottom: 1px solid var(--nxt5-border); }
+.opponents-frequency :is(button,.opponents-frequency-static) { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 4px 10px; width: 100%; min-height: 72px; padding: 10px 4px; text-align: start; border-radius: 2px; color: var(--nxt5-text); }
+.opponents-frequency button { cursor: pointer; transition: background 160ms; }
+.opponents-frequency button:hover, .opponents-frequency button[aria-pressed="true"] { background: rgba(103,232,249,.08); }
+.opponents-frequency button[aria-pressed="true"] { box-shadow: inset 2px 0 var(--nxt5-accent); }
+.opponents-scouting-layout .opponents-frequency-champion { gap: 10px; font-size: 15px; }
+.opponents-scouting-layout .opponents-frequency-champion > span:first-child { display: block; width: 44px; height: 44px; overflow: hidden; border-radius: 6px; }
+.opponents-frequency-champion img, .opponents-frequency-champion > span:first-child > div { width: 100%; height: 100%; object-fit: cover; }
+.opponents-frequency meter { grid-column: 1 / -1; width: calc(100% - 54px); height: 4px; margin-inline-start: 54px; border: 0; border-radius: 2px; overflow: hidden; background: var(--nxt5-surface-raised); appearance: none; }
+.opponents-frequency meter::-webkit-meter-bar { height: 4px; border: 0; border-radius: 2px; background: var(--nxt5-surface-raised); }
+.opponents-frequency meter::-webkit-meter-optimum-value { background: var(--nxt5-accent); }
+.opponents-frequency meter::-moz-meter-bar { background: var(--nxt5-accent); }
+.opponents-frequency[data-kind="bans"] meter::-webkit-meter-optimum-value { background: var(--nxt5-accent-2); }
+.opponents-frequency[data-kind="bans"] meter::-moz-meter-bar { background: var(--nxt5-accent-2); }
+.opponents-frequency-empty { padding: 16px 0; color: var(--nxt5-muted); font-size: 14px; }
+.opponents-more-champions > summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; cursor: pointer; list-style: none; font-size: 14px; color: var(--nxt5-text-secondary); }
+.opponents-more-champions > summary::-webkit-details-marker { display: none; }
+.opponents-more-champions[open] > summary svg { transform: rotate(180deg); }
+.opponents-filter-status { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 12px; color: var(--nxt5-accent); }
+.opponent-history h3[tabindex] { scroll-margin-top: 140px; }
+@container (max-width: 1000px) {
+  .opponents-scouting-layout { grid-template-columns: minmax(13rem,.8fr) minmax(0,2fr); gap: 16px; }
+  .opponents-scouting-layout .opponents-frequencies { grid-template-columns: minmax(0,1fr); }
+}
+@container (max-width: 740px) {
+  .opponents-scouting-layout { grid-template-columns: minmax(0,1fr); }
+  .opponents-mobile-picker { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 12px 16px; border: 1px solid var(--nxt5-border-strong); border-radius: 10px; background: var(--nxt5-field); color: var(--nxt5-text-secondary); text-align: start; }
+  .opponents-mobile-picker > span { display: grid; flex: 1; min-width: 0; gap: 2px; font-size: 14px; }
+  .opponents-mobile-picker strong { color: var(--nxt5-text); font-size: 16px; overflow-wrap: anywhere; }
+  .opponents-mobile-picker > svg { flex: none; color: var(--nxt5-accent); }
+  .opponents-mobile-picker[aria-expanded="true"] > svg:last-child { transform: rotate(180deg); }
+  .opponents-mobile-picker:disabled { opacity: .65; cursor: wait; }
+  .opponents-scouting-layout[data-directory-open="false"] .opponents-directory-wrap { display: none; }
+  .opponents-scouting-layout[data-selected="true"] .opponent-directory-grid { max-height: 20rem; }
+  .opponents-scouting-layout .opponents-frequencies { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@container (max-width: 570px) {
+  .opponents-scouting-layout .opponents-frequencies { grid-template-columns: minmax(0,1fr); }
+  .opponents-scouting-layout .opponents-frequency { padding: 12px; }
+  .opponents-scouting-layout .opponent-dossier-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .opponents-scouting-layout .opponent-dossier-metrics > div { display: block; padding: 12px; border-top: 0; }
+  .opponents-scouting-layout .opponent-dossier-metrics dd { grid-column: auto; grid-row: auto; margin-top: 4px; }
+  .opponents-scouting-layout .opponent-dossier-metrics > div:last-child { border-left: 1px solid var(--nxt5-border); }
+  .opponents-scouting-layout .opponent-dossier-metrics > div:nth-child(2) { order: 3; grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0,1fr) auto; border-left: 0; border-top: 1px solid var(--nxt5-border); }
+  .opponents-scouting-layout .opponent-dossier-metrics > div:nth-child(2) dd { grid-column: 2; grid-row: 1; margin: 0; }
+  .opponents-scouting-layout .opponent-dossier-metrics > div:nth-child(2) > span { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: reduce) { .opponents-frequency button { transition: none; } }

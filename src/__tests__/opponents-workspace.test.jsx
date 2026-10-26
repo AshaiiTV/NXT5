@@ -374,8 +374,8 @@ describe("opponent game dossiers", () => {
     expect(renderedText()).toContain("1 équipe affichée sur 3");
     expect(text(button("Équipe Boréale"))).toContain("1 partie rattachée");
     await click("Équipe Boréale");
-    expect(dossierName()).toBe("Équipe Boréale"); expect(directoryNames()).toHaveLength(0);
-    expect(renderer.root.findAllByType("input")).toHaveLength(0);
+    expect(dossierName()).toBe("Équipe Boréale"); expect(directoryNames()).toEqual(["Équipe Boréale"]);
+    expect(field("Rechercher une équipe").props.value).toBe("  BOREALE equipe  ");
     await click("Toutes les équipes");
     expect(field("Rechercher une équipe").props.value).toBe("  BOREALE equipe  ");
     expect(field("Tri des équipes").props.value).toBe("name");

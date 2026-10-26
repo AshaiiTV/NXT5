@@ -1,3 +1,4 @@
+import { en as scoutingEn, es as scoutingEs } from './opponents-scouting-overrides.js';
 // Opponent dossiers and public Drafter imports, including server feedback.
 const directoryTranslations = {
   "Ajouter": ["Add", "Añadir"],
@@ -277,6 +278,7 @@ export const en = {
   "L’ordre n’est pas vérifié pour cet import. Réimporte la draft pour vérifier ses emplacements de sélection.": "The order has not been verified for this import. Import the draft again to verify its selection slots.",
   "Ordre reconstitué depuis les emplacements finaux et le premier camp de sélection de Drafter. Les remplacements de champions et leurs horaires ne sont pas fournis ; les rôles finaux ne déterminent pas cet ordre.": "Order reconstructed from Drafter's final slots and first-picking side. Champion swaps and their timestamps are not provided; final roles do not determine this order.",
   "Certaines drafts sans camp ou source valide sont exclues de cette analyse.": "Some drafts without a valid side or source are excluded from this analysis.",
+  ...scoutingEn,
 };
 
 export const es = {
@@ -491,4 +493,5 @@ export const es = {
   "L’ordre n’est pas vérifié pour cet import. Réimporte la draft pour vérifier ses emplacements de sélection.": "El orden no se ha verificado para esta importación. Vuelve a importar el draft para verificar sus posiciones de selección.",
   "Ordre reconstitué depuis les emplacements finaux et le premier camp de sélection de Drafter. Les remplacements de champions et leurs horaires ne sont pas fournis ; les rôles finaux ne déterminent pas cet ordre.": "Orden reconstruido a partir de las posiciones finales y del lado que elige primero en Drafter. No se indican los cambios de campeón ni sus momentos; los roles finales no determinan este orden.",
   "Certaines drafts sans camp ou source valide sont exclues de cette analyse.": "Algunos drafts sin un lado o una fuente válidos se excluyen de este análisis.",
+  ...scoutingEs,
 };
