@@ -136,7 +136,7 @@ describe("visual draft board", () => {
     await mount({ snapshot: { ...snapshot, bluePicks: [...snapshot.bluePicks.slice(0, 4), null] } });
     expectRevealed(allChampions.filter(champion => champion !== "Ahri"));
     expect(text()).toContain("Non renseigné");
-    expect(text()).toContain("Ordre de sélection indisponible");
+    expect(text()).toContain("Ordre non vérifié");
     expect(renderer.root.findAllByProps({ type: "range" })).toHaveLength(0);
   });
 

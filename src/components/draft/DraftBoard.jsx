@@ -106,14 +106,14 @@ function DraftBoardView({ snapshot, allySide }) {
         <ol className="draft-board-bans" aria-label={t("Bans de {0}", [snapshot[`${side}Name`] || sideLabel(side)])}>{[1, 2, 3, 4, 5].map((slot) => <DraftSlot key={slot} slot={slots.get(slotKey(side, "ban", slot))} step={step} ordered={ordered} onStep={setStep} />)}</ol>
       </section>)}
     </div>
-    {ordered ? <>
+    {ordered && <>
       <div className="draft-board-timeline" aria-label={t("Accès direct aux étapes de la draft")}>{PHASES.map((group) => <section key={group.title} className="draft-board-phase"><h5>{t(group.title)}</h5><ol>{order.events.filter((event) => event.phase === group.phase && event.kind === group.kind).map((event) => {
         const slot = slots.get(slotKey(event.side, event.kind, event.slot));
         return <li key={event.order}><button type="button" data-side={event.side} data-revealed={event.order <= step} aria-current={event.order === step ? "step" : undefined} onClick={() => setStep(event.order)} aria-label={t("Étape {0} : {1} · {2}", [event.order, event.label, event.order <= step ? slotValue(slot) : t("À révéler")])}><span>{event.order}</span><b>{event.label}</b></button></li>;
       })}</ol></section>)}</div>
       <p className="draft-board-note">{t("Clique sur un choix ou avance dans les étapes. B et R désignent les camps bleu et rouge ; une rota regroupe les picks consécutifs d’un camp, pas les rôles joués.")}</p>
       <details className="draft-board-provenance"><summary>{t("Comment cet ordre est-il reconstitué ?")}</summary><p>{t(order.message)}</p></details>
-    </> : <div className="draft-board-unavailable"><strong>{t("Ordre de sélection indisponible pour cet import.")}</strong><p>{t(order.message)}</p></div>}
+    </>}
   </section>;
 }
 

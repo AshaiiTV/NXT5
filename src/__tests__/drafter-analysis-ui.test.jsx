@@ -141,7 +141,7 @@ describe("Drafter analysis interface", () => {
   });
   it("does not invent an order for a legacy snapshot", async () => {
     await act(async () => { renderer = TestRenderer.create(<DraftChronology snapshot={{ ...snapshot, orderEvidence: undefined }} allySide="blue" />); });
-    expect(text()).toContain("Ordre de sélection indisponible");
+    expect(text()).toContain("Ordre non vérifié");
     expect(text()).toContain("Draft finale");
     expect(text()).toContain("Aatrox"); expect(text()).toContain("Yunara");
     expect(renderer.root.findAllByProps({ type: "range" })).toHaveLength(0);
