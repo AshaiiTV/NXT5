@@ -11,6 +11,7 @@ import { ModalDialog } from "../ui/ModalDialog.jsx";
 import { RoleIcon } from "../brand/BrandAssets.jsx";
 import { ChampionPortrait, championDisplayName } from "../../pages/workspace/workspace-shared.jsx";
 import MatchGoldChart from "./MatchGoldChart.jsx";
+import DebriefAnalysis from "./DebriefAnalysis.jsx";
 import { MatchLineups } from "./MatchHeadToHead.jsx";
 import "./visual-debrief.css";
 
@@ -177,6 +178,7 @@ function Session({ matches, team, categories, focus, selectedId, onSelect, onOpe
     </div>
     <StaffFocus focus={focus} />
     <Moments key={actualId} match={match} snapshot={snapshot} />
+    <DebriefAnalysis snapshot={snapshot} />
     <ReadingDetails key={`players-${actualId}`} className="vd-players" title={<span className="vd-players-title"><Users aria-hidden="true" />{t("Les joueurs de la partie")}</span>}>
       <MatchLineups snapshot={snapshot} />
       <div className="vd-player-stats">{["ALLY", "ENEMY"].map((teamKey) => <div key={teamKey}><h5>{teamLabel(teamKey)}</h5><div className="vd-player-stat-head"><span>{t("Joueur")}</span><span>{t("Éliminations / morts / assistances")}</span></div>{snapshot.participants.filter((row) => row.teamKey === teamKey).map((row, index) => <div key={`${row.participantId}-${index}`} className="vd-player-stat"><span><RoleIcon role={row.role} className="vd-player-role" /><span>{playerName(row.name)}</span></span><strong>{number(row.kills)} / {number(row.deaths)} / {number(row.assists)}</strong></div>)}</div>)}</div>

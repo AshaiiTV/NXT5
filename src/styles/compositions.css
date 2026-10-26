@@ -151,50 +151,54 @@ button.nxt5-composition-selection-preview:hover { border-color: var(--nxt5-accen
 }
 
 /* Shared filters and aligned mastery rows keep all five pools comparable. */
-.nxt5-composition-bank { min-width: 0; margin-top: 1.5rem; padding: 1.25rem; border: 1px solid var(--composition-edge, var(--nxt5-border)); border-radius: var(--nxt5-radius-panel); background: linear-gradient(160deg, rgba(103,232,249,.025), rgba(196,181,253,.025)), var(--nxt5-field); }
+.nxt5-composition-bank { min-width: 0; margin-top: 1rem; padding: 1rem; border: 1px solid var(--composition-edge, var(--nxt5-border)); border-radius: var(--nxt5-radius-panel); background: linear-gradient(160deg, rgba(103,232,249,.025), rgba(196,181,253,.025)), var(--nxt5-field); }
 .nxt5-composition-bank-heading { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 1rem 2rem; }
 .nxt5-composition-bank-heading > h4 { min-width: 0; flex: 1 1 12rem; }
 .nxt5-composition-bank-heading > .nxt5-field { flex: 0 1 19rem; min-width: min(100%, 12rem); }
 .nxt5-composition-bank-heading h4 { margin-top: .25rem; font-size: 1.25rem; font-weight: 650; overflow-wrap: anywhere; }
-.nxt5-composition-bank-filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.25rem; }
+.nxt5-composition-bank-filters { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
 .nxt5-composition-bank-filters button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 44px; padding: .5rem .75rem; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-button); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 600; transition: background-color 140ms, border-color 140ms; }
 .nxt5-composition-bank-filters button > span:last-child { color: var(--nxt5-muted); font-size: var(--nxt5-font-micro); font-variant-numeric: tabular-nums; }
+.nxt5-composition-bank-filters button > span:first-child:not(:last-child) { width: 24px; height: 24px; }
 .nxt5-composition-bank-filters button:hover { border-color: var(--nxt5-border-strong); background: var(--nxt5-surface-soft); }
 .nxt5-composition-bank-filters button[aria-pressed="true"] { border-color: var(--nxt5-accent); color: var(--nxt5-accent); background: var(--nxt5-spectrum-soft); }
 .nxt5-composition-bank-filters button:focus-visible, .nxt5-composition-team-scroll:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
 .nxt5-composition-bank-result { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-.nxt5-composition-team-scroll { max-width: 100%; overflow-x: auto; margin-top: 1.25rem; padding: 3px 3px .75rem; scrollbar-width: thin; scrollbar-color: var(--nxt5-accent-2) var(--nxt5-field); }
-.nxt5-composition-team-pools { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); min-width: 1000px; gap: .75rem; }
+.nxt5-composition-team-scroll { max-width: 100%; overflow-x: auto; margin-top: .75rem; padding: 3px 3px .5rem; scrollbar-width: thin; scrollbar-color: var(--nxt5-accent-2) var(--nxt5-field); }
+.nxt5-composition-team-pools { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); min-width: 1000px; gap: .5rem; }
 .nxt5-composition-team-role { display: grid; grid-template-rows: subgrid; grid-row: span 5; min-width: 0; padding: .5rem; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-control); }
 .nxt5-composition-team-role.is-active { border-color: var(--nxt5-accent); background: var(--nxt5-spectrum-soft); }
 .nxt5-composition-team-pools[data-tier-count="3"] > .nxt5-composition-team-role { grid-row: span 4; }
 .nxt5-composition-team-pools[data-tier-count="2"] > .nxt5-composition-team-role { grid-row: span 3; }
 .nxt5-composition-team-pools[data-tier-count="1"] > .nxt5-composition-team-role { grid-row: span 2; }
 .nxt5-composition-team-pools[data-tier-count="0"] > .nxt5-composition-team-role { grid-row: span 1; }
-.nxt5-composition-team-heading h5 { display: flex; align-items: center; gap: .5rem; font-size: var(--nxt5-font-ui); font-weight: 650; }
-.nxt5-composition-team-heading p { margin-top: .5rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; overflow-wrap: anywhere; }
-.nxt5-composition-team-tier { min-width: 0; padding-top: .75rem; border-top: 1px solid var(--nxt5-border); }
-.nxt5-composition-team-tier-heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .75rem; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); font-variant-numeric: tabular-nums; }
+.nxt5-composition-team-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .5rem; padding-bottom: .5rem; }
+.nxt5-composition-team-heading h5 { display: flex; align-items: center; gap: .375rem; font-size: var(--nxt5-font-ui); font-weight: 650; }
+.nxt5-composition-team-heading p { min-width: 0; margin: 0; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; overflow-wrap: anywhere; }
+.nxt5-composition-team-tier { min-width: 0; padding-top: .5rem; padding-bottom: .5rem; border-top: 1px solid var(--nxt5-border); }
+.nxt5-composition-team-tier-heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); font-variant-numeric: tabular-nums; }
+.nxt5-composition-team-tier-heading > span:first-child > span { width: 24px; height: 24px; border-radius: 6px; }
+.nxt5-composition-team-tier-heading svg { width: 16px; height: 16px; }
 .nxt5-composition-bank .nxt5-composition-pick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; align-content: start; }
-.nxt5-composition-bank .nxt5-composition-pick { background: var(--nxt5-surface-soft); padding: .25rem; }
+.nxt5-composition-bank .nxt5-composition-pick { align-items: center; justify-content: flex-start; gap: .25rem; min-height: 44px; background: var(--nxt5-surface-soft); padding: .25rem; text-align: center; }
+.nxt5-composition-bank .nxt5-composition-pick-portrait { flex: 0 0 32px; width: 32px; height: 32px; border-radius: 4px; }
+.nxt5-composition-bank .nxt5-composition-pick-check { right: 0; bottom: 0; width: 16px; height: 16px; }
+.nxt5-composition-bank .nxt5-composition-pick-check svg { width: 12px; height: 12px; }
 .nxt5-composition-bank .nxt5-composition-pick-name { padding: 0; }
 .nxt5-composition-team-empty { padding-block: .5rem; color: var(--nxt5-muted); text-align: center; }
 .nxt5-composition-pick-check { position: absolute; display: grid; place-items: center; inset: auto .25rem .25rem auto; width: 24px; height: 24px; border-radius: 50%; background: var(--nxt5-accent); color: var(--nxt5-on-accent); }
 .nxt5-composition-bank-empty { display: grid; justify-items: start; gap: 1rem; padding: 1.25rem 0; color: var(--nxt5-muted); }
 .nxt5-composition-glossary-toggle { margin-top: 1.5rem; }
 @container compositions (max-width: 700px) {
-  .nxt5-composition-bank { padding: 1rem; }
+  .nxt5-composition-bank { padding: .75rem; }
   .nxt5-composition-bank-heading > .nxt5-field { flex: 1 1 100%; }
 }
 @container compositions (max-width: 620px) {
   .nxt5-composition-bank-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .nxt5-composition-bank-filters button { flex-direction: column; gap: .25rem; justify-content: center; padding: .5rem .375rem; overflow-wrap: anywhere; }
+  .nxt5-composition-bank-filters button { gap: .375rem; justify-content: center; padding: .5rem .375rem; overflow-wrap: anywhere; }
   .nxt5-composition-bank-filters button > span { display: none; }
   .nxt5-composition-bank-filters button > span:first-child:not(:last-child) { display: inline-flex; width: 24px; height: 24px; }
   .nxt5-composition-bank-filters button:first-child { grid-column: 1 / -1; }
-}
-@container compositions (min-width: 1500px) {
-  .nxt5-composition-bank .nxt5-composition-pick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @container compositions (max-width: 600px) {
   .nxt5-compositions-page textarea, .nxt5-composition-slot select { font-size: var(--nxt5-font-body); }

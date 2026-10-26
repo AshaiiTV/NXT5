@@ -1,4 +1,12 @@
 const copy = [
+  ["Un débrief relie les observations et décisions de l’équipe à une ou plusieurs parties. En 10 secondes présente le résumé visuel de la partie sélectionnée.", "A debrief links the team’s observations and decisions to one or more games. In 10 seconds shows a visual summary of the selected game.", "Un análisis postpartida vincula las observaciones y decisiones del equipo a una o varias partidas. En 10 segundos muestra el resumen visual de la partida seleccionada."],
+  ["Dans Les écarts par poste, comparer l’or final, les dégâts et la vision de la partie sélectionnée. Ouvrir les notes de l’équipe au clic ; Éditer permet de les compléter selon tes droits.", "Use Role differences to compare final gold, damage and vision in the selected game. Open team notes with a click; use Edit to update them if you have permission.", "Consulta Diferencias por posición para comparar el oro final, el daño y la visión de la partida seleccionada. Abre las notas del equipo con un clic; Editar permite completarlas si tienes permiso."],
+  ["Les écarts par poste", "Role differences", "Diferencias por posición"],
+  ["Statistique comparée", "Compared statistic", "Estadística comparada"],
+  ["Comparaison par poste", "Role comparison", "Comparación por posición"],
+  ["Rôle non confirmé", "Unconfirmed role", "Posición sin confirmar"],
+  ["— : donnée absente ou rôle non confirmé", "—: missing data or unconfirmed role", "—: dato ausente o posición sin confirmar"],
+  ["Aucune observation enregistrée.", "No notes recorded.", "No hay observaciones guardadas."],
   ["Larves", "Grubs", "Larvas"],
   ["Larve", "Void Grub", "Larva del Vacío"],
   ["Héraut", "Rift Herald", "Heraldo"],

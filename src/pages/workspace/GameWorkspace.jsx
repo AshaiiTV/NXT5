@@ -1772,17 +1772,11 @@ function ReportPreview({ content, rows, matches = [], matchIds = [], team, categ
     {notes.trim() && <ReadingDetails className="games-review-notes" title={boundary ? t("Notes de l’équipe") : t("Notes et débrief conservés")}>
       {renderReportContent(notes, rows)}
     </ReadingDetails>}
-    {boundary && <ReadingDetails className="games-review-generated" title={t("Analyse automatique des parties")} description={t("Constats et pistes à confronter à la vidéo.")}>
-      {renderReportContent(text.slice(0, boundary.index), rows)}
-    </ReadingDetails>}
   </div>;
   return <div className="games-report-preview">
     {boundary ? <>
       <h4 className="games-section-heading">{t("Notes de l’équipe")}</h4>
-      {notes.trim() ? renderReportContent(notes, rows) : <p>{t("Aucune observation enregistrée. Ouvre l’analyse des parties pour préparer le débrief, puis ajoute les décisions de l’équipe.")}</p>}
-      <ReadingDetails className="mt-6" title={t("Analyse automatique des parties")} description={t("Constats et pistes à confronter à la vidéo.")}>
-        {renderReportContent(text.slice(0, boundary.index), rows)}
-      </ReadingDetails>
+      {notes.trim() ? renderReportContent(notes, rows) : <p>{t("Aucune observation enregistrée.")}</p>}
     </> : text.trim() ? renderReportContent(text, rows) : <p className="text-sm font-semibold text-slate-300">{t("L’aperçu apparaîtra ici.")}</p>}
   </div>;
 }
@@ -2008,9 +2002,8 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   const reviewDetails = useReviewMatchDetails(selectedTeamId, activeReviewIds, data.bootstrapRevision || "");
   const matches = [...new Map([...baseMatches, ...(requestedMatch ? [requestedMatch] : []), ...reviewDetails.matches].map((match) => [match.id, match])).values()];
   const scopedMatches = selectedArchive ? matches.filter((match) => archiveMatchIds(selectedArchive).includes(match.id)) : matches;
-  const selectedContent = useMemo(() => selected && !composerOpen && reviewDetails.complete
-    ? buildRetroactiveCoachContent(selected, reviewDetails.matches, undefined, archives)
-    : selected?.content || "", [selected, composerOpen, reviewDetails.complete, reviewDetails.matches, archives]);
+  // Reading uses live match facts and the saved notes; no hidden essay is regenerated.
+  const selectedContent = selected?.content || "";
   const formCoaching = useMemo(() => composerOpen && reviewDetails.complete
     ? buildRetroactiveCoachContent({ title: form.title, content: "", match_ids: form.matchIds }, reviewDetails.matches, "", archives)
     : "", [composerOpen, form.title, form.matchIds, reviewDetails.complete, reviewDetails.matches, archives]);
