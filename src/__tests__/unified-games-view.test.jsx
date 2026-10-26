@@ -8,11 +8,12 @@ import DiscordGroupShare from "../components/discord/DiscordGroupShare.jsx";
 import { ImportedGames } from "../components/games/ImportedGames.jsx";
 import { MatchHeadToHead } from "../components/games/MatchHeadToHead.jsx";
 import { MatchKillMap } from "../components/games/MatchKillMap.jsx";
+import MatchGoldChart from "../components/games/MatchGoldChart.jsx";
 import OpponentsWorkspace from "../components/opponents/OpponentsWorkspace.jsx";
 import MatchDrafterPanel from "../components/opponents/MatchDrafterPanel.jsx";
 import MatchOpponentPanel from "../components/opponents/MatchOpponentPanel.jsx";
 import { TabNav } from "../components/ui/Core.jsx";
-import { GameWorkspace, MatchDataPanel } from "../pages/workspace/GameWorkspace.jsx";
+import { GameWorkspace, MatchDataPanel, MatchTimelineReview } from "../pages/workspace/GameWorkspace.jsx";
 import { GameActions, ImportGameFlow } from "../pages/workspace/GameOperations.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), apiUploadJson: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -290,7 +291,7 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
     const calls = apiFetch.mock.calls.filter(([endpoint]) => endpoint === "opponents-drafts").map(([, options]) => JSON.parse(options.body));
     expect(calls).toEqual([{ action: "get-match-opponent", teamId: "team", matchId: "one" }, { action: "get-match-draft", teamId: "team", matchId: "one" }]);
-    for (const label of ["Drafting", "Face-à-face", "Drafting", "Chronologie", "Récap"]) {
+    for (const label of ["Drafting", "Face-à-face", "Drafting", "Débrief"]) {
       await click(renderer, label);
       expect(renderer.root.findByType(MatchDrafterPanel)).toBe(draft);
       expect(visible(draft)).toBe(label === "Drafting");
@@ -402,7 +403,7 @@ describe("unified Games workspace", () => {
     expect(button(renderer, "Importer une partie")).toBeTruthy();
   });
 
-  it("keeps both map placements aware of detail loading, failure and retry", async () => {
+  it("keeps the combined debrief aware of detail loading, failure and retry", async () => {
     const original = apiFetch.getMockImplementation();
     const requests = [];
     apiFetch.mockImplementation((endpoint, options) => endpoint === "match-details"
@@ -410,20 +411,28 @@ describe("unified Games workspace", () => {
       : original(endpoint, options));
     const renderer = await mount("/games?match=one");
     const map = () => renderer.root.findByType(MatchKillMap);
+    const journal = () => renderer.root.findByType(MatchTimelineReview);
     expect(map().props).toMatchObject({ loading: true, error: "" });
-    await click(renderer, "Chronologie");
+    expect(journal().props).toMatchObject({ loading: true, error: "" });
+    expect(text(journal())).not.toContain("Aucun moment clé exploitable");
+    expect(renderer.root.findAllByType(MatchGoldChart)).toHaveLength(1);
+    await click(renderer, "Face-à-face");
     expect(map().props).toMatchObject({ loading: true, error: "" });
     await act(async () => requests[0].reject(new Error("Détails indisponibles")));
     expect(map().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
-    await click(renderer, "Récap");
+    await click(renderer, "Débrief");
     expect(map().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
+    expect(journal().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
+    expect(text(journal())).not.toContain("Aucun moment clé exploitable");
     await click(renderer, "Réessayer");
     expect(map().props).toMatchObject({ loading: true, error: "" });
+    expect(journal().props).toMatchObject({ loading: true, error: "" });
     const detail = game("one", { raw: { nxt5Label: "Partie chargée", nxt5: { timelineEvents: [] } } });
     await act(async () => requests[1].resolve({ matches: [detail] }));
     expect(map().props).toMatchObject({ loading: false, error: "", match: { raw: detail.raw } });
-    await click(renderer, "Chronologie");
-    expect(map().props).toMatchObject({ loading: false, error: "", match: { raw: detail.raw } });
+    expect(journal().props).toMatchObject({ loading: false, error: "", match: { raw: detail.raw } });
+    expect(renderer.root.findAllByType(MatchKillMap)).toHaveLength(1);
+    expect(renderer.root.findAllByType(MatchGoldChart)).toHaveLength(1);
     expect(requests).toHaveLength(2);
   });
 
@@ -443,7 +452,7 @@ describe("unified Games workspace", () => {
     expect(statistics.props.match.id).toBe(selectedId);
     expect(statistics.findAllByType(MatchKillMap)).toHaveLength(1);
     expect(text(statistics)).not.toContain("Qui a le plus d’impact ?");
-    expect(button(renderer, "Récap").props["aria-selected"]).toBe(true);
+    expect(button(renderer, "Débrief").props["aria-selected"]).toBe(true);
     expect(text(statistics)).not.toContain("Vue 5v5");
     await click(renderer, "Face-à-face");
     expect(button(renderer, "Face-à-face").props["aria-selected"]).toBe(true);

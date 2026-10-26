@@ -43,6 +43,11 @@ function draftedGame() {
   const participants = match.participants.map((row) => ({ ...row, champion: draftChampions[row.team_key][roles.indexOf(row.role)] }));
   return { ...match, participants: [8, 2, 9, 4, 0, 6, 3, 5, 1, 7].map((index) => participants[index]) };
 }
+function phasedGame() {
+  return { ...draftedGame(), team_id: "team-a", raw: { nxt5: { timelineEvents: [5, 18, 25].map((minute) => ({
+    type: "ELITE_MONSTER_KILL", timestamp: minute * 60000, monsterType: "DRAGON", killerId: 1,
+  })) } } };
+}
 function render(props = {}) {
   let renderer;
   act(() => { renderer = TestRenderer.create(<MatchDataPanel match={game()} teamName="Équipe Atlas" {...props} />); });
@@ -77,7 +82,7 @@ function draftSlots(section) {
 }
 
 describe("progressive game reading", () => {
-  it("starts with the visual recap and offers each deeper view in one tab", () => {
+  it("starts with one combined debrief and offers each deeper view in one tab", () => {
     const renderer = render();
     const brief = renderer.root.findByProps({ "aria-label": "Bilan de la partie" });
     expect(text(renderer.root)).toContain("Partie contre Atlas");
@@ -87,14 +92,19 @@ describe("progressive game reading", () => {
     expect(text(renderer.root)).toContain("Notre équipe : côté bleu");
     expect(brief.findAllByType(MatchKillMap)).toHaveLength(1);
     expect(text(brief)).not.toContain("Qui a le plus d’impact ?");
-    expect(renderer.root.findAllByProps({ role: "tab" }).map(text)).toEqual(["Récap", "Face-à-face", "Drafting", "Chronologie"]);
-    expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
+    expect(renderer.root.findAllByProps({ role: "tab" }).map(text)).toEqual(["Débrief", "Face-à-face", "Drafting"]);
+    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Débrief").props.id).toMatch(/-tab-debrief$/);
     expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(1);
     expect(renderer.root.findAllByType(MatchGoldChart)).toHaveLength(1);
     expect(text(renderer.root)).not.toContain("EUW1_123");
     expect(text(renderer.root)).not.toContain("16.19");
     expect(text(renderer.root)).not.toContain("Tous les débriefs");
-    for (const Component of [MatchHeadToHead, MatchVersusOverview, MatchReadingIntro, DeathContextPanel, DraftImpactPanel, MatchTimelineReview]) {
+    const journal = renderer.root.findByType(MatchTimelineReview);
+    expect(visible(journal)).toBe(true);
+    expect(journal.findAllByType(MatchGoldChart)).toHaveLength(0);
+    expect(journal.findAllByType(MatchKillMap)).toHaveLength(0);
+    for (const Component of [MatchHeadToHead, MatchVersusOverview, MatchReadingIntro, DeathContextPanel, DraftImpactPanel]) {
       expect(renderer.root.findAllByType(Component)).toHaveLength(0);
     }
   });
@@ -137,13 +147,13 @@ describe("progressive game reading", () => {
     const renderer = render({ match: draftedGame() });
     selectTab(renderer, "Face-à-face");
     expect(renderer.root.findAllByType(MatchHeadToHead)).toHaveLength(1);
-    expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(0);
+    expect(renderer.root.findAllByType(MatchLineups).filter(visible)).toHaveLength(0);
     expect(renderer.root.findAllByType(MatchVersusOverview)).toHaveLength(0);
     expect(renderer.root.findAllByType(ObjectiveHud)).toHaveLength(1);
     expect(renderer.root.findAllByProps({ role: "tablist" })).toHaveLength(1);
     const panel = renderer.root.findAllByProps({ role: "tabpanel" }).find(visible);
     expect(panel.findAllByProps({ role: "tablist" })).toHaveLength(0);
-    expect(panel.findAllByType("details")).toHaveLength(0);
+    expect(panel.findAllByType("details").filter(visible)).toHaveLength(0);
     expect(renderer.root.findAllByProps({ className: "games-analysis-disclosure" })).toHaveLength(0);
     for (const value of ["K / D / A", "Informations de la partie", "EUW1_123", "16.19"]) expect(text(panel)).toContain(value);
     for (const stat of ["kda", "cs"]) expect(panel.findAllByProps({ "data-player-stat": stat })).toHaveLength(10);
@@ -151,12 +161,12 @@ describe("progressive game reading", () => {
     for (const metric of ["cs10", "cs20", "participation", "damage-share", "gold-share", "vision-share", "deaths-share"]) expect(panel.findAllByProps({ "data-metric": metric })).toHaveLength(0);
     expect(panel.findAllByType("dialog")).toHaveLength(0);
     for (const champion of Object.values(draftChampions).flat()) {
-      expect(panel.findAllByType("img").filter((image) => image.props.alt === champion)).toHaveLength(1);
+      expect(panel.findAllByType("img").filter(visible).filter((image) => image.props.alt === champion)).toHaveLength(1);
     }
     expect(renderer.root.findAllByType(MatchReadingIntro)).toHaveLength(0);
-    selectTab(renderer, "Chronologie");
+    selectTab(renderer, "Débrief");
     expect(renderer.root.findByType(MatchTimelineReview).props.teamName).toBe("Équipe Atlas");
-    expect(renderer.root.findByType(MatchTimelineReview).findAllByType(MatchKillMap)).toHaveLength(1);
+    expect(renderer.root.findByType(MatchTimelineReview).findAllByType(MatchKillMap)).toHaveLength(0);
     expect(text(renderer.root.findByType(MatchTimelineReview))).toContain("Chronologie indisponible");
     expect(renderer.root.findAllByType(DraftImpactPanel)).toHaveLength(0);
     expect(text(renderer.root)).not.toContain("EUW1_123");
@@ -180,7 +190,7 @@ describe("progressive game reading", () => {
     expect(visible(draft)).toBe(true);
     expect(renderer.root.findAllByType(DraftImpactPanel)).toHaveLength(0);
     act(() => draft.findByType("input").props.onChange({ target: { value: "Picks à revoir" } }));
-    for (const label of ["Face-à-face", "Chronologie", "Récap"]) {
+    for (const label of ["Face-à-face", "Débrief"]) {
       selectTab(renderer, label);
       expect(renderer.root.findByProps({ "aria-label": "Draft liée" })).toBe(draft);
       expect(visible(draft)).toBe(false);
@@ -192,7 +202,7 @@ describe("progressive game reading", () => {
     expect(onMount).toHaveBeenCalledOnce();
     expect(onUnmount).not.toHaveBeenCalled();
     act(() => renderer.update(<MatchDataPanel match={{ ...match, id: "another-game" }} draftContent={draftContent} />));
-    expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
     expect(onMount).toHaveBeenCalledTimes(2);
     expect(onUnmount).toHaveBeenCalledOnce();
     const nextDraft = renderer.root.findByProps({ "aria-label": "Draft liée" });
@@ -226,78 +236,117 @@ describe("progressive game reading", () => {
     expect(comparison.findAllByProps({ "data-metric": "gold" })).toHaveLength(5);
     expect(text(comparison)).toContain("Jinx");
     expect(text(comparison)).toContain("Caitlyn");
-    selectTab(renderer, "Récap");
+    selectTab(renderer, "Débrief");
     expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(1);
     expect(renderer.root.findAllByType(MatchHeadToHead)).toHaveLength(0);
   });
 
-  it("uses the same game, team names and detail availability for both map placements", () => {
+  it("keeps one map and journal on the same game through loading, failure and refresh", () => {
     const match = draftedGame();
     const renderer = render({ match, loading: true });
     const readMap = () => renderer.root.findByType(MatchKillMap);
     expect(readMap().props).toMatchObject({ match, allyName: "Équipe Atlas", enemyName: "Adversaires", loading: true, error: "" });
-    selectTab(renderer, "Chronologie");
+    const map = readMap();
+    const journal = renderer.root.findByType(MatchTimelineReview);
+    expect(journal.props).toMatchObject({ match, teamName: "Équipe Atlas", loading: true, error: "" });
+    selectTab(renderer, "Face-à-face");
     expect(renderer.root.findAllByType(MatchKillMap)).toHaveLength(1);
+    expect(readMap()).toBe(map);
+    expect(visible(map)).toBe(false);
+    expect(visible(journal)).toBe(false);
     expect(readMap().props).toMatchObject({ match, allyName: "Équipe Atlas", enemyName: "Adversaires", loading: true, error: "" });
     expect(renderer.root.findAllByProps({ role: "tablist" })).toHaveLength(1);
     act(() => renderer.update(<MatchDataPanel match={match} teamName="Équipe Atlas" error="Détails indisponibles" />));
     expect(readMap().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
-    selectTab(renderer, "Récap");
+    expect(journal.props).toMatchObject({ loading: false, error: "Détails indisponibles" });
+    selectTab(renderer, "Débrief");
+    expect(visible(map)).toBe(true);
+    expect(visible(journal)).toBe(true);
     expect(readMap().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
     act(() => renderer.update(<MatchDataPanel match={{ ...match, id: "other-map-game" }} teamName="Nouvelle équipe" loading />));
     expect(readMap().props.match.id).toBe("other-map-game");
     expect(readMap().props).toMatchObject({ allyName: "Nouvelle équipe", loading: true, error: "" });
-    expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
   });
 
-  it("shares the elimination team filter between Recap and Chronology across other views", () => {
+  it("preserves the elimination team filter across the other views without remounting the map", () => {
     const renderer = render({ match: draftedGame() });
     const readMap = () => renderer.root.findByType(MatchKillMap);
     expect(readMap().props.teamFilter).toBe("ALL");
     act(() => readMap().props.onTeamFilterChange("ALLY"));
     expect(readMap().props.teamFilter).toBe("ALLY");
-    selectTab(renderer, "Chronologie");
+    const map = readMap();
+    selectTab(renderer, "Face-à-face");
+    expect(readMap().props.teamFilter).toBe("ALLY");
+    expect(readMap()).toBe(map);
+    expect(visible(map)).toBe(false);
+    selectTab(renderer, "Drafting");
+    expect(readMap()).toBe(map);
+    expect(visible(map)).toBe(false);
+    selectTab(renderer, "Débrief");
+    expect(visible(map)).toBe(true);
     expect(readMap().props.teamFilter).toBe("ALLY");
     act(() => readMap().props.onTeamFilterChange("ENEMY"));
     expect(readMap().props.teamFilter).toBe("ENEMY");
-    selectTab(renderer, "Face-à-face");
-    expect(renderer.root.findAllByType(MatchKillMap)).toHaveLength(0);
-    selectTab(renderer, "Drafting");
-    selectTab(renderer, "Récap");
-    expect(readMap().props.teamFilter).toBe("ENEMY");
     act(() => readMap().props.onTeamFilterChange("ALL"));
-    selectTab(renderer, "Chronologie");
     expect(readMap().props.teamFilter).toBe("ALL");
     expect(renderer.root.findAllByType(MatchKillMap)).toHaveLength(1);
   });
 
-  it.each(["Récap", "Chronologie"])("preserves the team filter when refreshing the same game in %s", (view) => {
+  it("preserves the team filter when refreshing the same game", () => {
     const match = { ...draftedGame(), team_id: "team-a" };
     const renderer = render({ match });
     const readMap = () => renderer.root.findByType(MatchKillMap);
-    selectTab(renderer, view);
     act(() => readMap().props.onTeamFilterChange("ENEMY"));
     act(() => renderer.update(<MatchDataPanel match={match} loading />));
     expect(readMap().props).toMatchObject({ teamFilter: "ENEMY", loading: true });
     act(() => renderer.update(<MatchDataPanel match={{ ...match, duration: "25:00" }} />));
-    expect(tab(renderer, view).props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
     expect(readMap().props).toMatchObject({ teamFilter: "ENEMY", loading: false });
-    selectTab(renderer, view === "Récap" ? "Chronologie" : "Récap");
+    selectTab(renderer, "Face-à-face");
+    selectTab(renderer, "Débrief");
     expect(readMap().props.teamFilter).toBe("ENEMY");
+  });
+
+  it("preserves the selected journal phase through view changes and a refresh of the same game", () => {
+    const match = phasedGame();
+    const renderer = render({ match });
+    const journal = renderer.root.findByType(MatchTimelineReview);
+    const filters = () => journal.findByProps({ "aria-label": "Filtrer les moments par phase" }).findAllByType("button");
+    act(() => filters()[2].props.onClick());
+    expect(filters()[2].props["aria-pressed"]).toBe(true);
+    expect(journal.findAllByType("article")).toHaveLength(1);
+    expect(text(journal.findByType("article"))).toContain("18:00");
+    for (const label of ["Face-à-face", "Drafting", "Débrief"]) {
+      selectTab(renderer, label);
+      expect(renderer.root.findByType(MatchTimelineReview)).toBe(journal);
+      expect(visible(journal)).toBe(label === "Débrief");
+    }
+    act(() => renderer.update(<MatchDataPanel match={match} loading />));
+    act(() => renderer.update(<MatchDataPanel match={{ ...match, duration: "28:00" }} />));
+    expect(filters()[2].props["aria-pressed"]).toBe(true);
+    expect(journal.findAllByType("article")).toHaveLength(1);
+    expect(text(journal.findByType("article"))).toContain("18:00");
   });
 
   it.each([
     ["game", { id: "other-map-game" }],
     ["team", { team_id: "team-b" }],
-  ])("resets the team filter when changing the %s context", (_scope, changed) => {
-    const match = { ...draftedGame(), team_id: "team-a" };
+  ])("resets the team and phase filters when changing the %s context", (_scope, changed) => {
+    const match = phasedGame();
     const renderer = render({ match });
-    selectTab(renderer, "Chronologie");
+    const filters = () => renderer.root.findByProps({ "aria-label": "Filtrer les moments par phase" }).findAllByType("button");
     act(() => renderer.root.findByType(MatchKillMap).props.onTeamFilterChange("ALLY"));
+    act(() => filters()[3].props.onClick());
+    expect(filters()[3].props["aria-pressed"]).toBe(true);
+    selectTab(renderer, "Drafting");
     act(() => renderer.update(<MatchDataPanel match={{ ...match, ...changed }} />));
-    expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
     expect(renderer.root.findByType(MatchKillMap).props.teamFilter).toBe("ALL");
-    selectTab(renderer, "Chronologie");
+    expect(filters()[0].props["aria-pressed"]).toBe(true);
+    expect(renderer.root.findByType(MatchTimelineReview).findAllByType("article")).toHaveLength(3);
+    selectTab(renderer, "Face-à-face");
+    selectTab(renderer, "Débrief");
     expect(renderer.root.findByType(MatchKillMap).props.teamFilter).toBe("ALL");
   });
 
@@ -309,7 +358,7 @@ describe("progressive game reading", () => {
     expect(tab(renderer, "Face-à-face").props["aria-selected"]).toBe(true);
     expect(renderer.root.findByType(MatchHeadToHead).findAllByProps({ "data-metric": "gold" })).toHaveLength(5);
     act(() => renderer.update(<MatchDataPanel match={{ ...match, id: "game-2" }} />));
-    expect(tab(renderer, "Récap").props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
     selectTab(renderer, "Face-à-face");
     expect(renderer.root.findByType(MatchHeadToHead).props.selectedRole).toBeUndefined();
     expect(renderer.root.findAllByProps({ "aria-label": "Détail du duel MID" })).toHaveLength(0);
@@ -350,7 +399,7 @@ describe("progressive game reading", () => {
     act(() => firstCallback("Orion"));
     expect(renderer.root.findByType(MatchLineups).props.snapshot.context.opponentName).toBe("Orion");
     expect(renderer.root.findByType(MatchKillMap).props.enemyName).toBe("Orion");
-    selectTab(renderer, "Chronologie");
+    selectTab(renderer, "Drafting");
     expect(renderer.root.findByType(MatchKillMap).props.enemyName).toBe("Orion");
     selectTab(renderer, "Face-à-face");
     expect(renderer.root.findByType(MatchHeadToHead).props.snapshot.context.opponentName).toBe("Orion");
@@ -366,7 +415,7 @@ describe("progressive game reading", () => {
   it("links keyboard-operable tabs to their visible panel", () => {
     const renderer = render();
     const preventDefault = vi.fn();
-    act(() => tab(renderer, "Récap").props.onKeyDown({ key: "ArrowRight", preventDefault }));
+    act(() => tab(renderer, "Débrief").props.onKeyDown({ key: "ArrowRight", preventDefault }));
     expect(preventDefault).toHaveBeenCalledOnce();
     const active = tab(renderer, "Face-à-face");
     const panel = renderer.root.findAllByProps({ role: "tabpanel" }).find(visible);
@@ -379,13 +428,13 @@ describe("progressive game reading", () => {
   it("preserves caller-provided context actions across all tabs", () => {
     const onModify = vi.fn();
     const renderer = render({ contextControls: <><strong>Atlas adversaire</strong><button type="button" onClick={onModify}>Modifier l’adversaire</button></> });
-    for (const label of ["Récap", "Face-à-face", "Drafting", "Chronologie"]) {
+    for (const label of ["Débrief", "Face-à-face", "Drafting"]) {
       selectTab(renderer, label);
       expect(text(renderer.root)).toContain("Atlas adversaire");
       const modify = renderer.root.findAllByType("button").find((node) => text(node) === "Modifier l’adversaire");
       act(() => modify.props.onClick());
     }
-    expect(onModify).toHaveBeenCalledTimes(4);
+    expect(onModify).toHaveBeenCalledTimes(3);
   });
 
   it("shows their draft before ours and orders each team's champions by role in the standalone composition analysis", () => {
@@ -507,7 +556,7 @@ describe("progressive game reading", () => {
     const existing = renderer.root.findAllByType(Button).find((node) => node.props.children === "Ouvrir le débrief");
     act(() => existing.props.onClick());
     expect(onReview).toHaveBeenCalledOnce();
-    expect(renderer.root.findAllByType("details").every((node) => node.props.open === false)).toBe(true);
+    expect(renderer.root.findAllByType("details").every((node) => node.props.open !== true)).toBe(true);
   });
 
   it("disables the review action when the game has no saved identifier", () => {

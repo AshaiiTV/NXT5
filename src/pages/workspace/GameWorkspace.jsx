@@ -22,8 +22,6 @@ import { MatchVisualRecap } from "../../components/games/MatchVisualRecap.jsx";
 import VisualDebrief from "../../components/games/VisualDebrief.jsx";
 import { debriefFocus, reviewResults } from "../../utils/debrief-focus.js";
 import "./debrief-workspace.css";
-import { MatchKillMap } from "../../components/games/MatchKillMap.jsx";
-import MatchGoldChart from "../../components/games/MatchGoldChart.jsx";
 import { MatchHeadToHead } from "../../components/games/MatchHeadToHead.jsx";
 import OpponentsWorkspace from "../../components/opponents/OpponentsWorkspace.jsx";
 import MatchDrafterPanel, { MatchDraftingView } from "../../components/opponents/MatchDrafterPanel.jsx";
@@ -771,13 +769,9 @@ function timelineMilestones(match, teamName) {
   return [...objectives, ...fights, ...towers].sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0));
 }
 
-function MatchTimelineReview({ match, teamName, enemyName, publication, loading = false, error = "", teamFilter, onTeamFilterChange }) {
+function MatchTimelineReview({ match, teamName, enemyName, loading = false, error = "" }) {
   useLanguage();
   const [selectedPhase, setSelectedPhase] = useState("all");
-  const goldPublication = useMemo(() => publication || buildGamePublicationSnapshot({
-    match: enemyName ? { ...match, opponent: enemyName } : match,
-    team: { name: teamName },
-  }), [publication, match, teamName, enemyName]);
   useEffect(() => { setSelectedPhase("all"); }, [match?.id]);
   const status = timelineStatus(match);
   const kills = championKillEvents(match);
@@ -788,44 +782,27 @@ function MatchTimelineReview({ match, teamName, enemyName, publication, loading 
     { id: "mid", label: "Milieu de partie", range: "14–24", toneName: "purple" },
     { id: "late", label: "Fin de partie", range: "24+", toneName: "yellow" },
   ].map((phase) => ({ ...phase, events: events.filter((event) => timelinePhaseMeta(event.timestamp).id === phase.id) }));
-  return <div className="games-timeline-content match-timeline-reading">
-    <header className="match-timeline-intro">
-      <div>
-        <p className="match-timeline-eyebrow">{t("Lecture chronologique")}</p>
-        <h4>{t("Le fil de la partie")}</h4>
-        <p className="match-timeline-lead">{t("Suis l’économie, puis replace chaque moment dans le déroulé du match.")}</p>
-      </div>
-      <div className="match-timeline-source"><span className={`match-timeline-status is-${status.toneName}`} />
+  return <section className="games-timeline-content match-timeline-reading" aria-label={t("Moments clés")} aria-busy={loading || undefined}>
+    <header className="match-timeline-header">
+      <div className="match-timeline-heading"><h4>{t("Moments clés")}</h4>{!loading && !error && <span>{t("{0} moments", [events.length])}</span>}</div>
+      {!loading && !error && <div className="match-timeline-source"><span className={`match-timeline-status is-${status.toneName}`} aria-hidden="true" />
         <div><strong>{t(status.label)}</strong><span>{t(status.detail)}</span></div>
-      </div>
+      </div>}
     </header>
-
-    <div className="match-timeline-overview">
-    <section className="match-timeline-economy" aria-label={t("Lecture de l’économie")}>
-      <div className="match-timeline-economy-heading">
-        <div><span className="match-timeline-section-index" aria-hidden="true">01</span><h5>{t("L’équilibre économique")}</h5></div>
-        <p>{t("Écart d’or : {0} − Adversaire", [ownName])}</p>
-      </div>
-      <MatchGoldChart match={match} publication={goldPublication} teamName={teamName} />
-    </section>
-
-    <MatchKillMap match={match} allyName={teamName} enemyName={enemyName} loading={loading} error={error} teamFilter={teamFilter} onTeamFilterChange={onTeamFilterChange} />
-    </div>
-
-    <section className="match-timeline-journal">
-      <div className="match-timeline-journal-heading"><div><span className="match-timeline-section-index" aria-hidden="true">02</span><h5>{t("Les moments à relire")}</h5></div><span>{t("{0} moments clés", [events.length])}</span></div>
-      <p className="match-timeline-journal-lead">{t("Objectifs, structures importantes et échanges d’éliminations marquants, dans l’ordre du match.")}</p>
+    {loading ? <div className="match-timeline-empty" role="status"><Loader2 className="animate-spin" aria-hidden="true" /><p>{t("Chargement des moments de la partie…")}</p></div>
+      : error ? <div className="match-timeline-empty" role="status"><AlertTriangle aria-hidden="true" /><p>{t("Les moments de la partie n’ont pas pu être chargés.")}</p></div>
+      : <div className="match-timeline-journal">
       <div className="match-timeline-filters" role="group" aria-label={t("Filtrer les moments par phase")}>
         <button type="button" aria-pressed={selectedPhase === "all"} onClick={() => setSelectedPhase("all")}><span>{t("Toute la partie")}</span><span>{events.length}</span></button>
         {phases.map((phase) => <button key={phase.id} type="button" aria-pressed={selectedPhase === phase.id} onClick={() => setSelectedPhase(phase.id)}><span>{t(phase.label)}</span><span>{phase.range}{t(" min")}</span></button>)}
       </div>
-      <div className="match-timeline-perspective"><span className="match-timeline-team is-ally">{ownName}</span><span className="match-timeline-team is-enemy">{t("Adversaire")}</span><p>{t("Les scores et écarts se lisent toujours dans cet ordre.")}</p></div>
+      <div className="match-timeline-perspective"><span className="match-timeline-team is-ally">{ownName}</span><span className="match-timeline-team is-enemy">{enemyName || t("Adversaire")}</span><p>{t("Les scores et écarts se lisent toujours dans cet ordre.")}</p></div>
       <div className="match-timeline-phases" aria-live="polite" aria-atomic="false">
         {events.length ? phases.filter((phase) => selectedPhase === "all" || phase.id === selectedPhase).map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} teamName={teamName} />) : <div className="match-timeline-empty"><Shield aria-hidden="true" /><div><strong>{t("Aucun moment clé exploitable")}</strong><p>{t("Ce fichier ne permet pas de reconstituer les moments clés de la partie. Les statistiques finales restent consultables au-dessus.")}</p></div></div>}
       </div>
-      <aside className="match-timeline-method"><AlertTriangle aria-hidden="true" /><div><strong>{t("Des repères, à confirmer en replay")}</strong><p>{t("Les échanges regroupent des éliminations espacées de 24 secondes au maximum. Ils peuvent réunir des actions éloignées : ils ne prouvent ni un combat collectif ni sa cause.")}</p><p>{t("Le journal retient les objectifs, certaines structures et les échanges de 3 éliminations ou plus, ou avec un écart d’au moins 2. L’or provient du dernier relevé antérieur disponible, pas de la seconde exacte de l’action.")}</p></div></aside>
-    </section>
-  </div>;
+      <ReadingDetails className="match-timeline-method" title={t("Comment lire ces données")}><p>{t("Les échanges regroupent des éliminations espacées de 24 secondes au maximum. Ils peuvent réunir des actions éloignées : ils ne prouvent ni un combat collectif ni sa cause.")}</p><p>{t("Le journal retient les objectifs, certaines structures et les échanges de 3 éliminations ou plus, ou avec un écart d’au moins 2. L’or provient du dernier relevé antérieur disponible, pas de la seconde exacte de l’action.")}</p></ReadingDetails>
+    </div>}
+  </section>;
 }
 
 function TimelineEventGlyph({ event }) {
@@ -857,19 +834,26 @@ function TimelineEventCard({ event, index, kills, match, teamName }) {
   const eventDescription = event.kind === "fight" ? t("{0} – {1} éliminations sur cette fenêtre", [event.allyKills, event.enemyKills]) : t(event.context || event.detail || kindLabel);
   const detail = event.kind === "tower" ? t(laneLabels[event.laneType] || "") : event.detail?.startsWith("Morts:") ? t("Champions éliminés : {0}", [event.detail.replace(/^Morts:\s*/, "")]) : event.detail && event.detail !== event.context ? t(event.detail) : "";
   return <article className={`match-timeline-event is-${knownTeam ? event.teamKey.toLowerCase() : "unknown"}`}>
-    <div className="match-timeline-event-time"><span className="match-timeline-event-dot" aria-hidden="true" /><time>{event.time}</time><span>{kindLabel}</span></div>
-    <div className="match-timeline-event-body">
-      <span className="match-timeline-event-glyph" aria-hidden="true"><TimelineEventGlyph event={event} /></span>
-      <div><p className="match-timeline-event-team">{teamLabel}</p><h6>{title}</h6><p className="match-timeline-event-context">{eventDescription}</p>{detail && <p className="match-timeline-event-detail">{detail}</p>}</div>
-    </div>
-    <dl className="match-timeline-event-stats"><div><dt>{t("Écart d’or")}</dt><dd className={gold === null ? "is-missing" : gold > 0 ? "is-positive" : gold < 0 ? "is-negative" : ""}>{gold === null ? "—" : formatSignedShort(gold)}</dd></div><div><dt>{t("Éliminations relevées")}</dt><dd>{hasKnownScore ? `${score.ally} – ${score.enemy}` : "—"}</dd></div></dl>
+    <details className="match-timeline-event-disclosure">
+      <summary className="match-timeline-event-summary">
+        <span className="match-timeline-event-time"><time>{String(event.time || "").split(/\s*[-–—]\s*/).map((bound, boundIndex) => <span key={boundIndex}>{boundIndex > 0 ? `– ${bound}` : bound}</span>)}</time></span>
+        <span className="match-timeline-event-glyph" aria-hidden="true"><TimelineEventGlyph event={event} /></span>
+        <span className="match-timeline-event-copy"><strong>{title}</strong><span className="match-timeline-event-team">{teamLabel}</span></span>
+        {gold !== null && <span className="match-timeline-event-gold"><span aria-hidden="true">{t("Or")}</span><span className="sr-only">{t("Écart d’or")} : </span><strong className={gold > 0 ? "is-positive" : gold < 0 ? "is-negative" : ""}>{formatSignedShort(gold)}</strong></span>}
+        <ChevronDown className="match-timeline-event-chevron" aria-hidden="true" />
+      </summary>
+      <div className="match-timeline-event-body">
+        <div><span className="match-timeline-event-kind">{kindLabel}</span><p className="match-timeline-event-context">{eventDescription}</p>{detail && <p className="match-timeline-event-detail">{detail}</p>}</div>
+        <dl className="match-timeline-event-stats"><div><dt>{t("Écart d’or")}</dt><dd className={gold === null ? "is-missing" : gold > 0 ? "is-positive" : gold < 0 ? "is-negative" : ""}>{gold === null ? "—" : formatSignedShort(gold)}</dd></div><div><dt>{t("Éliminations relevées")}</dt><dd>{hasKnownScore ? `${score.ally} – ${score.enemy}` : "—"}</dd></div></dl>
+      </div>
+    </details>
   </article>;
 }
 
 function TimelinePhaseColumn({ phase, kills, match, teamName }) {
   useLanguage();
   return <section className={`match-timeline-phase is-${phase.id}`} aria-label={t(phase.label)}>
-    <header><h6>{t(phase.label)}</h6><span>{phase.range}{t(" min")}</span><span>{t("{0} moments", [phase.events.length])}</span></header>
+    <header><h5>{t(phase.label)}</h5><span>{phase.range}{t(" min")}</span><span>{t("{0} moments", [phase.events.length])}</span></header>
     {phase.events.length ? <ol>{phase.events.map((event, index) => <li key={`${phase.id}-${event.kind}-${event.timestamp}-${index}`}><TimelineEventCard event={event} index={index} kills={kills} match={match} teamName={teamName} /></li>)}</ol> : <p className="match-timeline-phase-empty">{t("Aucun moment clé dans les données de cette phase.")}</p>}
   </section>;
 }
@@ -1270,7 +1254,7 @@ function MatchDataPanel(props) {
 function MatchDataContent({ match, teamName, onReview, hasReview = false, contextControls, draftContent, loading = false, error = "" }) {
   useLanguage();
   const id = useId();
-  const [tab, setTab] = useState("recap");
+  const [tab, setTab] = useState("debrief");
   const [mapTeamFilter, setMapTeamFilter] = useState("ALL");
   const [opponentName, setOpponentName] = useState(undefined);
   const publication = useMemo(() => buildGamePublicationSnapshot({
@@ -1279,7 +1263,7 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
   }), [match, teamName, opponentName]);
   const { context } = publication;
   const side = context.allySide;
-  const tabs = [{ id: "recap", label: "Récap", icon: BarChart3 }, { id: "versus", label: "Face-à-face", icon: Swords }, { id: "draft", label: "Drafting", icon: Clipboard }, { id: "timeline", label: "Chronologie", icon: Gauge }];
+  const tabs = [{ id: "debrief", label: "Débrief", icon: FileText }, { id: "versus", label: "Face-à-face", icon: Swords }, { id: "draft", label: "Drafting", icon: Clipboard }];
   const review = onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(match.id)}&compose=1`));
   return <Surface variant="scene" className="nxt5-match-panel match-recap-page mt-5">
     <div className="match-recap-header">
@@ -1298,7 +1282,10 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
     {contextControls && <div className="games-match-links">{typeof contextControls === "function" ? contextControls({ onOpponentResolved: setOpponentName }) : contextControls}</div>}
     <TabNav idPrefix={id} panelId={`${id}-panel`} label={t("Vues de la partie")} items={tabs} activeId={tab} onChange={setTab} className="match-recap-tabs" />
     <div id={`${id}-panel`} role="tabpanel" tabIndex={0} aria-labelledby={`${id}-tab-${tab}`} className="match-recap-tab-content">
-      {tab === "recap" && <MatchVisualRecap match={match} snapshot={publication} loading={loading} error={error} teamFilter={mapTeamFilter} onTeamFilterChange={setMapTeamFilter} />}
+      <div hidden={tab !== "debrief"}>
+        <MatchVisualRecap match={match} snapshot={publication} loading={loading} error={error} teamFilter={mapTeamFilter} onTeamFilterChange={setMapTeamFilter} />
+        <MatchTimelineReview match={match} teamName={context.teamName} enemyName={(opponentName === undefined ? match.opponent : opponentName) ? context.opponentName : undefined} loading={loading} error={error} />
+      </div>
       {tab === "versus" && <>
         <MatchHeadToHead snapshot={publication} match={match} />
         <ObjectiveHud match={match} compact />
@@ -1307,7 +1294,6 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
       <div hidden={tab !== "draft"} className="match-recap-draft-content">
         {typeof draftContent === "function" ? draftContent({ active: tab === "draft" }) : draftContent || <MatchDraftingView />}
       </div>
-      {tab === "timeline" && <MatchTimelineReview match={match} publication={publication} teamName={publication.context.teamName} enemyName={publication.context.opponentName} loading={loading} error={error} teamFilter={mapTeamFilter} onTeamFilterChange={setMapTeamFilter} />}
     </div>
   </Surface>;
 }
