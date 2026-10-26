@@ -19,6 +19,9 @@ import "./match-deep-reading.css";
 import { MatchDrafting as DraftImpactPanel } from "../../components/games/MatchDrafting.jsx";
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
 import { MatchVisualRecap } from "../../components/games/MatchVisualRecap.jsx";
+import VisualDebrief from "../../components/games/VisualDebrief.jsx";
+import { debriefFocus, reviewResults } from "../../utils/debrief-focus.js";
+import "./debrief-workspace.css";
 import { MatchKillMap } from "../../components/games/MatchKillMap.jsx";
 import MatchGoldChart from "../../components/games/MatchGoldChart.jsx";
 import { MatchHeadToHead } from "../../components/games/MatchHeadToHead.jsx";
@@ -1757,19 +1760,22 @@ function renderReportContent(content, rows) {
   })}</div>;
 }
 
-function ReviewAnalysisStatus({ details }) {
-  useLanguage();
-  if (details.loading) return <p role="status" className="mb-3 text-sm font-semibold text-cyan-100">{t("Préparation automatique de l’analyse des parties liées…")}</p>;
-  if (details.error) return <div role="alert" className="mb-3 space-y-2 text-sm text-amber-100"><p>{details.error}{t(" Le contenu enregistré et les notes restent disponibles.")}</p><Button type="button" variant="ghost" onClick={details.retry}>{t("Réessayer")}</Button></div>;
-  return null;
-}
-
-function ReportPreview({ content, rows, matches = [], matchIds = [] }) {
+function ReportPreview({ content, rows, matches = [], matchIds = [], team, categories = [], loading = false, error = "", onRetry, initialMatchId, onOpenMatch }) {
   useLanguage();
   const text = String(content || "");
   const boundary = /^\[NXT5_REPORT_V3\]\r?$/m.exec(text);
   // Only V3 separates generated analysis from staff writing. Legacy text stays together.
   const notes = boundary ? stripGeneratedReportContent(text) : text;
+  const hasGames = matchIds.length > 0;
+  if (hasGames) return <div className="games-report-preview games-report-visual-preview">
+    <VisualDebrief matches={matches} matchIds={matchIds} team={team} categories={categories} loading={loading} error={error} onRetry={onRetry} focus={debriefFocus(notes)} initialMatchId={initialMatchId} onOpenMatch={onOpenMatch} />
+    {notes.trim() && <ReadingDetails className="games-review-notes" title={boundary ? t("Notes de l’équipe") : t("Notes et débrief conservés")}>
+      {renderReportContent(notes, rows)}
+    </ReadingDetails>}
+    {boundary && <ReadingDetails className="games-review-generated" title={t("Analyse automatique des parties")} description={t("Constats et pistes à confronter à la vidéo.")}>
+      {renderReportContent(text.slice(0, boundary.index), rows)}
+    </ReadingDetails>}
+  </div>;
   return <div className="games-report-preview">
     {boundary ? <>
       <h4 className="games-section-heading">{t("Notes de l’équipe")}</h4>
@@ -2014,15 +2020,10 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   const selectedRows = selected ? reportRows(matches, reportMatchIds(selected)) : [];
   const formRows = reportRows(matches, form.matchIds);
   const canEditSelected = selected && (canCaptainDelete || selected.created_by === user?.id);
-  const selectedMatchForReport = selected ? matches.find((match) => reportMatchIds(selected).includes(match.id) && (!urlMatchId || match.id === urlMatchId)) || matches.find((match) => reportMatchIds(selected).includes(match.id)) : null;
   const formDisplayTitle = reportTitleFromMatchIds(form.matchIds, matches, form.title || "Débrief", archives);
   const reviewMatches = form.matchIds.length ? matches.filter((match) => form.matchIds.includes(match.id)) : [];
   const selectedMatchIds = selected ? reportMatchIds(selected) : [];
-  const selectedStatsMatchId = selectedMatchForReport?.id || selectedMatchIds[0] || "";
-  const selectedMatches = selected ? matches.filter((match) => selectedMatchIds.includes(match.id)) : [];
-  const selectedGamesComplete = selectedMatchIds.length === selectedMatches.length;
-  const reviewWins = reviewMatches.filter((match) => match.result === "Victoire").length;
-  const selectedWins = selectedMatches.filter((match) => match.result === "Victoire").length;
+  const resultSummary = reviewResults(reviewMatches);
   const pendingReviewCount = matches.filter((match) => String(match.review_status || "todo") !== "done").length;
   const searchNeedle = deferredReportSearch.trim().toLowerCase();
   const filteredReports = scopedReports.filter((report) => {
@@ -2031,7 +2032,8 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
     const author = String(report.author_name || "").toLowerCase();
     return title.includes(searchNeedle) || author.includes(searchNeedle) || String(report.content || "").toLowerCase().includes(searchNeedle);
   });
-  const selectionLabel = reviewMatches.length ? `${reviewWins} V · ${reviewMatches.length - reviewWins} D · ${Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)} % de victoires` : "Aucune partie sélectionnée";
+  const selectionLabel = reviewMatches.length ? t("{0} V · {1} D", [resultSummary.wins, resultSummary.losses]) + (resultSummary.unknown ? ` · ${t("{0} résultat(s) inconnu(s)", [resultSummary.unknown])}` : "") : t("Aucune partie sélectionnée");
+  const reviewTeam = (data.teams || []).find((team) => team.id === selectedTeamId);
 
   function startBlankReview() {
     setComposerOpen(true);
@@ -2166,19 +2168,15 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
 
   const commands = [[`/KDA "ADC"`, "KDA moyen d’un rôle."], [`/DAMAGE "MID"`, "Dégâts moyens d’un rôle."], [`/VISION "SUP"`, "Vision moyenne d’un rôle."], [`/GOLD "JGL"`, "Gold moyen d’un rôle."], [`/KP "TOP"`, "Participation moyenne aux kills."], ["/TEAM KDA", "KDA moyen de l’équipe."], ["/TEAM DAMAGE", "Dégâts moyens par joueur."]];
   const noteTemplates = [
-    ["Verdict", "## VERDICT COACH\n- Le fait décisif : \n- La décision attendue : "],
-    ["Cause racine", "## CAUSE RACINE\n- Symptôme observé : \n- Décision qui crée le problème : \n- Information manquante : "],
-    ["Vidéo", "## CHECKPOINTS VOD\n- Timestamp : contexte → décision → conséquence\n- Timestamp : contexte → décision → conséquence"],
-    ["Joueur", "## LECTURE PAR JOUEUR\n### RÔLE · Joueur\n- Catch : timestamp + information disponible\n- Exécution juste : timestamp + décision à reproduire\n- WEAKSIDE : fenêtre + comportement attendu\n- STRONGSIDE : fenêtre + ressource à convertir"],
-    ["Plan", "## PLAN D'EXÉCUTION\n- 1. Avant la game : \n- 2. En game : \n- 3. Après la game : "],
-    ["Validation", "## VALIDATION\n- Réussi si : \n- Échec si : \n- Mesuré sur : 3 games"],
-    ["Draft", "## Draft\n- Pick à sécuriser :\n- Ban prioritaire :\n- Réponse adverse : "],
+    ["À garder", t("## À GARDER\n- ")],
+    ["À corriger", t("## À CORRIGER\n- ")],
+    ["Prochaine partie", t("## PROCHAINE PARTIE\n- ")],
   ];
   return (
     <div className="nxt5-data-dense nxt5-reviews-page min-w-0">
       <PageHeader
         title={t("Débriefs")}
-        subtitle={t("Les observations et décisions pour la prochaine session.")}
+        subtitle={t("L’essentiel de la partie. Les décisions pour la suivante.")}
       >
         <Button icon={Plus} onClick={startBlankReview}>{draftAvailable ? t("Reprendre le brouillon") : t("Préparer un débrief")}</Button>
       </PageHeader>
@@ -2245,8 +2243,9 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
         </aside>
         </ReadingDetails>
 
-        <Surface glow={Boolean(selected)} className="p-5">
+        <section className="games-review-selected">
           {selected ? <>
+            <Surface variant="glass" className="games-review-header">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 {selected.discord_status === "draft" && <Badge tone="amber">{t("Brouillon · staff uniquement")}</Badge>}
@@ -2255,19 +2254,16 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
                 <p className="mt-2 text-sm font-semibold text-slate-300">{t("Par ")}{selected.author_name || "NXT5"}{selectedMatchIds.length > 0 && <> · {t(selectedMatchIds.length > 1 ? "{0} parties liées" : "{0} partie liée", [selectedMatchIds.length])}</>}</p>
               </div>
               <div className="flex flex-wrap gap-2 lg:max-w-[26rem] lg:justify-end">
-                {selectedStatsMatchId && <Button variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/games?match=${encodeURIComponent(selectedStatsMatchId)}`)}>{t("Voir la partie")}</Button>}
                 {canEditSelected && <Button icon={Clipboard} onClick={() => editReport(selected)} disabled={saving}>{t("Éditer")}</Button>}
                 <ReviewActions key={selected.id} canEdit={canEditSelected} disabled={saving} onDuplicate={() => duplicateReport(selected)} onDelete={() => deleteReport(selected)} />
               </div>
             </div>
-            {selectedMatchIds.length > 0 && <p className="games-review-results">{selectedGamesComplete && selectedMatches.length ? t("{0} V · {1} D · {2} % de victoires", [selectedWins, selectedMatches.length - selectedWins, Math.round((selectedWins / selectedMatches.length) * 100)]) : t("Résultats indisponibles")}</p>}
-            {!selectedGamesComplete && <p className="mt-3 text-xs text-amber-100">{selectedMatches.length}{t(" sur ")}{selectedMatchIds.length}{t(" parties liées chargées. Les parties restantes sont chargées automatiquement pour compléter l’analyse.")}</p>}
+            </Surface>
             <div className="mt-5">
-              <ReviewAnalysisStatus details={reviewDetails} />
-              <ReportPreview content={selectedContent} rows={selectedRows} matches={matches} matchIds={reportMatchIds(selected)} />
+              <ReportPreview key={selected.id} content={selectedContent} rows={selectedRows} matches={!composerOpen && reviewDetails.complete ? reviewDetails.matches : []} matchIds={reportMatchIds(selected)} team={reviewTeam} categories={data.matchCategories || []} loading={composerOpen || reviewDetails.loading} error={composerOpen ? "" : reviewDetails.error} onRetry={reviewDetails.retry} initialMatchId={urlMatchId} onOpenMatch={(id) => openAppPath(`/games?match=${encodeURIComponent(id)}`)} />
             </div>
           </> : <EmptyState icon={FileText} title={t("Aucun débrief sélectionné")} text={t("Choisis un débrief dans la bibliothèque ou prépare-en un nouveau.")} />}
-        </Surface>
+        </section>
       </div>}
 
       </div>
@@ -2297,8 +2293,8 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
               </div>
 
               <div className="min-w-0 space-y-4">
-                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label={t("Titre (si aucune partie n’est liée)")} value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder={t("Ex. : Débrief de l’entraînement")} icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-xs font-semibold text-slate-400">{t("Parties sélectionnées")}</p><p className="mt-2 text-xl font-black text-white">{reviewMatches.length ? `${reviewWins} V · ${reviewMatches.length - reviewWins} D` : "--"}</p><p className="mt-1 text-xs font-semibold text-slate-400">{reviewMatches.length ? t("{0} % de victoires", [Math.round((reviewWins / Math.max(1, reviewMatches.length)) * 100)]) : t("Sélectionne des parties")}</p></div></div>
-                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><div className="block"><label htmlFor="review-staff-notes" className="mb-2 block text-xs font-semibold text-slate-300">{t("Observations et décisions de l’équipe")}</label><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-[2px] border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-300/14">{t(label)}</button>)}</div><textarea id="review-staff-notes" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={t("Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine partie\n\n/KDA \"ADC\"")} required={!form.matchIds.length} rows={18} className="nxt5-input-shell min-h-[22rem] w-full resize-y rounded-[10px] xl:min-h-[28rem] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></div><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-semibold text-slate-300">{t("Aperçu du débrief")}</p><Badge tone="slate">{t("Mis à jour en direct")}</Badge></div><ReviewAnalysisStatus details={reviewDetails} />{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">{t("Un débrief peut lier au maximum 20 parties. Retire des parties pour enregistrer.")}</p>}<ReportPreview content={formContent} rows={formRows} matches={matches} matchIds={form.matchIds} /></div></div>
+                <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(12rem,14rem)]"><TextInput label={t("Titre (si aucune partie n’est liée)")} value={form.title} onChange={(title) => setForm((current) => ({ ...current, title }))} placeholder={t("Ex. : Débrief de l’entraînement")} icon={FileText} /><div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3"><p className="text-xs font-semibold text-slate-400">{t("Parties sélectionnées")}</p><p className="mt-2 text-xl font-black text-white">{selectionLabel}</p></div></div>
+                <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_minmax(20rem,0.78fr)]"><div className="block"><label htmlFor="review-staff-notes" className="mb-2 block text-xs font-semibold text-slate-300">{t("Observations et décisions de l’équipe")}</label><div className="mb-2 flex flex-wrap gap-2">{noteTemplates.map(([label, template]) => <button key={label} type="button" onClick={() => setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n\n"}${template}` }))} className="rounded-[2px] border border-cyan-200/14 bg-cyan-300/[0.07] px-3 py-1.5 text-xs font-semibold text-cyan-50 transition hover:bg-cyan-300/14">{t(label)}</button>)}</div><textarea id="review-staff-notes" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder={t("Décisions\n- Ce qu'on garde\n- Ce qu'on corrige\n- Action pour la prochaine partie\n\n/KDA \"ADC\"")} required={!form.matchIds.length} rows={9} className="nxt5-input-shell min-h-[14rem] w-full resize-y rounded-[10px] border border-cyan-300/14 bg-black/[0.28] px-4 py-3 text-sm font-semibold leading-6 text-white outline-none placeholder:text-slate-500 focus:border-cyan-300/45" /></div><div className="min-w-0"><div className="mb-2 flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-semibold text-slate-300">{t("Aperçu du débrief")}</p><Badge tone="slate">{t("Mis à jour en direct")}</Badge></div>{form.matchIds.length > 20 && <p role="alert" className="mb-3 text-sm text-amber-100">{t("Un débrief peut lier au maximum 20 parties. Retire des parties pour enregistrer.")}</p>}<ReportPreview content={formContent} rows={formRows} matches={reviewDetails.complete ? reviewDetails.matches : []} matchIds={form.matchIds} team={reviewTeam} categories={data.matchCategories || []} loading={reviewDetails.loading} error={reviewDetails.error} onRetry={reviewDetails.retry} /></div></div>
               </div>
                 </div>
               </div>
