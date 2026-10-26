@@ -45,7 +45,7 @@ describe("accessible composition choices", () => {
     apiFetch.mockResolvedValue({});
     const refreshAll = vi.fn(async () => {});
     render(<Compositions data={{ players, championPool: rows, compositions: [] }} selectedTeamId="team" currentMember={{ role: "player" }} user={{ id: "user" }} refreshAll={refreshAll} pushToast={vi.fn()} />);
-    act(() => renderer.root.findByType(TextInput).props.onChange("Notre composition"));
+    act(() => renderer.root.findAllByType(TextInput).find(node => node.props.label === "Nom de la composition").props.onChange("Notre composition"));
     act(() => selectRole("TOP").props.onChange("aatrox"));
     const glossary = renderer.root.findAllByType(Button).find((node) => node.props["aria-expanded"] !== undefined);
     act(() => glossary.props.onClick());

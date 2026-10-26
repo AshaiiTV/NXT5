@@ -1,3 +1,4 @@
+import { en as compositions } from './composition-overrides.js';
 import { en as home } from './home-overrides.js';
 import base from './messages/en.json' with { type: 'json' };
 import { en as quality } from './quality-overrides.js';
@@ -81,7 +82,7 @@ const matchKillMap = {
   "Événements incomplets": "Incomplete events",
   "Exécution": "Execution",
 };
-export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap,
+export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap, ...compositions,
   "Tuto vidéo : importer une partie sur Windows": "Video tutorial: import a game on Windows",
   "YouTube · 2 min 31 · En français · Nouvel onglet": "YouTube · 2 min 31 · In French · New tab",
 };

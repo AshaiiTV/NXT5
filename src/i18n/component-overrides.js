@@ -1,5 +1,10 @@
 // Reviewed complete messages for counts, mixed markup and accessibility.
 export const en = {
+  "Nouvelle catégorie": "New category",
+  "Créer et sélectionner": "Create and select",
+  "La catégorie est sélectionnée pour cette partie.": "The category is selected for this game.",
+  "La catégorie restera disponible dans ton équipe même si tu annules l’import.": "The category will remain available to your team even if you cancel the import.",
+  "Actualisation impossible": "Unable to refresh",
   "Tags (au moins un)": "Tags (at least one)",
   "Ajoute au moins un tag à la partie.": "Add at least one tag to the game.",
   "Ce tag est le dernier tag d’une partie. Ajoute un autre tag à cette partie avant de le supprimer.": "This is the last tag on a game. Add another tag to that game before deleting it.",
@@ -47,6 +52,11 @@ export const en = {
 };
 
 export const es = {
+  "Nouvelle catégorie": "Nueva categoría",
+  "Créer et sélectionner": "Crear y seleccionar",
+  "La catégorie est sélectionnée pour cette partie.": "La categoría está seleccionada para esta partida.",
+  "La catégorie restera disponible dans ton équipe même si tu annules l’import.": "La categoría seguirá disponible para tu equipo aunque canceles la importación.",
+  "Actualisation impossible": "No se pudo actualizar",
   "Tags (au moins un)": "Etiquetas (al menos una)",
   "Ajoute au moins un tag à la partie.": "Añade al menos una etiqueta a la partida.",
   "Ce tag est le dernier tag d’une partie. Ajoute un autre tag à cette partie avant de le supprimer.": "Esta es la última etiqueta de una partida. Añade otra etiqueta a esa partida antes de eliminarla.",
