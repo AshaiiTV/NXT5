@@ -13,6 +13,7 @@ import { es as helpFeatures } from './help-features-overrides.js';
 import { es as playerComparison } from './player-comparison-overrides.js';
 import { es as socialCalendar } from './social-calendar-overrides.js';
 import { es as matchRecap } from './match-recap-overrides.js';
+import { es as debrief } from './debrief-overrides.js';
 const teamManagement = {
   "Effectif": "Plantilla",
   "Encadrement": "Cuerpo técnico",
@@ -82,6 +83,7 @@ const matchKillMap = {
   "Exécution": "Ejecución",
 };
 export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap,
+  ...debrief,
   "Tuto vidéo : importer une partie sur Windows": "Vídeo tutorial: importar una partida en Windows",
   "YouTube · 2 min 31 · En français · Nouvel onglet": "YouTube · 2 min 31 · En francés · Nueva pestaña",
 };

@@ -169,14 +169,16 @@ describe("automatic reviews in the workspace", () => {
     const requests = [];
     apiFetch.mockImplementation((_path, options) => new Promise((resolve) => requests.push({ resolve, ids: JSON.parse(options.body).matchIds })));
     const renderer = await mount({ reports: [{ id: "old", team_id: "team", match_ids: ["one", "two"], title: "Old", content: "Notes historiques", created_by: "someone-else" }] });
-    expect(output(renderer)).toContain("Préparation automatique");
+    expect(output(renderer)).toContain("Préparation du bilan visuel");
     expect(output(renderer)).not.toContain("Re-coacher");
     expect(requests.flatMap((request) => request.ids)).toEqual(["one", "two"]);
     expect(apiFetch.mock.calls.every(([, options]) => JSON.parse(options.body).teamId === "team")).toBe(true);
     await act(async () => requests.forEach((request) => request.resolve({ matches: request.ids.map(game) })));
     expect(output(renderer)).toContain("LECTURE PAR JOUEUR");
     expect(output(renderer)).toContain("Notes historiques");
-    expect(output(renderer)).not.toContain("Préparation automatique");
+    expect(output(renderer)).not.toContain("Préparation du bilan visuel");
+    expect(output(renderer)).toContain("Bilan visuel du débrief");
+    expect(output(renderer)).toContain("Moments clés");
     expect(apiFetch.mock.calls.every(([path]) => path === "match-details")).toBe(true);
   });
   it("keeps staff typing while details arrive, updates analysis on selection and saves the complete review", async () => {
