@@ -724,6 +724,130 @@ describe('atomic match imports against PostgreSQL', () => {
   });
 });
 
+describe('editing match categories against PostgreSQL', () => {
+  const ownerId = '00000000-0000-4000-8000-000000000099';
+  const query = async (statement: string, params: unknown[] = []) => (await database.pg.query(statement, params)).rows;
+  const submit = (body: object = {}) => manageCategories(new Request('https://nxt5.example/.netlify/functions/match-categories-manage', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ action: 'update', teamId, categoryId: nextCategoryId, name: 'Bootcamp', color: 'purple', ...body })
+  }), {} as any);
+  const category = async (id = nextCategoryId) => (await query('select * from match_categories where id=$1', [id]))[0];
+  const audit = () => query("select * from audit_logs where action='match_categories.update' order by id");
+  const makeStaff = async (role: string, memberTeamId = teamId) => {
+    await query("insert into users(id,account_name,name,password_hash) values($1,'category-owner','Owner','unused')", [ownerId]);
+    await query('update teams set owner_id=$1 where id=$2', [ownerId, teamId]);
+    await query('insert into team_members(team_id,user_id,role) values($1,$2,$3) on conflict(team_id,user_id) do update set role=excluded.role', [memberTeamId, userId, role]);
+  };
+
+  it('renames and recolors for an owner, preserving IDs, match associations and repeated updates', async () => {
+    await persistAnalyzedMatch({ ...importArgs(), categoryIds: [nextCategoryId, categoryId] });
+    const before = await storedMatch();
+    const previousCategory = await category();
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await submit();
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ category: { id: nextCategoryId, team_id: teamId, name: 'Bootcamp', color: 'purple' } });
+      expect(await storedMatch()).toEqual(before);
+    }
+    expect(await category()).toMatchObject({ id: nextCategoryId, created_at: previousCategory.created_at, name: 'Bootcamp', color: 'purple' });
+    expect(await audit()).toHaveLength(2);
+    expect((await audit())[0].metadata).toEqual({ teamId, name: 'Bootcamp', color: 'purple' });
+  });
+
+  it.each(['captain', 'coach', 'assistant', 'analyst', 'manager', 'board'])('permits the current team staff role %s', async role => {
+    await makeStaff(role);
+    const response = await submit();
+    expect(response.status).toBe(200);
+    expect((await category()).name).toBe('Bootcamp');
+  });
+
+  it.each([['player', teamId], ['coach', otherTeamId]])('refuses role %s in team %s without writing the category or audit', async (role, memberTeamId) => {
+    await makeStaff(role, memberTeamId);
+    const before = await category();
+    const response = await submit();
+    expect(response.status).toBe(403);
+    expect(await category()).toEqual(before);
+    expect(await audit()).toEqual([]);
+  });
+
+  it('does not update a category belonging to another team', async () => {
+    const before = await category(foreignCategoryId);
+    const response = await submit({ categoryId: foreignCategoryId });
+    expect(response.status).toBe(404);
+    expect(await category(foreignCategoryId)).toEqual(before);
+    expect(await audit()).toEqual([]);
+  });
+
+  it('protects the default Scrim name but allows its color to change', async () => {
+    await query('update match_categories set is_default=true where id=$1', [categoryId]);
+    const refused = await submit({ categoryId, name: 'Renamed Scrim' });
+    expect(refused.status).toBe(400);
+    expect(await refused.json()).toMatchObject({ error: 'La catégorie Scrim ne peut pas être renommée.' });
+    expect(await audit()).toEqual([]);
+    const accepted = await submit({ categoryId, name: 'Scrim', color: 'pink' });
+    expect(accepted.status).toBe(200);
+    expect(await category(categoryId)).toMatchObject({ name: 'Scrim', color: 'pink', is_default: true });
+  });
+
+  it.each([false, true])('reports an existing or concurrently created duplicate name (concurrent=%s)', async concurrent => {
+    const before = await category();
+    if (concurrent) database.beforeBatch = async () => {
+      await query("insert into match_categories(team_id,name,color) values($1,'BOOTCAMP','blue')", [teamId]);
+    };
+    const response = await submit({ name: concurrent ? 'Bootcamp' : 'sCrIm' });
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({ error: 'Une catégorie portant ce nom existe déjà dans cette équipe.', code: 'NXT5_CATEGORY_NAME_CONFLICT' });
+    expect(await category()).toEqual(before);
+    expect(await audit()).toEqual([]);
+  });
+
+  it('returns 404 when the category disappears between validation and the update', async () => {
+    database.beforeBatch = async () => { await query('delete from match_categories where id=$1', [nextCategoryId]); };
+    const response = await submit();
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: 'Catégorie introuvable.' });
+    expect(await category()).toBeUndefined();
+    expect(await audit()).toEqual([]);
+  });
+
+  it.each(['remove', 'demote', 'transfer-owner'])('rechecks authorization before writing after %s', async change => {
+    if (change !== 'transfer-owner') await makeStaff('coach');
+    else await query("insert into users(id,account_name,name,password_hash) values($1,'category-owner','Owner','unused')", [ownerId]);
+    const before = await category();
+    database.beforeBatch = async () => {
+      if (change === 'transfer-owner') await query('update teams set owner_id=$1 where id=$2', [ownerId, teamId]);
+      else await query(change === 'remove'
+        ? 'delete from team_members where team_id=$1 and user_id=$2'
+        : "update team_members set role='player' where team_id=$1 and user_id=$2", [teamId, userId]);
+    };
+    const response = await submit();
+    expect(response.status).toBe(403);
+    expect(await category()).toEqual(before);
+    expect(await audit()).toEqual([]);
+  });
+
+  it('keeps a concurrent rename when only the color is requested', async () => {
+    database.beforeBatch = async () => { await query("update match_categories set name='Current name' where id=$1", [nextCategoryId]); };
+    const response = await submit({ name: '' });
+    expect(response.status).toBe(200);
+    expect(await category()).toMatchObject({ name: 'Current name', color: 'purple' });
+    expect((await audit())[0].metadata).toMatchObject({ name: 'Current name', color: 'purple' });
+  });
+
+  it('rolls back the category change if its audit cannot be written', async () => {
+    const before = await category();
+    await database.pg.exec("alter table audit_logs add constraint reject_category_update_audit check (action <> 'match_categories.update')");
+    try {
+      const response = await submit();
+      expect(response.status).toBe(500);
+      expect(await category()).toEqual(before);
+      expect(await audit()).toEqual([]);
+    } finally {
+      await database.pg.exec('alter table audit_logs drop constraint reject_category_update_audit');
+    }
+  });
+});
+
 describe('required match tags on edits and category deletion', () => {
   const submit = (handler: typeof manageMatches | typeof manageCategories, body: object) => handler(new Request('https://nxt5.example/.netlify/functions/manage', {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ teamId, ...body })

@@ -220,53 +220,145 @@ export function GameCategoryManager({ data, selectedTeamId, refreshAll, pushToas
   useLanguage();
   const [open, setOpen] = useState(false);
   const [creatorOpen, setCreatorOpen] = useState(false);
+  const [editingId, setEditingId] = useState("");
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", color: "cyan" });
+  const [error, setError] = useState("");
+  const [localCategories, setLocalCategories] = useState([]);
+  const [removedIds, setRemovedIds] = useState([]);
   const triggerRef = useRef(null);
-  const allowed = canManageTeamCategories(data, selectedTeamId, currentMember, user);
-  const categories = (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId);
-  useEffect(() => { setOpen(false); setCreatorOpen(false); setForm({ name: "", color: "cyan" }); }, [selectedTeamId]);
-  const close = () => { if (!saving) { setOpen(false); setCreatorOpen(false); setForm({ name: "", color: "cyan" }); } };
-  async function createCategory(event) {
-    event.preventDefault();
-    if (!allowed || saving || !form.name.trim()) return;
-    setSaving(true);
+  const addRef = useRef(null);
+  const editRefs = useRef(new Map());
+  const restoreFocusRef = useRef(null);
+  const baselineRef = useRef({ name: "", color: "cyan" });
+  const requestRef = useRef(null);
+  const scopeRef = useRef(0);
+  const contextRef = useRef(null);
+  const editorId = useId();
+  const allowed = canCreateTeamCategories(data, selectedTeamId, currentMember, user);
+  contextRef.current = { teamId: selectedTeamId, userId: user?.id, allowed };
+  const categories = [...new Map([...(data.matchCategories || []), ...localCategories].filter((category) => category.team_id === selectedTeamId && !removedIds.includes(String(category.id))).map((category) => [String(category.id), category])).values()];
+  const editingCategory = categories.find((category) => String(category.id) === editingId);
+  const hasEditor = creatorOpen || Boolean(editingId);
+  const dirty = hasEditor && (form.name !== baselineRef.current.name || form.color !== baselineRef.current.color);
+
+  useEffect(() => {
+    setOpen(false); setCreatorOpen(false); setEditingId(""); setSaving(false); setError("");
+    setForm({ name: "", color: "cyan" }); setLocalCategories([]); setRemovedIds([]);
+    restoreFocusRef.current = null;
+    return () => { scopeRef.current += 1; requestRef.current?.controller.abort(); requestRef.current = null; };
+  }, [selectedTeamId, user?.id, allowed]);
+  useEffect(() => {
+    setLocalCategories((current) => current.filter((category) => !(data.matchCategories || []).some((item) => String(item.id) === String(category.id) && item.name === category.name && item.color === category.color)));
+    setRemovedIds((current) => current.filter((id) => (data.matchCategories || []).some((category) => String(category.id) === id)));
+  }, [data.matchCategories]);
+  useEffect(() => {
+    if (restoreFocusRef.current && !hasEditor && !saving) {
+      restoreFocusRef.current.focus(); restoreFocusRef.current = null;
+    }
+  }, [hasEditor, saving]);
+
+  function closeEditor(restoreFocus = true) {
+    restoreFocusRef.current = restoreFocus ? (editingId ? editRefs.current.get(editingId) : addRef.current) : null;
+    setCreatorOpen(false); setEditingId(""); setForm({ name: "", color: "cyan" }); setError("");
+  }
+  function close() {
+    if (requestRef.current) return;
+    scopeRef.current += 1;
+    closeEditor(false); setOpen(false);
+  }
+  function openEditor(category) {
+    if (requestRef.current || !allowed) return;
+    if (dirty && !window.confirm(t("Fermer cette fenêtre et abandonner les modifications non enregistrées ?"))) return;
+    if (!category && creatorOpen) { closeEditor(); return; }
+    const next = { name: category?.name || "", color: category?.color || "cyan" };
+    baselineRef.current = next;
+    setForm(next); setError(""); setEditingId(category ? String(category.id) : ""); setCreatorOpen(!category);
+  }
+  async function mutate(action, body, onSuccess) {
+    if (!allowed || requestRef.current) return;
+    const request = { controller: new AbortController(), teamId: selectedTeamId, userId: user.id, scope: scopeRef.current };
+    const sameContext = () => scopeRef.current === request.scope && contextRef.current?.teamId === request.teamId && contextRef.current?.userId === request.userId && contextRef.current?.allowed;
+    requestRef.current = request; setSaving(true); setError("");
+    let succeeded = false;
     try {
-      await apiFetch("match-categories-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, name: form.name, color: form.color }) });
-      await refreshAll();
-      setForm({ name: "", color: "cyan" });
-      setCreatorOpen(false);
-      pushToast({ type: "green", title: "Catégorie créée", text: "Tu peux maintenant classer tes games dedans." });
+      const result = await apiFetch("match-categories-manage", { method: "POST", signal: request.controller.signal, body: JSON.stringify({ action, teamId: request.teamId, ...body }) });
+      if (requestRef.current !== request || !sameContext()) return;
+      if (action === "update" && (!result?.category?.id || String(result.category.id) !== String(body.categoryId) || result.category.team_id !== request.teamId)) throw new Error("NXT5 a reçu une réponse inattendue. Recharge la page puis réessaie.");
+      if (result?.category?.id && result.category.team_id === request.teamId) setLocalCategories((current) => [...current.filter((category) => String(category.id) !== String(result.category.id)), result.category]);
+      if (action === "delete") {
+        setLocalCategories((current) => current.filter((category) => String(category.id) !== String(body.categoryId)));
+        setRemovedIds((current) => [...current, String(body.categoryId)]);
+      }
+      onSuccess(); succeeded = true;
     } catch (err) {
-      pushToast({ type: "red", title: "Création impossible", text: err.message });
-    } finally { setSaving(false); }
+      if (requestRef.current === request && sameContext()) {
+        setError(err.message);
+        if (action === "delete") pushToast({ type: "red", title: "Suppression impossible", text: err.message });
+      }
+    } finally {
+      if (requestRef.current === request) { requestRef.current = null; setSaving(false); }
+    }
+    if (succeeded) {
+      try { await refreshAll(); }
+      catch (err) { if (sameContext() && !request.controller.signal.aborted) pushToast(errorToast(err, "Actualisation impossible")); }
+    }
+  }
+  async function saveCategory(event) {
+    event.preventDefault();
+    const name = form.name.trim();
+    if (!allowed || requestRef.current || !name || (editingId && (!editingCategory || !dirty))) return;
+    if (categories.some((category) => String(category.id) !== editingId && category.name.toLowerCase() === name.toLowerCase())) {
+      setError("Une catégorie portant ce nom existe déjà dans cette équipe."); return;
+    }
+    const updating = Boolean(editingId);
+    await mutate(updating ? "update" : "create", { ...(updating ? { categoryId: editingId } : {}), name, color: form.color }, () => {
+      closeEditor();
+      pushToast(updating ? { type: "green", title: "Catégorie modifiée", text: "Le nom et la couleur sont mis à jour pour les parties associées." } : { type: "green", title: "Catégorie créée", text: "Tu peux maintenant classer tes games dedans." });
+    });
   }
   async function deleteCategory(category) {
-    if (!allowed || saving || category.is_default) return;
+    if (!allowed || requestRef.current || hasEditor || category.is_default) return;
     if (!window.confirm(t("Supprimer la catégorie « {0} » ? Les parties importées et leurs autres catégories seront conservées.", [category.name]))) return;
-    setSaving(true);
-    try {
-      await apiFetch("match-categories-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, categoryId: category.id }) });
-      await refreshAll();
+    await mutate("delete", { categoryId: category.id }, () => {
+      restoreFocusRef.current = addRef.current;
       pushToast({ type: "green", title: "Catégorie supprimée", text: "Les games associées ont été conservées." });
-    } catch (err) {
-      pushToast({ type: "red", title: "Suppression impossible", text: err.message });
-    } finally { setSaving(false); }
+    });
   }
   if (!allowed) return null;
+  const editor = hasEditor && <form id={editorId} className="ih-category-editor" onSubmit={saveCategory} aria-label={editingCategory ? t("Modifier la catégorie {0}", [editingCategory.name]) : t("Nouvelle catégorie")} aria-busy={saving} onKeyDown={(event) => {
+    if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); if (!requestRef.current) closeEditor(); }
+  }}>
+    <fieldset disabled={saving}>
+      <div className="ih-category-editor-fields">
+        <TextInput label={t("Nom de la catégorie")} value={form.name} onChange={(name) => { setForm((current) => ({ ...current, name })); setError(""); }} placeholder={t("Ligue, Bootcamp…")} required maxLength={80} disabled={Boolean(editingCategory?.is_default)} autoFocus={!editingCategory?.is_default} aria-describedby={error ? `${editorId}-error` : editingCategory?.is_default ? `${editorId}-default` : undefined} />
+        <SelectInput label={t("Couleur")} value={form.color} onChange={(color) => { setForm((current) => ({ ...current, color })); setError(""); }} autoFocus={Boolean(editingCategory?.is_default)}>{form.color === "orange" && <option value="orange">{t("Fuchsia")}</option>}{MATCH_CATEGORY_COLORS.map(([color, label]) => <option key={color} value={color}>{t(label)}</option>)}</SelectInput>
+      </div>
+      {editingCategory?.is_default && <p id={`${editorId}-default`}>{t("Scrim est la catégorie de base : son nom est conservé, sa couleur est modifiable.")}</p>}
+      <div className="ih-category-preview"><span>{t("Aperçu")}</span><Badge tone={matchCategoryTone({ color: form.color })}>{form.name.trim() || t("Catégorie")}</Badge></div>
+      {editingCategory && <p>{t("Le nom et la couleur seront mis à jour sur toutes les parties associées.")}</p>}
+      {error && <p id={`${editorId}-error`} role="alert" className="ih-category-error">{t(error)}</p>}
+      <div className="ih-category-editor-actions"><Button type="submit" icon={saving ? Loader2 : editingId ? Check : Plus} disabled={saving || !form.name.trim() || (Boolean(editingId) && !dirty)}>{saving ? t("Enregistrement…") : editingId ? t("Enregistrer") : t("Créer")}</Button><Button type="button" variant="ghost" disabled={saving} onClick={() => closeEditor()}>{t("Annuler")}</Button></div>
+    </fieldset>
+  </form>;
   return <>
-    <span ref={triggerRef}><Button type="button" variant="ghost" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>{t("Catégories")}</Button></span>
-    {open && <GameOperationDialog title={t("Catégories")} description={t("Classe tes parties par contexte : scrim, ligue, bootcamp…")} compact onClose={close} busy={saving} returnFocusRef={{ current: triggerRef.current?.querySelector("button") }}>
+    <Button ref={triggerRef} type="button" variant="ghost" aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(true)}>{t("Catégories")}</Button>
+    {open && <GameOperationDialog title={t("Catégories")} description={t("Classe tes parties par contexte : scrim, ligue, bootcamp…")} compact onClose={close} busy={saving} dirty={dirty} returnFocusRef={triggerRef}>
       <section className="ih-categories" aria-label={t("Gestion des catégories")}>
-        <header><Button type="button" variant="ghost" icon={creatorOpen ? X : Plus} disabled={saving} onClick={() => { setCreatorOpen((value) => !value); setForm({ name: "", color: "cyan" }); }}>{creatorOpen ? t("Fermer la création") : t("Ajouter une catégorie")}</Button></header>
-        <ul className="ih-category-list">{categories.map((category) => <li key={category.id}><span>{category.name}</span>{category.is_default ? <span className="ih-category-default">{t("Par défaut")}</span> : <button type="button" className="ig-icon-button" onClick={() => deleteCategory(category)} disabled={saving} aria-label={t("Supprimer la catégorie {0}", [category.name])}><X aria-hidden="true" /></button>}</li>)}</ul>
+        <header><Button ref={addRef} type="button" variant="ghost" icon={creatorOpen ? X : Plus} disabled={saving} aria-expanded={creatorOpen} aria-controls={creatorOpen ? editorId : undefined} onClick={() => openEditor(null)}>{creatorOpen ? t("Fermer la création") : t("Ajouter une catégorie")}</Button></header>
+        {creatorOpen && editor}
+        <ul className="ih-category-list ih-category-manager-list">{categories.map((category) => <li key={category.id}>
+          <div className="ih-category-row">
+            <div className="ih-category-name"><Badge tone={matchCategoryTone(category)}>{category.name}</Badge>{category.is_default && <span className="ih-category-default">{t("Par défaut")}</span>}</div>
+            <div className="ih-category-row-actions">
+              <button ref={(node) => { if (node) editRefs.current.set(String(category.id), node); else editRefs.current.delete(String(category.id)); }} type="button" className="ig-icon-button" onClick={() => openEditor(category)} disabled={saving} aria-label={t("Modifier la catégorie {0}", [category.name])} aria-expanded={editingId === String(category.id)} aria-controls={editingId === String(category.id) ? editorId : undefined}><Pencil aria-hidden="true" /></button>
+              {!category.is_default && <button type="button" className="ig-icon-button" onClick={() => deleteCategory(category)} disabled={saving || hasEditor} aria-label={t("Supprimer la catégorie {0}", [category.name])}><X aria-hidden="true" /></button>}
+            </div>
+          </div>
+          {editingId === String(category.id) && editor}
+        </li>)}</ul>
         {!categories.length && <p>{t("Aucune catégorie pour le moment.")}</p>}
-        {creatorOpen && <form className="ih-category-create" onSubmit={createCategory}><fieldset disabled={saving}>
-          <TextInput label={t("Nom de la catégorie")} value={form.name} onChange={(name) => setForm((current) => ({ ...current, name }))} placeholder={t("Ligue, Bootcamp…")} required />
-          <SelectInput label={t("Couleur")} value={form.color} onChange={(color) => setForm((current) => ({ ...current, color }))}>{MATCH_CATEGORY_COLORS.map(([color, label]) => <option key={color} value={color}>{t(label)}</option>)}</SelectInput>
-          <Button type="submit" icon={saving ? Loader2 : Plus} disabled={saving || !form.name.trim()}>{saving ? t("Création…") : t("Créer")}</Button>
-          <Button type="button" variant="ghost" disabled={saving} onClick={() => { setCreatorOpen(false); setForm({ name: "", color: "cyan" }); }}>{t("Annuler")}</Button>
-        </fieldset></form>}
+        {!hasEditor && error && <p role="alert" className="ih-category-error">{t(error)}</p>}
       </section>
     </GameOperationDialog>}
   </>;

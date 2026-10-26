@@ -63,6 +63,30 @@
 .game-operation-dialog-header { position: sticky; top: 0; z-index: 2; padding-block: 12px 16px; border-bottom: 1px solid var(--nxt5-glass-border); background: linear-gradient(120deg, #293247, #27233f 62%, #212b40); }
 .game-operation-dialog-content { min-width: 0; }
 
+.game-operation-dialog .ih-category-manager-list { display: grid; gap: 0; margin-top: 16px; }
+.game-operation-dialog .ih-category-manager-list > li { display: block; padding-block: 12px; border-top: 1px solid var(--nxt5-border); }
+.ih-category-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.ih-category-name { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.ih-category-name .nxt5-badge, .ih-category-preview .nxt5-badge { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+.ih-category-default { color: var(--nxt5-muted); font-size: var(--nxt5-font-small); }
+.ih-category-row-actions { display: flex; flex-shrink: 0; gap: 4px; }
+.ih-category-row-actions .ig-icon-button { width: 44px; height: 44px; min-width: 44px; }
+.ih-category-editor { min-width: 0; margin-block: 16px 8px; }
+.ih-category-editor fieldset { display: grid; min-width: 0; padding: 0; margin: 0; border: 0; gap: 16px; }
+.ih-category-editor-fields { display: grid; grid-template-columns: minmax(0, 1fr) 160px; align-items: start; gap: 16px; }
+.ih-category-editor-fields > * { min-width: 0; }
+.ih-category-editor p { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; overflow-wrap: anywhere; }
+.ih-category-editor .ih-category-error, .ih-categories > .ih-category-error { color: #fda4af; }
+.ih-category-preview { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-width: 0; }
+.ih-category-preview > span:first-child { color: var(--nxt5-muted); font-size: var(--nxt5-font-small); }
+.ih-category-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.ih-category-editor-actions button { min-height: 44px; }
+@media (max-width: 480px) {
+  .ih-category-editor-fields { grid-template-columns: minmax(0, 1fr); }
+  .ih-category-editor-actions > button { flex: 1 1 auto; }
+  .ih-category-row { gap: 8px; }
+}
+
 /* Import review: one team sheet, with no nested panels around individual fields. */
 .game-import-flow { display: grid; gap: 24px; min-width: 0; }
 .game-import-review { min-width: 0; margin: 0; padding: 0; border: 0; }

@@ -1,5 +1,13 @@
 // Reviewed complete messages for counts, mixed markup and accessibility.
 export const en = {
+  "Aperçu": "Preview",
+  "Fuchsia": "Fuchsia",
+  "Modifier la catégorie {0}": "Edit category {0}",
+  "Catégorie modifiée": "Category updated",
+  "Le nom et la couleur sont mis à jour pour les parties associées.": "The name and color have been updated for linked games.",
+  "Le nom et la couleur seront mis à jour sur toutes les parties associées.": "The name and color will be updated on all linked games.",
+  "Scrim est la catégorie de base : son nom est conservé, sa couleur est modifiable.": "Scrim is the default category: its name stays the same, but you can change its color.",
+  "Une catégorie portant ce nom existe déjà dans cette équipe.": "A category with this name already exists in this team.",
   "Nouvelle catégorie": "New category",
   "Créer et sélectionner": "Create and select",
   "La catégorie est sélectionnée pour cette partie.": "The category is selected for this game.",
@@ -53,6 +61,14 @@ export const en = {
 };
 
 export const es = {
+  "Aperçu": "Vista previa",
+  "Fuchsia": "Fucsia",
+  "Modifier la catégorie {0}": "Editar la categoría {0}",
+  "Catégorie modifiée": "Categoría actualizada",
+  "Le nom et la couleur sont mis à jour pour les parties associées.": "El nombre y el color se han actualizado en las partidas asociadas.",
+  "Le nom et la couleur seront mis à jour sur toutes les parties associées.": "El nombre y el color se actualizarán en todas las partidas asociadas.",
+  "Scrim est la catégorie de base : son nom est conservé, sa couleur est modifiable.": "Scrim es la categoría predeterminada: su nombre se conserva, pero puedes cambiar su color.",
+  "Une catégorie portant ce nom existe déjà dans cette équipe.": "Ya existe una categoría con este nombre en este equipo.",
   "Nouvelle catégorie": "Nueva categoría",
   "Créer et sélectionner": "Crear y seleccionar",
   "La catégorie est sélectionnée pour cette partie.": "La categoría está seleccionada para esta partida.",

@@ -12,6 +12,7 @@ vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), apiUploadJson: vi.fn(), 
 
 const cleanups = [];
 beforeEach(() => {
+  categoryEditTriggers.clear();
   vi.stubGlobal("window", {
     location: new URL("https://nxt5.test/integration"), history: { pushState: vi.fn(), replaceState: vi.fn(), state: { from: "games" } }, dispatchEvent: vi.fn(),
     addEventListener: vi.fn(), removeEventListener: vi.fn(), scrollTo: vi.fn(), confirm: vi.fn(() => false), setTimeout: vi.fn(), clearTimeout: vi.fn(),
@@ -26,8 +27,8 @@ afterEach(() => {
 });
 
 const categories = [
-  { id: "scrim", team_id: "team", name: "Scrim", is_default: true },
-  { id: "league", team_id: "team", name: "Ligue" },
+  { id: "scrim", team_id: "team", name: "Scrim", color: "cyan", is_default: true },
+  { id: "league", team_id: "team", name: "Ligue", color: "purple" },
   { id: "empty", team_id: "team", name: "Tournoi" },
   { id: "other-category", team_id: "other-team", name: "Autre équipe" },
 ];
@@ -62,6 +63,7 @@ function settings(overrides = {}) {
 }
 function Controls(props) { return <><GameActions {...props} match={props.match || props.data.matches[0]} /><GameCategoryManager {...props} /></>; }
 const dialogNodes = [];
+const categoryEditTriggers = new Map();
 let optionsTrigger;
 async function render(props = settings()) {
   let renderer;
@@ -73,6 +75,7 @@ async function render(props = settings()) {
     }
     const node = { focus: vi.fn(), isConnected: true, querySelector: () => null };
     if (element.props["aria-label"] === "Options de la game") optionsTrigger = node;
+    if (element.props["aria-label"]?.startsWith("Modifier la catégorie ")) categoryEditTriggers.set(element.props["aria-label"], node);
     return node;
   } }); });
   cleanups.push(() => act(() => renderer.unmount()));
@@ -610,7 +613,7 @@ describe("category management on demand", () => {
     ["coach", "coach", true],
     ["player", "owner", true],
   ])("exposes category management according to role %s and account %s", async (role, userId, allowed) => {
-    const renderer = await render(settings({ currentMember: { role }, user: { id: userId } }));
+    const renderer = await render(settings({ currentMember: { role, team_id: "team", user_id: userId }, user: { id: userId } }));
     expect(Boolean(button(renderer, "Catégories"))).toBe(allowed);
     expect(button(renderer, "Ajouter une catégorie")).toBeUndefined();
     if (allowed) {
@@ -657,6 +660,272 @@ describe("category management on demand", () => {
     await click(renderer, "Supprimer la catégorie Ligue");
     expect(payload()).toEqual({ endpoint: "match-categories-manage", method: "POST", body: { action: "delete", teamId: "team", categoryId: "league" } });
     expect(props.refreshAll).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("editing existing game categories", () => {
+  const updatedCategory = { ...categories[1], name: "Ligue été", color: "pink" };
+  const editForm = (renderer) => renderer.root.findAllByType("form").find((node) => node.findAllByType(TextInput).some((field) => field.props.label === "Nom de la catégorie"));
+  function defer() {
+    let resolve, reject;
+    const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+    return { promise, resolve, reject };
+  }
+  async function openCategoryEditor(renderer, name = "Ligue") {
+    await click(renderer, "Catégories");
+    await click(renderer, `Modifier la catégorie ${name}`);
+  }
+
+  it("prefills the current name and color, updates the same category and patches the list before refresh resolves", async () => {
+    const refresh = defer();
+    const props = settings({ refreshAll: vi.fn(() => refresh.promise) });
+    const associations = props.data.matches.map((match) => ({ id: match.id, categories: [...match.category_ids] }));
+    const renderer = await render(props);
+    await openCategoryEditor(renderer);
+    expect(input(renderer, "Nom de la catégorie").props.value).toBe("Ligue");
+    expect(input(renderer, "Nom de la catégorie").props.maxLength).toBe(80);
+    expect(select(renderer, "Couleur").props.value).toBe("purple");
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(true);
+    expect(button(renderer, "Modifier la catégorie Autre équipe")).toBeUndefined();
+    await fill(renderer, "Nom de la catégorie", "Ligue été");
+    await filter(renderer, "Couleur", "pink");
+    apiFetch.mockResolvedValueOnce({ category: updatedCategory });
+    let pending;
+    await act(async () => { pending = activate(button(renderer, "Enregistrer")); });
+
+    expect(payload()).toEqual({ endpoint: "match-categories-manage", method: "POST", body: { action: "update", teamId: "team", categoryId: "league", name: "Ligue été", color: "pink" } });
+    expect(props.refreshAll).toHaveBeenCalledOnce();
+    expect(input(renderer, "Nom de la catégorie")).toBeUndefined();
+    expect(button(renderer, "Modifier la catégorie Ligue été")).toBeTruthy();
+    expect(button(renderer, "Modifier la catégorie Ligue")).toBeUndefined();
+    expect(button(renderer, "Modifier la catégorie Ligue été").props.disabled).toBe(false);
+    expect(props.data.matches.map((match) => ({ id: match.id, categories: match.category_ids }))).toEqual(associations);
+    expect(apiFetch).toHaveBeenCalledOnce();
+    await click(renderer, "Modifier la catégorie Ligue été");
+    expect(input(renderer, "Nom de la catégorie").props.value).toBe("Ligue été");
+    expect(select(renderer, "Couleur").props.value).toBe("pink");
+    await click(renderer, "Annuler");
+    await act(async () => { refresh.resolve(); await pending; });
+  });
+
+  it("keeps the default Scrim name fixed while allowing its color to change", async () => {
+    const renderer = await render();
+    await openCategoryEditor(renderer, "Scrim");
+    expect(input(renderer, "Nom de la catégorie").props.value).toBe("Scrim");
+    expect(input(renderer, "Nom de la catégorie").props.disabled).toBe(true);
+    expect(editForm(renderer).findAllByType("p").some((node) => /nom|couleur/i.test(text(node)))).toBe(true);
+    expect(button(renderer, "Supprimer la catégorie Scrim")).toBeUndefined();
+    await filter(renderer, "Couleur", "blue");
+    apiFetch.mockResolvedValueOnce({ category: { ...categories[0], color: "blue" } });
+    await click(renderer, "Enregistrer");
+    expect(payload().body).toEqual({ action: "update", teamId: "team", categoryId: "scrim", name: "Scrim", color: "blue" });
+    expect(button(renderer, "Modifier la catégorie Scrim")).toBeTruthy();
+  });
+
+  it("rejects a blank name locally and restores original values after cancelling", async () => {
+    const renderer = await render();
+    await openCategoryEditor(renderer);
+    await fill(renderer, "Nom de la catégorie", "   ");
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(true);
+    await act(async () => editForm(renderer).props.onSubmit({ preventDefault: vi.fn() }));
+    expect(apiFetch).not.toHaveBeenCalled();
+    await filter(renderer, "Couleur", "green");
+    await click(renderer, "Annuler");
+    expect(input(renderer, "Nom de la catégorie")).toBeUndefined();
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+    await click(renderer, "Modifier la catégorie Ligue");
+    expect(input(renderer, "Nom de la catégorie").props.value).toBe("Ligue");
+    expect(select(renderer, "Couleur").props.value).toBe("purple");
+  });
+
+  it.each([
+    [403, "Accès team refusé."],
+    [409, "Une catégorie porte déjà ce nom."],
+  ])("preserves the draft after an update is refused with %s and allows retry", async (status, message) => {
+    const props = settings();
+    const renderer = await render(props);
+    await openCategoryEditor(renderer);
+    await fill(renderer, "Nom de la catégorie", "Ligue été");
+    await filter(renderer, "Couleur", "pink");
+    apiFetch.mockRejectedValueOnce(Object.assign(new Error(message), { status }));
+    await click(renderer, "Enregistrer");
+    expect(editForm(renderer).findAllByProps({ role: "alert" }).some((node) => text(node).includes(message))).toBe(true);
+    expect(input(renderer, "Nom de la catégorie").props.value).toBe("Ligue été");
+    expect(select(renderer, "Couleur").props.value).toBe("pink");
+    expect(button(renderer, "Modifier la catégorie Ligue")).toBeTruthy();
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(false);
+    expect(props.refreshAll).not.toHaveBeenCalled();
+    apiFetch.mockResolvedValueOnce({ category: updatedCategory });
+    await click(renderer, "Enregistrer");
+    expect(button(renderer, "Modifier la catégorie Ligue été")).toBeTruthy();
+    expect(apiFetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a rename that duplicates another category regardless of case", async () => {
+    const renderer = await render();
+    await openCategoryEditor(renderer);
+    await fill(renderer, "Nom de la catégorie", "  sCRIM  ");
+    await click(renderer, "Enregistrer");
+    expect(apiFetch).not.toHaveBeenCalled();
+    expect(editForm(renderer).findAllByProps({ role: "alert" }).some((node) => /existe|déjà/.test(text(node)))).toBe(true);
+    expect(input(renderer, "Nom de la catégorie").props.value).toBe("  sCRIM  ");
+    expect(button(renderer, "Modifier la catégorie Ligue")).toBeTruthy();
+  });
+
+  it("keeps the saved category visible when refreshing shared data fails", async () => {
+    const props = settings({ refreshAll: vi.fn().mockRejectedValue(new Error("Actualisation indisponible")) });
+    const renderer = await render(props);
+    await openCategoryEditor(renderer);
+    await fill(renderer, "Nom de la catégorie", "Ligue été");
+    await filter(renderer, "Couleur", "pink");
+    apiFetch.mockResolvedValueOnce({ category: updatedCategory });
+    await click(renderer, "Enregistrer");
+    expect(input(renderer, "Nom de la catégorie")).toBeUndefined();
+    expect(button(renderer, "Modifier la catégorie Ligue été").props.disabled).toBe(false);
+    expect(apiFetch).toHaveBeenCalledOnce();
+  });
+
+  it.each(["pending", "failed"])("does not restore a locally edited category after deletion and a %s earlier refresh", async (refreshState) => {
+    const initialRefresh = defer();
+    const refreshAll = vi.fn().mockResolvedValue(undefined);
+    if (refreshState === "pending") refreshAll.mockImplementationOnce(() => initialRefresh.promise);
+    else refreshAll.mockRejectedValueOnce(new Error("Actualisation indisponible"));
+    const props = settings({ refreshAll });
+    const renderer = await render(props);
+    await openCategoryEditor(renderer);
+    await fill(renderer, "Nom de la catégorie", "Ligue été");
+    await filter(renderer, "Couleur", "pink");
+    apiFetch.mockResolvedValueOnce({ category: updatedCategory });
+    let update;
+    await act(async () => { update = activate(button(renderer, "Enregistrer")); });
+    expect(button(renderer, "Modifier la catégorie Ligue été")).toBeTruthy();
+    apiFetch.mockResolvedValueOnce({ ok: true });
+    window.confirm.mockReturnValueOnce(true);
+    await click(renderer, "Supprimer la catégorie Ligue été");
+    expect(payload().body).toEqual({ action: "delete", teamId: "team", categoryId: "league" });
+    expect(button(renderer, "Modifier la catégorie Ligue été")).toBeUndefined();
+    await act(async () => renderer.update(<Controls {...props} data={{ ...props.data, matchCategories: props.data.matchCategories.filter((category) => category.id !== "league") }} />));
+    expect(button(renderer, "Modifier la catégorie Ligue été")).toBeUndefined();
+    expect(button(renderer, "Supprimer la catégorie Ligue été")).toBeUndefined();
+    expect(button(renderer, "Modifier la catégorie Scrim")).toBeTruthy();
+    await act(async () => { initialRefresh.resolve(); await update; });
+  });
+
+  it("ignores a late refresh failure after the category dialog has closed", async () => {
+    const refresh = defer();
+    const props = settings({ refreshAll: vi.fn(() => refresh.promise) });
+    const renderer = await render(props);
+    await openCategoryEditor(renderer);
+    await fill(renderer, "Nom de la catégorie", "Ligue été");
+    await filter(renderer, "Couleur", "pink");
+    apiFetch.mockResolvedValueOnce({ category: updatedCategory });
+    let pending;
+    await act(async () => { pending = activate(button(renderer, "Enregistrer")); });
+    expect(button(renderer, "Modifier la catégorie Ligue été")).toBeTruthy();
+    await click(renderer, "Fermer la fenêtre");
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+    props.pushToast.mockClear();
+    await act(async () => { refresh.reject(new Error("Actualisation tardive impossible")); await pending; });
+    expect(props.pushToast).not.toHaveBeenCalled();
+  });
+
+  it("protects a dirty editor from closing the dialog", async () => {
+    const renderer = await render();
+    await openCategoryEditor(renderer);
+    await fill(renderer, "Nom de la catégorie", "Brouillon privé");
+    await click(renderer, "Fermer la fenêtre");
+    expect(window.confirm).toHaveBeenCalledOnce();
+    expect(input(renderer, "Nom de la catégorie").props.value).toBe("Brouillon privé");
+    expect(apiFetch).not.toHaveBeenCalled();
+    window.confirm.mockReturnValueOnce(true);
+    await click(renderer, "Fermer la fenêtre");
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+  });
+
+  it("uses Escape to close only the category editor and restores focus to its edit button", async () => {
+    const renderer = await render();
+    await openCategoryEditor(renderer);
+    await fill(renderer, "Nom de la catégorie", "Brouillon privé");
+    const trigger = categoryEditTriggers.get("Modifier la catégorie Ligue");
+    expect(trigger).toBeTruthy();
+    trigger.focus.mockClear();
+    window.confirm.mockReturnValueOnce(true);
+    const event = { key: "Escape", preventDefault: vi.fn(), stopPropagation: vi.fn() };
+    await act(async () => editForm(renderer).props.onKeyDown(event));
+    expect(event.preventDefault).toHaveBeenCalled();
+    expect(event.stopPropagation).toHaveBeenCalled();
+    expect(input(renderer, "Nom de la catégorie")).toBeUndefined();
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+    expect(trigger.focus).toHaveBeenCalled();
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it("serializes repeated saves and prevents closing or deleting a category during the update", async () => {
+    const renderer = await render();
+    await openCategoryEditor(renderer);
+    await fill(renderer, "Nom de la catégorie", "Ligue été");
+    await filter(renderer, "Couleur", "pink");
+    const request = defer();
+    apiFetch.mockImplementationOnce(() => request.promise);
+    const submit = editForm(renderer).props.onSubmit;
+    let pending;
+    await act(async () => { pending = submit({ preventDefault: vi.fn() }); void submit({ preventDefault: vi.fn() }); });
+    expect(apiFetch).toHaveBeenCalledOnce();
+    expect(button(renderer, "Fermer la fenêtre").props.disabled).toBe(true);
+    expect(editForm(renderer).findByType("fieldset").props.disabled).toBe(true);
+    expect(button(renderer, "Modifier la catégorie Tournoi").props.disabled).toBe(true);
+    expect(button(renderer, "Supprimer la catégorie Tournoi").props.disabled).toBe(true);
+    await act(async () => {
+      renderer.root.findByType("dialog").props.onCancel({ preventDefault: vi.fn(), stopPropagation: vi.fn() });
+      button(renderer, "Supprimer la catégorie Tournoi").props.onClick();
+    });
+    expect(apiFetch).toHaveBeenCalledOnce();
+    expect(window.confirm).not.toHaveBeenCalled();
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+    await act(async () => { request.resolve({ category: updatedCategory }); await pending; });
+    expect(button(renderer, "Modifier la catégorie Ligue été").props.disabled).toBe(false);
+  });
+
+  it.each([
+    { role: "coach", team_id: "other-team", user_id: "coach" },
+    { role: "coach", team_id: "team", user_id: "someone-else" },
+    { role: "player", team_id: "team", user_id: "coach" },
+  ])("does not expose management to a mismatched or non-staff membership %j", async (currentMember) => {
+    const renderer = await render(settings({ currentMember }));
+    expect(button(renderer, "Catégories")).toBeUndefined();
+    expect(button(renderer, "Modifier la catégorie Ligue")).toBeUndefined();
+    expect(apiFetch).not.toHaveBeenCalled();
+  });
+
+  it.each(["team", "user", "permission", "unmount"])("aborts an update after %s changes and ignores its late result", async (interruption) => {
+    const props = settings();
+    const renderer = await render(props);
+    await openCategoryEditor(renderer);
+    await fill(renderer, "Nom de la catégorie", "Ligue été");
+    await filter(renderer, "Couleur", "pink");
+    const request = defer();
+    apiFetch.mockImplementationOnce(() => request.promise);
+    let pending;
+    await act(async () => { pending = activate(button(renderer, "Enregistrer")); });
+    const signal = apiFetch.mock.calls[0][1].signal;
+    expect(signal?.aborted).toBe(false);
+    const next = interruption === "team" ? { ...props, selectedTeamId: "other-team", currentMember: { role: "coach", team_id: "other-team", user_id: "coach" } }
+      : interruption === "user" ? { ...props, user: { id: "another-coach" }, currentMember: { role: "coach", team_id: "team", user_id: "another-coach" } }
+      : { ...props, currentMember: { role: "player", team_id: "team", user_id: "coach" } };
+    await act(async () => {
+      if (interruption === "unmount") renderer.unmount();
+      else renderer.update(<Controls {...next} />);
+    });
+    expect(signal.aborted).toBe(true);
+    props.pushToast.mockClear();
+    await act(async () => { request.resolve({ category: updatedCategory }); await pending; });
+    expect(props.refreshAll).not.toHaveBeenCalled();
+    expect(props.pushToast).not.toHaveBeenCalled();
+    if (interruption !== "unmount") {
+      expect(input(renderer, "Nom de la catégorie")).toBeUndefined();
+      if (interruption !== "permission") await click(renderer, "Catégories");
+      expect(button(renderer, "Modifier la catégorie Ligue été")).toBeUndefined();
+    }
   });
 });
 
