@@ -4,7 +4,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 
 const state = vi.hoisted(() => ({ pg: null as any, sql: vi.fn(), rate: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/db', () => ({
-  sql: Object.assign(state.sql, { transaction: async (queries: Promise<any>[]) => Promise.all(queries) }),
+  sql: Object.assign(state.sql, { query: state.sql, transaction: async (queries: Promise<any>[]) => Promise.all(queries) }),
 }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertSubjectRateLimit: state.rate }));
 

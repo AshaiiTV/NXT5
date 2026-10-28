@@ -12,7 +12,7 @@ export function discordAnalyticsDays(value: string | null): DiscordAnalyticsDays
 // Check relation existence without converting a network/permission failure into
 // an empty dashboard or a misleading migration warning. This endpoint does no DDL.
 export async function discordAnalyticsSchemaReady(): Promise<boolean> {
-  const [row] = await sql(`select bool_and(to_regclass(name) is not null) as ready
+  const [row] = await sql.query(`select bool_and(to_regclass(name) is not null) as ready
     from unnest(array['discord_connections','discord_routes','discord_publications',
       'publication_jobs','discord_deliveries','discord_interaction_receipts','discord_connection_tests']) as relations(name)`);
   return row?.ready === true;
@@ -173,7 +173,7 @@ export async function readDiscordAnalytics(days: DiscordAnalyticsDays, now = new
   const to = now.toISOString();
   const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - (days - 1) * DAY).toISOString();
   const commandsFrom = new Date(Math.max(Date.parse(from), now.getTime() - 7 * DAY)).toISOString();
-  const [row] = await sql(REPORT_SQL, [from, to, commandsFrom]);
+  const [row] = await sql.query(REPORT_SQL, [from, to, commandsFrom]);
   if (!row?.report) throw new Error('Discord analytics report unavailable');
   return {
     schemaReady: true,

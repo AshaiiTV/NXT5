@@ -39,14 +39,14 @@ const canonical = (value: any): any => Array.isArray(value) ? value.map(canonica
 
 export async function assertDiscordGroupSchemaReady() {
   try {
-    if ((await sql('select migration_key from app_schema_migrations where migration_key=$1', [GROUP_EXPORT_SCHEMA])).length) return;
+    if ((await sql.query('select migration_key from app_schema_migrations where migration_key=$1', [GROUP_EXPORT_SCHEMA])).length) return;
   } catch { /* Stable public maintenance response. */ }
   throw discordError('La mise à jour des exports de groupes Discord doit être appliquée.', 503, 'DISCORD_GROUP_SCHEMA_REQUIRED');
 }
 
 async function loadGroup(teamId: string, archiveId: string, routeId: string): Promise<Row & { sourceHash: string; snapshot: ReturnType<typeof buildGroupPublicationSnapshot> }> {
   // Group, participants and route are read from the same PostgreSQL snapshot.
-  const [row] = await sql(`select to_jsonb(a) as archive,jsonb_build_object('id',t.id,'name',t.name) as team,
+  const [row] = await sql.query(`select to_jsonb(a) as archive,jsonb_build_object('id',t.id,'name',t.name) as team,
     to_jsonb(r) as route,c.status as connection_status,c.config_version,
     coalesce((select jsonb_agg(to_jsonb(m) || jsonb_build_object('participants',coalesce(
       (select jsonb_agg(to_jsonb(p) order by p.id) from match_participants p where p.match_id=m.id),'[]'::jsonb)) order by m.id)
@@ -141,7 +141,7 @@ export function publicDiscordGroupExport(row: Row) {
     messageUrl: row.status === 'succeeded' && isDiscordId(row.message_id) ? `https://discord.com/channels/${row.guild_id}/${row.channel_id}/${row.message_id}` : null };
 }
 async function stored(teamId: string, requestId: string) {
-  return (await sql('select * from discord_group_exports where team_id=$1 and request_id=$2', [teamId, requestId]))[0];
+  return (await sql.query('select * from discord_group_exports where team_id=$1 and request_id=$2', [teamId, requestId]))[0];
 }
 async function reconcile(row: Row, messageId?: string) {
   if ((publicDiscordGroupExport(row).status !== 'uncertain' && !(messageId && row.status === 'sending')) || !isDiscordEnabled()
@@ -160,7 +160,7 @@ async function reconcile(row: Row, messageId?: string) {
       found = message;
     } else found = await findDiscordMessage(row.channel_id, { reference: reference(row), after: row.created_at });
     if (isDiscordId(found?.id) && found.channel_id === row.channel_id) {
-      const [saved] = await sql("update discord_group_exports set status='succeeded',message_id=$2,error_code=null,completed_at=now() where id=$1 and status in ('sending','uncertain') returning *", [row.id, found.id]);
+      const [saved] = await sql.query("update discord_group_exports set status='succeeded',message_id=$2,error_code=null,completed_at=now() where id=$1 and status in ('sending','uncertain') returning *", [row.id, found.id]);
       if (saved) return publicDiscordGroupExport(saved);
     }
   } catch {
@@ -177,7 +177,7 @@ export async function verifyDiscordGroup({ teamId, archiveId, requestId, message
   return reconcile(row, messageId);
 }
 export async function listDiscordGroupExports(teamId: string, archiveId: string) {
-  return (await sql('select * from discord_group_exports where team_id=$1 and archive_id=$2 order by created_at desc,id desc limit 20', [teamId, archiveId])).map(publicDiscordGroupExport);
+  return (await sql.query('select * from discord_group_exports where team_id=$1 and archive_id=$2 order by created_at desc,id desc limit 20', [teamId, archiveId])).map(publicDiscordGroupExport);
 }
 
 export async function publishDiscordGroup(input: { teamId: string; archiveId: string; routeId: string; requestId: string; userId: string; previewToken: unknown }) {
@@ -191,7 +191,7 @@ export async function publishDiscordGroup(input: { teamId: string; archiveId: st
   const group = await loadGroup(teamId, archiveId, routeId);
   verifyPreview(input.previewToken, claims(userId, group));
   if (group.connection_status !== 'active') throw discordError('Active la diffusion de cette équipe avant de partager ce groupe.', 409, 'DISCORD_GROUP_CONNECTION_PAUSED');
-  const existing = await sql(`select * from discord_group_exports where team_id=$1 and archive_id=$2 and guild_id=$3 and channel_id=$4
+  const existing = await sql.query(`select * from discord_group_exports where team_id=$1 and archive_id=$2 and guild_id=$3 and channel_id=$4
     and (status in ('sending','uncertain') or (status='succeeded' and source_hash=$5)) order by created_at desc limit 1`,
   [teamId, archiveId, group.route.guild_id, group.route.channel_id, group.sourceHash]);
   if (existing[0]) return reconcile(existing[0]);
@@ -202,7 +202,7 @@ export async function publishDiscordGroup(input: { teamId: string; archiveId: st
     throw discordError('Le bot ne peut pas publier dans ce salon.', 409, 'DISCORD_GROUP_CHANNEL_FORBIDDEN');
   }
   // The receipt is the mutex; both uniqueness constraints fence concurrent UUIDs.
-  const [, , claimedRows] = await sql.transaction([...discordTeamWriteQueries(teamId, userId, 'staff'), sql(`with inserted as (
+  const [, , claimedRows] = await sql.transaction([...discordTeamWriteQueries(teamId, userId, 'staff'), sql.query(`with inserted as (
     insert into discord_group_exports(team_id,request_id,archive_id,route_id,application_id,guild_id,channel_id,channel_name,config_version,source_hash,status,created_by)
     select r.team_id,$3,$4,r.id,$5,r.guild_id,r.channel_id,r.channel_name,c.config_version,$6,'sending',$7
     from discord_routes r join discord_connections c on c.team_id=r.team_id join match_archives a on a.team_id=r.team_id and a.id=$4
@@ -217,7 +217,7 @@ export async function publishDiscordGroup(input: { teamId: string; archiveId: st
     group.route.guild_id, group.route.channel_id, group.config_version])]);
   const claimed = claimedRows[0];
   if (!claimed) {
-    const raced = await stored(teamId, requestId) || (await sql(`select * from discord_group_exports where team_id=$1 and archive_id=$2 and guild_id=$3 and channel_id=$4
+    const raced = await stored(teamId, requestId) || (await sql.query(`select * from discord_group_exports where team_id=$1 and archive_id=$2 and guild_id=$3 and channel_id=$4
       and (status in ('sending','uncertain') or (status='succeeded' and source_hash=$5)) order by created_at desc limit 1`,
     [teamId, archiveId, group.route.guild_id, group.route.channel_id, group.sourceHash]))[0];
     if (raced) {
@@ -239,14 +239,14 @@ export async function publishDiscordGroup(input: { teamId: string; archiveId: st
     const result = await discordRequest(`/channels/${claimed.channel_id}/messages`, { method: 'POST', body: message,
       ...(image ? { files: [{ name: image.filename, bytes: image.bytes }] } : {}) });
     if (!isDiscordId(result?.id) || result.channel_id !== claimed.channel_id) throw new DiscordApiError(502, 'DISCORD_INVALID_RESPONSE', { ambiguous: true });
-    const [saved] = await sql("update discord_group_exports set status='succeeded',message_id=$2,error_code=null,completed_at=now() where id=$1 and status in ('sending','uncertain') returning *", [claimed.id, result.id]);
+    const [saved] = await sql.query("update discord_group_exports set status='succeeded',message_id=$2,error_code=null,completed_at=now() where id=$1 and status in ('sending','uncertain') returning *", [claimed.id, result.id]);
     return publicDiscordGroupExport(saved || { ...claimed, status: 'uncertain', error_code: 'DISCORD_GROUP_UNCONFIRMED' });
   } catch (error: any) {
     const uncertain = attempted && (!(error instanceof DiscordApiError) || error.ambiguous || error.status >= 500);
     const status = uncertain ? 'uncertain' : 'failed';
     const code = error instanceof DiscordApiError || String(error?.code || '').startsWith('DISCORD_') ? error.code : 'DISCORD_GROUP_FAILED';
     try {
-      const [saved] = await sql("update discord_group_exports set status=$2,error_code=$3,completed_at=case when $2='failed' then now() else null end where id=$1 and status='sending' returning *", [claimed.id, status, code]);
+      const [saved] = await sql.query("update discord_group_exports set status=$2,error_code=$3,completed_at=case when $2='failed' then now() else null end where id=$1 and status='sending' returning *", [claimed.id, status, code]);
       if (saved) return publicDiscordGroupExport(saved);
       const current = await stored(teamId, requestId);
       if (current) return publicDiscordGroupExport(current);

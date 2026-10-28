@@ -12,7 +12,7 @@ const MAX_ROLE_IDS = 25;
 
 async function assertRoleAccessSchemaReady() {
   try {
-    const rows = await sql('select migration_key from app_schema_migrations where migration_key=$1', [ROLE_ACCESS_SCHEMA_VERSION]);
+    const rows = await sql.query('select migration_key from app_schema_migrations where migration_key=$1', [ROLE_ACCESS_SCHEMA_VERSION]);
     if (rows.length) return;
   } catch { /* Return a stable maintenance error while the migration is pending. */ }
   throw discordError('La migration des rôles Discord doit être appliquée avant ce réglage.', 503, 'DISCORD_BOT_ROLE_ACCESS_SCHEMA_REQUIRED');
@@ -38,8 +38,8 @@ async function handler(request: Request, context: Context) {
 
     if (request.method === 'GET') {
       const [connections, policies] = await Promise.all([
-        sql('select guild_id,status from discord_connections where team_id=$1', [teamId]),
-        sql('select guild_id,role_ids from discord_bot_role_access where team_id=$1', [teamId]),
+        sql.query('select guild_id,status from discord_connections where team_id=$1', [teamId]),
+        sql.query('select guild_id,role_ids from discord_bot_role_access where team_id=$1', [teamId]),
       ]);
       const connection = connections[0];
       const policy = policies[0];
@@ -55,12 +55,12 @@ async function handler(request: Request, context: Context) {
     const guildId = body.guildId;
     if (!isDiscordId(guildId)) throw discordError('Serveur Discord invalide.', 400, 'DISCORD_ROLE_ACCESS_INVALID');
     const roleIds = parseRoleIds(body.roleIds, guildId);
-    const connections = await sql("select guild_id from discord_connections where team_id=$1 and guild_id=$2 and status in ('active','paused')", [teamId, guildId]);
+    const connections = await sql.query("select guild_id from discord_connections where team_id=$1 and guild_id=$2 and status in ('active','paused')", [teamId, guildId]);
     if (!connections.length) throw discordError('La liaison de cette équipe a changé. Actualise la page.', 409, 'DISCORD_CONNECTION_CHANGED');
     const lockedConnectionQueries = () => [
       ...discordTeamWriteQueries(teamId, user.id),
-      sql('select team_id from discord_connections where team_id=$1 for update', [teamId]),
-      sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and status in ('active','paused')) then 1 else 0 end", [teamId, guildId]),
+      sql.query('select team_id from discord_connections where team_id=$1 for update', [teamId]),
+      sql.query("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and status in ('active','paused')) then 1 else 0 end", [teamId, guildId]),
     ];
 
     if (roleIds.length) {
@@ -71,7 +71,7 @@ async function handler(request: Request, context: Context) {
       }
       await sql.transaction([
         ...lockedConnectionQueries(),
-        sql(`insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3::text[])
+        sql.query(`insert into discord_bot_role_access(team_id,guild_id,role_ids) values($1,$2,$3::text[])
           on conflict(team_id) do update set guild_id=excluded.guild_id,role_ids=excluded.role_ids,updated_at=now()`, [teamId, guildId, roleIds]),
         auditDiscord(user.id, teamId, 'discord.bot_role_access_updated', { guildId, roleIds }),
       ]);
@@ -82,7 +82,7 @@ async function handler(request: Request, context: Context) {
     // membership and command-specific permissions still apply afterward.
     await sql.transaction([
       ...lockedConnectionQueries(),
-      sql('delete from discord_bot_role_access where team_id=$1', [teamId]),
+      sql.query('delete from discord_bot_role_access where team_id=$1', [teamId]),
       auditDiscord(user.id, teamId, 'discord.bot_role_access_removed', { guildId }),
     ]);
     return json({ guildId, configuredGuildId: null, roleIds: [], enabled: false });

@@ -18,7 +18,7 @@ const link = (row: Row) => isDiscordId(row.message_id)
 export async function assertCommunityReady() {
   if (!isDiscordEnabled()) throw discordError('La publication Discord est désactivée ou sa configuration est incomplète.', 409, 'DISCORD_PUBLISHING_DISABLED');
   try {
-    if ((await sql('select migration_key from app_schema_migrations where migration_key=$1', [COMMUNITY_SCHEMA])).length) return;
+    if ((await sql.query('select migration_key from app_schema_migrations where migration_key=$1', [COMMUNITY_SCHEMA])).length) return;
   } catch { /* Stable maintenance response, without database details. */ }
   throw discordError('La mise à jour des annonces Discord doit être appliquée.', 503, 'DISCORD_COMMUNITY_SCHEMA_REQUIRED');
 }
@@ -37,7 +37,7 @@ async function liveIdentity() {
   return { botId: bot.id as string };
 }
 async function settings() {
-  return (await sql('select * from discord_community_settings where singleton=true'))[0] || null;
+  return (await sql.query('select * from discord_community_settings where singleton=true'))[0] || null;
 }
 function destinations(value: unknown, allowEmpty = false): Destination[] {
   if (!Array.isArray(value) || value.length > MAX_COMMUNITY_DESTINATIONS || (!allowEmpty && !value.length)
@@ -127,7 +127,7 @@ function verifyPreview(value: unknown, expected: Row, allowExpired = false) {
 
 export async function communityOverview() {
   await liveIdentity();
-  const [guilds, setting, announcements] = await Promise.all([availableGuilds(), settings(), sql('select * from discord_community_announcements order by created_at desc limit 50')]);
+  const [guilds, setting, announcements] = await Promise.all([availableGuilds(), settings(), sql.query('select * from discord_community_announcements order by created_at desc limit 50')]);
   const selected = destinations(setting?.destinations || [], true);
   const detailed = await limitedMap(guilds, async guild => {
     const channelId = selected.find(item => item.guildId === guild.id)?.channelId || null;
@@ -162,7 +162,7 @@ export async function configureCommunityChannel(value: unknown, userId: string, 
     await liveIdentity();
     await liveDestinations(targets);
   }
-  const [saved] = await sql(`insert into discord_community_settings(singleton,destinations,updated_by)
+  const [saved] = await sql.query(`insert into discord_community_settings(singleton,destinations,updated_by)
     values(true,$1::jsonb,$2) on conflict(singleton) do update set destinations=excluded.destinations,
     config_version=discord_community_settings.config_version+1,updated_by=excluded.updated_by,updated_at=now() returning destinations`, [destinationKey(targets), userId]);
   return { destinations: saved.destinations };
@@ -171,9 +171,9 @@ export async function previewCommunityAnnouncement(body: Row, userId: string) {
   const input = parseAnnouncement(body);
   const [identity, setting] = await Promise.all([liveIdentity(), settings()]);
   assertConfiguredTargets(input.destinations, setting);
-  const [existing] = await sql('select * from discord_community_batches where reference=$1', [input.reference]);
+  const [existing] = await sql.query('select * from discord_community_batches where reference=$1', [input.reference]);
   assertSameReference(existing, input, identity.botId);
-  const receipts = existing ? await sql('select * from discord_community_announcements where reference=$1', [input.reference]) : [];
+  const receipts = existing ? await sql.query('select * from discord_community_announcements where reference=$1', [input.reference]) : [];
   const pending = existing ? input.destinations.filter(target => receipts.some(row => row.guild_id === target.guildId && ['queued', 'failed'].includes(row.status))) : input.destinations;
   const active = await liveDestinations(pending);
   // Receipted destinations need no publishing permissions to reconcile. Keep
@@ -217,12 +217,12 @@ async function recoverAnnouncement(row: Row) {
     if (Array.isArray(messages)) found = messages.find(message => matchingMessage(message, row));
   } catch { /* Unavailable history is not evidence that no message was sent. */ }
   if (found) {
-    const [saved] = await sql("update discord_community_announcements set status='sent',message_id=$2,error_code=null,updated_at=now() where id=$1 returning *", [row.id, found.id]);
+    const [saved] = await sql.query("update discord_community_announcements set status='sent',message_id=$2,error_code=null,updated_at=now() where id=$1 returning *", [row.id, found.id]);
     return result(saved, true);
   }
-  await sql("update discord_community_announcements set status='uncertain',error_code='DELIVERY_UNCONFIRMED',updated_at=now() where id=$1 and status='sending'", [row.id]);
+  await sql.query("update discord_community_announcements set status='uncertain',error_code='DELIVERY_UNCONFIRMED',updated_at=now() where id=$1 and status='sending'", [row.id]);
   // A concurrent publisher may have persisted its receipt while history was read.
-  const [current] = await sql('select * from discord_community_announcements where id=$1', [row.id]);
+  const [current] = await sql.query('select * from discord_community_announcements where id=$1', [row.id]);
   return result(current || { ...row, status: 'uncertain' });
 }
 
@@ -233,7 +233,7 @@ export async function recoverCommunityAnnouncement(reference: unknown, guildId?:
     throw discordError('Référence d’annonce invalide.', 400, 'DISCORD_ANNOUNCEMENT_REFERENCE_INVALID');
   }
   if (guildId !== undefined && !isDiscordId(guildId)) throw discordError('Serveur Discord invalide.', 400, 'DISCORD_COMMUNITY_GUILD_INVALID');
-  const rows = await sql('select * from discord_community_announcements where reference=$1 order by guild_id', [reference]);
+  const rows = await sql.query('select * from discord_community_announcements where reference=$1 order by guild_id', [reference]);
   const selected = guildId ? rows.filter(row => row.guild_id === guildId) : rows;
   if (!selected.length) throw discordError('Cette annonce est introuvable.', 404, 'DISCORD_ANNOUNCEMENT_NOT_FOUND');
   const identity = await liveIdentity();
@@ -249,14 +249,14 @@ export async function restoreCommunityAnnouncement(reference: unknown) {
   if (typeof reference !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(reference)) {
     throw discordError('Référence d’annonce invalide.', 400, 'DISCORD_ANNOUNCEMENT_REFERENCE_INVALID');
   }
-  const [batch] = await sql('select * from discord_community_batches where reference=$1', [reference]);
+  const [batch] = await sql.query('select * from discord_community_batches where reference=$1', [reference]);
   if (!batch) throw discordError('Cette annonce est introuvable.', 404, 'DISCORD_ANNOUNCEMENT_NOT_FOUND');
   const identity = await liveIdentity();
   if (batch.application_id !== getDiscordConfig().applicationId || batch.bot_id !== identity.botId) {
     throw discordError('Cette annonce appartient à une autre configuration Discord.', 409, 'DISCORD_ANNOUNCEMENT_CONFIGURATION_CHANGED');
   }
   const targets = destinations(batch.destinations);
-  const rows = await sql('select * from discord_community_announcements where reference=$1 order by guild_id', [reference]);
+  const rows = await sql.query('select * from discord_community_announcements where reference=$1 order by guild_id', [reference]);
   if (rows.length !== targets.length) throw discordError('Les reçus de cette annonce doivent être vérifiés. Aucun nouvel envoi effectué.', 409, 'DISCORD_ANNOUNCEMENT_RECEIPTS_INCOMPLETE');
   return { ...aggregate(reference, rows.map(row => result(row))), content: batch.content, destinations: targets };
 }
@@ -266,12 +266,12 @@ async function publishDestination(row: Row, setting: Row, deadline: number) {
   // nearly over; the next explicit publish can safely resume them.
   if (Date.now() + 10_000 > deadline) return result(row);
   if (!['queued', 'failed'].includes(row.status)) return recoverAnnouncement(row);
-  const [claimed] = await sql(`with destination as materialized (select 1 from discord_community_settings
+  const [claimed] = await sql.query(`with destination as materialized (select 1 from discord_community_settings
       where singleton=true and config_version=$2 for share)
     update discord_community_announcements set status='sending',error_code=null,updated_at=now()
       where id=$1 and status in ('queued','failed') and exists(select 1 from destination) returning *`, [row.id, setting.config_version]);
   if (!claimed) {
-    const [current] = await sql('select * from discord_community_announcements where id=$1', [row.id]);
+    const [current] = await sql.query('select * from discord_community_announcements where id=$1', [row.id]);
     return recoverAnnouncement(current || row);
   }
   let attempted = false;
@@ -286,13 +286,13 @@ async function publishDestination(row: Row, setting: Row, deadline: number) {
     attempted = true;
     const message = await discordRequest(`/channels/${row.channel_id}/messages`, { method: 'POST', body: payload });
     if (!matchingMessage(message, row)) throw Object.assign(new Error('Unconfirmed Discord response'), { ambiguous: true });
-    const [saved] = await sql("update discord_community_announcements set status='sent',message_id=$2,error_code=null,updated_at=now() where id=$1 returning *", [row.id, message.id]);
+    const [saved] = await sql.query("update discord_community_announcements set status='sent',message_id=$2,error_code=null,updated_at=now() where id=$1 returning *", [row.id, message.id]);
     return result(saved, true);
   } catch (error) {
     const uncertain = attempted && (error?.ambiguous || !error?.status || error.status >= 500);
     const state = uncertain ? 'uncertain' : 'failed';
     try {
-      await sql("update discord_community_announcements set status=$2,error_code=$3,updated_at=now() where id=$1 and status<>'sent'", [row.id, state, uncertain ? 'DELIVERY_UNCONFIRMED' : String(error?.code || 'DISCORD_DELIVERY_FAILED')]);
+      await sql.query("update discord_community_announcements set status=$2,error_code=$3,updated_at=now() where id=$1 and status<>'sent'", [row.id, state, uncertain ? 'DELIVERY_UNCONFIRMED' : String(error?.code || 'DISCORD_DELIVERY_FAILED')]);
     } catch { /* A durable sending row also blocks a second POST after storage failure. */ }
     return uncertain ? result({ ...row, status: 'uncertain' }) : deliveryFailure(row, error);
   }
@@ -303,9 +303,9 @@ export async function publishCommunityAnnouncement(body: Row, userId: string) {
   const input = parseAnnouncement(body);
   const [identity, setting] = await Promise.all([liveIdentity(), settings()]);
   assertConfiguredTargets(input.destinations, setting);
-  const [previous] = await sql('select * from discord_community_batches where reference=$1', [input.reference]);
+  const [previous] = await sql.query('select * from discord_community_batches where reference=$1', [input.reference]);
   assertSameReference(previous, input, identity.botId);
-  let rows = await sql('select * from discord_community_announcements where reference=$1 order by guild_id', [input.reference]);
+  let rows = await sql.query('select * from discord_community_announcements where reference=$1 order by guild_id', [input.reference]);
   const reconciliationOnly = Boolean(previous && rows.length === input.destinations.length && rows.every(row => !['failed', 'queued'].includes(row.status)));
   verifyPreview(body.previewToken, previewClaims(userId, input, setting), reconciliationOnly);
   if (reconciliationOnly) return aggregate(input.reference, await limitedMap(rows, recoverAnnouncement));
@@ -313,7 +313,7 @@ export async function publishCommunityAnnouncement(body: Row, userId: string) {
   await liveDestinations(pending, deadline);
   // One SQL statement durably creates the whole batch and every queued receipt.
   // A terminated invocation can therefore never make a partial send look complete.
-  await sql(`with destination as materialized (select 1 from discord_community_settings
+  await sql.query(`with destination as materialized (select 1 from discord_community_settings
       where singleton=true and config_version=$1 and destinations=$2::jsonb for share),
     batch as (insert into discord_community_batches(reference,application_id,bot_id,content,content_hash,destinations)
       select $3,$4,$5,$6,$7,$2::jsonb from destination on conflict(reference) do nothing returning *)
@@ -321,10 +321,10 @@ export async function publishCommunityAnnouncement(body: Row, userId: string) {
       select batch.reference,batch.application_id,target->>'guildId',target->>'channelId',batch.content,batch.content_hash,'queued',$8,batch.bot_id
       from batch cross join jsonb_array_elements(batch.destinations) target on conflict(reference,guild_id) do nothing returning *`,
   [setting.config_version, destinationKey(input.destinations), input.reference, getDiscordConfig().applicationId, identity.botId, input.content, input.contentHash, userId]);
-  const [batch] = await sql('select * from discord_community_batches where reference=$1', [input.reference]);
+  const [batch] = await sql.query('select * from discord_community_batches where reference=$1', [input.reference]);
   if (!batch) throw discordError('Les destinations ont changé. Prépare à nouveau l’aperçu.', 409, 'DISCORD_ANNOUNCEMENT_PREVIEW_REQUIRED');
   assertSameReference(batch, input, identity.botId);
-  rows = await sql('select * from discord_community_announcements where reference=$1 order by guild_id', [input.reference]);
+  rows = await sql.query('select * from discord_community_announcements where reference=$1 order by guild_id', [input.reference]);
   if (rows.length !== input.destinations.length) throw discordError('Les reçus de cette annonce doivent être vérifiés. Aucun nouvel envoi effectué.', 409, 'DISCORD_ANNOUNCEMENT_RECEIPTS_INCOMPLETE');
   return aggregate(input.reference, await limitedMap(rows, row => publishDestination(row, setting, deadline)));
 }

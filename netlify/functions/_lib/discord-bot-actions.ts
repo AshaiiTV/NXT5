@@ -14,31 +14,31 @@ function integer(value:any,min:number,max:number,label:string){const n=Number(va
 const modal=(command:string,options:any,title:string,fields:any[])=>({modal:{title,command,options,fields}});
 const stamp=(value:any)=>`<t:${Math.floor(new Date(value).getTime()/1000)}:F>`;
 async function eventFor(ctx:BotContext,id:any,allowCancelled=false){
-  const rows=await sql('select * from discord_team_events where team_id=$1 and id=$2',[ctx.teamId,uuid(id,'Événement')]);
+  const rows=await sql.query('select * from discord_team_events where team_id=$1 and id=$2',[ctx.teamId,uuid(id,'Événement')]);
   if(!rows[0]||(!allowCancelled&&rows[0].status!=='scheduled'))throw discordError('Événement introuvable ou annulé.',404);
   return rows[0];
 }
 async function goalFor(ctx:BotContext,id:any){
-  const rows=await sql(`select id,team_id,player_id,title,status,'team' as source from discord_team_goals where team_id=$1 and id=$2
+  const rows=await sql.query(`select id,team_id,player_id,title,status,'team' as source from discord_team_goals where team_id=$1 and id=$2
     union all select id,team_id,player_id,title,status,'player' as source from player_goals where team_id=$1 and id=$2`,[ctx.teamId,uuid(id,'Objectif')]);
   const goal=rows[0];if(!goal||(!ctx.canStaff&&goal.player_id&&!ctx.playerIds.includes(goal.player_id)))throw discordError('Objectif introuvable ou non accessible.',404);
   return goal;
 }
 async function reportFor(ctx:BotContext,id:any){
-  const rows=await sql('select * from reports where team_id=$1 and id=$2',[ctx.teamId,uuid(id,'Review')]);
+  const rows=await sql.query('select * from reports where team_id=$1 and id=$2',[ctx.teamId,uuid(id,'Review')]);
   const report=rows[0];if(!report||(!ctx.canStaff&&report.discord_status!=='published'))throw discordError('Review introuvable ou non accessible.',404);
   return report;
 }
 async function audit(ctx:BotContext,command:string,id:string,metadata:any={}){
-  await sql("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,$2,'discord_workflow',$3,$4::jsonb)",[ctx.userId,'discord.'+command.replace(/ /g,'.'),id,JSON.stringify({teamId:ctx.teamId,...metadata})]);
+  await sql.query("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,$2,'discord_workflow',$3,$4::jsonb)",[ctx.userId,'discord.'+command.replace(/ /g,'.'),id,JSON.stringify({teamId:ctx.teamId,...metadata})]);
 }
 async function saveSetting(ctx:BotContext,column:string,value:any){
   const allowed=['timezone','channels','reminders_enabled','reminder_minutes','weekly_enabled','weekly_day','weekly_hour'];
   if(!allowed.includes(column))throw discordError('Réglage invalide.');
-  await sql(`insert into discord_bot_settings(team_id,${column}) values($1,$2${column==='channels'?'::jsonb':''}) on conflict(team_id) do update set ${column}=excluded.${column},updated_at=now()`,[ctx.teamId,column==='channels'?JSON.stringify(value):value]);
+  await sql.query(`insert into discord_bot_settings(team_id,${column}) values($1,$2${column==='channels'?'::jsonb':''}) on conflict(team_id) do update set ${column}=excluded.${column},updated_at=now()`,[ctx.teamId,column==='channels'?JSON.stringify(value):value]);
 }
 async function participants(ctx:BotContext,eventId:string){
-  return sql(`select p.user_id,min(p.name) as name,r.status,r.delay_minutes from players p
+  return sql.query(`select p.user_id,min(p.name) as name,r.status,r.delay_minutes from players p
     join teams t on t.id=p.team_id left join team_members m on m.team_id=p.team_id and m.user_id=p.user_id
     left join discord_event_responses r on r.event_id=$2 and r.user_id=p.user_id
     where p.team_id=$1 and p.user_id is not null and p.roster_status<>'INACTIVE' and p.role in ('TOP','JGL','MID','ADC','SUP','SUB')
@@ -47,7 +47,7 @@ async function participants(ctx:BotContext,eventId:string){
 }
 async function queueEventUpdate(ctx:BotContext,event:any,description:string){
   const settings=await botSettings(ctx.teamId);if(!settings.channels?.planning)return;
-  const connection=(await sql("select config_version from discord_connections where team_id=$1 and guild_id=$2 and status='active'",[ctx.teamId,ctx.guildId]))[0];
+  const connection=(await sql.query("select config_version from discord_connections where team_id=$1 and guild_id=$2 and status='active'",[ctx.teamId,ctx.guildId]))[0];
   if(!connection)return;
   await queueBotMessage({teamId:ctx.teamId,guildId:ctx.guildId,channelId:settings.channels.planning,channelKind:'planning',kind:'event_update',key:`event:${event.id}:${event.revision}`,
     payload:{embeds:[{title:botText(`${ctx.teamName} · ${event.title}`,256),description,url:botLink('/planning?team='+ctx.teamId),color:0x67e8f9}]},configVersion:connection.config_version,eventId:event.id,eventRevision:event.revision});
@@ -65,14 +65,14 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     let playerId:string|null=null;
     if(options.joueur){
       const selected=required(options.joueur,'Joueur',160);
-      const players=await sql('select id from players where team_id=$1 and (lower(id::text)=lower($2) or lower(name)=lower($2)) order by id limit 2',[ctx.teamId,selected]);
+      const players=await sql.query('select id from players where team_id=$1 and (lower(id::text)=lower($2) or lower(name)=lower($2)) order by id limit 2',[ctx.teamId,selected]);
       if(!players.length)throw discordError('Joueur introuvable dans cette équipe.');
       if(players.length>1)throw discordError('Plusieurs joueurs portent ce nom. Utilise son identifiant NXT5.');
       playerId=players[0].id;
     }
     const due=options.echeance?localDateTime(options.echeance,'23:00',ctx.timezone):null;
     if(!confirmed)return botConfirmation(ctx,command,{...options,joueur:playerId||undefined},`Créer « ${botText(title)} » pour ${playerId?'le joueur sélectionné':'toute l’équipe'}${due?' · échéance '+stamp(due):''}.`);
-    const [goal]=await sql('insert into discord_team_goals(team_id,player_id,title,due_at,created_by) values($1,$2,$3,$4,$5) returning *',[ctx.teamId,playerId,title,due?.toISOString()||null,ctx.userId]);
+    const [goal]=await sql.query('insert into discord_team_goals(team_id,player_id,title,due_at,created_by) values($1,$2,$3,$4,$5) returning *',[ctx.teamId,playerId,title,due?.toISOString()||null,ctx.userId]);
     await audit(ctx,command,goal.id);return botMessage('Objectif créé',`${botText(title)}\nIdentifiant : \`${goal.id}\``);
   }
   if(command==='objectifs terminer'||command==='objectifs point'){
@@ -81,14 +81,14 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     if(command==='objectifs terminer'&&!confirmed)return botConfirmation(ctx,command,options,`Clôturer « ${botText(goal.title)} » ?\n${botText(note)}`);
     const goalTable=goal.source==='player'?'player_goals':'discord_team_goals',historyTable=goal.source==='player'?'discord_player_goal_updates':'discord_goal_updates';
     await sql.transaction([
-      ...(command==='objectifs terminer'?[sql(`update ${goalTable} set status='completed',updated_at=now() where id=$1 and team_id=$2 and status='active'`,[goal.id,ctx.teamId])]:[]),
-      sql(`insert into ${historyTable}(team_id,goal_id,user_id,note) values($1,$2,$3,$4)`,[ctx.teamId,goal.id,ctx.userId,note]),
+      ...(command==='objectifs terminer'?[sql.query(`update ${goalTable} set status='completed',updated_at=now() where id=$1 and team_id=$2 and status='active'`,[goal.id,ctx.teamId])]:[]),
+      sql.query(`insert into ${historyTable}(team_id,goal_id,user_id,note) values($1,$2,$3,$4)`,[ctx.teamId,goal.id,ctx.userId,note]),
     ]);
     await audit(ctx,command,goal.id);return botMessage(command==='objectifs point'?'Point de suivi ajouté':'Objectif clôturé',botText(goal.title));
   }
   if(command==='draft notes'){
     const event=await eventFor(ctx,options.evenement),note=required(options.texte,'Consigne',1800);
-    await sql('insert into discord_draft_notes(team_id,event_id,author_id,note) values($1,$2,$3,$4)',[ctx.teamId,event.id,ctx.userId,note]);
+    await sql.query('insert into discord_draft_notes(team_id,event_id,author_id,note) values($1,$2,$3,$4)',[ctx.teamId,event.id,ctx.userId,note]);
     await audit(ctx,command,event.id);return botMessage('Consigne enregistrée',`${botText(event.title)}\n${botText(note)}`);
   }
   if(command==='evenement creer'||command==='evenement modifier'){
@@ -103,23 +103,23 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     if(starts.getTime()<=Date.now())throw discordError('Choisis une date future.');
     const duration=integer(options.duree??existing?.duration_minutes,1,1440,'Durée'),title=asText(options.titre||existing?.title||type,140),details=asText(options.details??existing?.details,1500);
     if(options._revision&&existing&&Number(options._revision)!==Number(existing.revision))throw discordError('L’événement a changé. Recommence pour vérifier la version actuelle.');
-    const collisions=await sql(`select title,starts_at from discord_team_events where team_id=$1 and status='scheduled' and ($4::uuid is null or id<>$4)
+    const collisions=await sql.query(`select title,starts_at from discord_team_events where team_id=$1 and status='scheduled' and ($4::uuid is null or id<>$4)
       and starts_at<$3::timestamptz and starts_at+(duration_minutes*interval '1 minute')>$2::timestamptz limit 3`,[ctx.teamId,starts.toISOString(),new Date(starts.getTime()+duration*60000).toISOString(),existing?.id||null]);
     if(!confirmed)return botConfirmation(ctx,command,{...options,_revision:existing?.revision,_timezone:ctx.timezone},`${existing?'Modifier':'Créer'} ${botText(title)} · ${stamp(starts)} · ${duration} min\nFuseau : ${ctx.timezone}\n${details?botText(details)+'\n':''}${collisions.length?'Chevauchement avec : '+collisions.map(e=>botText(e.title)).join(', '):'Aucun chevauchement détecté.'}`);
-    const rows=existing?await sql(`update discord_team_events set title=$3,starts_at=$4,duration_minutes=$5,details=$6,revision=revision+1,updated_at=now()
+    const rows=existing?await sql.query(`update discord_team_events set title=$3,starts_at=$4,duration_minutes=$5,details=$6,revision=revision+1,updated_at=now()
       where team_id=$1 and id=$2 and revision=$7 and status='scheduled' returning *`,[ctx.teamId,existing.id,title,starts.toISOString(),duration,details,existing.revision]):
-      await sql('insert into discord_team_events(team_id,title,event_type,starts_at,duration_minutes,details,created_by) values($1,$2,$3,$4,$5,$6,$7) returning *',[ctx.teamId,title,type,starts.toISOString(),duration,details,ctx.userId]);
+      await sql.query('insert into discord_team_events(team_id,title,event_type,starts_at,duration_minutes,details,created_by) values($1,$2,$3,$4,$5,$6,$7) returning *',[ctx.teamId,title,type,starts.toISOString(),duration,details,ctx.userId]);
     const event=rows[0];if(!event)throw discordError('L’événement a changé. Recommence.');
-    if(existing){await sql("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and event_id=$2 and state='queued'",[ctx.teamId,event.id]);await queueEventUpdate(ctx,event,`Horaire modifié : ${stamp(starts)} · ${duration} min. Les réponses de présence existantes sont conservées ; vérifie ton statut.`);}
+    if(existing){await sql.query("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and event_id=$2 and state='queued'",[ctx.teamId,event.id]);await queueEventUpdate(ctx,event,`Horaire modifié : ${stamp(starts)} · ${duration} min. Les réponses de présence existantes sont conservées ; vérifie ton statut.`);}
     await audit(ctx,command,event.id,{revision:event.revision});return botMessage(existing?'Événement modifié':'Événement créé',`${botText(title)} · ${stamp(starts)}\n${duration} min · ${ctx.timezone}\nIdentifiant : \`${event.id}\``);
   }
   if(command==='evenement annuler'){
     const event=await eventFor(ctx,options.evenement),reason=asText(options.motif,500)||'Annulé par le staff.';
     if(options._revision&&Number(options._revision)!==Number(event.revision))throw discordError('L’événement a changé. Vérifie-le avant de l’annuler.');
     if(!confirmed)return botConfirmation(ctx,command,{...options,_revision:event.revision},`Annuler ${botText(event.title)} du ${stamp(event.starts_at)} ?\n${botText(reason)}`);
-    const rows=await sql("update discord_team_events set status='cancelled',cancellation_reason=$3,revision=revision+1,updated_at=now() where team_id=$1 and id=$2 and revision=$4 and status='scheduled' returning *",[ctx.teamId,event.id,reason,event.revision]);
+    const rows=await sql.query("update discord_team_events set status='cancelled',cancellation_reason=$3,revision=revision+1,updated_at=now() where team_id=$1 and id=$2 and revision=$4 and status='scheduled' returning *",[ctx.teamId,event.id,reason,event.revision]);
     if(!rows[0])throw discordError('L’événement a changé. Recommence.');
-    await sql("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and event_id=$2 and state='queued'",[ctx.teamId,event.id]);
+    await sql.query("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and event_id=$2 and state='queued'",[ctx.teamId,event.id]);
     await queueEventUpdate(ctx,rows[0],`Événement annulé.\n${botText(reason)}\nLes rappels sont désactivés.`);
     await audit(ctx,command,event.id,{reason});return botMessage('Événement annulé',`${botText(event.title)}\nLes rappels en attente sont annulés.`);
   }
@@ -129,7 +129,7 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     if(new Date(event.starts_at).getTime()+event.duration_minutes*60000<Date.now())throw discordError('Cet événement est terminé.');
     if(status==='retard'&&options.retard===undefined)return modal(command,options,'Préciser le retard',[{id:'retard',label:'Retard prévu en minutes',max_length:4}]);
     const delay=status==='retard'?integer(options.retard,1,1440,'Retard'):0;
-    const recorded=await sql(`insert into discord_event_responses(event_id,user_id,status,delay_minutes) select id,$3,$4,$5 from discord_team_events where team_id=$1 and id=$2 and status='scheduled'
+    const recorded=await sql.query(`insert into discord_event_responses(event_id,user_id,status,delay_minutes) select id,$3,$4,$5 from discord_team_events where team_id=$1 and id=$2 and status='scheduled'
       on conflict(event_id,user_id) do update set status=excluded.status,delay_minutes=excluded.delay_minutes,updated_at=now() returning event_id`,[ctx.teamId,event.id,ctx.userId,status,delay]);
     if(!recorded.length)throw discordError('Cet événement a changé ou a été annulé. Actualise le planning.');
     return botMessage('Présence enregistrée',`${botText(event.title)} : ${status}${delay?' · '+delay+' min':''}.`);
@@ -166,7 +166,7 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     const statements:any[]=[];
     for(const playerId of ctx.playerIds)for(const[week,slots]of slotsByWeek){
       // Merge only supplied days/hours; preserve other weekdays and legacy _events atomically.
-      statements.push(sql(`insert into player_availability(team_id,player_id,week_start,slots,updated_by)
+      statements.push(sql.query(`insert into player_availability(team_id,player_id,week_start,slots,updated_by)
         select $1,p.id,$3::date,$4::jsonb,$5 from players p where p.team_id=$1 and p.id=$2 and p.user_id=$5
         on conflict(team_id,player_id,week_start) do update set slots=player_availability.slots ||
           (select jsonb_object_agg(k,(select jsonb_agg(distinct h order by h) from jsonb_array_elements_text(coalesce(player_availability.slots->k,'[]'::jsonb)||v) as x(h))) from jsonb_each(excluded.slots) as entries(k,v)),
@@ -177,12 +177,12 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
   }
   if(command==='review creer'){
     const gameId=uuid(options.game,'Game'),title=required(options.titre,'Titre',140);
-    if(!(await sql('select id from matches where team_id=$1 and id=$2',[ctx.teamId,gameId])).length)throw discordError('Game introuvable dans cette équipe.');
+    if(!(await sql.query('select id from matches where team_id=$1 and id=$2',[ctx.teamId,gameId])).length)throw discordError('Game introuvable dans cette équipe.');
     if(!options.resume)return modal(command,options,'Brouillon de review',[{id:'resume',label:'Résumé validable',style:2,max_length:1200},{id:'corrections',label:'Points à corriger',style:2,max_length:1000},{id:'actions',label:'Actions de suivi',style:2,max_length:1000}]);
     const summary=required(options.resume,'Résumé',1200),corrections=asText(options.corrections,1000),actions=asText(options.actions,1000);
     const content=`${summary}\n\nPoints à corriger\n${corrections||'Non renseignés'}\n\nActions de suivi\n${actions||'Non renseignées'}`;
     if(!confirmed)return botConfirmation(ctx,command,options,`Enregistrer le brouillon « ${botText(title)} » ? Aucun partage automatique.\n${botText(content,3200)}`);
-    const [report]=await sql("insert into reports(team_id,match_id,match_ids,created_by,title,content,discord_summary,discord_status) values($1,$2,$3::jsonb,$4,$5,$6,$6,'draft') returning *",[ctx.teamId,gameId,JSON.stringify([gameId]),ctx.userId,title,content]);
+    const [report]=await sql.query("insert into reports(team_id,match_id,match_ids,created_by,title,content,discord_summary,discord_status) values($1,$2,$3::jsonb,$4,$5,$6,$6,'draft') returning *",[ctx.teamId,gameId,JSON.stringify([gameId]),ctx.userId,title,content]);
     await audit(ctx,command,report.id);return botMessage('Brouillon enregistré',`${botText(title)}\nPrivé au staff jusqu’au partage. Identifiant : \`${report.id}\``);
   }
   if(command==='review partager'){
@@ -191,10 +191,10 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     const summary=required(options.resume||report.discord_summary,'Résumé public',3200);
     if(options._version&&Number(options._version)!==Number(report.discord_version))throw discordError('Cette review a changé. Recommence pour prévisualiser la bonne version.');
     if(!confirmed)return botConfirmation(ctx,command,{...options,_version:report.discord_version,resume:summary},`Partager « ${botText(report.title)} » dans <#${destination.channelId}> ? Toute personne ayant accès à ce salon pourra lire ces consignes.\n\n${botText(summary,3200)}`);
-    const updated=await sql("update reports set discord_status='published',discord_summary=$3,discord_summary_stale=false,updated_at=now() where team_id=$1 and id=$2 and discord_version=$4 returning *",[ctx.teamId,report.id,summary,report.discord_version]);
+    const updated=await sql.query("update reports set discord_status='published',discord_summary=$3,discord_summary_stale=false,updated_at=now() where team_id=$1 and id=$2 and discord_version=$4 returning *",[ctx.teamId,report.id,summary,report.discord_version]);
     if(!updated[0])throw discordError('Cette review a changé. Recommence.');
     const version=updated[0].discord_version;
-    await sql(`insert into discord_review_recipients(team_id,report_id,user_id,report_version)
+    await sql.query(`insert into discord_review_recipients(team_id,report_id,user_id,report_version)
       select p.team_id,$2,p.user_id,$3 from players p join teams t on t.id=p.team_id left join team_members m on m.team_id=p.team_id and m.user_id=p.user_id
       where p.team_id=$1 and p.user_id is not null and p.roster_status<>'INACTIVE' and (m.user_id is not null or t.owner_id=p.user_id) on conflict do nothing`,[ctx.teamId,report.id,version]);
     const reportUrl=botLink('/rapports?team='+ctx.teamId+'&report='+report.id);
@@ -206,7 +206,7 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     const report=await reportFor(ctx,options.review);if(report.discord_status!=='published')throw discordError('Cette review n’est pas encore partagée.');
     if(report.discord_summary_stale)throw discordError('Cette review a été modifiée. Le staff doit vérifier et partager ses nouvelles consignes avant la confirmation de lecture.');
     if(options.version&&Number(options.version)!==Number(report.discord_version))throw discordError('Cette review a été modifiée. Consulte la version actuelle avant de confirmer sa lecture.');
-    await sql('insert into discord_review_reads(team_id,report_id,user_id,report_version) values($1,$2,$3,$4) on conflict(report_id,user_id,report_version) do update set read_at=now()',[ctx.teamId,report.id,ctx.userId,report.discord_version]);
+    await sql.query('insert into discord_review_reads(team_id,report_id,user_id,report_version) values($1,$2,$3,$4) on conflict(report_id,user_id,report_version) do update set read_at=now()',[ctx.teamId,report.id,ctx.userId,report.discord_version]);
     return botMessage('Lecture enregistrée',`${botText(report.title)} · version ${report.discord_version}. Cette confirmation ne valide pas le contenu.`);
   }
   if(command==='reglages canal'){
@@ -215,11 +215,11 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     if(!confirmed)return botConfirmation(ctx,command,options,`Utiliser <#${channel}> pour les ${kind} de ${botText(ctx.teamName)} ? Vérifie que les personnes ayant accès à ce salon sont autorisées à lire ces publications. Les données partagées y seront visibles.`);
     const channelWrites:any[]=[];
     if(kind==='games'){
-      const routes=await sql('select id,channel_id from discord_routes where team_id=$1 and enabled',[ctx.teamId]);
+      const routes=await sql.query('select id,channel_id from discord_routes where team_id=$1 and enabled',[ctx.teamId]);
       if(!routes.some(r=>r.channel_id===channel)&&routes.length>=10)throw discordError('La limite de dix destinations est atteinte.');
-      channelWrites.push(sql(`select 1/case when exists(select 1 from discord_routes where team_id=$1 and channel_id=$2 and enabled)
+      channelWrites.push(sql.query(`select 1/case when exists(select 1 from discord_routes where team_id=$1 and channel_id=$2 and enabled)
         or (select count(*) from discord_routes where team_id=$1 and enabled)<10 then 1 else 0 end`,[ctx.teamId,channel]));
-      channelWrites.push(sql(`insert into discord_routes(team_id,guild_id,channel_id,channel_name,created_by,automatic) values($1,$2,$3,$4,$5,false)
+      channelWrites.push(sql.query(`insert into discord_routes(team_id,guild_id,channel_id,channel_name,created_by,automatic) values($1,$2,$3,$4,$5,false)
         on conflict(team_id,channel_id,publication_kind) do update set guild_id=excluded.guild_id,channel_name=excluded.channel_name,enabled=true,updated_at=now()`,[ctx.teamId,ctx.guildId,channel,chosen.name,ctx.userId]));
     }
     // JSON merge in SQL prevents concurrent category updates from overwriting each other.
@@ -229,12 +229,12 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     try {
       await sql.transaction([
         ...discordTeamWriteQueries(ctx.teamId,ctx.userId),
-        sql('select team_id from discord_connections where team_id=$1 for update',[ctx.teamId]),
-        sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and status in ('active','paused')) then 1 else 0 end",[ctx.teamId,ctx.guildId]),
+        sql.query('select team_id from discord_connections where team_id=$1 for update',[ctx.teamId]),
+        sql.query("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and status in ('active','paused')) then 1 else 0 end",[ctx.teamId,ctx.guildId]),
         ...channelWrites,
-        sql(`insert into discord_bot_settings(team_id,channels) values($1,jsonb_build_object($2::text,$3::text)) on conflict(team_id)
+        sql.query(`insert into discord_bot_settings(team_id,channels) values($1,jsonb_build_object($2::text,$3::text)) on conflict(team_id)
           do update set channels=discord_bot_settings.channels||excluded.channels,updated_at=now()`,[ctx.teamId,kind,channel]),
-        sql("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,'discord.reglages.canal','discord_workflow',$2,$3::jsonb)",[ctx.userId,ctx.teamId,JSON.stringify({teamId:ctx.teamId,kind,channel})]),
+        sql.query("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,'discord.reglages.canal','discord_workflow',$2,$3::jsonb)",[ctx.userId,ctx.teamId,JSON.stringify({teamId:ctx.teamId,kind,channel})]),
       ]);
     } catch(error:any) {
       if(error?.code==='22012')throw discordError('Tes accès ou la connexion Discord ont changé. Relance la commande.',409,'DISCORD_CONFIG_CHANGED');
@@ -245,7 +245,7 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
   if(command==='reglages fuseau'){
     const canonical=validateTimezone(options.fuseau);
     const entered=String(options.fuseau).trim();
-    const zones=await sql(`select name from pg_timezone_names where lower(name)=lower($1) or name=$2
+    const zones=await sql.query(`select name from pg_timezone_names where lower(name)=lower($1) or name=$2
       order by (lower(name)=lower($1)) desc limit 1`,[entered,canonical]);
     if(!zones.length)throw discordError('Fuseau non pris en charge par le serveur.');
     const timezone=zones[0].name;
@@ -257,9 +257,9 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     if(typeof options.actif!=='boolean')throw discordError('Indique si les rappels doivent être actifs.');
     const settings=await botSettings(ctx.teamId),delay=integer(options.delai??settings.reminder_minutes,0,10080,'Délai');
     if(options.actif&&!settings.channels?.planning)throw discordError('Configure le salon planning avant d’activer les rappels.');
-    await sql(`insert into discord_bot_settings(team_id,reminders_enabled,reminder_minutes) values($1,$2,$3) on conflict(team_id)
+    await sql.query(`insert into discord_bot_settings(team_id,reminders_enabled,reminder_minutes) values($1,$2,$3) on conflict(team_id)
       do update set reminders_enabled=excluded.reminders_enabled,reminder_minutes=excluded.reminder_minutes,updated_at=now()`,[ctx.teamId,options.actif,delay]);
-    if(!options.actif)await sql("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and kind='reminder' and state='queued'",[ctx.teamId]);
+    if(!options.actif)await sql.query("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and kind='reminder' and state='queued'",[ctx.teamId]);
     await audit(ctx,command,ctx.teamId,{active:options.actif,delay});return botMessage('Rappels configurés',options.actif?`${delay} min avant chaque événement, dans <#${settings.channels.planning}>. Précision de la planification : environ 5 minutes.`:'Rappels désactivés.');
   }
   if(command==='reglages bilan'){
@@ -268,13 +268,13 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     const day=options.jour===undefined?Number(settings.weekly_day):days.indexOf(asText(options.jour).toLowerCase());if(day<0)throw discordError('Jour invalide.');
     const hour=asText(options.heure||settings.weekly_hour);if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(hour))throw discordError('Utilise une heure HH:MM.');
     if(options.actif&&!settings.channels?.bilans)throw discordError('Configure le salon bilans avant d’activer cette publication.');
-    await sql(`insert into discord_bot_settings(team_id,weekly_enabled,weekly_day,weekly_hour) values($1,$2,$3,$4) on conflict(team_id)
+    await sql.query(`insert into discord_bot_settings(team_id,weekly_enabled,weekly_day,weekly_hour) values($1,$2,$3,$4) on conflict(team_id)
       do update set weekly_enabled=excluded.weekly_enabled,weekly_day=excluded.weekly_day,weekly_hour=excluded.weekly_hour,updated_at=now()`,[ctx.teamId,options.actif,day,hour]);
-    if(!options.actif)await sql("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and kind='weekly' and state='queued'",[ctx.teamId]);
+    if(!options.actif)await sql.query("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and kind='weekly' and state='queued'",[ctx.teamId]);
     await audit(ctx,command,ctx.teamId,{active:options.actif,day,hour});return botMessage('Bilan hebdomadaire configuré',options.actif?`Prochain bilan : ${stamp(nextWeeklyRun(settings.timezone,day,hour))} (${settings.timezone}).\nToutes catégories, 7 jours précédents. Sans game, un message le précisera.`:'Bilan automatique désactivé.');
   }
   if(command==='diffusion test'){
-    const settings=await botSettings(ctx.teamId),rows=await sql('select id,channel_id from discord_routes where team_id=$1 and guild_id=$2 and enabled order by created_at limit 10',[ctx.teamId,ctx.guildId]);
+    const settings=await botSettings(ctx.teamId),rows=await sql.query('select id,channel_id from discord_routes where team_id=$1 and guild_id=$2 and enabled order by created_at limit 10',[ctx.teamId,ctx.guildId]);
     const route=rows.find(r=>r.channel_id===settings.channels?.games)||rows[0];if(!route)throw discordError('Configure un salon games dans NXT5 avant le test.');
     if((options._routeId&&options._routeId!==route.id)||(options._channelId&&options._channelId!==route.channel_id))throw discordError('Le salon de test a changé. Recommence pour vérifier sa destination.');
     if(!confirmed)return botConfirmation(ctx,command,{...options,_requestId:randomUUID(),_routeId:route.id,_channelId:route.channel_id},`Envoyer un embed et une image de test fictifs dans <#${route.channel_id}> ?`);

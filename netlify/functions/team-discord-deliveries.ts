@@ -13,7 +13,7 @@ async function handler(request: Request, context: Context) {
     const matchId = requestedMatch ? uuid(requestedMatch, 'Game') : null;
     const requestedId = new URL(request.url).searchParams.get('requestId');
     const requestId = requestedId ? uuid(requestedId, 'Demande') : null;
-    const rows = await sql(`select j.*,p.message_id,p.guild_id,p.channel_id,p.route_id,p.state as publication_state,p.desired_revision,p.lease_expires_at as publication_lease,p.id as publication_id,m.opponent,m.game_id,r.channel_name,c.status as connection_status,c.config_version as current_config_version,
+    const rows = await sql.query(`select j.*,p.message_id,p.guild_id,p.channel_id,p.route_id,p.state as publication_state,p.desired_revision,p.lease_expires_at as publication_lease,p.id as publication_id,m.opponent,m.game_id,r.channel_name,c.status as connection_status,c.config_version as current_config_version,
       exists(select 1 from publication_jobs w where w.publication_id=p.id and w.last_error_code='WITHDRAW_RETRY_REQUIRED') as withdrawal_pending
       from publication_jobs j join discord_publications p on p.id=j.publication_id and p.team_id=j.team_id
       left join matches m on m.id=j.entity_id and m.team_id=j.team_id left join discord_routes r on r.id=p.route_id

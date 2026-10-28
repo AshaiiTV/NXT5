@@ -35,7 +35,7 @@ async function handler(request: Request, context: Context) {
     // no newer revision can race this action or recreate a removed publication.
     const results = await sql.transaction([
       ...discordTeamWriteQueries(teamId, user.id, 'staff'),
-      sql("with withdrawn as (update discord_publications p set state='withdrawn',updated_at=now() from publication_jobs j where j.id=$1 and j.team_id=$2 and j.publication_id=p.id and p.team_id=$2 and p.message_id is not null and p.state not in ('sending','uncertain') and (p.lease_expires_at is null or p.lease_expires_at<now()) returning p.*), cancelled as (update publication_jobs j set status=case when j.status in ('succeeded','superseded','cancelled') then j.status else 'cancelled' end,last_error_code='WITHDRAW_RETRY_REQUIRED',last_error='Retrait Discord à confirmer.',updated_at=now() from withdrawn p where j.publication_id=p.id and j.team_id=p.team_id returning j.id), logged as (insert into audit_logs(user_id,action,entity_type,entity_id,metadata) select $3,'discord.publication_withdraw_requested','team',$2,jsonb_build_object('jobId',$1::text,'publicationId',id) from withdrawn) select * from withdrawn", [jobId, teamId, user.id])
+      sql.query("with withdrawn as (update discord_publications p set state='withdrawn',updated_at=now() from publication_jobs j where j.id=$1 and j.team_id=$2 and j.publication_id=p.id and p.team_id=$2 and p.message_id is not null and p.state not in ('sending','uncertain') and (p.lease_expires_at is null or p.lease_expires_at<now()) returning p.*), cancelled as (update publication_jobs j set status=case when j.status in ('succeeded','superseded','cancelled') then j.status else 'cancelled' end,last_error_code='WITHDRAW_RETRY_REQUIRED',last_error='Retrait Discord à confirmer.',updated_at=now() from withdrawn p where j.publication_id=p.id and j.team_id=p.team_id returning j.id), logged as (insert into audit_logs(user_id,action,entity_type,entity_id,metadata) select $3,'discord.publication_withdraw_requested','team',$2,jsonb_build_object('jobId',$1::text,'publicationId',id) from withdrawn) select * from withdrawn", [jobId, teamId, user.id])
     ]);
     const rows = results[2];
     const publication = rows[0];
@@ -43,12 +43,12 @@ async function handler(request: Request, context: Context) {
     try { await discordRequest('/channels/' + publication.channel_id + '/messages/' + publication.message_id, { method: 'DELETE' }); }
     catch (error: any) {
       if (error?.status !== 404) {
-        await sql("update publication_jobs set last_error_code='WITHDRAW_RETRY_REQUIRED',last_error='Retrait Discord à réessayer.',updated_at=now() where id=$1", [jobId]);
+        await sql.query("update publication_jobs set last_error_code='WITHDRAW_RETRY_REQUIRED',last_error='Retrait Discord à réessayer.',updated_at=now() where id=$1", [jobId]);
         throw error;
       }
     }
-    await sql("update discord_deliveries set status='withdrawn',completed_at=now() where publication_id=$1 and message_id=$2", [publication.id, publication.message_id]);
-    await sql("update publication_jobs set last_error_code='PUBLICATION_WITHDRAWN',last_error=null,updated_at=now() where publication_id=$1", [publication.id]);
+    await sql.query("update discord_deliveries set status='withdrawn',completed_at=now() where publication_id=$1 and message_id=$2", [publication.id, publication.message_id]);
+    await sql.query("update publication_jobs set last_error_code='PUBLICATION_WITHDRAWN',last_error=null,updated_at=now() where publication_id=$1", [publication.id]);
     await auditDiscord(user.id, teamId, 'discord.publication_withdrawn', { publicationId: publication.id });
     return json({ ok: true });
   } catch (error: any) {

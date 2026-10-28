@@ -1,9 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createCanvas } from '@napi-rs/canvas';
+import { createCanvas, loadImage } from '@napi-rs/canvas';
 import { publicationFixture } from '../../shared/publications/fixtures.js';
 import { buildGroupPublicationSnapshot } from '../../shared/publications/group-publication.js';
 import { GROUP_PUBLICATION_PNG_MAX_HEIGHT, renderGroupPublicationCanvas } from '../../shared/publications/group-publication-canvas.js';
 import { renderGroupPublicationPng } from '../../netlify/functions/_lib/publication-render';
+import { createGroupPublicationSurface, encodeGroupPublicationSurface, recompressGeneratedPng } from '../../netlify/functions/_lib/group-publication-png';
 
 function fixture(count = 3) {
   const seed = publicationFixture();
@@ -22,7 +23,7 @@ async function trace(snapshot) {
   const drawn: { text: string; x: number; y: number; width: number; align: string }[] = [];
   const output = await renderGroupPublicationCanvas(snapshot, {
     createCanvas(width, height) {
-      const canvas = createCanvas(width, height);
+      const canvas = createGroupPublicationSurface(width, height);
       const ctx = canvas.getContext('2d');
       const original = ctx.fillText.bind(ctx);
       vi.spyOn(ctx, 'fillText').mockImplementation((...args) => {
@@ -112,12 +113,37 @@ describe('Discord group PNG', () => {
     input.matches[1].participants = [];
     const image = await trace(buildGroupPublicationSnapshot(input));
     expect(image.height).toBeLessThanOrEqual(GROUP_PUBLICATION_PNG_MAX_HEIGHT);
-    expect(image.canvas.toBuffer('image/png').byteLength).toBeLessThan(3 * 1024 * 1024);
+    expect((await encodeGroupPublicationSurface(image.canvas)).byteLength).toBeLessThan(3 * 1024 * 1024);
     for (const match of input.matches) expect(image.text).toContain(`vs ${match.opponent}`);
     expect(image.drawn.filter((entry) => /^Partie \d+$/.test(entry.text)).map((entry) => entry.text)).toEqual(input.matches.map((_, index) => `Partie ${index + 1}`));
     expect(image.text).toContain('Kills : — / —');
     expect(image.text).toContain('Résultat inconnu');
     expect(image.text).not.toMatch(/NaN|undefined|null|Infinity|VOD|Piste de review/);
+  }, 30_000);
+
+  it('recompresses generated PNGs without changing a pixel or their 8-bit dimensions', async () => {
+    const source = createGroupPublicationSurface(960, 200);
+    const ctx = source.getContext('2d');
+    const gradient = ctx.createLinearGradient(0, 0, source.width, source.height);
+    gradient.addColorStop(0, '#050a18');
+    gradient.addColorStop(1, '#0b2540');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, source.width, source.height);
+    ctx.fillStyle = '#67e8f9';
+    ctx.fillText('NXT5 · Toutes les parties', 30, 50);
+    const native = await encodeGroupPublicationSurface(source);
+    const optimized = await recompressGeneratedPng(native);
+    expect(optimized.length).toBeLessThan(native.length);
+    expect(optimized.subarray(0, 8)).toEqual(native.subarray(0, 8));
+    expect(optimized.readUInt32BE(16)).toBe(960);
+    expect(optimized.readUInt32BE(20)).toBe(200);
+    expect(optimized[24]).toBe(8);
+    const decodedPixels = async (bytes: Buffer) => {
+      const canvas = createCanvas(960, 200);
+      canvas.getContext('2d').drawImage(await loadImage(bytes), 0, 0);
+      return canvas.data();
+    };
+    expect(await decodedPixels(optimized)).toEqual(await decodedPixels(native));
   });
 
   it('wraps long names and descriptions completely without text leaving the image', async () => {

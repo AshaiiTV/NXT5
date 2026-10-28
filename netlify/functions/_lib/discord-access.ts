@@ -30,7 +30,7 @@ export async function requireDiscordTeam(request: Request, context: Context, tea
   assertDiscordMutationEnvironment(request);
   const user = await requireAuth(request, context);
   const id = uuid(teamId, 'Équipe');
-  const rows = await sql("select t.*, tm.role from teams t left join team_members tm on tm.team_id=t.id and tm.user_id=$1 where t.id=$2 and (t.owner_id=$1 or tm.user_id=$1)", [user.id, id]);
+  const rows = await sql.query("select t.*, tm.role from teams t left join team_members tm on tm.team_id=t.id and tm.user_id=$1 where t.id=$2 and (t.owner_id=$1 or tm.user_id=$1)", [user.id, id]);
   const team = rows[0];
   if (!team) throw discordError('Accès à cette équipe refusé.', 403, 'DISCORD_TEAM_FORBIDDEN');
   const owner = team.owner_id === user.id;
@@ -59,7 +59,7 @@ export function assertDiscordMethod(request: Request, allowed: string[]) {
   assertDiscordMutationEnvironment(request);
 }
 export function auditDiscord(userId: string, teamId: string, action: string, metadata: object = {}) {
-  return sql("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,$2,'team',$3,$4::jsonb)", [userId, action, teamId, JSON.stringify(metadata)]);
+  return sql.query("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,$2,'team',$3,$4::jsonb)", [userId, action, teamId, JSON.stringify(metadata)]);
 }
 
 /** Prepend to the same transaction as a team mutation. Team membership changes
@@ -67,8 +67,8 @@ export function auditDiscord(userId: string, teamId: string, action: string, met
 export function discordTeamWriteQueries(teamId: string, userId: string, access: 'manage' | 'staff' = 'manage') {
   const roles = access === 'manage' ? ['owner', 'captain'] : ['owner', 'captain', 'coach', 'assistant', 'analyst', 'manager', 'board'];
   return [
-    sql('select id from teams where id=$1 for update', [teamId]),
-    sql(`select 1/case when exists(select 1 from teams t where t.id=$1 and
+    sql.query('select id from teams where id=$1 for update', [teamId]),
+    sql.query(`select 1/case when exists(select 1 from teams t where t.id=$1 and
       (t.owner_id=$2 or exists(select 1 from team_members tm where tm.team_id=t.id and tm.user_id=$2 and tm.role=any($3::text[]))))
       then 1 else 0 end`, [teamId, userId, roles]),
   ];

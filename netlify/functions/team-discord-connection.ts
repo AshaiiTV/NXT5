@@ -16,8 +16,8 @@ async function handler(request: Request, context: Context) {
     const { teamId, user } = access;
     if (request.method === 'GET') {
       const [rows, categories] = await Promise.all([
-        sql("select * from discord_connections where team_id=$1", [teamId]),
-        sql("select id,name from match_categories where team_id=$1 order by name", [teamId]),
+        sql.query("select * from discord_connections where team_id=$1", [teamId]),
+        sql.query("select id,name from match_categories where team_id=$1 order by name", [teamId]),
       ]);
       const connection = rows[0];
       let live: Awaited<ReturnType<typeof getDiscordGuild>> | null = null;
@@ -41,7 +41,7 @@ async function handler(request: Request, context: Context) {
     await assertSubjectRateLimit('discord-connection', user.id, { limit: 8, windowSeconds: 60 });
     if (body.action === 'command-channel') {
       if (!isDiscordId(body.channelId)) throw discordError('Choisis un salon de commandes valide.', 400, 'DISCORD_COMMAND_CHANNEL_INVALID');
-      const [connection] = await sql('select * from discord_connections where team_id=$1', [teamId]);
+      const [connection] = await sql.query('select * from discord_connections where team_id=$1', [teamId]);
       if (!connection?.guild_id || connection.status === 'disconnected') throw discordError('Relie d’abord ton serveur Discord.', 409);
       const changed = () => discordError('La connexion a changé. Actualise Discord avant de choisir le salon.', 409, 'DISCORD_CONFIG_CHANGED');
       if (body.expectedGuildId !== connection.guild_id || !Number.isSafeInteger(body.expectedConfigVersion)
@@ -53,11 +53,11 @@ async function handler(request: Request, context: Context) {
       try {
         await sql.transaction([
           ...discordTeamWriteQueries(teamId, user.id),
-          sql('select team_id from discord_connections where team_id=$1 for update', [teamId]),
-          sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status<>'disconnected') then 1 else 0 end", [teamId, connection.guild_id, connection.config_version]),
+          sql.query('select team_id from discord_connections where team_id=$1 for update', [teamId]),
+          sql.query("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status<>'disconnected') then 1 else 0 end", [teamId, connection.guild_id, connection.config_version]),
           // Command routing must not increment publication config_version: that
           // version also guards queued game and reminder deliveries.
-          sql("update discord_connections set command_channel_id=$2,updated_at=now() where team_id=$1 and guild_id=$3 and status<>'disconnected' returning team_id", [teamId, body.channelId, connection.guild_id]),
+          sql.query("update discord_connections set command_channel_id=$2,updated_at=now() where team_id=$1 and guild_id=$3 and status<>'disconnected' returning team_id", [teamId, body.channelId, connection.guild_id]),
           auditDiscord(user.id, teamId, 'discord.command_channel_updated', { channelId: body.channelId }),
         ]);
       } catch (error: any) {
@@ -75,15 +75,15 @@ async function handler(request: Request, context: Context) {
       const expiresAt = new Date(Date.now() + 10 * 60_000).toISOString();
       await sql.transaction([
         ...discordTeamWriteQueries(teamId, user.id),
-        sql("insert into discord_connections(team_id,status,created_by) values($1,'pending',$2) on conflict(team_id) do nothing", [teamId, user.id]),
-        sql("delete from discord_link_codes where team_id=$1 and consumed_at is null", [teamId]),
-        sql("insert into discord_link_codes(code_hash,team_id,created_by,expires_at) values($1,$2,$3,$4)", [hash, teamId, user.id, expiresAt]),
+        sql.query("insert into discord_connections(team_id,status,created_by) values($1,'pending',$2) on conflict(team_id) do nothing", [teamId, user.id]),
+        sql.query("delete from discord_link_codes where team_id=$1 and consumed_at is null", [teamId]),
+        sql.query("insert into discord_link_codes(code_hash,team_id,created_by,expires_at) values($1,$2,$3,$4)", [hash, teamId, user.id, expiresAt]),
         auditDiscord(user.id, teamId, 'discord.link_requested'),
       ]);
       return json({ code: code.match(/.{4}/g)!.join('-'), expiresAt, installUrl: status.installUrl });
     }
     if (!['pause', 'resume', 'disconnect'].includes(body.action)) throw discordError('Action inconnue.');
-    const rows = await sql("select * from discord_connections where team_id=$1", [teamId]);
+    const rows = await sql.query("select * from discord_connections where team_id=$1", [teamId]);
     const connection = rows[0];
     if (!connection) throw discordError('Aucune connexion Discord pour cette équipe.', 404);
     if (body.action === 'resume') {
@@ -93,7 +93,7 @@ async function handler(request: Request, context: Context) {
         || connection.guild_id !== body.expectedGuildId || Number(connection.config_version) !== body.expectedConfigVersion) throw changed();
       if (!connection.guild_id || connection.status === 'disconnected') throw discordError('Relie d’abord le serveur Discord.', 409);
       const live = await getDiscordGuild(connection.guild_id);
-      const routes = await sql("select * from discord_routes where team_id=$1 and enabled", [teamId]);
+      const routes = await sql.query("select * from discord_routes where team_id=$1 and enabled", [teamId]);
       if (!routes.length || routes.some((route) => route.guild_id !== connection.guild_id || !live.channels.some((channel) => channel.id === route.channel_id && channel.canSend))) {
         throw discordError('Configure au moins un salon accessible au bot avant l’activation.', 409);
       }
@@ -102,23 +102,23 @@ async function handler(request: Request, context: Context) {
       // during the live Discord check cannot activate an unseen destination.
       await sql.transaction([
         ...discordTeamWriteQueries(teamId, user.id),
-        sql('select team_id from discord_connections where team_id=$1 for update', [teamId]),
-        sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status in ('active','paused')) then 1 else 0 end", [teamId, body.expectedGuildId, body.expectedConfigVersion]),
-        sql("update discord_connections set status='active',enabled_at=coalesce(enabled_at,now()),updated_at=now() where team_id=$1", [teamId]),
+        sql.query('select team_id from discord_connections where team_id=$1 for update', [teamId]),
+        sql.query("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status in ('active','paused')) then 1 else 0 end", [teamId, body.expectedGuildId, body.expectedConfigVersion]),
+        sql.query("update discord_connections set status='active',enabled_at=coalesce(enabled_at,now()),updated_at=now() where team_id=$1", [teamId]),
         auditDiscord(user.id, teamId, 'discord.resume'),
       ]);
     } else if (body.action === 'pause') {
       await sql.transaction([
         ...discordTeamWriteQueries(teamId, user.id),
-        sql("update discord_connections set status='paused',updated_at=now() where team_id=$1", [teamId]),
+        sql.query("update discord_connections set status='paused',updated_at=now() where team_id=$1", [teamId]),
         auditDiscord(user.id, teamId, 'discord.pause'),
       ]);
     } else {
       await sql.transaction([
         ...discordTeamWriteQueries(teamId, user.id),
-        sql("update discord_connections set status='disconnected',command_channel_id=null,config_version=config_version+1,updated_at=now() where team_id=$1", [teamId]),
-        sql("update publication_jobs set status='cancelled',last_error_code='DISCORD_DISCONNECTED',updated_at=now() where team_id=$1 and status in ('queued','preparing','retry_wait')", [teamId]),
-        sql("delete from discord_link_codes where team_id=$1 and consumed_at is null", [teamId]),
+        sql.query("update discord_connections set status='disconnected',command_channel_id=null,config_version=config_version+1,updated_at=now() where team_id=$1", [teamId]),
+        sql.query("update publication_jobs set status='cancelled',last_error_code='DISCORD_DISCONNECTED',updated_at=now() where team_id=$1 and status in ('queued','preparing','retry_wait')", [teamId]),
+        sql.query("delete from discord_link_codes where team_id=$1 and consumed_at is null", [teamId]),
         auditDiscord(user.id, teamId, 'discord.disconnect'),
       ]);
     }

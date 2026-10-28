@@ -16,17 +16,17 @@ export default defineConfig(({ mode }) => {
   // full verification stays reliable alongside native image rendering on CI.
   test: { include: ["src/**/*.test.{js,jsx,ts,tsx}"], maxWorkers: 2 },
   build: {
-    rollupOptions: {
+    rolldownOptions: {
       output: {
-        manualChunks(id) {
-          if (!id.includes("node_modules")) return undefined;
+        codeSplitting: { groups: [
+          // Keep the React runtime shared rather than pulled into the icon chunk.
+          { name: "vendor-react", test: /[/\\]node_modules[/\\](react|react-dom|scheduler)([/\\]|$)/, priority: 50 },
           // The decorative homepage scene must not inflate the shared app vendor.
-          if (id.includes("/three/")) return "vendor-three";
-          if (id.includes("/gsap/")) return "vendor-motion";
-          if (id.includes("lucide-react")) return "vendor-icons";
-          if (id.includes("react") || id.includes("react-dom")) return "vendor-react";
-          return "vendor";
-        },
+          { name: "vendor-three", test: /[/\\]node_modules[/\\]three[/\\]/, priority: 40 },
+          { name: "vendor-motion", test: /[/\\]node_modules[/\\]gsap[/\\]/, priority: 40 },
+          { name: "vendor-icons", test: /[/\\]node_modules[/\\]lucide-react[/\\]/, priority: 30 },
+          { name: "vendor", test: /[/\\]node_modules[/\\]/, priority: 0 },
+        ] },
       },
     },
   },

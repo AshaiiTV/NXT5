@@ -3,10 +3,10 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({ pg: null as any, admin: vi.fn(), request: vi.fn(), guild: vi.fn(), rate: vi.fn(), failReceipt: false }));
-vi.mock('../../netlify/functions/_lib/db', () => ({ sql: async (query: string, params: any[] = []) => {
+vi.mock('../../netlify/functions/_lib/db', () => ({ sql: { query: async (query: string, params: any[] = []) => {
   if (state.failReceipt && query.includes("set status='sent'")) { state.failReceipt = false; throw new Error('Storage unavailable'); }
   return (await state.pg.query(query, params)).rows;
-} }));
+} } }));
 vi.mock('../../netlify/functions/_lib/platform-admin', () => ({ requirePlatformAdmin: state.admin }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertSubjectRateLimit: state.rate }));
 vi.mock('../../netlify/functions/_lib/discord-client', () => ({ discordRequest: state.request, getDiscordGuild: state.guild }));

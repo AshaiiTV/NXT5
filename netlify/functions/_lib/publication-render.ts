@@ -4,6 +4,7 @@ import path from 'node:path';
 import { renderGamePublicationCanvas } from '../../../shared/publications/game-publication-canvas.js';
 import { loadGamePublicationAssets, PUBLICATION_OBJECTIVE_ASSETS } from '../../../shared/publications/game-publication-assets.js';
 import { renderGroupPublicationCanvas } from '../../../shared/publications/group-publication-canvas.js';
+import { createGroupPublicationSurface, encodeGroupPublicationSurface } from './group-publication-png';
 
 let registered = false;
 let logoPromise: ReturnType<typeof loadImage> | undefined;
@@ -75,7 +76,7 @@ export async function renderGamePublicationPng(snapshot, { includeHints = true }
 
 export async function renderGroupPublicationPng(snapshot) {
   prepareFont();
-  const { canvas, width, height } = await renderGroupPublicationCanvas(snapshot, { createCanvas, loadLogo: bundledLogo });
-  const bytes = await canvas.encode('png');
+  const { canvas, width, height } = await renderGroupPublicationCanvas(snapshot, { createCanvas: createGroupPublicationSurface, loadLogo: bundledLogo });
+  const bytes = await encodeGroupPublicationSurface(canvas);
   return { bytes, mimeType: 'image/png' as const, width, height, filename: `nxt5-group-${String(snapshot.entityId || 'export').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80)}.png` };
 }

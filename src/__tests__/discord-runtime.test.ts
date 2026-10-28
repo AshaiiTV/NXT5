@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   sql: vi.fn(), auth: vi.fn(), schema: vi.fn(), dispatch: vi.fn(), run: vi.fn(), reconcile: vi.fn(),
   maintain: vi.fn(), store: vi.fn(), get: vi.fn(), set: vi.fn(), preview: vi.fn(), image: vi.fn(),
 }));
-vi.mock('../../netlify/functions/_lib/db', () => ({ sql: Object.assign(mocks.sql, { transaction: vi.fn() }) }));
+vi.mock('../../netlify/functions/_lib/db', () => ({ sql: Object.assign(mocks.sql, { query: mocks.sql, transaction: vi.fn() }) }));
 vi.mock('../../netlify/functions/_lib/auth', () => ({ requireAuth: mocks.auth }));
 vi.mock('../../netlify/functions/_lib/platform-admin', () => ({ requirePlatformAdmin: mocks.auth }));
 vi.mock('../../netlify/functions/_lib/discord-queue', () => ({ assertDiscordSchemaReady: mocks.schema, enqueueManualPublication: vi.fn() }));

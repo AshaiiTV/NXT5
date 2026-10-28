@@ -47,19 +47,19 @@ export async function executeDiscordCommand(interaction: any): Promise<string> {
   await assertDiscordSchemaReady();
   if (!isDiscordId(interaction.id) || !isDiscordId(interaction.guild_id) || !isDiscordId(interaction.member?.user?.id)) return 'Commande Discord invalide.';
   if (!canManageServer(interaction)) return 'La gestion de cette connexion est réservée aux responsables du serveur.';
-  const claimed=await sql("insert into discord_interaction_receipts(interaction_id,guild_id,discord_user_id,command_name) values($1,$2,$3,$4) on conflict(interaction_id) do nothing returning interaction_id",
+  const claimed=await sql.query("insert into discord_interaction_receipts(interaction_id,guild_id,discord_user_id,command_name) values($1,$2,$3,$4) on conflict(interaction_id) do nothing returning interaction_id",
     [interaction.id,interaction.guild_id,interaction.member.user.id,String(interaction.data?.options?.[0]?.name || '').slice(0,40)]);
   if (!claimed.length) {
-    const [receipt]=await sql("select status,response_text,created_at from discord_interaction_receipts where interaction_id=$1",[interaction.id]);
+    const [receipt]=await sql.query("select status,response_text,created_at from discord_interaction_receipts where interaction_id=$1",[interaction.id]);
     return receipt?.response_text || 'Cette commande a déjà été reçue. Consulte la connexion dans NXT5 avant de lancer une nouvelle commande.';
   }
   try {
     const response=await executeClaimedCommand(interaction);
-    await sql("update discord_interaction_receipts set status='completed',response_text=$2,completed_at=now() where interaction_id=$1 and status='processing'",[interaction.id,response]);
+    await sql.query("update discord_interaction_receipts set status='completed',response_text=$2,completed_at=now() where interaction_id=$1 and status='processing'",[interaction.id,response]);
     return response;
   } catch(error:any) {
     const response=commandFailureMessage(error);
-    await sql("update discord_interaction_receipts set status='failed',response_text=$2,error_code=$3,completed_at=now() where interaction_id=$1 and status='processing'",[interaction.id,response,String(error?.code || 'COMMAND_FAILED').slice(0,100)]);
+    await sql.query("update discord_interaction_receipts set status='failed',response_text=$2,error_code=$3,completed_at=now() where interaction_id=$1 and status='processing'",[interaction.id,response,String(error?.code || 'COMMAND_FAILED').slice(0,100)]);
     return response;
   }
 }
@@ -83,7 +83,7 @@ async function executeClaimedCommand(interaction:any):Promise<string> {
     const normalized = provided.replace(/[ -]/g, '');
     if (normalized.length !== 16) return 'Code invalide.';
     const hash = createHash('sha256').update(normalized).digest('hex');
-    const codes = await sql("select l.*,t.owner_id,tm.role from discord_link_codes l join teams t on t.id=l.team_id left join team_members tm on tm.team_id=l.team_id and tm.user_id=l.created_by where l.code_hash=$1 and l.consumed_at is null and l.expires_at>now() and (t.owner_id=l.created_by or tm.role in ('owner','captain'))", [hash]);
+    const codes = await sql.query("select l.*,t.owner_id,tm.role from discord_link_codes l join teams t on t.id=l.team_id left join team_members tm on tm.team_id=l.team_id and tm.user_id=l.created_by where l.code_hash=$1 and l.consumed_at is null and l.expires_at>now() and (t.owner_id=l.created_by or tm.role in ('owner','captain'))", [hash]);
     const code = codes[0];
     if (!code) return 'Ce code est expiré, déjà utilisé ou n’est plus autorisé. Génère-en un nouveau dans NXT5.';
     const identity = await botIdentity(interaction.member.user.id);
@@ -91,13 +91,13 @@ async function executeClaimedCommand(interaction:any):Promise<string> {
     // Check actual bot membership before binding this authorized team.
     await getDiscordGuild(guildId);
     const result = await sql.transaction([
-      sql("select team_id from discord_connections where team_id=$1 for update", [code.team_id]),
-      sql("select 1/case when exists(select 1 from discord_link_codes l join teams t on t.id=l.team_id left join team_members tm on tm.team_id=l.team_id and tm.user_id=l.created_by join discord_user_links u on u.user_id=l.created_by and u.discord_user_id=$3 where l.id=$1 and l.team_id=$2 and l.consumed_at is null and l.expires_at>now() and (t.owner_id=l.created_by or tm.role in ('owner','captain'))) then 1 else 0 end", [code.id, code.team_id, interaction.member.user.id]),
-      sql("update discord_link_codes set consumed_at=now(),guild_id=$2 where id=$1 and consumed_at is null", [code.id, guildId]),
-      sql("update discord_connections set command_channel_id=case when guild_id=$2 then command_channel_id else null end,guild_id=$2,status='paused',enabled_at=null,config_version=config_version+1,updated_at=now() where team_id=$1 returning team_id", [code.team_id, guildId]),
-      sql("update publication_jobs set status='cancelled',last_error_code='DISCORD_RELINKED',updated_at=now() where team_id=$1 and status in ('queued','preparing','retry_wait')", [code.team_id]),
-      sql("delete from discord_routes where team_id=$1 and guild_id<>$2", [code.team_id, guildId]),
-      sql("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,'discord.connected','team',$2,$3::jsonb)", [code.created_by, code.team_id, JSON.stringify({ guildId, discordUserId: interaction.member.user.id, interactionId:interaction.id })]),
+      sql.query("select team_id from discord_connections where team_id=$1 for update", [code.team_id]),
+      sql.query("select 1/case when exists(select 1 from discord_link_codes l join teams t on t.id=l.team_id left join team_members tm on tm.team_id=l.team_id and tm.user_id=l.created_by join discord_user_links u on u.user_id=l.created_by and u.discord_user_id=$3 where l.id=$1 and l.team_id=$2 and l.consumed_at is null and l.expires_at>now() and (t.owner_id=l.created_by or tm.role in ('owner','captain'))) then 1 else 0 end", [code.id, code.team_id, interaction.member.user.id]),
+      sql.query("update discord_link_codes set consumed_at=now(),guild_id=$2 where id=$1 and consumed_at is null", [code.id, guildId]),
+      sql.query("update discord_connections set command_channel_id=case when guild_id=$2 then command_channel_id else null end,guild_id=$2,status='paused',enabled_at=null,config_version=config_version+1,updated_at=now() where team_id=$1 returning team_id", [code.team_id, guildId]),
+      sql.query("update publication_jobs set status='cancelled',last_error_code='DISCORD_RELINKED',updated_at=now() where team_id=$1 and status in ('queued','preparing','retry_wait')", [code.team_id]),
+      sql.query("delete from discord_routes where team_id=$1 and guild_id<>$2", [code.team_id, guildId]),
+      sql.query("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,'discord.connected','team',$2,$3::jsonb)", [code.created_by, code.team_id, JSON.stringify({ guildId, discordUserId: interaction.member.user.id, interactionId:interaction.id })]),
     ]);
     if (!result[3]?.length) return 'La liaison n’a pas été enregistrée. Actualise NXT5.';
     return 'Serveur relié à cette équipe NXT5. Retourne dans Bot Discord pour choisir son salon de commandes et ses salons de publication. Les autres équipes du serveur conservent leurs réglages.';
@@ -109,37 +109,37 @@ async function executeClaimedCommand(interaction:any):Promise<string> {
   if (option && (typeof option.value !== 'string' || !option.value.trim() || option.value.length > 100)) return 'L’ancienne option équipe est invalide. Utilise le salon de commandes de ton équipe.';
   const ctx = await resolveBotContext(interaction.member.user.id, guildId, interaction.channel_id, interaction.member.roles, option?.value.trim() || undefined);
   if (!ctx.canManage) throw discordError('Cette commande est réservée au responsable NXT5 de cette équipe.', 403, 'DISCORD_ROLE_FORBIDDEN');
-  const [connection] = await sql(`select c.*,t.name as team_name from discord_connections c join teams t on t.id=c.team_id
+  const [connection] = await sql.query(`select c.*,t.name as team_name from discord_connections c join teams t on t.id=c.team_id
     where c.team_id=$1 and c.guild_id=$2 and c.status<>'disconnected'`, [ctx.teamId, guildId]);
   if (!connection) throw discordError('Cette équipe n’est plus reliée à ce serveur.', 403, 'DISCORD_TEAM_FORBIDDEN');
   const roleIds = botMemberRoleIds(interaction.member.roles);
-  const roleAccessStillValid = () => sql(`select 1/case when not exists (
+  const roleAccessStillValid = () => sql.query(`select 1/case when not exists (
     select 1 from discord_bot_role_access a where a.team_id=$1
       and (a.guild_id<>$2 or not (a.role_ids && $3::text[]))
   ) then 1 else 0 end`, [ctx.teamId, guildId, roleIds]);
   if (command?.name === 'pause') {
     await sql.transaction([
-      sql("select team_id from discord_connections where team_id=$1 for update",[connection.team_id]),
-      sql("select 1/case when exists(select 1 from discord_user_links u join teams t on t.id=$1 left join team_members tm on tm.team_id=t.id and tm.user_id=u.user_id where u.discord_user_id=$2 and (t.owner_id=u.user_id or tm.role in ('owner','captain'))) then 1 else 0 end", [ctx.teamId, interaction.member.user.id]),
+      sql.query("select team_id from discord_connections where team_id=$1 for update",[connection.team_id]),
+      sql.query("select 1/case when exists(select 1 from discord_user_links u join teams t on t.id=$1 left join team_members tm on tm.team_id=t.id and tm.user_id=u.user_id where u.discord_user_id=$2 and (t.owner_id=u.user_id or tm.role in ('owner','captain'))) then 1 else 0 end", [ctx.teamId, interaction.member.user.id]),
       roleAccessStillValid(),
-      sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status<>'disconnected') then 1 else 0 end",[connection.team_id,guildId,connection.config_version]),
-      sql("update discord_connections set status='paused',updated_at=now() where team_id=$1 and guild_id=$2", [connection.team_id, guildId]),
-      sql("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values(null,'discord.pause','team',$1,$2::jsonb)",[connection.team_id,JSON.stringify({guildId,discordUserId:interaction.member.user.id,interactionId:interaction.id,source:'discord'})]),
+      sql.query("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status<>'disconnected') then 1 else 0 end",[connection.team_id,guildId,connection.config_version]),
+      sql.query("update discord_connections set status='paused',updated_at=now() where team_id=$1 and guild_id=$2", [connection.team_id, guildId]),
+      sql.query("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values(null,'discord.pause','team',$1,$2::jsonb)",[connection.team_id,JSON.stringify({guildId,discordUserId:interaction.member.user.id,interactionId:interaction.id,source:'discord'})]),
     ]);
     return 'Les publications de ' + teamName(connection) + ' sont en pause.';
   }
   if (command?.name === 'reprendre') {
     if (!isDiscordEnabled()) return 'Les envois Discord sont suspendus par NXT5. La connexion de l’équipe reste en pause.';
     const live = await getDiscordGuild(guildId);
-    const routes = await sql("select channel_id from discord_routes where team_id=$1 and enabled", [connection.team_id]);
+    const routes = await sql.query("select channel_id from discord_routes where team_id=$1 and enabled", [connection.team_id]);
     if (!routes.length || routes.some((route) => !live.channels.some((channel) => channel.id === route.channel_id && channel.canSend))) return 'Vérifie les salons et permissions depuis NXT5 avant de reprendre.';
     await sql.transaction([
-      sql("select team_id from discord_connections where team_id=$1 for update",[connection.team_id]),
-      sql("select 1/case when exists(select 1 from discord_user_links u join teams t on t.id=$1 left join team_members tm on tm.team_id=t.id and tm.user_id=u.user_id where u.discord_user_id=$2 and (t.owner_id=u.user_id or tm.role in ('owner','captain'))) then 1 else 0 end", [ctx.teamId, interaction.member.user.id]),
+      sql.query("select team_id from discord_connections where team_id=$1 for update",[connection.team_id]),
+      sql.query("select 1/case when exists(select 1 from discord_user_links u join teams t on t.id=$1 left join team_members tm on tm.team_id=t.id and tm.user_id=u.user_id where u.discord_user_id=$2 and (t.owner_id=u.user_id or tm.role in ('owner','captain'))) then 1 else 0 end", [ctx.teamId, interaction.member.user.id]),
       roleAccessStillValid(),
-      sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status<>'disconnected') then 1 else 0 end",[connection.team_id,guildId,connection.config_version]),
-      sql("update discord_connections set status='active',enabled_at=coalesce(enabled_at,now()),updated_at=now() where team_id=$1 and guild_id=$2", [connection.team_id, guildId]),
-      sql("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values(null,'discord.resume','team',$1,$2::jsonb)",[connection.team_id,JSON.stringify({guildId,discordUserId:interaction.member.user.id,interactionId:interaction.id,source:'discord'})]),
+      sql.query("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3 and status<>'disconnected') then 1 else 0 end",[connection.team_id,guildId,connection.config_version]),
+      sql.query("update discord_connections set status='active',enabled_at=coalesce(enabled_at,now()),updated_at=now() where team_id=$1 and guild_id=$2", [connection.team_id, guildId]),
+      sql.query("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values(null,'discord.resume','team',$1,$2::jsonb)",[connection.team_id,JSON.stringify({guildId,discordUserId:interaction.member.user.id,interactionId:interaction.id,source:'discord'})]),
     ]);
     return 'Connexion active pour ' + teamName(connection) + '. Ses publications suivent les règles configurées dans NXT5.';
   }

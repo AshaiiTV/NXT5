@@ -30,7 +30,7 @@ function message(referenceId: string, filename: string) {
 }
 export async function assertDiscordTestSchemaReady() {
   try {
-    if ((await sql('select migration_key from app_schema_migrations where migration_key=$1', [SCHEMA_VERSION])).length) return;
+    if ((await sql.query('select migration_key from app_schema_migrations where migration_key=$1', [SCHEMA_VERSION])).length) return;
   } catch { /* Avoid exposing database internals before the migration is ready. */ }
   throw discordError('La mise à jour du test Discord doit être appliquée.', 503, 'DISCORD_TEST_SCHEMA_REQUIRED');
 }
@@ -46,8 +46,8 @@ export function publicDiscordTest(row: any) {
 }
 export async function loadDiscordTestPreview(teamId: string) {
   const [rendered, rows, pending] = await Promise.all([
-    image(), sql('select * from discord_connection_tests where team_id=$1 order by created_at desc,request_id desc limit 1', [teamId]),
-    sql(`select t.* from discord_connection_tests t
+    image(), sql.query('select * from discord_connection_tests where team_id=$1 order by created_at desc,request_id desc limit 1', [teamId]),
+    sql.query(`select t.* from discord_connection_tests t
       join discord_connections c on c.team_id=t.team_id and c.guild_id=t.guild_id and c.status<>'disconnected'
       join discord_routes r on r.team_id=t.team_id and r.guild_id=t.guild_id and r.channel_id=t.channel_id and r.enabled
       where t.team_id=$1 and t.status in ('sending','uncertain') order by t.created_at desc limit 10`, [teamId]),
@@ -57,7 +57,7 @@ export async function loadDiscordTestPreview(teamId: string) {
     latestTest: publicDiscordTest(rows[0]), pendingTests: pending.map(publicDiscordTest) };
 }
 async function stored(teamId: string, requestId: string) {
-  return (await sql('select * from discord_connection_tests where team_id=$1 and request_id=$2', [teamId, requestId]))[0];
+  return (await sql.query('select * from discord_connection_tests where team_id=$1 and request_id=$2', [teamId, requestId]))[0];
 }
 async function reconcile(row: any) {
   if (publicDiscordTest(row)?.status !== 'uncertain' || !isDiscordEnabled()) return row;
@@ -67,7 +67,7 @@ async function reconcile(row: any) {
   try {
     const found = await findDiscordMessage(row.channel_id, { reference: reference(row.team_id, row.request_id), after: row.created_at });
     if (isDiscordId(found?.id) && found.channel_id === row.channel_id) {
-      const rows = await sql("update discord_connection_tests set status='succeeded',message_id=$3,error_code=null,completed_at=now() where team_id=$1 and request_id=$2 and status in ('sending','uncertain') returning *", [row.team_id, row.request_id, found.id]);
+      const rows = await sql.query("update discord_connection_tests set status='succeeded',message_id=$3,error_code=null,completed_at=now() where team_id=$1 and request_id=$2 and status in ('sending','uncertain') returning *", [row.team_id, row.request_id, found.id]);
       return rows[0] || row;
     }
   } catch { /* Preserve the durable fence if Discord cannot confirm this send. */ }
@@ -84,7 +84,7 @@ export async function sendDiscordConnectionTest({ teamId, routeId, requestId, us
   }
   if (!isDiscordEnabled()) throw discordError('Les envois Discord sont suspendus sur cet environnement.', 409, 'DISCORD_PUBLISHING_DISABLED');
   await assertSubjectRateLimit('discord-connection-test', teamId, { limit: 3, windowSeconds: 300 });
-  const candidates = await sql(`select r.*,c.config_version from discord_routes r join discord_connections c on c.team_id=r.team_id
+  const candidates = await sql.query(`select r.*,c.config_version from discord_routes r join discord_connections c on c.team_id=r.team_id
     where r.id=$2 and r.team_id=$1 and r.enabled and r.guild_id=c.guild_id and c.status in ('active','paused')`, [teamId, routeId]);
   const route = candidates[0];
   if (!route) throw discordError('Enregistre un salon de cette équipe avant le test.', 409, 'DISCORD_TEST_ROUTE_REQUIRED');
@@ -93,7 +93,7 @@ export async function sendDiscordConnectionTest({ teamId, routeId, requestId, us
     throw discordError('Le bot doit pouvoir envoyer les messages et images et lire ce salon.', 409, 'DISCORD_TEST_CHANNEL_FORBIDDEN');
   }
   // One atomic insert is both the idempotency receipt and the destination fence.
-  const [, , claimed] = await sql.transaction([...discordTeamWriteQueries(teamId, userId, 'manage'), sql(`with inserted as (
+  const [, , claimed] = await sql.transaction([...discordTeamWriteQueries(teamId, userId, 'manage'), sql.query(`with inserted as (
     insert into discord_connection_tests(team_id,request_id,route_id,guild_id,channel_id,config_version,status,created_by)
     select r.team_id,$3,r.id,r.guild_id,r.channel_id,c.config_version,'sending',$4
     from discord_routes r join discord_connections c on c.team_id=r.team_id
@@ -111,7 +111,7 @@ export async function sendDiscordConnectionTest({ teamId, routeId, requestId, us
       if (raced.route_id !== routeId) throw discordError('Cet identifiant de test désigne un autre salon.', 409, 'DISCORD_TEST_REQUEST_CONFLICT');
       return publicDiscordTest(raced);
     }
-    const blocked = (await sql("select * from discord_connection_tests where team_id=$1 and guild_id=$2 and channel_id=$3 and status in ('sending','uncertain')", [teamId, route.guild_id, route.channel_id]))[0];
+    const blocked = (await sql.query("select * from discord_connection_tests where team_id=$1 and guild_id=$2 and channel_id=$3 and status in ('sending','uncertain')", [teamId, route.guild_id, route.channel_id]))[0];
     if (blocked) return publicDiscordTest(await reconcile(blocked));
     throw discordError('La configuration a changé. Actualise le dashboard.', 409, 'DISCORD_TEST_CONFIG_CHANGED');
   }
@@ -119,7 +119,7 @@ export async function sendDiscordConnectionTest({ teamId, routeId, requestId, us
   try {
     const rendered = await image();
     // Rendering must not send to a destination removed or relinked meanwhile.
-    const current = await sql(`select r.id from discord_routes r join discord_connections c on c.team_id=r.team_id
+    const current = await sql.query(`select r.id from discord_routes r join discord_connections c on c.team_id=r.team_id
       where r.team_id=$1 and r.id=$2 and r.enabled and c.status in ('active','paused') and c.guild_id=r.guild_id
         and c.guild_id=$3 and r.channel_id=$4 and c.config_version=$5`, [teamId, routeId, route.guild_id, route.channel_id, route.config_version]);
     if (!current.length || !isDiscordEnabled()) throw discordError('La configuration a changé. Actualise le dashboard.', 409, 'DISCORD_TEST_CONFIG_CHANGED');
@@ -128,12 +128,12 @@ export async function sendDiscordConnectionTest({ teamId, routeId, requestId, us
     const result = await discordRequest('/channels/' + route.channel_id + '/messages', { method: 'POST',
       body: message(reference(teamId, requestId), rendered.filename), files: [{ name: rendered.filename, bytes: rendered.bytes }] });
     if (!isDiscordId(result?.id) || result.channel_id !== route.channel_id) throw new DiscordApiError(502, 'DISCORD_INVALID_RESPONSE', { ambiguous: true });
-    const rows = await sql("update discord_connection_tests set status='succeeded',message_id=$3,completed_at=now() where team_id=$1 and request_id=$2 returning *", [teamId, requestId, result.id]);
+    const rows = await sql.query("update discord_connection_tests set status='succeeded',message_id=$3,completed_at=now() where team_id=$1 and request_id=$2 returning *", [teamId, requestId, result.id]);
     return publicDiscordTest(rows[0]);
   } catch (error: any) {
     const uncertain = attempted && (!(error instanceof DiscordApiError) || error.ambiguous);
     const code = error instanceof DiscordApiError || String(error?.code || '').startsWith('DISCORD_TEST_') ? error.code : 'DISCORD_TEST_FAILED';
-    const rows = await sql("update discord_connection_tests set status=$3,error_code=$4,completed_at=case when $3='failed' then now() else null end where team_id=$1 and request_id=$2 returning *", [teamId, requestId, uncertain ? 'uncertain' : 'failed', code]);
+    const rows = await sql.query("update discord_connection_tests set status=$3,error_code=$4,completed_at=case when $3='failed' then now() else null end where team_id=$1 and request_id=$2 returning *", [teamId, requestId, uncertain ? 'uncertain' : 'failed', code]);
     return publicDiscordTest(rows[0]);
   }
 }

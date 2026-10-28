@@ -142,7 +142,7 @@ async function runBotComponent(interaction: any) {
   if (customId.startsWith('nxt:presence:') || customId.startsWith('nxt:review:read:')) {
     const presence = parts[1] === 'presence';
     const id = uuid(presence ? parts[2] : parts[3], presence ? 'Événement' : 'Review');
-    const [row] = await sql(presence ? 'select team_id from discord_team_events where id=$1' : 'select team_id from reports where id=$1', [id]);
+    const [row] = await sql.query(presence ? 'select team_id from discord_team_events where id=$1' : 'select team_id from reports where id=$1', [id]);
     if (!row) throw discordError('Ce contenu n’est plus disponible.', 404);
     const version = Number(parts[4]);
     if (!presence && (!Number.isSafeInteger(version) || version < 1)) throw discordError('La version de cette review est invalide. Ouvre la review actuelle.');
@@ -167,7 +167,7 @@ export async function executeDiscordBot(interaction: any) {
     ['nxt:read:bilan:', 'bilan'], ['nxt:read:groupe:', 'bilan'], ['nxt:read:game:', 'game voir'], ['nxt:read:review:', 'review voir'],
   ];
   const command = parsed?.command || componentLabels.find(([prefix]) => customId.startsWith(prefix))?.[1] || 'bouton inconnu';
-  const claimed = await sql(`insert into discord_interaction_receipts(interaction_id,guild_id,discord_user_id,command_name)
+  const claimed = await sql.query(`insert into discord_interaction_receipts(interaction_id,guild_id,discord_user_id,command_name)
     values($1,$2,$3,$4) on conflict(interaction_id) do nothing returning interaction_id`, [interaction.id, interaction.guild_id, interaction.member.user.id, command.slice(0, 40)]);
   if (!claimed.length) return botMessage('Commande déjà reçue', 'Cette interaction a déjà été traitée ou est en cours. Consulte le résultat précédent avant de recommencer.');
   try {
@@ -192,10 +192,10 @@ export async function executeDiscordBot(interaction: any) {
         } else result = await runTeamCommand(ctx, parsed.command, parsed.options);
       }
     } else result = await runBotComponent(interaction);
-    await sql("update discord_interaction_receipts set status='completed',completed_at=now() where interaction_id=$1", [interaction.id]);
+    await sql.query("update discord_interaction_receipts set status='completed',completed_at=now() where interaction_id=$1", [interaction.id]);
     return result;
   } catch (error: any) {
-    await sql("update discord_interaction_receipts set status='failed',error_code=$2,completed_at=now() where interaction_id=$1", [interaction.id, String(error?.code || 'COMMAND_FAILED').slice(0, 100)]);
+    await sql.query("update discord_interaction_receipts set status='failed',error_code=$2,completed_at=now() where interaction_id=$1", [interaction.id, String(error?.code || 'COMMAND_FAILED').slice(0, 100)]);
     throw error;
   }
 }

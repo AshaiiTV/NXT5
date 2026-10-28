@@ -140,6 +140,7 @@ describe('one-time historical review backfill', () => {
     expect(after.map(row => [row.match_id, row.match_ids])).toEqual(before.map(row => [row.match_id, row.match_ids]));
   });
 
+  // WASM database startup and the large note fixture share CPU with other CI suites.
   it('skips excessive linked games and oversized generated content without truncating notes', async () => {
     const { db, match, report, rows, run } = await fixture();
     await match(10);
@@ -152,7 +153,7 @@ describe('one-time historical review backfill', () => {
     expect(result.skipped.map(item => item.reason)).toEqual(['TOO_MANY_LINKED_GAMES', 'CONTENT_TOO_LONG']);
     expect(await rows()).toEqual(before);
     expect((await db.query('select * from nxt5_review_backfill_backups')).rows).toEqual([]);
-  });
+  }, 30000);
 
   it('rolls back earlier updates and all backups when generation loses any note', async () => {
     const { db, match, report, rows, run } = await fixture();

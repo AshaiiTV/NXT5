@@ -1,6 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Keep the existing unlayered cascade: component styles intentionally mix with
+   utilities by specificity. Putting utilities in a layer would make even a
+   universal unlayered border/font rule override explicit utility classes. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css";
+@import "tailwindcss/utilities.css" source(none);
+@config "../tailwind.config.js";
+
+/* Preserve the preflight defaults used before the Tailwind 4 migration. */
+input::placeholder,
+textarea::placeholder { color: #9ca3af; opacity: 1; }
+button,
+[role="button"] { cursor: pointer; }
+:disabled { cursor: default; }
 
 @font-face {
   font-family: Inter;

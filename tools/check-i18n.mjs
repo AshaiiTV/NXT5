@@ -1,4 +1,6 @@
-import ts from 'typescript';
+// TypeScript 7 supplies the native CLI; the supported compatibility package
+// retains the compiler API used to inspect translation references.
+import ts from '@typescript/typescript6';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { sourceFiles } from './i18n-inventory.mjs';
 
