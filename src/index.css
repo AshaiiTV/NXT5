@@ -3,6 +3,7 @@
    universal unlayered border/font rule override explicit utility classes. */
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/preflight.css";
+@import "./styles/surface-defaults.css";
 @import "tailwindcss/utilities.css" source(none);
 @config "../tailwind.config.js";
 

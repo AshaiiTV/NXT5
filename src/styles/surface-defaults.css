@@ -1,0 +1,6 @@
+/* Unlayered, after preflight and before utilities: keep panel content inset,
+   while explicit p-0 / p-4 and responsive utilities retain precedence. */
+.nxt5-surface { padding: 1.25rem; }
+@media (max-width: 640px) {
+  .nxt5-surface { padding: 1rem; }
+}
