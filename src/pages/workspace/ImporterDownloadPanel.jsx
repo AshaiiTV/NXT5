@@ -27,7 +27,7 @@ export function ImporterDownloadPanel({ fileImporting, hasTeam, hasPreview, onIm
   };
 
   return (
-    <><Surface className={`importer-download-panel min-w-0${hasPreview ? " importer-download-panel-loaded" : ""}`}>
+    <><Surface variant="glass" className={`importer-download-panel min-w-0${hasPreview ? " importer-download-panel-loaded" : ""}`}>
       <section aria-labelledby="importer-download-title" className="importer-download-content">
         <div className="importer-download-intro">
           {hasPreview && <Check className="importer-file-check" aria-hidden="true" />}

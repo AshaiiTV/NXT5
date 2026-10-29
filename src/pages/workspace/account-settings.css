@@ -5,7 +5,6 @@
 .nxt5-account-sections p { max-width: 68ch; }
 .nxt5-account-sections form { width: 100%; }
 .nxt5-account-identity form { padding-top: 20px; border-top: 1px solid var(--nxt5-glass-border); }
-.nxt5-account-sections > .nxt5-surface { border-color: var(--nxt5-glass-border); }
 .nxt5-account-disclosure > summary > svg { color: var(--nxt5-accent-2); }
 .nxt5-account-disclosure[open] > summary { padding-bottom: 14px; border-bottom: 1px solid var(--nxt5-glass-border); }
 .nxt5-account-disclosure > summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 44px; cursor: pointer; list-style: none; color: var(--nxt5-text); font-size: var(--nxt5-font-ui); font-weight: 600; }

@@ -43,7 +43,7 @@ function VerifyEmailPage() {
     window.location.replace(`${API_BASE}/verify-email${query}`);
   }, []);
 
-  return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface className="nxt5-auth-card text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Loader2 className="h-6 w-6 animate-spin" /></div><h1 className="mt-5 text-3xl font-black text-white">{t("Vérification en cours")}</h1><p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t("On confirme ton adresse e-mail et on te redirige automatiquement.")}</p></Surface></main></div>;
+  return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface variant="glass" className="nxt5-auth-card text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Loader2 className="h-6 w-6 animate-spin" /></div><h1 className="nxt5-page-title mt-5">{t("Vérification en cours")}</h1><p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t("On confirme ton adresse e-mail et on te redirige automatiquement.")}</p></Surface></main></div>;
 }
 
 function VerifiedPage({ navigate, user, onLogout, checkingSession }) {
@@ -60,9 +60,9 @@ function VerifiedPage({ navigate, user, onLogout, checkingSession }) {
       ? [t("Lien expiré"), t("Ce lien a expiré. Renvoie un email de vérification depuis tes paramètres."), "yellow"]
       : [t("Lien invalide"), t("Lien invalide ou déjà utilisé."), "red"];
   const [title, text, tone] = copy;
-  return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface className="nxt5-auth-card text-center">
+  return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface variant="glass" className="nxt5-auth-card text-center">
     <Badge tone={tone}>{success ? t("Vérifié") : t("Vérification")}</Badge>
-    <h1 className="mt-5 text-3xl font-black text-white">{title}</h1>
+    <h1 className="nxt5-page-title mt-5">{title}</h1>
     <p className="mt-3 text-sm font-normal leading-6 text-slate-300">{text}</p>
     {signinRequired && <p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t("Si tu ne connais pas ce mot de passe ou ne reconnais pas cette inscription, réinitialise le mot de passe de cette adresse e-mail avant de continuer.")}</p>}
     <div className="mt-6 flex flex-wrap justify-center gap-3">{signinRequired ? <>

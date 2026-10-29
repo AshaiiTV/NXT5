@@ -13,7 +13,7 @@ export function PassFeaturePreview({ feature = "workspace", onSubscribe }) {
   const titleId = useId();
   const details = PASS_FEATURES[feature] || PASS_FEATURES.workspace;
   return (
-    <Surface className="pass-feature-preview">
+    <Surface variant="glass" className="pass-feature-preview">
       <section className="pass-feature-preview-layout" aria-labelledby={titleId}>
         <div className="pass-feature-preview-backdrop" aria-hidden="true">
           <div className="pass-feature-preview-bars"><span /><span /><span /></div>
@@ -22,7 +22,7 @@ export function PassFeaturePreview({ feature = "workspace", onSubscribe }) {
         </div>
         <div className="pass-feature-preview-message">
           <LockKeyhole aria-hidden="true" className="h-6 w-6 text-cyan-200" />
-          <Badge tone="purple">{t(details.label)}{t(" · Pass Équipe")}</Badge>
+          <Badge tone="brand">{t(details.label)}{t(" · Pass Équipe")}</Badge>
           <h2 id={titleId} className="text-2xl font-black leading-tight tracking-tight">{t("Continue avec ton équipe")}</h2>
           <p className="text-sm leading-6 text-slate-300">{t("Après les ")}{DISCOVERY_TRIAL_DAYS}{t(" jours de Découverte, prends le Pass Équipe pour ")}{t(details.benefit)}.</p>
           <p className="text-sm font-bold text-cyan-100">{t("9,90 € TTC / mois / équipe")}</p>

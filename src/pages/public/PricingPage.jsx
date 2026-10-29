@@ -125,14 +125,14 @@ export default function PricingPage({ navigate, user, embedded = false }) {
           eyebrow={t("Ventes et accès")}
           title={t("Offres et tarifs")}
           subtitle={t("Consulte les offres prévues et les réponses aux questions fréquentes.")}
-        ><Badge tone="purple">{t("Prévisualisation")}</Badge></PageHeader> : <AdminTabNav activeId="pricing" navigate={navigate} disabled={saving} dirty={dirty} />}
+        ><Badge tone="brand">{t("Prévisualisation")}</Badge></PageHeader> : <AdminTabNav activeId="pricing" navigate={navigate} disabled={saving} dirty={dirty} />}
         <aside className="border-l-2 border-violet-300/40 py-2 pl-4 text-sm leading-6 text-slate-300" aria-label={t("Accès administrateur")}>
           <p className="font-bold text-violet-100">{t("Aperçu réservé à l’administrateur")}</p>
           <p>{t("La page et son formulaire sont fermés aux visiteurs et aux autres comptes. Les demandes envoyées depuis cet aperçu sont enregistrées dans le suivi.")}</p>
         </aside>
         <section className="pricing-intro" aria-labelledby="pricing-title">
           <div>
-            <Badge tone="cyan">{t("Tarifs · offres à l’étude")}</Badge>
+            <Badge tone="info">{t("Tarifs · offres à l’étude")}</Badge>
             <IntroHeading id="pricing-title" className="pricing-title">{t("Tout le suivi de ton équipe.")}<br /><span className="nxt5-metal-text">{t("Au même endroit.")}</span>
             </IntroHeading>
             <p className="pricing-intro-description">{t("Parties, débriefs, champions et planning : un espace partagé pour les joueurs et leur encadrement. Compare les offres prévues, puis indique celle qui t’intéresse.")}</p>
@@ -148,7 +148,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
         <section aria-label={t("Comparer les offres envisagées")} className="mt-8">
           <div className="pricing-plans">
             {PROPOSED_PLANS.map((plan) => (
-              <Surface key={plan.code} className={`pricing-plan pricing-plan--${plan.code}`}>
+              <Surface variant="glass" key={plan.code} className={`pricing-plan pricing-plan--${plan.code}`}>
                 <article aria-labelledby={`plan-${plan.code}`} className="pricing-plan-body">
                   <div>
                     <p className="pricing-plan-eyebrow">{plan.code === "free" ? t("14 jours pour essayer") : t("Tarif de lancement")}</p>
@@ -183,7 +183,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
 
         <div className="pricing-details">
           <section aria-labelledby="pricing-faq-title">
-            <Badge tone="purple">{t("Avant de te lancer")}</Badge>
+            <Badge tone="brand">{t("Avant de te lancer")}</Badge>
             <SectionHeading id="pricing-faq-title" className="pricing-section-title">{t("Questions sur les offres")}</SectionHeading>
             <div className="mt-5">
               {FAQ.map(([question, answer]) => <details className="pricing-faq-item" key={question}><summary>{t(question)}</summary><p className="pb-5 text-sm leading-7 text-slate-300">{t(answer)}</p></details>)}
@@ -192,7 +192,7 @@ export default function PricingPage({ navigate, user, embedded = false }) {
 
           <section id="demande-acces" ref={formSectionRef} aria-labelledby="access-request-title" className="pricing-request">
             <Surface>
-              <Badge tone="cyan">{t("Préparer ton accès")}</Badge>
+              <Badge tone="info">{t("Préparer ton accès")}</Badge>
               <SectionHeading id="access-request-title" className="pricing-section-title">{t("Demander un accès pour ton équipe")}</SectionHeading>
               <p className="mt-3 text-sm leading-6 text-slate-300">{t("Indique l’offre qui t’intéresse et les besoins de ton équipe. Nous utiliserons ta demande pour valider l’offre et en discuter avec toi, sans engagement d’achat.")}</p>
               {success ? (<div ref={statusRef} tabIndex={-1} role="status" className="pricing-success mt-6 rounded-2xl border border-emerald-200/25 bg-emerald-400/10 p-5">

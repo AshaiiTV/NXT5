@@ -115,7 +115,7 @@ export default function SocialCalendar() {
     {error && <div role="alert" className="nxt5-social-error"><AlertTriangle size={20} aria-hidden="true" /><div><strong>{t("Le calendrier n’a pas pu être actualisé")}</strong><p>{error}</p>{payload && <p>{t("Les dernières données reçues restent affichées.")}</p>}</div></div>}
 
     {!payload && loading ? <Surface className="nxt5-social-loading"><Loader2 size={22} aria-hidden="true" className="animate-spin" /><p role="status">{t("Chargement des publications…")}</p></Surface> : payload && <>
-      <Surface className="nxt5-social-overview">
+      <Surface variant="glass" className="nxt5-social-overview">
         <div className="nxt5-social-summary"><p><strong>{posts.length}</strong><span>{t("contenus suivis")}</span></p><p><strong>{scheduledCount}</strong><span>{t("programmés")}</span></p><p><strong>{needsCheckCount}</strong><span>{t("à vérifier")}</span><span className="nxt5-social-summary-note">{t("Horaire passé ou confirmation manquante")}</span></p></div>
         <details className="nxt5-social-sources" data-warning={sourceWarning || undefined}><summary><RefreshCw size={17} aria-hidden="true" /><span>{sourceWarning ? t("Sources à vérifier") : t("Sources et synchronisation")}</span><ChevronRight size={17} aria-hidden="true" /></summary><p className="nxt5-social-source-intro">{t("Les sources automatiques sont synchronisées côté serveur. Les confirmations manuelles restent datées.")}</p><ul>{payload.sources.map(source => <SourceStatus key={source.id} source={source} locale={locale} now={now} />)}</ul></details>
       </Surface>
@@ -150,7 +150,7 @@ export default function SocialCalendar() {
     </>}
 
     {selectedPost && <ModalDialog onClose={() => setSelected(null)} returnFocusRef={returnFocusRef} aria-labelledby="social-calendar-detail-title" className="nxt5-social-detail">
-      <div className="nxt5-social-detail-heading"><Badge tone="purple">{CALENDAR_NETWORKS[selectedPost.network] || selectedPost.network}</Badge><Button type="button" variant="ghost" onClick={() => setSelected(null)}>{t("Fermer")}</Button></div>
+      <div className="nxt5-social-detail-heading"><Badge tone="brand">{CALENDAR_NETWORKS[selectedPost.network] || selectedPost.network}</Badge><Button type="button" variant="ghost" onClick={() => setSelected(null)}>{t("Fermer")}</Button></div>
       <h2 id="social-calendar-detail-title">{selectedPost.title || t("Sans titre")}</h2>
       <dl><div><dt>{t("Statut")}</dt><dd>{t((CALENDAR_STATUSES[selectedPost.status] || CALENDAR_STATUSES.needs_check).label)}</dd></div><div><dt>{t("Publication prévue")}</dt><dd>{selectedPost.scheduledAt ? formatCalendarTimestamp(selectedPost.scheduledAt, locale) : t("Sans date confirmée")}</dd></div><div><dt>{t("Format")}</dt><dd>{selectedPost.format || t("Non renseigné")}</dd></div><div><dt>{t("Dernière vérification")}</dt><dd>{selectedPost.verifiedAt ? formatCalendarTimestamp(selectedPost.verifiedAt, locale) : t("Aucune vérification disponible")}</dd></div></dl>
       {publicationNeedsCheck(selectedPost, now) && <p className="nxt5-social-detail-warning"><AlertTriangle size={18} aria-hidden="true" />{t("L’horaire est passé : la publication doit être vérifiée auprès du réseau.")}</p>}

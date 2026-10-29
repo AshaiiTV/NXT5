@@ -259,7 +259,7 @@ export function SocialAccounts({ onStatus }) {
   }
 
   return <Surface className="nxt5-social-connections xl:col-span-2">
-    <Badge tone="cyan">{t("Connexions")}</Badge>
+    <Badge tone="info">{t("Connexions")}</Badge>
     <h3 className="nxt5-social-title">{t("Connexions associées")}</h3>
     <p className="nxt5-social-description">{t("Associe un service pour te reconnecter au même compte NXT5.")}{status?.providers?.some((provider) => provider.enabled === true) && t(" Services disponibles : {0}.", [PROVIDERS.filter((provider) => status.providers.some((entry) => entry.id === provider.id && entry.enabled === true)).map((provider) => provider.label).join(", ")])}</p>
     {socialCallbackStatus() && <div className="mt-4"><SocialNotice /></div>}
@@ -272,7 +272,7 @@ export function SocialAccounts({ onStatus }) {
         const linked = status.linked?.find((entry) => entry.provider === provider.id);
         return <div key={provider.id} className="nxt5-social-connection">
           <div className="nxt5-social-connection-row">
-            <div className="min-w-0"><p className="flex flex-wrap items-center gap-2 font-black text-white">{t(provider.label)}{linked && <Badge tone="cyan">{t("Associé")}</Badge>}</p>
+            <div className="min-w-0"><p className="flex flex-wrap items-center gap-2 font-black text-white">{t(provider.label)}{linked && <Badge tone="info">{t("Associé")}</Badge>}</p>
               <p className="mt-1 break-words text-sm leading-6 text-slate-300">{linked ? linked.displayName || t("Ton compte {0}", [t(provider.label)]) : available ? t("Aucun compte associé") : t("Service non disponible")}</p>
               {linked && !available && <p className="nxt5-social-help">{t("La connexion avec ce service est temporairement indisponible.")}</p>}
             </div>

@@ -116,7 +116,7 @@ export function LegalReadinessPage() {
           <ol className="admin-launch-checklist">
             {LEGAL_TASKS.map(([title, description], index) => <li key={t(title)}><span className="admin-launch-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><div><h4>{t(title)}</h4><p>{t(description)}</p></div></li>)}
           </ol>
-          <a href={checklistUrl} download="nxt5-checklist-juridique.md" className="nxt5-control nxt5-button-secondary admin-launch-download">
+          <a href={checklistUrl} download="nxt5-checklist-juridique.md" className="nxt5-control nxt5-button-ghost admin-launch-download">
             <Download aria-hidden="true" className="h-5 w-5 shrink-0" /><span>{t("Télécharger le guide et la check-list complète")}</span>
           </a>
         </div>

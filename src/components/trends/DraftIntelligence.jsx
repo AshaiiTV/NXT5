@@ -38,7 +38,7 @@ function BanDetail({ row, phase, camp, onOpenDraft, draftLabel, detailRef }) {
   const ban = exampleOrder?.events.find((event) => event.kind === "ban" && event.side !== targetSide && canonicalChampion(event.champion) === row.champion);
   const revealed = exampleOrder?.events.filter((event) => event.kind === "pick" && event.side === targetSide && event.order < ban?.order) || [];
   return <section ref={detailRef} tabIndex={-1} className="draft-ban-detail" aria-label={t("Comprendre les bans de {0}", [name])}>
-    <div className="draft-ban-detail-heading"><ChampionPortrait champion={row.champion} className="h-12 w-12 rounded-lg object-cover" /><div><p className="drafter-muted">{t("Lire le signal")}</p><h4>{name}</h4></div><Badge tone="cyan">{metric.count < 3 ? t("À confirmer") : t("Observation répétée")}</Badge></div>
+    <div className="draft-ban-detail-heading"><ChampionPortrait champion={row.champion} className="h-12 w-12 rounded-lg object-cover" /><div><p className="drafter-muted">{t("Lire le signal")}</p><h4>{name}</h4></div><Badge tone="info">{metric.count < 3 ? t("À confirmer") : t("Observation répétée")}</Badge></div>
     <div className="draft-insight"><h5>{t("Ce qu’on observe")}</h5><p>{metric.total ? t("{0} bans sur {1} drafts exploitables dans cette vue.", [metric.count, metric.total]) : t("Des bans sont renseignés, mais les données sont trop incomplètes pour calculer une fréquence.")}</p>
       <p className="drafter-muted">{t("Phase 1 : {0}/{1} · Phase 2 : {2}/{3}", [row.phase1.count, row.phase1.total, row.phase2.count, row.phase2.total])}</p>
       {row.unknownPhase > 0 && <p className="drafter-muted">{t("Bans observés sans phase vérifiée : {0}.", [row.unknownPhase])}</p>}

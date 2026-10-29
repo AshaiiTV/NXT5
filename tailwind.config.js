@@ -9,6 +9,17 @@ export default {
       fontSize: {
         xs: ['var(--nxt5-font-small)', { lineHeight: '1.5' }],
         sm: ['var(--nxt5-font-body)', { lineHeight: '1.65' }],
+        lg: ['var(--nxt5-font-h3)', { lineHeight: '1.35' }],
+        xl: ['var(--nxt5-font-h2)', { lineHeight: '1.25' }],
+      },
+      // Radius utilities resolve to the four charter radii: 2 / 8 / 10 / 16 px.
+      borderRadius: {
+        sm: 'var(--nxt5-radius-button)',
+        md: 'var(--nxt5-radius-chip)',
+        lg: 'var(--nxt5-radius-control)',
+        xl: 'var(--nxt5-radius-control)',
+        '2xl': 'var(--nxt5-radius-panel)',
+        '3xl': 'var(--nxt5-radius-panel)',
       },
       spacing: {
         76: '19rem',

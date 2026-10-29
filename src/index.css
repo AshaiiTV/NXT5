@@ -71,12 +71,28 @@ button,
   --nxt5-accent: #67e8f9;
   --nxt5-accent-2: #c4b5fd;
   --nxt5-danger: #fda4af;
+  /* Semantic states: text, soft background and border, evaluated on their real surface. */
+  --nxt5-danger-soft: rgba(251, 113, 133, .1);
+  --nxt5-danger-border: rgba(253, 164, 175, .35);
+  --nxt5-success: #a7f3d0;
+  --nxt5-success-soft: rgba(52, 211, 153, .1);
+  --nxt5-success-border: rgba(110, 231, 183, .32);
+  --nxt5-warning: #fde68a;
+  --nxt5-warning-soft: rgba(252, 211, 77, .08);
+  --nxt5-warning-border: rgba(252, 211, 77, .32);
+  --nxt5-info: #a5f3fc;
+  --nxt5-info-soft: rgba(103, 232, 249, .08);
+  --nxt5-info-border: rgba(103, 232, 249, .3);
   /* Action ink stays dark independently of the page background. */
   --nxt5-on-accent: #020611;
   --nxt5-font-body: 1rem;
   --nxt5-font-ui: .9375rem;
   --nxt5-font-small: .875rem;
   --nxt5-font-micro: .75rem;
+  /* Section headings and statistic values; the page title keeps its clamp in core.css. */
+  --nxt5-font-h2: 1.375rem;
+  --nxt5-font-h3: 1.125rem;
+  --nxt5-font-kpi: 2rem;
   --nxt5-reading-width: 68ch;
   --nxt5-primary-gradient: linear-gradient(to right, #22d3ee, #3b82f6, #d946ef);
   /* Decorative accents; primary actions and semantic state colors stay distinct. */
@@ -99,7 +115,16 @@ button,
   --nxt5-ease-out: cubic-bezier(.23, 1, .32, 1);
   --nxt5-radius-panel: 1rem;
   --nxt5-radius-control: 0.625rem;
+  --nxt5-radius-chip: 0.5rem;
   --nxt5-radius-button: 0.125rem;
+  /* 4 px grid; Tailwind spacing utilities map onto the same steps. */
+  --nxt5-space-1: 4px;
+  --nxt5-space-2: 8px;
+  --nxt5-space-3: 12px;
+  --nxt5-space-4: 16px;
+  --nxt5-space-5: 24px;
+  --nxt5-space-6: 32px;
+  --nxt5-space-7: 48px;
   --nxt5-shadow-panel: 0 12px 32px rgba(0, 0, 0, 0.16);
 }
 

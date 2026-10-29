@@ -32,7 +32,7 @@ export default function SocialPage({ navigate, user }) {
       <main className="nxt5-information-main">
         <PublicInformationNav navigate={navigate} activePath="/reseaux" />
         <header className="nxt5-information-hero nxt5-enter">
-          <Badge tone="cyan">{t("La communauté NXT5")}</Badge>
+          <Badge tone="info">{t("La communauté NXT5")}</Badge>
           <h1 className="nxt5-metal-text">{t("La communauté et les réseaux NXT5")}</h1>
           <p>{t("Suis les vidéos et les actualités NXT5 sur YouTube et Instagram. Rejoins la communauté sur Discord pour poser une question ou partager une idée.")}</p>
         </header>
@@ -53,7 +53,7 @@ export default function SocialPage({ navigate, user }) {
 
         {!!otherNetworks.length && <section className="nxt5-other-networks" aria-labelledby="other-networks-title">
           <h2 id="other-networks-title">{t("Les vidéos et les actualités NXT5")}</h2>
-          <Surface><ul className="nxt5-network-list">{otherNetworks.map((network) => {
+          <Surface variant="glass"><ul className="nxt5-network-list">{otherNetworks.map((network) => {
             const Icon = NETWORK_ICONS[network.id] || Radio;
             return (
               <li key={network.id}><a href={network.href} target="_blank" rel="noopener noreferrer" aria-describedby="social-new-tab">
@@ -62,7 +62,7 @@ export default function SocialPage({ navigate, user }) {
             );
           })}</ul></Surface>
         </section>}
-        {!links.length && <Surface><p className="nxt5-community-empty">{t("Aucun lien vers les réseaux de NXT5 n’est disponible sur cette page.")}</p></Surface>}
+        {!links.length && <Surface variant="glass"><p className="nxt5-community-empty">{t("Aucun lien vers les réseaux de NXT5 n’est disponible sur cette page.")}</p></Surface>}
         <p id="social-new-tab" className="nxt5-social-link-note"><ArrowUpRight aria-hidden="true" size={15} />{t("Les liens vers les réseaux s’ouvrent dans un nouvel onglet.")}</p>
 
         <section id="contact" className="nxt5-contact-section" aria-label={t("Contacter NXT5")}>
@@ -74,7 +74,7 @@ export default function SocialPage({ navigate, user }) {
               <p>{t("Pour ton compte ou tes données personnelles, écris à ")}<a href={`mailto:${NXT5_CONTACT_EMAIL}`} className="break-words underline underline-offset-4">{NXT5_CONTACT_EMAIL}</a>{t(". Un message privé sur Discord reste possible. Ne publie jamais de mot de passe ni de donnée sensible dans un salon public.")}</p>
               <PublicTextLink href="/confidentialite" navigate={navigate}>{t("Consulter la confidentialité")}<ArrowUpRight aria-hidden="true" size={16} /></PublicTextLink>
             </div>
-            <Surface className="nxt5-support-surface">
+            <Surface variant="glass" className="nxt5-support-surface">
               <div className="nxt5-contact-privacy">
                 <LifeBuoy aria-hidden="true" size={24} />
                 <h3>{t("Trouve qui contacter.")}</h3>

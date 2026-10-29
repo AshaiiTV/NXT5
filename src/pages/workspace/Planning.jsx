@@ -441,7 +441,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
               <p>{t("Un clic sur un jour remplit ou vide cette journée. Un clic sur une heure fait la même chose pour toute la semaine. Un clic droit sur un créneau ouvre aussi les types de séance.")}</p>
               <p>{t("Les séances différentes sur un même créneau sont affichées ensemble. Tu peux modifier ou retirer celle que tu as ajoutée ; les séances des autres membres sont conservées.")}</p>
               <div className="nxt5-planning-legend">{PLANNING_EVENT_TYPES.map((item) => <span key={item.id}><span aria-hidden="true" className={cx("h-2 w-2 rounded-full", item.dot)} />{t(SESSION_LABELS[item.id]?.label) || t(item.label)}</span>)}</div>
-              <div className="nxt5-planning-legend">{bestCells[0]?.count > 0 && <Badge tone="cyan">{t("Présences maximum : ")}{bestCells[0].count}/{planningUnitTotal}</Badge>}<Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots}{t(" créneaux avec ")}{representedRoles}{t(" joueurs")}</Badge>{staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots}{t(" créneaux avec encadrement")}</Badge>}</div>
+              <div className="nxt5-planning-legend">{bestCells[0]?.count > 0 && <Badge tone="info">{t("Présences maximum : ")}{bestCells[0].count}/{planningUnitTotal}</Badge>}<Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots}{t(" créneaux avec ")}{representedRoles}{t(" joueurs")}</Badge>{staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots}{t(" créneaux avec encadrement")}</Badge>}</div>
             </details>
           </Surface>
 

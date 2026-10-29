@@ -38,7 +38,7 @@ export function TrendsOverview({ objective, plan, roles, briefs, alerts, onOpenS
       <div className="trends-priority-target">{roles.length > 0 && <div className="trends-priority-roster" aria-hidden="true">{[...roles].sort((a, b) => ROSTER_ROLE_ORDER.indexOf(a.role) - ROSTER_ROLE_ORDER.indexOf(b.role)).map((row) => <span key={row.role}><RoleIcon role={row.role} lightweight /></span>)}</div>}<p>{t("Après vérification, choisis une consigne pour la prochaine session.")}</p><button type="button" className="trends-text-action" onClick={onPlaystyle}>{t("Comprendre notre style de jeu")}<ArrowRight aria-hidden="true" /></button></div>
     </section></Surface>
 
-    <Surface className="trends-plan-surface"><details className="trends-secondary-disclosure">
+    <Surface variant="glass" className="trends-plan-surface"><details className="trends-secondary-disclosure">
       <summary><span><strong>{t("Comprendre le plan de jeu récurrent")}</strong><span>{t(analysisCopy(plan.title))}</span></span></summary>
       <div className="trends-disclosure-content"><Badge tone={plan.toneName}>{t(analysisCopy(plan.value))}</Badge>
       <p className="trends-copy">{t(analysisCopy(plan.text))}</p>

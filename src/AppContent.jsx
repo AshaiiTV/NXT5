@@ -83,8 +83,8 @@ export function MissingEmailModal({ user, onUserUpdate, pushToast, onLogout }) {
 
   return (
     <ModalDialog dismissable={false} busy={saving} aria-labelledby="missing-email-title" className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-cyan-300/25 p-6">
-        <Badge tone="orange">{t("Action requise")}</Badge>
-        <h2 id="missing-email-title" className="mt-5 text-3xl font-black tracking-tight text-white">{t("Ajoute ton e-mail de récupération")}</h2>
+        <Badge tone="accent">{t("Action requise")}</Badge>
+        <h2 id="missing-email-title" className="nxt5-page-title mt-5">{t("Ajoute ton e-mail de récupération")}</h2>
         <p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t("Ton compte a été créé sans e-mail. Ajoute une adresse pour pouvoir réinitialiser ton mot de passe.")}</p>
         <form onSubmit={submit} className="mt-6 space-y-4">
           <TextInput label={t("E-mail de récupération")} value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" required icon={Mail} autoFocus autoComplete="email" />
@@ -176,8 +176,8 @@ export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, 
 
   return (
     <ModalDialog dismissable={false} busy={busy} aria-labelledby="verify-email-title" className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-amber-300/28 p-6">
-        <Badge tone="orange">{t("Vérification obligatoire")}</Badge>
-        <h2 id="verify-email-title" className="mt-5 text-3xl font-black tracking-tight text-white">{t("Vérifie ton e-mail")}</h2>
+        <Badge tone="accent">{t("Vérification obligatoire")}</Badge>
+        <h2 id="verify-email-title" className="nxt5-page-title mt-5">{t("Vérifie ton e-mail")}</h2>
         <p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t("Ton compte utilise l'adresse ")}<span className="break-all font-black text-white">{user?.email}</span>{t(". Confirme cette adresse avec le lien envoyé par e-mail pour accéder à ton espace NXT5.")}</p>
         <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4">
           <p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />{t("Profil non vérifié")}</p>
@@ -224,10 +224,10 @@ export function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate 
   }
 
   if (!user?.inactivity_notice) return null;
-  return <ModalDialog onClose={() => acknowledge()} busy={saving} aria-labelledby="inactivity-return-title" className="nxt5-account-dialog nxt5-enter relative w-full max-w-2xl border border-cyan-200/26 p-5 sm:p-7">
+  return <ModalDialog onClose={() => acknowledge()} busy={saving} aria-labelledby="inactivity-return-title" className="nxt5-account-dialog nxt5-enter relative w-full max-w-2xl border border-cyan-200/26 p-5 sm:p-6">
       <button type="button" onClick={() => acknowledge()} disabled={saving} autoFocus aria-label={t("Fermer le message")} className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white disabled:opacity-40"><X className="h-5 w-5" /></button>
       <div className="grid h-14 w-14 place-items-center rounded-2xl border border-cyan-200/28 bg-gradient-to-br from-cyan-400/18 to-fuchsia-400/14 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,.15)]"><Sparkles className="h-7 w-7" /></div>
-      <Badge tone="cyan" className="mt-5">{t("Bon retour")}</Badge>
+      <Badge tone="info" className="mt-5">{t("Bon retour")}</Badge>
       <h2 id="inactivity-return-title" className="mt-3 pr-12 text-2xl font-bold tracking-tight text-white">{t("Content de te revoir sur NXT5")}</h2>
       <p className="mt-3 max-w-xl text-sm font-normal leading-6 text-slate-300 sm:text-base">{t("Ton compte n'avait pas été actif depuis au moins trois mois. Tes équipes et tes données sont toujours disponibles : tu peux reprendre exactement là où tu t'étais arrêté.")}</p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">

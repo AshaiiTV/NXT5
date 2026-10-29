@@ -243,7 +243,7 @@ function AnalysisScene() {
           <span className="ps-overline">{t("Scrim 3 · Faille de l’invocateur")}</span>
           <h4>Horizon <span>{t("contre")}</span> Aurore</h4>
         </div>
-        <Badge tone="green">{t("Victoire")}</Badge>
+        <Badge tone="success">{t("Victoire")}</Badge>
       </div>
       <div className="ps-match-lineup">
         <div className="ps-match-champions" role="group" aria-label={t("Composition de l’équipe Horizon")}>

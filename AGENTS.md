@@ -2,7 +2,7 @@
 
 ## Charte graphique
 
-Avant toute création ou modification visuelle du site NXT5, lire [charte graphique unique NXT5](/Users/sachadegouzon/Documents/Codex/2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md), puis les composants concernés. Ce document du dépôt principal est la source unique pour les couleurs, la typographie, les logos, les surfaces, les états, la densité et le responsive.
+Avant toute création ou modification visuelle du site NXT5, lire [charte graphique unique NXT5](/Users/sachadegouzon/Documents/Codex/2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md), puis les composants concernés. Ce document du dépôt principal est la source unique pour les couleurs, la typographie, les logos, les surfaces, les états, la densité et le responsive. Deux fichiers du même dossier le complètent : [règles par page](/Users/sachadegouzon/Documents/Codex/2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-pages.md) pour la famille de pages concernée, et [journal des versions](/Users/sachadegouzon/Documents/Codex/2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-journal.md) pour l’historique et les preuves.
 
 - Réutiliser en priorité `src/components/ui/Core.jsx`, `src/components/brand/BrandAssets.jsx`, les tokens et classes de `src/index.css`.
 - Conserver le fond bleu nuit, les accents cyan/violet/fuchsia, les textes clairs et les panneaux arrondis. Vérifier la cascade réelle : des styles historiques sont neutralisés par `!important`.

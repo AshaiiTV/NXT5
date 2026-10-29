@@ -3,29 +3,33 @@ import { t } from "../../i18n/translate.js";
 import React, { useId, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle, BarChart3, Check, ChevronDown, Eye, EyeOff, Loader2, X } from "lucide-react";
-import { cx, tone } from "../../app/helpers.js";
+import { cx, normalizeTone, tone } from "../../app/helpers.js";
 import "./core.css";
 import { getTopDialog, subscribeDialogs } from "./dialog-registry.js";
 
-export function Badge({ children, tone: badgeTone = "slate", pulse = false, className = "", ...props }) {
+export function Badge({ children, tone: badgeTone = "neutral", pulse = false, className = "", ...props }) {
   useLanguage();
   return (
-    <span {...props} data-tone={badgeTone} className={cx("nxt5-badge inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-left text-xs font-semibold leading-5 whitespace-normal", tone(badgeTone), className)}>
+    <span {...props} data-tone={normalizeTone(badgeTone)} className={cx("nxt5-badge inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-left text-xs font-semibold leading-5 whitespace-normal", tone(badgeTone), className)}>
       {pulse && <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-current" />}
       <span className="min-w-0 break-words">{children}</span>
     </span>
   );
 }
 
-export function Surface({ children, className = "", delay = 0, glow = false, variant = "frame" }) {
+// Reading is the default: a calm field for tables, forms and lists. Glass is an explicit
+// choice for the frame, the active selection and the one surface that carries the page's
+// identity; `glow` implies glass. Scene is reserved to one presentation surface per screen.
+export function Surface({ children, className = "", delay = 0, glow = false, variant }) {
   useLanguage();
+  const kind = variant === "frame" ? "glass" : variant || (glow ? "glass" : "reading");
   return (
     <div
       className={cx(
         "nxt5-panel nxt5-premium-panel nxt5-surface group relative max-w-full overflow-hidden border",
-        (variant === "frame" || variant === "glass") && "nxt5-surface-frame",
-        variant === "reading" && "nxt5-surface-reading",
-        variant === "scene" && "nxt5-surface-scene",
+        kind === "glass" && "nxt5-surface-frame",
+        kind === "reading" && "nxt5-surface-reading",
+        kind === "scene" && "nxt5-surface-scene",
         glow && "nxt5-surface-emphasis",
         className
       )}
@@ -36,17 +40,21 @@ export function Surface({ children, className = "", delay = 0, glow = false, var
   );
 }
 
-export function Button({ children, icon: Icon, variant = "primary", className = "", disabled = false, ...props }) {
+// `secondary` is the cyan outline for the second action of a zone; `ghost` stays the quiet default.
+// `loading` keeps the label and disables the control without the "unavailable" look.
+export function Button({ children, icon: Icon, variant = "primary", size = "md", loading = false, className = "", disabled = false, ...props }) {
   useLanguage();
   const base = "nxt5-cyber-button nxt5-control inline-flex min-h-11 min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-semibold leading-5 transition duration-200 disabled:cursor-not-allowed disabled:opacity-50";
   const variants = {
     primary: "nxt5-button-primary border",
-    ghost: "nxt5-button-secondary border",
+    secondary: "nxt5-button-secondary border",
+    ghost: "nxt5-button-ghost border",
     danger: "nxt5-button-danger border",
   };
+  const LeadingIcon = loading ? Loader2 : Icon;
   return (
-    <button disabled={disabled} className={cx(base, variants[variant], className)} {...props}>
-      {Icon && <Icon aria-hidden="true" className={cx("h-4 w-4 shrink-0", Icon === Loader2 && "animate-spin")} />}
+    <button disabled={disabled || loading} aria-busy={loading || undefined} className={cx(base, variants[variant] || variants.primary, size === "sm" && "nxt5-button-sm", className)} {...props}>
+      {LeadingIcon && <LeadingIcon aria-hidden="true" className={cx("h-4 w-4 shrink-0", LeadingIcon === Loader2 && "animate-spin")} />}
       {children}
     </button>
   );
@@ -172,9 +180,9 @@ export function ToastStack({ toasts, removeToast }) {
     <div className="fixed bottom-5 right-4 z-[80] max-w-[calc(100vw-2rem)] space-y-3" aria-live="polite" aria-atomic="false">
       <React.Fragment>
         {toasts.map((toast) => (
-          <div key={toast.id} className="nxt5-toast nxt5-enter-fast" data-tone={toast.type || "cyan"}>
+          <div key={toast.id} className="nxt5-toast nxt5-enter-fast" data-tone={normalizeTone(toast.type || "info")}>
             <div className="flex items-start gap-3">
-              <div className="nxt5-toast-icon" aria-hidden="true">{["red", "yellow", "amber"].includes(toast.type) ? <AlertTriangle className="h-4 w-4" /> : <Check className="h-4 w-4" />}</div>
+              <div className="nxt5-toast-icon" aria-hidden="true">{["danger", "warning"].includes(normalizeTone(toast.type)) ? <AlertTriangle className="h-4 w-4" /> : <Check className="h-4 w-4" />}</div>
               <div className="nxt5-toast-copy min-w-0 flex-1"><p>{t(toast.title)}</p>{toast.text && <p>{t(toast.text)}</p>}</div>
               <button type="button" aria-label={t("Fermer la notification")} onClick={() => removeToast(toast.id)} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-white/10"><X aria-hidden="true" className="h-4 w-4" /></button>
             </div>

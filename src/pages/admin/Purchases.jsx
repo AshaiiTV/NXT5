@@ -7,10 +7,10 @@ import { apiFetch } from "../../api/client.js";
 import { Badge, Button, SelectInput, SkeletonRows, Surface, TextInput } from "../../components/ui/Core.jsx";
 
 const STATUSES = {
-  pending: { label: "En attente", tone: "yellow" },
-  paid: { label: "Payé", tone: "green" },
-  cancelled: { label: "Annulé", tone: "red" },
-  refunded: { label: "Remboursé", tone: "blue" },
+  pending: { label: "En attente", tone: "warning" },
+  paid: { label: "Payé", tone: "success" },
+  cancelled: { label: "Annulé", tone: "danger" },
+  refunded: { label: "Remboursé", tone: "info" },
 };
 const money = value => new Intl.NumberFormat(getLocale(), { style: "currency", currency: "EUR" }).format(Number(value) / 100);
 const number = value => new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 2 }).format(value);
@@ -48,7 +48,7 @@ function LoadState({ loading, error, retry }) {
 
 function Status({ value }) {
   useLanguage();
-  const status = STATUSES[value] || { label: value, tone: "blue" };
+  const status = STATUSES[value] || { label: value, tone: "info" };
   return <Badge tone={status.tone}>{t(status.label)}</Badge>;
 }
 

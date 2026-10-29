@@ -100,7 +100,7 @@ export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveT
     <TabNav items={TABS} activeId={activeTab} onChange={setActiveTab} label={t("Gestion de l’équipe")} idPrefix="team-manager" className="team-manager-tabs" />
 
     <section id="team-manager-panel-roster" role="tabpanel" aria-labelledby="team-manager-tab-roster" hidden={activeTab !== "roster"} className="team-manager-panel" tabIndex={0}>
-      <Surface className="team-manager-surface">
+      <Surface variant="glass" className="team-manager-surface">
         <div className="team-manager-toolbar">
           <div><h3 ref={rosterHeadingRef} tabIndex={-1}>{t("Joueurs et staff")}</h3></div>
           {canManageRoster && <Button type="button" icon={Plus} onClick={openAdd} hidden={adding} disabled={saving} aria-expanded={adding} aria-controls="team-roster-setup">{t("Ajouter un profil")}</Button>}
@@ -128,7 +128,7 @@ export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveT
               <Button ref={(node) => { if (node) editButtons.current.set(player.id, node); else editButtons.current.delete(player.id); }} type="button" variant="ghost" icon={Pencil} aria-label={t("Modifier {0}", [player.name])} aria-expanded={editingPlayerId === player.id} aria-controls={editingPlayerId === player.id ? `team-edit-${player.id}` : undefined} onClick={(event) => { if (editingPlayerId) return; editedProfileId.current = player.id; editTriggerRef.current = event.currentTarget; onEditPlayer(player); }} disabled={saving || !canManageRoster || Boolean(editingPlayerId)}><span>{t("Modifier")}</span></Button>
             </div>
             {canManageRoster && editingPlayerId === player.id && <div id={`team-edit-${player.id}`}><form ref={profileEditRef} onSubmit={onUpdatePlayer} className="team-profile-edit" style={{ scrollMarginTop: "6rem" }}>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><Badge tone="purple">{t("Modification")}</Badge><h4 className="mt-3 text-xl font-black text-white">{t("Modifier ")}{editingPlayer.name}</h4><p className="mt-1 text-sm font-semibold text-cyan-100/80">{t("Corrige le nom, le Riot ID ou l’OP.GG du profil.")}</p></div><Button type="button" variant="ghost" icon={X} disabled={saving} onClick={onClosePlayerEdit}>{t("Fermer")}</Button></div>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><Badge tone="brand">{t("Modification")}</Badge><h4 className="mt-3 text-xl font-black text-white">{t("Modifier ")}{editingPlayer.name}</h4><p className="mt-1 text-sm font-semibold text-cyan-100/80">{t("Corrige le nom, le Riot ID ou l’OP.GG du profil.")}</p></div><Button type="button" variant="ghost" icon={X} disabled={saving} onClick={onClosePlayerEdit}>{t("Fermer")}</Button></div>
         <div className="team-profile-edit-fields"><TextInput label={t("Nom")} value={playerEditForm.name} onChange={(name) => setPlayerEditForm({ ...playerEditForm, name })} placeholder={t("Nom visible")} required /><TextInput label={t("Riot ID")} value={playerEditForm.riotId} onChange={(riotId) => setPlayerEditForm({ ...playerEditForm, riotId })} placeholder={isStaffRole(editingPlayer.role) ? t("Non utilisé pour staff") : "Pseudo#TAG"} required={!isStaffRole(editingPlayer.role)} disabled={isStaffRole(editingPlayer.role)} /><TextInput label="OP.GG" value={playerEditForm.opggUrl} onChange={(opggUrl) => setPlayerEditForm({ ...playerEditForm, opggUrl })} placeholder={isStaffRole(editingPlayer.role) ? t("Non utilisé pour staff") : "https://op.gg/..."} disabled={isStaffRole(editingPlayer.role)} /><SelectInput label={t("Effectif")} value={playerEditForm.rosterStatus} onChange={(rosterStatus) => setPlayerEditForm({ ...playerEditForm, rosterStatus })} disabled={isStaffRole(editingPlayer.role) || editingPlayer.role === "SUB"}>{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{t(item.label)}</option>)}</SelectInput></div>
         <div className="team-manager-link-field">
           <SelectInput label={t("Compte NXT5 associé")} value={player.user_id || ""} onChange={(userId) => onLink(player.id, userId)} disabled={saving || !canManageRoster}>
@@ -158,7 +158,7 @@ export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveT
     </section>
 
     <section id="team-manager-panel-access" role="tabpanel" aria-labelledby="team-manager-tab-access" hidden={activeTab !== "access"} className="team-manager-panel" tabIndex={0}>
-      <Surface className="team-manager-surface">
+      <Surface variant="glass" className="team-manager-surface">
         <div className="team-manager-invite">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -178,7 +178,7 @@ export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveT
           {activeCodes.length > 0 && canInvite && <Button type="button" variant="danger" onClick={onRevokeInvites} disabled={saving}>{t("Révoquer les invitations")}</Button>}
         </div>
       </div>
-        <div className="team-manager-toolbar team-manager-accounts-heading"><div><h3>{t("Comptes de l’équipe")}</h3><p className="team-manager-description">{t("Ces comptes peuvent se connecter à l’espace d’équipe. Les droits sont enregistrés dès leur modification.")}</p></div><Badge tone="purple">{members.length}</Badge></div>
+        <div className="team-manager-toolbar team-manager-accounts-heading"><div><h3>{t("Comptes de l’équipe")}</h3><p className="team-manager-description">{t("Ces comptes peuvent se connecter à l’espace d’équipe. Les droits sont enregistrés dès leur modification.")}</p></div><Badge tone="brand">{members.length}</Badge></div>
         {!canInvite && <p className="team-manager-help">{t("Seuls le propriétaire, le capitaine et le manager peuvent créer une invitation.")}</p>}
         {!canManageMembers && <p className="team-manager-help">{t("Seuls le propriétaire et le capitaine peuvent modifier les droits d’accès.")}</p>}
         <ul className="team-manager-accounts">{members.map((member) => {
@@ -188,7 +188,7 @@ export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveT
           const access = String(member.role || "").toLowerCase();
           return <li key={member.user_id} className="team-manager-account">
             <div className="team-manager-person"><strong>{memberName}</strong><span>{linked ? t("Profil associé : {0}", [linked.name]) : t("Aucun profil associé")}</span></div>
-            <div className="team-manager-account-role">{isOwner ? <Badge tone="purple">{t("Propriétaire")}</Badge> : <SelectInput label={t("Droit d’accès")} aria-label={t("Accès de {0}", [memberName])} value={TEAM_ACCESS_ROLES.some(([id]) => id === access) ? access : "player"} onChange={(value) => onRoleChange(member.user_id, value)} disabled={saving || !canManageMembers}>{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}</SelectInput>}</div>
+            <div className="team-manager-account-role">{isOwner ? <Badge tone="brand">{t("Propriétaire")}</Badge> : <SelectInput label={t("Droit d’accès")} aria-label={t("Accès de {0}", [memberName])} value={TEAM_ACCESS_ROLES.some(([id]) => id === access) ? access : "player"} onChange={(value) => onRoleChange(member.user_id, value)} disabled={saving || !canManageMembers}>{TEAM_ACCESS_ROLES.map(([id, label]) => <option key={id} value={id}>{t(label)}</option>)}</SelectInput>}</div>
             {!isOwner && canManageMembers && <details className="team-manager-account-actions"><summary>{t("Retirer l’accès")}</summary><p>{t("Ce compte ne pourra plus accéder à l’équipe. Son profil joueur sera conservé.")}</p><Button type="button" variant="danger" icon={UserMinus} disabled={saving} onClick={() => onRemoveMember(member.user_id, memberName)}>{t("Retirer l’accès de {0}", [memberName])}</Button></details>}
           </li>;
         })}</ul>
@@ -198,7 +198,7 @@ export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveT
     </section>
 
     <section id="team-manager-panel-settings" role="tabpanel" aria-labelledby="team-manager-tab-settings" hidden={activeTab !== "settings"} className="team-manager-panel" tabIndex={0}>
-      <Surface className="team-manager-surface">
+      <Surface variant="glass" className="team-manager-surface">
         <div className="team-manager-toolbar"><div><h3>{t("Identité de l’équipe")}</h3><p className="team-manager-description">{t("Le nom, le tag et l’image affichés dans votre espace.")}</p></div></div>
         <div className="team-manager-settings"><form onSubmit={onSaveTeam} className="team-identity-form">
         <div className="team-identity-fields">

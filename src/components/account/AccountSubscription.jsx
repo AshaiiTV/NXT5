@@ -52,8 +52,8 @@ export default function AccountSubscription({ compact = false }) {
 
   if (compact) {
     // Keep the known badge visible while focus/update events revalidate it.
-    if (loading && !subscription) return <span role="status"><Badge tone="slate">{t("Abonnement…")}</Badge></span>;
-    if (error || !presentation) return <button type="button" className="min-h-11 rounded-[2px]" onClick={() => setRefresh((value) => value + 1)} title={t("Réessayer de charger ton abonnement")} aria-label={t("Abonnement indisponible. Réessayer")}><Badge tone="slate">{t("Indisponible")}</Badge></button>;
+    if (loading && !subscription) return <span role="status"><Badge tone="neutral">{t("Abonnement…")}</Badge></span>;
+    if (error || !presentation) return <button type="button" className="min-h-11 rounded-[2px]" onClick={() => setRefresh((value) => value + 1)} title={t("Réessayer de charger ton abonnement")} aria-label={t("Abonnement indisponible. Réessayer")}><Badge tone="neutral">{t("Indisponible")}</Badge></button>;
     const statusSuffix = subscription.status === "active" || subscription.status === "none" ? "" : ` · ${t(presentation.statusLabel)}`;
     return <span aria-label={t("Abonnement : {0}{1}", [t(presentation.label), subscription.status === "none" ? "" : ` · ${t(presentation.statusLabel)}`])}><Badge tone={presentation.tone}>{t(presentation.label)}{statusSuffix}</Badge></span>;
   }
