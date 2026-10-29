@@ -1,5 +1,4 @@
 /* Shared controls. Page-specific composition belongs to the page stylesheet. */
-:where(.nxt5-surface) { padding: 1.25rem; }
 .nxt5-surface.nxt5-surface-emphasis { border-color: rgba(196, 181, 253, .44); box-shadow: var(--nxt5-glass-shadow), inset 1px 0 0 rgba(165, 243, 252, .055), inset 0 -1px 0 rgba(139, 92, 246, .08); }
 .nxt5-surface-accent { background: var(--nxt5-spectrum-gradient); opacity: .7; }
 .nxt5-surface > .relative { min-width: 0; }
@@ -209,7 +208,6 @@
 .nxt5-skeleton-meta { width: 12%; max-width: 80px; height: 10px; }
 
 @media (max-width: 640px) {
-  :where(.nxt5-surface) { padding: 1rem; }
   .nxt5-page-actions { width: 100%; }
   .nxt5-tab-nav > div { display: flex; min-width: 100%; width: max-content; }
   .nxt5-tab { flex: 1 0 auto; }

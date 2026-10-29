@@ -22,4 +22,6 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:layout
       - run: node tools/audit-dependencies.mjs

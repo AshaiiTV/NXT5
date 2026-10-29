@@ -2,7 +2,7 @@
 
 ## Charte graphique
 
-Avant toute création ou modification visuelle du site NXT5, lire [charte graphique unique NXT5](/Users/sachadegouzon/Documents/Codex/2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md), puis les composants concernés. Ce document du dépôt principal est la source unique pour les couleurs, la typographie, les logos, les surfaces, les états, la densité et le responsive.
+Avant toute création ou modification visuelle du site NXT5, lire [charte graphique unique NXT5](C:/Users/sacha/2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md), puis les composants concernés. Ce document du dépôt principal est la source unique pour les couleurs, la typographie, les logos, les surfaces, les états, la densité et le responsive.
 
 - Réutiliser en priorité `src/components/ui/Core.jsx`, `src/components/brand/BrandAssets.jsx`, les tokens et classes de `src/index.css`.
 - Conserver le fond bleu nuit, les accents cyan/violet/fuchsia, les textes clairs et les panneaux arrondis. Vérifier la cascade réelle : des styles historiques sont neutralisés par `!important`.
@@ -14,6 +14,8 @@ Avant toute création ou modification visuelle du site NXT5, lire [charte graphi
 Pour une modification uniquement documentaire, vérifier les liens et la cohérence du contenu. Pour le code, effectuer les contrôles adaptés au changement et les vérifications exigées par le dépôt (`npm run verify` pour le contrôle complet).
 
 ## Vérification des interfaces
+
+- Pour les panneaux partagés ou l’effectif, exécuter `npm run test:layout` (installer Chromium avec `npx playwright install chromium`). Les marges de `Surface` sont importées après le preflight et avant les utilitaires, sans couche CSS, pour la cascade Tailwind 4 existante ; un sélecteur `:where` de priorité nulle peut être annulé par le reset.
 
 - Avant livraison, inspecter les pages réellement rendues dans leur cadre complet : ordinateur, téléphone et largeur de 320 px. Un test sans débordement ne remplace pas la lecture des captures.
 - Vérifier les actions concernées au clavier, le retour de focus, les menus et dialogues, les textes longs et les états vide, incomplet, erreur ou accès limité pertinents. Les décors et commandes flottantes ne doivent pas masquer le contenu.
