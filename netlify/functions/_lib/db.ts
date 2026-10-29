@@ -8,6 +8,7 @@ function configurationError() {
 }
 
 const unavailable = Object.assign(() => { throw configurationError(); }, {
+  query: () => { throw configurationError(); },
   transaction: () => { throw configurationError(); }
 }) as unknown as NeonQueryFunction<false, false>;
 

@@ -1,6 +1,7 @@
 node_modules/
 dist/
 .netlify/
+.nxt5-drafter-prototype/
 
 .env
 .env.*

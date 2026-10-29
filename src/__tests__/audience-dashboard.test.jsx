@@ -3,6 +3,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { Button, SelectInput } from "../components/ui/Core.jsx";
+import { SortButton } from "../components/ui/SortButton.jsx";
 import AudiencePage, { AudienceChart, AudienceHeatmap } from "../pages/admin/AudiencePage.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
@@ -17,6 +18,7 @@ async function render(element = <AudiencePage />) {
   return renderer;
 }
 const text = (renderer) => JSON.stringify(renderer.toJSON());
+const nodeText = (node) => typeof node === "string" ? node : (node?.children || []).map(nodeText).join("");
 const button = (renderer, label) => renderer.root.findAllByType(Button).find((node) => node.props.children === label || node.props["aria-label"] === label);
 const deferred = () => { let resolve, reject; const promise = new Promise((a, b) => { resolve = a; reject = b; }); return { promise, resolve, reject }; };
 
@@ -33,6 +35,26 @@ describe("audience dashboard", () => {
     expect(text(renderer)).toContain("Un navigateur n’est pas une personne");
     expect(text(renderer)).toContain("Compte créé");
     expect(text(renderer)).toContain("UTC");
+    expect(button(renderer, "Exporter CSV").props.disabled).toBe(false);
+  });
+
+  it("keeps the overview readable while retaining every optional report section", async () => {
+    apiFetch.mockResolvedValueOnce(result());
+    const renderer = await render();
+    const details = renderer.root.findAllByType("details").filter((node) => node.props.className.includes("audience-reading-details"));
+    expect(details).toHaveLength(3);
+    expect(details.every((node) => node.props.open === undefined)).toBe(true);
+    expect(details.map((node) => nodeText(node.findByType("summary")))).toEqual(expect.arrayContaining([
+      expect.stringContaining("L’engagement et les conversions"),
+      expect.stringContaining("Les sources des visites"),
+      expect.stringContaining("Les appareils, lieux et horaires"),
+    ]));
+    expect(details[0].findAllByProps({ className: "audience-engagement" })).toHaveLength(1);
+    expect(details[1].findAllByProps({ className: "audience-ranking" })).toHaveLength(1);
+    expect(details[2].findAllByProps({ className: "audience-heatmap" })).toHaveLength(1);
+    expect(details.flatMap((node) => node.findAllByType(AudienceChart))).toHaveLength(0);
+    expect(details.flatMap((node) => node.findAllByProps({ "aria-label": "Classement des pages" }))).toHaveLength(0);
+    expect(details.flatMap((node) => node.findAllByProps({ role: "alert" }))).toHaveLength(0);
     expect(button(renderer, "Exporter CSV").props.disabled).toBe(false);
   });
 
@@ -93,6 +115,13 @@ describe("audience dashboard", () => {
     apiFetch.mockResolvedValueOnce(result());
     const renderer = await render();
     const search = renderer.root.findAllByType("input").find((node) => node.props.type === "search");
+    const viewsSort = () => renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Vues");
+    const paths = () => renderer.root.findAllByProps({ className: "audience-page-path" }).map(node => node.children.join(""));
+    expect(paths()).toEqual(["/tarifs", "/"]);
+    act(() => viewsSort().props.onClick());
+    expect(paths()).toEqual(["/", "/tarifs"]);
+    expect(viewsSort().props).toMatchObject({ active: true, direction: "ascending" });
+    expect(renderer.root.findAllByType("th").filter(node => node.props["aria-sort"] === "ascending")).toHaveLength(1);
     act(() => search.props.onChange({ target: { value: "TARIFS" } }));
     const table = renderer.root.findByProps({ className: "audience-table audience-pages-table" });
     expect(table.findAllByType("tbody")[0].findAllByType("tr")).toHaveLength(1);

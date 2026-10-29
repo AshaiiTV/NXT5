@@ -1,3 +1,5 @@
+import { getLocale } from "../i18n/locale.js";
+import { t } from "../i18n/translate.js";
 import { DISCOVERY_TRIAL_DAYS } from "./pass-access.js";
 import { PROPOSED_PLANS } from "./pricing.js";
 
@@ -108,15 +110,15 @@ export function subscriptionFormDates(form) {
   return { startsAt, endsAt };
 }
 
-const dateFormat = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
-const trialDateFormat = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short" });
+const dateFormat = () => new Intl.DateTimeFormat(getLocale(), { day: "numeric", month: "short", year: "numeric" });
+const trialDateFormat = () => new Intl.DateTimeFormat(getLocale(), { dateStyle: "medium", timeStyle: "short" });
 export function subscriptionPeriodLabel(subscription) {
   const start = subscription?.startsAt && new Date(subscription.startsAt);
-  if (!start || !Number.isFinite(start.getTime())) return subscription?.planCode === "free" && subscription?.status !== "none" ? `${DISCOVERY_TRIAL_DAYS} jours d’accès complet · essai non démarré` : "Aucune période attribuée";
+  if (!start || !Number.isFinite(start.getTime())) return subscription?.planCode === "free" && subscription?.status !== "none" ? t("{0} jours d’accès complet · essai non démarré", [DISCOVERY_TRIAL_DAYS]) : t("Aucune période attribuée");
   if (subscription?.planCode === "free") {
     const end = subscription.endsAt && new Date(subscription.endsAt);
-    return `${DISCOVERY_TRIAL_DAYS} jours · du ${trialDateFormat.format(start)}${end && Number.isFinite(end.getTime()) ? ` au ${trialDateFormat.format(end)}` : ""}`;
+    return end && Number.isFinite(end.getTime()) ? t("{0} jours · du {1} au {2}", [DISCOVERY_TRIAL_DAYS, trialDateFormat().format(start), trialDateFormat().format(end)]) : t("{0} jours · du {1}", [DISCOVERY_TRIAL_DAYS, trialDateFormat().format(start)]);
   }
   const end = subscription.endsAt && new Date(new Date(subscription.endsAt).getTime() - 1);
-  return `Du ${dateFormat.format(start)}${end && Number.isFinite(end.getTime()) ? ` au ${dateFormat.format(end)} inclus` : " · sans date de fin"}`;
+  return end && Number.isFinite(end.getTime()) ? t("Du {0} au {1} inclus", [dateFormat().format(start), dateFormat().format(end)]) : t("Du {0} · sans date de fin", [dateFormat().format(start)]);
 }

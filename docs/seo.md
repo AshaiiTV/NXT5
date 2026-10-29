@@ -65,3 +65,14 @@ Après publication sur Netlify : vérifier les codes et types MIME de `/`, `/fon
 Dans la propriété Search Console autorisée, soumettre le sitemap, inspecter l’accueil et `/fonctionnalites`, puis relever l’indexation, la canonical retenue par Google, les requêtes, impressions et clics. Choisir les prochains sujets de guides à partir de ces requêtes et des demandes d’aide observées. Les contrôles locaux ne permettent pas de conclure sur ces résultats ni sur les liens entrants.
 
 Les mesures Lighthouse sont des mesures de laboratoire. Les comparer aux données de terrain CrUX/Core Web Vitals lorsqu’elles sont disponibles, notamment l’INP ; elles ne garantissent ni la performance réelle des visites ni le classement dans Google.
+
+## Vérification locale du 24 septembre 2026
+
+- `npm run verify` réussi : TypeScript, 110 suites / 1 930 tests, build et contrôle des artefacts SEO.
+- `npm audit --audit-level=moderate` réussi : aucune vulnérabilité signalée au moment de la vérification.
+- Build de prévisualisation réel vérifié séparément : dix pages `noindex`, en-tête global, sitemap vide, canonical de production conservées.
+- Lecture HTTP sans exécution JavaScript : dix pages complètes, ressources CSS/images accessibles, graphes JSON-LD corrects et carte 1 200 × 630. Le serveur local émule les règles de Netlify ; ce n’est pas un déploiement.
+- Navigateur Chromium sur le build final avec sa CSP : accueil et fonctionnalités à 360, 390, 768, 1024 et 1440 px, sans débordement ni erreur de console. Captures de bureau et mobile inspectées ; FAQ au clavier avec focus visible ; métadonnées public → connexion → retour public sans doublons.
+- Téléchargement du module de l’application volontairement retardé : le contenu de Fonctionnalités, Réseaux et Soutien reste affiché ; `/equipes` présente le chargement partagé puis la connexion anonyme attendue. Les réponses d’authentification et de consentement sont simulées localement ; aucun compte réel n’est utilisé.
+
+Les performances Google, l’indexation réelle et le comportement après déploiement restent à mesurer sur le domaine public.

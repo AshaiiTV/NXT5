@@ -1,0 +1,25 @@
+:where(.nxt5-glass-scene) {
+  position: relative;
+  min-width: 0;
+  pointer-events: none;
+}
+.nxt5-glass-poster,
+.nxt5-glass-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  transition: opacity 550ms ease;
+}
+.nxt5-glass-canvas { opacity: 0; }
+.nxt5-glass-scene.is-ready .nxt5-glass-canvas { opacity: 1; }
+.nxt5-glass-scene.is-ready .nxt5-glass-poster { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .nxt5-glass-poster,
+  .nxt5-glass-canvas { transition: none; }
+}
+html.nxt5-low-gpu .nxt5-glass-poster,
+html.nxt5-low-gpu .nxt5-glass-canvas { transition: none; }

@@ -1,10 +1,12 @@
-import { PNG_THEME as P, pngFitText, pngWrapText, pngLine, pngPanel, pngImageContain, pngImageCover, pngNumber, pngPercent } from '../../src/utils/png-report.js';
+import { PNG_THEME as P, pngBackground, pngFitText, pngWrapText, pngLine, pngPanel, pngImageContain, pngImageCover, pngNumber, pngPercent } from '../../src/utils/png-report.js';
 
 export const PUBLICATION_PNG_WIDTH = 1440;
 const M = 48;
 const FONT = '"NXT5 Export", Arial, sans-serif';
 const font = (size, weight = 500) => `${weight} ${size}px ${FONT}`;
 const sideLabel = (side) => side === 'blue' ? 'Côté bleu' : side === 'red' ? 'Côté rouge' : 'Côté inconnu';
+// Map sides independently from the win/loss palette: red side is not a defeat.
+const sideColor = (side) => side === 'blue' ? '#93c5fd' : side === 'red' ? '#fca5a5' : P.muted;
 const colorFor = (value) => value === null || value === 0 ? P.muted : value < 0 ? P.red : P.green;
 const signed = (value) => value === null || value === undefined ? '—' : `${value > 0 ? '+' : ''}${pngNumber(value)}`;
 const SPELL_NAMES = { 1: 'Purge', 3: 'Fatigue', 4: 'Saut éclair', 6: 'Fantôme', 7: 'Soin', 11: 'Châtiment', 12: 'Téléportation', 13: 'Clarté', 14: 'Embrasement', 21: 'Barrière', 32: 'Marquage' };
@@ -19,7 +21,7 @@ function paragraph(ctx, values, x, y, width, size = 24, color = P.text, weight =
   for (const [index, line] of values.entries()) text(ctx, line, x, y + index * lineHeight, width, size, color, weight);
   return values.length * lineHeight;
 }
-function panel(ctx, x, y, width, height) { pngPanel(ctx, x, y, width, height, { fill: P.panel, stroke: P.border, radius: 20 }); }
+function panel(ctx, x, y, width, height, material = 'glass') { pngPanel(ctx, x, y, width, height, { material, radius: 24 }); }
 function dateLabel(value) {
   const date = value ? new Date(value) : null;
   return date && Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('fr-FR', { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Paris' }).format(date) : 'Date de partie indisponible';
@@ -41,7 +43,7 @@ export async function renderGamePublicationCanvas(snapshot, { createCanvas, load
   const categoryLines = lines(ctx, snapshot.context.categories.map((category) => category.name).join(' · ') || 'Game d’équipe', contentW, 24);
   const metadataLines = lines(ctx, `${dateLabel(snapshot.playedAt)} · ${snapshot.context.gameId || 'Identifiant indisponible'}`, contentW, 22);
   const metricsY = 151 + titleLines.length * 50 + categoryLines.length * 32 + metadataLines.length * 29;
-  const metricsH = 142;
+  const metricsH = 154;
   const objectivesY = metricsY + metricsH + 26;
   const objectiveColumnW = innerW / 2 - 20;
   const sides = [
@@ -71,7 +73,7 @@ export async function renderGamePublicationCanvas(snapshot, { createCanvas, load
     side.headingH = 95 + side.titleLines.length * 36;
     side.height = side.headingH + Math.max(82, side.rows.reduce((sum, row) => sum + row.height, 0)) + 12;
   }
-  const objectivesH = 166 + Math.max(...sides.map((side) => side.objectiveTitle.length)) * 31;
+  const objectivesH = 224 + Math.max(...sides.map((side) => side.objectiveTitle.length)) * 31;
   const rosterY = objectivesY + objectivesH + 26;
   const rosterH = sides.reduce((sum, side) => sum + side.height + 24, 0);
   const coverageLines = lines(ctx, `${snapshot.coverage.timeline.label} · ${snapshot.coverage.timeline.detail}.`, contentW, 20);
@@ -80,16 +82,12 @@ export async function renderGamePublicationCanvas(snapshot, { createCanvas, load
   const height = Math.ceil(footerY + (coverageLines.length + warningLines.length) * 28 + 116);
   canvas.height = height;
   ctx = canvas.getContext('2d');
-  ctx.fillStyle = P.bg;
-  ctx.fillRect(0, 0, width, height);
-  const gradient = ctx.createLinearGradient(0, 0, width, 0);
-  gradient.addColorStop(0, P.cyan); gradient.addColorStop(0.55, P.blue); gradient.addColorStop(1, P.pink);
-  ctx.fillStyle = gradient; ctx.fillRect(0, 0, width, 5);
+  pngBackground(ctx, width, height, { variant: 'game' });
   const [logo, assets] = await Promise.all([loadLogo?.(), loadAssets?.(snapshot)]);
   if (logo) pngImageContain(ctx, logo, width - M - 220, 28, 220, 70);
   // Both adapters supply icons from the shared asset sources, never snapshot URLs.
   const asset = (type, id) => assets?.[type]?.get?.(id);
-  text(ctx, 'GAME', M, 75, contentW - 260, 24, P.cyan, 600);
+  text(ctx, 'RAPPORT DE PARTIE', M, 75, contentW - 260, 24, P.purple, 600);
   let y = 138;
   y += paragraph(ctx, titleLines, M, y, contentW, 40, P.text, 700, 50);
   y += paragraph(ctx, categoryLines, M, y + 2, contentW, 24, P.muted, 500, 32);
@@ -106,28 +104,35 @@ export async function renderGamePublicationCanvas(snapshot, { createCanvas, load
     const x = M + index * contentW / 4 + 24;
     const w = contentW / 4 - 48;
     if (index) pngLine(ctx, x - 24, metricsY + 20, x - 24, metricsY + metricsH - 20);
-    text(ctx, metric.title, x, metricsY + 34, w, 20, P.muted, 600);
-    text(ctx, metric.value, x, metricsY + 86, w, 42, metric.color, 700);
-    text(ctx, metric.detail, x, metricsY + 122, w, 20, P.muted);
+    text(ctx, metric.title, x, metricsY + 35, w, 20, P.muted, 600);
+    text(ctx, metric.value, x, metricsY + 93, w, 44, metric.color, 700);
+    text(ctx, metric.detail, x, metricsY + 129, w, 20, P.muted);
   });
   panel(ctx, M, objectivesY, contentW, objectivesH);
   const objectiveFields = [['Dragons', 'dragons'], ['Grubs', 'grubs'], ['Hérauts', 'heralds'], ['Nashors', 'barons'], ['Tours', 'towers']];
   sides.forEach((side, index) => {
     const x = M + 24 + index * (innerW / 2 + 20);
-    const accent = side.side === 'blue' ? P.blue : side.side === 'red' ? P.red : P.muted;
+    const accent = sideColor(side.side);
+    if (index) pngLine(ctx, width / 2, objectivesY + 24, width / 2, objectivesY + objectivesH - 24);
     paragraph(ctx, side.objectiveTitle, x, objectivesY + 37, objectiveColumnW, 24, P.text, 700, 31);
     const yy = objectivesY + 45 + Math.max(...sides.map((entry) => entry.objectiveTitle.length)) * 31;
     text(ctx, `${sideLabel(side.side)} · ${side.key === 'ALLY' ? 'Notre équipe' : 'Adversaires'}`, x, yy, objectiveColumnW, 20, accent, 600);
     objectiveFields.forEach(([label, key], fieldIndex) => {
       const xx = x + fieldIndex * objectiveColumnW / 5;
-      text(ctx, label, xx, yy + 36, objectiveColumnW / 5 - 8, 20, P.muted);
-      text(ctx, pngNumber(facts[key][side.key === 'ALLY' ? 'ally' : 'enemy']), xx, yy + 82, objectiveColumnW / 5 - 8, 36, P.text, 700);
+      const icon = asset('objectives', key);
+      const center = xx + (objectiveColumnW / 5 - 8) / 2;
+      if (icon) pngImageContain(ctx, icon, center - 24, yy + 17, 48, 48);
+      text(ctx, label, center, yy + 90, objectiveColumnW / 5 - 8, 20, P.muted, 500, 'center');
+      text(ctx, pngNumber(facts[key][side.key === 'ALLY' ? 'ally' : 'enemy']), center, yy + 138, objectiveColumnW / 5 - 8, 38, P.text, 700, 'center');
     });
   });
   let teamY = rosterY;
   sides.forEach((side) => {
-    panel(ctx, M, teamY, contentW, side.height);
-    const accent = side.side === 'blue' ? P.blue : side.side === 'red' ? P.red : P.muted;
+    panel(ctx, M, teamY, contentW, side.height, 'reading');
+    // The header has the glass material; the long score table keeps a quiet reading surface.
+    panel(ctx, M, teamY, contentW, side.headingH - 9);
+    const accent = sideColor(side.side);
+    pngLine(ctx, M + 12, teamY + 24, M + 12, teamY + side.headingH - 30, accent, 3);
     paragraph(ctx, side.titleLines, M + 24, teamY + 40, innerW - 400, 28, P.text, 700, 36);
     text(ctx, `${sideLabel(side.side)} · ${side.key === 'ALLY' ? 'Notre équipe' : 'Adversaires'}`, width - M - 24, teamY + 39, 380, 22, accent, 600, 'right');
     const labelsY = teamY + side.headingH - 24;
@@ -140,7 +145,8 @@ export async function renderGamePublicationCanvas(snapshot, { createCanvas, load
     side.rows.forEach(({ row, name, champion, spells, height: rowH }) => {
       pngLine(ctx, M + 24, rowY - 10, width - M - 24, rowY - 10);
       const portrait = asset('champions', row.champion);
-      if (portrait) pngImageCover(ctx, portrait, M + 24, rowY + 10, 64, 64, 8);
+      pngPanel(ctx, M + 22, rowY + 8, 76, 76, { fill: P.panelAlt, stroke: accent, radius: 12 });
+      if (portrait) pngImageCover(ctx, portrait, M + 26, rowY + 12, 68, 68, 8);
       else text(ctx, row.role || '—', M + 24, rowY + 42, 70, 22, accent, 700);
       paragraph(ctx, name, M + 104, rowY + 27, 254, 22, P.text, 700, 28);
       paragraph(ctx, champion, M + 104, rowY + 29 + name.length * 28, 254, 20, accent, 600, 26);

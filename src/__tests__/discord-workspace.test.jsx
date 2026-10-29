@@ -35,7 +35,8 @@ describe("Discord workspace access and navigation", () => {
     render(<Sidebar active="bot-discord" setActive={setActive} open={false} setOpen={setOpen} collapsed={false} setCollapsed={vi.fn()} roleLabel={(value) => value} />);
     const entry = renderer.root.findByProps({ "aria-label": "Bot Discord" });
     expect(entry.props["aria-current"]).toBe("page");
-    act(() => entry.props.onClick());
+    expect(entry.props.href).toBe("/bot-discord");
+    act(() => entry.props.onClick({ button: 0, currentTarget: { hasAttribute: () => false }, preventDefault: vi.fn() }));
     expect(setActive).toHaveBeenCalledWith("bot-discord");
     expect(setOpen).toHaveBeenCalledWith(false);
   });
@@ -69,7 +70,7 @@ describe("Discord workspace access and navigation", () => {
 
   it("shows a team entry point when there is no team or the selected team has disappeared", () => {
     render(<DiscordWorkspace {...props("captain")} data={{ teams: [] }} />);
-    expect(renderer.root.findByProps({ href: "/equipes" }).props.children).toBe("Ouvrir mes équipes");
+    expect(renderer.root.findByProps({ href: "/mon-equipe" }).props.children).toBe("Ouvrir mes équipes");
     act(() => renderer.update(<DiscordWorkspace {...props("captain")} selectedTeamId="deleted-team" />));
     expect(renderer.root.findAllByProps({ "data-dashboard": true })).toHaveLength(0);
   });

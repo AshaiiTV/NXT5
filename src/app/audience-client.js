@@ -4,19 +4,42 @@ import { canonicalAudiencePath, sanitizeCampaignValue } from "./audience-paths.j
 export const AUDIENCE_CONSENT_VERSION = "2026-09-14";
 export const AUDIENCE_SETTINGS_EVENT = "nxt5:cookie-settings";
 const OPT_OUT = "nxt5_audience_optout";
+const CHOICE_REVISION = "nxt5_audience_choice_revision";
 const GOALS = new Set(["signup", "login", "first_import", "first_review"]);
 
 // No network, browser identifiers or storage are accessed at module evaluation.
-export function createAudienceClient({ request = apiFetch, win = globalThis.window, doc = globalThis.document, now = Date.now, uuid = () => globalThis.crypto.randomUUID() } = {}) {
+export function createAudienceClient({ request = apiFetch, win = globalThis.window, doc = globalThis.document, now = Date.now, uuid = () => globalThis.crypto.randomUUID(), choiceNonce = () => globalThis.crypto.randomUUID() } = {}) {
   let state = { choice: null, version: AUDIENCE_CONSENT_VERSION, expiresAt: null, loaded: false, saving: false, error: "" };
   let excluded = true, view = null, route = null, timer = null, loading = null, generation = 0, active = false;
   let queue = Promise.resolve(), lastActivity = now(), channel = null;
+  let choiceStorageBlocked = false, acceptedRefusalRevision = null;
   const listeners = new Set(), requests = new Set();
   const update = patch => { state = { ...state, ...patch }; listeners.forEach(listener => listener(state)); };
-  const optedOut = () => String(doc?.cookie || "").split(";").some(value => value.trim() === `${OPT_OUT}=1`);
+  function browserCookie(name) {
+    try { return String(doc?.cookie || "").split(";").map(value => value.trim()).find(value => value.startsWith(`${name}=`))?.slice(name.length + 1) || ""; }
+    catch { return ""; }
+  }
+  const refusalChanged = captured => {
+    const current = browserCookie(CHOICE_REVISION);
+    return Boolean(current) && current !== captured;
+  };
+  const optedOut = () => choiceStorageBlocked || browserCookie(OPT_OUT) === "1"
+    || (acceptedRefusalRevision !== null && refusalChanged(acceptedRefusalRevision));
   function localOptOut(value) {
     if (!doc) return;
-    doc.cookie = `${OPT_OUT}=${value ? "1" : ""}; Path=/; Max-Age=${value ? 15552000 : 0}; SameSite=Lax${win?.location?.protocol === "https:" ? "; Secure" : ""}`;
+    try { doc.cookie = `${OPT_OUT}=${value ? "1" : ""}; Path=/; Max-Age=${value ? 15552000 : 0}; SameSite=Lax${win?.location?.protocol === "https:" ? "; Secure" : ""}`; }
+    catch { choiceStorageBlocked = true; }
+  }
+  function reviseRefusal() {
+    // Only refusals write this guard: an older acceptance cannot overwrite it.
+    // A per-choice nonce avoids collisions between concurrent refusal writes.
+    let revision;
+    try {
+      revision = `r.${choiceNonce()}`;
+      doc.cookie = `${CHOICE_REVISION}=${revision}; Path=/; Max-Age=600; SameSite=Lax${win?.location?.protocol === "https:" ? "; Secure" : ""}`;
+    }
+    catch { return ""; }
+    return browserCookie(CHOICE_REVISION) === revision ? revision : "";
   }
   const allowed = () => !excluded && !optedOut() && state.choice === "accepted" && state.version === AUDIENCE_CONSENT_VERSION && Date.parse(state.expiresAt) > now();
   const visible = () => doc?.visibilityState !== "hidden";
@@ -124,12 +147,14 @@ export function createAudienceClient({ request = apiFetch, win = globalThis.wind
     if (loading) return loading;
     if (state.loaded && !force) { start(); return state; }
     const epoch = generation;
+    const refusalBeforeRead = browserCookie(CHOICE_REVISION);
     loading = (async () => {
       try {
         const result = await request("audience-consent", { timeoutMs: 8000 });
         if (epoch !== generation || state.saving) return state;
         const valid = result?.version === AUDIENCE_CONSENT_VERSION && Date.parse(result.expiresAt) > now();
-        const choice = optedOut() ? "rejected" : valid && ["accepted", "rejected"].includes(result.choice) ? result.choice : null;
+        const choice = optedOut() || refusalChanged(refusalBeforeRead) ? "rejected" : valid && ["accepted", "rejected"].includes(result.choice) ? result.choice : null;
+        if (choice === "accepted") acceptedRefusalRevision = refusalBeforeRead;
         update({ choice, version: result?.version || AUDIENCE_CONSENT_VERSION, expiresAt: result?.expiresAt || null, loaded: true, error: "" });
         if (choice === "accepted") start(); else stop();
       } catch {
@@ -143,16 +168,30 @@ export function createAudienceClient({ request = apiFetch, win = globalThis.wind
     if (state.saving) return false;
     stop();
     const epoch = generation;
+    const choiceStartedAt = now();
+    // This shared, short-lived refusal guard also works without BroadcastChannel.
+    // It never enters audience payloads and creates no visitor identifier.
+    const revision = analytics ? browserCookie(CHOICE_REVISION) : reviseRefusal();
+    if (!analytics && !revision) choiceStorageBlocked = true;
+    localOptOut(true);
+    const writable = browserCookie(OPT_OUT) === "1";
+    if (!writable) choiceStorageBlocked = true;
+    update({ saving: true, choice: analytics ? null : "rejected", error: "" });
+    channel?.postMessage({ changed: true, pending: true });
     const superseded = () => {
-      if (epoch === generation) return false;
+      // A suspended tab must not resume an old acceptance after a newer refusal
+      // marker has expired. Completed acceptances outlive this temporary guard.
+      const age = now() - choiceStartedAt;
+      if (epoch === generation && !refusalChanged(revision) && age >= 0 && age < 600000) return false;
+      // Another tab can refuse between our revision read and cookie removal.
+      // Keep that refusal durable after the short-lived revision expires.
+      if (refusalChanged(revision) || age < 0 || age >= 600000) localOptOut(true);
       update({ saving: false, choice: optedOut() ? "rejected" : null, loaded: false });
       initialize(true);
       return true;
     };
-    // A refusal remains effective locally even if the server is offline.
-    if (!analytics) localOptOut(true);
-    update({ saving: true, choice: analytics ? null : "rejected", error: "" });
     try {
+      if (analytics && !writable) throw new Error("Cookie preferences are unavailable.");
       const result = await request("audience-consent", { method: "POST", body: JSON.stringify({ analytics }), timeoutMs: 10000 });
       if (superseded()) return false;
       if (analytics) localOptOut(false);
@@ -161,8 +200,10 @@ export function createAudienceClient({ request = apiFetch, win = globalThis.wind
       if (analytics && (confirmed?.choice !== "accepted" || confirmed.version !== AUDIENCE_CONSENT_VERSION || !(Date.parse(confirmed.expiresAt) > now()))) {
         throw new Error("Les cookies n’ont pas pu être enregistrés. Le suivi reste désactivé.");
       }
+      choiceStorageBlocked = false;
+      if (analytics) acceptedRefusalRevision = revision;
       update({ ...confirmed, choice: analytics ? "accepted" : "rejected", loaded: true, saving: false, error: "" });
-      channel?.postMessage({ changed: true });
+      channel?.postMessage({ changed: true, choice: analytics ? "accepted" : "rejected", revision });
       if (analytics) start();
       return true;
     } catch (error) {
@@ -188,7 +229,12 @@ export function createAudienceClient({ request = apiFetch, win = globalThis.wind
   function connect() {
     if (typeof win?.BroadcastChannel === "function" && !channel) {
       channel = new win.BroadcastChannel("nxt5-cookie-choice");
-      channel.onmessage = () => { stop(); update({ choice: optedOut() ? "rejected" : null, loaded: false }); initialize(true); };
+      channel.onmessage = event => {
+        stop();
+        if (event?.data?.choice === "accepted" && event.data.revision === browserCookie(CHOICE_REVISION) && browserCookie(OPT_OUT) !== "1") acceptedRefusalRevision = event.data.revision;
+        update({ choice: optedOut() ? "rejected" : null, loaded: false });
+        initialize(true);
+      };
     }
     const focus = () => { if (!excluded) initialize(true); };
     win?.addEventListener?.("focus", focus);

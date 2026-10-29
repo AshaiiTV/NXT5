@@ -2,7 +2,7 @@ import { createHmac, generateKeyPairSync, sign } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ sql: vi.fn(), transaction: vi.fn(), auth: vi.fn(), schema: vi.fn(), enqueue: vi.fn(), claim: vi.fn(), receipts: vi.fn(), rate: vi.fn(), preview: vi.fn() }));
-vi.mock('../../netlify/functions/_lib/db', () => ({ sql: Object.assign(mocks.sql, { transaction: mocks.transaction }) }));
+vi.mock('../../netlify/functions/_lib/db', () => ({ sql: Object.assign(mocks.sql, { query: mocks.sql, transaction: mocks.transaction }) }));
 vi.mock('../../netlify/functions/_lib/auth', () => ({ requireAuth: mocks.auth }));
 vi.mock('../../netlify/functions/_lib/discord-queue', () => ({ assertDiscordSchemaReady: mocks.schema, enqueueManualPublication: mocks.enqueue, claimPublicationJob: mocks.claim }));
 vi.mock('../../netlify/functions/_lib/discord-publication-receipt', () => ({ readDiscordPublicationReceipts: mocks.receipts }));

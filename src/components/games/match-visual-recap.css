@@ -1,0 +1,31 @@
+.match-recap-page { container-type: inline-size; }
+.match-recap-header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
+.match-recap-header > .games-match-context { flex:1; min-width:0; padding-bottom:0; border-bottom:0; }
+.match-recap-header > button { flex:0 1 auto; }
+.match-recap-tabs { margin-block:24px; }
+.match-recap-tabs.nxt5-tab-nav > div { display:grid; width:100%; grid-template-columns:repeat(3,minmax(0,1fr)); min-width:0; }
+.match-recap-tabs .nxt5-tab { min-width:0; }
+.match-recap-tabs .nxt5-tab > span > span { white-space:normal; overflow-wrap:anywhere; }
+.match-recap-tab-content { min-width:0; }
+.match-recap-tab-content:focus-visible { outline:2px solid var(--nxt5-accent); outline-offset:4px; }
+.match-recap-grid { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(230px,1fr); align-items:start; gap:18px; margin-top:18px; }
+.match-recap-grid > .nxt5-surface { margin:0; padding:20px; }
+.match-recap-chart .match-gold-chart { margin-top:20px; }
+.match-recap-stat { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.match-recap-stat h4 { color:var(--nxt5-text); font-size:18px; font-weight:650; line-height:1.4; }
+.match-recap-stat p { margin-top:6px; color:var(--nxt5-text-secondary); font-size:var(--nxt5-font-small); line-height:1.5; }
+.match-recap-stat > strong { font-size:clamp(28px,3vw,38px); font-weight:700; line-height:1.2; letter-spacing:-1px; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.match-recap-stat > strong[data-tone="negative"] { color:var(--nxt5-danger); }
+.match-recap-stat > strong[data-tone="positive"] { color:#a7f3d0; }
+.match-recap-stat > strong[data-tone="neutral"] { color:var(--nxt5-text); }
+@container (max-width:760px) {
+  .match-recap-grid { grid-template-columns:minmax(0,1fr); }
+}
+@container (max-width:510px) {
+  .match-recap-header { flex-direction:column; gap:16px; }
+  .match-recap-header > button { width:100%; }
+  .match-recap-tabs .nxt5-tab { flex-direction:column; text-align:center; gap:4px; padding-inline:6px; }
+  .match-recap-tabs { margin-block:20px; }
+  .match-recap-grid > .nxt5-surface { padding:16px; }
+  .match-recap-stat { flex-direction:column; gap:10px; }
+}

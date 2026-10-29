@@ -40,6 +40,31 @@ afterEach(() => {
 });
 
 describe("participant rune display", () => {
+  it("reloads names when the language changes and ignores an older language arriving late", async () => {
+    const { setLanguage } = await import("../i18n/locale.js");
+    let resolveFrench;
+    const english = [{ id: 8200, name: "Sorcery", slots: [{ runes: [{ id: 8214, name: "Summon Aery" }] }] }];
+    const spanish = [{ id: 8200, name: "Brujería", slots: [{ runes: [{ id: 8214, name: "Invocar a Aery" }] }] }];
+    const fetch = vi.fn((url) => decodeURIComponent(url).includes("/fr_FR/") ? new Promise(resolve => { resolveFrench = resolve; }) : Promise.resolve(response(decodeURIComponent(url).includes("/en_US/") ? english : spanish)));
+    vi.stubGlobal("fetch", fetch);
+    const participant = row();
+    participant.match.raw.timeline = { info: { frames: [{ events: [{ type: "SKILL_LEVEL_UP", participantId: 3, skillSlot: 1, timestamp: 0 }] }] } };
+    await act(async () => { renderer = TestRenderer.create(<runes.ParticipantRunes row={participant} />); });
+    await act(async () => setLanguage("en"));
+    expect(content()).toContain("Summon Aery");
+    expect(content()).toContain("Adaptive force");
+    expect(renderer.root.findAllByType("strong").map(entry => entry.children.join(""))).toContain("Q");
+    await act(async () => resolveFrench(response()));
+    expect(content()).toContain("Summon Aery");
+    expect(content()).not.toContain("Invocation d’Aery");
+    await act(async () => setLanguage("es"));
+    expect(content()).toContain("Invocar a Aery");
+    expect(content()).toContain("Fuerza adaptable");
+    await act(async () => setLanguage("fr"));
+    expect(content()).toContain("Invocation d’Aery");
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
   it("shows missing runes and skills without requesting a catalogue or fabricating choices", async () => {
     const fetch = vi.fn();
     vi.stubGlobal("fetch", fetch);

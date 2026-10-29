@@ -1,0 +1,9 @@
+.nxt5-reviews-page .games-review-selected { min-width: 0; }
+.nxt5-reviews-page .games-review-header { padding: 20px; }
+.nxt5-reviews-page .games-report-visual-preview { line-height: 1.5; }
+.games-report-visual-preview > .games-review-notes { margin-top: 16px; }
+.games-report-visual-preview .games-review-notes p { line-height: 1.7; }
+.games-review-composer .games-report-visual-preview { container-type: inline-size; }
+@media (max-width: 640px) {
+  .nxt5-reviews-page .games-review-header { padding: 16px; }
+}

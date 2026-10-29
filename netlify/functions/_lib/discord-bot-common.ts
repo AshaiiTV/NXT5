@@ -17,7 +17,7 @@ export interface BotPublishedButton {
 export const BOT_SCHEMA_VERSIONS = ['discord-bot-identity-20260922-v1', 'discord-bot-workflows-20260922-v1', 'discord-bot-role-access-20260923-v1', 'discord-command-channel-20260924-v1'];
 export async function assertDiscordBotSchemaReady() {
   try {
-    const rows = await sql('select migration_key from app_schema_migrations where migration_key=any($1::text[])', [BOT_SCHEMA_VERSIONS]);
+    const rows = await sql.query('select migration_key from app_schema_migrations where migration_key=any($1::text[])', [BOT_SCHEMA_VERSIONS]);
     if (BOT_SCHEMA_VERSIONS.every(key => rows.some(row => row.migration_key === key))) return;
   } catch { /* Maintenance has one stable public message, with no DB details. */ }
   throw discordError('Les nouvelles commandes sont en préparation. Le guide /nxt help reste disponible.', 503, 'DISCORD_BOT_SCHEMA_REQUIRED');
@@ -47,7 +47,7 @@ export function assertBotStaff(ctx: BotContext, manage = false) {
 export const botTokenHash = (token: string) => createHash('sha256').update(token).digest('hex');
 export function validBotToken(token: unknown): token is string { return typeof token === 'string' && /^[a-f0-9]{48}$/.test(token); }
 export async function botIdentity(discordUserId: string, options: { allowUnverifiedEmail?: boolean } = {}) {
-  const [link] = await sql('select l.*,u.account_name,u.name,u.email,u.email_verified from discord_user_links l join users u on u.id=l.user_id where l.discord_user_id=$1', [discordUserId]);
+  const [link] = await sql.query('select l.*,u.account_name,u.name,u.email,u.email_verified from discord_user_links l join users u on u.id=l.user_id where l.discord_user_id=$1', [discordUserId]);
   if (!link) throw discordError('Lie ton compte avec /nxt lier, puis utilise le salon de commandes de ton équipe.', 403, 'DISCORD_ACCOUNT_REQUIRED');
   if (!options.allowUnverifiedEmail && (!String(link.email || '').trim() || link.email_verified !== true)) {
     throw discordError('Vérifie ton adresse e-mail dans NXT5 avant d’utiliser les commandes de ton équipe.', 403, 'DISCORD_EMAIL_VERIFICATION_REQUIRED');
@@ -60,7 +60,7 @@ export function botMemberRoleIds(memberRoles: unknown): string[] {
 }
 export async function botTeams(discordUserId: string, guildId: string, memberRoles?: unknown) {
   const identity = await botIdentity(discordUserId);
-  const candidates = await sql(`select t.id,t.name,t.tag,t.owner_id,tm.role,coalesce(s.timezone,'Europe/Paris') as timezone,
+  const candidates = await sql.query(`select t.id,t.name,t.tag,t.owner_id,tm.role,coalesce(s.timezone,'Europe/Paris') as timezone,
       a.team_id as role_access_team_id,
       a.guild_id as role_access_guild_id,to_jsonb(a.role_ids) as role_access_ids
     from teams t join discord_connections c on c.team_id=t.id and c.guild_id=$2 and c.status<>'disconnected'
@@ -81,14 +81,14 @@ export async function resolveBotContext(discordUserId: string, guildId: string, 
   expectedTeam?: string, publishedButton?: BotPublishedButton): Promise<BotContext> {
   if (!isDiscordId(channelId)) throw discordError('Utilise un salon de commandes lié à ton équipe.', 403, 'DISCORD_CHANNEL_FORBIDDEN');
   const { identity, teams } = await botTeams(discordUserId, guildId, memberRoles);
-  const linked = await sql("select team_id from discord_connections where guild_id=$1 and command_channel_id=$2 and status<>'disconnected'", [guildId, channelId]);
+  const linked = await sql.query("select team_id from discord_connections where guild_id=$1 and command_channel_id=$2 and status<>'disconnected'", [guildId, channelId]);
   let teamId = linked.length === 1 ? linked[0].team_id : null;
   if (!teamId && linked.length === 0 && publishedButton && expectedTeam && isDiscordId(publishedButton.messageId)) {
     // Reminder and review buttons can remain in a separate publication salon.
     // Accept only the original bot message recorded for this exact team,
     // channel, guild, object and review version. Shared publication routes
     // therefore cannot lend a button to a different team's member.
-    const sent = await sql(`select o.team_id from discord_bot_outbox o
+    const sent = await sql.query(`select o.team_id from discord_bot_outbox o
       join discord_bot_settings s on s.team_id=o.team_id
       where o.guild_id=$1 and o.channel_id=$2 and o.message_id=$3
       and o.team_id=$4 and o.state='sent' and (
@@ -106,7 +106,7 @@ export async function resolveBotContext(discordUserId: string, guildId: string, 
   }
   const role = team.owner_id === identity.user_id ? 'owner' : String(team.role);
   const canManage = ['owner', 'captain'].includes(role);
-  const players = await sql('select id from players where team_id=$1 and user_id=$2', [team.id, identity.user_id]);
+  const players = await sql.query('select id from players where team_id=$1 and user_id=$2', [team.id, identity.user_id]);
   return { teamId: team.id, guildId, discordUserId, userId: identity.user_id, teamName: team.name, role,
     canManage, canStaff: canManage || ['coach','assistant','analyst','manager','board'].includes(role),
     playerIds: players.map(player => player.id), timezone: team.timezone, identityId: identity.id };
@@ -117,7 +117,7 @@ export async function saveBotPending(ctx: BotContext, command: string, options: 
   const identity = await botIdentity(ctx.discordUserId, { allowUnverifiedEmail: command === 'compte delier' && !ctx.teamId });
   if (identity.user_id !== ctx.userId || (ctx.identityId && identity.id !== ctx.identityId)) throw discordError('La liaison du compte a changé. Relance la commande.', 409, 'DISCORD_ACCOUNT_CHANGED');
   const token = randomBytes(24).toString('hex');
-  await sql(`insert into discord_bot_pending(token_hash,link_id,guild_id,team_id,command,options,kind,form,expires_at)
+  await sql.query(`insert into discord_bot_pending(token_hash,link_id,guild_id,team_id,command,options,kind,form,expires_at)
     values($1,$2,$3,$4,$5,$6::jsonb,$7,$8::jsonb,now()+interval '10 minutes')`,
     [botTokenHash(token), identity.id, ctx.guildId, ctx.teamId || null, command, JSON.stringify(options), kind, form ? JSON.stringify(form) : null]);
   return token;
@@ -136,7 +136,7 @@ export async function loadBotPending(token: string, discordUserId: string, guild
   const query = consume
     ? `update discord_bot_pending p set consumed_at=now() from discord_user_links l where p.link_id=l.id and p.token_hash=$1 and l.discord_user_id=$2 and p.guild_id=$3 and p.consumed_at is null and p.expires_at>now() returning p.*`
     : `select p.* from discord_bot_pending p join discord_user_links l on l.id=p.link_id where p.token_hash=$1 and l.discord_user_id=$2 and p.guild_id=$3 and p.consumed_at is null and p.expires_at>now()`;
-  const [pending] = await sql(query, [hash, discordUserId, guildId]);
+  const [pending] = await sql.query(query, [hash, discordUserId, guildId]);
   if (!pending) throw discordError('Ce bouton a expiré ou a déjà été utilisé. Relance la commande.', 409, 'DISCORD_BUTTON_EXPIRED');
   return pending;
 }

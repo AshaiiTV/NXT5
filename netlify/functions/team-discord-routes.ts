@@ -19,7 +19,7 @@ async function handler(request: Request, context: Context) {
     if (request.method === 'GET') {
       // Capture routes and their version in one statement, so an activation
       // recap cannot pair older destinations with a newer connection version.
-      const [snapshot] = await sql(`select c.guild_id,c.config_version,
+      const [snapshot] = await sql.query(`select c.guild_id,c.config_version,
         coalesce(jsonb_agg(to_jsonb(r) order by r.created_at,r.id) filter(where r.id is not null),'[]'::jsonb) as routes
         from discord_connections c left join discord_routes r on r.team_id=c.team_id and r.enabled
         where c.team_id=$1 group by c.guild_id,c.config_version`, [teamId]);
@@ -28,11 +28,11 @@ async function handler(request: Request, context: Context) {
     }
     await assertSubjectRateLimit('discord-routes', user.id, { limit: 10, windowSeconds: 60 });
     if (!Array.isArray(body.routes) || body.routes.length > 10) throw discordError('Configure au maximum dix destinations.');
-    const connections = await sql("select * from discord_connections where team_id=$1", [teamId]);
+    const connections = await sql.query("select * from discord_connections where team_id=$1", [teamId]);
     const connection = connections[0];
     if (!connection?.guild_id || connection.status === 'disconnected') throw discordError('Relie d’abord ton serveur Discord.', 409);
     const live = await getDiscordGuild(connection.guild_id);
-    const categories = await sql("select id from match_categories where team_id=$1", [teamId]);
+    const categories = await sql.query("select id from match_categories where team_id=$1", [teamId]);
     const categoryIds = new Set(categories.map((category) => category.id));
     const seenChannels = new Set<string>();
     const routes = body.routes.map((route: any) => {
@@ -53,13 +53,13 @@ async function handler(request: Request, context: Context) {
     });
     await sql.transaction([
       ...discordTeamWriteQueries(teamId, user.id),
-      sql("select team_id from discord_connections where team_id=$1 for update", [teamId]),
+      sql.query("select team_id from discord_connections where team_id=$1 for update", [teamId]),
       // Guard the server identity checked above against a concurrent relink.
-      sql("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3) then 1 else 0 end", [teamId, connection.guild_id, connection.config_version]),
-      sql("update discord_connections set config_version=config_version+1,updated_at=now() where team_id=$1", [teamId]),
-      sql("update publication_jobs set status='cancelled',last_error_code='CONFIG_CHANGED',updated_at=now() where team_id=$1 and status in ('queued','preparing','retry_wait')", [teamId]),
-      sql("delete from discord_routes where team_id=$1 and not(channel_id=any($2::text[]))", [teamId, routes.map((route) => route.channelId)]),
-      ...routes.map((route) => sql("insert into discord_routes(team_id,guild_id,channel_id,channel_name,category_ids,include_hints,mention_role_id,enabled,automatic,created_by) values($1,$2,$3,$4,$5::jsonb,$6,$7,true,$8,$9) on conflict(team_id,channel_id,publication_kind) do update set guild_id=excluded.guild_id,channel_name=excluded.channel_name,category_ids=excluded.category_ids,include_hints=excluded.include_hints,mention_role_id=excluded.mention_role_id,enabled=true,automatic=excluded.automatic,updated_at=now()", [teamId, connection.guild_id, route.channelId, route.channelName, JSON.stringify(route.categoryIds), route.includeHints, route.mentionRoleId, route.automatic, user.id])),
+      sql.query("select 1/case when exists(select 1 from discord_connections where team_id=$1 and guild_id=$2 and config_version=$3) then 1 else 0 end", [teamId, connection.guild_id, connection.config_version]),
+      sql.query("update discord_connections set config_version=config_version+1,updated_at=now() where team_id=$1", [teamId]),
+      sql.query("update publication_jobs set status='cancelled',last_error_code='CONFIG_CHANGED',updated_at=now() where team_id=$1 and status in ('queued','preparing','retry_wait')", [teamId]),
+      sql.query("delete from discord_routes where team_id=$1 and not(channel_id=any($2::text[]))", [teamId, routes.map((route) => route.channelId)]),
+      ...routes.map((route) => sql.query("insert into discord_routes(team_id,guild_id,channel_id,channel_name,category_ids,include_hints,mention_role_id,enabled,automatic,created_by) values($1,$2,$3,$4,$5::jsonb,$6,$7,true,$8,$9) on conflict(team_id,channel_id,publication_kind) do update set guild_id=excluded.guild_id,channel_name=excluded.channel_name,category_ids=excluded.category_ids,include_hints=excluded.include_hints,mention_role_id=excluded.mention_role_id,enabled=true,automatic=excluded.automatic,updated_at=now()", [teamId, connection.guild_id, route.channelId, route.channelName, JSON.stringify(route.categoryIds), route.includeHints, route.mentionRoleId, route.automatic, user.id])),
       auditDiscord(user.id, teamId, 'discord.routes_updated', { channels: routes.map((route) => route.channelId) }),
     ]);
     return json({ ok: true });

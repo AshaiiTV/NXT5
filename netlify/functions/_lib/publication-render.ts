@@ -2,11 +2,23 @@ import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { renderGamePublicationCanvas } from '../../../shared/publications/game-publication-canvas.js';
-import { loadGamePublicationAssets } from '../../../shared/publications/game-publication-assets.js';
+import { loadGamePublicationAssets, PUBLICATION_OBJECTIVE_ASSETS } from '../../../shared/publications/game-publication-assets.js';
 import { renderGroupPublicationCanvas } from '../../../shared/publications/group-publication-canvas.js';
+import { createGroupPublicationSurface, encodeGroupPublicationSurface } from './group-publication-png';
 
 let registered = false;
 let logoPromise: ReturnType<typeof loadImage> | undefined;
+const objectivePromises = new Map<string, ReturnType<typeof loadImage>>();
+function bundledObjective(url: string) {
+  // Only the fixed shared list is allowed; no path or URL originates in a snapshot.
+  if (!Object.values(PUBLICATION_OBJECTIVE_ASSETS).some(allowed => allowed === url)) return Promise.resolve(null);
+  if (!objectivePromises.has(url)) {
+    const pending = readFile(path.join(process.cwd(), 'public', url.slice(1))).then(bytes => loadImage(bytes));
+    objectivePromises.set(url, pending);
+    pending.catch(() => { objectivePromises.delete(url); });
+  }
+  return objectivePromises.get(url);
+}
 function prepareFont() {
   if (registered) return;
   for (const weight of [400, 500, 600, 700]) {
@@ -56,7 +68,7 @@ export async function renderGamePublicationPng(snapshot, { includeHints = true }
   prepareFont();
   const { canvas, width, height } = await renderGamePublicationCanvas(snapshot, {
     createCanvas, loadLogo: bundledLogo, includeHints,
-    loadAssets: data => loadGamePublicationAssets(data, publicationIcon),
+    loadAssets: data => loadGamePublicationAssets(data, publicationIcon, { loadObjectiveImage: bundledObjective }),
   });
   const bytes = await canvas.encode('png');
   return { bytes, mimeType: 'image/png' as const, width, height, filename: `nxt5-game-${String(snapshot.entityId || 'export').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80)}.png` };
@@ -64,7 +76,7 @@ export async function renderGamePublicationPng(snapshot, { includeHints = true }
 
 export async function renderGroupPublicationPng(snapshot) {
   prepareFont();
-  const { canvas, width, height } = await renderGroupPublicationCanvas(snapshot, { createCanvas, loadLogo: bundledLogo });
-  const bytes = await canvas.encode('png');
+  const { canvas, width, height } = await renderGroupPublicationCanvas(snapshot, { createCanvas: createGroupPublicationSurface, loadLogo: bundledLogo });
+  const bytes = await encodeGroupPublicationSurface(canvas);
   return { bytes, mimeType: 'image/png' as const, width, height, filename: `nxt5-group-${String(snapshot.entityId || 'export').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 80)}.png` };
 }

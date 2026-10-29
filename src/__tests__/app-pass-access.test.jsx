@@ -7,7 +7,7 @@ import { apiFetch } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import { AppLoadingProvider } from "../components/loading/AppLoadingProvider.jsx";
 import { useTeamData } from "../hooks/useTeamData.js";
-import { BeginnerCompass } from "../components/layout/AppChrome.jsx";
+import { BeginnerCompass, Sidebar } from "../components/layout/AppChrome.jsx";
 
 const simulation = vi.hoisted(() => ({ expired: false }));
 vi.mock("../app/pass-access.js", async (importOriginal) => {
@@ -73,6 +73,13 @@ const tools = [
 ];
 
 describe("workspace access before the subscription launch", () => {
+  it("passes the selected non-default team to sidebar links independently of the linked URL", async () => {
+    const teams = [{ id: "first-team" }, { id: "second-team" }, { id: "third-team" }];
+    await open("/games?team=first-team", { snapshot: { teams, selectedTeamId: "second-team" } });
+    expect(renderer.root.findByType(Sidebar).props.currentTeamId).toBe("second-team");
+    expect(window.location.search).toBe("?team=first-team");
+  });
+
   it("keeps the Discord onboarding accessible without a team and omits the generic guide", async () => {
     await open("/bot-discord", { noTeam: true });
     expect(renderer.root.findAllByProps({ "data-page": "discord" })).toHaveLength(1);
@@ -134,11 +141,17 @@ describe("future expiration routing, simulated only in tests", () => {
 
 describe("guide progress and per-team preferences", () => {
   const roster = ["TOP", "JGL", "MID", "ADC", "SUP"].map((role) => ({ id: role, role, team_id: "team" }));
-  it("puts the guide on Home and uses the workspace for the task alone", async () => {
+  it("offers the guide alongside established team activity instead of opening it automatically", async () => {
     const snapshot = { players: roster, matches: Array.from({ length: 5 }, (_, i) => ({ id: `game-${i}`, team_id: "team" })) };
     const storage = { getItem: () => JSON.stringify({ discovered: ["reading"] }) };
     await open("/accueil", { snapshot, storage });
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(0);
+    const resume = renderer.root.findAllByType("button").find((node) => node.children.includes("Reprendre le démarrage"));
+    expect(resume).toBeDefined();
+    act(() => resume.props.onClick());
     expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(1);
+    act(() => renderer.root.findByType(BeginnerCompass).props.onClose());
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(0);
     act(() => renderer.unmount());
     await open("/accueil", { snapshot: { ...snapshot, reports: [{ id: "review", team_id: "team" }] }, storage });
     expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(0);
@@ -177,8 +190,11 @@ describe("guide progress and per-team preferences", () => {
     expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(0);
   });
 
-  it("keeps the personal journey for a new player in an established team", async () => {
+  it("keeps the personal journey available for a new player without hiding established team activity", async () => {
     await open("/accueil", { snapshot: { teams: [{ id: "team", owner_id: "someone-else" }], players: [{ id: "p", team_id: "team", user_id: "user" }], matches: [{ id: "m", team_id: "team" }], reports: [{ id: "r", team_id: "team" }] } });
+    expect(renderer.root.findAllByType(BeginnerCompass)).toHaveLength(0);
+    const resume = renderer.root.findAllByType("button").find((node) => node.children.includes("Reprendre le démarrage"));
+    act(() => resume.props.onClick());
     const guide = renderer.root.findByType(BeginnerCompass);
     expect(guide.props.manager).toBe(false);
     expect(guide.props.steps.every(step => !step.done)).toBe(true);

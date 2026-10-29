@@ -42,6 +42,24 @@ describe("public, read-only product demonstration", () => {
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
+  it("keeps the main fact, its limit and the review action ahead of optional player statistics", () => {
+    const onOpenReview = vi.fn();
+    act(() => { renderer = TestRenderer.create(<DemoMatchSummary match={DEMO_MATCHES[0]} onOpenReview={onOpenReview} />); });
+    const detail = renderer.root.findByType("details");
+    expect(detail.props.open).toBeUndefined();
+    expect(text(detail)).toContain("Écart de vision");
+    expect(text(detail)).toContain("Morts de l’équipe");
+    expect(detail.findByProps({ "aria-label": "Les cinq joueurs fictifs" }).findAllByType("li")).toHaveLength(5);
+    expect(text(detail)).not.toContain("Lire le débrief");
+    expect(text(detail)).not.toContain(DEMO_MATCHES[0].demoReview.question);
+    const content = text(renderer.root);
+    expect(content.indexOf("Écart d’or final")).toBeLessThan(content.indexOf("La question du débrief"));
+    expect(content.indexOf("Un écart final ne suffit pas")).toBeLessThan(content.indexOf("Lire le débrief"));
+    expect(content.indexOf("Lire le débrief")).toBeLessThan(content.indexOf("Statistiques et joueurs"));
+    act(() => button("Lire le débrief").props.onClick());
+    expect(onOpenReview).toHaveBeenCalledOnce();
+  });
+
   it.each(["/demo", "/guides/importer-premier-scrim", "/guides/preparer-debrief"])("makes %s public and available in the initial HTML", (path) => {
     expect(isKnownPath(path)).toBe(true);
     expect(isAppPath(path)).toBe(false);

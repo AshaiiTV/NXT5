@@ -1,4 +1,7 @@
+import { t } from "../../i18n/translate.js";
 import { useEffect, useState } from "react";
+import { getLanguage, getRiotLocale, normalizeLanguage } from "../../i18n/locale.js";
+import { useLanguage } from "../../i18n/useLanguage.js";
 import { Button } from "../ui/Core.jsx";
 import { DDRAGON_FALLBACK_VERSIONS, safeJsonParse } from "../../pages/workspace/workspace-shared.jsx";
 import { assetProxyUrl } from "../../utils/matches.js";
@@ -21,7 +24,11 @@ const SHARD_NAMES = {
   5007: "Accélération de compétence",
   5008: "Force adaptative",
 };
-const SKILL_LABELS = { 1: "A", 2: "Z", 3: "E", 4: "R" };
+const LOCALIZED_SHARD_NAMES = {
+  fr: SHARD_NAMES,
+  en: { 5001: "Health per level", 5002: "Armor", 5003: "Magic resist", 5005: "Attack speed", 5007: "Ability haste", 5008: "Adaptive force" },
+  es: { 5001: "Vida por nivel", 5002: "Armadura", 5003: "Resistencia mágica", 5005: "Velocidad de ataque", 5007: "Velocidad de habilidades", 5008: "Fuerza adaptable" },
+};
 
 function normalizeRuneVersion(value) {
   const parts = String(value ?? "").trim().match(/^(\d{1,2})\.(\d{1,2})(?:\.(\d+))?(?:\.(\d+))?$/);
@@ -65,10 +72,12 @@ function parseRuneCatalog(payload, version) {
   return entries.size ? { version, entries } : null;
 }
 
-function fetchRuneCatalog(version, retry) {
-  if (catalogs.has(version)) return Promise.resolve(catalogs.get(version));
-  if (pendingCatalogs.has(version)) return pendingCatalogs.get(version);
-  const failedAt = failedCatalogs.get(version);
+function fetchRuneCatalog(version, retry, language) {
+  const locale = getRiotLocale(language);
+  const key = `${locale}:${version}`;
+  if (catalogs.has(key)) return Promise.resolve(catalogs.get(key));
+  if (pendingCatalogs.has(key)) return pendingCatalogs.get(key);
+  const failedAt = failedCatalogs.get(key);
   if (!retry && failedAt !== undefined && Date.now() - failedAt < FAILED_CATALOG_COOLDOWN_MS) return Promise.resolve(null);
 
   const request = (async () => {
@@ -79,7 +88,7 @@ function fetchRuneCatalog(version, retry) {
       // must not leave every participant waiting on the shared promise forever.
       const payload = await Promise.race([
         (async () => {
-          const response = await fetch(assetProxyUrl(`https://ddragon.leagueoflegends.com/cdn/${version}/data/fr_FR/runesReforged.json`), { signal: controller.signal });
+          const response = await fetch(assetProxyUrl(`https://ddragon.leagueoflegends.com/cdn/${version}/data/${locale}/runesReforged.json`), { signal: controller.signal });
           return response.ok ? response.json() : null;
         })(),
         new Promise((resolve) => {
@@ -88,8 +97,8 @@ function fetchRuneCatalog(version, retry) {
       ]);
       const catalog = parseRuneCatalog(payload, version);
       if (catalog) {
-        catalogs.set(version, catalog);
-        failedCatalogs.delete(version);
+        catalogs.set(key, catalog);
+        failedCatalogs.delete(key);
         return catalog;
       }
     } catch {
@@ -97,27 +106,30 @@ function fetchRuneCatalog(version, retry) {
     } finally {
       clearTimeout(timeout);
     }
-    failedCatalogs.set(version, Date.now());
+    failedCatalogs.set(key, Date.now());
     return null;
   })();
-  pendingCatalogs.set(version, request);
-  request.finally(() => pendingCatalogs.delete(version));
+  pendingCatalogs.set(key, request);
+  request.finally(() => pendingCatalogs.delete(key));
   return request;
 }
 
-export async function loadRuneCatalog(version = "", { retry = false } = {}) {
+export async function loadRuneCatalog(version = "", { retry = false, language = getLanguage() } = {}) {
   for (const candidate of runeCatalogVersions(version)) {
-    const catalog = await fetchRuneCatalog(candidate, retry);
+    const catalog = await fetchRuneCatalog(candidate, retry, language);
     if (catalog) return catalog;
   }
   return null;
 }
 
-export function runeDisplayName(id, catalog, shard = false) {
-  return catalog?.entries.get(Number(id))?.name || (shard && SHARD_NAMES[Number(id)]) || `${shard ? "Fragment" : "Rune"} ${id}`;
+export function runeDisplayName(id, catalog, shard = false, language = getLanguage()) {
+  const selected = normalizeLanguage(language);
+  const fallback = { fr: ["Fragment", "Rune"], en: ["Shard", "Rune"], es: ["Fragmento", "Runa"] }[selected];
+  return catalog?.entries.get(Number(id))?.name || (shard && LOCALIZED_SHARD_NAMES[selected][Number(id)]) || `${fallback[shard ? 0 : 1]} ${id}`;
 }
 
 function RuneName({ id, catalog, shard = false }) {
+  useLanguage();
   const icon = catalog?.entries.get(Number(id))?.icon;
   const [failedIcon, setFailedIcon] = useState("");
   return <span className="matchup-runes-name">
@@ -132,37 +144,40 @@ function skillTime(timestamp) {
 }
 
 export function ParticipantRunes({ row }) {
+  const language = useLanguage();
+  const skillLabels = language === "fr" ? { 1: "A", 2: "Z", 3: "E", 4: "R" } : { 1: "Q", 2: "W", 3: "E", 4: "R" };
   const page = participantRunes(row);
   const skills = skillOrder(row);
   const hasRunes = Boolean(page.primaryStyle || page.secondaryStyle || page.selections.length || page.shards.length);
   const needsCatalog = Boolean(page.primaryStyle || page.secondaryStyle || page.selections.length);
   const version = participantRuneVersion(row);
   const [retryCount, setRetryCount] = useState(0);
-  const [loaded, setLoaded] = useState({ version: "", catalog: null, status: "idle" });
-  const catalog = loaded.version === version ? loaded.catalog : null;
-  const status = needsCatalog ? (loaded.version === version ? loaded.status : "loading") : "idle";
+  const [loaded, setLoaded] = useState({ version: "", language: "", catalog: null, status: "idle" });
+  const loadedCurrent = loaded.version === version && loaded.language === language;
+  const catalog = loadedCurrent ? loaded.catalog : null;
+  const status = needsCatalog ? (loadedCurrent ? loaded.status : "loading") : "idle";
 
   useEffect(() => {
     if (!needsCatalog) return;
     let active = true;
-    setLoaded({ version, catalog: null, status: "loading" });
-    loadRuneCatalog(version, { retry: retryCount > 0 }).then((next) => {
-      if (active) setLoaded({ version, catalog: next, status: next ? "ready" : "error" });
+    setLoaded({ version, language, catalog: null, status: "loading" });
+    loadRuneCatalog(version, { retry: retryCount > 0, language }).then((next) => {
+      if (active) setLoaded({ version, language, catalog: next, status: next ? "ready" : "error" });
     });
     return () => { active = false; };
-  }, [version, needsCatalog, retryCount]);
+  }, [version, needsCatalog, retryCount, language]);
 
   return <div className="matchup-runes">
-    <h6>Runes</h6>
-    {!hasRunes ? <p className="matchup-runes-meta">Runes non renseignées.</p> : <>
+    <h6>{t("Runes")}</h6>
+    {!hasRunes ? <p className="matchup-runes-meta">{t("Runes non renseignées.")}</p> : <>
       {(page.primaryStyle || page.secondaryStyle) && <dl className="matchup-runes-styles">
-        {[["Arbre principal", page.primaryStyle], ["Arbre secondaire", page.secondaryStyle]].map(([label, id]) => <div key={label}><dt>{label}</dt><dd>{id ? <RuneName id={id} catalog={catalog} /> : "Non renseigné"}</dd></div>)}
+        {[["Arbre principal", page.primaryStyle], ["Arbre secondaire", page.secondaryStyle]].map(([label, id]) => <div key={label}><dt>{t(label)}</dt><dd>{id ? <RuneName id={id} catalog={catalog} /> : t("Non renseigné")}</dd></div>)}
       </dl>}
-      {page.selections.length > 0 && <ul className="matchup-runes-selections" aria-label="Runes sélectionnées">{page.selections.map((id, index) => <li key={`${index}-${id}`}><RuneName id={id} catalog={catalog} /></li>)}</ul>}
-      {page.shards.length > 0 && <div className="matchup-runes-shards"><p>Fragments</p><ul aria-label="Fragments de statistiques">{page.shards.map((id, index) => <li key={`${index}-${id}`}><RuneName id={id} catalog={catalog} shard /></li>)}</ul></div>}
-      {status === "loading" && <p className="matchup-runes-meta" role="status">Chargement des noms des runes…</p>}
-      {status === "error" && <div className="matchup-runes-error"><p className="matchup-runes-meta" role="status">Noms des runes indisponibles pour le moment.</p><Button type="button" variant="ghost" onClick={() => setRetryCount((count) => count + 1)}>Réessayer les noms des runes</Button></div>}
+      {page.selections.length > 0 && <ul className="matchup-runes-selections" aria-label={t("Runes sélectionnées")}>{page.selections.map((id, index) => <li key={`${index}-${id}`}><RuneName id={id} catalog={catalog} /></li>)}</ul>}
+      {page.shards.length > 0 && <div className="matchup-runes-shards"><p>{t("Fragments")}</p><ul aria-label={t("Fragments de statistiques")}>{page.shards.map((id, index) => <li key={`${index}-${id}`}><RuneName id={id} catalog={catalog} shard /></li>)}</ul></div>}
+      {status === "loading" && <p className="matchup-runes-meta" role="status">{t("Chargement des noms des runes…")}</p>}
+      {status === "error" && <div className="matchup-runes-error"><p className="matchup-runes-meta" role="status">{t("Noms des runes indisponibles pour le moment.")}</p><Button type="button" variant="ghost" onClick={() => setRetryCount((count) => count + 1)}>{t("Réessayer les noms des runes")}</Button></div>}
     </>}
-    {skills.length ? <details className="matchup-runes-skills"><summary>Ordre des compétences <span>· {skills.length} améliorations</span></summary><p className="matchup-runes-meta">A / Z / E / R · temps écoulé depuis le début de la partie.</p><ol aria-label="Compétences améliorées dans l’ordre">{skills.map((event, index) => <li key={`${index}-${event.timestamp}-${event.slot}`}><strong>{SKILL_LABELS[event.slot]}</strong><span>{skillTime(event.timestamp)}</span></li>)}</ol></details> : <p className="matchup-runes-meta matchup-runes-skill-empty">Ordre des compétences non renseigné.</p>}
+    {skills.length ? <details className="matchup-runes-skills"><summary>{t("Ordre des compétences ")}<span>· {skills.length}{t(" améliorations")}</span></summary><p className="matchup-runes-meta">{language === "fr" ? t("A / Z / E / R · temps écoulé depuis le début de la partie.") : language === "es" ? t("Q / W / E / R · tiempo transcurrido desde el inicio de la partida.") : t("Q / W / E / R · time elapsed since the start of the game.")}</p><ol aria-label={t("Compétences améliorées dans l’ordre")}>{skills.map((event, index) => <li key={`${index}-${event.timestamp}-${event.slot}`}><strong>{skillLabels[event.slot]}</strong><span>{skillTime(event.timestamp)}</span></li>)}</ol></details> : <p className="matchup-runes-meta matchup-runes-skill-empty">{t("Ordre des compétences non renseigné.")}</p>}
   </div>;
 }

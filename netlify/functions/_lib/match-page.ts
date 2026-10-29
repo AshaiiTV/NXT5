@@ -29,7 +29,11 @@ export async function loadMatchPage(teamId: string, { limit, offset }: MatchPage
           order by created_at desc, id desc
           limit ${limit} offset ${offset}
         )
-        select to_jsonb(matches) - 'raw' as summary,
+        -- Clear the large raw value in the typed row BEFORE converting it to
+        -- JSON. Removing its key after to_jsonb(matches) would still copy the
+        -- entire timeline into an intermediate JSON value for every match.
+        -- populate_record preserves all other columns, including future ones.
+        select to_jsonb(jsonb_populate_record(matches, '{"raw":null}'::jsonb)) - 'raw' as summary,
           jsonb_strip_nulls(jsonb_build_object(
             'nxt5Label', matches.raw -> 'nxt5Label',
             'nxt5', jsonb_build_object(
@@ -82,7 +86,7 @@ export async function loadMatchPage(teamId: string, { limit, offset }: MatchPage
   const matchIds = matches.map(match => match.id);
   const participantSummaries = matchIds.length ? await sql`
       select
-        to_jsonb(match_participants) - 'raw' as summary,
+        to_jsonb(jsonb_populate_record(match_participants, '{"raw":null}'::jsonb)) - 'raw' as summary,
         jsonb_strip_nulls(jsonb_build_object(
           'participantId', coalesce(match_participants.raw -> 'participantId', match_participants.raw #> '{participant,participantId}'),
           'teamId', coalesce(match_participants.raw -> 'teamId', match_participants.raw #> '{participant,teamId}'),

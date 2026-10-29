@@ -107,7 +107,7 @@ function mount(path = "/equipes") {
 }
 
 describe("one continuous application loading screen", () => {
-  it("retains one visual instance through deferred module, session and paginated bootstrap, then exits immediately", async () => {
+  it("retains one visual instance through module, session and first bootstrap page, then opens the workspace", async () => {
     const app = mount();
     const identity = app.loaders[0].props["data-loader"];
     const expectPhase = (phase) => {
@@ -126,13 +126,9 @@ describe("one continuous application loading screen", () => {
     const matches = Array.from({ length: 101 }, (_, index) => ({ id: String(index), team_id: "a" }));
     await app.resolve(1, { ...emptySnapshot, teams: [{ id: "a" }], selectedTeamId: "a", matches: matches.slice(0, 100),
       pagination: { offset: 0, total: 101, nextOffset: 100, hasMore: true } });
-    expectPhase("bootstrap");
-    expect(app.loaders[0].props["data-progress"]).toEqual({ loaded: 100, total: 101 });
-    expect(app.pages).toHaveLength(0);
-    await app.resolve(2, { selectedTeamId: "a", matches: matches.slice(100),
-      pagination: { offset: 100, total: 101, nextOffset: null, hasMore: false } });
     expect(app.loaders).toHaveLength(0);
-    expect(app.pages[0].props["data-games"]).toBe(101);
+    expect(app.pages[0].props["data-games"]).toBe(100);
+    expect(app.requests).toHaveLength(2);
     expect(visual).toEqual({ mounts: 1, unmounts: 1 });
     expect(vi.getTimerCount()).toBe(0);
   });

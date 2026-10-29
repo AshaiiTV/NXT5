@@ -1,8 +1,11 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
+import { getLocale } from "../../i18n/locale.js";
 import { resultSummary, resultLabel, sideResults, comparableSides, sideLabel } from "../../utils/statistics.js";
-import { canonicalChampion as championAssetId, championNameKey as championKey, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
+import { canonicalChampion as championAssetId, championNameKey as championKey, championDisplayName, CHAMPION_ASSET_ALIASES } from "../../../shared/champions.js";
 import { DDRAGON_FALLBACK_VERSIONS, championPortraitUrls, itemIconUrls } from "../../../shared/riot-assets.js";
 import { normalizeRole as normalizeProfileRole } from "../../../shared/roles.js";
-import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngNumeric, pngPercent, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
+import { PNG_THEME, pngAccent, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngHeader, pngFooter, pngLoadImage, pngImageCover, pngMetricStrip, pngDownloadPages, pngNumber, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 import { lazy, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BarChart3, Shield, Swords, Target, Upload, Flame, Gauge, ShieldCheck } from "lucide-react";
 import { matchDisplayName, assetProxyUrl } from "../../utils/matches.js";
@@ -47,40 +50,12 @@ const ALL_CHAMPION_STYLE_TAGS = {
 };
 
 
-function championDisplayName(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  const names = {
-    AurelionSol: "Aurelion Sol",
-    Chogath: "Cho'Gath",
-    DrMundo: "Dr. Mundo",
-    JarvanIV: "Jarvan IV",
-    Kaisa: "Kai'Sa",
-    Khazix: "Kha'Zix",
-    KogMaw: "Kog'Maw",
-    KSante: "K'Sante",
-    Leblanc: "LeBlanc",
-    LeeSin: "Lee Sin",
-    MasterYi: "Master Yi",
-    MissFortune: "Miss Fortune",
-    MonkeyKing: "Wukong",
-    Nunu: "Nunu & Willump",
-    RekSai: "Rek'Sai",
-    TahmKench: "Tahm Kench",
-    TwistedFate: "Twisted Fate",
-    Velkoz: "Vel'Koz",
-    XinZhao: "Xin Zhao",
-  };
-  const asset = championAssetId(raw);
-  return names[asset] || raw.replace(/([a-z])([A-Z])/g, "$1 $2");
-}
-
 function compositionIdentity(picks) {
   const tagCounts = new Map();
   (picks || []).filter(Boolean).forEach((pick) => championStyleTags(pick.champion).forEach((tag) => tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1)));
   const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
   const primary = tags[0]?.[0] || "standard";
-  const text = primary === "engage" ? "Chercher une ouverture claire et jouer autour du premier go." : primary === "scaling" || primary === "front-to-back" ? "Protéger les carries, temporiser et jouer les objectifs préparés." : primary === "poke" || primary === "siege" ? "Gagner l'espace avant objectif, gratter les HP puis forcer." : primary === "side" ? "Créer une pression side lane et punir les rotations adverses." : primary === "pick" ? "Jouer vision noire, isoler une cible et convertir en objectif." : "Importer plus de matchs pour stabiliser l'identité de draft.";
+  const text = primary === "engage" ? "Chercher une ouverture et suivre la première initiation." : primary === "scaling" || primary === "front-to-back" ? "Protéger les carries, temporiser et jouer les objectifs préparés." : primary === "poke" || primary === "siege" ? "Prendre le contrôle de la zone avant l’objectif, affaiblir les adversaires à distance, puis engager." : primary === "side" ? "Mettre la pression sur une voie latérale et profiter des déplacements adverses." : primary === "pick" ? "Profiter des zones sans vision adverse pour isoler une cible, puis prendre un objectif." : "Importer plus de parties pour préciser les habitudes de draft.";
   return { primary, tags, text };
 }
 
@@ -151,12 +126,13 @@ function championPortraitSources(rowOrChampion, explicitChampion = "") {
 }
 
 function ChampionPortrait({ champion, row, alt, className = "h-full w-full object-cover" }) {
+  useLanguage();
   const sources = useMemo(() => championPortraitSources(row || champion, champion || row?.champion), [row, champion]);
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [sources.join("|")]);
   const source = sources[sourceIndex];
-  if (!source) return <div className={cx("flex items-center justify-center bg-gradient-to-br from-cyan-400/18 via-blue-500/10 to-fuchsia-500/18 text-[0.6rem] font-black text-cyan-100", className)}>{String(alt || champion || row?.champion || "?").slice(0, 2).toUpperCase()}</div>;
-  return <img src={source} alt={alt || champion || row?.champion || "Champion"} className={className} loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />;
+  if (!source) return <div className={cx("flex items-center justify-center bg-gradient-to-br from-cyan-400/18 via-blue-500/10 to-fuchsia-500/18 text-[length:var(--nxt5-font-micro)] font-black text-cyan-100", className)}>{String(alt || champion || row?.champion || "?").slice(0, 2).toUpperCase()}</div>;
+  return <img src={source} alt={alt || champion || row?.champion || t("Champion")} className={className} loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />;
 }
 
 function safeExportFilename(value, fallback = "export") {
@@ -174,20 +150,16 @@ function championPoolRowsByTier(rows = []) {
   return grouped;
 }
 
-const POOL_PNG_CHAMPIONS_PER_PAGE = 24;
-
-function championPoolPngPages({ rows = [], rowsByTier } = {}) {
+function championPoolPngData({ rows = [], rowsByTier } = {}) {
   const grouped = rowsByTier || championPoolRowsByTier(rows);
   const entries = CHAMPION_TIERS.flatMap((tier) => (grouped[tier.id] || []).map((row) => ({ row, tier })));
-  return { grouped, entries, pageCount: Math.max(1, Math.ceil(entries.length / POOL_PNG_CHAMPIONS_PER_PAGE)) };
+  return { grouped, entries };
 }
 
-async function renderChampionTierListPng({ player, rows = [], rowsByTier, category = "", matches = [], pageIndex = 0 } = {}) {
+async function renderChampionTierListPng({ player, rows = [], rowsByTier, category = "", matches = [] } = {}) {
   await document.fonts?.ready;
-  const { grouped, entries, pageCount } = championPoolPngPages({ rows, rowsByTier });
-  const currentPage = Math.max(0, Math.min(pageCount - 1, pageIndex));
-  const pageEntries = entries.slice(currentPage * POOL_PNG_CHAMPIONS_PER_PAGE, (currentPage + 1) * POOL_PNG_CHAMPIONS_PER_PAGE);
-  const sections = CHAMPION_TIERS.map((tier) => ({ tier, rows: pageEntries.filter((entry) => entry.tier.id === tier.id).map((entry) => entry.row) })).filter((section) => section.rows.length);
+  const { grouped, entries } = championPoolPngData({ rows, rowsByTier });
+  const sections = CHAMPION_TIERS.map((tier) => ({ tier, rows: grouped[tier.id] || [] })).filter((section) => section.rows.length);
   const W = 1440;
   const margin = 64;
   const width = W - margin * 2;
@@ -197,7 +169,7 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
   const fit = (text, x, y, maxWidth, options = {}) => pngFitText(ctx, text, x, y, maxWidth, { font: "500 22px Inter, Arial, sans-serif", min: 20, ...options });
   const images = new Map();
   const logoPromise = pngLoadImage("/assets/nxt5-wordmark.png");
-  await Promise.all(pageEntries.map(async ({ row }) => {
+  await Promise.all(entries.map(async ({ row }) => {
     const sources = championPortraitSources(row, row?.champion);
     let portrait = null;
     for (const source of sources.slice(0, 2)) {
@@ -206,7 +178,7 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
     }
     images.set(championAssetId(row.champion), portrait);
   }));
-  pngBackground(ctx, W, H);
+  pngBackground(ctx, W, H, { variant: "pool" });
   pngHeader(ctx, {
     width: W,
     title: player?.name || "Joueur",
@@ -214,7 +186,7 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
     subtitle: category ? `${category} · ${pngDateRange(matches)}` : [roleLabel(player?.role), `${entries.length} champions`].filter(Boolean).join(" · "),
     logo: await logoPromise,
   });
-  fit(category ? `${roleLabel(player?.role)} · ${entries.length} champions · ${matches.length} games analysées` : "Classement déclaré par le joueur ou le staff", margin, 222, width, { color: PNG_THEME.muted });
+  fit(category ? `${roleLabel(player?.role)} · ${entries.length} champions` : "Classement déclaré par le joueur ou le staff", margin, 222, width, { color: PNG_THEME.muted });
   pngMetricStrip(ctx, { x: margin, y: 246, width, items: CHAMPION_TIERS.map((tier) => ({
     label: tier.id === "danger" ? "En entraînement" : POOL_TIER_LABELS[tier.id],
     value: pngNumber((grouped[tier.id] || []).length),
@@ -224,48 +196,41 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
   let sectionY = 390;
   sections.forEach(({ tier, rows: tierRows }) => {
     const height = sectionHeight({ rows: tierRows });
-    pngPanel(ctx, margin, sectionY, width, height);
-    fit(tier.id === "danger" ? "En entraînement" : POOL_TIER_LABELS[tier.id], margin + 28, sectionY + 43, 550, { font: "700 27px Inter, Arial, sans-serif", color: pngAccent(tier.tone) });
-    const total = (grouped[tier.id] || []).length;
-    fit(tierRows.length === total ? `${total} champions` : `${tierRows.length}/${total} champions sur cette page`, W - margin - 28, sectionY + 43, 500, { align: "right", color: PNG_THEME.muted });
+    pngPanel(ctx, margin, sectionY, width, height, { material: "reading", accent: tier.tone });
+    pngPanel(ctx, margin + 1, sectionY + 1, width - 2, 62, { stroke: null, radius: 17 });
+    fit(t(tier.id === "danger" ? "En entraînement" : POOL_TIER_LABELS[tier.id]), margin + 28, sectionY + 43, 550, { font: "700 27px Inter, Arial, sans-serif", color: pngAccent(tier.tone) });
+    fit(`${tierRows.length} champions`, W - margin - 28, sectionY + 43, 500, { align: "right", color: PNG_THEME.muted });
     pngLine(ctx, margin + 28, sectionY + 64, W - margin - 28, sectionY + 64);
     const columnWidth = (width - 80) / 2;
     tierRows.forEach((row, index) => {
       const x = margin + 28 + (index % 2) * (columnWidth + 24);
       const y = sectionY + 82 + Math.floor(index / 2) * 92;
       const name = championDisplayName(row.champion) || "Champion inconnu";
+      pngPanel(ctx, x - 10, y - 8, columnWidth + 12, 76, { stroke: "rgba(196,181,253,0.16)", radius: 12 });
+      pngPanel(ctx, x - 3, y - 3, 62, 62, { stroke: pngAccent(tier.tone), radius: 11 });
       if (!pngImageCover(ctx, images.get(championAssetId(row.champion)), x, y, 56, 56, 8)) {
         fit(name.slice(0, 2).toUpperCase(), x + 28, y + 39, 56, { align: "center", color: pngAccent(tier.tone) });
       }
-      const rawGames = pngNumeric(row.games);
-      const games = row.stats_available === true || rawGames > 0 ? rawGames : null;
-      const knownResults = pngNumeric(row.knownResults);
-      const winrate = games > 0 && knownResults !== 0 ? pngNumeric(row.winrate) : null;
-      const statistics = games !== null ? `${pngNumber(games)} game${games > 1 ? "s" : ""}${winrate !== null ? ` · ${pngPercent(winrate)} victoires${knownResults !== null && knownResults < games ? ` (${knownResults}/${games})` : ""}` : ""}` : "";
       const lines = pngWrapText(ctx, name, columnWidth - 80, { font: "600 24px Inter, Arial, sans-serif" });
-      lines.forEach((line, lineIndex) => fit(line, x + 80, y + (statistics ? 23 : 38) + lineIndex * 28, columnWidth - 80, { font: "600 24px Inter, Arial, sans-serif" }));
-      if (statistics) fit(statistics, x + 80, y + 54 + Math.max(0, lines.length - 1) * 28, columnWidth - 80, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+      lines.forEach((line, lineIndex) => fit(line, x + 80, y + 38 + lineIndex * 28, columnWidth - 80, { font: "600 24px Inter, Arial, sans-serif" }));
       if (index + 2 < tierRows.length) pngLine(ctx, x, y + 77, x + columnWidth, y + 77);
     });
     sectionY += height + 24;
   });
-  if (!entries.length) fit("Aucun champion déclaré", margin + 28, 443, width - 56, { color: PNG_THEME.muted });
-  pngFooter(ctx, { width: W, height: H, label: `Pool déclaré · ${currentPage + 1}/${pageCount}` });
+  if (!entries.length) fit(t("Aucun champion déclaré"), margin + 28, 443, width - 56, { color: PNG_THEME.muted });
+  pngFooter(ctx, { width: W, height: H, label: "Pool déclaré" });
   return canvas;
 }
 
 async function exportChampionTierListPng({ player, rows = [], rowsByTier, pushToast, category = "", matches = [] } = {}) {
-  const { entries, pageCount } = championPoolPngPages({ rows, rowsByTier });
+  const { entries } = championPoolPngData({ rows, rowsByTier });
   if (!entries.length) {
     pushToast?.({ type: "yellow", title: "Export vide", text: "Aucun champion déclaré." });
     return;
   }
   try {
-    const canvases = [];
-    for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
-      canvases.push(await renderChampionTierListPng({ player, rows, rowsByTier, category, matches, pageIndex }));
-    }
-    await pngDownloadPages(canvases, `nxt5-pool-${safeExportFilename(player?.name, "joueur")}-${new Date().toISOString().slice(0, 10)}.png`);
+    const canvas = await renderChampionTierListPng({ player, rows, rowsByTier, category, matches });
+    await pngDownloadPages([canvas], `nxt5-pool-${safeExportFilename(player?.name, "joueur")}-${new Date().toISOString().slice(0, 10)}.png`);
     pushToast?.({ type: "cyan", title: "Pool exporté", text: `${entries.length} champions · une image PNG.` });
   } catch (err) {
     pushToast?.({ type: "red", title: "Export impossible", text: err?.message || "Le navigateur n'a pas pu générer le PNG." });
@@ -312,6 +277,7 @@ function championSplashFocus(champion, focus = "default") {
 }
 
 function ChampionBackdrop({ champion, focus = "default" }) {
+  useLanguage();
   const url = championSplashUrl(champion);
   if (!url) return null;
   const focused = focus === "face";
@@ -411,11 +377,11 @@ function buildStaffAlerts(matches = [], players = []) {
   const worseSide = sideGroups.slice().sort((a, b) => a.wr - b.wr)[0];
   return [
     unknown > 0 && { title: "Résultats indisponibles", text: resultLabel(results), action: "Les taux de victoire utilisent uniquement les résultats connus.", toneName: "slate", icon: AlertTriangle },
-    matches.length < 3 && { title: "Pas assez de volume", text: `${matches.length} game${matches.length > 1 ? "s" : ""} importée${matches.length > 1 ? "s" : ""}. Lire les signaux comme des hypothèses.`, action: "Importer le prochain bloc avant de conclure.", toneName: "slate", icon: Upload },
+    matches.length < 3 && { title: "Trop peu de parties", text: `${matches.length} game${matches.length > 1 ? "s" : ""} importée${matches.length > 1 ? "s" : ""}. Lire les signaux comme des hypothèses.`, action: "Importer les parties de la prochaine session avant de conclure.", toneName: "slate", icon: Upload },
     losses >= wins && known >= 3 && { title: "Bloc à stabiliser", text: `${resultLabel(results)} sur le contexte actif.`, action: "Choisir une seule priorité équipe avant la prochaine session.", toneName: "orange", icon: AlertTriangle },
-    exposed?.games >= 2 && exposed.avgDeaths >= 4 && { title: "Exposition joueur", text: `${exposed.name} est à ${exposed.avgDeaths.toFixed(1)} morts/game.`, action: `Ouvrir ${matchDisplayName(exposed.rows.slice().sort((a, b) => Number(b.deaths || 0) - Number(a.deaths || 0))[0]?.match, "la game source")} et classer les morts.`, toneName: "red", icon: Shield },
-    disconnected?.games >= 2 && disconnected.avgKp < 52 && { title: "Connexion fights", text: `${disconnected.name} descend à ${Math.round(disconnected.avgKp)}% KP moyen.`, action: "Revoir le move 30s avant les deux premiers objectifs.", toneName: "yellow", icon: Swords },
-    weakRole?.games >= 2 && { title: "Rôle à review", text: `${roleLabel(weakRole.role)} ressort comme le rôle le plus fragile du bloc.`, action: weakRole.sample ? `Source : ${matchDisplayName(weakRole.sample.match, "game")} sur ${championDisplayName(weakRole.sample.champion)}.` : "Comparer lane, morts et KP.", toneName: "purple", icon: Target },
+    exposed?.games >= 2 && exposed.avgDeaths >= 4 && { title: "Morts du joueur", text: `${exposed.name} est à ${exposed.avgDeaths.toFixed(1)} morts/game.`, action: `Ouvrir ${matchDisplayName(exposed.rows.slice().sort((a, b) => Number(b.deaths || 0) - Number(a.deaths || 0))[0]?.match, "la game source")} et classer les morts.`, toneName: "red", icon: Shield },
+    disconnected?.games >= 2 && disconnected.avgKp < 52 && { title: "Participation aux combats", text: `${disconnected.name} descend à ${Math.round(disconnected.avgKp)}% KP moyen.`, action: "Revoir les déplacements dans les 30 s avant les deux premiers objectifs.", toneName: "yellow", icon: Swords },
+    weakRole?.games >= 2 && { title: "Rôle à revoir", text: `${roleLabel(weakRole.role)} ressort comme le rôle le plus fragile du bloc.`, action: weakRole.sample ? `Source : ${matchDisplayName(weakRole.sample.match, "game")} sur ${championDisplayName(weakRole.sample.champion)}.` : "Comparer la lane, les morts et la participation aux éliminations.", toneName: "purple", icon: Target },
     sideGap >= 20 && worseSide?.games >= 2 && { title: "Côté à travailler", text: `${sideLabel(worseSide.side)} : ${Math.round(worseSide.wr)}% de victoires sur ${worseSide.known} résultats connus.`, action: "Préparer un plan draft et une condition de victoire spécifique à ce côté.", toneName: "cyan", icon: BarChart3 },
   ].filter(Boolean).slice(0, 6);
 }
@@ -459,8 +425,8 @@ function matchImportDateLabel(match) {
   if (!value) return "Date d'import inconnue";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value).slice(0, 16);
-  const day = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(date);
-  const time = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(date);
+  const day = new Intl.DateTimeFormat(getLocale(), { day: "2-digit", month: "2-digit", year: "2-digit" }).format(date);
+  const time = new Intl.DateTimeFormat(getLocale(), { hour: "2-digit", minute: "2-digit" }).format(date);
   return `${day} à ${time}`;
 }
 
@@ -469,9 +435,10 @@ function matchCategoryTone(category) {
 }
 
 function CategoryFilter({ categories, selectedCategoryId, onSelect, label = "Catégories" }) {
+  useLanguage();
   return <div className="flex min-w-0 flex-wrap items-center gap-2">
-    <span className="text-[0.66rem] font-black uppercase tracking-[0.18em] text-slate-300">{label}</span>
-    <button type="button" onClick={() => onSelect("")} className={cx("rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", !selectedCategoryId ? "border-cyan-200/45 bg-cyan-400/14 text-cyan-50" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>Toutes</button>
+    <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-300">{t(label)}</span>
+    <button type="button" onClick={() => onSelect("")} className={cx("rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", !selectedCategoryId ? "border-cyan-200/45 bg-cyan-400/14 text-cyan-50" : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{t("Toutes")}</button>
     {(categories || []).map((category) => <button key={category.id} type="button" onClick={() => onSelect(String(category.id) === String(selectedCategoryId) ? "" : category.id)} className={cx("rounded-full border px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] transition", String(category.id) === String(selectedCategoryId) ? tone(matchCategoryTone(category)) : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{category.name}</button>)}
   </div>;
 }
@@ -724,16 +691,17 @@ function participantTeamMap(match) {
 }
 
 function HudIcon({ src, sources, label, fallback, emptyText = "VIDE", toneName = "cyan", className = "" }) {
+  useLanguage();
   const sourceList = useMemo(() => [...new Set([...(Array.isArray(sources) ? sources : []), src].filter(Boolean))], [src, sources]);
   const [sourceIndex, setSourceIndex] = useState(0);
   useEffect(() => setSourceIndex(0), [sourceList.join("|")]);
   const source = sourceList[sourceIndex];
   const active = Boolean(source);
-  return <div title={label} className={cx("relative aspect-square min-h-0 min-w-0 overflow-hidden rounded-xl border bg-black/35", active ? toneName === "pink" ? "border-fuchsia-200/25 shadow-[0_0_14px_rgba(217,70,239,.10)]" : "border-cyan-200/20 shadow-[0_0_14px_rgba(34,211,238,.10)]" : "border-white/8 opacity-45", className)}>
+  return <div title={t(label)} className={cx("relative aspect-square min-h-0 min-w-0 overflow-hidden rounded-xl border bg-black/35", active ? toneName === "pink" ? "border-fuchsia-200/25 shadow-[0_0_14px_rgba(217,70,239,.10)]" : "border-cyan-200/20 shadow-[0_0_14px_rgba(34,211,238,.10)]" : "border-white/8 opacity-45", className)}>
     {active ? <>
-      <img src={source} alt={label} className="h-full w-full object-cover" loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />
-      <span className="hidden h-full w-full items-center justify-center px-1 text-center text-[0.54rem] font-black text-slate-300">{fallback}</span>
-    </> : <span className="flex h-full w-full items-center justify-center px-1 text-center text-[0.54rem] font-black text-slate-300">{emptyText}</span>}
+      <img src={source} alt={t(label)} className="h-full w-full object-cover" loading="lazy" decoding="async" onError={() => setSourceIndex((index) => index + 1)} />
+      <span className="hidden h-full w-full items-center justify-center px-1 text-center text-[length:var(--nxt5-font-micro)] font-black text-slate-300">{fallback}</span>
+    </> : <span className="flex h-full w-full items-center justify-center px-1 text-center text-[length:var(--nxt5-font-micro)] font-black text-slate-300">{emptyText}</span>}
   </div>;
 }
 
@@ -795,6 +763,7 @@ function championTierColumnGlow(tier) {
 }
 
 function ChampionTierMark({ tier, active = false, className = "" }) {
+  useLanguage();
   const Icon = tier?.id === "lock" ? ShieldCheck : tier?.id === "pocket" ? Flame : tier?.id === "danger" ? AlertTriangle : Gauge;
   return <span className={cx("relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl border transition", championTierFrame(tier, active), className)}>
     <Icon className="relative z-10 h-5 w-5 drop-shadow-[0_0_10px_rgba(255,255,255,.20)]" />
@@ -828,6 +797,6 @@ function championMatchesLane(champion, lane) {
   return (ALL_CHAMPION_LANE_POOLS[lane] || []).includes(id);
 }
 
-export { renderChampionTierListPng, championPoolPngPages, ROSTER_ROLE_ORDER, COMP_ROLES, canStaffManage, STAFF_ACCESS_ROLE_IDS, TEAM_ACCESS_ROLES, isGameplayRole, isStaffRole, STAFF_ROLES, lazyNamed, loadNextPhase, championDisplayName, championAssetId, CHAMPION_ASSET_ALIASES, championKey, sortPlayersByRole, ROLE_ORDER, teamMatchRows, normalizeProfileRole, buildStaffAlerts, playerDisplayFromRow, parsePercent, formatCountdown, ChampionPortrait, championPortraitSources, DDRAGON_FALLBACK_VERSIONS, playerIntegratedRows, normalizeProfileKey, matchCategoryTone, matchImportDateLabel, championMatchesLane, ALL_CHAMPION_LANE_POOLS, CHAMPION_LANE_POOLS, ADDITIONAL_CHAMPION_LANE_POOLS, formatPoints, formatGoldDiff, objectiveTeamId, teamRows, sumRows, statValue, storedTimelineFrames, compactTimelineEvents, diffTone, matchTimelineFrames, participantTeamMap, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, compositionIdentity, championStyleTags, ALL_CHAMPION_STYLE_TAGS, CHAMPION_STYLE_TAGS, ADDITIONAL_CHAMPION_STYLE_TAGS, championStyleTone, tagLabel, objectiveTeamSummary, objectiveTeamAnyValue, objectiveTeamValue, ChampionBackdrop, championSplashUrl, championSplashFocus, itemIconSources, summonerSpellIconSources, SUMMONER_SPELLS, itemSlots, participantNumber, itemIndexFromKey, participantSources, participantStoredRaw, safeJsonParse, participantRaw, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, CategoryFilter, championPoolRowsByTier, championPoolStatus, CHAMPION_TIERS, exportChampionTierListPng, safeExportFilename, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championTierFrame, championPoolStatusLabel, championPoolStatusTone };
+export { renderChampionTierListPng, ROSTER_ROLE_ORDER, COMP_ROLES, canStaffManage, STAFF_ACCESS_ROLE_IDS, TEAM_ACCESS_ROLES, isGameplayRole, isStaffRole, STAFF_ROLES, lazyNamed, loadNextPhase, championDisplayName, championAssetId, CHAMPION_ASSET_ALIASES, championKey, sortPlayersByRole, ROLE_ORDER, teamMatchRows, normalizeProfileRole, buildStaffAlerts, playerDisplayFromRow, parsePercent, formatCountdown, ChampionPortrait, championPortraitSources, DDRAGON_FALLBACK_VERSIONS, playerIntegratedRows, normalizeProfileKey, matchCategoryTone, matchImportDateLabel, championMatchesLane, ALL_CHAMPION_LANE_POOLS, CHAMPION_LANE_POOLS, ADDITIONAL_CHAMPION_LANE_POOLS, formatPoints, formatGoldDiff, objectiveTeamId, teamRows, sumRows, statValue, storedTimelineFrames, compactTimelineEvents, diffTone, matchTimelineFrames, participantTeamMap, rowParticipantId, objectiveEvents, objectiveEventLabel, objectiveEventType, compositionIdentity, championStyleTags, ALL_CHAMPION_STYLE_TAGS, CHAMPION_STYLE_TAGS, ADDITIONAL_CHAMPION_STYLE_TAGS, championStyleTone, tagLabel, objectiveTeamSummary, objectiveTeamAnyValue, objectiveTeamValue, ChampionBackdrop, championSplashUrl, championSplashFocus, itemIconSources, summonerSpellIconSources, SUMMONER_SPELLS, itemSlots, participantNumber, itemIndexFromKey, participantSources, participantStoredRaw, safeJsonParse, participantRaw, trinketItemId, summonerSpellIds, creepScore, HudIcon, shareOfTeam, CategoryFilter, championPoolRowsByTier, championPoolStatus, CHAMPION_TIERS, exportChampionTierListPng, safeExportFilename, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championTierFrame, championPoolStatusLabel, championPoolStatusTone };
 
 export const POOL_TIER_LABELS = { lock: "Confiance", pocket: "Situationnel", work: "En validation", danger: "En entraînement" };

@@ -1,4 +1,5 @@
 import { escapeHtml } from './text';
+import { NXT5_CONTACT_EMAIL } from '../../../shared/legal.js';
 
 function env(name) {
   return (globalThis as any).Netlify?.env?.get?.(name) || process.env[name] || '';
@@ -19,6 +20,7 @@ function postResendEmail({ to, subject, text, html }, signal?: AbortSignal) {
     },
     body: JSON.stringify({
       from: env('RESET_EMAIL_FROM'),
+      reply_to: NXT5_CONTACT_EMAIL,
       to,
       subject,
       text,
@@ -167,7 +169,7 @@ export async function sendPasswordResetEmail({ to, name, resetUrl }) {
 
 export async function sendInactivityReminderEmail({ to, name }) {
   const siteUrl = String(env('PUBLIC_SITE_URL') || 'https://nxt5.org').replace(/\/+$/, '');
-  const workspaceUrl = `${siteUrl}/equipes`;
+  const workspaceUrl = `${siteUrl}/mon-equipe`;
   const settingsUrl = `${siteUrl}/parametres`;
   const safeName = String(name || 'joueur').trim().slice(0, 80) || 'joueur';
   const htmlName = escapeHtml(safeName);

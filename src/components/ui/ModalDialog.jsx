@@ -1,3 +1,5 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
 import React, { useEffect, useRef } from "react";
 import "./modal-dialog.css";
 import { registerDialog } from "./dialog-registry.js";
@@ -7,13 +9,14 @@ let previousOverflow = "";
 
 /** Native modality supplies focus containment and makes the rest of the page inert. */
 export function ModalDialog({ children, onClose, busy = false, dirty = false, dismissable = true, handleHistory = false, returnFocusRef, className = "", ...props }) {
+  useLanguage();
   const ref = useRef(null);
   const latest = useRef(null);
   latest.current = { onClose, busy, dirty, dismissable };
   function requestClose(reason = "dismiss") {
     const current = latest.current;
     if (current.busy || !current.dismissable) return false;
-    if (current.dirty && !window.confirm("Fermer cette fenêtre et abandonner les modifications non enregistrées ?")) return false;
+    if (current.dirty && !window.confirm(t("Fermer cette fenêtre et abandonner les modifications non enregistrées ?"))) return false;
     current.onClose?.({ reason });
     return true;
   }

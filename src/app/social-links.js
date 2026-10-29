@@ -1,19 +1,25 @@
 export const DISCORD_INVITE_URL = "https://discord.gg/esPcQAeNWu";
 
-const YOUTUBE_CHANNEL_URL = "https://www.youtube.com/channel/UC_C-OnOepIO05qfqlcUrMRA";
+const DEFAULT_SOCIAL_URLS = {
+  discord: DISCORD_INVITE_URL,
+  instagram: "https://www.instagram.com/nxt5org/",
+  youtube: "https://www.youtube.com/channel/UC_C-OnOepIO05qfqlcUrMRA",
+  linkedin: "https://www.linkedin.com/in/nxt5org/",
+};
 
 const NETWORKS = [
   { id: "discord", label: "Discord", hosts: ["discord.gg", "discord.com"], description: "Retrouve la communauté, partage tes retours et échange avec le staff." },
-  { id: "instagram", label: "Instagram", hosts: ["instagram.com", "www.instagram.com"], description: "Les temps forts et les coulisses de NXT5." },
-  { id: "youtube", label: "YouTube", hosts: ["youtube.com", "www.youtube.com"], description: "La chaîne officielle @NXT5-ORG. Retrouve NXT5 sur YouTube." },
+  { id: "instagram", label: "Instagram", hosts: ["instagram.com", "www.instagram.com"], description: "Conseils et actualités NXT5 en images et en vidéos courtes." },
+  { id: "youtube", label: "YouTube", hosts: ["youtube.com", "www.youtube.com"], description: "La chaîne YouTube officielle @NXT5-ORG." },
+  { id: "linkedin", label: "LinkedIn", hosts: ["linkedin.com", "www.linkedin.com"], description: "Les actualités NXT5 et les échanges avec les acteurs de l’esport." },
   { id: "twitch", label: "Twitch", hosts: ["twitch.tv", "www.twitch.tv"], description: "Retrouve NXT5 en direct." },
   { id: "tiktok", label: "TikTok", hosts: ["tiktok.com", "www.tiktok.com"], description: "Les moments NXT5 en format court." },
-  { id: "x", label: "X", hosts: ["x.com", "www.x.com", "twitter.com", "www.twitter.com"], description: "Les nouvelles de NXT5 au fil des mises à jour." },
+  { id: "x", label: "X", hosts: ["x.com", "www.x.com", "twitter.com", "www.twitter.com"], description: "Les mises à jour de NXT5." },
 ];
 
 export function getSocialLinks(env = import.meta.env || {}) {
   return NETWORKS.flatMap(({ hosts, ...network }) => {
-    const value = env[`VITE_SOCIAL_${network.id.toUpperCase()}_URL`] || (network.id === "discord" ? DISCORD_INVITE_URL : network.id === "youtube" ? YOUTUBE_CHANNEL_URL : "");
+    const value = env[`VITE_SOCIAL_${network.id.toUpperCase()}_URL`] || DEFAULT_SOCIAL_URLS[network.id];
     if (!value) return [];
     try {
       const url = new URL(value);

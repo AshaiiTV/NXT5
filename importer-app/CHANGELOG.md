@@ -1,3 +1,18 @@
+# NXT5 Importer 0.3.8
+
+- Correction du refus IPC au démarrage lorsque le chemin du launcher contient un tilde (`~`, notamment dans un chemin court Windows) ou des crochets.
+- Chargement des chemins contenant un pourcentage littéral sans les interpréter comme un autre dossier ; les appels IPC restent réservés au document principal du launcher.
+
+# NXT5 Importer 0.3.7
+
+- Verre violet, reflets cyan/lavande et fond bleu nuit sur les écrans Exporter, Historique et Paramètres.
+- Emblème de la colonne gauche décliné en verre violet, avec reflets cyan/fuchsia et fond transparent ; nouvelle hiérarchie de texte et bouton d’export plus lisible.
+- Contrôles et aides agrandis, états d’erreur et de progression conservés, prise en compte du mouvement réduit et des petites fenêtres.
+
+# NXT5 Importer 0.3.6
+
+- Le logo central et l’emblème d’en-tête utilisent le détourage transparent officiel : suppression des résidus de fond sombre, sans modification du dessin ni des couleurs.
+
 # NXT5 Importer 0.3.5
 
 - Electron 44.4.5 (correctifs de sécurité et de stabilité d’Electron, sans changement de fonctionnement).

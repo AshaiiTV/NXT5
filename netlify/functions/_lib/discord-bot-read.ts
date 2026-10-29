@@ -43,7 +43,7 @@ function link(ctx: BotContext, path: string, params: Row = {}) {
   for (const [key, value] of Object.entries(params)) if (value != null && value !== '') url.searchParams.set(key, String(value));
   return url.toString();
 }
-function message(ctx: BotContext, title: string, description: string, fields: Field[] = [], path = '/equipes', params: Row = {}) {
+function message(ctx: BotContext, title: string, description: string, fields: Field[] = [], path = '/mon-equipe', params: Row = {}) {
   const trimmed = description.slice(0, 3000);
   const kept: Field[] = [];
   let shortened = trimmed.length !== description.length || fields.length > 25;
@@ -89,7 +89,7 @@ async function resolveNamed(ctx: BotContext, table: 'players' | 'match_categorie
   const name = String(value ?? '').trim();
   if (!name || name.length > 160) throw discordError(`${label} requis ou invalide.`);
   if (name.includes('-') && /^[a-f0-9-]+$/i.test(name)) uuid(name, label);
-  const rows = await sql(`select * from ${table} where team_id=$1 and (id::text=$2 or lower(name)=lower($2)) order by id limit 2`, [ctx.teamId, name]);
+  const rows = await sql.query(`select * from ${table} where team_id=$1 and (id::text=$2 or lower(name)=lower($2)) order by id limit 2`, [ctx.teamId, name]);
   if (!rows.length) throw discordError(`${label} introuvable dans cette équipe.`, 404);
   if (rows.length > 1) throw discordError(`Plusieurs ${label.toLowerCase()}s portent ce nom : utilise leur identifiant NXT5.`);
   return rows[0];
@@ -123,7 +123,7 @@ async function loadMatches(ctx: BotContext, options: Row, selected: Period | nul
   if (options.playerId) clauses.push(`exists(select 1 from match_participants p where p.match_id=m.id and p.player_id=${add(options.playerId)}::uuid and p.team_key='ALLY')`);
   const interval = range || selected;
   if (interval) clauses.push(`${MATCH_TIME} >= ${add(interval.from.toISOString())}::timestamptz and ${MATCH_TIME} <= ${add(interval.to.toISOString())}::timestamptz`);
-  const rows = await sql(`select ${MATCH_COLUMNS} from matches m where ${clauses.join(' and ')} order by ${MATCH_TIME} desc,m.id desc limit 1001`, values);
+  const rows = await sql.query(`select ${MATCH_COLUMNS} from matches m where ${clauses.join(' and ')} order by ${MATCH_TIME} desc,m.id desc limit 1001`, values);
   if (rows.length > 1000) throw discordError('Plus de 1 000 games correspondent à ce filtre. Réduis la période ou choisis un groupe pour calculer un bilan complet.');
   return { rows, scope };
 }
@@ -158,7 +158,7 @@ function dateCoverage(matches: Row[]) {
 }
 async function singleMatch(ctx: BotContext, value: unknown) {
   const id = uuid(value, 'Game');
-  const rows = await sql(`select m.*,${MATCH_TIME} as played_at,${MATCH_DATE_SOURCE} as date_source,
+  const rows = await sql.query(`select m.*,${MATCH_TIME} as played_at,${MATCH_DATE_SOURCE} as date_source,
     coalesce((select jsonb_agg(to_jsonb(p) order by p.team_key,p.role,p.id) from match_participants p where p.match_id=m.id),'[]'::jsonb) as participants
     from matches m where m.team_id=$1 and m.id=$2 limit 1`, [ctx.teamId, id]);
   if (!rows[0]) throw discordError('Game introuvable dans cette équipe.', 404);
@@ -174,7 +174,7 @@ async function gameCard(ctx: BotContext, match: Row) {
   ];
   const payload = message(ctx, 'Game · ' + text(match.opponent || match.game_id, 120), text(ctx.teamName, 100), fields, '/statistiques', { match: match.id });
   // Reuse the existing attachment, without rendering or publishing another message.
-  const published = await sql(`select guild_id,channel_id,message_id from discord_publications where team_id=$1 and entity_id=$2
+  const published = await sql.query(`select guild_id,channel_id,message_id from discord_publications where team_id=$1 and entity_id=$2
     and guild_id=$3 and state='published' and message_id is not null and published_revision=$4 and source_deleted_at is null
     order by updated_at desc limit 1`, [ctx.teamId, match.id, ctx.guildId, match.publication_revision || 0]);
   const publication = published[0];
@@ -195,7 +195,7 @@ async function gameCard(ctx: BotContext, match: Row) {
 
 async function games(ctx: BotContext, command: string, options: Row) {
   if (command === 'derniere') {
-    const latest = await sql(`select m.id from matches m where m.team_id=$1 order by ${MATCH_TIME} desc,m.id desc limit 1`, [ctx.teamId]);
+    const latest = await sql.query(`select m.id from matches m where m.team_id=$1 order by ${MATCH_TIME} desc,m.id desc limit 1`, [ctx.teamId]);
     return latest[0] ? gameCard(ctx, await singleMatch(ctx, latest[0].id)) : message(ctx, 'Dernière game', 'Aucune game importée pour cette équipe.', [], '/games');
   }
   if (command === 'game voir') return gameCard(ctx, await singleMatch(ctx, options.game));
@@ -216,7 +216,7 @@ async function games(ctx: BotContext, command: string, options: Row) {
     return result;
   }
   if (command === 'bilan' && options.periode === 'session' && !options.groupe) {
-    const groups = await sql('select id,name from match_archives where team_id=$1 order by created_at desc limit 25', [ctx.teamId]);
+    const groups = await sql.query('select id,name from match_archives where team_id=$1 order by created_at desc limit 25', [ctx.teamId]);
     const result = message(ctx, 'Choisis un groupe de games', groups.length ? 'Sélectionne la session dans les groupes récents, ou utilise son nom exact dans l’option groupe.' : 'Aucun groupe enregistré. Choisis semaine ou mois dans /nxt bilan.',
       groups.slice(0, 8).map(g => ({ name: text(g.name, 100), value: `ID : \`${g.id}\`` })), '/games');
     if (groups.length) result.components.unshift({ type: 1, components: [{ type: 3, custom_id: `nxt:read:groupe:${ctx.teamId}`, placeholder: 'Choisir un groupe',
@@ -279,7 +279,7 @@ async function players(ctx: BotContext, command: string, options: Row) {
   let fields = playerFields(summary);
   if (command === 'joueur profil') {
     const [pool, activeGoals] = await Promise.all([
-      sql('select champion,status from champion_pool where team_id=$1 and player_id=$2 order by champion limit 10', [ctx.teamId, p.id]),
+      sql.query('select champion,status from champion_pool where team_id=$1 and player_id=$2 order by champion limit 10', [ctx.teamId, p.id]),
       ctx.canStaff || ctx.playerIds.includes(p.id) ? goalRows(ctx, p) : Promise.resolve([]),
     ]);
     fields = [
@@ -324,7 +324,7 @@ async function champions(ctx: BotContext, options: Row) {
 
 async function goalRows(ctx: BotContext, target?: Row | null, completed = false) {
   const ids = target ? [target.id] : ctx.playerIds;
-  return sql(`select g.id,g.player_id,g.title,g.status,g.due_at,g.created_at,g.source,p.name as player_name,g.metric,g.operator,g.target_value,
+  return sql.query(`select g.id,g.player_id,g.title,g.status,g.due_at,g.created_at,g.source,p.name as player_name,g.metric,g.operator,g.target_value,
     coalesce((select jsonb_agg(to_jsonb(n)) from (
       select note,created_at from discord_goal_updates where team_id=g.team_id and goal_id=g.id and g.source='team'
       union all select note,created_at from discord_player_goal_updates where team_id=g.team_id and goal_id=g.id and g.source='player'
@@ -352,7 +352,7 @@ async function poolRows(ctx: BotContext, options: Row) {
   const rawRole = String(options.role || '').toUpperCase();
   const role = ({ JUNGLE: 'JGL', SUPPORT: 'SUP' } as Row)[rawRole] || rawRole;
   if (role && !ROLES.includes(role)) throw discordError('Rôle invalide : TOP, JGL, MID, ADC ou SUP.');
-  const rows = await sql(`select c.*,p.role as player_role,p.name as roster_name from champion_pool c
+  const rows = await sql.query(`select c.*,p.role as player_role,p.name as roster_name from champion_pool c
     left join players p on p.id=c.player_id and p.team_id=c.team_id
     where c.team_id=$1 and ($2::uuid is null or c.player_id=$2::uuid) and ($3='' or upper(coalesce(c.role,p.role,''))=$3)
     order by c.player_name,c.champion,c.id limit 251`, [ctx.teamId, target?.id || null, role]);
@@ -363,7 +363,7 @@ async function pools(ctx: BotContext, command: string, options: Row) {
   const { rows, target } = await poolRows(ctx, options);
   if (command === 'pool suggerer') {
     const objective = String(options.objectif || 'travail').trim().toLowerCase();
-    const requestedGoal = UUID.test(objective) ? (await sql(`select title from player_goals where team_id=$1 and id=$2
+    const requestedGoal = UUID.test(objective) ? (await sql.query(`select title from player_goals where team_id=$1 and id=$2
       union all select title from discord_team_goals where team_id=$1 and id=$2 limit 1`, [ctx.teamId, objective]))[0] : null;
     if (UUID.test(objective) && !requestedGoal) throw discordError('Objectif introuvable dans cette équipe.', 404);
     const purpose = String(requestedGoal?.title || objective);
@@ -385,7 +385,7 @@ async function compositions(ctx: BotContext, options: Row) {
   const role = ({ JUNGLE: 'JGL', SUPPORT: 'SUP' } as Row)[rawRole] || rawRole;
   if (role && !ROLES.includes(role)) throw discordError('Rôle invalide : TOP, JGL, MID, ADC ou SUP.');
   const champion = String(options.champion || '').trim().toLowerCase();
-  const rows = await sql(`select c.*,coalesce((select jsonb_agg(jsonb_build_object('id',p.id,'champion',p.champion))
+  const rows = await sql.query(`select c.*,coalesce((select jsonb_agg(jsonb_build_object('id',p.id,'champion',p.champion))
     from champion_pool p where p.team_id=c.team_id),'[]'::jsonb) as pool from composition_types c where c.team_id=$1 order by c.updated_at desc limit 100`, [ctx.teamId]);
   const selected: Row[] = rows.map(c => {
     const pool = new Map(jsonArray(c.pool).map(p => [String(p.id), String(p.champion)]));
@@ -399,12 +399,12 @@ async function compositions(ctx: BotContext, options: Row) {
 async function preparation(ctx: BotContext, options: Row) {
   assertStaff(ctx);
   const id = uuid(options.evenement, 'Événement');
-  const events = await sql('select * from discord_team_events where team_id=$1 and id=$2 limit 1', [ctx.teamId, id]);
+  const events = await sql.query('select * from discord_team_events where team_id=$1 and id=$2 limit 1', [ctx.teamId, id]);
   const event = events[0];
   if (!event) throw discordError('Événement introuvable dans cette équipe.', 404);
   const [roster, notes, activeGoals, pool] = await Promise.all([
-    sql("select id,name,role from players where team_id=$1 and roster_status='MAIN' order by role,name", [ctx.teamId]),
-    sql('select note from discord_draft_notes where team_id=$1 and event_id=$2 order by created_at desc limit 5', [ctx.teamId, id]),
+    sql.query("select id,name,role from players where team_id=$1 and roster_status='MAIN' order by role,name", [ctx.teamId]),
+    sql.query('select note from discord_draft_notes where team_id=$1 and event_id=$2 order by created_at desc limit 5', [ctx.teamId, id]),
     goalRows(ctx), poolRows(ctx, {}),
   ]);
   return message(ctx, 'Préparation · ' + text(event.title, 120), `${timestamp(event.starts_at)} · ${text(event.event_type, 30)} · ${event.duration_minutes} min · ${event.status === 'cancelled' ? 'Annulé' : 'Prévu'}\nID : \`${event.id}\`\nLe roster et les objectifs ci-dessous sont ceux de l’équipe ; leur participation à cette session reste à confirmer.`, [
@@ -422,7 +422,7 @@ async function planning(ctx: BotContext, options: Row) {
   const days = key === 'aujourdhui' ? 1 : key === 'mois' ? 30 : 7;
   const timezone = ctx.timezone || 'Europe/Paris';
   try { new Intl.DateTimeFormat('fr', { timeZone: timezone }); } catch { throw discordError('Fuseau de l’équipe invalide.'); }
-  const rows = await sql(`with bounds as (
+  const rows = await sql.query(`with bounds as (
       select $4::timestamptz as lo,case when $3::int=1 then (($4::timestamptz at time zone $2)::date+1)::timestamp at time zone $2 else $4::timestamptz+$3::int*interval '1 day' end as hi
     ), legacy as (
       select distinct a.team_id,e.value->>'label' as title,coalesce(e.value->>'type','custom') as event_type,
@@ -459,7 +459,7 @@ function safeReviewContent(report: Row, canStaff: boolean) {
 }
 async function reportById(ctx: BotContext, value: unknown) {
   const id = uuid(value, 'Review');
-  const rows = await sql("select * from reports where team_id=$1 and id=$2 and ($3::boolean or discord_status='published') limit 1", [ctx.teamId, id, ctx.canStaff]);
+  const rows = await sql.query("select * from reports where team_id=$1 and id=$2 and ($3::boolean or discord_status='published') limit 1", [ctx.teamId, id, ctx.canStaff]);
   if (!rows[0]) throw discordError('Review introuvable ou non accessible.', 404);
   return rows[0];
 }
@@ -468,7 +468,7 @@ async function reviews(ctx: BotContext, command: string, options: Row) {
   if (command === 'review liste') {
     const selected = period(options.periode, 30);
     const target = options.joueur ? await player(ctx, options.joueur) : null;
-    const rows = await sql(`select r.id,r.title,r.created_at,r.discord_status,r.discord_version from reports r where r.team_id=$1
+    const rows = await sql.query(`select r.id,r.title,r.created_at,r.discord_status,r.discord_version from reports r where r.team_id=$1
       and ($2::boolean or r.discord_status='published') and r.created_at >= $3::timestamptz and r.created_at <= $4::timestamptz
       and ($5::uuid is null or exists(select 1 from match_participants p join matches m on m.id=p.match_id and m.team_id=r.team_id
         where p.player_id=$5::uuid and p.team_key='ALLY' and (r.match_id=p.match_id or r.match_ids @> jsonb_build_array(p.match_id::text))))
@@ -481,7 +481,7 @@ async function reviews(ctx: BotContext, command: string, options: Row) {
   }
   const report = await reportById(ctx, options.review);
   if (command === 'review lectures') {
-    const rows = await sql(`select u.name,rec.user_id,reads.read_at from discord_review_recipients rec
+    const rows = await sql.query(`select u.name,rec.user_id,reads.read_at from discord_review_recipients rec
       join users u on u.id=rec.user_id left join discord_review_reads reads on reads.team_id=rec.team_id and reads.report_id=rec.report_id and reads.user_id=rec.user_id and reads.report_version=rec.report_version
       where rec.team_id=$1 and rec.report_id=$2 and rec.report_version=$3 order by reads.read_at nulls last,u.name,rec.user_id`, [ctx.teamId, report.id, report.discord_version]);
     return message(ctx, 'Lecture · ' + text(report.title, 120), `Version ${report.discord_version} · ${rows.filter(r => r.read_at).length}/${rows.length} destinataires ont confirmé la lecture.\n${rows.length ? 'Une confirmation ne vaut pas validation du contenu.' : 'Cette version n’a pas de liste de destinataires partagée. Partage-la pour établir le suivi.'}`,

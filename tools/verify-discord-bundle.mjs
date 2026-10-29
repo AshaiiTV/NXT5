@@ -12,12 +12,12 @@ for (const name of ['discord-publish-background', 'team-discord-publish', 'team-
   const zip = path.join(root, name + '.zip');
   const files = execFileSync('unzip', ['-Z', '-1', zip], { encoding: 'utf8' }).trim().split('\n');
   const native = 'node_modules/@napi-rs/canvas-linux-x64-gnu/skia.linux-x64-gnu.node';
-  for (const required of [native, 'public/assets/nxt5-wordmark.png', ...[400,500,600,700].map((weight) => `node_modules/@fontsource/inter/files/inter-latin-${weight}-normal.woff2`)]) {
+  for (const required of [native, 'public/assets/nxt5-wordmark.png', ...['dragon', 'grub', 'herald', 'baron', 'tower'].map(name => `public/assets/objectives/${name}.png`), ...[400,500,600,700].map((weight) => `node_modules/@fontsource/inter/files/inter-latin-${weight}-normal.woff2`)]) {
     if (!files.includes(required)) throw new Error(`${name} is missing ${required}. Build on Linux, or install the matching optional Linux binary before a local draft deployment.`);
   }
   const binary = execFileSync('unzip', ['-p', zip, native], { maxBuffer: 80 * 1024 * 1024 });
   if (binary.subarray(0,4).toString('hex') !== '7f454c46' || binary.readUInt16LE(18) !== 62) throw new Error(`${name}: expected Linux x64 ELF`);
-  checked.push({ name, runtime: entry.runtimeVersion, invocationMode: entry.invocationMode, native: 'linux-x64-gnu', nativeBytes: binary.byteLength, fonts: 4, logo: true });
+  checked.push({ name, runtime: entry.runtimeVersion, invocationMode: entry.invocationMode, native: 'linux-x64-gnu', nativeBytes: binary.byteLength, fonts: 4, logo: true, objectives: 5 });
 }
 mkdirSync('artifacts/discord-render', { recursive: true });
 writeFileSync('artifacts/discord-render/bundle-check.json', JSON.stringify({ checkedAt: new Date().toISOString(), checked }, null, 2) + '\n');

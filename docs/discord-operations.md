@@ -138,7 +138,7 @@ node node_modules/vitest/vitest.mjs run src/__tests__/discord-queue.test.ts src/
 node artifacts/discord-render/benchmark-runner.mjs artifacts/discord-render
 ```
 
-Le bundlage du script de benchmark résout ses imports TypeScript ; les bibliothèques natives restent chargées depuis les dépendances installées. Le dossier local `artifacts/discord-render/` contient le script compilé, les PNG, les snapshots et les mesures `benchmark.json`. Ces sorties sont générées à chaque exécution et ignorées par Git. Le contrôle des bundles y écrit également `bundle-check.json`.
+Le bundlage du script de benchmark résout ses imports TypeScript ; les bibliothèques natives restent chargées depuis les dépendances installées. Le dossier local `artifacts/discord-render/` contient le script compilé, les PNG, les snapshots et les mesures `benchmark.json`. Le contrôle des bundles y écrit également `bundle-check.json`. Les nouveaux fichiers sont ignorés par Git ; les preuves déjà versionnées restent suivies. Pour conserver une campagne datée, utiliser un dossier de sortie distinct avant de relancer le banc.
 
 La commande `npm run db:migrate` **modifie la base désignée par `DATABASE_URL`**. Dans ce dépôt, le contexte Netlify `production` l’exécute après `npm run verify`. Le registre vérifie le checksum de chaque migration : une migration déjà appliquée ne doit plus être modifiée ; les changements suivants nécessitent un nouveau fichier.
 

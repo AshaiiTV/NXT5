@@ -63,11 +63,12 @@ export async function optionalSocialUser(request: Request, context: Context) {
 }
 
 export function socialDestination(next: unknown, invite?: unknown, _registration = false): string {
-  if (typeof invite === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(invite)) return `/equipes?invite=${encodeURIComponent(invite)}`;
+  if (typeof invite === 'string' && /^[A-Za-z0-9_-]{1,160}$/.test(invite)) return `/mon-equipe?invite=${encodeURIComponent(invite)}`;
   if (typeof next === 'string' && next.length <= 1024 && /^\/[A-Za-z0-9]/.test(next)
     && !/[\\\s\u0000-\u001f\u007f]/.test(next) && !/%(?:2f|5c|0[0-9a-f]|1[0-9a-f]|7f)/i.test(next)) {
     const url = new URL(next, 'https://nxt5.invalid');
-    const routes = ['/accueil', '/equipes', '/profil', '/mon-profil', '/parametres', '/games', '/draft', '/champion-pool', '/compositions-types', '/rapports', '/tendances', '/gestion-equipe', '/planning', '/integration', '/statistiques', '/guide', '/bot-discord', '/admin'];
+    if (/^\/equipes\/?$/.test(url.pathname)) url.pathname = '/mon-equipe';
+    const routes = ['/accueil', '/mon-equipe', '/equipes', '/profil', '/mon-profil', '/parametres', '/games', '/draft', '/champion-pool', '/compositions-types', '/rapports', '/tendances', '/gestion-equipe', '/planning', '/integration', '/statistiques', '/guide', '/bot-discord', '/admin'];
     if (url.origin === 'https://nxt5.invalid' && routes.some(path => url.pathname === path || url.pathname.startsWith(`${path}/`))) return `${url.pathname}${url.search}${url.hash}`;
   }
   return '/accueil';

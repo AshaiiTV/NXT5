@@ -1,5 +1,19 @@
 # Réécriture des reviews historiques
 
+## Lecture visuelle des débriefs — 26 octobre 2026
+
+Les débriefs liés à des parties s’ouvrent sur « En 10 secondes » : résultat, éliminations, courbe d’or commune à la fiche de partie, objectifs et décisions explicitement rédigées par l’équipe. Le sélecteur montre une seule partie à la fois ; au-delà de quatre parties, il devient une liste compacte. Les résultats inconnus ne sont pas comptés comme des défaites et les données absentes restent affichées « — ».
+
+Jusqu’à six moments sont proposés dans l’ordre chronologique, en privilégiant dragons, Nashors et combats avec plusieurs éliminations. Chaque carte ouvre les événements enregistrés, leurs horaires et leurs participants, avec navigation précédent/suivant. Le regroupement temporel est un repère de lecture ; il n’établit ni causalité ni importance stratégique. La couverture incomplète est signalée, et aucune position ni valeur d’or intermédiaire n’est inventée.
+
+« Les écarts par poste » remplace la lecture du long bloc automatique par une comparaison visuelle de la partie sélectionnée. Les cinq duels présentent les portraits, les valeurs exactes et les écarts d’or final, de dégâts aux champions ou de score de vision. Les barres partagent une échelle commune aux cinq postes pour la mesure affichée. Une donnée manquante ou un poste ambigu reste indiqué par « — » ; les écarts n’établissent pas la cause du résultat.
+
+Les rubriques « À garder » et « Prochaine partie » reprennent la première consigne renseignée sous ces titres (ou leurs équivalents anglais/espagnols). Les notes complètes, les anciens débriefs éditables et les commandes restent accessibles au clic. Le texte automatique avant le marqueur V3 n’est plus présenté comme analyse à lire ; sa source enregistrée est conservée. Les formats de stockage, sauvegardes, droits et brouillons ne changent pas ; la lecture visuelle ne déclenche aucune écriture de débrief ni migration supplémentaire. Toutes les parties liées doivent être chargées avant d’afficher le bilan ; les notes restent accessibles en cas d’échec, avec un bouton pour réessayer.
+
+Sources : `src/components/games/VisualDebrief.jsx`, `src/components/games/DebriefAnalysis.jsx`, `src/utils/debrief-moments.js`, `src/utils/debrief-focus.js`, `src/pages/workspace/GameWorkspace.jsx`. Régressions couvertes dans `src/__tests__/automatic-review.test.jsx`, `debrief-moments.test.js`, `debrief-focus.test.js`, `visual-debrief.test.jsx` et `debrief-analysis.test.jsx`.
+
+## Opération historique de réécriture
+
 L’opération `automatic-review-v3-20260908` enregistre l’analyse complète des reviews existantes, sans ouverture ni sauvegarde individuelle. Elle utilise les mêmes données de game et le même générateur que la page Review.
 
 `npm run db:migrate` la lance après les migrations de schéma uniquement lorsque `CONTEXT=production`. Les Deploy Previews et les installations locales ne la lancent pas. Le déploiement s’arrête si la transaction ne peut pas être validée.

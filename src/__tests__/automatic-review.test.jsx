@@ -3,9 +3,10 @@ import TestRenderer, { act } from "react-test-renderer";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
-import { Button } from "../components/ui/Core.jsx";
+import { Button, ReadingDetails } from "../components/ui/Core.jsx";
+import VisualDebrief from "../components/games/VisualDebrief.jsx";
 import { reviewDrafts } from "../utils/review-drafts.js";
-import { Reports, ReportPreview, buildRetroactiveCoachContent, buildGameReviewContent, stripGeneratedReportContent, REPORT_REWRITE_MARKER, matchPlayerCoachReads } from "../pages/workspace/GameWorkspace.jsx";
+import { Reports, ReportPreview, buildRetroactiveCoachContent, buildGameReviewContent, stripGeneratedReportContent, REPORT_REWRITE_MARKER, matchPlayerCoachReads, reportTitleFromMatchIds, reportDisplayName } from "../pages/workspace/GameWorkspace.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), apiUploadJson: vi.fn(), API_BASE: "/.netlify/functions" }));
 vi.mock("react-dom", () => ({ createPortal: (children) => children }));
@@ -24,8 +25,8 @@ beforeEach(() => {
   vi.stubGlobal("document", { body: { style: {} }, documentElement: { style: {} }, addEventListener: vi.fn(), removeEventListener: vi.fn() });
 });
 afterEach(() => { cleanups.splice(0).forEach((fn) => fn()); reviewDrafts.clear(); vi.resetAllMocks(); vi.unstubAllGlobals(); });
-async function mount({ reports = [], matches = [] } = {}) {
-  const props = { data: { reports, matches }, selectedTeamId: "team", currentMember: { role: "player" }, user: { id: "user" }, refreshAll: vi.fn(), pushToast: vi.fn() };
+async function mount({ reports = [], matches = [], matchArchives = [] } = {}) {
+  const props = { data: { reports, matches, matchArchives }, selectedTeamId: "team", currentMember: { role: "player" }, user: { id: "user" }, refreshAll: vi.fn(), pushToast: vi.fn() };
   let renderer;
   await act(async () => { renderer = TestRenderer.create(<Reports {...props} />); });
   cleanups.push(() => act(() => renderer.unmount()));
@@ -33,6 +34,37 @@ async function mount({ reports = [], matches = [] } = {}) {
 }
 const button = (renderer, label) => renderer.root.findAllByType(Button).find((item) => item.props.children === label);
 const output = (renderer) => JSON.stringify(renderer.toJSON());
+
+describe("group review titles", () => {
+  const archive = { id: "block", team_id: "team", name: "Scrim du vendredi", match_ids: ["one", "two"] };
+  const report = { team_id: "team", title: "Game one + Game two", match_ids: ["two", "one"] };
+
+  it("uses the complete group identity before linked games have loaded, regardless of their order", () => {
+    for (const matches of [[], [game("one")], [game("one"), game("two")]]) {
+      expect(reportTitleFromMatchIds(report.match_ids, matches, report.title, [archive])).toBe(archive.name);
+    }
+  });
+
+  it("does not use a partial, larger or foreign team's group as the review title", () => {
+    for (const candidate of [
+      { ...archive, match_ids: ["one"] },
+      { ...archive, match_ids: ["one", "two", "three"] },
+      { ...archive, team_id: "other-team" },
+    ]) {
+      expect(reportDisplayName(report, [game("one"), game("two")], "Review", [candidate])).toBe(report.title);
+    }
+    expect(reportDisplayName({ ...report, match_ids: ["one"] }, [game("one")], "Review", [{ ...archive, match_ids: ["one"] }])).toBe("Game one");
+  });
+
+  it("uses a saved group name to disambiguate identical groups without choosing one arbitrarily", () => {
+    const other = { ...archive, id: "other", name: "Préparation tournoi", match_ids: ["two", "one"] };
+    const matches = [game("one"), game("two")];
+    expect(reportDisplayName({ ...report, title: other.name }, matches, "Review", [archive, other])).toBe(other.name);
+    expect(reportDisplayName({ ...report, title: `${other.name} copie` }, matches, "Review", [archive, other])).toBe(other.name);
+    expect(reportDisplayName(report, matches, "Review", [archive, other])).toBe(report.title);
+    expect(reportDisplayName(report, matches, "Review", [other, archive])).toBe(report.title);
+  });
+});
 
 describe("complete automatic coaching", () => {
   it("preserves unmarked historical content verbatim, including headings and whitespace", () => {
@@ -79,23 +111,77 @@ describe("complete automatic coaching", () => {
   it("hides the internal generated marker in the rendered review", () => {
     const html = renderToStaticMarkup(<ReportPreview content={buildGameReviewContent(game("one"))} rows={[]} />);
     expect(html).not.toContain(REPORT_REWRITE_MARKER);
-    expect(html).toContain("Notes staff");
+    expect(html).toContain("Notes de l’équipe");
+    expect(html).toContain("Aucune observation enregistrée");
+    expect(html).not.toContain("Analyse automatique des parties");
+    expect(html).not.toMatch(/VERDICT COACH|VOD|vidéo/i);
+  });
+  it("keeps staff decisions without exposing generated prose or losing legacy corrections", () => {
+    const content = buildRetroactiveCoachContent({ content: "Décision collective à conserver", match_ids: ["one"] }, [game("one")]);
+    const html = renderToStaticMarkup(<ReportPreview content={content} rows={[]} />);
+    expect(html).toContain("Décision collective à conserver");
+    expect(html).not.toMatch(/VERDICT COACH|VOD|vidéo/i);
+    expect(html).not.toContain("open=\"\"");
+    const legacy = renderToStaticMarkup(<ReportPreview content={"VERDICT COACH\nCorrection du staff\n[NXT5_REPORT_V2]\nNotes staff\nSuite des notes"} rows={[]} />);
+    expect(legacy).not.toContain("<details");
+    expect(legacy).toContain("Correction du staff");
+    expect(legacy).toContain("Suite des notes");
   });
 });
 
 describe("automatic reviews in the workspace", () => {
+  it("finds an existing group review by its group name and preserves that title and staff notes on save", async () => {
+    apiFetch.mockImplementation(async (path, options) => path === "match-details"
+      ? { matches: JSON.parse(options.body).matchIds.map(game) }
+      : { report: { id: "group-review" } });
+    const name = "Scrim du vendredi";
+    const notes = "  Décision staff à conserver\nPréparer le dragon ensemble.  \n";
+    const renderer = await mount({
+      reports: [{ id: "group-review", team_id: "team", title: "Game one + Game two", content: notes, match_ids: ["two", "one"], created_by: "user" }],
+      matchArchives: [{ id: "block", team_id: "team", name, match_ids: ["one", "two"] }],
+    });
+    expect(renderer.root.findAllByType("h3").some((node) => node.children.join("") === name)).toBe(true);
+    act(() => renderer.root.findByProps({ placeholder: "Rechercher par partie ou auteur" }).props.onChange({ target: { value: name } }));
+    const selectedRow = renderer.root.findAllByType("button").find((node) => node.props["aria-current"] === "true");
+    expect(selectedRow).toBeTruthy();
+    expect(selectedRow.findAllByType("span").some((node) => node.children.join("") === name)).toBe(true);
+    await act(async () => button(renderer, "Éditer").props.onClick());
+    expect(renderer.root.findByType("textarea").props.value).toBe(notes);
+    expect(button(renderer, "Enregistrer").props.disabled).toBe(false);
+    await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault: vi.fn() }));
+    const saved = JSON.parse(apiFetch.mock.calls.find(([path]) => path === "reports-manage")[1].body);
+    expect(saved).toMatchObject({ action: "update", reportId: "group-review", title: name, matchIds: ["two", "one"] });
+    expect(saved.content).toContain(`Groupe: ${name}`);
+    expect(stripGeneratedReportContent(saved.content)).toBe(notes);
+  });
+
+  it("keeps the library open through an empty group filter and closes only on report selection", async () => {
+    const renderer = await mount({ reports: [{ id: "saved", team_id: "team", title: "Décisions", content: "Notes", match_ids: [] }], matchArchives: [{ id: "empty", team_id: "team", name: "Sans débrief", match_ids: ["missing"] }] });
+    const library = () => renderer.root.findAllByType(ReadingDetails).find((node) => node.props.title === "Choisir un débrief");
+    expect(library().props.open).toBe(false);
+    act(() => library().props.onToggle({ currentTarget: { open: true } }));
+    act(() => renderer.root.findByType("select").props.onChange({ target: { value: "empty" } }));
+    expect(library().props.open).toBe(true);
+    act(() => renderer.root.findByType("select").props.onChange({ target: { value: "" } }));
+    expect(library().props.open).toBe(true);
+    act(() => renderer.root.findAllByType("button").find((node) => node.props["aria-current"] === "true").props.onClick());
+    expect(library().props.open).toBe(false);
+  });
   it("loads old reviews outside the match page and enriches them for a read-only member without writing", async () => {
     const requests = [];
     apiFetch.mockImplementation((_path, options) => new Promise((resolve) => requests.push({ resolve, ids: JSON.parse(options.body).matchIds })));
     const renderer = await mount({ reports: [{ id: "old", team_id: "team", match_ids: ["one", "two"], title: "Old", content: "Notes historiques", created_by: "someone-else" }] });
-    expect(output(renderer)).toContain("Préparation automatique");
+    expect(output(renderer)).toContain("Préparation du bilan visuel");
     expect(output(renderer)).not.toContain("Re-coacher");
     expect(requests.flatMap((request) => request.ids)).toEqual(["one", "two"]);
     expect(apiFetch.mock.calls.every(([, options]) => JSON.parse(options.body).teamId === "team")).toBe(true);
     await act(async () => requests.forEach((request) => request.resolve({ matches: request.ids.map(game) })));
-    expect(output(renderer)).toContain("LECTURE PAR JOUEUR");
+    expect(output(renderer)).toContain("Les écarts par poste");
+    expect(output(renderer)).not.toMatch(/LECTURE PAR JOUEUR|VOD|vidéo/i);
     expect(output(renderer)).toContain("Notes historiques");
-    expect(output(renderer)).not.toContain("Préparation automatique");
+    expect(output(renderer)).not.toContain("Préparation du bilan visuel");
+    expect(output(renderer)).toContain("Bilan visuel du débrief");
+    expect(output(renderer)).toContain("Moments clés");
     expect(apiFetch.mock.calls.every(([path]) => path === "match-details")).toBe(true);
   });
   it("keeps staff typing while details arrive, updates analysis on selection and saves the complete review", async () => {
@@ -109,11 +195,11 @@ describe("automatic reviews in the workspace", () => {
     expect(button(renderer, "Créer le débrief").props.disabled).toBe(true);
     await act(async () => requests.forEach((request) => request.resolve({ matches: request.ids.map(game) })));
     expect(renderer.root.findByType("textarea").props.value).toBe(notes);
-    expect(output(renderer)).toContain("GAME 2 · Game two");
+    expect(renderer.root.findByType(VisualDebrief).props.matches.map((match) => match.id)).toEqual(["one", "two"]);
     expect(button(renderer, "Créer le débrief").props.disabled).toBe(false);
     const gameTwo = renderer.root.findAllByType("button").find((item) => item.findAllByType("p").some((p) => p.children.join("") === "Game two"));
     await act(async () => gameTwo.props.onClick());
-    expect(output(renderer)).not.toContain("GAME 2 · Game two");
+    expect(renderer.root.findByType(VisualDebrief).props.matches.map((match) => match.id)).toEqual(["one"]);
     expect(renderer.root.findByType("textarea").props.value).toBe(notes);
     apiFetch.mockResolvedValueOnce({ report: { id: "new" } });
     await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault: vi.fn() }));
@@ -129,7 +215,8 @@ describe("automatic reviews in the workspace", () => {
     expect(renderer.root.findByType("textarea").props.value).toBe("");
     expect(renderer.root.findByType("textarea").props.required).toBe(false);
     expect(button(renderer, "Enregistrer").props.disabled).toBe(false);
-    expect(output(renderer)).toContain("LECTURE PAR JOUEUR");
+    expect(output(renderer)).toContain("Les écarts par poste");
+    expect(output(renderer)).not.toMatch(/LECTURE PAR JOUEUR|VOD|vidéo/i);
   });
   it("preserves the saved review and permits retry after a failed automatic load", async () => {
     apiFetch.mockRejectedValueOnce(new Error("Connexion interrompue"));
@@ -138,7 +225,7 @@ describe("automatic reviews in the workspace", () => {
     expect(output(renderer)).toContain("Bilan et notes conservés");
     apiFetch.mockResolvedValueOnce({ matches: [game("one")] });
     await act(async () => button(renderer, "Réessayer").props.onClick());
-    expect(output(renderer)).toContain("LECTURE PAR JOUEUR");
+    expect(output(renderer)).toContain("Les écarts par poste");
     expect(output(renderer)).not.toContain("Connexion interrompue");
   });
 });

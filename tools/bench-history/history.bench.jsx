@@ -77,8 +77,8 @@ const origin = 'https://history-benchmark.invalid';
 
 function queryKind(query) {
   if (query.includes('as total') && query.includes('count(*)')) return 'counts';
-  if (query.includes('to_jsonb(matches)')) return 'matches';
-  if (query.includes('to_jsonb(match_participants)')) return 'participants';
+  if (query.includes('from match_page matches')) return 'matches';
+  if (query.includes('from match_participants')) return 'participants';
   if (/select reports\.\*/.test(query)) return 'reports';
   return 'other';
 }
@@ -179,8 +179,8 @@ async function seedRange(from, to) {
   }
 }
 
-// Mount the unmodified hook: it decides offsets, validates all pages, builds
-// the Map and publishes only a complete snapshot. No reimplemented load loop.
+// Measure the actual hook's bounded opening, then explicitly request the full
+// analysis. Its pagination and atomic completion are not reimplemented here.
 async function loadHistory(n) {
   pages = []; rawBodies = [];
   let state, renderer;
@@ -188,7 +188,7 @@ async function loadHistory(n) {
   const snapshots = [];
   function Probe() {
     state = useTeamData(store, `?team=${teamId}`);
-    snapshots.push(state.data.matches.length);
+    snapshots.push({ count: state.data.matches.length, complete: state.data.historyComplete });
     return null;
   }
   const start = performance.now();
@@ -200,15 +200,23 @@ async function loadHistory(n) {
       if (performance.now() - start > 300_000) throw new Error('History hook did not complete within five minutes');
       await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
     }
+    const initialReadyMs = performance.now() - start;
+    let historyError;
+    act(() => { void state.ensureHistory().catch(error => { historyError = error; }); });
+    while (state.historyLoading) {
+      if (performance.now() - start > 300_000) throw new Error('History hook did not complete within five minutes');
+      await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+    }
+    if (historyError) throw historyError;
     const elapsedMs = performance.now() - start;
     expect(state.apiError).toBe('');
     expect(state.bootstrapReady).toBe(true);
     expect(state.data.historyComplete).toBe(true);
     expect(state.data.matches).toHaveLength(n);
-    expect(snapshots.every((count) => count === 0 || count === n)).toBe(true);
+    expect(snapshots.every(({ count, complete }) => complete !== true || count === n)).toBe(true);
     expect(pages.map((page) => page.offset)).toEqual(Array.from({ length: n / 100 }, (_, i) => i * 100));
     expect(state.data.matches.every((m) => m.participants.length === 10 && m.raw.nxt5.timelineSummary.csMilestones['1'])).toBe(true);
-    return { data: state.data, elapsedMs, pages: [...pages], bodies: [...rawBodies] };
+    return { data: state.data, initialReadyMs, elapsedMs, pages: [...pages], bodies: [...rawBodies] };
   } finally { if (renderer) act(() => renderer.unmount()); }
 }
 
@@ -227,7 +235,7 @@ function measureCpu(fn) {
 
 it('measures complete team history at 100, 500, 1000 and 3000 matches', async () => {
   const output = {
-    methodVersion: 2, transport: 'in-process Request/Response; no TCP, authentication or WAN latency', recordedAt: new Date().toISOString(),
+    methodVersion: 3, transport: 'in-process Request/Response; bounded opening then explicit full analysis; no TCP, authentication or WAN latency', recordedAt: new Date().toISOString(),
     environment: { node: process.version, platform: platform(), arch: arch(), cpu: cpus()[0]?.model,
       postgres: (await database.pg.query('select version()')).rows[0].version, pglite: '0.5.8' },
     repetitions, migrations: migrations.map(({ key, checksum }) => ({ key, checksum })), records: [], explain: [],
@@ -243,13 +251,14 @@ it('measures complete team history at 100, 500, 1000 and 3000 matches', async ()
     let loaded;
     for (let repetition = 0; repetition < repetitions; repetition++) {
       loaded = await loadHistory(n);
-      runs.push({ elapsedMs: loaded.elapsedMs, serverMs: sum(loaded.pages.map((p) => p.serverMs)), pages: loaded.pages });
+      runs.push({ initialReadyMs: loaded.initialReadyMs, elapsedMs: loaded.elapsedMs, serverMs: sum(loaded.pages.map((p) => p.serverMs)), pages: loaded.pages });
     }
     const { data, bodies } = loaded;
     const byteSize = (value) => Buffer.byteLength(JSON.stringify(value));
     const record = {
       n, warmupServerMs: sum(warmup.pages.map((p) => p.serverMs)), runs,
       serverMedianMs: median(runs.map((r) => r.serverMs)), elapsedMedianMs: median(runs.map((r) => r.elapsedMs)),
+      initialReadyMedianMs: median(runs.map((r) => r.initialReadyMs)),
       httpRequests: bodies.length, jsonBytes: sum(bodies.map((b) => Buffer.byteLength(b))),
       gzipBytes: sum(bodies.map((b) => gzipSync(b).length)),
       payload: { matchesBytes: byteSize(data.matches), participantsBytes: sum(data.matches.map((m) => byteSize(m.participants))),
@@ -287,7 +296,7 @@ it('measures complete team history at 100, 500, 1000 and 3000 matches', async ()
             // Diagnostic control, not a proposed production query: keep the
             // membership predicate, join, ordering, LIMIT and OFFSET, removing
             // only the JSON projection to isolate its cost from row selection.
-            const projection = statement.query.indexOf('select to_jsonb(matches)');
+            const projection = statement.query.indexOf('select to_jsonb(');
             const from = statement.query.indexOf('\n        from match_page matches\n');
             if (projection < 0 || from < 0) throw new Error('Main query changed; review projection control');
             const query = statement.query.slice(0, projection)

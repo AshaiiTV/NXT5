@@ -1,6 +1,9 @@
+import { useLanguage } from "./i18n/useLanguage.js";
+import { t } from "./i18n/translate.js";
 import React, { startTransition, useEffect, useState, Suspense, useMemo, useRef, lazy } from "react";
 import { apiFetch } from "./api/client.js";
 import { adminPageFromRoute } from "./app/admin-navigation.js";
+import { guideSectionForRoute } from "./app/guide-navigation.js";
 import { gameWorkspaceSectionFromPath, isAppPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import { ModalDialog } from "./components/ui/ModalDialog.jsx";
 import { Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
@@ -28,6 +31,7 @@ const TrendsPage = lazy(() => import("./pages/workspace/TrendsPage.jsx").then((m
 const GameWorkspace = lazy(() => import("./pages/workspace/GameWorkspace.jsx").then((module) => ({ default: module.GameWorkspace })));
 const Planning = lazy(() => import("./pages/workspace/Planning.jsx").then((module) => ({ default: module.Planning })));
 const AccountSettings = lazy(() => import("./pages/workspace/AccountSettings.jsx").then((module) => ({ default: module.AccountSettings })));
+const SocialCalendar = lazy(() => import("./pages/workspace/SocialCalendar.jsx"));
 const DraftWorkspace = lazy(() => import("./pages/workspace/DraftWorkspace.jsx").then((module) => ({ default: module.DraftWorkspace })));
 
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
@@ -35,8 +39,27 @@ const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.
 const AdministrationPage = lazy(() => import("./pages/admin/AdministrationPage.jsx"));
 
 const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
+const HISTORY_PAGES = new Set(["reports", "trends", "profile", "draft"]);
+
+function requiresCompleteHistory(page, route) {
+  if (page !== "matches") return HISTORY_PAGES.has(page);
+  const params = new URLSearchParams(route?.search || "");
+  const view = params.get("view");
+  return route?.path === "/draft/adversaires" || Boolean(params.get("match") || params.get("archive"))
+    || params.get("import") === "1" || Boolean(view && view !== "games");
+}
+
+function HistoryLoadingState({ error, loading, onRetry }) {
+  return <Surface className="p-5 sm:p-6">
+    <div role={error ? "alert" : "status"} aria-live="polite" aria-busy={loading}>
+      <p className="text-base font-semibold text-white">{t(error ? "L’historique complet n’a pas pu être chargé." : "Chargement de toutes les games…")}</p>
+      {error ? <Button type="button" variant="ghost" icon={RefreshCw} onClick={onRetry} disabled={loading} className="mt-4">{t("Réessayer")}</Button> : <div className="mt-4"><SkeletonRows count={4} /></div>}
+    </div>
+  </Surface>;
+}
 
 export function MissingEmailModal({ user, onUserUpdate, pushToast, onLogout }) {
+  useLanguage();
   const [email, setEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [saving, setSaving] = useState(false);
@@ -60,21 +83,22 @@ export function MissingEmailModal({ user, onUserUpdate, pushToast, onLogout }) {
 
   return (
     <ModalDialog dismissable={false} busy={saving} aria-labelledby="missing-email-title" className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-cyan-300/25 p-6">
-        <Badge tone="orange">Action requise</Badge>
-        <h2 id="missing-email-title" className="mt-5 text-3xl font-black tracking-tight text-white">Ajoute ton e-mail de récupération</h2>
-        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">Les anciens comptes n’avaient pas d’e-mail. Ajoute le tien maintenant pour recevoir les liens de mot de passe oublié.</p>
+        <Badge tone="orange">{t("Action requise")}</Badge>
+        <h2 id="missing-email-title" className="mt-5 text-3xl font-black tracking-tight text-white">{t("Ajoute ton e-mail de récupération")}</h2>
+        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t("Ton compte a été créé sans e-mail. Ajoute une adresse pour pouvoir réinitialiser ton mot de passe.")}</p>
         <form onSubmit={submit} className="mt-6 space-y-4">
-          <TextInput label="E-mail de récupération" value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" required icon={Mail} autoFocus autoComplete="email" />
-          <TextInput label="Mot de passe actuel" value={currentPassword} onChange={setCurrentPassword} type="password" required icon={Lock} />
-          {error && <div role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
-          <Button type="submit" disabled={saving || !email.trim() || !currentPassword} icon={saving ?Loader2 : Mail} className="w-full py-4">{saving ?"Enregistrement..." : "Enregistrer l’e-mail"}</Button>
+          <TextInput label={t("E-mail de récupération")} value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" required icon={Mail} autoFocus autoComplete="email" />
+          <TextInput label={t("Mot de passe actuel")} value={currentPassword} onChange={setCurrentPassword} type="password" required icon={Lock} />
+          {error && <div role="alert" className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold text-rose-100">{t(error)}</div>}
+          <Button type="submit" disabled={saving || !email.trim() || !currentPassword} icon={saving ?Loader2 : Mail} className="w-full py-4">{saving ? "Enregistrement..." : t("Enregistrer l’e-mail")}</Button>
         </form>
-        <Button type="button" variant="ghost" icon={LogOut} onClick={onLogout} disabled={saving} className="mt-4 w-full">Se déconnecter</Button>
+        <Button type="button" variant="ghost" icon={LogOut} onClick={onLogout} disabled={saving} className="mt-4 w-full">{t("Se déconnecter")}</Button>
     </ModalDialog>
   );
 }
 
 export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, onLogout }) {
+  useLanguage();
   const [sending, setSending] = useState(false);
   const [checking, setChecking] = useState(false);
   const [sent, setSent] = useState(false);
@@ -152,33 +176,34 @@ export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, 
 
   return (
     <ModalDialog dismissable={false} busy={busy} aria-labelledby="verify-email-title" className="nxt5-account-dialog nxt5-enter w-full max-w-xl border border-amber-300/28 p-6">
-        <Badge tone="orange">Vérification obligatoire</Badge>
-        <h2 id="verify-email-title" className="mt-5 text-3xl font-black tracking-tight text-white">Vérifie ton e-mail</h2>
-        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">Ton compte utilise l'adresse <span className="break-all font-black text-white">{user?.email}</span>. Confirme cette adresse avec le lien envoyé par e-mail pour accéder à ton espace NXT5.</p>
+        <Badge tone="orange">{t("Vérification obligatoire")}</Badge>
+        <h2 id="verify-email-title" className="mt-5 text-3xl font-black tracking-tight text-white">{t("Vérifie ton e-mail")}</h2>
+        <p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t("Ton compte utilise l'adresse ")}<span className="break-all font-black text-white">{user?.email}</span>{t(". Confirme cette adresse avec le lien envoyé par e-mail pour accéder à ton espace NXT5.")}</p>
         <div className="mt-5 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-4">
-          <p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />Profil non vérifié</p>
-          <p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">L’accès aux équipes et les notifications restent bloqués tant que l’e-mail n’est pas confirmé.</p>
+          <p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />{t("Profil non vérifié")}</p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">{t("L’accès aux équipes et les notifications restent bloqués tant que l’e-mail n’est pas confirmé.")}</p>
         </div>
-        {sent && <div role="status" className="mt-4 rounded-2xl border border-emerald-300/22 bg-emerald-400/10 p-3 text-sm font-bold leading-6 text-emerald-100">Lien envoyé. Clique dessus dans ta boîte mail, puis reviens ici vérifier le statut.</div>}
-        {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold leading-6 text-rose-100">{error}</div>}
-        {hasPassword === null && !error && <p role="status" className="mt-4 text-sm text-slate-300">Chargement des options de récupération…</p>}
+        {sent && <div role="status" className="mt-4 rounded-2xl border border-emerald-300/22 bg-emerald-400/10 p-3 text-sm font-bold leading-6 text-emerald-100">{t("Lien envoyé. Clique dessus dans ta boîte mail, puis reviens ici vérifier le statut.")}</div>}
+        {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold leading-6 text-rose-100">{t(error)}</div>}
+        {hasPassword === null && !error && <p role="status" className="mt-4 text-sm text-slate-300">{t("Chargement des options de récupération…")}</p>}
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
-          <Button type="button" autoFocus icon={sending ? Loader2 : Mail} onClick={resend} disabled={busy} className="w-full py-4">{sending ? "Envoi..." : sent ? "Renvoyer le lien" : "M'envoyer le lien"}</Button>
-          <Button type="button" variant="ghost" icon={checking ? Loader2 : RefreshCw} onClick={refreshStatus} disabled={busy} className="w-full py-4">{checking ? "Vérification..." : "J'ai vérifié mon email"}</Button>
+          <Button type="button" autoFocus icon={sending ? Loader2 : Mail} onClick={resend} disabled={busy} className="w-full py-4">{sending ? "Envoi..." : sent ? t("Renvoyer le lien") : t("M'envoyer le lien")}</Button>
+          <Button type="button" variant="ghost" icon={checking ? Loader2 : RefreshCw} onClick={refreshStatus} disabled={busy} className="w-full py-4">{checking ? t("Vérification...") : t("J'ai vérifié mon email")}</Button>
         </div>
         {hasPassword === true && <form onSubmit={correctEmail} className="mt-6 space-y-4 border-t border-white/10 pt-5">
-          <h3 className="text-lg font-bold text-white">Corriger mon adresse</h3>
-          <TextInput label="Nouvel e-mail" type="email" autoComplete="email" value={email} onChange={setEmail} required disabled={busy} icon={Mail} />
-          <TextInput label="Mot de passe actuel" type="password" autoComplete="current-password" value={currentPassword} onChange={setCurrentPassword} required disabled={busy} icon={Lock} />
-          <Button type="submit" disabled={busy || !email.trim() || !currentPassword} icon={saving ? Loader2 : Mail} className="w-full">{saving ? "Enregistrement…" : "Corriger mon adresse"}</Button>
+          <h3 className="text-lg font-bold text-white">{t("Corriger mon adresse")}</h3>
+          <TextInput label={t("Nouvel e-mail")} type="email" autoComplete="email" value={email} onChange={setEmail} required disabled={busy} icon={Mail} />
+          <TextInput label={t("Mot de passe actuel")} type="password" autoComplete="current-password" value={currentPassword} onChange={setCurrentPassword} required disabled={busy} icon={Lock} />
+          <Button type="submit" disabled={busy || !email.trim() || !currentPassword} icon={saving ? Loader2 : Mail} className="w-full">{saving ? t("Enregistrement…") : t("Corriger mon adresse")}</Button>
         </form>}
-        {hasPassword === false && <p className="mt-5 text-sm leading-6 text-slate-300">Ce compte utilise une connexion sociale et n’a pas de mot de passe NXT5. La correction de l’adresse nécessite une réauthentification par mot de passe. Déconnecte-toi pour utiliser un autre compte ou contacte le support si cette adresse est incorrecte.</p>}
-        <Button type="button" variant="ghost" icon={LogOut} onClick={onLogout} disabled={busy} className="mt-4 w-full">Se déconnecter</Button>
+        {hasPassword === false && <p className="mt-5 text-sm leading-6 text-slate-300">{t("Ce compte utilise une connexion sociale et n’a pas de mot de passe NXT5. La correction de l’adresse nécessite une réauthentification par mot de passe. Déconnecte-toi pour utiliser un autre compte ou contacte le support si cette adresse est incorrecte.")}</p>}
+        <Button type="button" variant="ghost" icon={LogOut} onClick={onLogout} disabled={busy} className="mt-4 w-full">{t("Se déconnecter")}</Button>
     </ModalDialog>
   );
 }
 
 export function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate }) {
+  useLanguage();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -200,19 +225,19 @@ export function InactivityReturnModal({ user, onUserUpdate, pushToast, navigate 
 
   if (!user?.inactivity_notice) return null;
   return <ModalDialog onClose={() => acknowledge()} busy={saving} aria-labelledby="inactivity-return-title" className="nxt5-account-dialog nxt5-enter relative w-full max-w-2xl border border-cyan-200/26 p-5 sm:p-7">
-      <button type="button" onClick={() => acknowledge()} disabled={saving} autoFocus aria-label="Fermer le message" className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white disabled:opacity-40"><X className="h-5 w-5" /></button>
+      <button type="button" onClick={() => acknowledge()} disabled={saving} autoFocus aria-label={t("Fermer le message")} className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white disabled:opacity-40"><X className="h-5 w-5" /></button>
       <div className="grid h-14 w-14 place-items-center rounded-2xl border border-cyan-200/28 bg-gradient-to-br from-cyan-400/18 to-fuchsia-400/14 text-cyan-100 shadow-[0_0_28px_rgba(34,211,238,.15)]"><Sparkles className="h-7 w-7" /></div>
-      <Badge tone="cyan" className="mt-5">Bon retour</Badge>
-      <h2 id="inactivity-return-title" className="mt-3 pr-12 text-2xl font-bold tracking-tight text-white">Content de te revoir sur NXT5</h2>
-      <p className="mt-3 max-w-xl text-sm font-normal leading-6 text-slate-300 sm:text-base">Ton compte n'avait pas été actif depuis au moins trois mois. Tes équipes et tes données sont toujours disponibles : tu peux reprendre exactement là où tu t'étais arrêté.</p>
+      <Badge tone="cyan" className="mt-5">{t("Bon retour")}</Badge>
+      <h2 id="inactivity-return-title" className="mt-3 pr-12 text-2xl font-bold tracking-tight text-white">{t("Content de te revoir sur NXT5")}</h2>
+      <p className="mt-3 max-w-xl text-sm font-normal leading-6 text-slate-300 sm:text-base">{t("Ton compte n'avait pas été actif depuis au moins trois mois. Tes équipes et tes données sont toujours disponibles : tu peux reprendre exactement là où tu t'étais arrêté.")}</p>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl border border-emerald-200/16 bg-emerald-300/[0.055] p-4"><p className="flex items-center gap-2 text-sm font-black text-emerald-100"><ShieldCheck className="h-4 w-4" />Données préservées</p><p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">Ce message n'affiche aucun détail sur tes équipes, tes games ou leurs membres.</p></div>
-        <div className="rounded-2xl border border-cyan-200/16 bg-cyan-300/[0.055] p-4"><p className="flex items-center gap-2 text-sm font-black text-cyan-100"><Mail className="h-4 w-4" />Rappel maîtrisé</p><p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">L'e-mail de retour peut être désactivé à tout moment dans les paramètres.</p></div>
+        <div className="rounded-2xl border border-emerald-200/16 bg-emerald-300/[0.055] p-4"><p className="flex items-center gap-2 text-sm font-black text-emerald-100"><ShieldCheck className="h-4 w-4" />{t("Données préservées")}</p><p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">{t("Ce message n'affiche aucun détail sur tes équipes, tes games ou leurs membres.")}</p></div>
+        <div className="rounded-2xl border border-cyan-200/16 bg-cyan-300/[0.055] p-4"><p className="flex items-center gap-2 text-sm font-black text-cyan-100"><Mail className="h-4 w-4" />{t("Rappel par e-mail")}</p><p className="mt-1.5 text-xs font-semibold leading-5 text-slate-300">{t("L'e-mail de retour peut être désactivé à tout moment dans les paramètres.")}</p></div>
       </div>
-      {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/24 bg-rose-400/10 p-3 text-sm font-bold text-rose-100">{error}</div>}
+      {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/24 bg-rose-400/10 p-3 text-sm font-bold text-rose-100">{t(error)}</div>}
       <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <Button type="button" variant="ghost" onClick={() => acknowledge()} disabled={saving} className="sm:min-w-36">Rester ici</Button>
-        <Button type="button" icon={saving ? Loader2 : ArrowRight} onClick={() => acknowledge("/equipes")} disabled={saving} className="sm:min-w-48">{saving ? "Ouverture..." : "Voir mes équipes"}</Button>
+        <Button type="button" variant="ghost" onClick={() => acknowledge()} disabled={saving} className="sm:min-w-36">{t("Rester ici")}</Button>
+        <Button type="button" icon={saving ? Loader2 : ArrowRight} onClick={() => acknowledge("/mon-equipe")} disabled={saving} className="sm:min-w-48">{saving ? "Ouverture..." : t("Voir mes équipes")}</Button>
       </div>
   </ModalDialog>;
 }
@@ -245,20 +270,24 @@ function assistantEntityForRoute(route, data, selectedTeamId) {
 }
 
 export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
+  useLanguage();
   if (!user?.email || user.email_verified !== true) return <EmailVerificationGate user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
   return <VerifiedMainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
 }
 
 function EmailVerificationGate({ user, onLogout, onUserUpdate, pushToast }) {
+  useLanguage();
   useAppLoading(null);
   const Dialog = user?.email ? EmailVerificationRequiredModal : MissingEmailModal;
   return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><Dialog user={user} onLogout={() => onLogout()} onUserUpdate={onUserUpdate} pushToast={pushToast} /></div>;
 }
 
 function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
+  useLanguage();
   const isPlatformAdmin = user?.is_platform_admin === true;
   const initialPage = new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path);
   const [active, setActiveState] = useState(initialPage);
+  const requiresHistory = requiresCompleteHistory(active, route);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const previousPage = useRef(active);
@@ -278,9 +307,9 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
     onError: (error) => pushToast({ type: "red", title: "Enregistrement impossible", text: error.message }),
   }));
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
-  const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll } = useTeamData(planningStore, route.search);
+  const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll, ensureHistory, loadNextPage, historyLoading, historyError } = useTeamData(planningStore, route.search, { requireHistory: requiresHistory });
   const teamCreation = useTeamCreation({ setSelectedTeamId, refreshAll, pushToast });
-  const independentAccountPage = active === "account-settings";
+  const independentAccountPage = ["account-settings", "social-calendar"].includes(active);
   const waitingForBootstrap = !independentAccountPage && !bootstrapReady && (!bootstrapped || loading);
   useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -293,7 +322,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   }
 
   function openTeamCreation() {
-    navigate("/equipes?setup=1");
+    navigate("/mon-equipe?setup=1");
   }
 
   function openTeamManagement() {
@@ -322,34 +351,40 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   const isTeamSetup = active === "teams" && (["create", "setup", "join"].some(key => setupParams.get(key) === "1") || setupParams.has("invite"));
   const teamSetupOnly = workspaceLocked && isTeamSetup;
   const workspacePage = ["home", "teams", "team-management", "bot-discord", "matches", "reports", "trends", "planning", "draft", "profile"].includes(active) && !teamSetupOnly;
+  const historyComplete = data.historyComplete !== false && !data.pagination?.hasMore;
+  const waitingForHistory = requiresHistory && !historyComplete;
+  useEffect(() => {
+    if (!requiresHistory || !bootstrapReady || workspaceLocked || historyComplete || historyLoading || historyError || data.selectedTeamId !== selectedTeamId) return;
+    void ensureHistory?.().catch(() => {});
+  }, [requiresHistory, bootstrapReady, workspaceLocked, historyComplete, historyLoading, historyError, data.selectedTeamId, selectedTeamId, ensureHistory]);
 
   const page = useMemo(() => {
+    if (active === "social-calendar") return isPlatformAdmin ? <SocialCalendar key={user.id} /> : <Surface className="p-6"><p role="alert">{t("Ce calendrier est réservé au compte propriétaire de NXT5.")}</p></Surface>;
     if (active === "bot-discord") return <DiscordWorkspace data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} />;
-    if (active === "teams") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} setupOnly={teamSetupOnly} />;
-    if (active === "team-management") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly />;
-    if (active === "matches" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} />;
+    if (active === "teams") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} setupOnly={teamSetupOnly} onLoadHistory={ensureHistory} historyLoading={historyLoading} historyError={historyError} />;
+    if (active === "team-management") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly onLoadHistory={ensureHistory} historyLoading={historyLoading} historyError={historyError} />;
+    if (active === "matches" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} ensureHistory={ensureHistory} loadNextPage={loadNextPage} historyLoading={historyLoading} historyError={historyError} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
-    if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} planningStore={planningStore} currentMember={currentMember} user={user} />;
+    if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} planningStore={planningStore} currentMember={currentMember} user={user} refreshAll={refreshAll} />;
     if (active === "draft") return <DraftWorkspace data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
     return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamSetupOnly, teamCreation]);
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamSetupOnly, teamCreation, ensureHistory, loadNextPage, historyLoading, historyError]);
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const onboardingReady = Boolean(bootstrapReady && currentTeam && data.selectedTeamId === currentTeam.id && !workspaceLocked && !apiError);
   const onboarding = useOnboarding({ user, currentTeam, data, route, ready: onboardingReady });
   const onboardingSteps = getOnboardingSteps({ data, currentTeam, currentMember, user, discovered: onboarding.discovered });
   const nextStep = onboardingSteps.find(step => !step.done && !step.disabled);
   const showStartReturn = onboardingReady && !onboarding.dismissed && onboardingSteps.some(step => !step.done) && !isTeamSetup && ["teams", "team-management", "matches", "reports", "planning", "profile"].includes(active);
-  const helpSection = { home: "getting-started", teams: "teams-and-roster", "team-management": "teams-and-roster", matches: setupParams.get("import") === "1" ? "imports-and-games" : "statistics", reports: "reviews", profile: "player-profile", planning: "planning", trends: "trends", draft: "champion-pool" }[active] || "getting-started";
-  const currentPage = active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} /> : page;
+  const helpSection = guideSectionForRoute(route);
+  const currentPage = waitingForHistory ? <HistoryLoadingState error={historyError} loading={historyLoading} onRetry={() => { void ensureHistory?.().catch(() => {}); }} /> : active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} loading={loading} apiError={apiError} /> : page;
   const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{currentPage}</PassFeatureGate> : currentPage;
-  const assistantWidget = !workspaceLocked && <>
-    {active !== "home" && data.teams.length > 0 && <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? "Fermer l'assistant NXT5" : "Ouvrir l'assistant NXT5"} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher", assistantOpen && "is-open")}>
+  const assistantLauncher = !workspaceLocked && active !== "home" && data.teams.length > 0 && <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? t("Fermer l'assistant NXT5") : t("Ouvrir l'assistant NXT5")} title={t("Assistant")} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher nxt5-chrome-icon-button", assistantOpen && "is-open")}>
       <span aria-hidden="true">{assistantOpen ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}</span>
-      <span className="hidden sm:inline">{assistantOpen ? "Fermer" : "Assistant"}</span>
-    </button>}
+    </button>;
+  const assistantWidget = !workspaceLocked && <>
     <Suspense fallback={null}><AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId || null} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>
   </>;
   const inactivityReturnModal = user?.email_verified && user?.inactivity_notice
@@ -359,9 +394,9 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   if (!bootstrapReady && !independentAccountPage) return <div className="relative min-h-screen text-white">
     <AmbientBackground />
     <main className="relative z-10 mx-auto max-w-3xl px-4 py-12">
-      <p role="status" className="mb-4 font-semibold">{loading ? "Chargement de toutes les games…" : "L’historique complet n’a pas pu être chargé."}</p>
+      <p role="status" className="mb-4 font-semibold">{loading ? t("Chargement de l’équipe…") : t("Les données n’ont pas pu être actualisées")}</p>
       <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
-      <Button variant="ghost" icon={LogOut} onClick={logout}>Déconnexion</Button>
+      <Button variant="ghost" icon={LogOut} onClick={logout}>{t("Déconnexion")}</Button>
     </main>
   </div>;
   if (!data.teams.length && active !== "guide" && active !== "bot-discord" && !independentAccountPage) return <>
@@ -371,12 +406,12 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <ResponsiveImage src="/assets/nxt5-loader-favicon.png" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14" />
-            <div className="min-w-0"><Nxt5Wordmark className="h-auto w-[8.5rem] max-w-[40vw] object-left" /><p className="mt-1 text-xs font-medium text-slate-400">Ton espace équipe</p></div>
+            <div className="min-w-0"><Nxt5Wordmark className="h-auto w-[8.5rem] max-w-[40vw] object-left" /><p className="mt-1 text-xs font-medium text-slate-400">{t("Ton espace équipe")}</p></div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="ghost" onClick={() => navigate("/parametres")}>Paramètres</Button>
-            {isPlatformAdmin && <Button variant="ghost" onClick={() => navigate("/admin/abonnements")}>Comptes et abonnements</Button>}
-            <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4" aria-label="Déconnexion"><span className="hidden sm:inline">Déconnexion</span></Button>
+            <Button variant="ghost" onClick={() => navigate("/parametres")}>{t("Paramètres")}</Button>
+            {isPlatformAdmin && <Button variant="ghost" onClick={() => navigate("/admin/abonnements")}>{t("Comptes et abonnements")}</Button>}
+            <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4" aria-label={t("Déconnexion")}><span className="hidden sm:inline">{t("Déconnexion")}</span></Button>
           </div>
         </div>
         <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
@@ -392,7 +427,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   return (
     <div className="relative min-h-screen text-white">
       <AmbientBackground />
-      <a className="nxt5-workspace-skip" href="#workspace-content">Aller au contenu</a>
+      <a className="nxt5-workspace-skip" href="#workspace-content">{t("Aller au contenu")}</a>
       <Sidebar
         active={active}
         setActive={setActive}
@@ -402,6 +437,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
         setCollapsed={setSidebarCollapsed}
         user={user}
         currentMember={currentMember}
+        currentTeamId={selectedTeamId}
         linkedPlayer={linkedPlayer}
         onLogout={logout}
         roleLabel={roleLabel}
@@ -420,13 +456,14 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
           onCreateTeam={openTeamCreation}
           onManageTeam={openTeamManagement}
           onHelp={() => navigate(`/guide?section=${helpSection}`)}
+          assistantLauncher={assistantLauncher}
         />
         <main id="workspace-content" tabIndex={-1} className="nxt5-workspace-main">
           <WorkspaceErrorBoundary key={active}>
             <ApiBanner error={apiError} onRetry={refreshAll} retrying={loading} />
-            {showStartReturn && <div className="nxt5-start-return"><button type="button" onClick={() => navigate("/accueil")}>← Mon accueil</button><span>{nextStep ? `Prochaine étape : ${nextStep.label.toLowerCase()}` : onboardingSteps.every(step => step.done) ? "Tes premiers repères sont en place" : "Ton équipe prépare la suite"}</span></div>}
+            {showStartReturn && <div className="nxt5-start-return"><button type="button" onClick={() => navigate("/accueil")}>{t("← Mon accueil")}</button><span>{nextStep ? t("Prochaine étape : {0}", [t(nextStep.label).toLowerCase()]) : onboardingSteps.every(step => step.done) ? t("Premières étapes terminées") : t("Prépare la prochaine séance")}</span></div>}
             <div key={active} className="nxt5-fade-in min-w-0">
-              <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{independentAccountPage || data.selectedTeamId === selectedTeamId ? guardedPage : <div role="status" className="py-8">Chargement de l’équipe…</div>}</Suspense>
+              <Suspense fallback={<div className="py-8"><SkeletonRows rows={4} /></div>}>{independentAccountPage || data.selectedTeamId === selectedTeamId ? guardedPage : <div role="status" className="py-8">{t("Chargement de l’équipe…")}</div>}</Suspense>
             </div>
           </WorkspaceErrorBoundary>
         </main>
@@ -439,9 +476,10 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
 }
 
 export default function PrivateApp({ user, route, navigate, pushToast, onLogout, onUserUpdate }) {
+  useLanguage();
   const adminPage = adminPageFromRoute(route);
   useAppLoading(adminPage ? null : undefined);
   if (adminPage && (!user?.email || user.email_verified !== true)) return <EmailVerificationGate user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
-  if (adminPage) return <Suspense fallback={<div className="p-6 text-slate-200" role="status" aria-label="Chargement de l’administration"><SkeletonRows count={3} /></div>}><AdministrationPage route={route} navigate={navigate} user={user} onLogout={onLogout} /></Suspense>;
+  if (adminPage) return <Suspense fallback={<div className="p-6 text-slate-200" role="status" aria-label={t("Chargement de l’administration")}><SkeletonRows count={3} /></div>}><AdministrationPage route={route} navigate={navigate} user={user} onLogout={onLogout} /></Suspense>;
   return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
 }

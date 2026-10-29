@@ -20,20 +20,21 @@ export const NXT5_IMPORTER_MAC_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platform=mac
 export const NXT5_IMPORTER_MAC_INTEL_URL = `${NXT5_IMPORTER_DOWNLOAD_URL}?platform=mac&arch=x64`;
 
 export const NAV = [
-  { id: "home", label: "Accueil", hint: "Ton prochain pas", icon: House, path: "/accueil" },
-  { id: "teams", label: "Équipe", hint: "Retrouver tes joueurs", icon: Users, shortcut: "T", path: "/equipes" },
+  { id: "home", label: "Accueil", hint: "Tes prochaines actions", icon: House, path: "/accueil" },
+  { id: "teams", label: "Mon équipe", hint: "Retrouver tes joueurs", icon: Users, shortcut: "T", path: "/mon-equipe" },
   { id: "matches", label: "Parties", hint: "Importer et revoir une partie", icon: Swords, shortcut: "G", path: "/games" },
   { id: "bot-discord", label: "Bot Discord", hint: "Connexion et publications", icon: Bot, path: "/bot-discord" },
-  { id: "trends", label: "Analyses", hint: "Suivre plusieurs parties", icon: Activity, shortcut: "N", path: "/tendances" },
+  { id: "trends", label: "Analyses", hint: "Comparer tes parties", icon: Activity, shortcut: "N", path: "/tendances" },
   { id: "planning", label: "Planning", hint: "Organiser les séances", icon: CalendarDays, shortcut: "L", path: "/planning" },
-  { id: "draft", label: "Draft", hint: "Choisir les champions", icon: Sparkles, shortcut: "D", path: "/draft/pool" },
+  { id: "draft", label: "Draft & Pool", hint: "Choisir les champions", icon: Sparkles, shortcut: "D", path: "/draft/pool" },
   { id: "reports", label: "Débriefs", hint: "Noter les points à travailler", icon: FileText, shortcut: "R", path: "/rapports" },
   { id: "profile", label: "Mon profil", hint: "Suivre ta progression", icon: Activity, shortcut: "P", path: "/mon-profil" },
   { id: "guide", label: "Guide d’utilisation", hint: "Les étapes et les mots utiles", icon: BookOpen, shortcut: "A", path: "/guide", hidden: true },
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },
+  { id: "social-calendar", label: "Calendrier", icon: CalendarDays, path: "/calendrier", hidden: true },
   { id: "team-management", label: "Gestion équipe", icon: Settings, shortcut: "G", path: "/gestion-equipe", hidden: true },
   { id: "audience", label: "Fréquentation", hint: "Audience et conversions", icon: BarChart3, path: "/admin/frequentation", hidden: true },
-  { id: "admin", label: "Administration", hint: "Vue plateforme", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
+  { id: "admin", label: "Administration", hint: "Gérer NXT5", icon: ShieldCheck, shortcut: "D", path: "/admin", hidden: true },
   { id: "access-requests", label: "Demandes d’accès", hint: "Validation des offres", icon: Users, path: "/admin/demandes-acces", hidden: true },
   { id: "account-subscriptions", label: "Comptes et abonnements", hint: "Attributions manuelles", icon: Users, path: "/admin/abonnements", hidden: true },
 ];
@@ -48,10 +49,11 @@ export const DRAFT_VIEW_ROUTES = [
 
 export const PROFILE_VIEW_ROUTES = [
   { id: "overview", label: "Synthèse", path: "" },
-  { id: "champions", label: "Champions", path: "champions" },
-  { id: "pool", label: "Champions déclarés", path: "pool" },
+  { id: "champions", label: "Champions joués", path: "champions" },
+  { id: "pool", label: "Champion pool", path: "pool" },
   { id: "history", label: "Historique", path: "historique" },
   { id: "coaching", label: "Suivi", path: "coaching" },
+  { id: "showcase", label: "Carte & Wrapped", path: "carte" },
 ];
 
 export const AUTH_ROUTES = {

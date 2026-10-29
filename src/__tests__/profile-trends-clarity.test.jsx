@@ -43,13 +43,13 @@ describe("profile and analyses reading order", () => {
     expect(onChange).toHaveBeenCalledWith("coaching");
   });
 
-  it("discloses secondary analyses while preserving exact source objects and the objective action", () => {
+  it("discloses secondary analyses while preserving exact source objects and the playstyle action", () => {
     const sourceGames = Object.freeze([{ id: "source-1", title: "Game personnelle" }]);
     const objective = Object.freeze({ title: "Réduire les morts gratuites", why: "Les deaths montent trop haut pour transformer les bons plans en games contrôlées.", sourceGames });
     const plan = Object.freeze({ title: "Engage", value: "3 games", text: "Un pattern à revoir dans la review.", sourceGames, toneName: "cyan" });
     const onOpenSources = vi.fn();
-    const onObjectives = vi.fn();
-    mount(<TrendsOverview objective={objective} plan={plan} roles={[]} briefs={[{ label: "Objectifs", title: "Premier objectif", text: "3 games", sourceGames }]} alerts={[{ title: "Vision", text: "À vérifier", action: "Ouvrir la VOD", icon: AlertTriangle }]} onOpenSources={onOpenSources} onObjectives={onObjectives} />);
+    const onPlaystyle = vi.fn();
+    mount(<TrendsOverview objective={objective} plan={plan} roles={[]} briefs={[{ label: "Objectifs", title: "Premier objectif", text: "3 games", sourceGames }]} alerts={[{ title: "Vision", text: "À vérifier", action: "Ouvrir la VOD", icon: AlertTriangle }]} onOpenSources={onOpenSources} onPlaystyle={onPlaystyle} />);
     expect(text(renderer.toJSON())).toContain("Revoir les situations de mort");
     expect(renderer.root.findAllByType("details").every((detail) => !detail.props.open)).toBe(true);
     const button = (label) => renderer.root.findAllByType("button").find((node) => text(node).includes(label));
@@ -57,8 +57,8 @@ describe("profile and analyses reading order", () => {
     expect(onOpenSources.mock.calls[0][0].games).toBe(sourceGames);
     act(() => button("Examiner les parties de ce plan").props.onClick());
     expect(onOpenSources.mock.calls[1][0].games).toBe(sourceGames);
-    act(() => button("Voir les objectifs par rôle").props.onClick());
-    expect(onObjectives).toHaveBeenCalledOnce();
+    act(() => button("Comprendre notre style de jeu").props.onClick());
+    expect(onPlaystyle).toHaveBeenCalledOnce();
     expect(objective.title).toBe("Réduire les morts gratuites");
     expect(sourceGames[0].title).toBe("Game personnelle");
   });

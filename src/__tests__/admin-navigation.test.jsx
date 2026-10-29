@@ -218,7 +218,7 @@ describe("administration route contract", () => {
     selectedView("teams");
     expect(renderer.root.findByProps({ "data-admin-view": "teams" }).props["data-team-filter"]).toBe("never");
     expect(window.location.search).toBe("?filtre=never");
-    await act(async () => renderer.root.findByType("select").props.onChange({ target: { value: "/admin/bot-discord/publications" } }));
+    await act(async () => renderer.root.findByProps({ "aria-label": "Rubrique" }).props.onChange({ target: { value: "/admin/bot-discord/publications" } }));
     selectedView("bot-publications");
     await act(async () => window.history.back());
     selectedView("teams");
@@ -258,7 +258,7 @@ describe("administration editor navigation", () => {
     await setFormState("Formulaire modifié");
     const focus = vi.fn();
     document.activeElement = { focus };
-    const back = renderer.root.findAllByType("a").find(node => node.props.href === "/equipes");
+    const back = renderer.root.findAllByType("a").find(node => node.props.href === "/mon-equipe");
     await act(async () => back.props.onClick({ button: 0, preventDefault() {} }));
     expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
     expect(window.history.pushState).not.toHaveBeenCalled();

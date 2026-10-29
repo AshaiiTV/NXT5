@@ -17,7 +17,7 @@ async function prepareFonts() {
   })).catch((error) => { fontsReady = undefined; throw error; });
   return fontsReady;
 }
-export async function renderGamePublicationPng(snapshot, { loadAssets = (data) => loadGamePublicationAssets(data, url => pngLoadImage(assetProxyUrl(url))) } = {}) {
+export async function renderGamePublicationPng(snapshot, { loadAssets = (data) => loadGamePublicationAssets(data, url => pngLoadImage(assetProxyUrl(url)), { loadObjectiveImage: pngLoadImage }) } = {}) {
   await prepareFonts();
   const { canvas } = await renderGamePublicationCanvas(snapshot, {
     createCanvas(width, height) { const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; return canvas; },

@@ -222,6 +222,83 @@ const frame = (timestamp = 600000, ownGold = 3000) => ({ timestamp, participantF
 const statsHook = ({ rows, team = "team-a", version = 0 }) => useMatchupStatRows(team, rows, version);
 
 describe("matchup lane detail loading", () => {
+  it("reuses loaded milestones across patch filters and fetches only newly visible games", async () => {
+    const requests = pendingRequests();
+    const rows = [row("one"), row("two")];
+    const app = mountHook(statsHook, { rows });
+    await resolve(requests[0], { matches: rows.map((item) => detail(item.match.id, { timeline: { info: { frames: [frame()] } } })) });
+    app.update({ rows: [rows[0]] });
+    expect(app.state).toMatchObject({ loading: false, loaded: 1, total: 1 });
+    expect(notebookStats(app.state.rows).milestones[0].gold).toEqual({ value: 200, count: 1 });
+    app.update({ rows });
+    expect(app.state).toMatchObject({ loading: false, loaded: 2, total: 2 });
+    expect(requests).toHaveLength(1);
+    app.update({ rows: [...rows, row("three")] });
+    expect(app.state).toMatchObject({ loading: true, loaded: 2, total: 3 });
+    expect(requests[1].body.matchIds).toEqual(["three"]);
+    await resolve(requests[1], { matches: [detail("three", {})] });
+    expect(app.state).toMatchObject({ loading: false, loaded: 3, total: 3 });
+  });
+
+  it("retries a failed batch without downloading successful earlier batches again", async () => {
+    const requests = pendingRequests();
+    const rows = Array.from({ length: 6 }, (_, index) => row(`retry-${index}`));
+    const app = mountHook(statsHook, { rows });
+    await resolve(requests[0], { matches: rows.slice(0, 5).map((item) => detail(item.match.id, { timeline: { info: { frames: [frame()] } } })) });
+    await act(async () => requests[1].reject(new Error("Connexion interrompue")));
+    expect(app.state).toMatchObject({ loading: false, loaded: 5, total: 6, error: "Connexion interrompue" });
+    act(() => app.state.retry());
+    expect(app.state).toMatchObject({ loading: true, loaded: 5, total: 6, error: "" });
+    expect(requests[2].body.matchIds).toEqual(["retry-5"]);
+    await resolve(requests[2], { matches: [detail("retry-5", {})] });
+    expect(app.state).toMatchObject({ loading: false, loaded: 6, total: 6 });
+  });
+
+  it("invalidates cached milestones after a bootstrap refresh", async () => {
+    const requests = pendingRequests();
+    const rows = [row("one")];
+    const app = mountHook(statsHook, { rows });
+    await resolve(requests[0], { matches: [detail("one", { timeline: { info: { frames: [frame()] } } })] });
+    app.update({ rows, version: 1 });
+    expect(app.state).toMatchObject({ loading: true, loaded: 0, total: 1 });
+    expect(notebookStats(app.state.rows).milestones[0].gold.value).toBeNull();
+    expect(requests[1].body.matchIds).toEqual(["one"]);
+    await resolve(requests[1], { matches: [detail("one", { timeline: { info: { frames: [frame(600000, 3500)] } } })] });
+    expect(notebookStats(app.state.rows).milestones[0].gold.value).toBe(700);
+  });
+
+  it("does not reuse an identically named game's cached milestones across teams", async () => {
+    const requests = pendingRequests();
+    const rows = [row("one")];
+    const app = mountHook(statsHook, { rows });
+    await resolve(requests[0], { matches: [detail("one", { timeline: { info: { frames: [frame()] } } })] });
+    app.update({ rows, team: "team-b" });
+    expect(app.state).toMatchObject({ loading: true, loaded: 0 });
+    expect(notebookStats(app.state.rows).milestones[0].gold.value).toBeNull();
+    expect(requests[1].body).toEqual({ teamId: "team-b", matchIds: ["one"] });
+    await resolve(requests[1], { matches: [detail("one", {}, "team-b")] });
+    expect(app.state.rows[0].match.team_id).toBe("team-b");
+  });
+
+  it("bounds inactive cached games without evicting games in a large active selection", async () => {
+    const requests = pendingRequests();
+    const rows = Array.from({ length: 45 }, (_, index) => row(`cache-${index}`));
+    const app = mountHook(statsHook, { rows });
+    for (let index = 0; index < 9; index += 1) {
+      await resolve(requests[index], { matches: requests[index].body.matchIds.map((id) => detail(id, {})) });
+    }
+    expect(app.state).toMatchObject({ loading: false, loaded: 45 });
+    app.update({ rows: [...rows] });
+    expect(requests).toHaveLength(9);
+    app.update({ rows: [rows[0]] });
+    expect(app.state).toMatchObject({ loading: false, loaded: 1 });
+    app.update({ rows });
+    expect(app.state).toMatchObject({ loading: true, loaded: 41, total: 45 });
+    expect(requests[9].body.matchIds).toEqual(["cache-1", "cache-2", "cache-3", "cache-4"]);
+    await resolve(requests[9], { matches: requests[9].body.matchIds.map((id) => detail(id, {})) });
+    expect(app.state).toMatchObject({ loading: false, loaded: 45 });
+  });
+
   it("keeps unknown XP unavailable and uses full detail gold while preserving compact CS before loading", async () => {
     const requests = pendingRequests();
     const compact = row("one", { nxt5: { timelineSummary: { csMilestones: { 1: { cs10: 70 }, 6: { cs10: 60 } } } } });
@@ -273,6 +350,11 @@ describe("matchup lane detail loading", () => {
     expect(app.state).toMatchObject({ loaded: 1, total: 2, loading: false });
     expect(app.state.error).toContain("Certaines games ne sont plus disponibles");
     expect(notebookStats(app.state.rows).milestones[0].gold).toEqual({ value: 200, count: 1 });
+    act(() => app.state.retry());
+    expect(requests[1].body.matchIds).toEqual(["deleted"]);
+    expect(app.state.loaded).toBe(1);
+    await resolve(requests[1], { matches: [detail("deleted", {})] });
+    expect(app.state).toMatchObject({ loaded: 2, total: 2, loading: false, error: "" });
   });
 
   it("retains the earliest observation in the window even when source frames are unordered", async () => {

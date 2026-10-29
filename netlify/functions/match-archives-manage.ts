@@ -6,24 +6,27 @@ import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { cleanText } from './_lib/text';
 import { TEAM_STAFF_ROLES } from './_lib/teams';
 import { randomUUID } from 'node:crypto';
+import { groupOpponentError, opponentUuid } from './_lib/opponents';
+import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
-    await assertSchemaReady();
-    const user = await requireAuth(request, context);
     const body = await readJson(request);
     const action = cleanText(body.action || 'create', 20);
-    const teamId = cleanText(body.teamId, 80);
-    const archiveId = cleanText(body.archiveId, 80);
+    if (!['create', 'update', 'delete'].includes(action)) throw Object.assign(new Error('Action inconnue.'), { status: 400 });
+    // Adding games to a linked group propagates affiliations through SQL and
+    // may enqueue deferred match publications, including from older clients.
+    if (action !== 'delete') assertMatchSourceMutationEnvironment(context);
     const name = cleanText(body.name, 140);
     const description = cleanText(body.description, 1000);
-    const matchIds = Array.isArray(body.matchIds) ? body.matchIds.map((id) => cleanText(id, 80)).filter(Boolean) : [];
-
-    if (matchIds.length > 80) throw Object.assign(new Error('Un groupe peut contenir au maximum 80 parties. Réduis la sélection.'), { status: 400 });
-
-    if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
+    if (Array.isArray(body.matchIds) && body.matchIds.length > 80) throw Object.assign(new Error('Un groupe peut contenir au maximum 80 parties. Réduis la sélection.'), { status: 400 });
+    const teamId = opponentUuid(body.teamId);
+    const archiveId = action === 'create' ? '' : opponentUuid(body.archiveId);
+    const matchIds = Array.isArray(body.matchIds) ? [...new Set(body.matchIds.map(opponentUuid))] : [];
+    await assertSchemaReady();
+    const user = await requireAuth(request, context);
 
     const membership = await sql`
       select teams.owner_id, team_members.role
@@ -47,7 +50,13 @@ export default async function handler(request: Request, context: Context): Promi
                and (${existingArchiveId === null} or tm.role = any(${TEAM_STAFF_ROLES}) or exists (
                  select 1 from match_archives a where a.id = ${existingArchiveId} and a.team_id = t.id and a.created_by = ${user.id}))))
            and (${existingArchiveId === null} or exists (
-             select 1 from match_archives a where a.id = ${existingArchiveId} and a.team_id = t.id))`
+             select 1 from match_archives a where a.id = ${existingArchiveId} and a.team_id = t.id))
+           and (${action !== 'update'} or exists (
+             select 1 from match_archives a where a.id = ${existingArchiveId} and a.team_id = t.id
+               and (a.opponent_id is null or (a.match_ids @> ${JSON.stringify(matchIds)}::jsonb and a.match_ids <@ ${JSON.stringify(matchIds)}::jsonb)
+                 or t.owner_id = ${user.id} or exists (
+                   select 1 from team_members tm where tm.team_id = t.id and tm.user_id = ${user.id} and tm.role = any(${TEAM_STAFF_ROLES})
+                 ))))`
     ];
 
     if (action === 'delete') {
@@ -78,7 +87,7 @@ export default async function handler(request: Request, context: Context): Promi
         and id = any(${matchIds})
     `;
     const validMatchIds = validMatches.map((match) => match.id);
-    if (!validMatchIds.length) throw Object.assign(new Error('Aucune game valide pour cette team.'), { status: 400 });
+    if (validMatchIds.length !== matchIds.length) throw Object.assign(new Error('Toutes les parties du groupe doivent appartenir à cette équipe.'), { status: 400 });
     const lockedMatchesQuery = (tx) => tx`select 1 / case when count(*) = ${validMatchIds.length} then 1 else 0 end from (
       select id from matches where team_id = ${teamId} and id = any(${validMatchIds}::uuid[]) for key share) locked_matches`;
 
@@ -89,6 +98,11 @@ export default async function handler(request: Request, context: Context): Promi
       if (!archive) throw Object.assign(new Error('Archive introuvable.'), { status: 404 });
       if (String(archive.created_by || '') !== String(user.id) && !isCaptain) {
         throw Object.assign(new Error('Seul le créateur ou le capitaine peut modifier cette archive.'), { status: 403 });
+      }
+      const sameMatches = Array.isArray(archive.match_ids) && archive.match_ids.length === matchIds.length
+        && matchIds.every(id => archive.match_ids.includes(id));
+      if (archive.opponent_id && !sameMatches && !isCaptain) {
+        throw Object.assign(new Error('Seul le propriétaire ou le staff peut modifier les parties d’un groupe lié à une équipe adverse.'), { status: 403, code: 'OPPONENT_ACCESS_DENIED' });
       }
       const results = await sql.transaction(tx => [
         ...lockedArchiveQueries(tx, archiveId), lockedMatchesQuery(tx),
@@ -120,6 +134,6 @@ export default async function handler(request: Request, context: Context): Promi
     return json({ archive: results[3][0] });
   } catch (err) {
     if (err?.code === '22012' || err?.code === '23503') return json({ error: 'Les accès, le groupe ou ses parties ont changé. Recharge l’équipe puis réessaie.' }, 409);
-    return handleError(err);
+    return handleError(groupOpponentError(err));
   }
 }

@@ -1,9 +1,11 @@
+import { useLanguage } from "./i18n/useLanguage.js";
+import { t } from "./i18n/translate.js";
 import React, { startTransition, useCallback, useEffect, useState, Suspense, useRef, lazy } from "react";
 import { apiFetch, API_BASE } from "./api/client.js";
 import { NAV } from "./app/constants.jsx";
 import { adminPageFromRoute } from "./app/admin-navigation.js";
 import { PERFORMANCE_MODE_STORAGE_KEY, configurePerformanceMode } from "./app/performance.js";
-import { authModeFromPath, buildLoginRedirect, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath } from "./app/routing.js";
+import { authModeFromPath, buildLoginRedirect, canonicalAppPath, gameWorkspaceSectionFromPath, gameWorkspaceSectionLabel, isAdminPath, isAppPath, profileViewFromPath, profileViewLabel, readRoute, isKnownPath } from "./app/routing.js";
 import CookieConsent from "./components/privacy/CookieConsent.jsx";
 import { reviewDrafts } from "./utils/review-drafts.js";
 import { ToastStack, Surface, Badge, Button } from "./components/ui/Core.jsx";
@@ -23,38 +25,55 @@ const PrivateApp = lazy(() => import("./AppContent.jsx"));
 const DemoPage = lazy(() => import("./pages/public/DemoPage.jsx").then((module) => ({ default: module.DemoPage })));
 
 function PrivateModuleLoading() {
+  useLanguage();
   useAppLoading("app");
   return null;
 }
 
 function PrivateRoute(props) {
+  useLanguage();
   return <Suspense fallback={<PrivateModuleLoading />}><PrivateApp {...props} /></Suspense>;
 }
 
 function VerifyEmailPage() {
+  useLanguage();
   useEffect(() => {
     const token = new URLSearchParams(window.location.search || "").get("token") || "";
     const query = token ? `?token=${encodeURIComponent(token)}` : "";
     window.location.replace(`${API_BASE}/verify-email${query}`);
   }, []);
 
-  return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface className="nxt5-auth-card text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Loader2 className="h-6 w-6 animate-spin" /></div><h1 className="mt-5 text-3xl font-black text-white">Vérification en cours</h1><p className="mt-3 text-sm font-normal leading-6 text-slate-300">On confirme ton adresse e-mail et on te redirige automatiquement.</p></Surface></main></div>;
+  return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface className="nxt5-auth-card text-center"><div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/25 bg-cyan-400/10 text-cyan-100"><Loader2 className="h-6 w-6 animate-spin" /></div><h1 className="mt-5 text-3xl font-black text-white">{t("Vérification en cours")}</h1><p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t("On confirme ton adresse e-mail et on te redirige automatiquement.")}</p></Surface></main></div>;
 }
 
-function VerifiedPage({ navigate }) {
+function VerifiedPage({ navigate, user, onLogout, checkingSession }) {
+  useLanguage();
   const params = new URLSearchParams(window.location.search || "");
   const success = params.get("success") === "true";
   const error = params.get("error");
+  const signinRequired = !success && error === "signin";
   const copy = success
-    ? ["Email vérifié !", "Tu peux maintenant accéder à ton espace NXT5 et recevoir les notifications.", "green"]
-    : error === "expired"
-      ? ["Lien expiré", "Ce lien a expiré. Renvoie un email de vérification depuis tes paramètres.", "yellow"]
-      : ["Lien invalide", "Lien invalide ou déjà utilisé.", "red"];
+    ? [t("Email vérifié !"), t("Tu peux maintenant accéder à ton espace NXT5 et recevoir les notifications."), "green"]
+    : signinRequired
+      ? [t("Connecte-toi pour vérifier ton e-mail"), t("Connecte-toi au compte concerné avec le mot de passe que tu as choisi lors de l’inscription, puis rouvre le lien reçu par e-mail dans ce même navigateur."), "yellow"]
+      : error === "expired"
+      ? [t("Lien expiré"), t("Ce lien a expiré. Renvoie un email de vérification depuis tes paramètres."), "yellow"]
+      : [t("Lien invalide"), t("Lien invalide ou déjà utilisé."), "red"];
   const [title, text, tone] = copy;
-  return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface className="nxt5-auth-card text-center"><Badge tone={tone}>{success ? "Vérifié" : "Vérification"}</Badge><h1 className="mt-5 text-3xl font-black text-white">{title}</h1><p className="mt-3 text-sm font-normal leading-6 text-slate-300">{text}</p><div className="mt-6 flex justify-center"><Button icon={ArrowRight} onClick={() => navigate("/parametres")}>{success ? "Ouvrir mes paramètres" : "Retour aux paramètres"}</Button></div></Surface></main></div>;
+  return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><main className="nxt5-entry-main nxt5-recovery-main"><Surface className="nxt5-auth-card text-center">
+    <Badge tone={tone}>{success ? t("Vérifié") : t("Vérification")}</Badge>
+    <h1 className="mt-5 text-3xl font-black text-white">{title}</h1>
+    <p className="mt-3 text-sm font-normal leading-6 text-slate-300">{text}</p>
+    {signinRequired && <p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t("Si tu ne connais pas ce mot de passe ou ne reconnais pas cette inscription, réinitialise le mot de passe de cette adresse e-mail avant de continuer.")}</p>}
+    <div className="mt-6 flex flex-wrap justify-center gap-3">{signinRequired ? <>
+      <Button icon={checkingSession ? Loader2 : ArrowRight} disabled={checkingSession} onClick={() => user ? onLogout() : navigate("/connexion")}>{checkingSession ? t("Vérification…") : t("Me connecter au compte concerné")}</Button>
+      <Button variant="ghost" onClick={() => navigate("/mot-de-passe-oublie")}>{t("Réinitialiser mon mot de passe")}</Button>
+    </> : <Button icon={ArrowRight} onClick={() => navigate("/parametres")}>{success ? t("Ouvrir mes paramètres") : t("Retour aux paramètres")}</Button>}</div>
+  </Surface></main></div>;
 }
 
 const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate, initialDemoPage }) {
+  useLanguage();
   const inviteMode = new URLSearchParams(route.search).has("invite") ?"register" : null;
   const mode = authModeFromPath(route.path) || inviteMode;
   const routeIsPrivate = isAppPath(route.path);
@@ -74,14 +93,14 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
   if (route.path === "/fonctionnalites") return <FeaturesPage navigate={navigate} user={user} />;
-  if (route.path === "/demo") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">Chargement de la démo…</div>}><DemoComponent navigate={navigate} user={user} /></Suspense>;
+  if (route.path === "/demo") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">{t("Chargement de la démo…")}</div>}><DemoComponent navigate={navigate} user={user} /></Suspense>;
   if (PUBLIC_GUIDES[route.path]) return <PublicGuidePage path={route.path} navigate={navigate} user={user} />;
   if (adminPage) return <PrivateRoute user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
   if (route.path === "/reseaux") return <SocialPage navigate={navigate} user={user} />;
   if (route.path === "/soutenir") return <SupportPage navigate={navigate} user={user} />;
   if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
   if (route.path === "/verify-email") return <VerifyEmailPage />;
-  if (route.path === "/verified") return <VerifiedPage navigate={navigate} />;
+  if (route.path === "/verified") return <VerifiedPage navigate={navigate} user={user} onLogout={onLogout} checkingSession={checkingSession} />;
   if (route.path === "/mot-de-passe-oublie") return <ForgotPasswordPage navigate={navigate} />;
   if (route.path === "/reinitialiser-mot-de-passe") return <ResetPasswordPage navigate={navigate} onAuth={onAuth} />;
   if (user) return <PrivateRoute user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
@@ -91,6 +110,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
 });
 
 export default function NXT5({ initialRoute, initialDemoPage } = {}) {
+  const language = useLanguage();
   const authGeneration = useRef(0);
   const [checkingSession, setCheckingSession] = useState(true);
   const [user, setUser] = useState(null);
@@ -107,7 +127,7 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
 
   const navigate = useCallback((path, options = {}) => {
     const method = options.replace ?"replaceState" : "pushState";
-    window.history[method]({}, "", path);
+    window.history[method]({}, "", canonicalAppPath(path));
     startTransition(() => setRoute(readRoute()));
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
@@ -124,7 +144,7 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
     setUser(nextUser);
   }, []);
   const handleLogout = useCallback(async (beforeLogout) => {
-    if (reviewDrafts.hasDrafts() && !window.confirm("Te déconnecter supprimera les brouillons de débrief non enregistrés de cette session. Continuer ?")) return;
+    if (reviewDrafts.hasDrafts() && !window.confirm(t("Te déconnecter supprimera les brouillons de débrief non enregistrés de cette session. Continuer ?"))) return;
     if (typeof beforeLogout === "function" && !await beforeLogout()) {
       pushToast({ type: "red", title: "Déconnexion interrompue", text: "Le planning n’a pas pu être enregistré. Réessaie avant de te déconnecter." });
       return;
@@ -165,14 +185,14 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
 
   useEffect(() => {
     const navTitle = route.path === "/profil" || route.path.startsWith("/profil/") || route.path === "/mon-profil" || route.path.startsWith("/mon-profil/")
-      ? `Profil > ${profileViewLabel(profileViewFromPath(route.path))}`
+      ? `${t("Profil")} > ${t(profileViewLabel(profileViewFromPath(route.path)))}`
       : ["/games", "/integration", "/statistiques", "/rapports"].includes(route.path)
         ? gameWorkspaceSectionLabel(gameWorkspaceSectionFromPath(route.path))
       : NAV.find((item) => item.path === route.path)?.label;
     const adminPage = adminPageFromRoute(route);
-    const title = adminPage ? `${adminPage.label} · Administration — NXT5` : navTitle ? `${navTitle} — NXT5` : undefined;
+    const title = adminPage ? `${t(adminPage.label)} · ${t("Administration")} — NXT5` : navTitle ? `${t(navTitle)} — NXT5` : undefined;
     applyDocumentMetadata(isKnownPath(route.path) ? route.path : "/404", { title });
-  }, [route.path, route.search]);
+  }, [route.path, route.search, language]);
 
   useEffect(() => {
     if (!checkingSession && user && (route.path === "/" || authModeFromPath(route.path))) {
@@ -181,9 +201,15 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
   }, [checkingSession, user, route.path]);
 
   useEffect(() => {
-    if (checkingSession || user || !isAppPath(route.path)) return;
+    if (route.path === "/equipes") {
+      navigate(`${route.path}${route.search}${window.location.hash || ""}`, { replace: true });
+    }
+  }, [route.path, route.search, navigate]);
+
+  useEffect(() => {
+    if (checkingSession || user || route.path === "/equipes" || !isAppPath(route.path)) return;
     const params = new URLSearchParams(route.search);
-    if (route.path === "/equipes" && params.has("invite")) {
+    if (route.path === "/mon-equipe" && params.has("invite")) {
       navigate(`/creer-un-compte?invite=${encodeURIComponent(params.get("invite"))}`, { replace: true });
       return;
     }

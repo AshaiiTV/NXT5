@@ -1,6 +1,6 @@
 # Politique de sécurité NXT5
 
-Mise à jour : 7 octobre 2026.
+Mise à jour : 29 octobre 2026.
 
 ## Périmètre et versions
 
@@ -16,7 +16,7 @@ La présence d’un correctif sur `main` ne prouve pas sa mise en production. Po
 
 ## Signaler une vulnérabilité en privé
 
-Pour signaler une vulnérabilité en privé, écrire à **[sachad.d91@gmail.com](mailto:sachad.d91@gmail.com)**, contact de Sacha Degouzon, éditeur de NXT5. La [page Contact NXT5](https://nxt5.org/contact) rappelle cette adresse et donne aussi accès au serveur Discord officiel : un message privé à l’équipe NXT5 identifiée sur ce serveur reste possible. Le lien d’invitation et les salons communautaires ne constituent pas un canal privé. Si le contact privé est indisponible, demander simplement à joindre l’équipe, sans publier les détails de la faille.
+Pour signaler une vulnérabilité en privé, écrire à **[contact@nxt5.org](mailto:contact@nxt5.org)**, adresse de contact NXT5. La [page Contact NXT5](https://nxt5.org/contact) rappelle cette adresse et donne aussi accès au serveur Discord officiel : un message privé à l’équipe NXT5 identifiée sur ce serveur reste possible. Le lien d’invitation et les salons communautaires ne constituent pas un canal privé. Si le contact privé est indisponible, demander simplement à joindre l’équipe, sans publier les détails de la faille.
 
 Ne pas ouvrir d’issue publique ni publier de preuve d’exploitation, de données d’équipe ou de compte dans une pull request ou un salon Discord public. L’adresse e-mail sert aussi aux autres demandes privées liées à NXT5 ; aucune clé de chiffrement n’est publiée. Cette politique ne suppose pas que le signalement privé de vulnérabilités GitHub soit activé.
 
@@ -49,13 +49,11 @@ Ces contrôles sont à réaliser et à documenter par le responsable du service.
 
 Les procédures complémentaires sont décrites dans [les migrations](database/MIGRATIONS.md), [la mesure d’audience](docs/audience-api.md) et [l’exploitation Discord](docs/discord-operations.md).
 
-### Exception temporaire de dépendance de compilation
+### Audit des dépendances de compilation
 
-La [politique d’audit](tools/audit-policy.mjs) accepte uniquement l’avis [GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) de `braces`, et ses dépendances transitives affectées par ce seul avis, lorsque tous leurs chemins sont marqués `dev` dans le lockfile. L’exception expire le **5 novembre 2026 à 00:00 UTC**. Les autres avis de sévérité modérée ou supérieure et toute présence de cette chaîne dans les dépendances de production restent bloquants. Cette exception ne signifie pas que l’audit npm complet est sans alerte et ne doit pas être prolongée automatiquement.
+La [politique d’audit](tools/audit-policy.mjs) bloque tous les avis de sévérité modérée, élevée ou critique, y compris dans les outils de compilation, et refuse une réponse d’audit invalide. Elle ne conserve aucune exception. Exécuter `node tools/audit-dependencies.mjs` après l’installation depuis le lockfile ; un résultat antérieur ne certifie pas l’état courant.
 
-Dans le verrou inspecté, Tailwind 3.4.19 introduit `braces@3.0.3` dans les outils de développement et de compilation. [La configuration Tailwind](tailwind.config.js) limite `content` à cinq chemins littéraux sans accolades : `./index.html`, `./src/**/*.js`, `./src/**/*.jsx`, `./src/**/*.ts` et `./src/**/*.tsx`. Aucune donnée utilisateur, variable d’environnement ou réponse réseau ne doit construire ces motifs. Aucun handler serveur n’accepte de motif utilisateur dans cette chaîne. Cette limitation réduit l’exposition ; elle ne corrige pas le paquet concerné.
-
-Le [test de configuration](src/__tests__/tailwind-content-security.test.js) contrôle la syntaxe : une seule exportation d’objet, aucune propriété calculée ou propagation, un unique tableau `content` et exactement les cinq chaînes approuvées. Le [test de la politique d’audit](src/__tests__/audit-policy.test.js) couvre notamment l’échéance et le refus des dépendances de production. Avant l’expiration, mettre à jour la chaîne corrigée et retirer l’exception après vérification du lockfile et des audits. Si une migration Tailwind majeure est choisie, prévoir une recette visuelle selon la charte ; la compatibilité de configuration seule ne garantit pas un rendu identique.
+Le [suivi des dépendances de construction](docs/build-dependency-security-2026-10-06.md) conserve la décision historique sur `braces` et sa levée du 28 octobre 2026. Le site utilise désormais Tailwind 4 ; les [tests d’audit](src/__tests__/audit-policy.test.js) vérifient la politique actuelle. Ne pas rétablir l’ancienne exception lors de la reprise d’une branche antérieure.
 
 ### Journaux serveur
 

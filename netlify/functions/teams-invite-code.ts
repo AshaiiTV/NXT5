@@ -40,16 +40,16 @@ export default async function handler(request: Request, context: Context): Promi
     // Serialize rotation/revocation for this team. The authorization is checked
     // again under the lock; every statement sees the preceding committed state.
     const result = await sql.transaction([
-      sql(`select 1 / case when exists (
+      sql.query(`select 1 / case when exists (
         select 1 from teams t left join team_members tm on tm.team_id=t.id and tm.user_id=$2
         where t.id=$1 and (t.owner_id=$2 or tm.role in ('captain','manager')) for update of t
       ) then 1 else 0 end`, [teamId, user.id]),
-      sql('delete from team_invite_codes where team_id=$1', [teamId]),
-      sql(`insert into team_invite_codes (team_id, created_by, code, expires_at)
+      sql.query('delete from team_invite_codes where team_id=$1', [teamId]),
+      sql.query(`insert into team_invite_codes (team_id, created_by, code, expires_at)
         select $1, $2, $3, now() + interval '1 hour' where $3::text is not null returning *`, [teamId, user.id, code]),
-      sql(`update teams set invite_code=$2, invite_expires_at=case when $2::text is null then null else now()+interval '1 hour' end,
+      sql.query(`update teams set invite_code=$2, invite_expires_at=case when $2::text is null then null else now()+interval '1 hour' end,
         updated_at=now() where id=$1`, [teamId, code]),
-      sql(`insert into audit_logs(user_id, action, entity_type, entity_id, metadata)
+      sql.query(`insert into audit_logs(user_id, action, entity_type, entity_id, metadata)
         values($1,$2,'team',$3,$4::jsonb)`, [user.id, action === 'create' ? 'team.invite_code' : 'team.invite_revoked', teamId, JSON.stringify({ rotated: action === 'create' })])
     ]);
     const invite = result[2][0];

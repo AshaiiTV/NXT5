@@ -5,6 +5,7 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, ensureEmailVerificationColumns, hashPassword, isValidEmail, normalizeAccountName, normalizeEmail, sha256 } from './_lib/auth';
 import { sendEmailVerificationEmail } from './_lib/email';
 import { assertRateLimit, assertVerificationEmailRateLimit } from './_lib/rate-limit';
+import { recordRegistrationSignup } from './_lib/audience-registration';
 
 import { LEGAL_VERSION } from '../../shared/legal.js';
 
@@ -87,6 +88,10 @@ export default async function handler(request: Request, context: Context): Promi
       insert into audit_logs (user_id, action, entity_type, metadata)
       values (${user.id}, 'auth.register', 'user', ${JSON.stringify({ email, displayName })}::jsonb)
     `;
+
+    const measurement = recordRegistrationSignup(request, context);
+    if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(measurement);
+    else await measurement;
 
     return registrationAccepted();
   } catch (err) {

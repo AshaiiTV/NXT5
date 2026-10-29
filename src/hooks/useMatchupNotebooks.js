@@ -132,36 +132,54 @@ function slimMatch(match) {
   }])) })) } } } };
 }
 
+const MAX_INACTIVE_STATS_CACHE_ENTRIES = 40;
+
 export function useMatchupStatRows(teamId, rows, version = "") {
   const ids = [...new Set(rows.map((row) => row.match?.id).filter(Boolean))];
-  const key = `${teamId || ""}|${ids.join(",")}|${version}`;
+  const scope = JSON.stringify([teamId || "", version]);
+  const key = JSON.stringify([scope, ids]);
+  const cache = useRef({ scope, details: new Map() });
   const [attempt, setAttempt] = useState(0);
   const [state, setState] = useState({ key: "", details: new Map(), loading: false, error: "" });
   useEffect(() => {
-    if (!teamId || !ids.length) return;
+    if (cache.current.scope !== scope) cache.current = { scope, details: new Map() };
+    const cached = cache.current.details;
+    const activeIds = new Set(ids);
+    // Keep compact milestones across patch filters, but cap inactive games as
+    // in review details. Team changes and refreshed snapshots start fresh.
+    const inactiveIds = [...cached.keys()].filter((id) => !activeIds.has(id));
+    for (const id of inactiveIds.slice(0, Math.max(0, inactiveIds.length - MAX_INACTIVE_STATS_CACHE_ENTRIES))) cached.delete(id);
+    const readDetails = () => new Map(ids.filter((id) => cached.has(id)).map((id) => [id, cached.get(id)]));
+    const missingIds = ids.filter((id) => !cached.has(id));
+    if (!teamId || !missingIds.length) {
+      setState({ key, details: teamId ? readDetails() : new Map(), loading: false, error: "" });
+      return;
+    }
     let current = true;
     const controller = new AbortController();
-    setState({ key, details: new Map(), loading: true, error: "" });
+    setState({ key, details: readDetails(), loading: true, error: "" });
     (async () => {
-      const details = new Map();
-      for (let start = 0; start < ids.length; start += 5) {
-        const batch = ids.slice(start, start + 5);
+      for (let start = 0; start < missingIds.length; start += 5) {
+        const batch = missingIds.slice(start, start + 5);
         const payload = await apiFetch("match-details", { method: "POST", signal: controller.signal, body: JSON.stringify({ teamId, matchIds: batch }) });
         if (!current) return;
         if (!Array.isArray(payload?.matches)) throw new Error("Réponse des statistiques incomplète.");
         for (const match of payload.matches) {
-          if (batch.includes(match.id) && String(match.team_id) === String(teamId)) details.set(match.id, slimMatch(match));
+          if (batch.includes(match.id) && String(match.team_id) === String(teamId)) cached.set(match.id, slimMatch(match));
         }
-        if (batch.some((id) => !details.has(id))) {
-          setState({ key, details: new Map(details), loading: false, error: "Certaines games ne sont plus disponibles. Actualise le profil." });
+        if (batch.some((id) => !cached.has(id))) {
+          setState({ key, details: readDetails(), loading: false, error: "Certaines games ne sont plus disponibles. Actualise le profil." });
           return;
         }
-        setState({ key, details: new Map(details), loading: start + 5 < ids.length, error: "" });
+        setState({ key, details: readDetails(), loading: start + 5 < missingIds.length, error: "" });
       }
     })().catch((error) => { if (current) setState((previous) => ({ ...previous, loading: false, error: error.message })); });
     return () => { current = false; controller.abort(); };
   }, [key, attempt]);
-  const active = state.key === key ? state : { details: new Map(), loading: !!teamId && !!ids.length, error: "" };
+  const details = state.key === key ? state.details : new Map(ids
+    .filter((id) => cache.current.scope === scope && cache.current.details.has(id))
+    .map((id) => [id, cache.current.details.get(id)]));
+  const active = state.key === key ? state : { details, loading: !!teamId && details.size < ids.length, error: "" };
   return { rows: rows.map((row) => {
     const detail = active.details.get(row.match?.id);
     if (!detail) return row;

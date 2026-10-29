@@ -3,7 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const state = vi.hoisted(() => ({ pg: null as any, auth: vi.fn(), sql: vi.fn() }));
-vi.mock('../../netlify/functions/_lib/db', () => ({ sql: state.sql }));
+vi.mock('../../netlify/functions/_lib/db', () => ({ sql: Object.assign(state.sql, { query: state.sql }) }));
 vi.mock('../../netlify/functions/_lib/auth', async original => ({ ...await original<any>(), requireAuth: state.auth }));
 
 import handler from '../../netlify/functions/admin-discord-analytics';

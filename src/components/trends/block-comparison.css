@@ -22,7 +22,7 @@
 .block-comparison-description {
   margin: .5rem 0 0;
   color: var(--nxt5-text-secondary);
-  font-size: .875rem;
+  font-size: var(--nxt5-font-body);
   line-height: 1.6;
 }
 
@@ -50,7 +50,7 @@
   align-items: baseline;
   gap: .35rem .75rem;
   margin-top: .65rem;
-  font-size: .8125rem;
+  font-size: var(--nxt5-font-small);
   line-height: 1.6;
 }
 
@@ -67,7 +67,7 @@
 .block-comparison .block-comparison-swap {
   grid-column: 1 / -1;
   justify-self: start;
-  font-size: .8125rem;
+  font-size: var(--nxt5-font-ui);
 }
 
 .block-comparison-context {
@@ -75,7 +75,7 @@
   gap: .5rem;
   padding-top: 0;
   color: var(--nxt5-text-secondary);
-  font-size: .8125rem;
+  font-size: var(--nxt5-font-body);
   line-height: 1.6;
 }
 
@@ -106,7 +106,7 @@
 .block-comparison-section h4 {
   margin: 0;
   color: var(--nxt5-text);
-  font-size: 1rem;
+  font-size: var(--nxt5-font-body);
   font-weight: 700;
   line-height: 1.5;
 }
@@ -127,7 +127,7 @@
   grid-template-columns: minmax(0, 1.2fr) repeat(3, minmax(0, .6667fr));
   padding-bottom: .65rem;
   color: var(--nxt5-text-secondary);
-  font-size: .8125rem;
+  font-size: var(--nxt5-font-small);
   font-weight: 700;
   text-align: right;
 }
@@ -158,7 +158,7 @@
 
 .block-comparison-metric h5 {
   margin: 0;
-  font-size: .875rem;
+  font-size: var(--nxt5-font-small);
   font-weight: 700;
   line-height: 1.5;
 }
@@ -166,7 +166,7 @@
 .block-comparison-metric p {
   margin-top: .25rem;
   color: var(--nxt5-text-secondary);
-  font-size: .8125rem;
+  font-size: var(--nxt5-font-body);
   line-height: 1.6;
 }
 
@@ -197,7 +197,7 @@
 
 .block-comparison-values dd {
   margin: 0;
-  font-size: .9375rem;
+  font-size: var(--nxt5-font-ui);
   font-weight: 700;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
@@ -211,7 +211,7 @@
 .block-comparison-values small {
   display: block;
   margin-top: .2rem;
-  font-size: .8125rem;
+  font-size: var(--nxt5-font-small);
   font-weight: 500;
   line-height: 1.5;
 }
@@ -227,7 +227,7 @@
 .block-comparison-footnote {
   border-top: 1px solid var(--nxt5-border);
   color: var(--nxt5-text-secondary);
-  font-size: .8125rem;
+  font-size: var(--nxt5-font-body);
   line-height: 1.65;
 }
 
@@ -266,7 +266,7 @@
     clip: auto;
     white-space: normal;
     color: var(--nxt5-text-secondary);
-    font-size: .8125rem;
+    font-size: var(--nxt5-font-small);
     font-weight: 500;
   }
 
@@ -297,7 +297,7 @@
   }
 
   .block-comparison-selector select {
-    font-size: 1rem;
+    font-size: var(--nxt5-font-body);
   }
 }
 

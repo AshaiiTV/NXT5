@@ -5,6 +5,7 @@ import { apiFetch } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 import { ImportedGames } from "../components/games/ImportedGames.jsx";
 import { SelectInput } from "../components/ui/Core.jsx";
+import { SortButton } from "../components/ui/SortButton.jsx";
 import { Statistics } from "../pages/workspace/GameWorkspace.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), apiUploadJson: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -72,7 +73,18 @@ async function search(renderer, query) {
 function select(renderer, label) {
   return renderer.root.findAllByType(SelectInput).find((node) => node.props.label === label).findByType("select");
 }
+function sortButton(renderer, label) {
+  return renderer.root.findAllByType(SortButton).find((node) => node.props.label === label);
+}
 async function filter(renderer, label, value) {
+  if (label === "Trier par") {
+    const sortLabel = value.startsWith("import-") ? "Imports" : ["longest", "shortest"].includes(value) ? "Durée" : "Date";
+    const desiredAscending = ["oldest", "import-oldest", "shortest"].includes(value);
+    const control = () => sortButton(renderer, sortLabel);
+    if (!control().props.active) await act(async () => control().props.onClick());
+    if ((control().props.direction === "ascending") !== desiredAscending) await act(async () => control().props.onClick());
+    return;
+  }
   await act(async () => select(renderer, label).props.onChange({ target: { value } }));
 }
 
@@ -138,7 +150,7 @@ describe("imported games interactions", () => {
     await act(async () => reset.props.onClick());
     expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("");
     expect(select(renderer, "Résultat").props.value).toBe("");
-    expect(select(renderer, "Trier par").props.value).toBe("oldest");
+    expect(renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Date").props).toMatchObject({ active: true, direction: "ascending" });
     expect(rows(renderer)).toHaveLength(25);
     expect(rowLabels(renderer)[0]).toMatch(/EUW1_1$/);
   });
@@ -221,10 +233,162 @@ describe("imported games interactions", () => {
   });
 });
 
+describe("progressive imported games", () => {
+  async function update(renderer, props) {
+    await act(async () => renderer.update(<Suspense fallback="loading"><ImportedGames {...props} /></Suspense>));
+  }
+
+  function progressiveProps(overrides = {}) {
+    return listProps({
+      matches: games(100).map((match, index) => ({ ...match, imported_at: new Date(Date.UTC(2026, 8, 30, 12, -index)).toISOString() })),
+      historyComplete: false, totalMatches: 1000, allowImportSort: true, showCategoryFilter: true,
+      onLoadMore: vi.fn().mockResolvedValue(undefined), onLoadHistory: vi.fn().mockResolvedValue(undefined),
+      ...overrides,
+    });
+  }
+
+  it("opens the latest imported page without requesting the remaining history", async () => {
+    const settings = progressiveProps();
+    const renderer = await render(<ImportedGames {...settings} />);
+    expect(sortButton(renderer, "Imports").props).toMatchObject({ active: true, direction: "descending" });
+    expect(rowLabels(renderer)[0]).toContain("EUW1_1");
+    expect(text(renderer.root.findByProps({ role: "status" }))).toBe("100 parties chargées sur 1000");
+    expect(text(renderer.root.findByProps({ className: "ig-total" }))).toBe("1000 parties");
+    expect(settings.onLoadMore).not.toHaveBeenCalled();
+    expect(settings.onLoadHistory).not.toHaveBeenCalled();
+    await click(renderer, "Page suivante");
+    expect(settings.onLoadMore).not.toHaveBeenCalled();
+    expect(settings.onLoadHistory).not.toHaveBeenCalled();
+  });
+
+  it("requests one more server page explicitly and preserves the loaded list while loading", async () => {
+    const settings = progressiveProps();
+    const renderer = await render(<ImportedGames {...settings} />);
+    await click(renderer, "Charger la suite");
+    expect(settings.onLoadMore).toHaveBeenCalledExactlyOnceWith();
+    expect(settings.onLoadHistory).not.toHaveBeenCalled();
+    await update(renderer, { ...settings, historyLoading: true });
+    expect(rows(renderer)).toHaveLength(10);
+    expect(button(renderer, "Chargement…").props.disabled).toBe(true);
+    await update(renderer, { ...settings, matches: games(200) });
+    expect(text(renderer.root.findByProps({ role: "status" }))).toBe("200 parties chargées sur 1000");
+    expect(button(renderer, "Charger la suite").props.disabled).toBe(false);
+  });
+
+  it.each([
+    ["search", (renderer) => search(renderer, "Club")],
+    ["result", (renderer) => filter(renderer, "Résultat", "Victoire")],
+    ["review", (renderer) => filter(renderer, "Débrief", "done")],
+    ["side", (renderer) => filter(renderer, "Côté", "blue")],
+    ["category", (renderer) => filter(renderer, "Catégorie", "scrim")],
+    ["played date sort", (renderer) => filter(renderer, "Trier par", "newest")],
+    ["oldest import sort", (renderer) => filter(renderer, "Trier par", "import-oldest")],
+  ])("requests full history for %s and withholds partial global results", async (_label, change) => {
+    const settings = progressiveProps();
+    const renderer = await render(<ImportedGames {...settings} />);
+    await change(renderer);
+    expect(settings.onLoadHistory).toHaveBeenCalledExactlyOnceWith();
+    expect(settings.onLoadMore).not.toHaveBeenCalled();
+    expect(rows(renderer)).toHaveLength(0);
+    expect(text(renderer.root.findByProps({ role: "status" }))).toBe("100 parties chargées sur 1000");
+    expect(text(renderer.root)).not.toContain("Aucune partie ne correspond");
+    expect(text(renderer.root)).not.toContain("parties disponibles");
+    expect(button(renderer, "Charger la suite")).toBeUndefined();
+    await update(renderer, { ...settings, historyLoading: true });
+    expect(text(renderer.root.findByProps({ role: "status" }))).toContain("Chargement de l’historique");
+    expect(renderer.root.findByProps({ "aria-label": "Liste des parties" }).props["aria-busy"]).toBe(true);
+    expect(renderer.root.findByProps({ type: "search" }).props.disabled).not.toBe(true);
+  });
+
+  it("keeps the query until full history resolves and then includes an older matching game", async () => {
+    const settings = progressiveProps();
+    const renderer = await render(<ImportedGames {...settings} />);
+    await search(renderer, "Ancienne partie");
+    expect(rows(renderer)).toHaveLength(0);
+    const older = { ...games(1)[0], id: "older", game_id: "EUW1_OLDER", raw: { nxt5Label: "Ancienne partie" } };
+    await update(renderer, { ...settings, matches: [...settings.matches, older], historyComplete: true });
+    expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("Ancienne partie");
+    expect(rows(renderer)).toHaveLength(1);
+    expect(rowLabels(renderer)[0]).toContain("EUW1_OLDER");
+    expect(text(renderer.root.findByProps({ role: "status" }))).toBe("1 partie sur 101");
+    expect(button(renderer, "Charger la suite")).toBeUndefined();
+  });
+
+  it("lets the user clear filters while full history loads and immediately revisit loaded games", async () => {
+    const settings = progressiveProps();
+    const renderer = await render(<ImportedGames {...settings} />);
+    await filter(renderer, "Résultat", "Victoire");
+    await update(renderer, { ...settings, historyLoading: true });
+    await click(renderer, "Réinitialiser les filtres");
+    expect(select(renderer, "Résultat").props.value).toBe("");
+    expect(rows(renderer)).toHaveLength(10);
+    expect(text(renderer.root.findByProps({ role: "status" }))).toBe("100 parties chargées sur 1000");
+    expect(settings.onLoadHistory).toHaveBeenCalledTimes(1);
+  });
+
+  it("retains the loaded list and retries a failed next page", async () => {
+    const settings = progressiveProps({ historyError: "L’historique complet n’a pas pu être chargé." });
+    const renderer = await render(<ImportedGames {...settings} />);
+    expect(rows(renderer)).toHaveLength(10);
+    expect(text(renderer.root.findByProps({ role: "alert" }))).toContain("n’a pas pu être chargé");
+    await click(renderer, "Réessayer");
+    expect(settings.onLoadMore).toHaveBeenCalledExactlyOnceWith();
+    expect(settings.onLoadHistory).not.toHaveBeenCalled();
+  });
+
+  it("keeps failed global filters usable and retries the complete history", async () => {
+    const settings = progressiveProps();
+    const renderer = await render(<ImportedGames {...settings} />);
+    await filter(renderer, "Trier par", "newest");
+    await update(renderer, { ...settings, historyError: "L’historique complet n’a pas pu être chargé." });
+    expect(rows(renderer)).toHaveLength(0);
+    expect(sortButton(renderer, "Date").props).toMatchObject({ active: true, direction: "descending" });
+    expect(text(renderer.root)).not.toContain("Aucune partie ne correspond");
+    await click(renderer, "Réessayer");
+    expect(settings.onLoadHistory).toHaveBeenCalledTimes(2);
+    expect(settings.onLoadMore).not.toHaveBeenCalled();
+  });
+
+  it("shows loaded coverage without inventing a total or a complete empty state", async () => {
+    const renderer = await render(<ImportedGames {...progressiveProps({ matches: [], totalMatches: undefined })} />);
+    expect(text(renderer.root.findByProps({ role: "status" }))).toBe("0 parties chargées");
+    expect(text(renderer.root)).not.toContain("Aucune partie");
+    expect(button(renderer, "Charger la suite")).toBeTruthy();
+  });
+
+  it("offers an explicit recovery when a complete list becomes partial with its played-date sort retained", async () => {
+    const settings = progressiveProps({ historyComplete: true });
+    const renderer = await render(<ImportedGames {...settings} />);
+    expect(sortButton(renderer, "Date").props).toMatchObject({ active: true, direction: "descending" });
+    await update(renderer, { ...settings, historyComplete: false });
+    expect(rows(renderer)).toHaveLength(0);
+    expect(settings.onLoadHistory).not.toHaveBeenCalled();
+    expect(button(renderer, "Charger la suite")).toBeUndefined();
+    await click(renderer, "Charger l’historique complet");
+    expect(settings.onLoadHistory).toHaveBeenCalledExactlyOnceWith();
+  });
+
+  it("forwards a full-history demand while a manual page request is already loading", async () => {
+    const settings = progressiveProps({ historyLoading: true });
+    const renderer = await render(<ImportedGames {...settings} />);
+    await filter(renderer, "Résultat", "Victoire");
+    expect(settings.onLoadHistory).toHaveBeenCalledExactlyOnceWith();
+    expect(rows(renderer)).toHaveLength(0);
+    expect(button(renderer, "Charger l’historique complet")).toBeUndefined();
+    await update(renderer, { ...settings, historyLoading: false });
+    expect(button(renderer, "Charger l’historique complet")).toBeTruthy();
+    expect(text(renderer.root)).not.toContain("Aucune partie ne correspond");
+  });
+});
+
 describe("imported games in Statistics", () => {
   beforeEach(() => {
     window.history = { pushState: vi.fn((_state, _title, path) => { window.location = new URL(path, window.location); }) };
     window.dispatchEvent = vi.fn();
+    apiFetch.mockImplementation(async (endpoint, options) => {
+      if (endpoint === "opponents-drafts" && JSON.parse(options.body).action === "list-opponents") return { opponents: [] };
+      throw new Error(`Unexpected request: ${endpoint}`);
+    });
   });
   function statisticsProps(matches = games(3)) {
     return {
@@ -240,7 +404,13 @@ describe("imported games in Statistics", () => {
   it("opens stats directly, hides the list and restores its search and filters on return", async () => {
     const settings = statisticsProps();
     const selected = settings.data.matches[2];
-    apiFetch.mockResolvedValue({ matches: [selected] });
+    apiFetch.mockImplementation(async (endpoint, options) => {
+      if (endpoint === "match-details") return { matches: [selected] };
+      if (endpoint === "opponents-drafts" && JSON.parse(options.body).action === "list-opponents") return { opponents: [] };
+      if (endpoint === "opponents-drafts" && JSON.parse(options.body).action === "get-match-draft") return { draft: null, canEdit: false };
+      if (endpoint === "opponents-drafts" && JSON.parse(options.body).action === "get-match-opponent") return { opponentId: null, opponents: [], canEdit: false };
+      throw new Error(`Unexpected request: ${endpoint}`);
+    });
     const renderer = await render(<Statistics {...settings} />);
     await search(renderer, "Club 03");
     await filter(renderer, "Résultat", "Victoire");
@@ -254,15 +424,24 @@ describe("imported games in Statistics", () => {
     expect(visible(renderer.root.findByProps({ id: "selected-game-stats" }))).toBe(true);
     expect(visible(renderer.root.findByProps({ type: "search" }))).toBe(false);
     expect(rows(renderer).filter(visible)).toHaveLength(0);
-    expect(apiFetch).toHaveBeenCalledTimes(1);
+    const byAction = (left, right) => (left.payload.action || left.endpoint).localeCompare(right.payload.action || right.endpoint);
+    const requests = () => apiFetch.mock.calls.map(([endpoint, options]) => ({ endpoint, method: options.method, payload: JSON.parse(options.body) }))
+      .filter(({ endpoint, payload }) => endpoint === "match-details" || (endpoint === "opponents-drafts" && ["get-match-draft", "get-match-opponent"].includes(payload.action))).sort(byAction);
+    const expectedRequests = [
+      { endpoint: "match-details", method: "POST", payload: { teamId: "team", matchIds: [selected.id] } },
+      { endpoint: "opponents-drafts", method: "POST", payload: { action: "get-match-draft", teamId: "team", matchId: selected.id } },
+      { endpoint: "opponents-drafts", method: "POST", payload: { action: "get-match-opponent", teamId: "team", matchId: selected.id } },
+    ].sort(byAction);
+    expect(requests()).toEqual(expectedRequests);
     await click(renderer, "Retour aux parties");
     expect(renderer.root.findAllByProps({ id: "selected-game-stats" })).toHaveLength(0);
     expect(renderer.root.findByProps({ type: "search" }).props.value).toBe("Club 03");
     expect(select(renderer, "Résultat").props.value).toBe("Victoire");
     expect(select(renderer, "Catégorie").props.value).toBe("scrim");
-    expect(select(renderer, "Trier par").props.value).toBe("oldest");
+    expect(renderer.root.findAllByType(SortButton).find((node) => node.props.label === "Date").props).toMatchObject({ active: true, direction: "ascending" });
     expect(rows(renderer).filter(visible)).toHaveLength(1);
     expect(rowLabels(renderer)[0]).toContain("EUW1_3");
+    expect(requests()).toEqual(expectedRequests);
   });
 
   it("keeps the category filter available with no results and can return to all games", async () => {

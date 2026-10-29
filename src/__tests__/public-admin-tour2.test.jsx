@@ -41,8 +41,9 @@ it("E2: describes the actual composition form and filters", () => {
 
 it("E3: allows loading before profile creation and uses current navigation labels", () => {
   expect(guide("getting-started")).toContain("Les profils peuvent être créés pendant l’import");
-  expect(guide("getting-started")).toContain("Retrouver mon démarrage");
-  expect(guide("imports-and-games")).toContain("créer les profils manquants depuis le fichier, puis confirmer l’import");
+  expect(guide("getting-started")).toContain("Revenir à l’accueil");
+  expect(guide("imports-and-games")).toContain("créer les profils manquants depuis le fichier");
+  expect(guide("imports-and-games")).toContain("choisir au moins un tag");
   expect(guide("champion-pool")).toContain("Draft, puis Champions des joueurs");
   expect(guide("planning")).toContain("Entraînement, Match ou Débrief");
 });
@@ -71,9 +72,9 @@ it("E7: daily chart dates stay on their UTC day west of UTC", () => {
   expect(html.match(/29 sept\. 2026/g)).toHaveLength(4); // Readout, button, both axis ends.
 });
 
-it("E8: guide mobile label is 14 px and keeps token colors and 16 px fields", () => {
+it("E8: guide mobile label follows the shared reading scale and keeps 16 px fields", () => {
   const css = readFileSync(new URL("../pages/guide.css", import.meta.url), "utf8");
-  expect(css).toMatch(/\.nxt5-guide-mobile-label \{ display: grid;[^}]*font-size: \.875rem/);
+  expect(css).toMatch(/\.nxt5-guide-mobile-label \{ display: grid;[^}]*font-size: var\(--nxt5-font-ui\)/);
   expect(css).toMatch(/\.nxt5-guide-mobile-label select \{[^}]*background: var\(--nxt5-bg\)[^}]*font-size: 1rem/);
 });
 

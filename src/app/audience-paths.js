@@ -2,7 +2,7 @@
 const PATHS = new Set([
   '/', '/demo', '/guides/importer-premier-scrim', '/guides/preparer-debrief', '/fonctionnalites', '/connexion', '/creer-un-compte', '/inscription', '/soutenir',
   '/mentions-legales', '/confidentialite', '/cookies', '/conditions', '/reglement', '/contact', '/reseaux',
-  '/equipes', '/games', '/integration', '/statistiques', '/tendances', '/planning', '/draft', '/draft/pool',
+  '/mon-equipe', '/equipes', '/games', '/integration', '/statistiques', '/tendances', '/planning', '/draft', '/draft/pool',
   '/draft/compositions', '/champion-pool', '/compositions-types', '/rapports', '/guide',
   '/parametres', '/gestion-equipe', '/bot-discord', '/mon-profil', '/mon-profil/champions', '/mon-profil/pool',
   '/mon-profil/historique', '/mon-profil/coaching', '/profil', '/profil/champions', '/profil/pool',

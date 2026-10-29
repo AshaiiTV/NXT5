@@ -1,8 +1,10 @@
+import { useLanguage } from "../../i18n/useLanguage.js";
+import { t } from "../../i18n/translate.js";
 import { importedGameSide } from "../../utils/imported-games.js";
 import { resultSummary, resultLabel, winrateLabel, sideLabel, sideResults, comparableSides, matchSideLabel } from "../../utils/statistics.js";
 import { MILESTONE_TOLERANCE_MS } from '../../../shared/timeline-milestones.js';
 import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, AlertTriangle, ArrowLeft, Crown, Eye, Flame, Gauge, Image as ImageIcon, RefreshCw, Shield, Target, Trophy, Upload } from "lucide-react";
+import { Activity, AlertTriangle, ArrowLeft, BarChart3, Compass, Crown, Eye, Flame, Gauge, Image as ImageIcon, RefreshCw, Shield, Target, Trophy, Upload } from "lucide-react";
 import { openAppPath } from "../../app/routing.js";
 import { Button, EmptyState, SkeletonRows, Surface, PageHeader, SelectInput } from "../../components/ui/Core.jsx";
 import { matchDisplayName, matchHasCategory } from "../../utils/matches.js";
@@ -11,15 +13,17 @@ import { championAssetId, championPortraitSources, championDisplayName, composit
 import { roleLabel } from "./shell-shared.jsx";
 import { hasTrendTimeline, sortTrendMatches } from "../../utils/trends.js";
 import { TrendEvolution, TrendPeriodFilter } from "../../components/trends/TrendEvolution.jsx";
-import { ProgressionObjectives } from "../../components/trends/ProgressionObjectives.jsx";
+import { PlaystyleAnalysis } from "../../components/trends/PlaystyleAnalysis.jsx";
+import { PlayerComparison } from "../../components/trends/PlayerComparison.jsx";
 import { TrendNavigation, TrendsOverview } from "../../components/trends/TrendsOverview.jsx";
 import { TrendSourcesDialog, TrendContractsDialog } from "../../components/trends/TrendsDialogs.jsx";
 import "../../components/trends/trends-page.css";
-import { PNG_THEME, pngAccent, pngFitText, pngLine, pngBackground, pngHeader, pngMetricStrip, pngFooter, pngLoadImage, pngImageCover, pngDownload, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
+import { PNG_THEME, pngAccent, pngFitText, pngLine, pngPanel, pngBackground, pngHeader, pngMetricStrip, pngFooter, pngLoadImage, pngImageCover, pngImageContain, pngDownload, pngNumber, pngPercent, pngMean, pngDateRange, pngCreateCanvas } from "../../utils/png-report.js";
 
 import { useTrendsNavigation } from "../../hooks/useTrendsNavigation.js";
 import { DraftTrendDetails } from "../../components/trends/DraftTrendDetails.jsx";
 import { buildDraftTrendModel, DRAFT_DETAIL_SECTIONS, DraftTrendsModule } from "../../components/trends/DraftTrends.jsx";
+import DrafterAnalysis from "../../components/trends/DrafterAnalysis.jsx";
 
 const BlockComparisonPanel = lazyNamed(loadNextPhase, "BlockComparisonPanel");
 
@@ -127,10 +131,12 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
   const signedGold = report.gold.value === null ? "—" : `${report.gold.value > 0 ? "+" : ""}${pngNumber(report.gold.value)}`;
   const imageCache = new Map();
   const imageUrls = new Set(["/assets/nxt5-wordmark.png"]);
+  const roleAssets = { TOP: "top", JGL: "jungle", MID: "middle", ADC: "bottom", SUP: "utility" };
+  report.roles.forEach(({ role }) => { if (roleAssets[role]) imageUrls.add(`/assets/roles/position-${roleAssets[role]}.svg`); });
   champions.forEach((entry) => championPortraitSources(entry.champion, entry.champion).forEach((url) => imageUrls.add(url)));
   await Promise.all([...imageUrls].filter(Boolean).map(async (url) => imageCache.set(url, await pngLoadImage(url))));
 
-  pngBackground(ctx, W, H);
+  pngBackground(ctx, W, H, { variant: "trends" });
   pngHeader(ctx, {
     width: W,
     title: teamName,
@@ -145,27 +151,34 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
     { label: "Morts / game", value: pngNumber(report.deaths.value, 1), detail: coverage(report.deaths.count) },
     { label: "Kills / game", value: pngNumber(report.kills.value, 1), detail: coverage(report.kills.count) },
   ] });
-  label("Écart d’or : équipe − adversaire · Taux de victoire : résultats connus uniquement", margin, 370, contentWidth);
+  label(t("Écart d’or : équipe − adversaire · Taux de victoire : résultats connus uniquement"), margin, 370, contentWidth);
 
-  fit("Résultats par côté", margin, 416, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
+  fit(t("Résultats par côté"), margin, 416, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
   const sideWidth = contentWidth / report.sides.length;
   report.sides.forEach((entry, index) => {
-    const x = margin + index * sideWidth;
-    if (index) pngLine(ctx, x - 24, 446, x - 24, 536);
-    label(entry.key === "Blue" ? "Côté bleu" : entry.key === "Red" ? "Côté rouge" : "Côté inconnu", x, 456, sideWidth - 48, { color: pngAccent(entry.key === "Blue" ? "blue" : entry.key === "Red" ? "red" : "muted") });
+    const panelX = margin + index * sideWidth;
+    const x = panelX + 22;
+    const accent = entry.key === "Blue" ? "blue" : entry.key === "Red" ? "red" : "muted";
+    pngPanel(ctx, panelX, 434, sideWidth - 16, 114, { accent, radius: 14 });
+    label(t(entry.key === "Blue" ? "Côté bleu" : entry.key === "Red" ? "Côté rouge" : "Côté inconnu"), x, 461, sideWidth - 60, { color: pngAccent(accent) });
     fit(pngPercent(entry.winrate), x, 500, sideWidth - 48, { font: "700 36px Inter, Arial, sans-serif" });
     label(`${pngNumber(entry.games)} games · ${pngNumber(entry.wins)} V / ${pngNumber(entry.losses)} D${entry.unknown ? ` · ${pngNumber(entry.unknown)} sans résultat` : ""}`, x, 532, sideWidth - 48);
   });
   pngLine(ctx, margin, 558, W - margin, 558);
 
-  fit("Statistiques par rôle", margin, roleY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
-  label("Moyennes par game · CS : sbires et monstres tués · Participation aux kills : (kills + assists) / kills d’équipe", margin, roleY + 61, contentWidth);
+  pngPanel(ctx, margin - 20, roleY - 6, contentWidth + 40, 126 + report.roles.length * 76, { material: "reading" });
+  pngPanel(ctx, margin - 19, roleY - 5, contentWidth + 38, 50, { stroke: null, radius: 17 });
+  fit(t("Statistiques par rôle"), margin, roleY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
+  label(t("Moyennes par game · CS : sbires et monstres tués · Participation aux kills : (kills + assists) / kills d’équipe"), margin, roleY + 61, contentWidth);
   const roleColumns = [margin, margin + 210, margin + 390, margin + 790, margin + 1100];
-  ["Rôle", "Games", "Kills / morts / assists", "CS à 10 min", "Participation aux kills"].forEach((text, index) => label(text, roleColumns[index], roleY + 104, (roleColumns[index + 1] || W - margin) - roleColumns[index] - 28));
+  ["Rôle", "Games", "Kills / morts / assists", "CS à 10 min", "Participation aux kills"].forEach((text, index) => label(t(text), roleColumns[index], roleY + 104, (roleColumns[index + 1] || W - margin) - roleColumns[index] - 28));
   pngLine(ctx, margin, roleY + 120, W - margin, roleY + 120);
   report.roles.forEach((entry, index) => {
     const y = roleY + 154 + index * 76;
-    fit(roleLabel(entry.role), roleColumns[0], y, 180, { font: "700 26px Inter, Arial, sans-serif" });
+    if (index % 2 === 0) pngPanel(ctx, margin - 10, y - 26, contentWidth + 20, 69, { fill: "rgba(196,181,253,0.035)", stroke: null, radius: 8 });
+    pngPanel(ctx, roleColumns[0], y - 24, 44, 44, { stroke: "rgba(196,181,253,0.35)", radius: 10 });
+    pngImageContain(ctx, imageCache.get(`/assets/roles/position-${roleAssets[entry.role]}.svg`), roleColumns[0] + 7, y - 17, 30, 30);
+    fit(roleLabel(entry.role), roleColumns[0] + 58, y + 3, 128, { font: "700 26px Inter, Arial, sans-serif", color: PNG_THEME.purple });
     fit(pngNumber(entry.games), roleColumns[1], y, 145);
     fit([entry.kills, entry.deaths, entry.assists].map((value) => pngNumber(value, 1)).join(" / "), roleColumns[2], y, 364);
     label(coverage(entry.kdaCount), roleColumns[2], y + 27, 364);
@@ -176,14 +189,18 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
     pngLine(ctx, margin, y + 42, W - margin, y + 42);
   });
 
-  fit("Champions les plus joués", margin, championY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
+  pngPanel(ctx, margin - 20, championY - 6, contentWidth + 40, 124 + Math.max(1, champions.length) * 64, { material: "reading" });
+  pngPanel(ctx, margin - 19, championY - 5, contentWidth + 38, 50, { stroke: null, radius: 17 });
+  fit(t("Champions les plus joués"), margin, championY + 26, contentWidth, { font: "700 28px Inter, Arial, sans-serif" });
   label(`${pngNumber(champions.length)} / ${pngNumber(report.champions.length)} champions · Tri par nombre de games`, margin, championY + 61, contentWidth);
   const championColumns = [margin, margin + 600, margin + 840, margin + 1130];
-  ["Champion", "Games", "Victoires / défaites", "Taux de victoire"].forEach((text, index) => label(text, championColumns[index], championY + 103, (championColumns[index + 1] || W - margin) - championColumns[index] - 28));
+  ["Champion", "Games", "Victoires / défaites", "Taux de victoire"].forEach((text, index) => label(t(text), championColumns[index], championY + 103, (championColumns[index + 1] || W - margin) - championColumns[index] - 28));
   pngLine(ctx, margin, championY + 119, W - margin, championY + 119);
   champions.forEach((entry, index) => {
     const y = championY + 158 + index * 64;
     const portrait = championPortraitSources(entry.champion, entry.champion).map((url) => imageCache.get(url)).find(Boolean);
+    if (index % 2 === 0) pngPanel(ctx, margin - 10, y - 34, contentWidth + 20, 58, { fill: "rgba(196,181,253,0.035)", stroke: null, radius: 8 });
+    pngPanel(ctx, margin - 3, y - 34, 50, 50, { stroke: "rgba(196,181,253,0.55)", radius: 11 });
     pngImageCover(ctx, portrait, margin, y - 31, 44, 44, 8);
     fit(championDisplayName(entry.champion), margin + 62, y, 490, { font: "600 26px Inter, Arial, sans-serif" });
     fit(pngNumber(entry.games), championColumns[1], y, 200);
@@ -192,8 +209,8 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
     label(`${pngNumber(entry.known)} / ${pngNumber(entry.games)} résultats`, W - margin, y, 175, { align: "right" });
     pngLine(ctx, margin, y + 25, W - margin, y + 25);
   });
-  if (!champions.length) label("Aucun champion renseigné", margin, championY + 160, contentWidth);
-  label("— : donnée indisponible · Les comptes sous les moyennes indiquent les games mesurées dans la sélection.", margin, H - 97, contentWidth);
+  if (!champions.length) label(t("Aucun champion renseigné"), margin, championY + 160, contentWidth);
+  label(t("— : donnée indisponible · Les comptes sous les moyennes indiquent les games mesurées dans la sélection."), margin, H - 97, contentWidth);
   pngFooter(ctx, { width: W, height: H, label: "Tendances d’équipe" });
   return canvas;
 }
@@ -205,6 +222,7 @@ export async function exportTrendsPng(options) {
 }
 
 function TrendsPage({ data, selectedTeamId }) {
+  useLanguage();
   const baseMatches = useMemo(() => (data.matches || []).filter((match) => match.team_id === selectedTeamId), [data.matches, selectedTeamId]);
   const matchCategories = useMemo(() => (data.matchCategories || []).filter((category) => category.team_id === selectedTeamId), [data.matchCategories, selectedTeamId]);
   const navigation = useTrendsNavigation(selectedTeamId);
@@ -214,11 +232,12 @@ function TrendsPage({ data, selectedTeamId }) {
   const detailHeading = useRef(null);
   const [trendSourceModal, setTrendSourceModal] = useState(null);
 
-  const focusObjectives = useRef(false);
+  const focusPlaystyle = useRef(false);
   const [profileContractsOpen, setProfileContractsOpen] = useState(false);
   const [exportState, setExportState] = useState("");
   const categoryMatches = useMemo(() => sortTrendMatches(selectedCategoryId ? baseMatches.filter((match) => matchHasCategory(match, selectedCategoryId)) : baseMatches), [baseMatches, selectedCategoryId]);
   const matches = useMemo(() => trendPeriod === "all" ? categoryMatches : categoryMatches.slice(0, Number(trendPeriod)), [categoryMatches, trendPeriod]);
+  const draftTrendModel = useMemo(() => trendPanel === "draft" ? buildDraftTrendModel(matches) : null, [matches, trendPanel]);
   useEffect(() => {
     setTrendSourceModal(null);
     setProfileContractsOpen(false);
@@ -229,13 +248,17 @@ function TrendsPage({ data, selectedTeamId }) {
     previousDetail.current = draftDetail;
     if (draftDetail === returningFrom) return;
     const target = draftDetail ? detailHeading.current : returningFrom ? document.getElementById(`draft-detail-${returningFrom}`) : null;
+    // Annex links live in disclosures; reveal the return target before focusing it.
+    for (let parent = target?.parentElement; parent; parent = parent.parentElement) {
+      if (parent.tagName === "DETAILS") parent.open = true;
+    }
     target?.focus({ preventScroll: true });
     target?.scrollIntoView({ block: draftDetail ? "start" : "center", behavior: "instant" });
   }, [draftDetail]);
   useEffect(() => {
-    if (trendPanel === "ai-objectives" && focusObjectives.current) {
-      document.getElementById("trend-panel-ai-objectives")?.focus();
-      focusObjectives.current = false;
+    if (trendPanel === "playstyle" && focusPlaystyle.current) {
+      document.getElementById("trend-panel-playstyle")?.focus();
+      focusPlaystyle.current = false;
     }
   }, [trendPanel]);
   const activeTrendCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
@@ -303,24 +326,34 @@ function TrendsPage({ data, selectedTeamId }) {
     };
   }), [matches]);
   const detailHeader = detailSection && <>
-    <nav aria-label="Retour aux analyses" className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" /> Retour aux choix des champions</a></nav>
-    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={detailSection.title}><PageHeader eyebrow="Analyses · Choix des champions" title={detailSection.title} subtitle={detailSection.description} /></div>
+    <nav aria-label={t("Retour aux analyses")} className="trends-detail-breadcrumb"><a className="trends-text-action" href={navigation.detailHref("")} onClick={(event) => navigation.onNavigate(event)}><ArrowLeft aria-hidden="true" />{t(" Retour aux choix des champions")}</a></nav>
+    <div ref={detailHeading} tabIndex={-1} className="trends-detail-heading" role="group" aria-label={t(detailSection.title)}><PageHeader eyebrow={t("Analyses · Choix des champions")} title={t(detailSection.title)} subtitle={detailSection.description} /></div>
   </>;
 
   const trendPanelOptions = [
     ["coach", "Synthèse", Gauge, "Préparer le débrief"],
     ["evolution", "Évolution", Activity, "Suivre partie après partie"],
     ["comparison", "Comparer", RefreshCw, "Voir ce qui a changé"],
+    ["statistics", "Statistiques", BarChart3, "Comparer les joueurs"],
     ["draft", "Champions", Crown, "Choix et compositions"],
-    ["ai-objectives", "Objectifs", Target, "Cibles équipe et joueurs"],
+    ["drafts", "Drafts & bans", Shield, "Priorités et ordre de sélection"],
+    ["playstyle", "Style de jeu", Compass, "Habitudes et pistes de travail"],
   ];
 
+  if (trendPanel === "drafts") return <div className="nxt5-data-dense nxt5-trends-page">
+    <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Retrouve les priorités de sélection et les bans des drafts importées.")} />
+    <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
+    {trendPanelOptions.map(([id]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-labelledby={`trend-tab-${id}`} hidden={id !== "drafts"} tabIndex={0}>
+      {id === "drafts" && <DrafterAnalysis key={selectedTeamId} teamId={selectedTeamId} matches={baseMatches} players={data.players || []} championPool={data.championPool || []} />}
+    </div>)}
+  </div>;
+
   if (!matches.length && (trendPanel !== "comparison" || !baseMatches.length)) return <div className="nxt5-data-dense nxt5-trends-page">
-    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Analyses de l’équipe" subtitle="Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles." />}
-    {baseMatches.length > 0 && <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />}
-    {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les parties</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
-    <div id={`trend-panel-${trendPanel}`} role={baseMatches.length ? "tabpanel" : undefined} aria-labelledby={baseMatches.length ? `trend-tab-${trendPanel}` : undefined} tabIndex={baseMatches.length ? 0 : undefined}><Surface><EmptyState icon={Activity} title={baseMatches.length ? "Aucune partie dans cette sélection" : "Vos analyses commencent ici"} text={baseMatches.length ? "Choisis une autre période ou catégorie pour retrouver les analyses de l’équipe." : "Importe tes premières parties pour suivre les résultats et repérer les points à travailler."} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? "Voir toutes les parties" : "Importer une partie"}</Button></div></Surface></div>
-    {baseMatches.length > 0 && trendPanelOptions.filter(([id]) => id !== trendPanel).map(([id]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-labelledby={`trend-tab-${id}`} hidden />)}
+    {detailHeader || <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.")} />}
+    <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
+    {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes les parties")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
+    <div id={`trend-panel-${trendPanel}`} role="tabpanel" aria-labelledby={`trend-tab-${trendPanel}`} tabIndex={0}><Surface><EmptyState icon={Activity} title={baseMatches.length ? t("Aucune partie dans cette sélection") : t("Vos analyses commencent ici")} text={baseMatches.length ? t("Choisis une autre période ou catégorie pour retrouver les analyses de l’équipe.") : t("Importe tes premières parties pour suivre les résultats et repérer les points à travailler.")} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? t("Voir toutes les parties") : t("Importer une partie")}</Button></div></Surface></div>
+    {trendPanelOptions.filter(([id]) => id !== trendPanel).map(([id]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-labelledby={`trend-tab-${id}`} hidden />)}
   </div>;
 
   const avg = (value) => value / Math.max(1, matches.length);
@@ -709,8 +742,8 @@ function TrendsPage({ data, selectedTeamId }) {
     const damageShare = Number.isFinite(row.damageShare) ? row.damageShare : 0;
     const goldShare = Number.isFinite(row.goldShare) ? row.goldShare : 0;
     const sourceGamesForObjective = row.sourceGames?.length ? row.sourceGames : sourceGamesForRole(role);
-    let title = "Valider le rôle dans le plan";
-    let target = "2 games propres sur les 3 prochaines";
+    let title = "Préciser le rôle dans le plan de jeu";
+    let target = "Appliquer le plan sur 2 des 3 prochaines parties";
     let current = `${winrateLabel(row.wr)} de victoires`;
     let why = `${roleLabel(role)} est lu comme ${row.functionLabel.toLowerCase()} sur ce bloc.`;
     let progress = row.wr;
@@ -718,37 +751,37 @@ function TrendsPage({ data, selectedTeamId }) {
       title = "Stabiliser la lane";
       target = "CS10 >= -3 pendant 3 games";
       current = `CS10 ${cs10 >= 0 ? "+" : ""}${cs10.toFixed(1)}`;
-      why = "La lane perd trop tôt en ressources, donc les reviews doivent cibler waves 1-3, reset et couverture river.";
+      why = "Le retard de ressources apparaît en début de partie. Revois les trois premières vagues, le premier retour à la base et la couverture en rivière.";
       progress = 100 - Math.min(100, Math.abs(cs10) * 12);
     } else if (role === "JGL" && earlyObjectiveRate !== null && earlyObjectiveRate < 60) {
       title = "Débloquer le premier objectif";
       target = "1er objectif avant 9:30 sur 2/3 games";
       current = `${earlyObjectiveRate}% avant 9:30`;
-      why = "Le tempo jungle doit transformer la priorité lane en drake, grubs ou herald plus tôt.";
+      why = "Travaille la prise de dragon, de larves du Néant ou du Héraut quand tes voies ont la priorité.";
       progress = earlyObjectiveRate;
     } else if ((role === "ADC" || role === "TOP" || role === "MID") && damageShare < 24) {
-      title = "Augmenter l'impact fight";
+      title = "Contribuer davantage aux combats";
       target = "Part des dégâts ≥ 26%";
       current = `${Math.round(damageShare)}% dégâts`;
-      why = "Le rôle a besoin d'un objectif mesurable en fights : positionnement, timing d'entrée et conversion DPS.";
+      why = "Choisis un point à travailler en combat : le placement, le moment d’entrée ou les dégâts infligés.";
       progress = (damageShare / 26) * 100;
     } else if (role === "SUP" && visionDiff < 0) {
-      title = "Reprendre la vision objective";
+      title = "Préparer la vision autour des objectifs";
       target = "Écart de vision positif 60 s avant l’objectif";
       current = signedAvg(visionDiff);
       why = "La préparation des objectifs passe par le support, même si l'exécution reste collective.";
       progress = 42;
     } else if (kp < 58) {
-      title = "Reconnecter les actions";
+      title = "Participer aux actions de l’équipe";
       target = "KP >= 60% sur les 3 prochaines games";
       current = `KP ${Math.round(kp)}%`;
-      why = "Le rôle apparaît trop isolé du résultat collectif ; l'objectif est de jouer plus tôt avec le noyau d'action.";
+      why = "La participation aux éliminations est faible. Vérifie si ce rôle pouvait rejoindre plus tôt les actions de l’équipe.";
       progress = (kp / 60) * 100;
     } else if (goldShare >= 23 || damageShare >= 28 || kp >= 65) {
-      title = "Assumer la condition forte";
-      target = "Plan de jeu annoncé avant draft + review post-game";
+      title = "Préparer le plan autour de ce rôle";
+      target = "Annoncer le plan avant la draft, puis débriefer la partie";
       current = `${Math.round(goldShare)}% or / ${Math.round(damageShare)}% dégâts`;
-      why = "Le rôle porte déjà une grosse partie de l'identité : l'objectif devient la répétition consciente du plan.";
+      why = "Ce rôle contribue beaucoup aux ressources ou aux actions de l’équipe. Précise sa place dans le plan, puis essaie de reproduire ce qui fonctionne.";
       progress = Math.max(row.wr, 72);
     }
     return {
@@ -789,59 +822,59 @@ function TrendsPage({ data, selectedTeamId }) {
     const lowKpRow = profileRows.slice().sort((a, b) => parsePercent(a.kill_participation || a.kp || 0) - parsePercent(b.kill_participation || b.kp || 0))[0];
     const profileSourceGames = sourceGamesForMatches(Array.from(new Map(profileRows.map((row) => [matchKey(row.match), row.match])).values()));
     const rolePlaybook = {
-      TOP: { habit: "annoncer wave state + TP 70s avant objectif", review: "waves 1-3, premier reset, morts side avant objectif", scrim: "1 objectif : arriver au fight sans perdre la wave side" },
-      JGL: { habit: "annoncer premier path + premier objectif avant 3:15", review: "transition clear > river > objectif, pas seulement les fights", scrim: "2 objectifs early joués avec timer annoncé 45s avant" },
-      MID: { habit: "transformer chaque prio en reset ou move river", review: "wave avant roam, position jungle adverse, timing de reset", scrim: "call du côté joué avant chaque objectif neutre" },
-      ADC: { habit: "annoncer quand tu peux taper et quand tu dois attendre peel", review: "distance en fight, resets canon, morts avant 20", scrim: "1 fight joué sans flash défensif forcé avant l'objectif" },
-      SUP: { habit: "poser la première vision objectif avant le reset adverse", review: "roams sans wave crash, facechecks, accès river", scrim: "setup vision 60s avant objectif + annonce de la zone interdite" },
-    }[role] || { habit: "clarifier le rôle avant la game", review: "décisions clés du poste", scrim: "un test mesurable sur 3 games" };
-    let title = roleObjective?.title || "Créer un objectif profil";
-    let target = roleObjective?.target || "3 games avec une intention claire";
-    let trigger = roleObjective?.why || "Le profil doit être relié au plan d'équipe.";
+      TOP: { habit: "annoncer l’état de la vague et la disponibilité du TP 70 s avant l’objectif", review: "vagues 1 à 3, premier retour à la base et morts sur une voie latérale avant l’objectif", scrim: "sur un objectif, rejoindre le combat sans perdre la vague de la voie latérale" },
+      JGL: { habit: "annoncer le premier parcours jungle et le premier objectif avant 3:15", review: "enchaînement des camps, déplacement en rivière et prise d’objectif, puis combats", scrim: "jouer 2 objectifs en début de partie en annonçant leur timing 45 s avant" },
+      MID: { habit: "profiter de chaque priorité de voie pour revenir à la base ou aller en rivière", review: "vague avant le décalage, position du jungler adverse et moment du retour à la base", scrim: "annoncer le côté joué avant chaque objectif neutre" },
+      ADC: { habit: "annoncer quand tu peux attaquer et quand tu as besoin de protection", review: "distance en combat, retours à la base sur les vagues canon et morts avant 20 minutes", scrim: "jouer 1 combat sans devoir utiliser Flash pour se défendre avant l’objectif" },
+      SUP: { habit: "poser la première vision autour de l’objectif avant le retour adverse à la base", review: "décalages sans vague sous la tour adverse, entrées sans vision et accès à la rivière", scrim: "préparer la vision 60 s avant l’objectif et annoncer la zone à éviter" },
+    }[role] || { habit: "préciser le rôle avant la partie", review: "décisions clés du poste", scrim: "un objectif mesurable sur 3 parties" };
+    let title = roleObjective?.title || "Définir un objectif pour le joueur";
+    let target = roleObjective?.target || "Suivre le même objectif sur 3 parties";
+    let trigger = roleObjective?.why || "Précise ce que ce joueur doit faire dans le plan d’équipe.";
     let drill = rolePlaybook.scrim;
     let review = rolePlaybook.review;
-    let validation = "Validé si la cible est tenue sur 2 des 3 prochaines games.";
-    let danger = "Pas assez de volume, ne pas surinterpréter.";
+    let validation = "Validé si la cible est atteinte sur 2 des 3 prochaines parties.";
+    let danger = "Trop peu de parties pour tirer une conclusion.";
     let progress = profileResults.winrate;
     if (!gamesCount) {
-      title = "Brancher le profil aux données";
-      target = "Importer 3 games où ce Riot ID est présent";
-      trigger = "Aucune game importée ne permet encore de lire ce joueur individuellement.";
+      title = "Associer le joueur à ses parties";
+      target = "Importer 3 parties où ce Riot ID est présent";
+      trigger = "Aucune partie importée ne permet encore d’analyser les résultats de ce joueur.";
       drill = "Après chaque import : vérifier que le profil NXT5 est bien lié au compte Riot.";
-      review = "Pas de review individuelle tant que le profil n'a pas au moins 3 games.";
-      validation = "Validé à 3 games exploitables.";
-      danger = "Sans linkage, NXT5 ne peut proposer que l'objectif du rôle.";
+      review = "Importe au moins 3 parties associées au profil avant le débrief individuel.";
+      validation = "Validé avec 3 parties exploitables.";
+      danger = "Sans partie associée au joueur, NXT5 peut seulement proposer l’objectif de son rôle.";
     } else if ((role === "TOP" || role === "MID" || role === "ADC") && Number.isFinite(avgCs10) && avgCs10 < 68) {
-      title = "Réparer le plan de lane";
+      title = "Revoir le plan de lane";
       target = `${role === "ADC" ? "CS10 >= 72" : "CS10 >= 70"} sur 2/3 games`;
       trigger = `CS10 moyen ${Math.round(avgCs10)}${Number.isFinite(avgCs20) ? `, CS20 ${Math.round(avgCs20)}` : ""}.`;
       drill = rolePlaybook.habit;
       validation = "Validé si le CS10 remonte sans augmenter les morts avant objectif.";
-      danger = "Si le CS10 monte mais les deaths montent aussi, le problème est le trade pattern.";
+      danger = "Si les CS à 10 minutes et les morts augmentent ensemble, revois les échanges en lane.";
       progress = (avgCs10 / (role === "ADC" ? 72 : 70)) * 100;
     } else if (avgProfile("deaths") >= 4.2) {
-      title = "Baisser l'exposition";
+      title = "Limiter les prises de risque";
       target = "<= 3.5 morts/game sur le prochain bloc";
       trigger = `${avgProfile("deaths").toFixed(1)} morts/game, pic à ${Number(worstDeathRow?.deaths || 0)} morts.`;
-      drill = "Avant chaque objectif : annoncer reset / catch / fight, puis respecter l'appel.";
-      validation = "Validé si aucune mort n'arrive dans les 60s avant deux objectifs clés.";
-      danger = worstDeathRow ? `Review prioritaire : ${matchDisplayName(worstDeathRow.match, "game")} sur ${championDisplayName(worstDeathRow.champion)}.` : "Attention aux morts qui cassent les setups.";
+      drill = "Avant chaque objectif, annonce le choix : retour à la base, cible à isoler ou combat. Suis ensuite la décision de l’équipe.";
+      validation = "Validé si le joueur ne meurt pas dans les 60 s avant deux objectifs importants.";
+      danger = worstDeathRow ? `Review prioritaire : ${matchDisplayName(worstDeathRow.match, "game")} sur ${championDisplayName(worstDeathRow.champion)}.` : "Revois les morts pendant la préparation des objectifs.";
       progress = 100 - Math.min(100, (avgProfile("deaths") - 2.6) * 18);
     } else if (avgProfileKp < 56) {
-      title = "Reconnecter le joueur au plan";
+      title = "Préparer les actions du joueur avec l’équipe";
       target = "KP >= 60% sur 2/3 games";
       trigger = `KP moyen ${Math.round(avgProfileKp)}%, trop bas pour un rôle qui doit peser dans les actions collectives.`;
       drill = rolePlaybook.habit;
-      validation = "Validé si le joueur est présent sur les deux premiers fights utiles.";
-      danger = lowKpRow ? `Game à ouvrir : ${matchDisplayName(lowKpRow.match, "game")} (${Math.round(parsePercent(lowKpRow.kill_participation || lowKpRow.kp || 0))}% KP).` : "Le risque est d'avoir une bonne lane sans conversion collective.";
+      validation = "Validé si le joueur rejoint les deux premiers combats utiles à l’équipe.";
+      danger = lowKpRow ? `Game à ouvrir : ${matchDisplayName(lowKpRow.match, "game")} (${Math.round(parsePercent(lowKpRow.kill_participation || lowKpRow.kp || 0))}% KP).` : "Vérifie comment l’avance en lane profite aux actions de l’équipe.";
       progress = (avgProfileKp / 60) * 100;
     } else if ((role === "ADC" || role === "MID" || role === "TOP") && avgProfileDamageShare < avgProfileGoldShare - 2) {
-      title = "Convertir les ressources";
-      target = "Damage share >= gold share - 1";
+      title = "Utiliser les ressources en combat";
+      target = "Part des dégâts ≥ part de l’or − 1";
       trigger = `${avgProfileGoldShare.toFixed(1)}% or pour ${avgProfileDamageShare.toFixed(1)}% dégâts.`;
-      drill = "Review des fights gagnables : position d'entrée, cible tapée, spell défensif utilisé.";
-      validation = "Validé si l'écart ressources/dégâts repasse sous 1 point.";
-      danger = "Si les ressources ne deviennent pas des dégâts, il faut ajuster draft ou setup fight.";
+      drill = "Revois les combats qui pouvaient être gagnés : position à l’entrée, cible attaquée et sort défensif utilisé.";
+      validation = "Validé si l’écart entre la part de l’or et celle des dégâts repasse sous 1 point.";
+      danger = "Si la part des dégâts reste inférieure à celle de l’or, revois la composition et la préparation des combats.";
       progress = 100 - Math.min(100, Math.max(0, avgProfileGoldShare - avgProfileDamageShare) * 12);
     }
     return {
@@ -904,17 +937,17 @@ function TrendsPage({ data, selectedTeamId }) {
         title: `Stabiliser ${fragilePattern.label}`,
         target: "1 review ciblée + 2 drafts test",
         current: `${winrateLabel(fragilePattern.wr)} de victoires`,
-        why: "Le pattern existe mais son rendement chute : il faut séparer problème de draft, exécution et timing.",
+        why: "Ce plan de jeu obtient moins de victoires. Revois les champions choisis, les actions et leur timing pour comprendre cet écart.",
         progress,
         toneName: objectiveTone(progress),
         sourceGames: fragilePattern.sourceGames,
       };
     }
     return {
-      title: "Conserver le plan fort",
+      title: "Rejouer le plan de l’équipe",
       target: "Reproduire le plan sur 3 games consécutives",
       current: `${winrateLabel(winrate)} de victoires`,
-      why: "Le bloc est plutôt sain : l'objectif sert à garder une direction claire, pas à tout changer.",
+      why: "Les résultats de cette sélection suggèrent de poursuivre le plan. Vérifie ce qui fonctionne en le rejouant.",
       progress: clampPercent(winrate),
       toneName: winrate === null ? "slate" : objectiveTone(winrate),
       sourceGames,
@@ -947,12 +980,13 @@ function TrendsPage({ data, selectedTeamId }) {
     setExportState("done");
     } catch { setExportState("error"); }
   };
-  const openTrendSources = ({ title, subtitle, metrics, games }) => {
+  const openTrendSources = ({ title, subtitle, metrics, games, playstyle = false }) => {
     const scopedGames = games ?? sourceGames;
     const resultGames = scopedGames.filter((game) => ["Victoire", "Défaite"].includes(game.result));
     setTrendSourceModal({
       title,
       subtitle,
+      playstyle,
       metrics: metrics || [
         { label: "Contexte", value: activeTrendCategory?.name || "Toutes" },
         { label: "Games sources", value: String(scopedGames.length) },
@@ -980,41 +1014,41 @@ function TrendsPage({ data, selectedTeamId }) {
     if (game.visionDiff < 0) return "Score de vision inférieur : revoir la préparation des objectifs et les entrées dans les zones sans vision.";
     return "Partie utile pour comparer les décisions, le moment des objectifs et la contribution des rôles.";
   };
-  const draftTrendModel = buildDraftTrendModel(matches);
   const staffAlerts = buildStaffAlerts(matches, (data.players || []).filter((player) => player.team_id === selectedTeamId));
-  const showObjectives = () => {
-    focusObjectives.current = true;
-    setTrendPanel("ai-objectives");
+  const showPlaystyle = () => {
+    focusPlaystyle.current = true;
+    setTrendPanel("playstyle");
   };
 
   return <div className="nxt5-data-dense nxt5-trends-page">
-    {detailHeader || <PageHeader eyebrow="Comprendre l’équipe" title="Analyses de l’équipe" subtitle="Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.">
-      {trendPanel !== "comparison" && <Button type="button" variant="ghost" icon={ImageIcon} disabled={exportState === "loading"} onClick={exportTrends}>{exportState === "loading" ? "Export en cours…" : "Exporter la synthèse"}</Button>}
+    {detailHeader || <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.")}>
+      {trendPanel !== "comparison" && <Button type="button" variant="ghost" icon={ImageIcon} disabled={exportState === "loading"} onClick={exportTrends}>{exportState === "loading" ? t("Export en cours…") : t("Exporter la synthèse")}</Button>}
     </PageHeader>}
-    {exportState === "error" && <p role="alert" className="trends-export-status">L’export n’a pas abouti. Réessaie avec le bouton « Exporter la synthèse ».</p>}
-    {exportState === "done" && <p role="status" className="trends-export-status">La synthèse PNG a été téléchargée.</p>}
+    {exportState === "error" && <p role="alert" className="trends-export-status">{t("L’export n’a pas abouti. Réessaie avec le bouton « Exporter la synthèse ».")}</p>}
+    {exportState === "done" && <p role="status" className="trends-export-status">{t("La synthèse PNG a été téléchargée.")}</p>}
     {trendPanel !== "comparison" && <div className="trends-filters">
       <div className="trends-filter-controls">
-        <SelectInput label="Catégorie" value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">Toutes les parties</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
+        {trendPanel !== "statistics" && <SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes les parties")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>}
         <TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} />
       </div>
-      <div className="trends-scope"><p aria-live="polite"><strong>{matches.length} partie{matches.length > 1 ? "s" : ""} analysée{matches.length > 1 ? "s" : ""}</strong> sur {categoryMatches.length} · {activeTrendCategory?.name || "Tous les contextes"}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" /> Réinitialiser les filtres</button>}</div>
+      <div className="trends-scope"><p aria-live="polite"><strong>{matches.length}{t(matches.length > 1 ? " parties" : " partie")}{t(matches.length > 1 ? " analysées" : " analysée")}</strong>{t(" sur ")}{categoryMatches.length} · {activeTrendCategory?.name || t("Tous les contextes")}</p>{(selectedCategoryId || trendPeriod !== "all") && <button type="button" className="trends-text-action" onClick={() => { navigation.resetFilters(); }}><RefreshCw aria-hidden="true" />{t(" Réinitialiser les filtres")}</button>}</div>
+      <p className="trends-results-context">{t(resultLabel(results))}{t(" · Taux de victoire : ")}{t(winrateLabel(winrate))}{t(" sur ")}{results.known}{t(results.known > 1 ? " résultats" : " résultat")}{t(results.known > 1 ? " connus" : " connu")}.</p>
     </div>}
-    {trendPanel !== "comparison" && <p className="trends-sample-note">{resultLabel(results)} · Taux de victoire : {winrateLabel(winrate)} sur {results.known} résultat{results.known > 1 ? "s" : ""} connu{results.known > 1 ? "s" : ""}.</p>}
-    {trendPanel !== "comparison" && matches.length < 5 && <p className="trends-sample-note"><AlertTriangle aria-hidden="true" /><span>Peu de parties : les répétitions restent à confirmer. Ces observations portent sur {matches.length} partie{matches.length > 1 ? "s" : ""}.</span></p>}
+    {trendPanel !== "comparison" && matches.length < 5 && <p className="trends-sample-note"><AlertTriangle aria-hidden="true" /><span>{t("Peu de parties : les répétitions restent à confirmer. Ces observations portent sur ")}{matches.length}{t(matches.length > 1 ? " parties" : " partie")}.</span></p>}
     {detailSection ? <DraftTrendDetails key={draftDetail} sectionId={draftDetail} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} /> : <>
     <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
-    {trendPanelOptions.map(([id, label]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-label={label} tabIndex={0} hidden={trendPanel !== id} className="trends-tab-content">
+    {trendPanelOptions.map(([id, label]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-label={t(label)} tabIndex={0} hidden={trendPanel !== id} className="trends-tab-content">
       {trendPanel === id && <>
-        {id === "coach" && <TrendsOverview objective={teamAiObjective} plan={primaryTeamModelCard} roles={roleSystemRows} briefs={coachBriefs} alerts={staffAlerts} onOpenSources={openTrendSources} onObjectives={showObjectives} />}
+        {id === "coach" && <TrendsOverview objective={teamAiObjective} plan={primaryTeamModelCard} roles={roleSystemRows} briefs={coachBriefs} alerts={staffAlerts} onOpenSources={openTrendSources} onPlaystyle={showPlaystyle} />}
         {id === "evolution" && <TrendEvolution matches={matches} onOpenMatch={openSourceGame} />}
-        {id === "comparison" && <Suspense fallback={<Surface><p className="mb-3 text-sm font-semibold text-slate-300" role="status">Chargement de la comparaison…</p><SkeletonRows /></Surface>}><BlockComparisonPanel matches={baseMatches} categories={matchCategories} /></Suspense>}
-        {id === "draft" && <DraftTrendsModule model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} detailHref={navigation.detailHref} onNavigateDetail={navigation.onNavigate} />}
-        {id === "ai-objectives" && <Surface><ProgressionObjectives teamObjective={teamAiObjective} roleObjectives={roleAiObjectives} gamesCount={matches.length} onOpenSources={openTrendSources} onOpenContracts={() => setProfileContractsOpen(true)} /></Surface>}
+        {id === "comparison" && <Suspense fallback={<Surface><p className="mb-3 text-sm font-semibold text-slate-300" role="status">{t("Chargement de la comparaison…")}</p><SkeletonRows /></Surface>}><BlockComparisonPanel matches={baseMatches} categories={matchCategories} /></Suspense>}
+        {id === "draft" && <DraftTrendsModule key={selectedTeamId} model={draftTrendModel} onOpenSources={openTrendSources} sourceGamesForMatches={sourceGamesForMatches} detailHref={navigation.detailHref} onNavigateDetail={navigation.onNavigate} />}
+        {id === "statistics" && <Surface className="player-comparison-surface"><PlayerComparison key={selectedTeamId} matches={matches} players={teamProfiles} categories={matchCategories} category={selectedCategoryId} onCategoryChange={setSelectedCategoryId} /></Surface>}
+        {id === "playstyle" && <PlaystyleAnalysis matches={matches} players={teamProfiles} sourceGames={sourceGames} onOpenSources={openTrendSources} onOpenContracts={() => setProfileContractsOpen(true)} />}
       </>}
     </div>)}
     </>}
-    <details className="trends-reading-help"><summary>Comment lire ces informations ?</summary><div><p>Les filtres s’appliquent à toutes les rubriques sauf Comparer, qui possède ses propres sélections sur l’historique de l’équipe. Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des parties : une valeur par partie dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.</p><p>KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.</p><p>Les plans de jeu et objectifs sont des pistes à vérifier dans les parties sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.</p></div></details>
+    <details className="trends-reading-help"><summary>{t("Comment lire ces informations ?")}</summary><div><p>{t("La catégorie et la période d’analyse sont communes à Synthèse, Évolution, Statistiques, Champions et Style de jeu. Comparer et Drafts & bans ont leurs propres sélections.")}</p><p>{t("Les écarts d’or, de dégâts et de vision comparent notre équipe aux adversaires à la fin des parties : une valeur par partie dans Évolution, des moyennes par bloc dans Comparer. Une valeur positive indique un avantage sur cette mesure.")}</p><p>{t("KP : participation aux éliminations de l’équipe. CS10 / CS20 : nombre de sbires et monstres tués à 10 / 20 minutes ; dans une comparaison, l’écart est calculé face au rôle adverse. WR : taux de victoire. « — » indique une donnée indisponible.")}</p><p>{t("Les plans de jeu et objectifs sont des pistes à vérifier dans les parties sources. Une répétition ou une évolution ne suffit pas à prouver sa cause.")}</p></div></details>
     {profileContractsOpen && <TrendContractsDialog objectives={profileAiObjectives} onClose={() => setProfileContractsOpen(false)} onOpenSources={openTrendSources} />}
     {trendSourceModal && <TrendSourcesDialog source={trendSourceModal} onClose={() => setTrendSourceModal(null)} onOpenGame={openSourceGame} signals={sourceGameSignals} read={sourceGameRead} />}
   </div>;

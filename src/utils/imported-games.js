@@ -5,7 +5,11 @@ const normalize = (value) => String(value ?? "").normalize("NFD").replace(/[\u03
 const dateFormats = [
   new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }),
   new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "2-digit" }),
-  new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" }),
+  ...["fr-FR", "en-GB", "es-ES"].map((locale) => new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric" })),
+];
+const resultSearchAliases = [
+  ["victoire", "victory", "win", "victoria"],
+  ["defaite", "defeat", "loss", "defeated", "derrota"],
 ];
 
 /** Resolve the allied side without treating an unknown side as red. */
@@ -66,6 +70,7 @@ function searchableText(match, categoryNames) {
     row.raw?.championName, row.raw?.teamPosition,
   ]);
   const side = importedGameSide(match);
+  const resultAliases = resultSearchAliases.find((aliases) => aliases.includes(normalize(match.result).trim())) || [];
   // Read only searchable metadata, never stringify potentially large raw timelines.
   return normalize([
     matchDisplayName(match), match.title, match.label, match.game_id, match.opponent,
@@ -73,7 +78,8 @@ function searchableText(match, categoryNames) {
     match.created_by_name, match.created_by_account,
     match.raw?.nxt5Label, match.raw?.label, match.raw?.opponent,
     match.raw?.metadata?.label, match.raw?.metadata?.opponent,
-    side === "blue" ? "côté bleu blue" : side === "red" ? "côté rouge red" : "",
+    side === "blue" ? "côté bleu blue side lado azul" : side === "red" ? "côté rouge red side lado rojo" : "",
+    ...resultAliases,
     ...participants, ...matchCategoryIds(match).map((id) => categoryNames.get(id)),
     ...searchableDates(match),
   ].filter((value) => value != null && value !== "").join(" "));

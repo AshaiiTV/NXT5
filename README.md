@@ -2,7 +2,7 @@
 
 Espace de travail des équipes et coachs League of Legends : analyse des parties, débriefs, préparation des champions et organisation des entraînements. Site public : [nxt5.org](https://nxt5.org).
 
-La [documentation du dépôt](docs/README.md) regroupe les guides d’exploitation et de maintenance.
+La [documentation du dépôt](docs/README.md) regroupe les guides d’exploitation, de maintenance et les rapports datés.
 
 ## Stack
 
@@ -76,7 +76,7 @@ RESET_EMAIL_FROM=NXT5 <noreply@ton-domaine.fr>
 `DATABASE_URL` vient de Neon et doit être disponible pour les fonctions. Pour les migrations, donne accès au contexte **production / Builds** à `MIGRATION_DATABASE_URL` (ou à `DATABASE_URL` en son absence). Ne partage pas les identifiants de production avec les Deploy Previews.
 `RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton « Analyser profils » recalcule les champions joués sur la saison courante. Sa valeur par défaut et son plafond sont de 80 matchs ; une valeur supérieure est ramenée à ce plafond.
 `PUBLIC_SITE_URL` est facultative ; si elle est définie, elle doit valoir exactement `https://nxt5.org`, sinon le build échoue pour ne pas publier de mauvaise URL canonique.
-`RESEND_API_KEY` et `RESET_EMAIL_FROM` servent à envoyer les e-mails de mot de passe oublié. Le domaine utilisé dans `RESET_EMAIL_FROM` doit être validé dans Resend.
+`RESEND_API_KEY` et `RESET_EMAIL_FROM` servent à envoyer tous les e-mails du site : vérification du compte, mot de passe oublié, inscription sociale, rappels et notifications d’équipe. Le domaine utilisé dans `RESET_EMAIL_FROM` doit être validé dans Resend. L’adresse de réponse (`Reply-To`) est `contact@nxt5.org`, issue de `NXT5_CONTACT_EMAIL` dans `shared/legal.js`.
 
 ## Neon
 
@@ -107,7 +107,7 @@ L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. La [d�
 
 ## Application NXT5 Importer
 
-Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.5** pour Windows, Mac Intel et Mac Apple Silicon.
+Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.8** pour Windows, Mac Intel et Mac Apple Silicon.
 
 1. Lance le `.exe` Windows ou ouvre `NXT5 Importer.app` après extraction du zip Mac adapté à ton processeur.
 2. Colle le numéro de la partie ou un ID complet comme `EUW1_7861632138`. Vérifie la région.
@@ -126,7 +126,7 @@ Les mises à jour sont proposées pour l’architecture de l’appareil. Les lie
 
 ```sh
 cd importer-app
-# Utiliser pnpm 11.19.0, déclaré dans importer-app/package.json.
+# Utiliser la version de pnpm déclarée dans importer-app/package.json.
 pnpm install --frozen-lockfile
 pnpm test
 pnpm start

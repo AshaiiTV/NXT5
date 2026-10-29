@@ -1,6 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Keep the existing unlayered cascade: component styles intentionally mix with
+   utilities by specificity. Putting utilities in a layer would make even a
+   universal unlayered border/font rule override explicit utility classes. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css";
+@import "tailwindcss/utilities.css" source(none);
+@config "../tailwind.config.js";
+
+/* Preserve the preflight defaults used before the Tailwind 4 migration. */
+input::placeholder,
+textarea::placeholder { color: #9ca3af; opacity: 1; }
+button,
+[role="button"] { cursor: pointer; }
+:disabled { cursor: default; }
 
 @font-face {
   font-family: Inter;
@@ -47,24 +58,45 @@
 
 :root {
   color-scheme: dark;
-  --nxt5-bg: #020611;
-  --nxt5-surface: #091322;
-  --nxt5-surface-raised: #0e1b2e;
-  --nxt5-surface-soft: rgba(154, 182, 218, 0.045);
-  --nxt5-border: rgba(154, 182, 218, 0.13);
-  --nxt5-border-strong: rgba(154, 182, 218, 0.25);
-  --nxt5-text: #f3f7ff;
-  --nxt5-text-secondary: #bfccdf;
-  --nxt5-muted: #97abc4;
+  --nxt5-bg: #111827;
+  --nxt5-surface: #1e293b;
+  --nxt5-surface-raised: #29384d;
+  --nxt5-field: #111b2d;
+  --nxt5-surface-soft: rgba(181, 200, 225, 0.065);
+  --nxt5-border: rgba(181, 200, 225, 0.22);
+  --nxt5-border-strong: rgba(181, 200, 225, 0.38);
+  --nxt5-text: #f1f5f9;
+  --nxt5-text-secondary: #cbd5e1;
+  --nxt5-muted: #afbfd3;
   --nxt5-accent: #67e8f9;
-  --nxt5-accent-2: #a78bfa;
+  --nxt5-accent-2: #c4b5fd;
   --nxt5-danger: #fda4af;
+  /* Action ink stays dark independently of the page background. */
+  --nxt5-on-accent: #020611;
+  --nxt5-font-body: 1rem;
+  --nxt5-font-ui: .9375rem;
+  --nxt5-font-small: .875rem;
+  --nxt5-font-micro: .75rem;
+  --nxt5-reading-width: 68ch;
   --nxt5-primary-gradient: linear-gradient(to right, #22d3ee, #3b82f6, #d946ef);
   /* Decorative accents; primary actions and semantic state colors stay distinct. */
   --nxt5-spectrum-stops: #67e8f9, #818cf8 38%, #a78bfa 65%, #e879f9;
   --nxt5-spectrum-gradient: linear-gradient(105deg, var(--nxt5-spectrum-stops));
   --nxt5-spectrum-soft: linear-gradient(105deg, rgba(103, 232, 249, .07), rgba(139, 92, 246, .12) 62%, rgba(232, 121, 249, .07));
   --nxt5-spectrum-text: linear-gradient(105deg, #a5f3fc, #c4b5fd 55%, #f0abfc);
+  --nxt5-glass-background: linear-gradient(135deg, #263248, #221e42 62%, #1b273c);
+  --nxt5-glass-border: rgba(196, 181, 253, .34);
+  --nxt5-glass-highlight: rgba(226, 232, 255, .22);
+  --nxt5-glass-shadow: inset 0 1px 0 rgba(226, 232, 255, .1), 0 16px 48px rgba(2, 6, 17, .23);
+  --nxt5-glass-reflection: radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, .25), transparent 46%), radial-gradient(ellipse at 0% 0%, rgba(103, 232, 249, .075), transparent 36%);
+  /* Static facets live at the frame's edge; the reading field stays even. */
+  --nxt5-glass-facet: linear-gradient(135deg, transparent 20%, rgba(196, 181, 253, .07) 46%, rgba(196, 181, 253, .025) 62%, transparent 82%);
+  --nxt5-scene-background: linear-gradient(90deg, #111827 0%, rgba(17, 24, 39, .97) 35%, rgba(17, 24, 39, .66) 67%, rgba(17, 24, 39, .32)), linear-gradient(180deg, rgba(17, 24, 39, .68), transparent 42%, #111827 100%), url("/assets/home-motion/atmosphere.webp") right 58% / cover no-repeat;
+  --nxt5-edge-gradient: linear-gradient(100deg, rgba(103, 232, 249, .7), rgba(196, 181, 253, .65) 42%, rgba(232, 121, 249, .4) 68%, transparent);
+  --nxt5-glow-violet: rgba(139, 92, 246, .28);
+  --nxt5-glow-cyan: rgba(103, 232, 249, .16);
+  --nxt5-glow-fuchsia: rgba(232, 121, 249, .14);
+  --nxt5-ease-out: cubic-bezier(.23, 1, .32, 1);
   --nxt5-radius-panel: 1rem;
   --nxt5-radius-control: 0.625rem;
   --nxt5-radius-button: 0.125rem;
@@ -83,7 +115,7 @@
 }
 
 html {
-  background: #020511;
+  background: var(--nxt5-bg);
   overflow-x: hidden;
 }
 
@@ -94,8 +126,8 @@ body {
   background: var(--nxt5-bg);
   color: var(--nxt5-text);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: var(--nxt5-font-body);
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -236,8 +268,8 @@ textarea {
   }
 }
 
-/* Shared visual language: no decorative layer or blanket recoloring of children.
-   Status colors and page layouts retain their own intent. */
+/* Three intensities: scene introductions, faceted frames and calm reading.
+   Semantic colors remain owned by each state. */
 .nxt5-panel {
   clip-path: none;
   border-radius: var(--nxt5-radius-panel);
@@ -245,9 +277,20 @@ textarea {
 }
 .nxt5-premium-panel,
 .nxt5-surface {
-  background: var(--nxt5-surface);
-  box-shadow: var(--nxt5-shadow-panel);
+  background: var(--nxt5-glass-reflection), var(--nxt5-glass-background);
+  border-color: var(--nxt5-glass-border);
+  box-shadow: var(--nxt5-glass-shadow);
   backdrop-filter: none;
+}
+.nxt5-surface.nxt5-surface-reading {
+  background: var(--nxt5-surface);
+  border-color: var(--nxt5-border);
+  box-shadow: var(--nxt5-shadow-panel);
+}
+.nxt5-surface.nxt5-surface-scene {
+  background: var(--nxt5-glass-facet) top right / min(52%, 22rem) 8rem no-repeat, radial-gradient(ellipse at 100% 0%, var(--nxt5-glow-violet), transparent 56%), radial-gradient(ellipse at 0% 0%, var(--nxt5-glow-cyan), transparent 40%), var(--nxt5-glass-background);
+  border-color: rgba(196, 181, 253, .42);
+  box-shadow: inset 0 1px 0 rgba(226, 232, 255, .2), inset 1px 0 0 rgba(103, 232, 249, .07), 0 18px 48px rgba(2, 6, 17, .24);
 }
 .nxt5-panel .nxt5-panel {
   background: var(--nxt5-surface-soft);
@@ -260,7 +303,7 @@ textarea {
 .nxt5-cyber-button { border-radius: var(--nxt5-radius-button); }
 .nxt5-button-primary {
   background-image: var(--nxt5-primary-gradient);
-  color: var(--nxt5-bg);
+  color: var(--nxt5-on-accent);
 }
 .nxt5-input-shell,
 input.nxt5-control,
@@ -268,7 +311,7 @@ select.nxt5-control,
 textarea.nxt5-control {
   border-color: var(--nxt5-border-strong);
   border-radius: var(--nxt5-radius-control);
-  background: #050d1a;
+  background: var(--nxt5-field);
   color: var(--nxt5-text);
   box-shadow: none;
   transition: border-color 160ms, box-shadow 160ms;
@@ -600,9 +643,7 @@ svg {
   background: rgba(154, 182, 218, .5);
 }
 html.nxt5-low-gpu body {
-  background:
-    linear-gradient(135deg, rgba(8, 24, 45, 0.76), rgba(4, 8, 20, 0.94)),
-    #020511;
+  background: var(--nxt5-bg);
 }
 
 html.nxt5-low-gpu *,
@@ -614,9 +655,7 @@ html.nxt5-low-gpu *::after {
 }
 
 html.nxt5-low-gpu .nxt5-ambient-bg {
-  background:
-    linear-gradient(135deg, rgba(8, 27, 52, 0.9), rgba(3, 7, 18, 0.98)),
-    #020511 !important;
+  background: var(--nxt5-bg) !important;
 }
 
 html.nxt5-low-gpu .nxt5-ambient-bg > div {
@@ -625,10 +664,10 @@ html.nxt5-low-gpu .nxt5-ambient-bg > div {
 
 html.nxt5-low-gpu .nxt5-ambient-bg > div:first-child {
   display: block !important;
-  opacity: 0.34;
+  opacity: 1;
   background:
-    radial-gradient(circle at 18% 12%, rgba(34, 211, 238, 0.12), transparent 34%),
-    radial-gradient(circle at 82% 8%, rgba(217, 70, 239, 0.08), transparent 36%) !important;
+    radial-gradient(ellipse at 12% 0%, rgba(103, 232, 249, .1), transparent 46%),
+    radial-gradient(ellipse at 92% 8%, rgba(139, 92, 246, .23), transparent 58%) !important;
 }
 
 html.nxt5-low-gpu :where([class*="backdrop-blur"], .nxt5-premium-panel, .nxt5-surface, .nxt5-tab-nav, .nxt5-sidebar, .nxt5-topbar, .nxt5-panel .nxt5-panel) {
@@ -645,9 +684,10 @@ html.nxt5-low-gpu :where([class*="shadow-"], .nxt5-premium-panel) {
 }
 
 html.nxt5-low-gpu .nxt5-premium-panel {
-  background:
-    linear-gradient(135deg, rgba(8, 17, 36, 0.94), rgba(4, 8, 20, 0.9) 54%, rgba(15, 10, 30, 0.82)),
-    rgba(2, 7, 18, 0.86) !important;
+  background: var(--nxt5-glass-background) !important;
+}
+html.nxt5-low-gpu .nxt5-surface-reading {
+  background: var(--nxt5-surface) !important;
 }
 
 html.nxt5-low-gpu .nxt5-premium-panel::before,
@@ -669,14 +709,8 @@ html.nxt5-low-gpu .nxt5-hud-lines::before {
 .nxt5-hud-row { border: 0; border-top: 1px solid var(--nxt5-border); background: transparent; box-shadow: none; }
 .nxt5-flat-block { border-color: var(--nxt5-border); background: transparent; box-shadow: none; }
 
-.nxt5-composition-slots,
-.nxt5-composition-bank-grid,
-.nxt5-composition-card-slots {
+.nxt5-composition-bank-grid {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 13.5rem), 1fr)) !important;
-}
-
-.nxt5-composition-card-slots {
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11.5rem), 1fr)) !important;
 }
 
 .nxt5-composition-bank-pool {
@@ -700,9 +734,8 @@ html.nxt5-low-gpu .nxt5-hud-lines::before {
 }
 
 @media (min-width: 1440px) {
-  .nxt5-composition-slots,
-  .nxt5-composition-bank-grid,
-  .nxt5-composition-card-slots {
+
+  .nxt5-composition-bank-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
   }
 }
@@ -893,14 +926,13 @@ html.nxt5-low-gpu .nxt5-hud-lines::before {
 }
 
 /* Deliberate, accessible text tiers on the night surfaces. */
-.text-slate-300 { color: #c5d2e3; }
-.text-slate-400 { color: #aebed3; }
-.text-slate-500 { color: #96aac5; }
-.text-slate-600, .text-slate-650, .text-slate-700 { color: #91a7c3; }
+.text-slate-300 { color: var(--nxt5-text-secondary); }
+.text-slate-400, .text-slate-500 { color: var(--nxt5-muted); }
+.text-slate-600, .text-slate-650, .text-slate-700 { color: var(--nxt5-muted); }
 .placeholder\:text-slate-400::placeholder,
 .placeholder\:text-slate-500::placeholder,
 .placeholder\:text-slate-600::placeholder,
-.placeholder\:text-slate-650::placeholder { color: #8fa4c0; opacity: 1; }
+.placeholder\:text-slate-650::placeholder { color: var(--nxt5-muted); opacity: 1; }
 
 /* Responsive safeguards for legacy data grids; new layouts own their breakpoints. */
 @media (max-width: 1023px) {

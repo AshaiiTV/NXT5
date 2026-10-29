@@ -1,0 +1,534 @@
+import { t } from "../i18n/translate.js";
+import { championDisplayName } from "../../shared/champions.js";
+import { loadProfileChampionArt, drawProfileChampionArt } from "./profile-showcase-art.js";
+import {
+  PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, pngLoadImage,
+  pngImageContain, pngNumber, pngPercent, pngNumeric,
+} from "./png-report.js";
+
+export const PROFILE_SHOWCASE_SIZE = Object.freeze({ width: 1080, height: 1620 });
+const W = PROFILE_SHOWCASE_SIZE.width;
+const H = PROFILE_SHOWCASE_SIZE.height;
+const C = { ...PNG_THEME, secondary: PNG_THEME.muted, violet: "#C4B5FD" };
+
+/** Canvas and downloads deliberately use the same already loaded artwork. */
+export async function loadProfileShowcaseAssets(champion = "") {
+  const [championArt, logo, mark] = await Promise.all([
+    loadProfileChampionArt(champion),
+    pngLoadImage("/assets/nxt5-wordmark-640.webp"),
+    pngLoadImage("/assets/nxt5-loader-favicon-256.webp"),
+  ]);
+  return { ...championArt, logo, mark };
+}
+
+function fit(ctx, value, x, y, size = 28, color = C.text, weight = 600, width = W - 72 - x, align = "left", min = size) {
+  return pngFitText(ctx, value, x, y, width, { font: `${weight} ${size}px Inter, Arial, sans-serif`, color, min, align, localize: false });
+}
+
+function paragraph(ctx, value, x, y, width = 932, size = 26, color = C.secondary, maxLines = 2, lineHeight = size * 1.35, weight = 400) {
+  const font = `${weight} ${size}px Inter, Arial, sans-serif`;
+  const lines = pngWrapText(ctx, value, width, { font, maxLines, localize: false });
+  lines.forEach((line, i) => fit(ctx, line, x, y + i * lineHeight, size, color, weight, width));
+  return y + Math.max(0, lines.length - 1) * lineHeight;
+}
+
+function spectrum(ctx, x = 0, y = 0, width = W, height = 600) {
+  const gradient = ctx.createLinearGradient(x, y, x + width, y + height);
+  gradient.addColorStop(0, C.cyan);
+  gradient.addColorStop(.38, "#818CF8");
+  gradient.addColorStop(.65, C.purple);
+  gradient.addColorStop(1, C.pink);
+  return gradient;
+}
+
+function background(ctx) {
+  pngBackground(ctx, W, H, { variant: "profile" });
+}
+
+function frame(ctx) {
+  pngLine(ctx, 72, 40, 232, 40, spectrum(ctx, 72, 40, 160, 0), 3);
+}
+
+// These rectangles are exclusively reserved for whole, centred artwork. Neither
+// text nor a foreground fade is painted over the portrait, including its eyes.
+export const PROFILE_ART_REGIONS = Object.freeze({
+  front: Object.freeze({ x: 70, y: 210, width: 940, height: 884 }),
+  signature: Object.freeze({ x: 70, y: 380, width: 940, height: 870 }),
+  highlight: Object.freeze({ x: 70, y: 380, width: 940, height: 794 }),
+});
+
+function artwork(ctx, assets, region) {
+  if (drawProfileChampionArt(ctx, assets, region)) return true;
+  const centerX = region.x + region.width / 2;
+  const centerY = region.y + region.height / 2;
+  pngImageContain(ctx, assets.mark, centerX - 96, centerY - 124, 192, 192);
+  fit(ctx, t("Illustration indisponible"), centerX, centerY + 113, 26, C.secondary, 400, region.width - 20, "center");
+  return false;
+}
+
+const countLabel = (count) => t(count === 1 ? "{0} partie" : "{0} parties", [pngNumber(count)]);
+const identity = (r) => [r.teamName, r.role].filter(Boolean).join(" · ");
+const metric = (r, key) => r.metrics?.[key] || { value: null, count: 0 };
+const coverage = (count, total) => t("{0} / {1} parties", [pngNumber(count), pngNumber(total)]);
+const rateCoverage = (r) => r.results?.unknown > 0 ? t("Résultats connus : {0} / {1}", [pngNumber(r.results.known), pngNumber(r.games)]) : countLabel(r.games);
+const recentLabel = (count, allDated) => allDated
+  ? t(count === 1 ? "{0} DERNIÈRE PARTIE" : "{0} DERNIÈRES PARTIES", [pngNumber(count)])
+  : t(count === 1 ? "{0} PARTIE AFFICHÉE" : "{0} PARTIES AFFICHÉES", [pngNumber(count)]);
+const signed = (value, digits = 1) => {
+  if (pngNumeric(value) === null) return "—";
+  const rounded = Number(Number(value).toFixed(digits));
+  return `${rounded > 0 ? "+" : ""}${pngNumber(rounded, digits)}`;
+};
+
+function duration(seconds) {
+  if (pngNumeric(seconds) === null) return "—";
+  const minutes = Math.floor(seconds / 60);
+  return minutes >= 60 ? `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, "0")}` : `${minutes} min`;
+}
+
+function header(ctx, r, assets, { story = false, chapter = 0 } = {}) {
+  pngImageContain(ctx, assets.logo, 70, 66, 156, 49);
+  fit(ctx, r.contextLabel || t("PARTIES SÉLECTIONNÉES"), 1006, 88, 24, C.text, 500, 690, "right");
+  fit(ctx, r.dateLabel || t("Dates indisponibles"), 1006, 128, 24, C.secondary, 400, 690, "right");
+  if (story) {
+    fit(ctx, t("WRAPPED / {0}", [String(chapter + 1).padStart(2, "0")]), 74, 174, 23, C.secondary, 500, 390);
+  }
+  frame(ctx);
+}
+
+function footer(ctx, r) {
+  pngLine(ctx, 70, 1482, 1010, 1482);
+  fit(ctx, r.playerName || t("Joueur"), 70, 1532, 29, C.text, 600, 435);
+  fit(ctx, identity(r), 1010, 1532, 27, C.secondary, 400, 475, "right");
+  fit(ctx, `${countLabel(r.games)} · ${r.dateLabel || t("Dates indisponibles")}`, 70, 1580, 24, C.secondary, 400, 940);
+}
+
+function name(ctx, value, x, y, width, size, min = 58) {
+  fit(ctx, String(value || t("Joueur")).toUpperCase(), x, y, size, C.text, 700, width, "left", min);
+}
+
+function front(ctx, r, assets) {
+  background(ctx);
+  const signature = r.signature;
+  stage(ctx, PROFILE_ART_REGIONS.front, { variant: "card" });
+  artwork(ctx, assets, PROFILE_ART_REGIONS.front);
+  header(ctx, r, assets);
+  glassPlate(ctx, [[40, 1126], [1040, 1126], [1040, 1555], [72, 1555], [40, 1523]], { accent: "violet" });
+  name(ctx, r.playerName, 62, 1257, 950, 154, 60);
+  fit(ctx, identity(r) || t("Profil joueur"), 73, 1302, 27, C.secondary, 500, 934);
+  fit(ctx, signature ? `${championDisplayName(signature.champion)} · ${t("CHAMPION LE PLUS JOUÉ")}` : t("Champion indisponible"), 73, 1344, 23, C.cyan, 500, 934);
+  pngLine(ctx, 72, 1380, 1008, 1380, "rgba(196,181,253,.32)");
+  pngLine(ctx, 72, 1380, 340, 1380, spectrum(ctx, 72, 1380, 268, 0), 3);
+  const stats = [
+    [pngNumber(metric(r, "kda").value, 1), "KDA GLOBAL", metric(r, "kda").count],
+    [pngNumber(metric(r, "csPerMin").value, 1), "CS / MIN", metric(r, "csPerMin").count],
+    [pngPercent(metric(r, "kp").value), "PARTICIPATION (KP)", metric(r, "kp").count],
+  ];
+  stats.forEach(([value, label, count], i) => {
+    const x = 74 + i * 316;
+    fit(ctx, value, x, 1464, 78, C.text, 700, 270, "left", 43);
+    fit(ctx, t(label), x + 2, 1502, 24, C.secondary, 500, 281);
+    fit(ctx, coverage(count, r.games), x + 2, 1533, 22, C.secondary, 400, 278);
+  });
+  fit(ctx, rateCoverage(r), 74, 1585, 22, C.secondary, 400, 915);
+}
+
+function back(ctx, r, assets) {
+  background(ctx);
+  header(ctx, r, assets);
+  glassPlate(ctx, [[42, 188], [1038, 188], [1038, 596], [80, 596], [42, 558]], { accent: "cyan" });
+  fit(ctx, t("LE BILAN DU JOUEUR"), 75, 229, 26, C.cyan, 600, 745);
+  name(ctx, r.playerName, 67, 338, 780, 110, 52);
+  pngImageContain(ctx, assets.mark, 890, 254, 114, 114);
+  fit(ctx, identity(r), 76, 382, 28, C.secondary, 400, 930);
+  pngLine(ctx, 74, 412, 1006, 412, spectrum(ctx), 2);
+  [
+    [r.totals?.kills, "ÉLIMINATIONS"], [r.totals?.deaths, "MORTS"], [r.totals?.assists, "ASSISTANCES"],
+  ].forEach(([value, label], i) => {
+    const x = 75 + i * 320;
+    fit(ctx, pngNumber(value), x, 509, 72, i === 1 ? C.secondary : C.text, 600, 278, "left", 46);
+    fit(ctx, t(label), x + 2, 548, 24, C.secondary, 600, 279);
+  });
+  fit(ctx, t("Totaux · {0}", [coverage(r.totals?.count, r.games)]), 75, 582, 22, C.secondary, 400, 931);
+  pngPanel(ctx, 74, 613, 932, 318, { radius: 17 });
+  pngLine(ctx, 384, 637, 384, 910);
+  pngLine(ctx, 695, 637, 695, 910);
+  pngLine(ctx, 99, 771, 981, 771);
+  const stats = [
+    [pngNumber(metric(r, "kda").value, 1), "KDA GLOBAL", metric(r, "kda").count],
+    [pngPercent(metric(r, "kp").value), "KP", metric(r, "kp").count],
+    [pngNumber(metric(r, "csPerMin").value, 1), "CS / MIN", metric(r, "csPerMin").count],
+    [pngNumber(metric(r, "damagePerMin").value), "DÉGÂTS / MIN", metric(r, "damagePerMin").count],
+    [pngNumber(metric(r, "vision").value, 1), "VISION / PARTIE", metric(r, "vision").count],
+    [pngPercent(r.results?.rate), "VICTOIRES", r.results?.known],
+  ];
+  stats.forEach(([value, label, count], i) => {
+    const x = 103 + (i % 3) * 311;
+    const y = i < 3 ? 682 : 841;
+    fit(ctx, value, x, y, 49, C.text, 600, 257, "left", 36);
+    fit(ctx, t(label), x + 1, y + 39, 24, C.secondary, 600, 257);
+    fit(ctx, coverage(count, r.games), x + 1, y + 69, 22, C.secondary, 400, 257);
+  });
+  const recent = (r.recentResults || []).slice(-12);
+  fit(ctx, recentLabel(recent.length, r.datedGames === r.games), 75, 985, 26, C.text, 600, 930);
+  const gap = 10;
+  const cell = (932 - gap * 11) / 12;
+  recent.forEach((entry, i) => {
+    const known = entry.result === "win" || entry.result === "loss";
+    const win = entry.result === "win";
+    const x = 74 + i * (cell + gap);
+    pngPanel(ctx, x, 1011, cell, 66, { fill: known ? win ? "#10282B" : "#291826" : C.panel, stroke: known ? win ? "#285750" : "#684050" : C.border, radius: 7 });
+    fit(ctx, known ? win ? t("V") : t("D") : "?", x + cell / 2, 1056, 29, known ? win ? C.green : C.red : C.secondary, 600, cell - 8, "center");
+  });
+  fit(ctx, t(r.datedGames === r.games ? "De la plus ancienne à la plus récente · ? = résultat inconnu" : "Ordre des dates connues · ? = résultat inconnu"), 75, 1118, 23, C.secondary, 400, 931);
+  const pool = (r.champions || []).slice(0, 3);
+  glassPlate(ctx, [[42, 1144], [1038, 1144], [1038, 1451], [80, 1451], [42, 1413]], { accent: "violet", reflection: .6 });
+  fit(ctx, t("LES PLUS JOUÉS"), 75, 1183, 26, C.text, 600, 400);
+  fit(ctx, t((r.champions || []).length === 1 ? "{0} / {1} champion" : "{0} / {1} champions", [pngNumber(pool.length), pngNumber((r.champions || []).length)]), 1006, 1183, 25, C.secondary, 400, 480, "right");
+  pool.forEach((champion, i) => {
+    const y = 1217 + i * 78;
+    fit(ctx, championDisplayName(champion.champion), 75, y + 25, 29, C.text, 600, 309, "left", 24);
+    fit(ctx, countLabel(champion.games), 75, y + 54, 22, C.secondary, 400, 309);
+    pngPanel(ctx, 399, y + 18, 304, 7, { fill: C.border, stroke: null, radius: 3 });
+    const length = Math.max(0, Math.min(304, 304 * champion.games / Math.max(1, pool[0].games)));
+    if (length) pngPanel(ctx, 399, y + 18, length, 7, { fill: [C.cyan, C.violet, C.pink][i], stroke: null, radius: 3 });
+    fit(ctx, `${t("{0} V / {1} D", [pngNumber(champion.wins), pngNumber(champion.losses)])}${champion.unknown ? ` / ${pngNumber(champion.unknown)} ?` : ""}`, 1005, y + 28, 24, C.secondary, 600, 280, "right");
+    if (i < pool.length - 1) pngLine(ctx, 75, y + 66, 1004, y + 66, "rgba(198,212,229,.11)");
+  });
+  if (!pool.length) fit(ctx, t("Aucun champion renseigné"), 75, 1268, 29, C.secondary, 400, 930);
+  pngLine(ctx, 74, 1470, 1006, 1470);
+  paragraph(ctx, t("KDA = (éliminations + assistances) / max(1, morts). KP = participation aux éliminations de l’équipe. Dégâts aux champions."), 75, 1508, 930, 22, C.secondary, 2, 30);
+  fit(ctx, rateCoverage(r), 540, 1584, 23, C.secondary, 400, 930, "center");
+  frame(ctx);
+}
+
+function storyBase(ctx) {
+  background(ctx);
+
+}
+
+function chapterTitle(ctx, eyebrow, title, { size = 78, center = false } = {}) {
+  const x = center ? 540 : 70;
+  const align = center ? "center" : "left";
+  fit(ctx, eyebrow, x, 259, 26, C.cyan, 600, 940, align);
+  fit(ctx, title, x, 353, size, C.text, 700, 940, align, 48);
+}
+
+function polygon(ctx, points, fill, stroke = null, lineWidth = 1) {
+  ctx.save();
+  ctx.beginPath();
+  points.forEach(([x, y], index) => index ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lineWidth; ctx.stroke(); }
+  ctx.restore();
+}
+
+/** Static material, clipped to the plate. No exterior shadow or portrait overlay. */
+function glassPlate(ctx, points, { accent = "violet", reflection = 1 } = {}) {
+  const xs = points.map(([x]) => x);
+  const ys = points.map(([, y]) => y);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  const width = Math.max(...xs) - x;
+  const height = Math.max(...ys) - y;
+  const isCyan = accent === "cyan";
+  const isPink = accent === "pink";
+  const base = ctx.createLinearGradient(x, y, x + width, y + height);
+  base.addColorStop(0, isCyan ? "#304E62" : isPink ? "#54335A" : "#443862");
+  base.addColorStop(.45, "#2D274B");
+  base.addColorStop(1, "#1B273C");
+  polygon(ctx, points, base);
+  ctx.save();
+  ctx.beginPath();
+  points.forEach(([px, py], index) => index ? ctx.lineTo(px, py) : ctx.moveTo(px, py));
+  ctx.closePath();
+  ctx.clip();
+  // The broad diagonal reflection makes the glass legible at phone size.
+  const light = ctx.createLinearGradient(x, y, x + width * .88, y + height * .48);
+  light.addColorStop(0, `rgba(226,232,255,${.18 * reflection})`);
+  light.addColorStop(.3, `rgba(196,181,253,${.1 * reflection})`);
+  light.addColorStop(.302, "rgba(196,181,253,0)");
+  light.addColorStop(.7, "rgba(196,181,253,0)");
+  light.addColorStop(1, `rgba(${isCyan ? "103,232,249" : "232,121,249"},${.13 * reflection})`);
+  ctx.fillStyle = light;
+  ctx.fillRect(x, y, width, height);
+  ctx.restore();
+  const edge = ctx.createLinearGradient(x, y, x + width, y + height);
+  edge.addColorStop(0, isCyan ? "rgba(103,232,249,.8)" : "rgba(221,214,254,.7)");
+  edge.addColorStop(.42, "rgba(196,181,253,.22)");
+  edge.addColorStop(1, isPink ? "rgba(232,121,249,.7)" : "rgba(196,181,253,.4)");
+  polygon(ctx, points, null, edge, 1.5);
+}
+
+function stage(ctx, region, { variant = "signature" } = {}) {
+  // All geometry stays behind the complete official image. The
+  // portrait is painted last, with no crop, mask, text or glow over its face.
+  const { x, y, width, height } = region;
+  const bottom = y + height;
+  glassPlate(ctx, [[x + 2, y + height * .27], [x + width * .65, y + 20], [x + width * .79, bottom - 124], [x + 76, bottom - 4]], { accent: variant === "highlight" ? "pink" : "cyan", reflection: 1.5 });
+  glassPlate(ctx, [[x + width * .5, y + 50], [x + width - 18, y + height * .22], [x + width - 24, bottom - 10], [x + width * .32, bottom - 146]], { accent: "violet", reflection: 1.5 });
+  pngLine(ctx, x + 2, y + height * .27, x + width * .65, y + 20, variant === "highlight" ? C.pink : C.cyan, 3);
+  pngLine(ctx, x + width - 18, y + height * .22, x + width - 24, bottom - 10, C.violet, 3);
+  // Short registration bars give the side plates an intentional printed edge.
+  for (let index = 0; index < 3; index += 1) {
+    pngLine(ctx, x - 16, bottom - 125 + index * 11, x + 34, bottom - 125 + index * 11, C.cyan, 3);
+    pngLine(ctx, x + width - 32, y + 110 + index * 11, x + width + 16, y + 110 + index * 11, C.violet, 3);
+  }
+}
+
+function resultRibbon(ctx, r, x, y, width, height = 28) {
+  const total = Math.max(0, pngNumeric(r.games) ?? 0);
+  pngPanel(ctx, x, y, width, height, { fill: C.panel, stroke: null, radius: height / 2 });
+  if (!total) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(x, y, width, height, height / 2);
+  ctx.clip();
+  let offset = 0;
+  [[r.results?.wins, C.green], [r.results?.losses, C.red], [r.results?.unknown, C.border]].forEach(([count, color]) => {
+    const segment = Math.max(0, pngNumeric(count) ?? 0) / total * width;
+    ctx.fillStyle = color;
+    ctx.fillRect(x + offset, y, segment, height);
+    offset += segment;
+  });
+  ctx.restore();
+}
+
+function storyBilan(ctx, r) {
+  glassPlate(ctx, [[40, 392], [1040, 392], [1040, 865], [790, 865], [40, 721]], { accent: "cyan" });
+  pngLine(ctx, 40, 392, 403, 392, C.cyan, 5);
+  glassPlate(ctx, [[580, 916], [1040, 916], [1040, 1115], [610, 1115], [580, 1085]], { reflection: .65 });
+  chapterTitle(ctx, t("LE BILAN"), t("La sélection en chiffres."), { size: 74 });
+  fit(ctx, pngNumber(r.games), 56, 655, 314, C.text, 700, 500, "left", 135);
+  fit(ctx, t("PARTIES"), 573, 454, 47, C.cyan, 700, 435);
+  paragraph(ctx, t("dans cette sélection"), 575, 509, 432, 37, C.secondary, 2, 48);
+  fit(ctx, duration(r.playTime?.seconds), 574, 635, 78, C.text, 600, 432, "left", 52);
+  fit(ctx, t("DE JEU MESURÉ"), 577, 678, 25, C.secondary, 600, 430);
+  resultRibbon(ctx, r, 70, 731, 940, 32);
+  [[r.results?.wins, "VICTOIRES", C.green], [r.results?.losses, "DÉFAITES", C.red], [r.results?.unknown, "INCONNUS", C.secondary]].forEach(([value, label, color], index) => {
+    const x = 70 + index * 319;
+    fit(ctx, pngNumber(value), x, 846, 66, color, 700, 95, "left", 45);
+    fit(ctx, t(label), x + 105, 840, 25, C.secondary, 600, 200);
+  });
+  pngLine(ctx, 70, 894, 1010, 894);
+  fit(ctx, pngPercent(r.results?.rate), 57, 1091, 194, C.text, 700, 555, "left", 112);
+  fit(ctx, t("DE VICTOIRES"), 622, 987, 29, C.cyan, 600, 387);
+  paragraph(ctx, t("Résultats connus : {0} sur {1}", [pngNumber(r.results?.known), countLabel(r.games)]), 623, 1044, 380, 27, C.secondary, 3, 36);
+  const recent = (r.recentResults || []).slice(-12);
+  fit(ctx, recentLabel(recent.length, r.datedGames === r.games), 70, 1177, 27, C.text, 600, 940);
+  const gap = 10;
+  const cell = (940 - gap * 11) / 12;
+  recent.forEach((entry, index) => {
+    const win = entry.result === "win";
+    const known = win || entry.result === "loss";
+    const x = 70 + index * (cell + gap);
+    pngPanel(ctx, x, 1210, cell, 81, { fill: known ? win ? "#10282B" : "#291826" : C.panel, stroke: known ? win ? "#285750" : "#684050" : C.border, radius: 10 });
+    fit(ctx, known ? win ? t("V") : t("D") : "?", x + cell / 2, 1265, 34, known ? win ? C.green : C.red : C.secondary, 600, cell - 10, "center");
+  });
+  if (!recent.length) fit(ctx, t("Résultats individuels indisponibles"), 70, 1265, 30, C.secondary, 400, 940);
+  fit(ctx, t(r.datedGames === r.games ? "De la plus ancienne à la plus récente" : "Classées selon les dates disponibles"), 70, 1340, 25, C.secondary, 400, 940);
+  fit(ctx, t("? = résultat inconnu · durée : {0}", [coverage(r.playTime?.count, r.games)]), 70, 1412, 25, C.secondary, 400, 940);
+}
+
+function storySignature(ctx, r, assets) {
+  const champion = r.signature;
+  stage(ctx, PROFILE_ART_REGIONS.signature, { variant: "signature" });
+  artwork(ctx, assets, PROFILE_ART_REGIONS.signature);
+  chapterTitle(ctx, t("LE CHAMPION SIGNATURE"), String(championDisplayName(champion?.champion) || t("À découvrir")).toUpperCase(), { size: 112 });
+  glassPlate(ctx, [[42, 1290], [1038, 1290], [1038, 1440], [80, 1440], [42, 1402]], { accent: "violet" });
+  pngLine(ctx, 42, 1290, 367, 1290, C.violet, 4);
+  [[pngNumber(champion?.games), "PARTIES"], [pngNumber(champion?.wins), "VICTOIRES"], [pngPercent(champion?.rate), "DE VICTOIRES"]].forEach(([value, label], i) => {
+    const x = 72 + i * 318;
+    fit(ctx, value, x, 1374, 76, C.text, 700, 280, "left", 48);
+    fit(ctx, t(label), x, 1415, 24, C.secondary, 500, 280);
+  });
+  fit(ctx, champion ? t("Résultats connus : {0} sur {1} · Le plus joué.", [pngNumber(champion.known), countLabel(champion.games)]) : t("Aucune donnée de champion disponible"), 72, 1460, 23, C.secondary, 400, 938);
+}
+
+function storyHighlight(ctx, r, assets) {
+  const game = r.highlight;
+  stage(ctx, PROFILE_ART_REGIONS.highlight, { variant: "highlight" });
+  artwork(ctx, assets, PROFILE_ART_REGIONS.highlight);
+  chapterTitle(ctx, t("LA PARTIE MARQUANTE"), String(championDisplayName(game?.champion) || t("À découvrir")).toUpperCase(), { size: 116 });
+  const result = game?.result === "win" ? "VICTOIRE" : game?.result === "loss" ? "DÉFAITE" : "RÉSULTAT INCONNU";
+  fit(ctx, t(result), 72, 1225, 25, game?.result === "win" ? C.green : game?.result === "loss" ? C.red : C.secondary, 600, 400);
+  fit(ctx, game ? game.dateLabel + " · " + duration(game.durationSeconds) : t("Date indisponible"), 1008, 1225, 24, C.secondary, 400, 560, "right");
+  glassPlate(ctx, [[42, 1260], [1038, 1260], [1038, 1438], [84, 1438], [42, 1396]], { accent: "pink" });
+  pngLine(ctx, 42, 1260, 367, 1260, C.pink, 4);
+  [[game?.kills, "ÉLIMINATIONS"], [game?.deaths, "MORTS"], [game?.assists, "ASSISTANCES"]].forEach(([value, label], i) => {
+    const x = 72 + i * 318;
+    fit(ctx, pngNumber(value), x, 1370, 124, C.text, 700, 280, "left", 48);
+    fit(ctx, t(label), x, 1415, 24, C.secondary, 500, 280);
+  });
+  fit(ctx, t(game?.selectionReason || "Des statistiques complètes sont nécessaires pour sélectionner une partie."), 72, 1460, 23, C.secondary, 400, 938);
+}
+
+function progressionChart(ctx, progress, digits) {
+  const points = (progress?.series || []).filter((entry) => pngNumeric(entry?.value) !== null && pngNumeric(entry?.timestamp) !== null);
+  const x = 142;
+  const y = 637;
+  const width = 838;
+  const height = 342;
+  const top = points.reduce((maximum, entry) => Math.max(maximum, Number(entry.value)), 1) * 1.12;
+  const firstTime = points[0]?.timestamp;
+  const lastTime = points.at(-1)?.timestamp;
+  const timeSpan = lastTime - firstTime;
+  const px = (entry) => x + (timeSpan > 0 ? (entry.timestamp - firstTime) / timeSpan : .5) * width;
+  const py = (value) => y + height - Number(value) / top * height;
+  for (let row = 0; row <= 3; row += 1) {
+    const value = top / 3 * row;
+    const yy = py(value);
+    pngLine(ctx, x, yy, x + width, yy, "rgba(198,212,229,.16)");
+    fit(ctx, pngNumber(value, digits), x - 24, yy + 8, 23, C.secondary, 500, 75, "right");
+  }
+  if (points.length < 2 || timeSpan <= 0) {
+    fit(ctx, t("COURBE INDISPONIBLE"), 562, 796, 29, C.secondary, 600, 792, "center");
+    fit(ctx, t("Les mesures datées apparaîtront ici."), 562, 847, 27, C.secondary, 400, 792, "center");
+    return;
+  }
+  const coordinates = points.map((entry) => ({ x: px(entry), y: py(entry.value) }));
+  const middle = Math.min(points.length - 1, Math.max(1, progress?.early?.count || Math.floor(points.length / 2)));
+  const boundary = (px(points[middle - 1]) + px(points[middle])) / 2;
+  ctx.save();
+  ctx.fillStyle = "rgba(196,181,253,.04)";
+  ctx.fillRect(x, y, boundary - x, height);
+  ctx.fillStyle = "rgba(103,232,249,.04)";
+  ctx.fillRect(boundary, y, x + width - boundary, height);
+  ctx.setLineDash([8, 9]);
+  pngLine(ctx, boundary, y - 20, boundary, y + height, C.border, 2);
+  [[progress.early, x, boundary, C.violet], [progress.recent, boundary, x + width, C.cyan]].forEach(([part, start, end, color]) => {
+    if (pngNumeric(part?.value) !== null) pngLine(ctx, start, py(part.value), end, py(part.value), color, 2);
+  });
+  ctx.setLineDash([]);
+  const area = ctx.createLinearGradient(0, y, 0, y + height);
+  area.addColorStop(0, "rgba(103,232,249,.17)");
+  area.addColorStop(1, "rgba(103,232,249,0)");
+  ctx.beginPath();
+  ctx.moveTo(coordinates[0].x, y + height);
+  coordinates.forEach((point) => ctx.lineTo(point.x, point.y));
+  ctx.lineTo(coordinates.at(-1).x, y + height);
+  ctx.closePath();
+  ctx.fillStyle = area;
+  ctx.fill();
+  ctx.beginPath();
+  coordinates.forEach((point, index) => index ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y));
+  ctx.strokeStyle = spectrum(ctx, x, y, width, 0);
+  ctx.lineWidth = 4;
+  ctx.lineJoin = "round";
+  ctx.stroke();
+  coordinates.forEach((point, index) => {
+    if (points.length > 40 && index !== 0 && index !== points.length - 1) return;
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, index === points.length - 1 ? 7 : 4.5, 0, Math.PI * 2);
+    ctx.fillStyle = C.bg;
+    ctx.fill();
+    ctx.strokeStyle = index < middle ? C.violet : C.cyan;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  });
+  ctx.restore();
+  fit(ctx, points[0].dateLabel || t("Début"), x, 1029, 23, C.secondary, 500, 400);
+  fit(ctx, points.at(-1).dateLabel || t("Fin"), x + width, 1029, 23, C.secondary, 500, 400, "right");
+}
+
+function periodLabel(period) {
+  const start = period?.startDateLabel;
+  const end = period?.endDateLabel;
+  return start ? start === end || !end ? start : `${start} – ${end}` : t("Dates indisponibles");
+}
+
+function storyProgression(ctx, r) {
+  const progress = r.progression;
+  const digits = progress?.key === "visionPerMin" ? 2 : 1;
+  glassPlate(ctx, [[39, 439], [1041, 439], [1041, 587], [87, 587], [39, 539]], { accent: "violet" });
+  pngLine(ctx, 39, 439, 390, 439, C.violet, 4);
+  pngPanel(ctx, 42, 610, 996, 439, { material: "reading", radius: 18 });
+  chapterTitle(ctx, t("L’ÉVOLUTION"), t("D’une partie à l’autre."), { size: 77 });
+  fit(ctx, t(progress?.label || "Évolution indisponible"), 72, 413, 36, C.secondary, 500, 936);
+  fit(ctx, signed(progress?.delta, digits), 62, 568, 150, C.text, 700, 462, "left", 90);
+  fit(ctx, t(progress?.unit || "MESURE À VENIR"), 530, 497, 32, C.cyan, 600, 474);
+  paragraph(ctx, t("Écart entre les moyennes des deux périodes"), 532, 543, 474, 25, C.secondary, 2, 34);
+  progressionChart(ctx, progress, digits);
+  fit(ctx, t("Une mesure par partie · pointillés : moyenne de chaque période"), 70, 1086, 24, C.secondary, 400, 940);
+  [[progress?.early, "PREMIÈRES PARTIES", C.violet], [progress?.recent, "DERNIÈRES PARTIES", C.cyan]].forEach(([part, label, color], index) => {
+    const x = index ? 558 : 70;
+    glassPlate(ctx, [[x, 1120], [x + 452, 1120], [x + 452, 1337], [x + 28, 1337], [x, 1309]], { accent: index ? "cyan" : "violet", reflection: .5 });
+    pngLine(ctx, x + 24, 1120, x + 148, 1120, color, 3);
+    fit(ctx, t(label), x + 26, 1166, 23, color, 600, 400);
+    fit(ctx, pngNumber(part?.value, digits), x + 23, 1248, 75, C.text, 700, 260, "left", 52);
+    fit(ctx, countLabel(part?.count), x + 427, 1240, 23, C.secondary, 500, 141, "right");
+    fit(ctx, periodLabel(part), x + 26, 1304, 22, C.secondary, 400, 400);
+  });
+  paragraph(ctx, progress ? `${t("{0} datées", [countLabel(progress.count)])}${progress.excludedCount ? ` · ${t(progress.excludedCount === 1 ? "{0} partie exclue" : "{0} parties exclues", [pngNumber(progress.excludedCount)])}` : ""}. ${t("Les deux moitiés chronologiques sont comparées sans expliquer la cause de l’écart.")}` : t("Il faut au moins six mesures datées et deux groupes de parties dont on peut établir l’ordre."), 70, 1402, 940, 25, C.secondary, 2, 34);
+}
+
+function storyTeam(ctx, r, assets) {
+  glassPlate(ctx, [[40, 416], [1040, 416], [1040, 704], [771, 704], [40, 602]], { accent: "violet", reflection: 1.25 });
+  glassPlate(ctx, [[760, 416], [1040, 416], [1040, 704], [922, 704]], { accent: "pink", reflection: .8 });
+  chapterTitle(ctx, t("L’ÉQUIPE, AUJOURD’HUI"), String(r.teamName || t("Équipe")).toUpperCase(), { size: 107 });
+  pngLine(ctx, 70, 408, 1010, 408, spectrum(ctx), 2);
+  fit(ctx, t("LE JOUEUR DE CE WRAPPED"), 73, 478, 25, C.secondary, 600, 710);
+  name(ctx, r.playerName, 64, 628, 728, 126, 60);
+  pngImageContain(ctx, assets.mark, 814, 469, 196, 196);
+  fit(ctx, r.role || t("Rôle non renseigné"), 75, 689, 38, C.violet, 600, 730);
+  paragraph(ctx, t("{0} dans cette sélection · {1}", [countLabel(r.games), r.dateLabel || t("Dates indisponibles")]), 75, 756, 930, 29, C.secondary, 2, 39);
+  const roster = Array.isArray(r.teammates) ? r.teammates : [];
+  const selectedId = r.playerId == null ? "" : String(r.playerId);
+  const selected = (member) => selectedId && String(member.id) === selectedId;
+  const ordered = [...roster].sort((a, b) => Number(Boolean(selected(b))) - Number(Boolean(selected(a))));
+  const displayed = ordered.slice(0, 6);
+  const currentLabel = t("CE PROFIL");
+  ctx.save();
+  ctx.font = "600 21px Inter, Arial, sans-serif";
+  const currentLabelWidth = Math.ceil(ctx.measureText(currentLabel).width);
+  ctx.restore();
+  // Keep the identity marker complete across translations and fallback fonts.
+  const currentNameWidth = 986 - currentLabelWidth - 20 - 254;
+  fit(ctx, t("EFFECTIF ACTUEL"), 73, 870, 26, C.cyan, 600, 530);
+  fit(ctx, displayed.length < roster.length ? t("{0} / {1} profils affichés", [pngNumber(displayed.length), pngNumber(roster.length)]) : t(roster.length === 1 ? "{0} profil" : "{0} profils", [pngNumber(roster.length)]), 1007, 870, 24, C.secondary, 500, 420, "right");
+  displayed.forEach((member, index) => {
+    const y = 901 + index * 75;
+    const current = selected(member);
+    if (current) glassPlate(ctx, [[70, y], [1010, y], [1010, y + 65], [86, y + 65], [70, y + 49]], { accent: "cyan", reflection: .6 });
+    else {
+      pngPanel(ctx, 70, y, 940, 65, { material: "reading", stroke: "rgba(196,181,253,.16)", radius: 10 });
+    }
+    fit(ctx, member.role || "—", 92, y + 42, 25, current ? C.cyan : C.violet, 600, 151);
+    fit(ctx, member.name || t("Profil sans nom"), 254, y + 42, 31, C.text, current ? 700 : 500, current ? currentNameWidth : 725, "left", 26);
+    if (current) fit(ctx, currentLabel, 986, y + 40, 21, C.cyan, 600, currentLabelWidth, "right");
+  });
+  if (!displayed.length) {
+    fit(ctx, t("Effectif non renseigné"), 73, 987, 38, C.text, 600, 930);
+    paragraph(ctx, t("Le profil et les parties disponibles restent dans ce bilan."), 75, 1053, 926, 30, C.secondary, 2, 41);
+  }
+  paragraph(ctx, t("L’effectif actuel ne permet pas de déduire qui a joué ces parties."), 73, 1415, 934, 25, C.secondary, 2, 32);
+}
+/** Pure drawing: no fetching, persistence, download, or data recomputation. */
+export function drawProfileShowcase(canvas, report, { view = "front", chapter = 0, assets = {} } = {}) {
+  if (!canvas || typeof canvas.getContext !== "function") throw new TypeError("Un canvas est nécessaire pour dessiner le profil.");
+  if (!report || typeof report !== "object") throw new TypeError("Un bilan de profil est nécessaire.");
+  if (canvas.width !== W) canvas.width = W;
+  if (canvas.height !== H) canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Le navigateur ne peut pas dessiner cette carte.");
+
+  ctx.save();
+  try {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    if (view === "back") back(ctx, report, assets);
+    else if (view === "story") {
+      const page = Math.max(0, Math.min(4, Math.trunc(Number(chapter) || 0)));
+      storyBase(ctx);
+      [storyBilan, storySignature, storyHighlight, storyProgression, storyTeam][page](ctx, report, assets);
+      header(ctx, report, assets, { story: true, chapter: page });
+      footer(ctx, report);
+    } else front(ctx, report, assets);
+  } finally {
+    ctx.restore();
+  }
+  return canvas;
+}

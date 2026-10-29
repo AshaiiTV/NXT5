@@ -1,0 +1,1715 @@
+{
+  "syntheticLocalFixture": true,
+  "browser": "151.0.7922.34",
+  "errors": [],
+  "unexpectedRequests": [],
+  "requests": [
+    "/.netlify/functions/auth-me",
+    "/.netlify/functions/auth-me",
+    "/.netlify/functions/admin-discord-analytics?days=30",
+    "/.netlify/functions/admin-discord-analytics?days=30",
+    "/.netlify/functions/admin-discord-analytics?days=7",
+    "/.netlify/functions/admin-discord-analytics?days=7",
+    "/.netlify/functions/auth-me",
+    "/.netlify/functions/auth-me",
+    "/.netlify/functions/admin-discord-analytics?days=30",
+    "/.netlify/functions/admin-discord-analytics?days=30",
+    "/.netlify/functions/auth-me",
+    "/.netlify/functions/auth-me",
+    "/.netlify/functions/admin-discord-analytics?days=30",
+    "/.netlify/functions/admin-discord-analytics?days=30",
+    "/.netlify/functions/auth-me",
+    "/.netlify/functions/auth-me",
+    "/.netlify/functions/admin-discord-analytics?days=30",
+    "/.netlify/functions/admin-discord-analytics?days=30",
+    "/.netlify/functions/auth-me",
+    "/.netlify/functions/auth-me",
+    "/.netlify/functions/admin-discord-analytics?days=30",
+    "/.netlify/functions/admin-discord-analytics?days=30"
+  ],
+  "results": [
+    {
+      "width": 360,
+      "phase": "collapsed",
+      "viewportWidth": 360,
+      "documentWidth": 360,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 153.96875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 336,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 12,
+          "right": 348
+        },
+        {
+          "label": "Jour du graphique",
+          "width": 302,
+          "height": 44,
+          "fontSize": "16px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Voir les données quotidiennes",
+          "width": 302,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "search",
+          "width": 302,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111111Académie NXT5 — équipe principale152 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111112Équipe 2145 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111113Équipe 3138 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111114Équipe 4131 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111115Équipe 5124 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111116Équipe 6117 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111117Équipe 7110 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111118Équipe 8103 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111119Équipe 996 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111120Équipe 1089 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Précédent",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 171.328125
+        },
+        {
+          "label": "Suivant",
+          "width": 123,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 179.328125,
+          "right": 302.015625
+        },
+        {
+          "label": "Comprendre les chiffres et l’historique disponible",
+          "width": 336,
+          "height": 66,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 348
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 360,
+      "phase": "expanded",
+      "viewportWidth": 360,
+      "documentWidth": 360,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 153.96875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 336,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 12,
+          "right": 348
+        },
+        {
+          "label": "Jour du graphique",
+          "width": 302,
+          "height": 44,
+          "fontSize": "16px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Voir les données quotidiennes",
+          "width": 302,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "search",
+          "width": 302,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111111Académie NXT5 — équipe principale152 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111112Équipe 2145 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111113Équipe 3138 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111114Équipe 4131 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111115Équipe 5124 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111116Équipe 6117 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111117Équipe 7110 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111118Équipe 8103 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111119Équipe 996 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111120Équipe 1089 publications",
+          "width": 302,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 331
+        },
+        {
+          "label": "Précédent",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 171.328125
+        },
+        {
+          "label": "Suivant",
+          "width": 123,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 179.328125,
+          "right": 302.015625
+        },
+        {
+          "label": "Comprendre les chiffres et l’historique disponible",
+          "width": 336,
+          "height": 66,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 348
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 390,
+      "phase": "collapsed",
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 153.96875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 366,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 12,
+          "right": 378
+        },
+        {
+          "label": "Jour du graphique",
+          "width": 332,
+          "height": 44,
+          "fontSize": "16px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Voir les données quotidiennes",
+          "width": 332,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "search",
+          "width": 332,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111111Académie NXT5 — équipe principale152 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111112Équipe 2145 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111113Équipe 3138 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111114Équipe 4131 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111115Équipe 5124 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111116Équipe 6117 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111117Équipe 7110 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111118Équipe 8103 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111119Équipe 996 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111120Équipe 1089 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Précédent",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 171.328125
+        },
+        {
+          "label": "Suivant",
+          "width": 123,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 179.328125,
+          "right": 302.015625
+        },
+        {
+          "label": "Comprendre les chiffres et l’historique disponible",
+          "width": 366,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 378
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 390,
+      "phase": "expanded",
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 153.96875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 366,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 12,
+          "right": 378
+        },
+        {
+          "label": "Jour du graphique",
+          "width": 332,
+          "height": 44,
+          "fontSize": "16px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Voir les données quotidiennes",
+          "width": 332,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "search",
+          "width": 332,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111111Académie NXT5 — équipe principale152 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111112Équipe 2145 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111113Équipe 3138 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111114Équipe 4131 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111115Équipe 5124 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111116Équipe 6117 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111117Équipe 7110 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111118Équipe 8103 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111119Équipe 996 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111120Équipe 1089 publications",
+          "width": 332,
+          "height": 142,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Précédent",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 171.328125
+        },
+        {
+          "label": "Suivant",
+          "width": 123,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 179.328125,
+          "right": 302.015625
+        },
+        {
+          "label": "Comprendre les chiffres et l’historique disponible",
+          "width": 366,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 378
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 768,
+      "phase": "collapsed",
+      "viewportWidth": 768,
+      "documentWidth": 768,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 24,
+          "right": 165.96875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 280,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 24,
+          "right": 304
+        },
+        {
+          "label": "Jour du graphique",
+          "width": 670,
+          "height": 44,
+          "fontSize": "12.8px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Voir les données quotidiennes",
+          "width": 670,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "search",
+          "width": 670,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111111Académie NXT5 — équipe principale152 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111112Équipe 2145 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111113Équipe 3138 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111114Équipe 4131 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111115Équipe 5124 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111116Équipe 6117 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111117Équipe 7110 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111118Équipe 8103 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111119Équipe 996 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111120Équipe 1089 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Précédent",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 445.984375,
+          "right": 588.3125
+        },
+        {
+          "label": "Suivant",
+          "width": 123,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 596.3125,
+          "right": 719
+        },
+        {
+          "label": "Comprendre les chiffres et l’historique disponible",
+          "width": 720,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 24,
+          "right": 744
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 768,
+      "phase": "expanded",
+      "viewportWidth": 768,
+      "documentWidth": 768,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 24,
+          "right": 165.96875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 280,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 24,
+          "right": 304
+        },
+        {
+          "label": "Jour du graphique",
+          "width": 670,
+          "height": 44,
+          "fontSize": "12.8px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Voir les données quotidiennes",
+          "width": 670,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "search",
+          "width": 670,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111111Académie NXT5 — équipe principale152 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111112Équipe 2145 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111113Équipe 3138 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111114Équipe 4131 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111115Équipe 5124 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111116Équipe 6117 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111117Équipe 7110 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111118Équipe 8103 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111119Équipe 996 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111120Équipe 1089 publications",
+          "width": 670,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 49,
+          "right": 719
+        },
+        {
+          "label": "Précédent",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 445.984375,
+          "right": 588.3125
+        },
+        {
+          "label": "Suivant",
+          "width": 123,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 596.3125,
+          "right": 719
+        },
+        {
+          "label": "Comprendre les chiffres et l’historique disponible",
+          "width": 720,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 24,
+          "right": 744
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 1024,
+      "phase": "collapsed",
+      "viewportWidth": 1024,
+      "documentWidth": 1024,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 288,
+          "right": 429.96875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 280,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 288,
+          "right": 568
+        },
+        {
+          "label": "Jour du graphique",
+          "width": 676,
+          "height": 44,
+          "fontSize": "12.8px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Voir les données quotidiennes",
+          "width": 676,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "search",
+          "width": 676,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111111Académie NXT5 — équipe principale152 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111112Équipe 2145 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111113Équipe 3138 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111114Équipe 4131 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111115Équipe 5124 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111116Équipe 6117 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111117Équipe 7110 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111118Équipe 8103 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111119Équipe 996 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111120Équipe 1089 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Précédent",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 705.1875,
+          "right": 847.515625
+        },
+        {
+          "label": "Suivant",
+          "width": 123,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 855.515625,
+          "right": 978.203125
+        },
+        {
+          "label": "Comprendre les chiffres et l’historique disponible",
+          "width": 704,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 288,
+          "right": 992
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 1024,
+      "phase": "expanded",
+      "viewportWidth": 1024,
+      "documentWidth": 1024,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 288,
+          "right": 429.96875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 280,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 288,
+          "right": 568
+        },
+        {
+          "label": "Jour du graphique",
+          "width": 676,
+          "height": 44,
+          "fontSize": "12.8px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Voir les données quotidiennes",
+          "width": 676,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "search",
+          "width": 676,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111111Académie NXT5 — équipe principale152 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111112Équipe 2145 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111113Équipe 3138 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111114Équipe 4131 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111115Équipe 5124 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111116Équipe 6117 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111117Équipe 7110 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111118Équipe 8103 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111119Équipe 996 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111120Équipe 1089 publications",
+          "width": 676,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 301.796875,
+          "right": 978.203125
+        },
+        {
+          "label": "Précédent",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 705.1875,
+          "right": 847.515625
+        },
+        {
+          "label": "Suivant",
+          "width": 123,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 855.515625,
+          "right": 978.203125
+        },
+        {
+          "label": "Comprendre les chiffres et l’historique disponible",
+          "width": 704,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 288,
+          "right": 992
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 1440,
+      "phase": "collapsed",
+      "viewportWidth": 1440,
+      "documentWidth": 1440,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 1266.03125,
+          "right": 1408
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 280,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 288,
+          "right": 568
+        },
+        {
+          "label": "Jour du graphique",
+          "width": 610,
+          "height": 44,
+          "fontSize": "12.8px",
+          "left": 313,
+          "right": 923
+        },
+        {
+          "label": "Voir les données quotidiennes",
+          "width": 610,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 923
+        },
+        {
+          "label": "search",
+          "width": 1070,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111111Académie NXT5 — équipe principale152 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111112Équipe 2145 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111113Équipe 3138 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111114Équipe 4131 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111115Équipe 5124 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111116Équipe 6117 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111117Équipe 7110 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111118Équipe 8103 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111119Équipe 996 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111120Équipe 1089 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Précédent",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 1109.984375,
+          "right": 1252.3125
+        },
+        {
+          "label": "Suivant",
+          "width": 123,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 1260.3125,
+          "right": 1383
+        },
+        {
+          "label": "Comprendre les chiffres et l’historique disponible",
+          "width": 1120,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 288,
+          "right": 1408
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 1440,
+      "phase": "expanded",
+      "viewportWidth": 1440,
+      "documentWidth": 1440,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 1266.03125,
+          "right": 1408
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 280,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 288,
+          "right": 568
+        },
+        {
+          "label": "Jour du graphique",
+          "width": 610,
+          "height": 44,
+          "fontSize": "12.8px",
+          "left": 313,
+          "right": 923
+        },
+        {
+          "label": "Voir les données quotidiennes",
+          "width": 610,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 923
+        },
+        {
+          "label": "search",
+          "width": 1070,
+          "height": 46,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111111Académie NXT5 — équipe principale152 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111112Équipe 2145 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111113Équipe 3138 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111114Équipe 4131 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111115Équipe 5124 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111116Équipe 6117 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111117Équipe 7110 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111118Équipe 8103 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111119Équipe 996 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Serveur DiscordID 111111111111111120Équipe 1089 publications",
+          "width": 1070,
+          "height": 79,
+          "fontSize": "14px",
+          "left": 313,
+          "right": 1383
+        },
+        {
+          "label": "Précédent",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 1109.984375,
+          "right": 1252.3125
+        },
+        {
+          "label": "Suivant",
+          "width": 123,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 1260.3125,
+          "right": 1383
+        },
+        {
+          "label": "Comprendre les chiffres et l’historique disponible",
+          "width": 1120,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 288,
+          "right": 1408
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 390,
+      "phase": "schema",
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 153.96875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 366,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 12,
+          "right": 378
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 390,
+      "phase": "empty",
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 153.96875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 366,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 12,
+          "right": 378
+        },
+        {
+          "label": "Jour du graphique",
+          "width": 332,
+          "height": 44,
+          "fontSize": "16px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Voir les données quotidiennes",
+          "width": 332,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "search",
+          "width": 332,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 29,
+          "right": 361
+        },
+        {
+          "label": "Comprendre les chiffres et l’historique disponible",
+          "width": 366,
+          "height": 45,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 378
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 390,
+      "phase": "error",
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Actualiser",
+          "width": 142,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 153.96875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 366,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 12,
+          "right": 378
+        },
+        {
+          "label": "Réessayer",
+          "width": 119,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 30,
+          "right": 148.671875
+        }
+      ],
+      "overflowing": []
+    },
+    {
+      "width": 390,
+      "phase": "loading",
+      "viewportWidth": 390,
+      "documentWidth": 390,
+      "controls": [
+        {
+          "label": "Actualisation…",
+          "width": 178,
+          "height": 44,
+          "fontSize": "14px",
+          "left": 12,
+          "right": 190.1875
+        },
+        {
+          "label": "7 derniers jours30 derniers jours90 derniers jours",
+          "width": 366,
+          "height": 46,
+          "fontSize": "16px",
+          "left": 12,
+          "right": 378
+        }
+      ],
+      "overflowing": []
+    }
+  ],
+  "checks": [
+    "Real administrator shell and navigation",
+    "Responsive 360/390/768/1024/1440",
+    "No global horizontal overflow, including open daily table",
+    "Visible 2px keyboard focus",
+    "Native details Enter",
+    "Daily slider arrow keys",
+    "Period URL navigation",
+    "Server search accent-insensitive",
+    "Pagination Enter",
+    "403 clears administrator data",
+    "Schema, empty, error and loading states"
+  ]
+}

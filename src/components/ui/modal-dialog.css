@@ -1,5 +1,5 @@
-.nxt5-native-dialog { margin: auto; padding: 0; color: var(--nxt5-text); }
-.nxt5-native-dialog::backdrop { background: rgb(2 6 17 / .86); }
+.nxt5-native-dialog { margin: auto; padding: 0; color: var(--nxt5-text); border-color: var(--nxt5-glass-border); background: var(--nxt5-glass-reflection), var(--nxt5-glass-background); box-shadow: inset 0 1px 0 var(--nxt5-glass-highlight), 0 32px 100px rgba(2, 6, 17, .55); }
+.nxt5-native-dialog::backdrop { background: radial-gradient(ellipse at 80% 0%, rgba(76, 29, 149, .22), transparent 65%), rgb(2 6 17 / .86); }
 .nxt5-native-dialog.nxt5-account-dialog { padding: 1.5rem; width: min(42rem, calc(100vw - 2rem)); }
 .nxt5-native-dialog.games-review-composer { max-width: calc(100vw - 1.5rem); }
 .nxt5-native-dialog.games-review-composer[open] { display: flex; }

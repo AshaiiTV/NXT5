@@ -1,17 +1,22 @@
+import { getLocale } from "../i18n/locale.js";
+import { t } from "../i18n/translate.js";
 export const PNG_THEME = Object.freeze({
-  bg: "#020611",
-  panel: "#0a1427",
-  panelAlt: "#070e1d",
-  border: "#293d52",
-  text: "#f8fafc",
-  muted: "#c6d4e5",
-  subtle: "#afc1d6",
+  bg: "#111827",
+  panel: "#221e42",
+  panelAlt: "#1b273c",
+  reading: "#1e293b",
+  glassStart: "#263248",
+  glassBorder: "rgba(196,181,253,.34)",
+  border: "#48516d",
+  text: "#f1f5f9",
+  muted: "#cbd5e1",
+  subtle: "#afbfd3",
   cyan: "#67e8f9",
   blue: "#93c5fd",
   green: "#6ee7b7",
   yellow: "#fcd34d",
   red: "#fda4af",
-  purple: "#a78bfa",
+  purple: "#c4b5fd",
   pink: "#e879f9",
 });
 
@@ -29,8 +34,10 @@ function ellipsize(ctx, text, width) {
   return ctx.measureText("…").width <= width ? `${chars.join("").trimEnd()}…` : "";
 }
 
-export function pngFitText(ctx, text, x, y, maxWidth, { font = "600 20px Inter, Arial, sans-serif", color = PNG_THEME.text, min = 20, align = "left" } = {}) {
-  const value = String(text ?? "");
+// Only product labels opt in. Player/team names, categories and coaching notes
+// must remain untouched even when they happen to match a translation key.
+export function pngFitText(ctx, text, x, y, maxWidth, { font = "600 20px Inter, Arial, sans-serif", color = PNG_THEME.text, min = 20, align = "left", localize = false } = {}) {
+  const value = String(localize ? t(text ?? "") : text ?? "");
   const sizeMatch = font.match(/(\d+(?:\.\d+)?)px/);
   let size = sizeMatch ? Number(sizeMatch[1]) : 20;
   ctx.save();
@@ -48,12 +55,12 @@ export function pngFitText(ctx, text, x, y, maxWidth, { font = "600 20px Inter, 
   return fitted;
 }
 
-export function pngWrapText(ctx, text, maxWidth, { font = "500 20px Inter, Arial, sans-serif", maxLines = Infinity } = {}) {
+export function pngWrapText(ctx, text, maxWidth, { font = "500 20px Inter, Arial, sans-serif", maxLines = Infinity, localize = false } = {}) {
   if (maxLines <= 0 || maxWidth <= 0) return [];
   ctx.save();
   ctx.font = font;
   const lines = [];
-  for (const paragraph of String(text ?? "").split(/\r?\n/)) {
+  for (const paragraph of String(localize ? t(text ?? "") : text ?? "").split(/\r?\n/)) {
     let line = "";
     for (const word of paragraph.trim().split(/\s+/).filter(Boolean)) {
       const candidate = line ? `${line} ${word}` : word;
@@ -85,14 +92,42 @@ export function pngLine(ctx, x1, y1, x2, y2, color = PNG_THEME.border, width = 1
   ctx.restore();
 }
 
-export function pngPanel(ctx, x, y, w, h, { fill = PNG_THEME.panel, stroke = PNG_THEME.border, radius = 18, accent } = {}) {
+export function pngPanel(ctx, x, y, w, h, { fill = PNG_THEME.panel, stroke = PNG_THEME.border, radius = 18, accent, material = "glass" } = {}) {
+  if (w <= 0 || h <= 0) return;
+  // Custom fills encode results, sides, and charts. Only the shared surface
+  // receives glass; a measured state must never inherit the brand gradient.
+  const glass = material === "glass" && fill === PNG_THEME.panel && h >= 48;
   ctx.save();
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, radius);
-  ctx.fillStyle = fill;
+  if (glass) {
+    const body = ctx.createLinearGradient(x, y, x + w, y + h * .7);
+    body.addColorStop(0, PNG_THEME.glassStart);
+    body.addColorStop(.62, PNG_THEME.panel);
+    body.addColorStop(1, PNG_THEME.panelAlt);
+    ctx.fillStyle = body;
+  } else ctx.fillStyle = material === "reading" && fill === PNG_THEME.panel ? PNG_THEME.reading : fill;
   ctx.fill();
-  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); }
+  if (stroke) { ctx.strokeStyle = glass && stroke === PNG_THEME.border ? PNG_THEME.glassBorder : stroke; ctx.lineWidth = 1; ctx.stroke(); }
+  if (glass) {
+    ctx.save();
+    ctx.clip();
+    const reflection = ctx.createLinearGradient(x, y, x, y + Math.min(h, 250));
+    reflection.addColorStop(0, "rgba(196,181,253,.09)");
+    reflection.addColorStop(.45, "rgba(139,92,246,.035)");
+    reflection.addColorStop(1, "rgba(139,92,246,0)");
+    ctx.fillStyle = reflection;
+    ctx.fillRect(x, y, w, Math.min(h, 250));
+    const edge = ctx.createLinearGradient(x, y, x + w, y);
+    edge.addColorStop(0, "rgba(103,232,249,.72)");
+    edge.addColorStop(.55, "rgba(196,181,253,.48)");
+    edge.addColorStop(1, "rgba(232,121,249,.3)");
+    pngLine(ctx, x + radius, y + 1, x + w - radius, y + 1, edge, 1.5);
+    ctx.restore();
+  }
   if (accent) {
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, radius);
     ctx.clip();
     ctx.fillStyle = pngAccent(accent);
     ctx.fillRect(x, y, 4, h);
@@ -100,15 +135,46 @@ export function pngPanel(ctx, x, y, w, h, { fill = PNG_THEME.panel, stroke = PNG
   ctx.restore();
 }
 
-export function pngBackground(ctx, width, height) {
+export function pngBackground(ctx, width, height, { variant = "report" } = {}) {
+  ctx.save();
   ctx.fillStyle = PNG_THEME.bg;
   ctx.fillRect(0, 0, width, height);
-  const accent = ctx.createLinearGradient(0, 0, width, 0);
-  accent.addColorStop(0, PNG_THEME.cyan);
-  accent.addColorStop(0.55, PNG_THEME.blue);
-  accent.addColorStop(1, PNG_THEME.pink);
-  ctx.fillStyle = accent;
-  ctx.fillRect(0, 0, width, 4);
+  const lightHeight = Math.min(height, width * .9);
+  const light = ctx.createLinearGradient(0, 0, width, lightHeight);
+  light.addColorStop(0, "#20374b");
+  light.addColorStop(.46, "#292244");
+  light.addColorStop(.74, "#211d3b");
+  light.addColorStop(1, PNG_THEME.bg);
+  ctx.fillStyle = light;
+  ctx.fillRect(0, 0, width, lightHeight);
+  const fade = ctx.createLinearGradient(0, lightHeight * .35, 0, lightHeight);
+  fade.addColorStop(0, "rgba(17,24,39,0)");
+  fade.addColorStop(1, PNG_THEME.bg);
+  ctx.fillStyle = fade;
+  ctx.fillRect(0, 0, width, lightHeight);
+
+  // Facets sit at the edges, behind the report. They are deterministic and
+  // need no raster texture, preserving sharp exports and the Discord budget.
+  const direction = ["profile", "pool"].includes(variant) ? -1 : 1;
+  const center = direction === 1 ? width * .84 : width * .16;
+  const depth = Math.min(lightHeight, 740);
+  const facet = ctx.createLinearGradient(center, 0, center - direction * width * .28, depth);
+  facet.addColorStop(0, "rgba(196,181,253,.13)");
+  facet.addColorStop(.58, "rgba(139,92,246,.025)");
+  facet.addColorStop(1, "rgba(139,92,246,0)");
+  ctx.beginPath();
+  ctx.moveTo(center, 0);
+  ctx.lineTo(center + direction * width * .13, 0);
+  ctx.lineTo(center - direction * width * .18, depth);
+  ctx.lineTo(center - direction * width * .27, depth);
+  ctx.closePath();
+  ctx.fillStyle = facet;
+  ctx.fill();
+  const rim = ctx.createLinearGradient(center, 0, center - direction * width * .27, depth);
+  rim.addColorStop(0, "rgba(196,181,253,.36)");
+  rim.addColorStop(1, "rgba(196,181,253,0)");
+  pngLine(ctx, center, 0, center - direction * width * .27, depth, rim, 1.5);
+  ctx.restore();
 }
 
 export function pngMetricStrip(ctx, { x = 64, y = 200, width, items = [] }) {
@@ -118,28 +184,32 @@ export function pngMetricStrip(ctx, { x = 64, y = 200, width, items = [] }) {
   items.forEach((item, index) => {
     const cellX = x + index * cellWidth;
     if (index) pngLine(ctx, cellX, y + 20, cellX, y + 100);
-    pngFitText(ctx, item.label, cellX + 24, y + 30, cellWidth - 48, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+    pngFitText(ctx, item.label, cellX + 24, y + 30, cellWidth - 48, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, localize: true });
     pngFitText(ctx, item.value, cellX + 24, y + 73, cellWidth - 48, { font: "700 38px Inter, Arial, sans-serif", color: item.accent ? pngAccent(item.accent) : PNG_THEME.text, min: 28 });
-    pngFitText(ctx, item.detail, cellX + 24, y + 101, cellWidth - 48 - (item.marker ? 110 : 0), { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
-    if (item.marker) pngFitText(ctx, item.marker, cellX + cellWidth - 24, y + 101, 102, { font: "600 20px Inter, Arial, sans-serif", color: pngAccent(item.markerAccent), align: "right" });
+    pngFitText(ctx, item.detail, cellX + 24, y + 101, cellWidth - 48 - (item.marker ? 110 : 0), { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, localize: true });
+    if (item.marker) pngFitText(ctx, item.marker, cellX + cellWidth - 24, y + 101, 102, { font: "600 20px Inter, Arial, sans-serif", color: pngAccent(item.markerAccent), align: "right", localize: true });
   });
 }
 
 export function pngHeader(ctx, { width, title, subtitle = "", eyebrow = "", logo, meta, margin = 64 }) {
+  pngPanel(ctx, margin - 20, 28, width - margin * 2 + 40, 150, { radius: 20 });
   const textWidth = width - margin * 2 - 270;
-  if (eyebrow) pngFitText(ctx, eyebrow, margin, 62, textWidth, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.cyan });
+  if (eyebrow) pngFitText(ctx, eyebrow, margin, 62, textWidth, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.cyan, localize: true });
   pngFitText(ctx, title, margin, 117, textWidth, { font: "700 44px Inter, Arial, sans-serif", min: 28 });
   pngFitText(ctx, subtitle, margin, 156, width - margin * 2, { font: "500 22px Inter, Arial, sans-serif", color: PNG_THEME.muted });
   pngImageContain(ctx, logo, width - margin - 204, 46, 204, 65);
-  if (meta) pngFitText(ctx, meta, width - margin, 129, 240, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
-  pngLine(ctx, margin, 184, width - margin, 184);
+  if (meta) pngFitText(ctx, meta, width - margin, 129, 240, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right", localize: true });
   return 200;
 }
 
 export function pngFooter(ctx, { width, height, label = "", margin = 64 }) {
-  pngLine(ctx, margin, height - 67, width - margin, height - 67);
-  pngFitText(ctx, label, margin, height - 33, width - margin * 2 - 290, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted });
-  pngFitText(ctx, `Exporté le ${new Date().toLocaleDateString("fr-FR")}`, width - margin, height - 33, 280, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
+  const edge = ctx.createLinearGradient(margin, 0, width - margin, 0);
+  edge.addColorStop(0, PNG_THEME.cyan);
+  edge.addColorStop(.5, PNG_THEME.purple);
+  edge.addColorStop(1, PNG_THEME.pink);
+  pngLine(ctx, margin, height - 67, width - margin, height - 67, edge);
+  pngFitText(ctx, label, margin, height - 33, width - margin * 2 - 290, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, localize: true });
+  pngFitText(ctx, t("Exporté le {0}", [new Date().toLocaleDateString(getLocale())]), width - margin, height - 33, 280, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right" });
 }
 
 // An absent metric remains absent; a recorded zero remains a number.
@@ -152,7 +222,7 @@ export function pngNumeric(value) {
 
 export function pngNumber(value, digits = 0) {
   const number = pngNumeric(value);
-  return number === null ? "—" : number.toLocaleString("fr-FR", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return number === null ? "—" : number.toLocaleString(getLocale(), { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 export function pngPercent(value, digits = 0) {
@@ -187,7 +257,7 @@ export function pngDateRange(matches = []) {
     return [];
   }).sort((a, b) => a - b);
   if (!dates.length) return "Date indisponible";
-  const format = (date) => date.toLocaleDateString("fr-FR");
+  const format = (date) => date.toLocaleDateString(getLocale());
   const first = format(dates[0]);
   const last = format(dates.at(-1));
   return first === last ? first : `${first} – ${last}`;

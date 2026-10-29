@@ -1,4 +1,5 @@
 import { importedGameSide } from "./imported-games.js";
+import { t } from "../i18n/translate.js";
 
 export function availableNumber(value) {
   if (!["number", "string"].includes(typeof value) || String(value).trim() === "") return null;
@@ -19,9 +20,13 @@ export function resultSummary(matches = []) {
 }
 
 export const winrateLabel = (value) => Number.isFinite(value) ? `${Math.round(value)}%` : "—";
-export const sideLabel = (side) => side === "blue" ? "Côté bleu" : side === "red" ? "Côté rouge" : "—";
+export const sideLabel = (side) => side === "blue" ? t("Côté bleu") : side === "red" ? t("Côté rouge") : "—";
 export const matchSideLabel = (match) => sideLabel(importedGameSide(match));
-export const resultLabel = ({ wins, losses, unknown }) => `${wins} victoire${wins > 1 ? "s" : ""} · ${losses} défaite${losses > 1 ? "s" : ""}${unknown ? ` · ${unknown} résultat${unknown > 1 ? "s" : ""} indisponible${unknown > 1 ? "s" : ""}` : ""}`;
+export const resultLabel = ({ wins, losses, unknown }) => [
+  t(wins > 1 ? "{0} victoires" : "{0} victoire", [wins]),
+  t(losses > 1 ? "{0} défaites" : "{0} défaite", [losses]),
+  unknown ? t(unknown > 1 ? "{0} résultats indisponibles" : "{0} résultat indisponible", [unknown]) : null,
+].filter(Boolean).join(" · ");
 
 export function sideResults(matches) {
   return ["blue", "red"].map((side) => ({ side, ...resultSummary(matches.filter((match) => importedGameSide(match) === side)) }));

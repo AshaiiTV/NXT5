@@ -58,7 +58,8 @@ export default async function handler(request: Request, context: Context): Promi
       context.cookies.set({ name: COOKIE.visitor, value: visitor!, maxAge: CONSENT_SECONDS, ...cookieOptions(request) });
       // An empty session is bound now but enters reports only at its first view.
       context.cookies.set({ name: COOKIE.session, value: rawSession, maxAge: 1800, ...cookieOptions(request) });
-      setOptout(request, context, false);
+      // A delayed acceptance response must not erase a newer cross-tab refusal.
+      // The browser removes optout only after checking this choice is current.
     }
     return json({ choice: body.analytics ? 'accepted' : 'rejected', version: AUDIENCE_VERSION, expiresAt });
   } catch (err) { return audienceFailure(err); }

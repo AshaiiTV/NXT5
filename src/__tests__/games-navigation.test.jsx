@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MORE_NAV_IDS, NAV, PRIMARY_NAV_IDS } from "../app/constants.jsx";
 import {
   buildLoginRedirect,
+  canonicalAppPath,
   gameWorkspaceSectionFromPath,
   gameWorkspaceSectionLabel,
   isAppPath,
@@ -17,6 +18,21 @@ import { getOnboardingSteps } from "../utils/onboarding.js";
 import { BeginnerCompass, Sidebar } from "../components/layout/AppChrome.jsx";
 
 afterEach(() => vi.unstubAllGlobals());
+
+describe("canonical team navigation", () => {
+  it("keeps old bookmarks usable while navigation emits Mon équipe", () => {
+    for (const path of ["/equipes", "/equipes/", "/mon-equipe"]) {
+      expect(isKnownPath(path)).toBe(true);
+      expect(isAppPath(path)).toBe(true);
+      expect(pageFromPath(path)).toBe("teams");
+    }
+    expect(pathFromPage("teams")).toBe("/mon-equipe");
+    expect(NAV.find(item => item.id === "teams").label).toBe("Mon équipe");
+    expect(canonicalAppPath("/equipes/?invite=abc&setup=1#roster")).toBe("/mon-equipe?invite=abc&setup=1#roster");
+    expect(canonicalAppPath("/admin/equipes")).toBe("/admin/equipes");
+    expect(canonicalAppPath("/connexion?next=%2Fequipes")).toBe("/connexion?next=%2Fequipes");
+  });
+});
 
 describe("unified Games navigation", () => {
   it.each(["/games", "/integration", "/statistiques"])("opens the Games workspace for %s without losing old query parameters", (path) => {
@@ -51,12 +67,13 @@ describe("unified Games navigation", () => {
     const setOpen = vi.fn();
     let renderer;
     act(() => { renderer = TestRenderer.create(<Sidebar active="reports" setActive={setActive} open={false} setOpen={setOpen} collapsed={false} setCollapsed={vi.fn()} roleLabel={(value) => value} />); });
-    const selected = renderer.root.findAllByType("button").filter((button) => button.props["aria-current"] === "page");
+    const selected = renderer.root.findAllByType("a").filter((link) => link.props["aria-current"] === "page");
     expect(selected).toHaveLength(1);
     expect(selected[0].props["aria-label"]).toBe("Débriefs");
     const parties = renderer.root.findByProps({ "aria-label": "Parties" });
     expect(parties.props.title).toBe("Parties · Importer et revoir une partie");
-    act(() => parties.props.onClick());
+    expect(parties.props.href).toBe("/games");
+    act(() => parties.props.onClick({ button: 0, currentTarget: { hasAttribute: () => false }, preventDefault: vi.fn() }));
     expect(setActive).toHaveBeenCalledWith("matches");
     expect(renderer.root.findAllByProps({ "aria-label": "Guide d’utilisation" })).toHaveLength(0);
     expect(setOpen).toHaveBeenLastCalledWith(false);
@@ -100,7 +117,7 @@ describe("unified Games navigation", () => {
     act(() => { renderer = TestRenderer.create(<BeginnerCompass steps={getOnboardingSteps({ currentTeam: { id: "team" }, user: { id: "player" } })} onNavigate={onNavigate} onClose={vi.fn()} manager={false} />); });
     expect(renderer.root.findByType(Button).props.disabled).not.toBe(true);
     act(() => renderer.root.findByType(Button).props.onClick());
-    expect(onNavigate).toHaveBeenCalledWith("/equipes");
+    expect(onNavigate).toHaveBeenCalledWith("/mon-equipe");
     act(() => renderer.unmount());
   });
 });

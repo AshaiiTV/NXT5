@@ -1,3 +1,4 @@
+import { getLocale } from "../i18n/locale.js";
 import { PLANNING_DAYS, PLANNING_EVENT_TYPES, PLANNING_TIMES } from "../app/constants.jsx";
 
 const DEFAULT_COMP_ROLES = ["TOP", "JGL", "MID", "ADC", "SUP"];
@@ -99,7 +100,7 @@ export function mondayOfWeek(date = new Date()) {
 }
 
 export function formatPlanningDate(date) {
-  return new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit" }).format(date);
+  return new Intl.DateTimeFormat(getLocale(), { day: "2-digit", month: "2-digit" }).format(date);
 }
 
 export function formatWeekRange(start) {

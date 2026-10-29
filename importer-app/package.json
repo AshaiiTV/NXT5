@@ -1,6 +1,6 @@
 {
   "name": "nxt5-importer",
-  "version": "0.3.5",
+  "version": "0.3.9",
   "private": true,
   "author": "NXT5",
   "description": "NXT5 local League of Legends match importer",
@@ -13,11 +13,11 @@
     "dist:mac:arm": "electron-builder --mac zip --arm64"
   },
   "devDependencies": {
-    "electron": "44.4.5",
-    "electron-builder": "26.15.3"
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0"
   },
   "type": "module",
-  "packageManager": "pnpm@11.19.0",
+  "packageManager": "pnpm@12.16.1",
   "build": {
     "appId": "app.nxt5.importer",
     "productName": "NXT5 Importer",

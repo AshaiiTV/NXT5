@@ -57,8 +57,9 @@ describe("extracted workspace pages", () => {
     const renderer = await render(<Reports {...settings} />);
     expect(renderer.root.findAllByType("p").some((p) => p.children.join("").includes("1 partie liée"))).toBe(true);
     const stats = renderer.root.findAllByType(Button).find((button) => button.props.children === "Voir la partie");
-    expect(stats.props.disabled).toBe(false);
-    expect(renderer.root.findAllByType("p").some((p) => p.children.join("").includes("0 sur 1 parties liées chargées"))).toBe(true);
+    expect(stats.findByType("button").props.disabled).toBe(false);
+    expect(renderer.root.findAllByProps({ className: "vd-score" })).toHaveLength(0);
+    expect(JSON.stringify(renderer.toJSON())).toContain("Notes conservées");
   });
   it("loads purchase events only when a champion game opens and refreshes them with bootstrap", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: {} }) }));

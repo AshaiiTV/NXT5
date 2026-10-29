@@ -1,0 +1,14 @@
+.group-opponent-panel { margin: 16px 0; }
+.group-opponent-heading h3 { margin: 0 0 8px; font-size: 1.25rem; font-weight: 700; }
+.group-opponent-heading p, .group-opponent-help { margin: 0 0 16px; color: var(--nxt5-text-secondary); max-width: var(--nxt5-reading-width); line-height: 1.6; }
+.group-opponent-help { font-size: var(--nxt5-font-small); }
+.group-opponent-current { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; margin-bottom: 16px; }
+.group-opponent-current p { margin: 0; }
+.group-opponent-current > span { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); }
+.group-opponent-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--nxt5-accent); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; }
+.group-opponent-selection, .group-opponent-create { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; margin-bottom: 12px; }
+.group-opponent-selection > label, .group-opponent-create > label { flex: 1 1 18rem; min-width: 0; }
+.group-opponent-selection > button, .group-opponent-create > button { flex: 0 1 auto; }
+.group-opponent-create { padding-top: 20px; margin-top: 20px; border-top: 1px solid var(--nxt5-border); }
+.group-opponent-error { margin: 12px 0; color: var(--nxt5-danger); overflow-wrap: anywhere; }
+.group-opponent-notice { margin: 12px 0; padding: 12px; border: 1px solid var(--nxt5-accent); border-radius: var(--nxt5-radius-control); color: var(--nxt5-text); overflow-wrap: anywhere; }

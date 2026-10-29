@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyDocumentMetadata, getMetadata, PUBLIC_METADATA, renderMetadata, serializeStructuredData, SITE_ORIGIN } from "../seo/metadata.js";
 import { createSeoDocument } from "./helpers/seo-document.js";
 import { dynamicPaths, privatePaths, publicPaths, render } from "../seo/render.jsx";
+import { NAV } from "../app/constants.jsx";
 import { isAppPath, isKnownPath } from "../app/routing.js";
 import { redirectRules, resolveSeoConfig, robotsHeaders, robotsTxt, sitemapXml, withMetadata } from "../../tools/seo-build.mjs";
 
@@ -33,10 +34,14 @@ describe("public SEO and real component rendering", () => {
     const metadata = getMetadata("/reseaux");
     expect(metadata.description).toContain("Discord");
     expect(metadata.description).toContain("YouTube");
+    expect(metadata.description).toContain("Instagram");
+    expect(metadata.description).toContain("LinkedIn");
     const organization = metadata.structuredData["@graph"].find(item => item["@type"] === "Organization");
     expect(organization.sameAs).toEqual([
       "https://discord.gg/esPcQAeNWu",
+      "https://www.instagram.com/nxt5org/",
       "https://www.youtube.com/channel/UC_C-OnOepIO05qfqlcUrMRA",
+      "https://www.linkedin.com/in/nxt5org/",
     ]);
     for (const href of organization.sameAs) expect(render("/reseaux")).toContain(`href="${href}"`);
     expect(renderMetadata(metadata)).toContain(JSON.stringify(organization.sameAs));
@@ -45,7 +50,8 @@ describe("public SEO and real component rendering", () => {
   it("keeps configured community profiles identical in rendered pages, browser metadata and build metadata", () => {
     const env = {
       VITE_SOCIAL_YOUTUBE_URL: "https://www.youtube.com/@NXT5-ORG",
-      VITE_SOCIAL_INSTAGRAM_URL: "https://www.instagram.com/nxt5org/",
+      VITE_SOCIAL_INSTAGRAM_URL: "https://www.instagram.com/configured-team/",
+      VITE_SOCIAL_LINKEDIN_URL: "https://www.linkedin.com/company/configured-team/",
       VITE_SOCIAL_TWITCH_URL: "https://untrusted.example/nxt5org",
     };
     for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value);
@@ -53,7 +59,7 @@ describe("public SEO and real component rendering", () => {
     const config = resolveSeoConfig({ CONTEXT: "production", ...env, SESSION_SECRET: "not-a-public-setting" });
     const built = getMetadata("/reseaux", config).structuredData["@graph"][0].sameAs;
     expect(built).toEqual(browser);
-    expect(browser).toEqual(["https://discord.gg/esPcQAeNWu", env.VITE_SOCIAL_INSTAGRAM_URL, env.VITE_SOCIAL_YOUTUBE_URL]);
+    expect(browser).toEqual(["https://discord.gg/esPcQAeNWu", env.VITE_SOCIAL_INSTAGRAM_URL, env.VITE_SOCIAL_YOUTUBE_URL, env.VITE_SOCIAL_LINKEDIN_URL]);
     for (const href of browser) expect(render("/reseaux")).toContain(`href="${href}"`);
     expect(JSON.stringify(config)).not.toContain("not-a-public-setting");
   });
@@ -140,6 +146,43 @@ describe("public SEO and real component rendering", () => {
     }
     expect(resolveSeoConfig({ CONTEXT: "production" }).noindex).toBe(false);
     expect(() => resolveSeoConfig({ PUBLIC_SITE_URL: "https://preview.netlify.app" })).toThrow("canonical production origin");
+  });
+
+  it("derives the private team route from navigation and keeps both slash variants noindex", () => {
+    const teamPath = NAV.find(item => item.id === "teams")?.path;
+    expect(teamPath).toBe("/mon-equipe");
+    expect(privatePaths).toContain(teamPath);
+    expect(privatePaths).not.toContain("/equipes");
+    expect(publicPaths).not.toContain(teamPath);
+
+    const headers = robotsHeaders({ noindex: false }, privatePaths, dynamicPaths);
+    const rules = redirectRules(privatePaths, dynamicPaths).split("\n");
+    for (const path of [teamPath, `${teamPath}/`]) {
+      expect(rules).toContain(`${path} /app-shell.html 200`);
+      expect(headers).toContain(`${path}\n  X-Robots-Tag: noindex, follow\n`);
+      expect(getMetadata(`${path}?invite=private-token`)).toMatchObject({ robots: "noindex, follow", canonical: null, structuredData: null });
+      expect(sitemapXml({ noindex: false })).not.toContain(`<loc>${SITE_ORIGIN}${path}</loc>`);
+    }
+  });
+
+  it("redirects exact legacy team URLs before rewrites without overriding query parameters", () => {
+    const rules = redirectRules(privatePaths, dynamicPaths).split("\n").filter(line => line && !line.startsWith("#"));
+    const legacyRules = rules.filter(line => ["/equipes", "/equipes/"].includes(line.split(/\s+/)[0]));
+    expect(legacyRules).toEqual([
+      "/equipes /mon-equipe 301!",
+      "/equipes/ /mon-equipe 301!",
+    ]);
+    const firstRewrite = rules.findIndex(line => / 200!?$/.test(line));
+    expect(firstRewrite).toBeGreaterThan(-1);
+    for (const rule of legacyRules) {
+      expect(rules.indexOf(rule)).toBeLessThan(firstRewrite);
+      expect(rules.indexOf(rule)).toBeLessThan(rules.indexOf("/* /404.html 404"));
+      // With neither a query matcher nor a query target, Netlify passes through
+      // invitation/auth parameters unchanged to the canonical route.
+      expect(rule.split(/\s+/)).toHaveLength(3);
+      expect(rule).not.toContain("?");
+    }
+    expect(rules).not.toContain("/equipes/* /mon-equipe 301!");
   });
 
   it("has a sitemap consistent with real pages and safe private deep links", () => {
