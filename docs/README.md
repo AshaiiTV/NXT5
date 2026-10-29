@@ -4,6 +4,8 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 
 ## Guides
 
+Les sorties de travail nouvelles vont dans `artifacts/`, `tmp/` ou `output/`, ignorés par Git. Les captures, scripts et résultats historiques déjà versionnés restent suivis : les exclusions ne les retirent pas du dépôt. Conserver les preuves citées par les rapports, les jeux de données synthétiques nécessaires aux comparaisons et les outils permettant de refaire les contrôles. Une capture ancienne ne certifie pas le rendu courant ni la production.
+
 ### Exploitation
 
 - [Migrations de la base](../database/MIGRATIONS.md)
@@ -11,6 +13,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 - [Réécriture des reviews historiques](review-backfill.md)
 - [Fréquentation : contrat et exploitation](audience-api.md)
 - [Référencement et présentation publique](seo.md)
+- [Chargement des historiques](chargement-historique.md) et [banc de mesure local](../tools/bench-history/README.md)
 
 ### Bot Discord
 
@@ -54,6 +57,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 
 | Date | Rapport |
 | --- | --- |
+| 2026-10-29 | [Branches intégrées, conservation des preuves et sorties locales](nettoyage-depot-2026-10-29.md) |
 | 2026-10-15 | [Enseignements des Reels et vérification de la production](enseignements-reels-2026-10-15.md) |
 | 2026-10-13 | [Historique : chargement progressif et retest de capacité](bench-history/capacity-2026-10-13.md) |
 | 2026-10-12 | [Écran de chargement en verre violet](design-glass-loading-2026-10-12.md) |

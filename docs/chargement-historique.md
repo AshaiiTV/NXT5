@@ -36,7 +36,7 @@ npm run verify
 npm run bench:history
 ```
 
-Le banc `bench:history` mesure séparément l’ouverture après la première page et la demande explicite d’analyse complète. Sa méthode 3 écrit `docs/bench-history/results-2026-10-13-progressive.json` et préserve les résultats antérieurs. Ce banc utilise PGlite local ; il ne mesure pas le réseau, le CDN Netlify ou les ressources Neon en production.
+Le banc `bench:history` mesure séparément l’ouverture après la première page et la demande explicite d’analyse complète. Sa méthode 3 écrit `artifacts/bench-history/results.json`, ignoré par Git, et préserve les résultats historiques de `docs/bench-history/`. La [procédure du banc](../tools/bench-history/README.md) précise les répétitions et la conservation des campagnes. Ce banc utilise PGlite local ; il ne mesure pas le réseau, le CDN Netlify ou les ressources Neon en production.
 
 Les tests couvrent la pagination manuelle et complète, les données partielles, la déduplication, une analyse demandée pendant une page manuelle, les filtres exhaustifs, les réponses obsolètes, les changements d’équipe, les révocations, le réessai et un enregistrement du planning pendant le chargement. Les tests SQL comparent exactement les anciennes et nouvelles projections, avec des valeurs nulles et des colonnes supplémentaires.
 

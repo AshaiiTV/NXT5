@@ -51,7 +51,7 @@ L'Origin doit être celui de la requête, le corps doit être JSON et faire au p
   "type": "pageview",
   "eventId": "UUID",
   "pageId": "UUID",
-  "path": "/tarifs",
+  "path": "/demo",
   "referrer": "example.org",
   "source": "newsletter",
   "medium": "email",
@@ -62,11 +62,11 @@ L'Origin doit être celui de la requête, le corps doit être JSON et faire au p
 - `type` : `pageview`, `engagement` ou `event`.
 - `eventId` : UUID stable lors d'un retry ; sa contrainte unique empêche un doublon, y compris pour l'engagement.
 - `pageId` : UUID propre à une ouverture de page. Une seule vue est comptée pour le couple session/page, même si plusieurs `eventId` sont envoyés.
-- `path` : route présente dans l'allowlist partagée `src/app/audience-paths.js`. Les query strings et fragments sont retirés, les routes admin, les routes contenant des identifiants libres, la vérification d'email et les réinitialisations de mot de passe sont exclues. Les inconnues produisent `400`.
+- `path` : route présente dans l'allowlist partagée `src/app/audience-paths.js`. Les query strings et fragments sont retirés, les routes admin, la prévisualisation `/tarifs`, les routes contenant des identifiants libres, la vérification d'email et les réinitialisations de mot de passe sont exclues. Les inconnues produisent `400`.
 - `referrer` facultatif : nom d'hôte uniquement. Les URL complètes, IP, credentials, chemins, ports, query strings et références internes au même hôte ne sont pas stockés. Source de session = label `source` propre, sinon hôte externe valide, sinon `direct`.
 - `source`, `medium`, `campaign` facultatifs : labels ASCII de 64 caractères maximum commençant par une lettre ; espaces, chiffres, `_`, `.`, `-` permis. Les adresses email, URL, UUID et longues séquences numériques/hexadécimales sont supprimés. Ne pas placer de données personnelles dans les UTM. Par exemple utiliser `rentree` plutôt que `rentrée`.
 - `engagement` ajoute `durationSeconds` et `scrollDepth`, entiers cumulés, respectivement entre 0 et 86 400 et entre 0 et 100. Le serveur conserve le maximum déjà vu, plafonne le temps à la durée écoulée depuis la vue (+5 secondes de tolérance) et enregistre seulement le delta de temps nouvellement reçu. L'affichage/activité réelle est mesurée côté navigateur ; la durée ne prouve pas l'attention humaine.
-- `event` ajoute un `name` parmi `signup`, `login`, `access_request`, `pricing_view`. Une action de même nom est comptée au maximum une fois par page/session. L'application émet inscription/connexion/demande après succès du parcours ; il s'agit de mesures de parcours, pas d'un registre de facturation.
+- `event` ajoute un `name` parmi `signup`, `login`, `access_request`, `pricing_view`, `first_import`, `first_review`. Une action de même nom est comptée au maximum une fois par page/session. Le client émet uniquement `signup`, `login`, `first_import` et `first_review`, après succès du parcours ; il s'agit de mesures de parcours, pas d'un registre de facturation. Les noms commerciaux restent reconnus par le serveur pour l’historique ; cela ne rend pas `/tarifs` mesurable.
 - Les dimensions d'appareil et de navigateur sont classées depuis le User-Agent côté serveur. Le User-Agent brut n'est pas conservé. Le pays est le code approximatif transmis par Netlify, ou une chaîne vide. Aucun appel de géolocalisation navigateur n'est effectué.
 
 Réponses :
@@ -109,7 +109,7 @@ Accès protégé par `requirePlatformAdmin`, avant toute lecture de fréquentati
 }
 ```
 
-Tous les compteurs et taux sont des nombres. Les tableaux restent vides sans données, sauf la série quotidienne remplie de zéros et les quatre objectifs disponibles à zéro. Aucune fixture de démonstration n'est retournée. Les classements sont limités à 100 lignes, le temps réel à 20 pages et les sources sélectionnables à 200. Les calculs SQL agrègent dans la base, sans téléchargement d'événements individuels ou d'identifiants visiteurs vers l'administrateur.
+Tous les compteurs et taux sont des nombres. Les tableaux restent vides sans données, sauf la série quotidienne remplie de zéros et les six objectifs disponibles à zéro. Aucune fixture de démonstration n'est retournée. Les classements sont limités à 100 lignes, le temps réel à 20 pages et les sources sélectionnables à 200. Les calculs SQL agrègent dans la base, sans téléchargement d'événements individuels ou d'identifiants visiteurs vers l'administrateur.
 
 ### Définitions des indicateurs
 

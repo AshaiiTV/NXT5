@@ -1,6 +1,6 @@
 # Connexions externes — interface et vérifications
 
-Vérifié le 23 septembre 2026. Les contrôles ont été réalisés dans le checkout de la fonctionnalité, avec les réponses des API simulées ; ils ne valident pas les identifiants OAuth de production.
+Référence des ressources de marque et procédure de vérification de l’interface. Les contrôles avec des API simulées ne valident pas les identifiants OAuth de production.
 
 Le 13 octobre 2026, le bouton Google adopte la variante sombre officielle sur demande de l’utilisateur, pour s’intégrer aux surfaces de verre violet. Cette évolution concerne la connexion, l’inscription et l’association dans les paramètres ; elle conserve le logo, la police, les dimensions et les comportements existants.
 
@@ -13,7 +13,19 @@ Les boutons Google et Apple utilisent un style propre à leur authentification, 
 - **Apple** : les [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines/sign-in-with-apple/) demandent le logo officiel, un titre autorisé et des couleurs noires ou blanches. Le bouton blanc est adapté au fond sombre NXT5. `public/assets/auth/apple-signin-black.svg` est une copie intacte du fichier `Sign in with Apple - Left Aligned/SVG/Logo - SIWA - Left-aligned - Black - Medium.svg` du [paquet Apple Design Resources](https://devimages-cdn.apple.com/design/resources/download/Logo-Sign-in-with-Apple.dmg), lié depuis [Apple Design Resources](https://developer.apple.com/design/resources/). Le canevas complet mesure 31 × 44 ; son affichage suit la hauteur du bouton, sans recadrage ni padding vertical ajouté. Texte et logo sont noirs, fond blanc, rayon NXT5 de 2 px. La licence d’origine est conservée dans `public/assets/auth/apple-artwork-license.rtf`. L’activation Apple exige la configuration Apple Developer décrite dans le guide de déploiement.
 - **Discord et Riot** : boutons textuels explicites, sans logo reconstitué. Riot reste proposé seulement si le serveur le déclare disponible. Aucun ancien symbole NXT5 incomplet n’est utilisé.
 
-## Contrôles réalisés
+## Procédure de vérification
+
+Exécuter les suites ciblées après une modification des connexions externes, puis `npm run verify` avant livraison :
+
+```sh
+npm test -- src/__tests__/social-account-ui.test.jsx src/__tests__/social-signup-email.test.ts src/__tests__/social-password-recovery.test.ts src/__tests__/app-loading.test.jsx src/__tests__/pricing-routing.test.jsx
+```
+
+Dans un navigateur, contrôler l’inscription, la fin d’inscription et les paramètres à 320, 360, 390, 768, 1024 et 1440 px avec des données fictives : logos lisibles, textes entiers, champs utilisables, absence de débordement et d’erreur JavaScript. Vérifier au clavier le focus lors d’une dissociation, sa restitution après Échap, l’annonce des erreurs et les noms accessibles des marques et des liens ouvrant un nouvel onglet.
+
+Tester séparément les fournisseurs réellement configurés en recette selon [le guide de configuration](social-provider-configuration.md). Consigner le commit, l’environnement et les résultats de la vérification courante ; les tests d’interface seuls ne constituent pas une preuve de fonctionnement OAuth en production.
+
+## Historique des contrôles du 23 septembre 2026
 
 - 11 tests dans `src/__tests__/social-account-ui.test.jsx` : services réellement activés, URL de retour sûre, invitation, consentement, e-mail manquant, collision de compte, création sans mot de passe, destination serveur, dissociation, premier mot de passe, révocation de la session après réinitialisation et noms accessibles des marques. Les trois liens légaux annoncent le nouvel onglet.
 - Avec `app-loading.test.jsx` et `pricing-routing.test.jsx` : **51 tests passent**.

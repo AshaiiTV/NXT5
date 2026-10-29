@@ -1,6 +1,6 @@
 # Politique de sécurité NXT5
 
-Mise à jour : 15 octobre 2026.
+Mise à jour : 29 octobre 2026.
 
 ## Périmètre et versions
 
@@ -48,6 +48,20 @@ Ces contrôles sont à réaliser et à documenter par le responsable du service.
 | Contact de sécurité | Vérifier que l’équipe reste joignable en privé depuis Contact. Réexaminer et renouveler `public/.well-known/security.txt` avant son expiration du 23 mars 2027, après chaque changement de contact ou de domaine. |
 
 Les procédures complémentaires sont décrites dans [les migrations](database/MIGRATIONS.md), [la mesure d’audience](docs/audience-api.md) et [l’exploitation Discord](docs/discord-operations.md).
+
+### Audit des dépendances de compilation
+
+La [politique d’audit](tools/audit-policy.mjs) bloque tous les avis de sévérité modérée, élevée ou critique, y compris dans les outils de compilation, et refuse une réponse d’audit invalide. Elle ne conserve aucune exception. Exécuter `node tools/audit-dependencies.mjs` après l’installation depuis le lockfile ; un résultat antérieur ne certifie pas l’état courant.
+
+Le [suivi des dépendances de construction](docs/build-dependency-security-2026-10-06.md) conserve la décision historique sur `braces` et sa levée du 28 octobre 2026. Le site utilise désormais Tailwind 4 ; les [tests d’audit](src/__tests__/audit-policy.test.js) vérifient la politique actuelle. Ne pas rétablir l’ancienne exception lors de la reprise d’une branche antérieure.
+
+### Journaux serveur
+
+Dans `netlify/functions/**` et les modules serveur partagés, utiliser [logFailure](netlify/functions/_lib/safe-log.ts) pour les erreurs interceptées, avec un contexte fixe et des métadonnées explicitement choisies, non sensibles. Ne jamais journaliser l’erreur brute, son message, sa pile, une requête SQL, ses paramètres ou une réponse de fournisseur. Le filtre conserve uniquement des métadonnées bornées (`name`, `code`, statuts numériques) et rejette les objets imbriqués ; il ne peut pas reconnaître un secret dans une chaîne arbitraire fournie en complément. Les [tests du filtre](src/__tests__/safe-log.test.ts) et [des réponses HTTP](src/__tests__/http-response-security.test.ts) vérifient ces protections.
+
+### Rappels d’inactivité en attente
+
+Le [traitement des rappels](netlify/functions/inactivity-reminders.ts) réserve durablement l’envoi dans `inactivity_reminder_pending` avant l’appel au fournisseur. Un état `sending` après une réponse perdue exige un rapprochement manuel avec le fournisseur ; ne pas supprimer la réservation pour forcer un renvoi. `sent_pending` indique un envoi confirmé dont l’écriture finale reste à reprendre : le traitement suivant finalise son journal sans nouvel e-mail. L’ancienneté seule ne rend pas ces états réessayables. Les [tests serveur](src/__tests__/server-audit2.test.ts) couvrent les interruptions et les reprises.
 
 ## Réagir à un incident
 
