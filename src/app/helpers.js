@@ -76,18 +76,41 @@ export function writeRememberPreference(value) {
   } catch {}
 }
 
+// Seven semantic tones shared by Badge, toasts and the colored chips of the workspace.
+export const TONES = ["neutral", "info", "brand", "accent", "success", "warning", "danger"];
+const TONE_ALIASES = {
+  slate: "neutral", grey: "neutral", gray: "neutral",
+  cyan: "info", blue: "info", sky: "info",
+  purple: "brand", violet: "brand",
+  pink: "accent", orange: "accent", fuchsia: "accent",
+  green: "success", emerald: "success",
+  yellow: "warning", amber: "warning",
+  red: "danger", rose: "danger",
+};
+const unknownTones = new Set();
+
+// Legacy names stay accepted; an unknown tone falls back to neutral and is reported once.
+export function normalizeTone(value) {
+  const key = String(value || "neutral").toLowerCase();
+  if (TONES.includes(key)) return key;
+  if (TONE_ALIASES[key]) return TONE_ALIASES[key];
+  if (!unknownTones.has(key)) {
+    unknownTones.add(key);
+    console.error(`[nxt5] Ton inconnu « ${value} » : repli sur « neutral ». Tons acceptés : ${TONES.join(", ")}.`);
+  }
+  return "neutral";
+}
+
 export function tone(t) {
   return {
-    slate: "border-slate-200/16 bg-white/[0.055] text-slate-100",
-    cyan: "border-cyan-200/45 bg-cyan-300/14 text-cyan-50 shadow-cyan-400/24",
-    purple: "border-violet-200/40 bg-violet-400/14 text-violet-50 shadow-violet-400/20",
-    pink: "border-fuchsia-200/42 bg-fuchsia-400/14 text-fuchsia-50 shadow-fuchsia-400/22",
-    orange: "border-fuchsia-200/42 bg-fuchsia-400/14 text-fuchsia-50 shadow-fuchsia-400/22",
-    green: "border-emerald-200/32 bg-emerald-400/12 text-emerald-50 shadow-emerald-400/16",
-    yellow: "border-amber-200/40 bg-amber-300/14 text-amber-50 shadow-amber-400/18",
-    red: "border-rose-200/35 bg-rose-400/12 text-rose-50 shadow-rose-400/16",
-    blue: "border-sky-200/38 bg-sky-400/14 text-sky-50 shadow-sky-400/18",
-  }[t || "slate"];
+    neutral: "border-slate-200/16 bg-white/[0.055] text-slate-100",
+    info: "border-cyan-200/45 bg-cyan-300/14 text-cyan-50 shadow-cyan-400/24",
+    brand: "border-violet-200/40 bg-violet-400/14 text-violet-50 shadow-violet-400/20",
+    accent: "border-fuchsia-200/42 bg-fuchsia-400/14 text-fuchsia-50 shadow-fuchsia-400/22",
+    success: "border-emerald-200/32 bg-emerald-400/12 text-emerald-50 shadow-emerald-400/16",
+    warning: "border-amber-200/40 bg-amber-300/14 text-amber-50 shadow-amber-400/18",
+    danger: "border-rose-200/35 bg-rose-400/12 text-rose-50 shadow-rose-400/16",
+  }[normalizeTone(t)];
 }
 
 export function profileStatusLabel(member) {

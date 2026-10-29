@@ -1,13 +1,13 @@
 export const CALENDAR_TIMEZONE = "Europe/Paris";
 export const CALENDAR_NETWORKS = { instagram: "Instagram", youtube: "YouTube", tiktok: "TikTok", linkedin: "LinkedIn" };
 export const CALENDAR_STATUSES = {
-  scheduled: { label: "Programmé", tone: "cyan" },
-  published: { label: "Publié", tone: "green" },
-  draft: { label: "Brouillon", tone: "slate" },
-  ready: { label: "Prêt", tone: "purple" },
-  needs_check: { label: "À vérifier", tone: "yellow" },
-  error: { label: "Erreur", tone: "red" },
-  removed: { label: "Retiré", tone: "slate" },
+  scheduled: { label: "Programmé", tone: "info" },
+  published: { label: "Publié", tone: "success" },
+  draft: { label: "Brouillon", tone: "neutral" },
+  ready: { label: "Prêt", tone: "brand" },
+  needs_check: { label: "À vérifier", tone: "warning" },
+  error: { label: "Erreur", tone: "danger" },
+  removed: { label: "Retiré", tone: "neutral" },
 };
 
 const DATE_ONLY = /^\d{4}-\d{2}-\d{2}$/;

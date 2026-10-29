@@ -200,7 +200,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
             <h3 className="text-xl font-semibold text-white">{t("E-mails NXT5")}</h3>
             <p className="mt-2 text-sm font-normal leading-6 text-slate-300">{t("Choisis les alertes envoyées sur ton adresse vérifiée.")}</p>
           </div>
-          {savingNotifications && <Badge tone="cyan">{t("Enregistrement...")}</Badge>}
+          {savingNotifications && <Badge tone="info">{t("Enregistrement...")}</Badge>}
         </div>
         <div className="nxt5-account-notifications">
           <PremiumToggle disabled={savingNotifications} checked={notificationForm.notif_match} onChange={(checked) => updateNotifications("notif_match", checked)} title={t("Nouvelle partie importée")} text={t("Un e-mail lorsqu’une partie est ajoutée à ton équipe.")} />

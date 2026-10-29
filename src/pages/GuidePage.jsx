@@ -95,7 +95,7 @@ export default function GuidePage({ route, navigate, onOpenAssistant }) {
           {GUIDE_SECTIONS.map((section, index) => { const Icon = section.icon; const active = section.id === current.id; return <button key={section.id} type="button" onClick={() => selectSection(section.id)} aria-current={active ? "page" : undefined} className={cx("nxt5-guide-link group flex items-center gap-3 px-3 text-left font-semibold transition", active ? "is-active text-white" : "text-slate-400 hover:bg-white/[0.04] hover:text-white")}><span className={cx("text-xs tabular-nums", active ? "text-cyan-100" : "text-slate-600")}>{String(index + 1).padStart(2, "0")}</span><Icon className="h-4 w-4 shrink-0" /><span>{t(section.label)}</span></button>; })}
         </div>
       </nav>
-      <section className="nxt5-guide-reading min-w-0 p-5 sm:p-7 xl:p-10">
+      <section className="nxt5-guide-reading min-w-0 p-5 sm:p-6 xl:p-10">
         <div className="nxt5-guide-content">
           <div><h3 className="nxt5-guide-section-heading text-2xl font-bold text-white"><CurrentIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-cyan-100" /><span>{t(current.title)}</span></h3><p className="mt-3 text-sm font-normal leading-6 text-slate-300">{t(current.intro)}</p></div>
           {current.id === "imports-and-games" && <ImporterTutorialLink className="mt-5" />}

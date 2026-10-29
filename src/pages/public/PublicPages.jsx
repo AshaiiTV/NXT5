@@ -43,7 +43,8 @@ export function LinkButton({ href, children, icon: Icon, variant = "primary", cl
   const base = "nxt5-cyber-button nxt5-control inline-flex min-h-11 min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-semibold leading-5 transition duration-200";
   const variants = {
     primary: "nxt5-button-primary border",
-    ghost: "nxt5-button-secondary border",
+    secondary: "nxt5-button-secondary border",
+    ghost: "nxt5-button-ghost border",
     danger: "nxt5-button-danger border",
   };
 
@@ -319,7 +320,7 @@ export function LegalPage({ route, navigate, user }) {
       <main className="nxt5-information-main">
         <PublicInformationNav navigate={navigate} activePath={route.path} />
         <header className="nxt5-information-hero nxt5-enter">
-          <Badge tone="cyan">{t(page.eyebrow)}</Badge>
+          <Badge tone="info">{t(page.eyebrow)}</Badge>
           <h1 id="document-title" className="nxt5-metal-text">{t(page.title)}</h1>
           <p>{t(page.intro)}</p>
           {!page.contact && <div className="nxt5-document-meta"><FileText aria-hidden="true" size={16} /><span>{t("Version applicable : ")}{LEGAL_VERSION}</span></div>}
@@ -385,10 +386,10 @@ export function NotFoundPage({ navigate }) {
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
         <Surface variant="scene" glow className="nxt5-auth-card">
-          <Badge tone="red">404</Badge>
+          <Badge tone="danger">404</Badge>
           <h1>{t("Page introuvable")}</h1>
           <p className="nxt5-auth-intro">{t("Aucune page NXT5 ne se trouve à cette adresse. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.")}</p>
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             <LinkButton href="/" navigate={navigate} variant="ghost">{t("Retour accueil")}</LinkButton>
             <LinkButton href="/connexion" navigate={navigate} icon={Lock}>{t("Se connecter")}</LinkButton>
           </div>
@@ -497,7 +498,7 @@ export function ResetPasswordPage({ navigate, onAuth }) {
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
         <Surface variant="scene" glow className="nxt5-auth-card">
-          <Badge tone="purple">{t("Nouveau mot de passe")}</Badge>
+          <Badge tone="brand">{t("Nouveau mot de passe")}</Badge>
           <h1>{t("Réinitialiser le mot de passe")}</h1>
           {!token ? (<div className="mt-6 space-y-4"><p role="alert" className="nxt5-auth-notice is-error">{t("Ce lien de réinitialisation est incomplet. Demande un nouveau lien pour retrouver l’accès à ton compte.")}</p><LinkButton href="/mot-de-passe-oublie" navigate={navigate}>{t("Demander un nouveau lien")}</LinkButton></div>) : done ? (<div className="mt-6 space-y-4">
               <div role="status" className="nxt5-auth-notice is-success">{t("Mot de passe mis à jour. Connecte-toi avec ton e-mail et ce mot de passe, puis associe à nouveau tes comptes externes dans Paramètres.")}</div>

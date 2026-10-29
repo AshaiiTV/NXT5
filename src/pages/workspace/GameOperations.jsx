@@ -395,7 +395,7 @@ export function CategoryMultiSelect({ categories = [], selectedIds, onChange, la
         const active = ids.includes(String(category.id));
         return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("inline-flex min-h-11 items-center gap-2 rounded-[2px] border px-3 py-2 text-xs font-semibold transition", active ? [tone(matchCategoryTone(category)), "ring-1 ring-white/35"] : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{active && <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}{category.name}</button>;
       })}
-      {!categories?.length && <Badge tone="slate">{t("Aucune catégorie")}</Badge>}
+      {!categories?.length && <Badge tone="neutral">{t("Aucune catégorie")}</Badge>}
     </div>
     {missingTag && <p id={helpId} className="mt-2 text-xs text-slate-300">{t("Ajoute au moins un tag à la partie.")}</p>}
   </div>;

@@ -370,7 +370,7 @@ function Champions({ data, setData, selectedTeamId, pushToast, currentMember, us
     <div className="nxt5-pool-page">
       <PageHeader eyebrow={t("Draft · Choisir les champions")} title={t("Champions des joueurs")} subtitle={t("Le champion pool est la liste des champions préparés par chaque joueur. Choisis un joueur, puis classe ses champions selon sa maîtrise.")}>
         {selectedPlayer && canManageSelectedPool && <Button type="button" icon={Plus} onClick={() => libraryRef.current?.querySelector("input")?.focus()}>{t("Ajouter un champion")}</Button>}
-        <Button type="button" variant="ghost" icon={Download} onClick={exportSelectedTierList} disabled={!selectedPlayer || !selectedRows.length}>{t("Exporter la liste en PNG")}</Button>
+        <Button type="button" variant="secondary" icon={Download} onClick={exportSelectedTierList} disabled={!selectedPlayer || !selectedRows.length}>{t("Exporter la liste en PNG")}</Button>
       </PageHeader>
       {players.length ? (<>
           <div className="nxt5-pool-player-picker">
@@ -395,7 +395,7 @@ function Champions({ data, setData, selectedTeamId, pushToast, currentMember, us
                   <h3>{t("Champions de ")}{selectedPlayer.name}</h3>
                   <p>{selectedRows.length}{t(selectedRows.length > 1 ? " champions" : " champion")} · {selectedRows.filter((row) => ["lock", "pocket"].includes(row.status)).length}{t(" de confiance ou situationnels")}</p>
                 </div>
-                {!canManageSelectedPool && <Badge tone="slate">{t("Lecture seule")}</Badge>}
+                {!canManageSelectedPool && <Badge tone="neutral">{t("Lecture seule")}</Badge>}
                 <span role="status" aria-live="polite" className="text-xs text-slate-400">{saving ? t("Enregistrement…") : ""}</span>
               </div>
               <div className="nxt5-pool-tiers">
@@ -853,7 +853,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
                   <h4 className="mt-2 text-xl font-black text-white">{t(tagLabel(formIdentity.primary))}</h4>
                   <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-200">{t(formIdentity.text)}</p>
                 </div>
-                <Badge tone="cyan">{formPicks.length}{t("/5 champions")}</Badge>
+                <Badge tone="info">{formPicks.length}{t("/5 champions")}</Badge>
               </div>
               <div className="mt-3 flex flex-wrap gap-2"><p className="text-xs leading-5 text-slate-300">{formIdentity.tags.length ? formIdentity.tags.map(([tag, count]) => `${tagLabel(tag)} ×${count}`).join(" · ") : t("Standard")}</p></div>
             </div>
