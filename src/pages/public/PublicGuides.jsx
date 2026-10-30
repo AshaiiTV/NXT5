@@ -91,7 +91,7 @@ export function PublicGuidePage({ path, navigate, user }) {
         <PublicTextLink href="/demo" navigate={navigate} className="nxt5-entry-text-link">{t("Explorer une séance fictive ")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink><p>{t("Sans compte et sans installation. Les filtres et les analyses de la démonstration utilisent les outils NXT5 sur trois parties fictives.")}</p>
       </aside></div>
       <nav aria-label={t("Continuer la découverte")} className="public-guide-next"><BookOpen aria-hidden="true" size={20} /><PublicTextLink href={guide.nextPath} navigate={navigate}>{t(guide.nextLabel)} <ArrowRight aria-hidden="true" size={16} /></PublicTextLink></nav>
-      <section className="nxt5-entry-start"><div><h2>{t("Commence avec ton équipe.")}</h2><p>{t("Accès actuellement gratuit, aucun abonnement activé.")}</p></div><LinkButton href={user ? "/mon-equipe" : "/creer-un-compte"} navigate={navigate} icon={ArrowRight}>{user ? t("Ouvrir mon équipe") : t("Créer mon espace")}</LinkButton></section>
+      <section className="nxt5-entry-start"><div><h2>{t("Commence avec ton équipe.")}</h2><p>{t("Accès gratuit.")}</p></div><LinkButton href={user ? "/mon-equipe" : "/creer-un-compte"} navigate={navigate} icon={ArrowRight}>{user ? t("Ouvrir mon équipe") : t("Créer mon espace")}</LinkButton></section>
     </main><LegalLinks navigate={navigate} />
   </div>;
 }

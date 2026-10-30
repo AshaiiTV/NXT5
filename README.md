@@ -135,13 +135,15 @@ Le bot propose cinq commandes visibles : `/nxt help`, `/nxt lier`, `/nxt profil`
 
 Le responsable commence par `/nxt lier` avant `/nxt connecter` et génère le code avec ce même compte NXT5. `/nxt connecter` exige d’être propriétaire ou capitaine de l’équipe visée et de disposer de **Gérer le serveur** ou **Administrateur** dans Discord. Chaque équipe configure son propre salon de commandes et, si nécessaire, les rôles Discord autorisés. Partager un serveur Discord ne donne aucun accès aux autres équipes NXT5.
 
-## Offres et abonnements (en préparation)
+## Administration et accès gratuit
 
-**Les abonnements ne sont pas lancés : aucune fonction n’est bloquée aujourd’hui.** `/tarifs` et `/admin/demandes-acces` sont des prévisualisations réservées à l’administrateur plateforme, sans lien public ni paiement.
+NXT5 reste gratuit. Les offres, abonnements, achats et connecteurs commerciaux sont retirés.
+L’administration propose un annuaire des comptes et des profils, les dossiers d’équipe,
+la révocation des sessions, un journal des actions et les statistiques globales avec exports PNG/CSV.
+Les bans des parties Riot et les bans des drafts Drafter disposent de mesures et de dénominateurs distincts.
 
-La proposition de lancement comporte deux formules pour une équipe de 15 membres maximum : **Découverte**, 14 jours d’accès complet sans carte bancaire, puis **Pass Équipe** à 9,90 € TTC/mois/équipe, résiliable à tout moment. Le bot Discord est réservé au Pass Équipe (décision du 22 septembre 2026). L’administrateur peut attribuer manuellement l’une des deux formules à un profil depuis `/admin/abonnements`, sans effet sur les accès avant le lancement.
-
-Détails : [validation commerciale](docs/validation-commerciale.md), [périmètre des fonctions Pass](docs/pass-feature-access.md), [abonnements manuels](docs/abonnements-manuels.md) et [plan de financement](docs/plan-financement.md).
+Le Planning des séances reste disponible à `/planning`. Seul le calendrier privé des publications
+`/calendrier` et son relais serveur sont retirés. Voir le [guide de l’administration](docs/administration-achats.md).
 
 ## Statistiques de fréquentation et cookies
 

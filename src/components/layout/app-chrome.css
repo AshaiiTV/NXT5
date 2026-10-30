@@ -77,8 +77,6 @@
 .nxt5-sidebar-avatar { flex: 0 0 auto; width: 38px; height: 38px; display: grid; place-items: center; border: 1px solid var(--nxt5-glass-border); border-radius: 10px; background: var(--nxt5-glass-reflection), var(--nxt5-glass-background); box-shadow: inset 0 1px 0 var(--nxt5-glass-highlight); }
 .nxt5-sidebar-account-identity p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--nxt5-text); font-size: var(--nxt5-font-small); font-weight: 650; }
 .nxt5-sidebar-account-identity .nxt5-sidebar-label > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: .125rem; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); line-height: 1.5; }
-.nxt5-sidebar-subscription { display: flex; flex-wrap: wrap; gap: .375rem; margin-top: .625rem; }
-.nxt5-sidebar-subscription:empty { display: none; }
 .nxt5-sidebar-logout, .nxt5-sidebar-collapse { color: #9bafc9; }
 .nxt5-sidebar-collapse { display: none; margin-top: .5rem; }
 

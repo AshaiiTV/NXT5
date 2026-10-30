@@ -190,7 +190,7 @@ describe("public SEO and real component rendering", () => {
     const rules = redirectRules(privatePaths, dynamicPaths);
     expect(rules).toContain("/integration /app-shell.html 200");
     expect(rules).toContain("/tendances/draft/compositions /app-shell.html 200");
-    expect(rules).toContain("/admin/tarifs /app-shell.html 200");
+    expect(rules).toContain("/admin/stats-globales /app-shell.html 200");
     expect(rules).toContain("/profil/* /app-shell.html 200");
     expect(rules).toContain("/* /404.html 404\n");
     expect(rules).not.toContain("/* /index.html 200");
@@ -231,4 +231,12 @@ describe("public SEO and real component rendering", () => {
     expect(() => withMetadata("no marker", "/", {})).toThrow("Missing SEO metadata marker");
     expect(withMetadata("<!--seo:start-->old<!--seo:end-->", "/fonctionnalites", {})).toContain(metadata.description);
   });
+});
+
+
+it.each(["/calendrier","/tarifs","/admin/achats","/admin/abonnements","/admin/tarifs","/admin/preparer-vente","/admin/demandes-acces"])("removes retired route %s while retaining Planning", path=>{
+  expect(isKnownPath(path)).toBe(false);
+  expect(privatePaths).not.toContain(path);
+  expect(isKnownPath("/planning")).toBe(true);
+  expect(privatePaths).toContain("/planning");
 });

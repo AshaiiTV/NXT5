@@ -22,8 +22,6 @@ import { getOnboardingSteps } from "./utils/onboarding.js";
 import { useOnboarding } from "./hooks/useOnboarding.js";
 import HomeWorkspace from "./pages/workspace/HomeWorkspace.jsx";
 import { roleLabel } from "./pages/workspace/shell-shared.jsx";
-import PassFeatureGate from "./components/subscriptions/PassFeatureGate.jsx";
-import { isPassFeatureLocked } from "./app/pass-access.js";
 const Teams = lazy(() => import("./pages/workspace/Teams.jsx").then((module) => ({ default: module.Teams })));
 const DiscordWorkspace = lazy(() => import("./pages/workspace/DiscordWorkspace.jsx"));
 const PlayerUltimateProfile = lazy(() => import("./pages/workspace/PlayerUltimateProfile.jsx").then((module) => ({ default: module.PlayerUltimateProfile })));
@@ -31,7 +29,6 @@ const TrendsPage = lazy(() => import("./pages/workspace/TrendsPage.jsx").then((m
 const GameWorkspace = lazy(() => import("./pages/workspace/GameWorkspace.jsx").then((module) => ({ default: module.GameWorkspace })));
 const Planning = lazy(() => import("./pages/workspace/Planning.jsx").then((module) => ({ default: module.Planning })));
 const AccountSettings = lazy(() => import("./pages/workspace/AccountSettings.jsx").then((module) => ({ default: module.AccountSettings })));
-const SocialCalendar = lazy(() => import("./pages/workspace/SocialCalendar.jsx"));
 const DraftWorkspace = lazy(() => import("./pages/workspace/DraftWorkspace.jsx").then((module) => ({ default: module.DraftWorkspace })));
 
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
@@ -309,7 +306,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
   const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll, ensureHistory, loadNextPage, historyLoading, historyError } = useTeamData(planningStore, route.search, { requireHistory: requiresHistory });
   const teamCreation = useTeamCreation({ setSelectedTeamId, refreshAll, pushToast });
-  const independentAccountPage = ["account-settings", "social-calendar"].includes(active);
+  const independentAccountPage = active === "account-settings";
   const waitingForBootstrap = !independentAccountPage && !bootstrapReady && (!bootstrapped || loading);
   useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -344,24 +341,18 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   const currentTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0] || null;
   const currentMember = currentTeam ?(data.teamMembers || []).find((member) => member.team_id === currentTeam.id && member.user_id === user.id) : null;
   const assistantSelectedEntity = assistantEntityForRoute(route, data, currentTeam?.id || selectedTeamId);
-  // The launch switch stays off. Team entitlements must come from the server at launch;
-  // manual subscriptions on a personal profile are not team access rights.
-  const workspaceLocked = Boolean(currentTeam) && isPassFeatureLocked("workspace");
   const setupParams = new URLSearchParams(route.search);
   const isTeamSetup = active === "teams" && (["create", "setup", "join"].some(key => setupParams.get(key) === "1") || setupParams.has("invite"));
-  const teamSetupOnly = workspaceLocked && isTeamSetup;
-  const workspacePage = ["home", "teams", "team-management", "bot-discord", "matches", "reports", "trends", "planning", "draft", "profile"].includes(active) && !teamSetupOnly;
   const historyComplete = data.historyComplete !== false && !data.pagination?.hasMore;
   const waitingForHistory = requiresHistory && !historyComplete;
   useEffect(() => {
-    if (!requiresHistory || !bootstrapReady || workspaceLocked || historyComplete || historyLoading || historyError || data.selectedTeamId !== selectedTeamId) return;
+    if (!requiresHistory || !bootstrapReady || historyComplete || historyLoading || historyError || data.selectedTeamId !== selectedTeamId) return;
     void ensureHistory?.().catch(() => {});
-  }, [requiresHistory, bootstrapReady, workspaceLocked, historyComplete, historyLoading, historyError, data.selectedTeamId, selectedTeamId, ensureHistory]);
+  }, [requiresHistory, bootstrapReady, historyComplete, historyLoading, historyError, data.selectedTeamId, selectedTeamId, ensureHistory]);
 
   const page = useMemo(() => {
-    if (active === "social-calendar") return isPlatformAdmin ? <SocialCalendar key={user.id} /> : <Surface className="p-6"><p role="alert">{t("Ce calendrier est réservé au compte propriétaire de NXT5.")}</p></Surface>;
     if (active === "bot-discord") return <DiscordWorkspace data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} />;
-    if (active === "teams") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} setupOnly={teamSetupOnly} onLoadHistory={ensureHistory} historyLoading={historyLoading} historyError={historyError} />;
+    if (active === "teams") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} onLoadHistory={ensureHistory} historyLoading={historyLoading} historyError={historyError} />;
     if (active === "team-management") return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} managementOnly onLoadHistory={ensureHistory} historyLoading={historyLoading} historyError={historyError} />;
     if (active === "matches" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} ensureHistory={ensureHistory} loadNextPage={loadNextPage} historyLoading={historyLoading} historyError={historyError} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
@@ -371,20 +362,20 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
     if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
     return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamSetupOnly, teamCreation, ensureHistory, loadNextPage, historyLoading, historyError]);
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamCreation, ensureHistory, loadNextPage, historyLoading, historyError]);
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
-  const onboardingReady = Boolean(bootstrapReady && currentTeam && data.selectedTeamId === currentTeam.id && !workspaceLocked && !apiError);
+  const onboardingReady = Boolean(bootstrapReady && currentTeam && data.selectedTeamId === currentTeam.id && !apiError);
   const onboarding = useOnboarding({ user, currentTeam, data, route, ready: onboardingReady });
   const onboardingSteps = getOnboardingSteps({ data, currentTeam, currentMember, user, discovered: onboarding.discovered });
   const nextStep = onboardingSteps.find(step => !step.done && !step.disabled);
   const showStartReturn = onboardingReady && !onboarding.dismissed && onboardingSteps.some(step => !step.done) && !isTeamSetup && ["teams", "team-management", "matches", "reports", "planning", "profile"].includes(active);
   const helpSection = guideSectionForRoute(route);
   const currentPage = waitingForHistory ? <HistoryLoadingState error={historyError} loading={historyLoading} onRetry={() => { void ensureHistory?.().catch(() => {}); }} /> : active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} loading={loading} apiError={apiError} /> : page;
-  const guardedPage = workspacePage ? <PassFeatureGate feature="workspace" onSubscribe={() => navigate("/tarifs")}>{currentPage}</PassFeatureGate> : currentPage;
-  const assistantLauncher = !workspaceLocked && active !== "home" && data.teams.length > 0 && <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? t("Fermer l'assistant NXT5") : t("Ouvrir l'assistant NXT5")} title={t("Assistant")} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher nxt5-chrome-icon-button", assistantOpen && "is-open")}>
+  const guardedPage = currentPage;
+  const assistantLauncher = active !== "home" && data.teams.length > 0 && <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? t("Fermer l'assistant NXT5") : t("Ouvrir l'assistant NXT5")} title={t("Assistant")} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher nxt5-chrome-icon-button", assistantOpen && "is-open")}>
       <span aria-hidden="true">{assistantOpen ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}</span>
     </button>;
-  const assistantWidget = !workspaceLocked && <>
+  const assistantWidget = <>
     <Suspense fallback={null}><AssistantPanel open={assistantOpen} onClose={() => setAssistantOpen(false)} route={route} selectedTeamId={currentTeam?.id || selectedTeamId || null} selectedEntity={assistantSelectedEntity} initialPrompt={assistantPrompt} navigate={navigate} /></Suspense>
   </>;
   const inactivityReturnModal = user?.email_verified && user?.inactivity_notice
@@ -410,7 +401,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={() => navigate("/parametres")}>{t("Paramètres")}</Button>
-            {isPlatformAdmin && <Button variant="ghost" onClick={() => navigate("/admin/abonnements")}>{t("Comptes et abonnements")}</Button>}
+            {isPlatformAdmin && <Button variant="ghost" onClick={() => navigate("/admin/comptes")}>{t("Comptes et profils")}</Button>}
             <Button variant="ghost" icon={LogOut} onClick={logout} className="px-3 sm:px-4" aria-label={t("Déconnexion")}><span className="hidden sm:inline">{t("Déconnexion")}</span></Button>
           </div>
         </div>

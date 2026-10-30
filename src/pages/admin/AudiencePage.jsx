@@ -122,10 +122,10 @@ function Acquisition({ rows = [], sessions }) {
 function Goals({ goals = [], totals = {}, previous = {} }) {
   useLanguage();
   return <Section title={t("De la visite à l’action")} icon={Target} description={t("Événements confirmés pendant les sessions avec consentement.")}>
-    <div className="audience-conversion-summary"><strong>{n(totals.conversions)}</strong><div><span>{t("sessions converties")}</span><p>{t("Création de compte ; anciennes demandes d’accès incluses")}</p></div><Badge tone="purple">{percent(totals.conversionRate)}</Badge></div>
+    <div className="audience-conversion-summary"><strong>{n(totals.conversions)}</strong><div><span>{t("sessions converties")}</span><p>{t("Création de compte")}</p></div><Badge tone="purple">{percent(totals.conversionRate)}</Badge></div>
     <Change value={totals.conversions} previous={previous.conversions} />
     <div className="audience-goals">{goals.length ? goals.map((goal) => <div key={goal.name}><div><strong>{t(GOAL_LABELS[goal.name] || goal.name)}</strong><small>{n(goal.sessions)}{t(" sessions · ")}{percent(goal.conversionRate)}{t(" des sessions")}</small></div><strong>{n(goal.events)}<small>{t("événements")}</small></strong></div>) : <p className="audience-caption">{t("Aucun événement sur cette période.")}</p>}</div>
-    <p className="audience-caption">{t("Les actions peuvent se recouper. Le taux global compte chaque session convertie une seule fois. Ce tableau ne décrit pas un ordre de parcours. Les demandes d’accès et consultations de tarifs ne sont plus collectées ; leurs anciennes mesures restent consultables. La page Soutenir est mesurée avec consentement. Les routes administratives, dont /tarifs, sont exclues des nouvelles collectes.")}</p>
+    <p className="audience-caption">{t("Les actions peuvent se recouper. Le taux global compte chaque session avec création de compte une seule fois. Ce tableau ne décrit pas un ordre de parcours. La page Soutenir est mesurée avec consentement ; les routes administratives sont exclues.")}</p>
   </Section>;
 }
 
@@ -200,7 +200,7 @@ export function AudienceReport({ report }) {
     <PopularPages rows={report.pages || []} total={totals.pageviews} />
     <ReadingDetails title={t("L’engagement et les conversions")} description={t("Temps actif, rebond et actions enregistrées")} className="audience-reading-details">
       <Engagement totals={totals} previous={previous} />
-      <Goals goals={report.goals} totals={totals} previous={previous} />
+      <Goals goals={report.goals.filter(goal=>Object.hasOwn(GOAL_LABELS,goal.name))} totals={totals} previous={previous} />
     </ReadingDetails>
     <ReadingDetails title={t("Les sources des visites")} description={t("Référents et campagnes des liens partagés")} className="audience-reading-details">
       <Acquisition rows={report.sources} sessions={totals.sessions} />

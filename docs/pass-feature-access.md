@@ -1,3 +1,5 @@
+> Archive du 30 octobre 2026 : le système payant et ses parcours ont été retirés. NXT5 reste gratuit. Ce document conserve le contexte antérieur ; voir le [guide actuel de l’administration](administration-achats.md).
+
 # NXT5 — préparation des accès Découverte et Pass Équipe
 
 Décision du 9 septembre 2026, précisée le 22 septembre 2026 (PR #54) : au lancement, le bot Discord est réservé au Pass Équipe et exclu de Découverte. Cette préparation n’active aucun abonnement d’équipe, essai d’équipe, paiement ou blocage. **Tous les accès actuels restent inchangés avant lancement**, selon les rôles et autorisations existants. Les attributions manuelles des profils restent un parcours administratif distinct.
@@ -18,7 +20,7 @@ Il n’y a ni niveau gratuit permanent ni prélèvement automatique à la fin de
 
 ## Ce qui est préparé
 
-Le catalogue [pass-access.js](../src/app/pass-access.js) contient :
+Le catalogue [pass-access.js](https://github.com/AshaiiTV/NXT5/blob/b67d686a18b2ccd298b4a0f4f4c9b04dc14b4ef7/src/app/pass-access.js) contient :
 
 - `DISCOVERY_TRIAL_DAYS = 14`, durée d’affichage de la proposition ;
 - `SUBSCRIPTION_RESTRICTIONS_ENABLED = false`, constante explicite qui garde la politique réelle ouverte avant lancement ;
@@ -28,11 +30,11 @@ Le catalogue [pass-access.js](../src/app/pass-access.js) contient :
 
 La règle générale préparée ne représente pas encore l’exception du bot Discord, réservé au Pass Équipe selon la décision du 22 septembre 2026. Cette exception devra être appliquée côté serveur avant lancement. Cette politique future ne lit aucune date, ne démarre aucun essai et ne déduit aucun droit des abonnements manuels de profil. Les variables d’environnement, paramètres d’URL et valeurs de stockage navigateur ne permettent pas d’activer la constante.
 
-Le composant [PassFeatureGate](../src/components/subscriptions/PassFeatureGate.jsx) conserve ses enfants lorsque l’accès est autorisé. Son état fermé utilise `PassFeaturePreview` : formes décoratives floutées, nom de l’outil, message expliquant les 14 jours puis le Pass, prix et bouton « Prendre le Pass Équipe ». Le décor ne contient aucune donnée réelle protégée. Quand cet état sera utilisé après lancement, le contenu protégé ne devra être ni monté ni chargé pour un accès refusé.
+Le composant [PassFeatureGate](https://github.com/AshaiiTV/NXT5/blob/b67d686a18b2ccd298b4a0f4f4c9b04dc14b4ef7/src/components/subscriptions/PassFeatureGate.jsx) conserve ses enfants lorsque l’accès est autorisé. Son état fermé utilise `PassFeaturePreview` : formes décoratives floutées, nom de l’outil, message expliquant les 14 jours puis le Pass, prix et bouton « Prendre le Pass Équipe ». Le décor ne contient aucune donnée réelle protégée. Quand cet état sera utilisé après lancement, le contenu protégé ne devra être ni monté ni chargé pour un accès refusé.
 
 ## Prévisualisation interne
 
-La page [Tarifs](../src/pages/public/PricingPage.jsx), à `/tarifs`, reste réservée à l’administrateur plateforme. Ses détails de prévisualisation, repérés par `data-pass-preview`, permettent de sélectionner un outil et de voir son futur message Pass sans modifier les droits de l’équipe.
+La page [Tarifs](https://github.com/AshaiiTV/NXT5/blob/b67d686a18b2ccd298b4a0f4f4c9b04dc14b4ef7/src/pages/public/PricingPage.jsx), à `/tarifs`, reste réservée à l’administrateur plateforme. Ses détails de prévisualisation, repérés par `data-pass-preview`, permettent de sélectionner un outil et de voir son futur message Pass sans modifier les droits de l’équipe.
 
 Le bouton de cet aperçu sélectionne le Pass Équipe dans le formulaire commercial existant. Il ne lance ni paiement ni essai et n’envoie aucune demande à lui seul. L’aperçu n’active pas le masquage dans les outils réels et ne stocke aucun état d’activation.
 

@@ -65,7 +65,7 @@ describe("public, read-only product demonstration", () => {
     expect(isAppPath(path)).toBe(false);
     const html = render(path);
     expect(html).toContain("fictiv");
-    expect(html).toContain("actuellement gratuit");
+    expect(html).toContain("Accès gratuit");
     expect(html).toContain('href="/creer-un-compte"');
   });
 });

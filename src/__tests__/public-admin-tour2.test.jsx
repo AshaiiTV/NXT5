@@ -6,7 +6,6 @@ import { afterEach, expect, it, vi } from "vitest";
 import { RoleIcon } from "../components/brand/BrandAssets.jsx";
 import GuidePage from "../pages/GuidePage.jsx";
 import AdminDashboard, { ImportChart } from "../pages/admin/AdminDashboard.jsx";
-import { PurchaseHistory, PurchaseOverview } from "../pages/admin/Purchases.jsx";
 import { LEGAL_PAGES } from "../pages/public/PublicPages.jsx";
 import { apiFetch } from "../api/client.js";
 
@@ -53,12 +52,12 @@ it("E5/E1: public policies describe current collection, closed requests and rema
     const sections = LEGAL_PAGES[path].sections;
     const measurement = sections.find(([title]) => /mesurons|Mesure de fréquentation/.test(title))[1];
     expect(measurement).toContain("Soutenir");
-    expect(measurement).toContain("/tarifs");
-    expect(measurement).toContain("ces événements ne sont plus émis par le site");
+    expect(measurement).not.toContain("/tarifs");
+    expect(measurement).toContain("conservation");
     expect(measurement).not.toMatch(/connexion, (?:consultation des tarifs|demande d’accès)/);
   }
   const privacy = JSON.stringify(LEGAL_PAGES["/confidentialite"]);
-  expect(privacy).toContain("réservés à l’administrateur de plateforme");
+  expect(privacy).toContain("administrateur de plateforme");
   expect(privacy).toContain("CommunityDragon ou Data Dragon");
   expect(privacy).toContain("catalogue des runes Data Dragon passe par le serveur NXT5");
 });
@@ -77,24 +76,6 @@ it("E8: guide mobile label follows the shared reading scale and keeps 16 px fiel
   expect(css).toMatch(/\.nxt5-guide-mobile-label \{ display: grid;[^}]*font-size: var\(--nxt5-font-ui\)/);
   expect(css).toMatch(/\.nxt5-guide-mobile-label select \{[^}]*background: var\(--nxt5-bg\)[^}]*font-size: 1rem/);
 });
-
-it.each([undefined, null, {}, "months"])("E10: incomplete monthly arrays show a recoverable error (%j)", async monthly => {
-  apiFetch.mockResolvedValueOnce({ totals: {}, monthly });
-  const renderer = await render(<PurchaseOverview />);
-  expect(renderer.root.findByProps({ role: "alert" }).findByType("p").children.join("")).toContain("d’achats reçues sont incomplètes");
-  expect(renderer.root.findAllByProps({ className: "purchase-trend" })).toHaveLength(0);
-  apiFetch.mockResolvedValueOnce({ totals: { orders: 0, paid: 0, pending: 0, paidCents: 0, paid30d: 0, paidPrevious30d: 0 }, monthly: [] });
-  await act(async () => renderer.root.findAllByType("button").find(b => b.children.join("") === "Réessayer").props.onClick());
-  expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(0);
-  expect(renderer.root.findByProps({ className: "purchase-trend" }).findAllByType("li")).toHaveLength(0);
-});
-
-it("E10: history also rejects a non-array instead of crashing", async () => {
-  apiFetch.mockResolvedValueOnce({ pagination: {}, purchases: {} });
-  const renderer = await render(<PurchaseHistory />);
-  expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
-});
-
 
 it("R4-V6 omits the weekly activity note when no weekly series is rendered", async () => {
   const weeklyActivityNote = "La série hebdomadaire des comptes actifs repose sur le dernier passage des sessions conservées. Leur réutilisation ou leur suppression modifie les semaines passées : ce n’est pas un historique complet des présences.";
@@ -115,8 +96,8 @@ it('R4-S3 legal revision is dated globally and keeps the audience consent versio
   const { LEGAL_VERSION, LEGAL_UPDATED_LABEL } = await import('../../shared/legal.js');
   const { AUDIENCE_CONSENT_VERSION } = await import('../app/audience-client.js');
   // #91 bumped the legal version for the whole rewrite; section titles no longer carry dates.
-  expect(LEGAL_VERSION).toBe('2026-09-30');
-  expect(LEGAL_UPDATED_LABEL).toBe('30 septembre 2026');
+  expect(LEGAL_VERSION).toBe('2026-10-30');
+  expect(LEGAL_UPDATED_LABEL).toBe('30 octobre 2026');
   expect(AUDIENCE_CONSENT_VERSION).toBe('2026-09-14');
   for (const route of ['/confidentialite', '/cookies']) {
     expect(LEGAL_PAGES[route].sections.every(([title]) => !/mise à jour du/.test(title))).toBe(true);

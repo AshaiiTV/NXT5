@@ -1,3 +1,5 @@
+> Archive du 30 octobre 2026 : le système payant et ses parcours ont été retirés. NXT5 reste gratuit. Ce document conserve le contexte antérieur ; voir le [guide actuel de l’administration](administration-achats.md).
+
 # NXT5 : Shopify, réseaux et préparation juridique
 
 Document de travail du 14 septembre 2026. Hypothèse : une micro-entreprise française exploite NXT5, service numérique par abonnement, vendu éventuellement à des particuliers. Confirmer cette qualification, les pays servis et la clientèle avant publication des contrats. Cette liste prépare la mise en vente ; elle ne constitue pas des CGV validées.

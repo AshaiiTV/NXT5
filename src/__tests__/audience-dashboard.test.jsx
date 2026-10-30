@@ -160,14 +160,13 @@ describe("accessible audience charts", () => {
   });
 });
 
-it('E5: keeps historical goals and /tarifs readable with their historical qualification', async () => {
+it('E5: omits retired commercial goals from the live dashboard', async () => {
   apiFetch.mockResolvedValueOnce(result({ goals: [
     { name: 'access_request', events: 3, sessions: 3, conversionRate: 6 },
     { name: 'pricing_view', events: 8, sessions: 4, conversionRate: 8 },
   ] }));
   const renderer = await render();
-  expect(text(renderer)).toContain('Demande d’accès envoyée (historique)');
-  expect(text(renderer)).toContain('Tarifs consultés (historique)');
-  expect(text(renderer)).toContain('anciennes demandes d’accès incluses');
-  expect(text(renderer)).toContain('/tarifs');
+  expect(text(renderer)).not.toContain('Demande d’accès envoyée (historique)');
+  expect(text(renderer)).not.toContain('Tarifs consultés (historique)');
+  expect(text(renderer)).not.toContain('anciennes demandes d’accès incluses');
 });

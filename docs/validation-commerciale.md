@@ -1,3 +1,5 @@
+> Archive du 30 octobre 2026 : le système payant et ses parcours ont été retirés. NXT5 reste gratuit. Ce document conserve le contexte antérieur ; voir le [guide actuel de l’administration](administration-achats.md).
+
 # NXT5 — validation commerciale avant paiement
 
 Préparation de la phase 1 du [plan de financement](plan-financement.md), mise à jour le 9 septembre 2026.

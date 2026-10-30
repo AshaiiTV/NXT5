@@ -42,7 +42,7 @@ const FEATURES = [
     id: "discord", icon: MessageSquare, label: "Exports et Discord",
     title: "Partager un bilan lisible.",
     text: "Exporte les statistiques en PNG ou publie les bilans des parties dans les salons Discord choisis par l’équipe, après configuration du bot.",
-    detail: "Le bot est actuellement accessible gratuitement. Au lancement des offres, il sera réservé au Pass Équipe et ne sera pas inclus dans Découverte. La connexion du serveur, les salons et les droits se règlent dans Bot Discord. Le partage manuel présente un aperçu avant confirmation ; la diffusion automatique dépend de la configuration activée par l’équipe.",
+    detail: "Le bot Discord est inclus dans les outils gratuits NXT5. La connexion du serveur, les salons et les droits se règlent dans Bot Discord. Le partage manuel présente un aperçu avant confirmation ; la diffusion automatique dépend de la configuration activée par l’équipe.",
     items: ["Exports PNG des parties et des analyses", "Bilans dans les salons Discord choisis", "Aperçu et confirmation du partage manuel"],
   },
 ];
@@ -50,7 +50,7 @@ const FEATURES = [
 const QUESTIONS = [
   ["À qui s’adresse NXT5 ?", "NXT5 s’adresse aux équipes League of Legends, à leurs joueurs, coachs, analystes et managers. Tu peux y organiser ton équipe, analyser les parties et préparer les séances, avec ou sans encadrement déjà en place."],
   ["Comment ajouter une partie dans NXT5 ?", "Crée ou rejoins une équipe. Sur Windows ou Mac avec League of Legends ouvert, NXT5 Importer prépare le fichier JSON. Le propriétaire ou le staff autorisé le charge dans Parties, vérifie son côté et associe les cinq joueurs. Les profils manquants peuvent être préparés depuis le fichier avant la confirmation."],
-  ["Combien coûte l’accès aujourd’hui ?", "Toutes les fonctionnalités actuellement accessibles sont gratuites. La création du compte n’active aucun abonnement et n’autorise aucun prélèvement. D’éventuelles offres payantes futures seront présentées avant toute souscription volontaire."],
+  ["Combien coûte l’accès aujourd’hui ?", "Toutes les fonctionnalités sont gratuites. Crée un compte et retrouve les outils de ton équipe."],
   ["NXT5 remplace-t-il le travail du coach ?", "Les statistiques et les observations automatiques donnent des pistes à vérifier. Elles ne prouvent pas, à elles seules, la cause d’une victoire ou d’une défaite. Le coach et les joueurs gardent l’interprétation du contexte et le choix des actions à travailler."],
   ["Toutes les parties disposent-elles d’une chronologie complète ?", "La chronologie et certaines mesures dépendent des données présentes dans le fichier importé. Une partie peut être exploitable sans timeline complète. Une information absente ne doit pas être interprétée comme un zéro ou comme une absence d’action en jeu."],
   ["NXT5 est-il un service officiel de Riot Games ?", "Non. NXT5 est un projet indépendant, sans affiliation à Riot Games. League of Legends et les éléments associés appartiennent à Riot Games."],
@@ -72,7 +72,7 @@ export function FeaturesPage({ navigate, user }) {
         <h1>{t("Analyse, coaching et organisation pour ton équipe League of Legends.")}</h1>
         <p>{t("Retrouve les parties et les joueurs de ton équipe dans NXT5. Compare les résultats, note tes observations et prépare les points à travailler à l’entraînement.")}</p>
         <div className="nxt5-entry-actions"><LinkButton href="/demo" navigate={navigate} icon={ArrowRight}>{t("Essayer la démo")}</LinkButton><LinkButton href={user ? "/mon-equipe" : "/creer-un-compte"} navigate={navigate} variant="ghost">{user ? t("Ouvrir mon équipe") : t("Créer mon espace équipe")}</LinkButton></div>
-        <p className="nxt5-features-access">{t("Accès actuellement gratuit, aucun abonnement activé. L’import nécessite Windows ou Mac et League of Legends ouvert ; la démo se consulte sans installation.")}</p>
+        <p className="nxt5-features-access">{t("Accès gratuit. L’import nécessite Windows ou Mac et League of Legends ouvert ; la démo se consulte sans installation.")}</p>
         </div>
         <PublicScene className="nxt5-features-sculpture" imageClassName="nxt5-features-glass">
           <div className="nxt5-features-role-dock">{["TOP", "JGL", "MID", "ADC", "SUP"].map((role) => <div key={role}><RoleIcon role={role} className="nxt5-features-role-icon" /><span>{role}</span></div>)}</div>

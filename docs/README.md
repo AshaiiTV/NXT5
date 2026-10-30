@@ -33,17 +33,19 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 - [Aide au choix des champions](draft-assistance.md)
 - [Équipes adverses et drafts des parties](drafter-opponents-prototype.md)
 - [Assistant NXT5](assistant/README.md)
-- [Administration : achats et navigation](administration-achats.md)
+- [Administration, comptes et statistiques globales](administration-achats.md)
 
-### Offres, abonnements et soutien
+### Accès au service et soutien
 
-- [Validation commerciale avant paiement](validation-commerciale.md)
-- [Accès Découverte et Pass Équipe](pass-feature-access.md)
-- [Abonnements manuels des profils](abonnements-manuels.md)
-- [Plan de financement](plan-financement.md)
-- [Brief d’intégration du paiement](brief-integration-paiement-ia.md)
-- [Shopify, réseaux et préparation juridique](shopify-et-checklist-juridique.md)
+Le service reste gratuit : les parcours commerciaux ont été retirés le 30 octobre 2026.
+Le [guide de l’administration](administration-achats.md) décrit les capacités disponibles.
+
 - [Soutenir NXT5](soutenir-nxt5.md) et [page Ko-fi](kofi-nxt5.md)
+
+### Archives de préparation commerciale
+
+Les documents de validation, financement et préparation juridique conservent un contexte historique.
+Ils ne décrivent pas des fonctionnalités actives ni une commercialisation prévue.
 
 ### NXT5 Importer
 
