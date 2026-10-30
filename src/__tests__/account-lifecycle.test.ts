@@ -78,3 +78,9 @@ it('blocks cross-site writes and cascading deletes in previews',async()=>{
  expect((await handler(new Request(req({}),{headers:{Origin:'https://evil.example','Content-Type':'application/json'}}),context)).status).toBe(403);
  const d=await snapshot();expect((await handler(req({userId:user,action:'delete',confirmAccount:'player',expectedRevision:d.account.revision,expectedOwnedTeams:d.ownedTeams}),{deploy:{context:'deploy-preview'}} as any)).status).toBe(409);
 });
+
+it('protects administrator UUIDs regardless of letter case',async()=>{
+ const id='abcdefab-abcd-abcd-abcd-abcdefabcdef';
+ state.admin.mockResolvedValue({id,email:'admin@example.test',session_id:session});
+ expect((await handler(new Request('https://nxt5.org/?userId='+id.toUpperCase()),context)).status).toBe(403);
+});
