@@ -15,20 +15,24 @@ const totalSelections=played.reduce((sum,row)=>sum+row.picks,0);played.forEach(r
 const stats={played,picks:played.map((row,index)=>({...row,count:100-index*8,rate:72-index*5})),bans:played.map((row,index)=>({...row,count:90-index*7,rate:65-index*5})),gameBans:played.map((row,index)=>({...row,count:90-index*7,rate:65-index*5})),coverage:{banGames:136,games:153,imports:178,selections:totalSelections,pickDrafts:139,banDrafts:125,totalDrafts:146,unknownSelections:0,excludedDrafts:7},period:{from:'2026-09-30T12:00:00Z',to:now,days:30,patch:'',role:'ALL'},patches:['16.15','16.14']};
 const fixture=`import React from 'react';import {createRoot} from 'react-dom/client';import '/src/index.css';import AdministrationPage from '/src/pages/admin/AdministrationPage.jsx';
 function View(){const [route,setRoute]=React.useState({path:new URLSearchParams(location.search).get('page')||'/admin/comptes',search:new URLSearchParams(location.search).get('query')||''});return React.createElement(AdministrationPage,{route,navigate:path=>{const u=new URL(path,location.origin);setRoute({path:u.pathname,search:u.search});},user:{id:'admin',name:'Sacha',is_platform_admin:true},onLogout:()=>{}});}createRoot(document.getElementById('root')).render(React.createElement(View));`;
-let suspended=false;
+let suspended=false,transferred=false;
 const server=await createServer({server:{host:'127.0.0.1',port:0,hmr:false},plugins:[{
   name:'admin-review-fixture',resolveId(id){if(id==='/__admin-review.js')return '\0admin-review';},load(id){if(id==='\0admin-review')return fixture;},
   configureServer(vite){vite.middlewares.use(async(req,res,next)=>{
     const url=new URL(req.url,'http://localhost');
     const send=data=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(data));};
     if(url.pathname==='/__admin-review.html'){res.setHeader('Content-Type','text/html');res.end(await vite.transformIndexHtml(req.url,'<!doctype html><html lang="fr"><head><!--seo:start--><!--seo:end--><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/__admin-review.js"></script></body></html>'));return;}
+    if(url.pathname.endsWith('/admin-team-transfer')){
+      if(req.method==='POST'){transferred=true;send({ok:true});return;}
+      send({rows:[{id,name:'Camille Martin',account_name:'camille',email:'camille@example.test',revision:'5'}]});return;
+    }
     if(url.pathname.endsWith('/admin-account-lifecycle')){
       if(req.method==='POST'){let body='';for await(const chunk of req)body+=chunk;const action=JSON.parse(body);suspended=action.action==='suspend';send({ok:true});return;}
       send({account:{...account,suspended_at:suspended?now:null,revision:'5'},ownedTeams:[{id:'team',name:'Équipe Orion',revision:'1',profiles:8,matches:153}]});return;
     }
     if(url.pathname.endsWith('/admin-team-tools')){
       if(req.method==='POST'){let body='';for await(const chunk of req)body+=chunk;const action=JSON.parse(body);send({ok:true,teamId:action.teamId});return;}
-      const team={id:'team',name:'Équipe Orion',tag:'ORN',region:'EUW',owner_id:'owner',owner_name:'Nadia Leroy',revision:'1'};
+      const team={id:'team',name:'Équipe Orion',tag:'ORN',region:'EUW',owner_id:transferred?id:'owner',owner_name:transferred?'Camille Martin':'Nadia Leroy',revision:'1'};
       const profile={id:'profile',team_id:'team',team_name:team.name,team_revision:'1',revision:'2',name:'Camille',riot_id:'Camille#TEST',role:'MID',roster_status:'MAIN',user_id:id,account_name:'Camille Martin',email:'camille@example.test',created_at:now};
       if(url.searchParams.has('profileId')){send({profile,pool:[{champion:'Ahri',games:12,wins:8}],goals:[{id:'goal',title:'Mieux préparer les objectifs',metric:'vision',target_value:50,status:'active'}],matches:[{id:'match',game_id:'EUW1_TEST',opponent:'Nova',champion:'Ahri',role:'MID',kills:5,deaths:2,assists:7,result:'Victoire',created_at:now}]});return;}
       if(!url.searchParams.has('teamId')){send({rows:[{...team,profiles:8,matches:153}],pagination:{page:1,pageSize:20,total:1}});return;}
@@ -75,6 +79,8 @@ try {
       const csv=page.waitForEvent('download');await page.getByRole('button',{name:'Télécharger le CSV'}).click();await (await csv).saveAs(path.join(output,'global-stats.csv'));
     }
     if(label==='team' && width===1440){
+      await page.getByRole('button',{name:'Transférer la propriété',exact:true}).click();await page.getByLabel('Rechercher le nouveau propriétaire').fill('camille');await page.getByRole('button',{name:'Choisir',exact:true}).click();const transferConfirm=page.getByRole('button',{name:'Confirmer le transfert',exact:true});assert(await transferConfirm.isDisabled());await page.getByLabel('Saisis le nom exact pour confirmer').fill('Équipe Orion');await page.screenshot({path:path.join(output,'owner-transfer-1440.png'),fullPage:true});const transferRequest=page.waitForRequest(r=>r.method()==='POST' && r.url().endsWith('/admin-team-transfer'));await transferConfirm.click();assert.equal((await transferRequest).postDataJSON().newOwnerId,id);await page.getByText('ORN · EUW · Responsable : Camille Martin',{exact:true}).waitFor();
+
       for(const [label,title] of [['Parties','Nova'],['Débriefs','Débrief contre Nova'],['Compositions','Contrôle et engagement'],['Séances','Scrim contre Nova'],['Drafts','demo'],['Membres et accès','Camille Martin']]){
         await page.getByRole('button',{name:label,exact:true}).click();await page.locator('.admin-team-records').getByText(title,{exact:false}).first().waitFor();
       }

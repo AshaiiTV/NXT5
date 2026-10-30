@@ -108,3 +108,22 @@ Ce bouton ne constitue donc pas une promesse d’effacement de toute trace ou de
 Les suppressions en cascade restent désactivées en Deploy Preview. Audit et effacement sont atomiques.
 La migration incrémentale `20261030_account_lifecycle.sql` est appliquée par le build de production.
 Aucune opération de suspension ou suppression réelle n’est nécessaire aux tests.
+
+## Transférer une équipe avant de supprimer son propriétaire
+
+Dans le dossier équipe, « Transférer la propriété » recherche un compte actif avec e-mail vérifié,
+même s’il n’est pas encore membre. Sélectionner le destinataire, puis saisir le nom exact de l’équipe.
+Le nouveau propriétaire reçoit le statut capitaine ; l’ancien propriétaire devient membre joueur.
+L’équipe conserve son identifiant et ses contenus. Les profils ne sont pas réattribués au nouveau
+compte. L’audit conserve les identifiants des deux propriétaires et de l’intervenant.
+
+Depuis la confirmation de suppression d’un compte, chaque équipe possédée mène à son dossier
+pour permettre son transfert. Recharger ensuite le dossier du compte : les équipes transférées ne
+figurent plus dans l’inventaire d’effacement. Une confirmation d’effacement ancienne est refusée.
+La suppression du compte délie ses profils dans l’équipe conservée et retire ses participations
+personnelles selon les clés étrangères existantes ; elle ne supprime pas les données de l’équipe.
+
+Le transfert verrouille les comptes avant l’équipe, comme l’effacement de compte, et revérifie
+propriétaire, révisions, nom, vérification e-mail et suspension dans la transaction d’audit.
+Un doublon de nom chez le destinataire impose de renommer l’équipe avant de transférer.
+Aucun compte, équipe ou contenu n’est recréé après un conflit ou une interruption.
