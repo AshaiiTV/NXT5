@@ -19,6 +19,7 @@ vi.mock("../components/privacy/CookieConsent.jsx", () => ({ default: () => null 
 vi.mock("../components/loading/AppLoadingScreen.jsx", () => ({ default: ({ phase }) => <section data-loader="true" data-phase={phase} /> }));
 vi.mock("../hooks/useTeamData.js", () => ({ useTeamData: vi.fn(() => { throw new Error("An administrator page must not bootstrap a team."); }) }));
 vi.mock("../pages/admin/AdminDashboard.jsx", () => ({ default: ({ view, teamFilter, onNavigate }) => <section data-admin-view={view} data-team-filter={teamFilter}>{view === "overview" && <button onClick={() => onNavigate("/admin/equipes?filtre=never")}>Voir les équipes sans import</button>}</section> }));
+vi.mock("../pages/admin/AdminTeamTools.jsx", () => ({ default: ({ route }) => <section data-admin-view="teams" data-team-filter={new URLSearchParams(route.search).get("filtre") || "all"} /> }));
 vi.mock("../pages/admin/AudiencePage.jsx", () => ({ default: () => <section data-admin-view="audience" /> }));
 vi.mock("../pages/admin/BotAnalyticsPage.jsx", () => ({ default: () => <section data-admin-view="bot" /> }));
 vi.mock("../pages/admin/BotPublicationsPage.jsx", () => ({ default: () => <section data-admin-view="bot-publications" /> }));

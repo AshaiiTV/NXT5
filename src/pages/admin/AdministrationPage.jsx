@@ -12,6 +12,7 @@ import "./administration-shell.css";
 import "./admin-directory.css";
 
 const GlobalStatsPage = lazy(() => import("./GlobalStatsPage.jsx"));
+const AdminTeamTools = lazy(() => import("./AdminTeamTools.jsx"));
 const AdminDirectory = lazy(() => import("./AdminDirectory.jsx"));
 const AdminDashboard = lazy(() => import("./AdminDashboard.jsx"));
 const AudiencePage = lazy(() => import("./AudiencePage.jsx"));
@@ -26,7 +27,8 @@ function AdminContent({ page, route, navigate, user }) {
   useLanguage();
   if (page.id === "global-stats") return <GlobalStatsPage />;
   if (page.id === "accounts" || page.id === "journal") return <AdminDirectory key={page.id} journal={page.id === "journal"} route={route} navigate={navigate} user={user} />;
-  if (["overview", "teams", "usage", "reminders"].includes(page.id)) return <AdminDashboard view={page.id} teamFilter={new URLSearchParams(route.search).get("filtre") || "all"} onNavigate={navigate} initialTeamId={new URLSearchParams(route.search).get("teamId") || ""} />;
+  if (page.id === "teams") return <AdminTeamTools route={route} navigate={navigate} />;
+  if (["overview", "usage", "reminders"].includes(page.id)) return <AdminDashboard view={page.id} teamFilter={new URLSearchParams(route.search).get("filtre") || "all"} onNavigate={navigate} initialTeamId={new URLSearchParams(route.search).get("teamId") || ""} />;
   if (page.id === "audience") return <AudiencePage />;
   if (page.id === "bot") return <BotAnalyticsPage route={route} navigate={navigate} />;
   if (page.id === "bot-publications") return <BotPublicationsPage />;
