@@ -109,6 +109,8 @@ try {
       await page.getByRole('button',{name:'Supprimer complètement le compte',exact:true}).click();await page.getByText('Équipe Orion',{exact:true}).last().waitFor();const confirm=page.getByRole('button',{name:'Confirmer cette action',exact:true});assert(await confirm.isDisabled());await page.getByLabel('Saisis l’identifiant exact du compte').fill(account.account_name);const deletion=page.waitForRequest(r=>r.method()==='POST' && r.url().endsWith('/admin-account-lifecycle'));await confirm.click();assert.equal((await deletion).postDataJSON().expectedOwnedTeams.length,1);await page.getByText('Compte supprimé.',{exact:true}).waitFor();await page.getByRole('button',{name:'Retour à l’annuaire',exact:true}).click();await page.locator('.admin-directory-table').waitFor();
     }
     if(label==='overview'){
+      const insets=await page.locator('.admin-metric').evaluateAll(nodes=>nodes.map(node=>parseFloat(getComputedStyle(node).paddingLeft)));assert(insets.every(value=>value>=12),'Metric text lost its inset');
+      if(width<=640){const columns=await page.locator('.admin-metrics').evaluate(node=>getComputedStyle(node).gridTemplateColumns.split(' ').length);assert.equal(columns,2);}
       assert.equal(await page.locator('.admin-overview-links,.administration-breadcrumb').count(),0);
       assert.equal(await page.locator('.admin-chart-total').count(),0);
       await page.getByLabel('Période du graphique').selectOption('7');assert.equal(await page.locator('.admin-chart-bars button').count(),7);assert.equal(await page.locator('.admin-chart-total').count(),1);

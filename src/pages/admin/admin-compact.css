@@ -160,3 +160,10 @@
  .administration-shell .bot-metric > strong { font-size:24px; }
  .administration-shell .bot-metric > div { font-size:13px; }
 }
+.administration-shell .admin-dashboard .admin-metric:nth-child(n) { padding:16px; }
+@media(max-width:640px) {
+ .administration-shell .admin-dashboard .admin-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .administration-shell .admin-dashboard .admin-metric:nth-child(n) { padding:12px; border-left:0; }
+ .administration-shell .admin-dashboard .admin-metric:nth-child(even) { border-left:1px solid var(--nxt5-border); }
+ .administration-shell .admin-dashboard .admin-metric:nth-child(n+3) { border-top:1px solid var(--nxt5-border); }
+}
