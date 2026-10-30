@@ -29,6 +29,7 @@ const ACTIONS = {
   "admin.account.rename":"Nom du compte modifié",
   "admin.sessions.revoke":"Sessions révoquées",
   "admin.account.suspend":"Compte suspendu", "admin.account.resume":"Compte réactivé", "admin.account.delete":"Compte supprimé",
+  "admin.team.transfer":"Propriété de l’équipe transférée",
   "admin.team.update":"Équipe modifiée", "admin.team.delete":"Équipe supprimée",
   "admin.member.role":"Droits du membre modifiés", "admin.member.remove":"Accès membre retiré",
   "admin.profile.update":"Profil modifié", "admin.profile.unlink":"Compte délié du profil", "admin.profile.delete":"Profil supprimé",
@@ -101,7 +102,7 @@ function AccountDetail({ id, user, navigate }) {
           <Surface variant="reading" className="admin-directory-panel"><h3>{t("Profils liés")}</h3>{detail.profiles.length ? <ul className="admin-related-list">{detail.profiles.map(profile=><li key={profile.id}><div><strong>{profile.name}</strong><span>{profile.role} · {profile.team_name}</span><span>{profile.riot_id || "—"}</span></div><Button variant="ghost" onClick={()=>navigate(`/admin/comptes?profileId=${encodeURIComponent(profile.id)}`)}>{t("Ouvrir le profil")}</Button></li>)}</ul>:<p className="admin-empty-copy">{t("Aucun profil joueur ou staff lié à ce compte.")}</p>}</Surface>
         </div>
       </div>
-      {id!==user?.id && <AccountLifecycle id={id} revision={revision} onGuardChange={setLifecycle} onDeleted={()=>setDeleted(true)} onUpdated={()=>setRevision(value=>value+1)} blocked={saving || dirty} />}
+      {id!==user?.id && <AccountLifecycle navigate={navigate} id={id} revision={revision} onGuardChange={setLifecycle} onDeleted={()=>setDeleted(true)} onUpdated={()=>setRevision(value=>value+1)} blocked={saving || dirty} />}
       <Surface variant="reading" className="admin-directory-panel"><h3>{t("Dernières actions du compte")}</h3><ActivityList rows={detail.activity} /></Surface>
     </>}
   </div>;

@@ -97,7 +97,18 @@ export const en = {
   "Saisis l’identifiant exact du compte": "Enter the exact account identifier",
   "Compte supprimé.": "Account deleted.",
   "Compte réactivé": "Account reactivated",
-  "Compte supprimé": "Account deleted"
+  "Compte supprimé": "Account deleted",
+  "Ouvrir l’équipe pour la transférer": "Open team to transfer it",
+  "Transférer la propriété": "Transfer ownership",
+  "Transférer la propriété de l’équipe": "Transfer team ownership",
+  "Les parties, profils, débriefs et autres données restent dans la même équipe. Le destinataire devient propriétaire et capitaine ; l’ancien propriétaire devient membre joueur. Aucun profil n’est réattribué.": "Games, profiles, reviews and other data stay in the same team. The recipient becomes owner and captain; the previous owner becomes a player member. No profile is reassigned.",
+  "Rechercher le nouveau propriétaire": "Find the new owner",
+  "Nom, identifiant ou e-mail…": "Name, username or email…",
+  "Comptes actifs avec e-mail vérifié uniquement. Saisis au moins deux caractères ; 20 résultats maximum.": "Active accounts with verified email only. Enter at least two characters; up to 20 results.",
+  "Sélectionné": "Selected",
+  "Nouveau propriétaire : {0} ({1})": "New owner: {0} ({1})",
+  "Confirmer le transfert": "Confirm transfer",
+  "Propriété de l’équipe transférée": "Team ownership transferred"
 };
 export const es = {
   "Ouvrir le profil": "Abrir perfil",
@@ -198,5 +209,16 @@ export const es = {
   "Saisis l’identifiant exact du compte": "Escribe el identificador exacto de la cuenta",
   "Compte supprimé.": "Cuenta eliminada.",
   "Compte réactivé": "Cuenta reactivada",
-  "Compte supprimé": "Cuenta eliminada"
+  "Compte supprimé": "Cuenta eliminada",
+  "Ouvrir l’équipe pour la transférer": "Abrir el equipo para transferirlo",
+  "Transférer la propriété": "Transferir propiedad",
+  "Transférer la propriété de l’équipe": "Transferir la propiedad del equipo",
+  "Les parties, profils, débriefs et autres données restent dans la même équipe. Le destinataire devient propriétaire et capitaine ; l’ancien propriétaire devient membre joueur. Aucun profil n’est réattribué.": "Las partidas, perfiles, análisis y otros datos permanecen en el mismo equipo. El destinatario pasa a ser propietario y capitán; el anterior propietario pasa a ser miembro jugador. No se reasigna ningún perfil.",
+  "Rechercher le nouveau propriétaire": "Buscar al nuevo propietario",
+  "Nom, identifiant ou e-mail…": "Nombre, identificador o correo…",
+  "Comptes actifs avec e-mail vérifié uniquement. Saisis au moins deux caractères ; 20 résultats maximum.": "Solo cuentas activas con correo verificado. Escribe al menos dos caracteres; hasta 20 resultados.",
+  "Sélectionné": "Seleccionado",
+  "Nouveau propriétaire : {0} ({1})": "Nuevo propietario: {0} ({1})",
+  "Confirmer le transfert": "Confirmar transferencia",
+  "Propriété de l’équipe transférée": "Propiedad del equipo transferida"
 };

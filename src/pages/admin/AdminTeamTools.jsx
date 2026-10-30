@@ -15,6 +15,7 @@ import { t } from "../../i18n/translate.js";
 import { getLocale } from "../../i18n/locale.js";
 
 import "./admin-team-tools.css";
+import TeamOwnerTransfer from "./TeamOwnerTransfer.jsx";
 
 
 
@@ -76,13 +77,13 @@ function useMutation(onSuccess) {
 
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
 
-  async function mutate(body) {
+  async function mutate(body,path=endpoint) {
 
     if(pending.current || state.uncertain)return;
 
     pending.current=true;setState({busy:true,error:"",message:"",uncertain:false});
 
-    try {const result=await apiFetch(endpoint,{method:"POST",body:JSON.stringify(body)});
+    try {const result=await apiFetch(path,{method:"POST",body:JSON.stringify(body)});
 
       if(result.ok!==true)throw new Error(t("Résultat incertain. Recharge le dossier avant une nouvelle action."));
 
@@ -164,7 +165,7 @@ function TeamDossier({id,navigate}) {
 
   const reload=()=>{setEditor(null);mutation.clear();setRevision(value=>value+1);};
 
-  const submit=extra=>mutation.mutate({action:editor.action,teamId:id,expectedTeamRevision:team.revision,userId:editor.target?.id,expectedRevision:editor.target?.revision,...extra});
+  const submit=extra=>mutation.mutate({action:editor.action,teamId:id,expectedTeamRevision:team.revision,userId:editor.target?.id,expectedRevision:editor.target?.revision,...extra},editor.action==="team-transfer" ? "admin-team-transfer":endpoint);
 
   const edit=value=>{setEditor(value);};
 
@@ -178,11 +179,11 @@ function TeamDossier({id,navigate}) {
 
     {!data && loading ? <SkeletonRows count={4} />:data && <>
 
-      <Panel title="Contenu de l’équipe"><Impact counts={data.counts} /><p className="admin-caption">{t("Identifiant de l’équipe")} : {id}</p><div className="admin-team-actions"><Button variant="ghost" icon={Pencil} disabled={loading || Boolean(editor)} onClick={()=>edit({action:"team-update",name:team.name,tag:team.tag,region:team.region})}>{t("Modifier l’équipe")}</Button><Button variant="danger" icon={Trash2} disabled={loading || Boolean(editor)} onClick={()=>edit({action:"team-delete"})}>{t("Supprimer l’équipe")}</Button></div></Panel>
+      <Panel title="Contenu de l’équipe"><Impact counts={data.counts} /><p className="admin-caption">{t("Identifiant de l’équipe")} : {id}</p><div className="admin-team-actions"><Button variant="ghost" icon={Pencil} disabled={loading || Boolean(editor)} onClick={()=>edit({action:"team-update",name:team.name,tag:team.tag,region:team.region})}>{t("Modifier l’équipe")}</Button><Button variant="ghost" disabled={loading || Boolean(editor)} onClick={()=>edit({action:"team-transfer"})}>{t("Transférer la propriété")}</Button><Button variant="danger" icon={Trash2} disabled={loading || Boolean(editor)} onClick={()=>edit({action:"team-delete"})}>{t("Supprimer l’équipe")}</Button></div></Panel>
 
       {editor && <Panel title="Intervention administrateur">
 
-        {editor.action==="team-update" ? <form onSubmit={event=>{event.preventDefault();void submit({name:editor.name,tag:editor.tag,region:editor.region});}} className="admin-team-form"><TextInput label={t("Nom de l’équipe")} value={editor.name} onChange={value=>setEditor({...editor,name:value})} minLength={2} maxLength={80} required disabled={mutation.busy} /><TextInput label={t("Tag")} value={editor.tag} onChange={value=>setEditor({...editor,tag:value})} maxLength={12} required disabled={mutation.busy} /><SelectInput label={t("Région")} value={editor.region} onChange={value=>setEditor({...editor,region:value})} disabled={mutation.busy}>{[...new Set([editor.region,"EUW","EUNE","NA","KR","BR","LAN","LAS","JP","OCE","TR","RU","SEA","TW","VN"])].map(region=><option key={region}>{region}</option>)}</SelectInput><div className="admin-team-actions"><Button type="submit" disabled={mutation.busy || mutation.uncertain}>{t("Enregistrer")}</Button><Button type="button" variant="ghost" disabled={mutation.busy} onClick={()=>setEditor(null)}>{t("Annuler")}</Button></div></form>
+        {editor.action==="team-transfer" ? <TeamOwnerTransfer team={team} busy={mutation.busy} uncertain={mutation.uncertain} onSubmit={submit} onCancel={()=>setEditor(null)} />:editor.action==="team-update" ? <form onSubmit={event=>{event.preventDefault();void submit({name:editor.name,tag:editor.tag,region:editor.region});}} className="admin-team-form"><TextInput label={t("Nom de l’équipe")} value={editor.name} onChange={value=>setEditor({...editor,name:value})} minLength={2} maxLength={80} required disabled={mutation.busy} /><TextInput label={t("Tag")} value={editor.tag} onChange={value=>setEditor({...editor,tag:value})} maxLength={12} required disabled={mutation.busy} /><SelectInput label={t("Région")} value={editor.region} onChange={value=>setEditor({...editor,region:value})} disabled={mutation.busy}>{[...new Set([editor.region,"EUW","EUNE","NA","KR","BR","LAN","LAS","JP","OCE","TR","RU","SEA","TW","VN"])].map(region=><option key={region}>{region}</option>)}</SelectInput><div className="admin-team-actions"><Button type="submit" disabled={mutation.busy || mutation.uncertain}>{t("Enregistrer")}</Button><Button type="button" variant="ghost" disabled={mutation.busy} onClick={()=>setEditor(null)}>{t("Annuler")}</Button></div></form>
 
         :editor.action==="member-role" ? <form onSubmit={event=>{event.preventDefault();void submit({role:editor.role});}} className="admin-team-form"><h4>{editor.target.name}</h4><SelectInput label={t("Droits dans l’équipe")} value={editor.role} onChange={value=>setEditor({...editor,role:value})} disabled={mutation.busy}>{memberRoles.map(([role,label])=><option key={role} value={role}>{t(label)}</option>)}</SelectInput><p>{t("Ces droits contrôlent l’accès au contenu et aux outils de l’équipe.")}</p><div className="admin-team-actions"><Button type="submit" disabled={mutation.busy || mutation.uncertain}>{t("Enregistrer les droits")}</Button><Button type="button" variant="ghost" disabled={mutation.busy} onClick={()=>setEditor(null)}>{t("Annuler")}</Button></div></form>
 
