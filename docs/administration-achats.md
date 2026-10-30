@@ -127,3 +127,17 @@ Le transfert verrouille les comptes avant l’équipe, comme l’effacement de c
 propriétaire, révisions, nom, vérification e-mail et suspension dans la transaction d’audit.
 Un doublon de nom chez le destinataire impose de renommer l’équipe avant de transférer.
 Aucun compte, équipe ou contenu n’est recréé après un conflit ou une interruption.
+
+## Présentation compacte — 30 octobre 2026
+
+Le cadre admin conserve toutes les destinations, routes, filtres et outils. Il retire les répétitions
+visuelles : fil d’Ariane/menu/titre, badge d’administration permanent, grands raccourcis de l’accueil
+et recherche globale dans l’annuaire. L’accueil place graphique et équipes à examiner côte à côte.
+Le total du graphique est omis seulement s’il est égal au KPI visible de même mesure/période ; une
+valeur différente ou une période différente reste affichée. Les calculs/API ne sont pas modifiés.
+Les explications secondaires de suspension et de statistiques sont dépliables ; les confirmations,
+avertissements d’effacement, erreurs et protections des formulaires restent explicites.
+La densité est appliquée par `admin-compact.css`, limitée au cadre admin et prioritaire sur les
+feuilles des modules chargés à la demande. Les dimensions tactiles et le focus sont conservés.
+Le contrôle navigateur couvre les quinze écrans de recette (dont dossiers, fréquentation,
+statistiques et publications du bot, intégrations et exports) à sept largeurs (320 à 1 920 px), avec des données fictives.

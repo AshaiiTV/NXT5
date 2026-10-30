@@ -108,7 +108,8 @@ export const en = {
   "Sélectionné": "Selected",
   "Nouveau propriétaire : {0} ({1})": "New owner: {0} ({1})",
   "Confirmer le transfert": "Confirm transfer",
-  "Propriété de l’équipe transférée": "Team ownership transferred"
+  "Propriété de l’équipe transférée": "Team ownership transferred",
+  "Suspension et réactivation": "Suspension and reactivation"
 };
 export const es = {
   "Ouvrir le profil": "Abrir perfil",
@@ -220,5 +221,6 @@ export const es = {
   "Sélectionné": "Seleccionado",
   "Nouveau propriétaire : {0} ({1})": "Nuevo propietario: {0} ({1})",
   "Confirmer le transfert": "Confirmar transferencia",
-  "Propriété de l’équipe transférée": "Propiedad del equipo transferida"
+  "Propriété de l’équipe transférée": "Propiedad del equipo transferida",
+  "Suspension et réactivation": "Suspensión y reactivación"
 };

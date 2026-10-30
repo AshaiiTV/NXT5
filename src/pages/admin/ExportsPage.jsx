@@ -94,7 +94,7 @@ export default function ExportsPage() {
   const isVisible = template => filter === "all" || template.format === filter;
   const visibleCount = EXPORT_TEMPLATES.filter(isVisible).length;
   return <div className="exports-page">
-    <PageHeader eyebrow={t("Configuration · Bibliothèque")} title={t("Exports")} subtitle={t("Choisis un modèle pour voir l’image ou le tableau obtenu, puis télécharge un exemple.")} />
+    <PageHeader title={t("Exports")} subtitle={t("Choisis un modèle pour voir l’image ou le tableau obtenu, puis télécharge un exemple.")} />
     <div className="exports-intro"><FileImage size={21} aria-hidden="true" /><p><strong>{t("Les modèles actuels, avec des données fictives.")}</strong><span>{t("Les aperçus correspondent aux exports PNG et CSV du site.")}</span></p></div>
     <div className="exports-toolbar"><div role="group" aria-label={t("Formats d’export")} className="exports-filters">{[["all", `Tous (${EXPORT_TEMPLATES.length})`], ...(imageCount ? [["PNG", `Images PNG (${imageCount})`]] : []), ...(csvCount ? [["CSV", `Données CSV (${csvCount})`]] : [])].map(([value, label]) => <Button key={value} type="button" variant="ghost" aria-pressed={filter === value} onClick={() => setFilter(value)}>{t(label)}</Button>)}</div><span className="exports-count" aria-live="polite">{visibleCount} {visibleCount === 1 ? t("modèle affiché") : t("modèles affichés")}</span></div>
     <section className="exports-catalog" aria-label={t("Modèles d’export")}>{EXPORT_TEMPLATES.map(template => <ExportCard key={template.id} template={template} hidden={!isVisible(template)} onPreview={setSelection} />)}</section>

@@ -10,6 +10,7 @@ import { LinkButton } from "../public/PublicPages.jsx";
 import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 import "./administration-shell.css";
 import "./admin-directory.css";
+import "./admin-compact.css";
 
 const GlobalStatsPage = lazy(() => import("./GlobalStatsPage.jsx"));
 const AdminTeamTools = lazy(() => import("./AdminTeamTools.jsx"));
@@ -93,12 +94,11 @@ export default function AdministrationPage({ route, navigate, user, onLogout }) 
     <a className="administration-skip" href="#administration-content">{t("Aller au contenu")}</a>
     <header className="administration-header">
       <div className="administration-brand"><a href="/admin" aria-label={t("Accueil de l’administration NXT5")} onClick={event => follow(event, "/admin")}><Nxt5Wordmark className="h-9 w-28 object-contain" /></a><h1>{t("Administration")}</h1></div>
-      <form className="administration-global-search" role="search" onSubmit={event => { event.preventDefault(); go(`/admin/comptes?q=${encodeURIComponent(globalSearch.trim())}`); }}><Search size={18} aria-hidden="true" /><input aria-label={t("Rechercher un compte ou un profil")} placeholder={t("Rechercher un compte…")} value={globalSearch} onChange={event=>setGlobalSearch(event.target.value)} maxLength={120} disabled={guard.disabled} /><button type="submit" disabled={guard.disabled}>{t("Rechercher")}</button></form>
-      <div className="administration-header-actions"><LinkButton href="/mon-equipe" navigate={go} variant="ghost" icon={ArrowLeft}>{t("Retour à l’app")}</LinkButton><LanguageSwitcher /></div>
+      {page.id!=="accounts" && <form className="administration-global-search" role="search" onSubmit={event => { event.preventDefault(); go(`/admin/comptes?q=${encodeURIComponent(globalSearch.trim())}`); }}><Search size={18} aria-hidden="true" /><input aria-label={t("Rechercher un compte ou un profil")} placeholder={t("Rechercher un compte…")} value={globalSearch} onChange={event=>setGlobalSearch(event.target.value)} maxLength={120} disabled={guard.disabled} /><button type="submit" disabled={guard.disabled}>{t("Rechercher")}</button></form>}
+      <div className="administration-header-actions"><LinkButton href="/mon-equipe" aria-label={t("Retour à l’app")} navigate={go} variant="ghost" icon={ArrowLeft}><span className="administration-return-label">{t("Retour à l’app")}</span></LinkButton><LanguageSwitcher /></div>
     </header>
     <div className="administration-layout">
       <aside className="administration-sidebar">
-        <div className="administration-mode"><ShieldCheck size={18} aria-hidden="true" /><span>{t("Espace administrateur")}</span></div>
         <nav aria-label={t("Rubriques de l’administration")}>
           {ADMIN_GROUPS.map(group => <div className="administration-nav-group" key={group.label}><p>{t(group.label)}</p>{group.pages.map(item => { const Icon = ICONS[item.id]; return <a key={item.id} href={item.path} aria-current={item.id === page.id ? "page" : undefined} aria-disabled={guard.disabled || undefined} onClick={event => follow(event, item.path)}><Icon size={18} aria-hidden="true" /><span>{t(item.label)}</span></a>; })}</div>)}
         </nav>
@@ -107,7 +107,6 @@ export default function AdministrationPage({ route, navigate, user, onLogout }) 
       <div className="administration-workspace">
         <label className="administration-mobile-menu">{t("Rubrique")}<select aria-label={t("Rubrique")} disabled={guard.disabled} value={page.path} onChange={event => go(event.target.value)}>{ADMIN_GROUPS.map(group => <optgroup key={group.label} label={t(group.label)}>{group.pages.map(item => <option key={item.id} value={item.path}>{t(item.label)}</option>)}</optgroup>)}</select></label>
         {pending && <div className="administration-leave-confirmation" ref={confirmation} tabIndex={-1} role="alert"><strong>{t("Modifications non enregistrées")}</strong><p>{t("Quitter cette rubrique abandonnera tes modifications.")}</p><div><Button type="button" variant="ghost" disabled={guard.disabled} onClick={stay}>{t("Rester sur cette page")}</Button><Button type="button" variant="ghost" disabled={guard.disabled} onClick={() => { if (guard.disabled) return; const target = pending; setPending(null); if (target.logout) onLogout?.(); else navigate(target.path); }}>{t("Quitter sans enregistrer")}</Button></div></div>}
-        <div className="administration-breadcrumb"><span>NXT5</span><span aria-hidden="true">/</span><span>{t(page.group)}</span><span aria-hidden="true">/</span><strong>{t(page.label)}</strong></div>
         <main id="administration-content" className="nxt5-data-dense administration-page" ref={content} tabIndex={-1} aria-label={t(page.label)}>
           <Suspense fallback={<div role="status" aria-label={t("Chargement : {0}", [t(page.label)])}><SkeletonRows count={3} /></div>}><AdminContent page={page} route={route} navigate={go} user={user} /></Suspense>
         </main>

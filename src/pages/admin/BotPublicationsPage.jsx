@@ -7,7 +7,7 @@ import CommunityAnnouncementsPanel from "./CommunityAnnouncementsPanel.jsx";
 export default function BotPublicationsPage() {
   useLanguage();
   return <div className="bot-publications space-y-4">
-    <PageHeader eyebrow={t("Bot")} title={t("Publications du bot")} subtitle={t("Choisis les serveurs et les salons, puis prépare ton annonce Discord.")} />
+    <PageHeader title={t("Publications du bot")} subtitle={t("Choisis les serveurs et les salons, puis prépare ton annonce Discord.")} />
     <CommunityAnnouncementsPanel />
   </div>;
 }
