@@ -5,7 +5,7 @@ import { assertTrustedMutation,handleError,json,readJson } from './_lib/http';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 
 const invalid=(message:string,status=400)=>Object.assign(new Error(message),{status});
-const uuid=(value:unknown)=>{const id=String(value || '');if(!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id))throw invalid('Identifiant invalide.');return id;};
+const uuid=(value:unknown)=>{const id=String(value || '');if(!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id))throw invalid('Identifiant invalide.');return id.toLowerCase();};
 export default async function handler(request:Request,context:Context) {
   try {
     if(!['GET','POST'].includes(request.method))return json({error:'Méthode refusée.'},405,{Allow:'GET, POST'});
@@ -13,7 +13,7 @@ export default async function handler(request:Request,context:Context) {
     const admin=await requirePlatformAdmin(request,context);
     const body=request.method==='POST' ? await readJson(request,16384):null;
     const id=uuid(body?.userId || new URL(request.url).searchParams.get('userId'));
-    if(id===admin.id)throw invalid('Ton propre compte administrateur est protégé.',403);
+    if(id===String(admin.id).toLowerCase())throw invalid('Ton propre compte administrateur est protégé.',403);
     if(!body) {
       const [users,teams]=await sql.transaction(tx=>[
         tx`select id,account_name,name,suspended_at,xmin::text as revision from users where id=${id}`,

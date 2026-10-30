@@ -70,7 +70,7 @@ it('rolls back deletion and cascades when audit fails',async()=>{
  try{expect((await act('delete')).status).toBe(500);expect((await snapshot()).ownedTeams).toHaveLength(1);}finally{await state.db.exec('alter table audit_logs drop constraint fail_audit');}
 });
 it('protects the acting admin and rechecks revoked administrator rights',async()=>{
- expect((await handler(new Request('https://nxt5.org/?userId='+admin),context)).status).toBe(403);
+ expect((await handler(new Request('https://nxt5.org/?userId='+admin.toUpperCase()),context)).status).toBe(403);
  const d=await snapshot();state.before=()=>rows('update sessions set revoked_at=now() where id=$1',[session]);
  expect((await handler(req({userId:user,action:'suspend',confirmAccount:'player',expectedRevision:d.account.revision}),context)).status).toBe(403);
 });
