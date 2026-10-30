@@ -22,6 +22,10 @@ const server=await createServer({server:{host:'127.0.0.1',port:0,hmr:false},plug
     const url=new URL(req.url,'http://localhost');
     const send=data=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(data));};
     if(url.pathname==='/__admin-review.html'){res.setHeader('Content-Type','text/html');res.end(await vite.transformIndexHtml(req.url,'<!doctype html><html lang="fr"><head><!--seo:start--><!--seo:end--><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/__admin-review.js"></script></body></html>'));return;}
+    if(url.pathname.endsWith('/admin-discord')){send({enabled:true,configured:true,connectionsCount:12,queuedCount:2,failedCount:0,unknownCount:0,issues:[]});return;}
+    if(url.pathname.endsWith('/admin-discord-announcements')){send({guilds:[{id:'guild',name:'Communauté NXT5',channels:[{id:'channel',name:'annonces',allowed:true}]}],destinations:[{guildId:'guild',channelId:'channel'}],announcements:[],community:{joined:true,guildId:'guild'}});return;}
+    if(url.pathname.endsWith('/admin-discord-analytics')){send({schemaReady:true,generatedAt:now,period:{days:30,from:'2026-09-30',to:now,timeZone:'UTC'},summary:{publications:25,successfulDeliveries:32,commands:8,guilds:2,failedDeliveries:3,uncertainDeliveries:1,connectionTests:2,successRate:91.4,connections:3,activeConnections:2,pausedConnections:1,channels:4,queuedJobs:2,blockedJobs:1},coverage:{commandsFrom:'2026-10-23',notes:[],commandsRetentionDays:7,deliveriesRetentionDays:90},daily:[{date:'2026-10-30',publications:25,successfulDeliveries:32,failedDeliveries:3,commands:8}],commands:[{name:'statut',count:8,completed:7,failed:1,processing:0}],guilds:[],recentActivity:[]});return;}
+    if(url.pathname.endsWith('/admin-audience')){const totals={visitors:40,sessions:50,pageviews:105,engagedSessions:25,engagementRate:50,avgDurationSeconds:64,pagesPerSession:2.1,conversions:5,conversionRate:10,bounceRate:50,returningVisitors:8};send({period:{from:'2026-09-30',to:'2026-10-30',days:30,timezone:'UTC'},comparison:{from:'2026-08-30',to:'2026-09-30'},totals,previous:{...totals,sessions:25},timeseries:[{date:'2026-10-30',visitors:40,sessions:50,pageviews:105,conversions:5}],pages:[{path:'/',views:105,visitors:40,avgDurationSeconds:64,exits:25}],sources:[{source:'direct',sessions:50,visitors:40,conversions:5}],campaigns:[],devices:[{device:'desktop',sessions:50}],browsers:[{browser:'Chrome',sessions:50}],countries:[{country:'FR',sessions:50}],heatmap:[{weekday:1,hour:10,pageviews:8}],goals:[{name:'signup',events:5,sessions:5,conversionRate:10}],realtime:{visitors:2,sessions:2,windowMinutes:5,pages:[{path:'/',visitors:2}]},filters:{sources:['direct']},generatedAt:now,retentionDays:180});return;}
     if(url.pathname.endsWith('/admin-team-transfer')){
       if(req.method==='POST'){transferred=true;send({ok:true});return;}
       send({rows:[{id,name:'Camille Martin',account_name:'camille',email:'camille@example.test',revision:'5'}]});return;
@@ -47,7 +51,7 @@ const server=await createServer({server:{host:'127.0.0.1',port:0,hmr:false},plug
       if(url.searchParams.get('view')==='journal'){send({rows:Array.from({length:8},(_,i)=>({id:i,action:i%2?'admin.sessions.revoke':'admin.account.rename',actor_name:'Sacha',entity_type:'user',created_at:now,user_id:id})),pagination:{total:8}});return;}
       const profiles=url.searchParams.get('view')==='profiles';send({rows:Array.from({length:8},(_,i)=>profiles?{id:'profile-'+i,user_id:id,name:['Camille','Julien','Nadia','Thomas'][i%4],role:['MID','TOP','JGL','COACH'][i%4],riot_id:'Profil#TEST',team_name:['Orion','Nova'][i%2],email:'profil@example.test'}:{...account,id:i ? 'account-'+i:id,name:['Camille Martin','Julien Moreau','Nadia Leroy','Thomas Bernard'][i%4],email_verified:i%3!==0,email:['camille','julien','nadia','thomas'][i%4]+'@example.test'}),pagination:{total:46}});return;
     }
-    if(url.pathname.endsWith('/admin-dashboard')){send({generatedAt:now,totals:{users:248,teams:42,players:237,matches:1530},activity:{activeUsers7d:64,activeUsers30d:182,activeTeams30d:28},growth:{days30:{users:38,teams:7,matches:153}},adoption:{matches:35,reports:28},teamDirectory:[],daily:Array.from({length:30},(_,i)=>({date:`2026-10-${String(i+1).padStart(2,'0')}`,matches:(i*7)%21,users:i%4,teams:i%3})),inactivityReminders:{},accountFunnel:{verified:213,usersInTeam:186}});return;}
+    if(url.pathname.endsWith('/admin-dashboard')){send({generatedAt:now,totals:{users:248,teams:42,players:237,matches:1530},activity:{activeUsers7d:64,activeUsers30d:182,activeTeams30d:28},growth:{days30:{users:38,teams:7,matches:210}},adoption:{matches:35,reports:28},teamDirectory:[],daily:Array.from({length:30},(_,i)=>({date:`2026-10-${String(i+1).padStart(2,'0')}`,matches:(i*7)%21,users:i%4,teams:i%3})),inactivityReminders:{},accountFunnel:{verified:213,usersInTeam:186}});return;}
     next();
   });}
 }]});
@@ -55,7 +59,7 @@ let browser;
 try {
   await server.listen();browser=await chromium.launch({headless:true});
   const checks=[];
-  for(const width of [320,390,768,1440,1920])for(const [label,pagePath,query] of [['overview','/admin',''],['accounts','/admin/comptes',''],['account','/admin/comptes','?userId='+id],['stats','/admin/stats-globales',''],['journal','/admin/journal',''],['teams','/admin/equipes',''],['team','/admin/equipes','?teamId=team'],['profile','/admin/comptes','?profileId=profile']]){
+  for(const width of [320,360,390,768,1024,1440,1920])for(const [label,pagePath,query] of [['overview','/admin',''],['accounts','/admin/comptes',''],['account','/admin/comptes','?userId='+id],['stats','/admin/stats-globales',''],['journal','/admin/journal',''],['teams','/admin/equipes',''],['team','/admin/equipes','?teamId=team'],['profile','/admin/comptes','?profileId=profile'],['usage','/admin/usage',''],['reminders','/admin/rappels',''],['audience','/admin/frequentation',''],['bot','/admin/bot-discord',''],['publications','/admin/bot-discord/publications',''],['integrations','/admin/integrations',''],['exports','/admin/exports','']]){
     const page=await browser.newPage({viewport:{width,height:1100},reducedMotion:'reduce'});const errors=[];page.on('pageerror',error=>errors.push(error.message));
     await page.goto(server.resolvedUrls.local[0]+'__admin-review.html?'+new URLSearchParams({page:pagePath,query}));
     await page.locator('.administration-page .nxt5-page-title').waitFor();
@@ -66,13 +70,16 @@ try {
     if(label==='teams')await page.getByRole('button',{name:'Explorer',exact:true}).waitFor();
     if(label==='team')await page.getByRole('button',{name:'Supprimer l’équipe',exact:true}).waitFor();
     if(label==='profile')await page.getByRole('button',{name:'Enregistrer le profil',exact:true}).waitFor();
+    if(label==='audience')await page.locator('.audience-metric').first().waitFor();
+    if(label==='bot')await page.locator('.bot-metric').first().waitFor();
+    if(label==='publications')await page.locator('.community-announcement-editor').waitFor();
     await page.evaluate(()=>document.fonts.ready);
     const geometry=await page.evaluate(()=>({width:innerWidth,scrollWidth:document.documentElement.scrollWidth,links:[...document.querySelectorAll('a')].map(a=>a.getAttribute('href'))}));
     assert(geometry.scrollWidth<=width+1,`${label} overflows at ${width}: ${geometry.scrollWidth}`);
     assert(!geometry.links.some(link=>/calendrier|abonnements|achats|tarifs|preparer-vente|demandes-acces/.test(link||'')));
     assert.deepEqual(errors,[],`${label}: browser errors`);
     await page.locator('.administration-skip').focus();await page.keyboard.press('Enter');assert(await page.evaluate(()=>document.activeElement?.id==='administration-content'));
-    if([390,1440].includes(width))await page.screenshot({path:path.join(output,`${label}-${width}.png`),fullPage:true});
+    if([390,1024,1440].includes(width))await page.screenshot({path:path.join(output,`${label}-${width}.png`),fullPage:true});
     if(label==='stats' && width===1440){
       const download=page.waitForEvent('download');await page.getByRole('button',{name:'Télécharger le PNG'}).click();await (await download).saveAs(path.join(output,'global-stats-portrait.png'));
       await page.getByLabel('Format du visuel').selectOption('story');const story=page.waitForEvent('download');await page.getByRole('button',{name:'Télécharger le PNG'}).click();await (await story).saveAs(path.join(output,'global-stats-story.png'));
@@ -101,8 +108,18 @@ try {
       }
       await page.getByRole('button',{name:'Supprimer complètement le compte',exact:true}).click();await page.getByText('Équipe Orion',{exact:true}).last().waitFor();const confirm=page.getByRole('button',{name:'Confirmer cette action',exact:true});assert(await confirm.isDisabled());await page.getByLabel('Saisis l’identifiant exact du compte').fill(account.account_name);const deletion=page.waitForRequest(r=>r.method()==='POST' && r.url().endsWith('/admin-account-lifecycle'));await confirm.click();assert.equal((await deletion).postDataJSON().expectedOwnedTeams.length,1);await page.getByText('Compte supprimé.',{exact:true}).waitFor();await page.getByRole('button',{name:'Retour à l’annuaire',exact:true}).click();await page.locator('.admin-directory-table').waitFor();
     }
+    if(label==='overview'){
+      const insets=await page.locator('.admin-metric').evaluateAll(nodes=>nodes.map(node=>parseFloat(getComputedStyle(node).paddingLeft)));assert(insets.every(value=>value>=12),'Metric text lost its inset');
+      if(width<=640){const columns=await page.locator('.admin-metrics').evaluate(node=>getComputedStyle(node).gridTemplateColumns.split(' ').length);assert.equal(columns,2);}
+      assert.equal(await page.locator('.admin-overview-links,.administration-breadcrumb').count(),0);
+      assert.equal(await page.locator('.admin-chart-total').count(),0);
+      await page.getByLabel('Période du graphique').selectOption('7');assert.equal(await page.locator('.admin-chart-bars button').count(),7);assert.equal(await page.locator('.admin-chart-total').count(),1);
+      await page.getByLabel('Période du graphique').selectOption('30');assert.equal(await page.locator('.admin-chart-bars button').count(),30);
+      await page.getByText('Repères de suivi',{exact:true}).click();await page.getByText('Comptes vérifiés',{exact:true}).waitFor();
+    }
+    if(label==='accounts')assert.equal(await page.locator('.administration-global-search').count(),0);
     checks.push({label,width,...geometry});await page.close();
   }
   await fs.writeFile(path.join(output,'checks.json'),JSON.stringify(checks,null,2));
-  console.log('Admin: 40 responsive checks and team/profile actions passed; screenshots, PNG and CSV exports verified.');
+  console.log('Admin: 105 responsive checks, duplicate-content checks and administration actions passed; screenshots, PNG and CSV exports verified.');
 }finally{await browser?.close();await server.close();}

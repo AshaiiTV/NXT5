@@ -259,7 +259,7 @@ export default function AudiencePage({ navigate }) {
     finally { if (url) globalThis.setTimeout(() => URL.revokeObjectURL(url), 1000); }
   }
   return <div className="nxt5-data-dense audience-dashboard">
-    <PageHeader eyebrow={t("Administration · Audience")} title={t("Fréquentation")} subtitle={t("Suis les visites, les pages consultées et les actions enregistrées sur la période choisie.")}>
+    <PageHeader title={t("Fréquentation")} subtitle={t("Suis les visites, les pages consultées et les actions enregistrées sur la période choisie.")}>
       {navigate && <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => navigate("/admin")}>{t("Administration")}</Button>}
       <Button type="button" variant="ghost" icon={Download} disabled={!report || loading} onClick={exportReport}>{t("Exporter CSV")}</Button>
       <Button type="button" variant="ghost" icon={loading ? Loader2 : RefreshCw} disabled={loading} onClick={() => setRevision((value) => value + 1)}>{loading ? t("Actualisation…") : t("Actualiser")}</Button>

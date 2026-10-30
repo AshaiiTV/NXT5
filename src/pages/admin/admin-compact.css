@@ -1,0 +1,169 @@
+/* Admin density and hierarchy. Scoped above lazy page sheets in specificity. */
+.administration-shell .nxt5-page-header { margin:0 0 16px; padding:0 0 16px; min-height:0; gap:12px; border-bottom:1px solid var(--nxt5-border); background:none; }
+.administration-shell .nxt5-page-header::before,.administration-shell .nxt5-page-header::after,.administration-shell .nxt5-page-title::before,.administration-shell .nxt5-page-title::after { display:none; }
+.administration-shell .nxt5-page-title { font-size:26px !important; line-height:1.2; letter-spacing:-.025em; font-weight:700; text-shadow:none; }
+.administration-shell .nxt5-page-subtitle { font-size:14px; line-height:1.5; margin-top:6px; max-width:78ch; }
+.administration-shell .nxt5-page-actions { gap:8px; }
+.administration-shell .admin-directory-stack,.administration-shell .admin-dashboard .admin-stack { gap:16px; }
+.administration-shell .admin-directory-panel,.administration-shell .admin-dashboard .admin-section.nxt5-panel { padding:16px; border:1px solid var(--nxt5-border); border-radius:16px; box-shadow:none; }
+.administration-shell .admin-directory-panel h3,.administration-shell .admin-dashboard .admin-section-heading h3 { font-size:18px; line-height:1.35; font-weight:650; margin-bottom:12px; }
+.administration-shell .admin-directory-panel h4 { font-size:15px; line-height:1.4; font-weight:600; }
+.administration-shell .admin-directory-panel form { gap:12px; }
+.administration-shell .admin-directory-panel form label { width:100%; }
+.administration-shell .admin-dashboard .admin-section-heading { margin-bottom:12px; gap:12px; }
+.administration-shell .admin-caption,.administration-shell .admin-dashboard .admin-caption,.administration-shell .admin-dashboard .admin-section-heading p { font-size:13px; line-height:1.5; }
+.administration-shell .nxt5-reading-details { margin:0; border-radius:10px; background:var(--nxt5-surface-soft); border-color:var(--nxt5-border); }
+.administration-shell .nxt5-reading-details summary { min-height:44px; padding:12px; }
+.administration-shell .nxt5-reading-details-body { padding:0 12px 12px; }
+.administration-shell .admin-directory-panel > .relative > .nxt5-reading-details { margin-top:12px; }
+.administration-shell .admin-dashboard .admin-status { justify-content:flex-end; font-size:12px; margin:-8px 0 12px; }
+.administration-shell .admin-dashboard .admin-metrics { border:1px solid var(--nxt5-border); border-radius:16px; padding:0; background:var(--nxt5-surface); }
+.administration-shell .admin-dashboard .admin-metric { padding:16px; }
+.administration-shell .admin-dashboard .admin-metric:first-child { padding-left:16px; }
+.administration-shell .admin-dashboard .admin-metric p { font-size:13px; font-weight:550; }
+.administration-shell .admin-dashboard .admin-metric > strong { font-size:32px; margin:6px 0 4px; line-height:1.1; }
+.administration-shell .admin-dashboard .admin-metric > span { font-size:12px; }
+.administration-shell .admin-overview-grid { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr); gap:16px; align-items:start; }
+.administration-shell .admin-overview-grid > div { min-width:0; }
+.administration-shell .admin-overview-priorities .admin-priorities { grid-template-columns:minmax(0,1fr); gap:0; }
+.administration-shell .admin-overview-priorities .admin-priorities button { border:0; border-top:1px solid var(--nxt5-border); border-radius:0; padding:14px 0; gap:12px; background:none; box-shadow:none; }
+.administration-shell .admin-overview-priorities .admin-priorities button:first-child { border-top:0; }
+.administration-shell .admin-overview-priorities .admin-priorities button > strong { min-width:36px; font-size:26px; font-weight:650; }
+.administration-shell .admin-overview-priorities .admin-priorities button > div { min-width:0; }
+.administration-shell .admin-overview-priorities .admin-priorities span { font-size:12px; }
+.administration-shell .admin-overview-priorities .admin-priorities b { font-size:14px; }
+.administration-shell .admin-dashboard .admin-toolbar { gap:12px; margin-bottom:12px; }
+.administration-shell .admin-dashboard .admin-chart-readout { padding:10px 12px; min-height:40px; border-color:var(--nxt5-border); background:var(--nxt5-field); }
+.administration-shell .admin-dashboard .admin-chart-total { margin:8px 0 12px; }
+.administration-shell .admin-dashboard .admin-chart-total strong { font-size:24px; }
+.administration-shell .admin-dashboard .admin-chart-bars { height:140px; }
+.administration-shell .admin-dashboard .admin-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 24px; }
+.administration-shell .admin-dashboard .admin-facts > div { padding:10px 0; gap:12px; }
+.administration-shell .admin-dashboard .admin-shortcuts { flex-direction:row; flex-wrap:wrap; margin-top:12px; gap:8px; }
+.administration-shell .admin-dashboard .admin-columns { gap:16px; }
+.administration-shell .admin-directory-search { margin-bottom:12px; }
+.administration-shell .admin-directory-filters,.administration-shell .admin-team-tabs { gap:6px; margin-bottom:12px; }
+.administration-shell .admin-directory-filters button,.administration-shell .admin-team-tabs button { padding:8px 12px; font-size:13px; min-height:36px; }
+.administration-shell .admin-directory-tabs { margin:0; gap:8px; }
+.administration-shell .admin-directory-tabs button { min-height:38px; padding:8px 16px; font-size:14px; }
+.administration-shell .admin-directory-count { margin:8px 0; min-height:20px; font-size:12px; }
+.administration-shell .admin-directory-table thead th { padding:10px; font-size:12px; }
+.administration-shell .admin-directory-table tbody :is(td,th) { padding:10px; }
+.administration-shell .admin-directory-table tbody th strong { font-size:14px; }
+.administration-shell .admin-directory-table tbody :is(th,td) > span:not(.nxt5-badge) { margin-top:4px; font-size:13px; }
+.administration-shell .admin-directory-pagination { gap:12px; padding-top:12px; font-size:13px; }
+.administration-shell .admin-directory-pagination > div { gap:8px; }
+.administration-shell .admin-account-banner { gap:12px; padding:0 0 12px; }
+.administration-shell .admin-person-avatar { width:40px; height:40px; border-radius:10px; }
+.administration-shell .admin-account-banner strong { font-size:15px; }
+.administration-shell .admin-account-banner p { font-size:12px; margin-top:4px; }
+.administration-shell .admin-account-columns { gap:16px; }
+.administration-shell .admin-account-facts { margin-top:16px; }
+.administration-shell .admin-account-facts > div { padding:10px 0; gap:12px; font-size:13px; }
+.administration-shell .admin-account-security { margin-top:16px; }
+.administration-shell .admin-account-security > p { margin:8px 0 12px; font-size:13px; }
+.administration-shell .admin-related-list li { padding:12px 0; gap:12px; }
+.administration-shell .admin-related-list span { margin-top:4px; font-size:13px; }
+.administration-shell .admin-activity-list li { padding:10px 0; gap:16px; }
+.administration-shell .admin-activity-list strong { font-size:14px; }
+.administration-shell .admin-activity-list time { font-size:12px; width:144px; }
+.administration-shell .admin-activity-list span { margin-top:4px; font-size:12px; }
+.administration-shell .admin-team-impact { grid-template-columns:repeat(auto-fit,minmax(88px,1fr)); gap:12px; margin:12px 0; }
+.administration-shell .admin-team-impact dt { font-size:12px; }
+.administration-shell .admin-team-impact dd { margin-top:4px; font-size:24px; }
+.administration-shell .admin-team-actions { gap:8px; margin-top:12px; }
+.administration-shell .admin-team-form { gap:12px; }
+.administration-shell .admin-team-records { margin:12px 0; }
+.administration-shell .admin-team-records > li { padding:12px 0; gap:12px; font-size:14px; }
+.administration-shell .admin-team-records p { margin-top:4px; font-size:13px; }
+.administration-shell .global-stats-filters { padding:12px 16px; border:1px solid var(--nxt5-border); border-radius:16px; }
+.administration-shell .global-stats-filters > .relative { gap:12px; }
+.administration-shell .global-stats-tabs button { min-height:40px; padding:10px 16px; font-size:14px; }
+.administration-shell .global-stats-summary { gap:16px; padding:12px 0; }
+.administration-shell .global-stats-summary > div + div { padding-left:16px; }
+.administration-shell .global-stats-summary strong { font-size:28px; margin:4px 0; }
+.administration-shell .global-stats-summary small { font-size:12px; }
+.administration-shell .global-stats-layout { grid-template-columns:minmax(0,1fr) 260px; gap:16px; }
+.administration-shell .global-stats-table-heading,.administration-shell .global-stats-tools { margin-bottom:12px; gap:12px; }
+.administration-shell .global-stats-table-heading h3 { margin:0; }
+.administration-shell .global-stats-rank { padding:10px 0; }
+.administration-shell .global-stats-export .admin-directory-panel > .relative { gap:12px; }
+.administration-shell .global-stats-export p { font-size:13px; line-height:1.5; }
+.administration-shell .global-stats-export .global-stats-export-note { font-size:12px; }
+.administration-shell .global-stats-method p { font-size:13px; line-height:1.6; margin-top:12px; }
+@media(min-width:641px) and (pointer:fine) {
+ .administration-shell .nxt5-cyber-button { min-height:36px; padding:7px 12px; font-size:13px; line-height:20px; }
+ .administration-shell .nxt5-field :is(input,select) { min-height:38px; padding-top:8px; padding-bottom:8px; font-size:14px; }
+}
+@media(max-width:1250px) { .administration-shell .admin-overview-grid { grid-template-columns:minmax(0,1fr); } .administration-shell .admin-overview-priorities .admin-priorities { grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; } .administration-shell .admin-overview-priorities .admin-priorities button { border:0; padding:8px 0; align-items:flex-start; } .administration-shell .global-stats-layout { grid-template-columns:minmax(0,1fr); } .administration-shell .global-stats-export { position:static; } }
+@media(max-width:700px) { .administration-shell .admin-directory-table tbody :is(th,td) { padding:0; } .administration-shell .admin-directory-table tr { padding:12px 0; gap:10px; } .administration-shell .admin-activity-list time { width:100%; } }
+@media(max-width:640px) {
+ .administration-shell .nxt5-page-title { font-size:24px !important; }
+ .administration-shell .nxt5-page-subtitle { font-size:14px; }
+ .administration-shell .admin-directory-panel,.administration-shell .admin-dashboard .admin-section.nxt5-panel { padding:14px; }
+ .administration-shell .admin-dashboard .admin-metric,.administration-shell .admin-dashboard .admin-metric:first-child { padding:12px; }
+ .administration-shell .admin-dashboard .admin-metric > strong { font-size:26px; }
+ .administration-shell .admin-overview-priorities .admin-priorities { grid-template-columns:minmax(0,1fr); gap:0; }
+ .administration-shell .admin-overview-priorities .admin-priorities button { border-top:1px solid var(--nxt5-border); padding:12px 0; align-items:center; }
+ .administration-shell .admin-dashboard .admin-facts { grid-template-columns:minmax(0,1fr); }
+ .administration-shell .admin-directory-filters button,.administration-shell .admin-team-tabs button,.administration-shell .admin-directory-tabs button { min-height:44px; font-size:14px; }
+ .administration-shell .admin-team-tabs { gap:6px; }
+ .administration-shell .admin-team-tabs button { flex:1 0 30%; }
+ .administration-shell .admin-team-impact { grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px 8px; }
+ .administration-shell .global-stats-filters > .relative { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .administration-shell .global-stats-filters label:last-child { grid-column:1 / -1; }
+ .administration-shell .global-stats-summary { grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+ .administration-shell .global-stats-summary span { font-size:12px; }
+ .administration-shell .global-stats-summary small { overflow-wrap:anywhere; font-size:12px; }
+ .administration-shell .global-stats-summary > div + div { padding:0; border:0; }
+ .administration-shell .global-stats-summary strong { font-size:24px; }
+ .administration-shell .global-stats .global-stats-rank { padding:12px 0; gap:10px 8px; }
+ .administration-shell .global-stats .global-stats-rank > span::before { margin-bottom:4px; }
+}
+.administration-shell .audience-dashboard .audience-section.nxt5-panel,.administration-shell .bot-analytics .bot-section.nxt5-panel,.administration-shell .community-announcements.nxt5-panel,.administration-shell .discord-panel.nxt5-panel,.administration-shell .export-catalog-surface.nxt5-panel { padding:16px; border-radius:16px; border-color:var(--nxt5-border); box-shadow:none; }
+.administration-shell .audience-dashboard .audience-content,.administration-shell .bot-analytics { gap:16px; }
+.administration-shell :is(.audience-section-heading,.bot-section-heading) { margin-bottom:12px; }
+.administration-shell :is(.audience-section-heading,.bot-section-heading) h3 { font-size:18px; }
+.administration-shell :is(.audience-section-heading,.bot-section-heading) p { font-size:13px; line-height:1.5; margin-top:6px; }
+.administration-shell .audience-dashboard .audience-metric { padding:12px; }
+.administration-shell .audience-dashboard .audience-metric:first-child { padding-left:0; }
+.administration-shell .audience-dashboard .audience-metric > strong,.administration-shell .bot-metric > strong { font-size:28px; margin:8px 0 4px; }
+.administration-shell .audience-dashboard .audience-metric > p,.administration-shell .bot-metric p { font-size:13px; line-height:1.5; }
+.administration-shell .audience-dashboard .audience-filter-top { gap:12px; }
+.administration-shell .bot-analytics .bot-metrics { gap:16px; }
+.administration-shell .bot-metric + .bot-metric { padding-left:16px; }
+.administration-shell .bot-toolbar { padding-bottom:12px; gap:12px; }
+.administration-shell .exports-catalog { gap:16px; }
+.administration-shell .exports-intro { padding-bottom:16px; font-size:14px; }
+.administration-shell :is(.audience-table,.bot-table) :is(th,td) { padding:10px 12px; font-size:13px; }
+@media(pointer:coarse) {
+ .administration-shell .administration-nav-group > a,.administration-shell .admin-directory-filters button,.administration-shell .admin-team-tabs button,.administration-shell .admin-directory-tabs button,.administration-shell .global-stats-tabs button,.administration-shell .administration-global-search input,.administration-shell .administration-global-search button { min-height:44px; }
+}
+
+@media(max-width:640px) {
+ .administration-shell .administration-return-label { display:none; }
+ .administration-shell .administration-header-actions > a { width:44px; height:44px; padding:10px; }
+ .administration-shell .administration-brand a { max-width:72px; }
+}
+@media(max-width:380px) {
+ .administration-shell .administration-header-actions { width:auto; margin-left:auto; }
+ .administration-shell .administration-brand h1 { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+}
+.administration-shell .audience-dashboard .audience-main-grid { align-items:start; gap:16px; }
+.administration-shell .bot-analytics .bot-columns { gap:16px; }
+.administration-shell .audience-dashboard .audience-status { font-size:12px; margin-bottom:12px; }
+.administration-shell .audience-dashboard .audience-scope { font-size:13px; line-height:1.5; margin-bottom:16px; }
+@media(max-width:640px) {
+ .administration-shell .bot-analytics .bot-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px 12px; }
+ .administration-shell .bot-metric:nth-child(odd) { padding-left:0; border-left:0; }
+ .administration-shell .bot-metric:nth-child(even) { padding-left:12px; }
+ .administration-shell .bot-metric > strong { font-size:24px; }
+ .administration-shell .bot-metric > div { font-size:13px; }
+}
+.administration-shell .admin-dashboard .admin-metric:nth-child(n) { padding:16px; }
+@media(max-width:640px) {
+ .administration-shell .admin-dashboard .admin-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .administration-shell .admin-dashboard .admin-metric:nth-child(n) { padding:12px; border-left:0; }
+ .administration-shell .admin-dashboard .admin-metric:nth-child(even) { border-left:1px solid var(--nxt5-border); }
+ .administration-shell .admin-dashboard .admin-metric:nth-child(n+3) { border-top:1px solid var(--nxt5-border); }
+}
