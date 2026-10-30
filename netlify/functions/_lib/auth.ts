@@ -212,47 +212,53 @@ export async function createSession({ userId, context, request, remember = true,
     .trim()
     .slice(0, 64);
 
-  if (socialIdentity) {
-    // Social sessions participate in the same account-version protocol as
-    // password sessions. A concurrent credential change must observe the new
-    // session or reject its stale xmin; row locking alone does not advance xmin.
-    const created = await sql`
-      with authenticated_account as (
-        update users set social_link_revision = social_link_revision
-        where id = ${userId} and social_link_revision = ${socialIdentity.revision}
+  try {
+    if (socialIdentity) {
+      // Social sessions participate in the same account-version protocol as
+      // password sessions. A concurrent credential change must observe the new
+      // session or reject its stale xmin; row locking alone does not advance xmin.
+      const created = await sql`
+        with authenticated_account as (
+          update users set social_link_revision = social_link_revision
+          where id = ${userId} and social_link_revision = ${socialIdentity.revision}
+          returning id
+        )
+        insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
+        select authenticated_account.id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip}
+        from authenticated_account join social_identities on social_identities.user_id = authenticated_account.id
+        where social_identities.provider = ${socialIdentity.provider} and social_identities.subject = ${socialIdentity.subject}
         returning id
-      )
-      insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
-      select authenticated_account.id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip}
-      from authenticated_account join social_identities on social_identities.user_id = authenticated_account.id
-      where social_identities.provider = ${socialIdentity.provider} and social_identities.subject = ${socialIdentity.subject}
-      returning id
-    `;
-    if (!created[0]) throw Object.assign(new Error('Association modifiée. Reconnecte-toi à NXT5.'), { status: 401, code: 'SOCIAL_ACCOUNT_CHANGED' });
-  } else if (expectedPasswordHash !== undefined) {
-    // Recheck the verified credential atomically with session issuance. Updating
-    // the account also advances xmin: a concurrent credential change with an
-    // older snapshot must retry rather than miss this session during revocation.
-    const created = await sql`
-      with authenticated_account as (
-        update users
-        set password_hash = password_hash
-        where id = ${userId} and password_hash = ${expectedPasswordHash}
+      `;
+      if (!created[0]) throw Object.assign(new Error('Association modifiée. Reconnecte-toi à NXT5.'), { status: 401, code: 'SOCIAL_ACCOUNT_CHANGED' });
+    } else if (expectedPasswordHash !== undefined) {
+      // Recheck the verified credential atomically with session issuance. Updating
+      // the account also advances xmin: a concurrent credential change with an
+      // older snapshot must retry rather than miss this session during revocation.
+      const created = await sql`
+        with authenticated_account as (
+          update users
+          set password_hash = password_hash
+          where id = ${userId} and password_hash = ${expectedPasswordHash}
+          returning id
+        )
+        insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
+        select id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip}
+        from authenticated_account
         returning id
-      )
-      insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
-      select id, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip}
-      from authenticated_account
-      returning id
-    `;
-    if (!created[0]) {
-      throw Object.assign(new Error('Identifiants incorrects.'), { status: 401 });
+      `;
+      if (!created[0]) {
+        throw Object.assign(new Error('Identifiants incorrects.'), { status: 401 });
+      }
+    } else {
+      await sql`
+        insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
+        values (${userId}, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip})
+      `;
     }
-  } else {
-    await sql`
-      insert into sessions (user_id, token_hash, expires_at, user_agent, ip)
-      values (${userId}, ${tokenHash}, ${expiresAt.toISOString()}, ${userAgent}, ${ip})
-    `;
+
+  } catch(error:any) {
+    if(error.code==='42501')throw Object.assign(new Error('Compte suspendu. Contacte l’équipe NXT5.'),{status:403,code:'ACCOUNT_SUSPENDED'});
+    throw error;
   }
 
   context.cookies.set({
@@ -301,6 +307,7 @@ export async function requireAuth(request: Request, context: Context, options: {
     from sessions
     join users on users.id = sessions.user_id
     where sessions.token_hash = ${tokenHash}
+      and nullif(to_jsonb(users)->>'suspended_at','') is null
       and sessions.revoked_at is null
       and sessions.expires_at > now()
     limit 1

@@ -269,7 +269,7 @@ describe('independent opponent affiliation of played matches', () => {
         values($1,$2,$3,'blue','legacy_linked',1,'https://drafter.lol/draft/legacy_linked',$4::jsonb),
         ($1,$2,null,'red','legacy_loose',1,'https://drafter.lol/draft/legacy_loose',$4::jsonb)`, [teamId, opponentId, matchId, JSON.stringify(snapshot)]);
       const draftsBefore = (await legacyDb.query('select * from opponent_drafts order by source_id')).rows;
-      expect(await applyMigrations(client, migrations)).toEqual([MATCH_OPPONENTS_SCHEMA_VERSION, GROUP_OPPONENTS_SCHEMA_VERSION]);
+      expect(await applyMigrations(client, migrations)).toEqual(migrations.slice(migrations.indexOf(migration)).map(item => item.key));
       expect((await legacyDb.query('select id,opponent_id,raw from matches order by game_id')).rows).toEqual([
         { id: matchId, opponent_id: opponentId, raw: { preserve: true } }, { id: otherMatchId, opponent_id: null, raw: {} }
       ]);
@@ -602,7 +602,7 @@ describe('persistent opponent links for game groups', () => {
         await legacyDb.query('insert into match_archives(team_id,name,match_ids) values($1,$2,$3::jsonb)', [teamId, name, JSON.stringify(ids)]);
       }
       const before = (await legacyDb.query('select * from matches order by id')).rows;
-      expect(await applyMigrations(client, migrations)).toEqual([GROUP_OPPONENTS_SCHEMA_VERSION]);
+      expect(await applyMigrations(client, migrations)).toEqual(migrations.slice(migrations.indexOf(migration)).map(item => item.key));
       expect((await legacyDb.query('select name,opponent_id from match_archives where opponent_id is not null')).rows).toEqual([{ name: 'unanimous', opponent_id: opponentId }]);
       expect((await legacyDb.query('select * from matches order by id')).rows).toEqual(before);
       await legacyDb.query('update match_archives set opponent_id=null');

@@ -90,3 +90,21 @@ son enregistrement et son intégration Discord sont conservés.
 les droits, les compteurs, les anciennes routes et le rendu responsive. Le dernier script utilise
 uniquement des données fictives et vérifie 40 combinaisons de pages et de largeurs de 320 à 1 920 px,
 ainsi que les téléchargements PNG et CSV. Il ne mesure pas les données de production.
+
+## Suspension et suppression des comptes
+
+Depuis le dossier de compte : suspension réversible, réactivation et suppression complète du compte.
+Chaque action demande l’identifiant exact et une révision courante. Le compte administrateur utilisé
+est protégé. Une suspension ferme les sessions et bloque leur création, y compris par connexion
+externe, au niveau du trigger PostgreSQL `sessions_active_account`. Les sessions et commandes du
+bot vérifient aussi l’état du compte. Une réactivation ne restaure aucune session révoquée.
+
+L’effacement supprime le compte et les relations en cascade : sessions, identités externes, équipes
+possédées et leur contenu. Le dossier affiche les équipes, profils et parties concernés ; cet inventaire
+est revérifié après verrouillage. Dans les équipes d’autres propriétaires, les profils et contributions
+restent, déliés du compte selon les clés étrangères existantes. Les messages Discord déjà publiés,
+les sauvegardes et les journaux soumis à leur rétention ne sont pas effacés par cette action.
+Ce bouton ne constitue donc pas une promesse d’effacement de toute trace ou de conformité juridique.
+Les suppressions en cascade restent désactivées en Deploy Preview. Audit et effacement sont atomiques.
+La migration incrémentale `20261030_account_lifecycle.sql` est appliquée par le build de production.
+Aucune opération de suspension ou suppression réelle n’est nécessaire aux tests.

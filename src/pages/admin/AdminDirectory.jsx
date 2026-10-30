@@ -7,6 +7,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { getLocale } from "../../i18n/locale.js";
 import { t } from "../../i18n/translate.js";
 import "./admin-directory.css";
+import AccountLifecycle from "./AccountLifecycle.jsx";
 import { AdminProfileDetail } from "./AdminTeamTools.jsx";
 
 const date = value => value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat(getLocale(), { dateStyle:"medium",timeStyle:"short" }).format(new Date(value)) : "—";
@@ -27,6 +28,7 @@ const ACTIONS = {
 
   "admin.account.rename":"Nom du compte modifié",
   "admin.sessions.revoke":"Sessions révoquées",
+  "admin.account.suspend":"Compte suspendu", "admin.account.resume":"Compte réactivé", "admin.account.delete":"Compte supprimé",
   "admin.team.update":"Équipe modifiée", "admin.team.delete":"Équipe supprimée",
   "admin.member.role":"Droits du membre modifiés", "admin.member.remove":"Accès membre retiré",
   "admin.profile.update":"Profil modifié", "admin.profile.unlink":"Compte délié du profil", "admin.profile.delete":"Profil supprimé",
@@ -38,14 +40,17 @@ function AccountDetail({ id, user, navigate }) {
   const [error,setError] = useState("");
   const [message,setMessage] = useState("");
   const [name,setName] = useState("");
-  const [busy,setBusy] = useState(false);
+  const [saving,setBusy] = useState(false);
+  const [lifecycle,setLifecycle] = useState({dirty:false,disabled:false});
+  const [deleted,setDeleted] = useState(false);
+  const busy=saving || lifecycle.disabled;
   const [confirm,setConfirm] = useState(false);
   const [revision,setRevision] = useState(0);
   const heading = useRef(null);
   const confirmButton = useRef(null);
   const ticket = useRef(0);
   const dirty = Boolean(detail && name !== detail.account.name);
-  useAdminNavigationGuard({ dirty,disabled:busy });
+  useAdminNavigationGuard({ dirty:!deleted && (dirty || lifecycle.dirty),disabled:busy });
   useEffect(() => { heading.current?.focus(); },[id]);
   useEffect(() => { if (confirm) confirmButton.current?.focus(); },[confirm]);
   useEffect(() => {
@@ -78,6 +83,7 @@ function AccountDetail({ id, user, navigate }) {
       }
     } finally { if (sequence===ticket.current) setBusy(false); }
   }
+  if(deleted)return <div className="admin-directory-stack"><p role="status">{t("Compte supprimé.")}</p><Button variant="ghost" onClick={()=>navigate("/admin/comptes")}>{t("Retour à l’annuaire")}</Button></div>;
   return <div className="admin-directory-stack">
     <Button variant="ghost" icon={ArrowLeft} disabled={busy} onClick={()=>navigate("/admin/comptes")}>{t("Retour à l’annuaire")}</Button>
     <PageHeader title={<span ref={heading} tabIndex={-1}>{detail?.account.name || t("Fiche du compte")}</span>} subtitle={detail?.account.email || t("Identité, équipes et sécurité du compte.")} />
@@ -95,6 +101,7 @@ function AccountDetail({ id, user, navigate }) {
           <Surface variant="reading" className="admin-directory-panel"><h3>{t("Profils liés")}</h3>{detail.profiles.length ? <ul className="admin-related-list">{detail.profiles.map(profile=><li key={profile.id}><div><strong>{profile.name}</strong><span>{profile.role} · {profile.team_name}</span><span>{profile.riot_id || "—"}</span></div><Button variant="ghost" onClick={()=>navigate(`/admin/comptes?profileId=${encodeURIComponent(profile.id)}`)}>{t("Ouvrir le profil")}</Button></li>)}</ul>:<p className="admin-empty-copy">{t("Aucun profil joueur ou staff lié à ce compte.")}</p>}</Surface>
         </div>
       </div>
+      {id!==user?.id && <AccountLifecycle id={id} revision={revision} onGuardChange={setLifecycle} onDeleted={()=>setDeleted(true)} onUpdated={()=>setRevision(value=>value+1)} blocked={saving || dirty} />}
       <Surface variant="reading" className="admin-directory-panel"><h3>{t("Dernières actions du compte")}</h3><ActivityList rows={detail.activity} /></Surface>
     </>}
   </div>;
