@@ -111,7 +111,7 @@ function TeamDetail({ teamId, revision, onBack }) {
   </div>;
 }
 
-function TeamDirectory({ dashboard, initialFilter = "all", revision, initialTeamId = "" }) {
+function TeamDirectory({ dashboard, initialFilter = "all", revision, initialTeamId = "", onNavigate }) {
   useLanguage();
   const [filter, setFilter] = useState(initialFilter);
   const [selectedTeamId, setSelectedTeamId] = useState(initialTeamId);
@@ -131,7 +131,7 @@ function TeamDirectory({ dashboard, initialFilter = "all", revision, initialTeam
   useEffect(() => { setFilter(initialFilter); setSelectedTeamId(initialTeamId); }, [initialFilter, initialTeamId]);
   useEffect(() => { setPage(1); }, [search, filter, sort, direction]);
   useEffect(() => { if (!selectedTeamId && returnFocus.current) { title.current?.focus(); returnFocus.current = false; } }, [selectedTeamId]);
-  if (selectedTeamId) return <TeamDetail teamId={selectedTeamId} revision={revision} onBack={() => { returnFocus.current = true; setSelectedTeamId(""); }} />;
+  if (selectedTeamId) return <TeamDetail teamId={selectedTeamId} revision={revision} onBack={() => { returnFocus.current = true; setSelectedTeamId(""); if (initialTeamId) onNavigate?.("/admin/equipes"); }} />;
   return <Section title={<span tabIndex={-1} ref={title}>{t("Comprendre chaque équipe")}</span>} description={t("Repère les équipes qui importent, celles qui n’ont pas commencé et celles dont les imports se sont arrêtés.")}>
     <div className="admin-toolbar"><SearchField label={t("Rechercher une équipe")} placeholder={t("Nom, tag ou région…")} value={search} onChange={setSearch} /></div>
     <div className="admin-filters" role="group" aria-label={t("Filtrer les équipes")}>{FILTERS.map(([id, label]) => <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{t(label)}</button>)}</div>
@@ -220,7 +220,7 @@ export default function AdminDashboard({ view = "overview", teamFilter = "all", 
     {error && <Message error>{t(error)}{dashboard && t(" Les données affichées sont celles de la dernière actualisation réussie.")}<Button variant="ghost" disabled={loading} onClick={load}>{t("Réessayer")}</Button></Message>}
     {!dashboard ? loading && <SkeletonRows count={4} /> : <>
       {activeView === "overview" && <><div className="admin-overview-links"><button type="button" onClick={()=>onNavigate?.("/admin/comptes")}><Users aria-hidden="true" /><div><strong>{t("Comptes et profils")}</strong><span>{t("Retrouver une personne et gérer son compte")}</span></div></button><button type="button" onClick={()=>onNavigate?.("/admin/stats-globales")}><Swords aria-hidden="true" /><div><strong>{t("Stats globales")}</strong><span>{t("Champions joués, picks, bans et exports pour les réseaux")}</span></div></button><button type="button" onClick={()=>onNavigate?.("/admin/journal")}><History aria-hidden="true" /><div><strong>{t("Journal des actions")}</strong><span>{t("Suivre les interventions enregistrées")}</span></div></button></div><Overview dashboard={dashboard} openTeams={openTeams} openTab={openTab} /></>}
-      {activeView === "teams" && <TeamDirectory dashboard={dashboard} initialFilter={teamFilter} revision={revision} initialTeamId={initialTeamId} />}
+      {activeView === "teams" && <TeamDirectory dashboard={dashboard} initialFilter={teamFilter} revision={revision} initialTeamId={initialTeamId} onNavigate={onNavigate} />}
       {activeView === "usage" && <Usage dashboard={dashboard} />}
       {activeView === "reminders" && <Reminders data={dashboard.inactivityReminders} />}
     </>}
