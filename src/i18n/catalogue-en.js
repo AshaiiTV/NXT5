@@ -1,3 +1,4 @@
+import { en as adminTeams } from "./admin-team-overrides.js";
 import { en as compositions } from './composition-overrides.js';
 import { en as home } from './home-overrides.js';
 import base from './messages/en.json' with { type: 'json' };
@@ -83,7 +84,7 @@ const matchKillMap = {
   "Événements incomplets": "Incomplete events",
   "Exécution": "Execution",
 };
-export default { ...base, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap, ...compositions,
+export default { ...base, ...adminTeams, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap, ...compositions,
   ...debrief,
   "Tuto vidéo : importer une partie sur Windows": "Video tutorial: import a game on Windows",
   "YouTube · 2 min 31 · En français · Nouvel onglet": "YouTube · 2 min 31 · In French · New tab",

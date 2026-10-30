@@ -7,6 +7,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { getLocale } from "../../i18n/locale.js";
 import { t } from "../../i18n/translate.js";
 import "./admin-directory.css";
+import { AdminProfileDetail } from "./AdminTeamTools.jsx";
 
 const date = value => value && Number.isFinite(Date.parse(value)) ? new Intl.DateTimeFormat(getLocale(), { dateStyle:"medium",timeStyle:"short" }).format(new Date(value)) : "—";
 const count = value => new Intl.NumberFormat(getLocale()).format(Number(value || 0));
@@ -26,6 +27,9 @@ const ACTIONS = {
 
   "admin.account.rename":"Nom du compte modifié",
   "admin.sessions.revoke":"Sessions révoquées",
+  "admin.team.update":"Équipe modifiée", "admin.team.delete":"Équipe supprimée",
+  "admin.member.role":"Droits du membre modifiés", "admin.member.remove":"Accès membre retiré",
+  "admin.profile.update":"Profil modifié", "admin.profile.unlink":"Compte délié du profil", "admin.profile.delete":"Profil supprimé",
 };
 export const actionLabel = action => ACTIONS[action] ? t(ACTIONS[action]) : action;
 
@@ -88,7 +92,7 @@ function AccountDetail({ id, user, navigate }) {
           {detail.account.id!==user?.id && <div className="admin-account-security"><h4><ShieldCheck size={18} aria-hidden="true" />{t("Déconnecter ce compte")}</h4><p>{t("Ferme ses sessions actives sur tous ses appareils. Le compte pourra se reconnecter.")}</p>{confirm ? <div className="admin-inline-confirm" role="group" aria-label={t("Confirmer la déconnexion")}><p>{t("Confirmer la fermeture des sessions de {0} ?",[detail.account.name])}</p><Button ref={confirmButton} variant="danger" disabled={busy} onClick={()=>mutate("revoke-sessions")}>{t("Révoquer les sessions")}</Button><Button variant="ghost" disabled={busy} onClick={()=>setConfirm(false)}>{t("Annuler")}</Button></div> : <Button variant="ghost" disabled={busy || Number(detail.account.active_sessions)===0} onClick={()=>setConfirm(true)}>{t("Déconnecter les appareils")}</Button>}</div>}
         </Surface>
         <div className="admin-directory-stack"><Surface variant="reading" className="admin-directory-panel"><h3>{t("Équipes et rôles")}</h3>{detail.teams.length ? <ul className="admin-related-list">{detail.teams.map(team=><li key={team.id}><div><strong>{team.name}</strong><span>{team.tag} · {t(TEAM_ROLES[team.role] || team.role)}</span></div><Button icon={ArrowRight} variant="ghost" onClick={()=>navigate(`/admin/equipes?teamId=${encodeURIComponent(team.id)}`)} aria-label={t("Voir l’équipe {0}",[team.name])} /></li>)}</ul>:<p className="admin-empty-copy">{t("Ce compte n’a pas encore rejoint d’équipe.")}</p>}</Surface>
-          <Surface variant="reading" className="admin-directory-panel"><h3>{t("Profils liés")}</h3>{detail.profiles.length ? <ul className="admin-related-list">{detail.profiles.map(profile=><li key={profile.id}><div><strong>{profile.name}</strong><span>{profile.role} · {profile.team_name}</span><span>{profile.riot_id || "—"}</span></div></li>)}</ul>:<p className="admin-empty-copy">{t("Aucun profil joueur ou staff lié à ce compte.")}</p>}</Surface>
+          <Surface variant="reading" className="admin-directory-panel"><h3>{t("Profils liés")}</h3>{detail.profiles.length ? <ul className="admin-related-list">{detail.profiles.map(profile=><li key={profile.id}><div><strong>{profile.name}</strong><span>{profile.role} · {profile.team_name}</span><span>{profile.riot_id || "—"}</span></div><Button variant="ghost" onClick={()=>navigate(`/admin/comptes?profileId=${encodeURIComponent(profile.id)}`)}>{t("Ouvrir le profil")}</Button></li>)}</ul>:<p className="admin-empty-copy">{t("Aucun profil joueur ou staff lié à ce compte.")}</p>}</Surface>
         </div>
       </div>
       <Surface variant="reading" className="admin-directory-panel"><h3>{t("Dernières actions du compte")}</h3><ActivityList rows={detail.activity} /></Surface>
@@ -105,6 +109,7 @@ export default function AdminDirectory({ route,navigate,user,journal=false }) {
   useLanguage();
   const params = new URLSearchParams(route.search);
   const selected = params.get("userId");
+  const selectedProfile = params.get("profileId");
   const [view,setView] = useState(journal ? "journal":params.get("view")==="profiles" ? "profiles":"accounts");
   const [search,setSearch] = useState(params.get("q") || "");
   const [filter,setFilter] = useState("all");
@@ -117,7 +122,7 @@ export default function AdminDirectory({ route,navigate,user,journal=false }) {
   useEffect(()=>{ setFilter("all");setPage(1); },[view]);
   useEffect(()=>{ setPage(1); },[search,filter]);
   useEffect(()=>{
-    if (selected && !journal) return;
+    if ((selected || selectedProfile) && !journal) return;
     const controller = new AbortController();
     setLoading(true);setError("");setData(null);
     const timer = setTimeout(()=>{
@@ -131,7 +136,8 @@ export default function AdminDirectory({ route,navigate,user,journal=false }) {
         .finally(()=>{ if (!controller.signal.aborted) setLoading(false); });
     },search ? 250:0);
     return ()=>{ clearTimeout(timer);controller.abort(); };
-  },[selected,journal,view,search,filter,page,revision]);
+  },[selected,selectedProfile,journal,view,search,filter,page,revision]);
+  if (selectedProfile && !journal) return <AdminProfileDetail key={selectedProfile} id={selectedProfile} navigate={navigate} />;
   if (selected && !journal) return <AccountDetail key={selected} id={selected} user={user} navigate={navigate} />;
   const filters = view==="profiles" ? [["all","Tous les profils"],["unlinked","Sans compte lié"],["staff","Encadrement"]] : [["all","Tous les comptes"],["verified","E-mail vérifié"],["unverified","E-mail à vérifier"],["no-team","Sans équipe"]];
   const rows = data?.rows || [];
@@ -143,7 +149,7 @@ export default function AdminDirectory({ route,navigate,user,journal=false }) {
       {!journal && <div className="admin-directory-filters" role="group" aria-label={t("Filtres de l’annuaire")}>{filters.map(([id,label])=><button type="button" key={id} aria-pressed={id===filter} onClick={()=>setFilter(id)}>{t(label)}</button>)}</div>}
       <div className="admin-directory-count" role="status" aria-live="polite">{loading ? t("Recherche en cours…"):error ? t("Données indisponibles"):t("{0} résultat(s)",[count(total)])}</div>
       {error ? <p className="admin-directory-error" role="alert">{t(error)} <Button variant="ghost" onClick={()=>setRevision(value=>value+1)}>{t("Réessayer")}</Button></p> : loading ? <SkeletonRows count={5} /> : !rows.length ? <div className="admin-directory-empty"><Search aria-hidden="true" /><h3>{t("Aucun résultat")}</h3><p>{t("Essaie un autre nom ou retire les filtres.")}</p><Button variant="ghost" onClick={()=>{setSearch("");setFilter("all");}}>{t("Réinitialiser la recherche")}</Button></div> : journal ? <ActivityList rows={rows} navigate={navigate} /> : <>
-        <div className="admin-directory-table-wrap"><table className="admin-directory-table"><thead><tr><th scope="col">{view==="profiles" ? t("Profil"):t("Compte")}</th><th scope="col">{view==="profiles" ? t("Équipe et poste"):t("Vérification")}</th><th scope="col">{view==="profiles" ? t("Compte lié"):t("Équipes / profils")}</th><th scope="col">{view==="profiles" ? t("Riot ID"):t("Dernière activité")}</th><th scope="col"><span className="sr-only">{t("Actions")}</span></th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><th scope="row"><strong>{row.name}</strong><span>{view==="profiles" ? row.role : row.email || row.account_name}</span></th><td data-label={view==="profiles" ? t("Équipe"):t("Vérification")}>{view==="profiles" ? <><strong>{row.team_name}</strong><span>{row.role}</span></>:<Badge tone={row.email_verified ? "green":"yellow"}>{row.email_verified ? t("Vérifié"):t("À vérifier")}</Badge>}</td><td data-label={view==="profiles" ? t("Compte lié"):t("Équipes / profils")}>{view==="profiles" ? row.email || row.account_name || t("Sans compte lié"):`${count(row.team_count)} / ${count(row.profile_count)}`}</td><td data-label={view==="profiles" ? t("Riot ID"):t("Dernière activité")}>{view==="profiles" ? row.riot_id || "—":date(row.last_active_at)}</td><td>{view!=="profiles" || row.user_id ? <Button variant="ghost" icon={ArrowRight} onClick={()=>navigate(accountPath(view==="profiles" ? row.user_id:row.id))} aria-label={t("Ouvrir le compte de {0}",[row.name])}>{t("Ouvrir")}</Button>:<Button variant="ghost" onClick={()=>navigate(`/admin/equipes?teamId=${encodeURIComponent(row.team_id)}`)}>{t("Voir l’équipe")}</Button>}</td></tr>)}</tbody></table></div>
+        <div className="admin-directory-table-wrap"><table className="admin-directory-table"><thead><tr><th scope="col">{view==="profiles" ? t("Profil"):t("Compte")}</th><th scope="col">{view==="profiles" ? t("Équipe et poste"):t("Vérification")}</th><th scope="col">{view==="profiles" ? t("Compte lié"):t("Équipes / profils")}</th><th scope="col">{view==="profiles" ? t("Riot ID"):t("Dernière activité")}</th><th scope="col"><span className="sr-only">{t("Actions")}</span></th></tr></thead><tbody>{rows.map(row=><tr key={row.id}><th scope="row"><strong>{row.name}</strong><span>{view==="profiles" ? row.role : row.email || row.account_name}</span></th><td data-label={view==="profiles" ? t("Équipe"):t("Vérification")}>{view==="profiles" ? <><strong>{row.team_name}</strong><span>{row.role}</span></>:<Badge tone={row.email_verified ? "green":"yellow"}>{row.email_verified ? t("Vérifié"):t("À vérifier")}</Badge>}</td><td data-label={view==="profiles" ? t("Compte lié"):t("Équipes / profils")}>{view==="profiles" ? row.email || row.account_name || t("Sans compte lié"):`${count(row.team_count)} / ${count(row.profile_count)}`}</td><td data-label={view==="profiles" ? t("Riot ID"):t("Dernière activité")}>{view==="profiles" ? row.riot_id || "—":date(row.last_active_at)}</td><td><Button variant="ghost" icon={ArrowRight} onClick={()=>navigate(view==="profiles" ? `/admin/comptes?profileId=${encodeURIComponent(row.id)}`:accountPath(row.id))} aria-label={view==="profiles" ? t("Ouvrir le profil de {0}",[row.name]):t("Ouvrir le compte de {0}",[row.name])}>{t("Ouvrir")}</Button></td></tr>)}</tbody></table></div>
       </>}
       {!loading && !error && total>0 && <div className="admin-directory-pagination"><span>{t("Page {0} sur {1}",[page,Math.max(1,Math.ceil(total/20))])}</span><div><Button variant="ghost" icon={ChevronLeft} disabled={page<=1} onClick={()=>setPage(value=>value-1)}>{t("Précédente")}</Button><Button variant="ghost" icon={ChevronRight} disabled={page*20>=total} onClick={()=>setPage(value=>value+1)}>{t("Suivante")}</Button></div></div>}
     </Surface>

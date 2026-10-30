@@ -110,6 +110,72 @@
     ]
   },
   {
+    "label": "teams",
+    "width": 320,
+    "scrollWidth": 320,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
+    "label": "team",
+    "width": 320,
+    "scrollWidth": 320,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
+    "label": "profile",
+    "width": 320,
+    "scrollWidth": 320,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
     "label": "overview",
     "width": 390,
     "scrollWidth": 390,
@@ -220,6 +286,72 @@
     ]
   },
   {
+    "label": "teams",
+    "width": 390,
+    "scrollWidth": 390,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
+    "label": "team",
+    "width": 390,
+    "scrollWidth": 390,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
+    "label": "profile",
+    "width": 390,
+    "scrollWidth": 390,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
     "label": "overview",
     "width": 768,
     "scrollWidth": 768,
@@ -330,6 +462,72 @@
     ]
   },
   {
+    "label": "teams",
+    "width": 768,
+    "scrollWidth": 768,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
+    "label": "team",
+    "width": 768,
+    "scrollWidth": 768,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
+    "label": "profile",
+    "width": 768,
+    "scrollWidth": 768,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
     "label": "overview",
     "width": 1440,
     "scrollWidth": 1440,
@@ -440,6 +638,72 @@
     ]
   },
   {
+    "label": "teams",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
+    "label": "team",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
+    "label": "profile",
+    "width": 1440,
+    "scrollWidth": 1440,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
     "label": "overview",
     "width": 1920,
     "scrollWidth": 1920,
@@ -529,6 +793,72 @@
   },
   {
     "label": "journal",
+    "width": 1920,
+    "scrollWidth": 1920,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
+    "label": "teams",
+    "width": 1920,
+    "scrollWidth": 1920,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
+    "label": "team",
+    "width": 1920,
+    "scrollWidth": 1920,
+    "links": [
+      "#administration-content",
+      "/admin",
+      "/mon-equipe",
+      "/admin",
+      "/admin/comptes",
+      "/admin/equipes",
+      "/admin/stats-globales",
+      "/admin/usage",
+      "/admin/frequentation",
+      "/admin/bot-discord/publications",
+      "/admin/bot-discord",
+      "/admin/journal",
+      "/admin/exports",
+      "/admin/rappels",
+      "/admin/integrations"
+    ]
+  },
+  {
+    "label": "profile",
     "width": 1920,
     "scrollWidth": 1920,
     "links": [
