@@ -47,7 +47,7 @@ export function assertBotStaff(ctx: BotContext, manage = false) {
 export const botTokenHash = (token: string) => createHash('sha256').update(token).digest('hex');
 export function validBotToken(token: unknown): token is string { return typeof token === 'string' && /^[a-f0-9]{48}$/.test(token); }
 export async function botIdentity(discordUserId: string, options: { allowUnverifiedEmail?: boolean } = {}) {
-  const [link] = await sql.query('select l.*,u.account_name,u.name,u.email,u.email_verified from discord_user_links l join users u on u.id=l.user_id where l.discord_user_id=$1', [discordUserId]);
+  const [link] = await sql.query('select l.*,u.account_name,u.name,u.email,u.email_verified from discord_user_links l join users u on u.id=l.user_id where l.discord_user_id=$1 and (to_jsonb(u)->>$$suspended_at$$) is null', [discordUserId]);
   if (!link) throw discordError('Lie ton compte avec /nxt lier, puis utilise le salon de commandes de ton équipe.', 403, 'DISCORD_ACCOUNT_REQUIRED');
   if (!options.allowUnverifiedEmail && (!String(link.email || '').trim() || link.email_verified !== true)) {
     throw discordError('Vérifie ton adresse e-mail dans NXT5 avant d’utiliser les commandes de ton équipe.', 403, 'DISCORD_EMAIL_VERIFICATION_REQUIRED');

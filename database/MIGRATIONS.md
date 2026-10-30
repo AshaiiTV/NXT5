@@ -20,3 +20,5 @@ Depuis le tour 3 du 29 septembre, le runner accepte aussi des migrations `.mjs` 
 - `20260929_timeline_cs_rule.mjs` recalcule uniquement les jalons CS des résumés dont les frames subsistent, par lots de 50 parties. Les autres éléments bruts et les archives restent inchangés. Sans frames, l’ancien résumé reste en place sans certification `csRule: 2`.
 
 Ces rattrapages verrouillent les tables concernées contre les écritures concurrentes pendant leur transaction. Mesurer la durée sur une copie de taille représentative avant le déploiement ; les tests PGlite ne constituent pas cette mesure. Aucun rattrapage distant n’est lancé par les tests.
+
+`20261030_account_lifecycle.sql` ajoute l’état de suspension aux comptes et un trigger d’émission des sessions : il verrouille le compte et refuse une nouvelle session suspendue. Le schéma de référence est mis à jour ; les migrations précédentes restent immuables.

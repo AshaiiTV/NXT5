@@ -15,12 +15,17 @@ const totalSelections=played.reduce((sum,row)=>sum+row.picks,0);played.forEach(r
 const stats={played,picks:played.map((row,index)=>({...row,count:100-index*8,rate:72-index*5})),bans:played.map((row,index)=>({...row,count:90-index*7,rate:65-index*5})),gameBans:played.map((row,index)=>({...row,count:90-index*7,rate:65-index*5})),coverage:{banGames:136,games:153,imports:178,selections:totalSelections,pickDrafts:139,banDrafts:125,totalDrafts:146,unknownSelections:0,excludedDrafts:7},period:{from:'2026-09-30T12:00:00Z',to:now,days:30,patch:'',role:'ALL'},patches:['16.15','16.14']};
 const fixture=`import React from 'react';import {createRoot} from 'react-dom/client';import '/src/index.css';import AdministrationPage from '/src/pages/admin/AdministrationPage.jsx';
 function View(){const [route,setRoute]=React.useState({path:new URLSearchParams(location.search).get('page')||'/admin/comptes',search:new URLSearchParams(location.search).get('query')||''});return React.createElement(AdministrationPage,{route,navigate:path=>{const u=new URL(path,location.origin);setRoute({path:u.pathname,search:u.search});},user:{id:'admin',name:'Sacha',is_platform_admin:true},onLogout:()=>{}});}createRoot(document.getElementById('root')).render(React.createElement(View));`;
+let suspended=false;
 const server=await createServer({server:{host:'127.0.0.1',port:0,hmr:false},plugins:[{
   name:'admin-review-fixture',resolveId(id){if(id==='/__admin-review.js')return '\0admin-review';},load(id){if(id==='\0admin-review')return fixture;},
   configureServer(vite){vite.middlewares.use(async(req,res,next)=>{
     const url=new URL(req.url,'http://localhost');
     const send=data=>{res.setHeader('Content-Type','application/json');res.end(JSON.stringify(data));};
     if(url.pathname==='/__admin-review.html'){res.setHeader('Content-Type','text/html');res.end(await vite.transformIndexHtml(req.url,'<!doctype html><html lang="fr"><head><!--seo:start--><!--seo:end--><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/__admin-review.js"></script></body></html>'));return;}
+    if(url.pathname.endsWith('/admin-account-lifecycle')){
+      if(req.method==='POST'){let body='';for await(const chunk of req)body+=chunk;const action=JSON.parse(body);suspended=action.action==='suspend';send({ok:true});return;}
+      send({account:{...account,suspended_at:suspended?now:null,revision:'5'},ownedTeams:[{id:'team',name:'Équipe Orion',revision:'1',profiles:8,matches:153}]});return;
+    }
     if(url.pathname.endsWith('/admin-team-tools')){
       if(req.method==='POST'){let body='';for await(const chunk of req)body+=chunk;const action=JSON.parse(body);send({ok:true,teamId:action.teamId});return;}
       const team={id:'team',name:'Équipe Orion',tag:'ORN',region:'EUW',owner_id:'owner',owner_name:'Nadia Leroy',revision:'1'};
@@ -83,6 +88,12 @@ try {
     if(label==='profile' && width===1440){
       await page.getByLabel('Nom du profil',{exact:true}).fill('Camille corrigé');await page.getByRole('button',{name:'Explorer l’équipe',exact:true}).click();await page.getByText('Modifications non enregistrées',{exact:true}).waitFor();await page.getByRole('button',{name:'Rester sur cette page',exact:true}).click();
       const update=page.waitForRequest(r=>r.method()==='POST' && r.url().endsWith('/admin-team-tools'));await page.getByRole('button',{name:'Enregistrer le profil',exact:true}).click();assert.equal((await update).postDataJSON().name,'Camille corrigé');await page.getByText('Action enregistrée.',{exact:true}).waitFor();await page.getByRole('button',{name:'Enregistrer le profil',exact:true}).waitFor();
+    }
+    if(label==='account' && width===1440){
+      for(const [button,status] of [['Suspendre le compte','Réactiver le compte'],['Réactiver le compte','Suspendre le compte']]){
+        await page.getByRole('button',{name:button,exact:true}).click();const confirm=page.getByRole('button',{name:'Confirmer cette action',exact:true});assert(await confirm.isDisabled());await page.getByLabel('Saisis l’identifiant exact du compte').fill(account.account_name);await confirm.click();await page.getByRole('button',{name:status,exact:true}).waitFor();
+      }
+      await page.getByRole('button',{name:'Supprimer complètement le compte',exact:true}).click();await page.getByText('Équipe Orion',{exact:true}).last().waitFor();const confirm=page.getByRole('button',{name:'Confirmer cette action',exact:true});assert(await confirm.isDisabled());await page.getByLabel('Saisis l’identifiant exact du compte').fill(account.account_name);const deletion=page.waitForRequest(r=>r.method()==='POST' && r.url().endsWith('/admin-account-lifecycle'));await confirm.click();assert.equal((await deletion).postDataJSON().expectedOwnedTeams.length,1);await page.getByText('Compte supprimé.',{exact:true}).waitFor();await page.getByRole('button',{name:'Retour à l’annuaire',exact:true}).click();await page.locator('.admin-directory-table').waitFor();
     }
     checks.push({label,width,...geometry});await page.close();
   }
