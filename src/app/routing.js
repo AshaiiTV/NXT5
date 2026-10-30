@@ -77,7 +77,7 @@ export function authModeFromPath(pathname = window.location.pathname) {
 
 export function isAdminPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  return path === "/tarifs" || path === "/admin" || path.startsWith("/admin/");
+  return path === "/admin" || path.startsWith("/admin/");
 }
 
 export function isAppPath(pathname = window.location.pathname) {

@@ -2,7 +2,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import { getLocale } from "../../i18n/locale.js";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, BarChart3, ChevronLeft, ChevronRight, Loader2, Mail, RefreshCw, Search, ShieldCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, BarChart3, ChevronLeft, ChevronRight, Loader2, Mail, RefreshCw, Search, ShieldCheck, Users, Swords, History } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { Badge, Button, PageHeader, ReadingDetails, SelectInput, SkeletonRows, Surface, TextInput } from "../../components/ui/Core.jsx";
 import { importStatus, rate, selectTeams } from "./admin-metrics.js";
@@ -27,7 +27,7 @@ function date(value, time = false, daily = false) {
 
 function Section({ title, description, children, action }) {
   useLanguage();
-  return <Surface className="admin-section"><div className="admin-section-heading"><div><h3>{t(title)}</h3>{description && <p>{t(description)}</p>}</div>{action}</div>{children}</Surface>;
+  return <Surface variant="reading" className="admin-section"><div className="admin-section-heading"><div><h3>{t(title)}</h3>{description && <p>{t(description)}</p>}</div>{action}</div>{children}</Surface>;
 }
 
 function Metric({ label, value, note }) {
@@ -111,10 +111,10 @@ function TeamDetail({ teamId, revision, onBack }) {
   </div>;
 }
 
-function TeamDirectory({ dashboard, initialFilter = "all", revision }) {
+function TeamDirectory({ dashboard, initialFilter = "all", revision, initialTeamId = "", onNavigate }) {
   useLanguage();
   const [filter, setFilter] = useState(initialFilter);
-  const [selectedTeamId, setSelectedTeamId] = useState("");
+  const [selectedTeamId, setSelectedTeamId] = useState(initialTeamId);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("latest");
   const [direction, setDirection] = useState("descending");
@@ -128,11 +128,11 @@ function TeamDirectory({ dashboard, initialFilter = "all", revision }) {
   const safePage = Math.min(page, Math.max(1, Math.ceil(teams.length / 10)));
   const title = useRef(null);
   const returnFocus = useRef(false);
-  useEffect(() => { setFilter(initialFilter); setSelectedTeamId(""); }, [initialFilter]);
+  useEffect(() => { setFilter(initialFilter); setSelectedTeamId(initialTeamId); }, [initialFilter, initialTeamId]);
   useEffect(() => { setPage(1); }, [search, filter, sort, direction]);
   useEffect(() => { if (!selectedTeamId && returnFocus.current) { title.current?.focus(); returnFocus.current = false; } }, [selectedTeamId]);
-  if (selectedTeamId) return <TeamDetail teamId={selectedTeamId} revision={revision} onBack={() => { returnFocus.current = true; setSelectedTeamId(""); }} />;
-  return <Section title={<span tabIndex={-1} ref={t(title)}>{t("Comprendre chaque équipe")}</span>} description={t("Repère les équipes qui importent, celles qui n’ont pas commencé et celles dont les imports se sont arrêtés.")}>
+  if (selectedTeamId) return <TeamDetail teamId={selectedTeamId} revision={revision} onBack={() => { returnFocus.current = true; setSelectedTeamId(""); if (initialTeamId) onNavigate?.("/admin/equipes"); }} />;
+  return <Section title={<span tabIndex={-1} ref={title}>{t("Comprendre chaque équipe")}</span>} description={t("Repère les équipes qui importent, celles qui n’ont pas commencé et celles dont les imports se sont arrêtés.")}>
     <div className="admin-toolbar"><SearchField label={t("Rechercher une équipe")} placeholder={t("Nom, tag ou région…")} value={search} onChange={setSearch} /></div>
     <div className="admin-filters" role="group" aria-label={t("Filtrer les équipes")}>{FILTERS.map(([id, label]) => <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{t(label)}</button>)}</div>
     <p className="admin-caption">{t("« Import récent » = au moins une partie ajoutée sur les 30 derniers jours. Ce n’est pas une mesure des connexions ni de toute l’activité de l’équipe.")}</p>
@@ -193,7 +193,7 @@ function Reminders({ data = {} }) {
     </Section></div>;
 }
 
-export default function AdminDashboard({ view = "overview", teamFilter = "all", onNavigate }) {
+export default function AdminDashboard({ view = "overview", teamFilter = "all", onNavigate, initialTeamId = "" }) {
   useLanguage();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -219,8 +219,8 @@ export default function AdminDashboard({ view = "overview", teamFilter = "all", 
     <div className="admin-status"><span><ShieldCheck size={15} aria-hidden="true" />{t(" Accès administrateur · lecture seule")}</span><span>{dashboard ? t("Actualisé le {0}", [date(dashboard.generatedAt, true)]) : error ? t("Données indisponibles") : t("Chargement des données…")}</span></div>
     {error && <Message error>{t(error)}{dashboard && t(" Les données affichées sont celles de la dernière actualisation réussie.")}<Button variant="ghost" disabled={loading} onClick={load}>{t("Réessayer")}</Button></Message>}
     {!dashboard ? loading && <SkeletonRows count={4} /> : <>
-      {activeView === "overview" && <Overview dashboard={dashboard} openTeams={openTeams} openTab={openTab} />}
-      {activeView === "teams" && <TeamDirectory dashboard={dashboard} initialFilter={teamFilter} revision={revision} />}
+      {activeView === "overview" && <><div className="admin-overview-links"><button type="button" onClick={()=>onNavigate?.("/admin/comptes")}><Users aria-hidden="true" /><div><strong>{t("Comptes et profils")}</strong><span>{t("Retrouver une personne et gérer son compte")}</span></div></button><button type="button" onClick={()=>onNavigate?.("/admin/stats-globales")}><Swords aria-hidden="true" /><div><strong>{t("Stats globales")}</strong><span>{t("Champions joués, picks, bans et exports pour les réseaux")}</span></div></button><button type="button" onClick={()=>onNavigate?.("/admin/journal")}><History aria-hidden="true" /><div><strong>{t("Journal des actions")}</strong><span>{t("Suivre les interventions enregistrées")}</span></div></button></div><Overview dashboard={dashboard} openTeams={openTeams} openTab={openTab} /></>}
+      {activeView === "teams" && <TeamDirectory dashboard={dashboard} initialFilter={teamFilter} revision={revision} initialTeamId={initialTeamId} onNavigate={onNavigate} />}
       {activeView === "usage" && <Usage dashboard={dashboard} />}
       {activeView === "reminders" && <Reminders data={dashboard.inactivityReminders} />}
     </>}

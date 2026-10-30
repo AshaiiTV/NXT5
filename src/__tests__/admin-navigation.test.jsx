@@ -9,7 +9,6 @@ import { isAdminPath, isAppPath, isKnownPath } from "../app/routing.js";
 import { Sidebar, Topbar } from "../components/layout/AppChrome.jsx";
 import { Button } from "../components/ui/Core.jsx";
 import { useTeamData } from "../hooks/useTeamData.js";
-import { PurchaseOverview } from "../pages/admin/Purchases.jsx";
 import { AppLoadingProvider } from "../components/loading/AppLoadingProvider.jsx";
 import { useAdminNavigationGuard } from "../components/admin/AdminNavigationContext.jsx";
 
@@ -24,34 +23,31 @@ vi.mock("../pages/admin/AudiencePage.jsx", () => ({ default: () => <section data
 vi.mock("../pages/admin/BotAnalyticsPage.jsx", () => ({ default: () => <section data-admin-view="bot" /> }));
 vi.mock("../pages/admin/BotPublicationsPage.jsx", () => ({ default: () => <section data-admin-view="bot-publications" /> }));
 vi.mock("../pages/admin/ExportsPage.jsx", () => ({ default: () => <section data-admin-view="exports" /> }));
-vi.mock("../pages/admin/AccessRequestsPage.jsx", () => ({ default: ({ embedded }) => <section data-admin-view="requests" data-embedded={embedded} /> }));
-vi.mock("../pages/admin/AccountSubscriptionsPage.jsx", () => ({ default: function SubscriptionsForm({ embedded, initialUserId, navigate }) {
+vi.mock("../pages/admin/AdminDirectory.jsx", () => ({ default: function DirectoryForm({ route, journal, navigate }) {
   const [dirty, setDirty] = React.useState(false);
   const [disabled, setDisabled] = React.useState(false);
   useAdminNavigationGuard({ dirty, disabled });
-  return <section data-admin-view="subscriptions" data-embedded={embedded} data-selected-user={initialUserId}>
+  return <section data-admin-view={journal ? "journal":"accounts"} data-selected-user={new URLSearchParams(route.search).get("userId") || ""}>
     <input type="checkbox" aria-label="Formulaire modifié" checked={dirty} onChange={event => setDirty(event.target.checked)} />
     <input type="checkbox" aria-label="Enregistrement en cours" checked={disabled} onChange={event => setDisabled(event.target.checked)} />
-    <button type="button" onClick={() => navigate("/admin/tarifs")}>Voir les offres</button>
+    <button type="button" onClick={() => navigate("/admin/usage")}>Voir l’usage</button>
   </section>;
 } }));
-vi.mock("../pages/public/PricingPage.jsx", () => ({ default: ({ embedded }) => <section data-admin-view="pricing" data-embedded={embedded} /> }));
-vi.mock("../pages/admin/IntegrationsPage.jsx", () => ({ default: () => <section data-admin-view="integrations" />, LegalReadinessPage: () => <section data-admin-view="launch" /> }));
+vi.mock("../pages/admin/IntegrationsPage.jsx", () => ({ default: () => <section data-admin-view="integrations" /> }));
+vi.mock("../pages/admin/GlobalStatsPage.jsx", () => ({ default: () => <section data-admin-view="global-stats" /> }));
 
 const admin = { id: "admin", name: "Administrateur", email: "admin@example.test", email_verified: true, is_platform_admin: true };
 // These public addresses are the navigation contract, independent of the menu implementation.
 const routes = [
   ["/admin", "overview"],
+  ["/admin/comptes", "accounts"],
   ["/admin/equipes", "teams"],
+  ["/admin/stats-globales", "global-stats"],
   ["/admin/usage", "usage"],
   ["/admin/frequentation", "audience"],
   ["/admin/bot-discord/publications", "bot-publications"],
   ["/admin/bot-discord", "bot"],
-  ["/admin/achats", "purchases"],
-  ["/admin/demandes-acces", "requests"],
-  ["/admin/abonnements", "subscriptions"],
-  ["/admin/tarifs", "pricing"],
-  ["/admin/preparer-vente", "launch"],
+  ["/admin/journal", "journal"],
   ["/admin/exports", "exports"],
   ["/admin/rappels", "reminders"],
   ["/admin/integrations", "integrations"],
@@ -139,14 +135,14 @@ async function clickButton(label) {
 }
 
 const guardedDepartures = [
-  ["desktop menu", () => follow("/admin/tarifs")],
-  ["mobile selector", () => act(async () => renderer.root.findByProps({ "aria-label": "Rubrique" }).props.onChange({ target: { value: "/admin/tarifs" } }))],
-  ["page action", () => act(async () => renderer.root.findByProps({ "data-admin-view": "subscriptions" }).findByType("button").props.onClick())],
+  ["desktop menu", () => follow("/admin/usage")],
+  ["mobile selector", () => act(async () => renderer.root.findByProps({ "aria-label": "Rubrique" }).props.onChange({ target: { value: "/admin/usage" } }))],
+  ["page action", () => act(async () => renderer.root.findByProps({ "data-admin-view": "accounts" }).findByType("button").props.onClick())],
 ];
 
 describe("administration route contract", () => {
   it("recognizes each route and groups every destination exactly once", () => {
-    expect(ADMIN_GROUPS.map(group => group.label)).toEqual(["Pilotage", "Bot", "Ventes et accès", "Configuration"]);
+    expect(ADMIN_GROUPS.map(group => group.label)).toEqual(["Pilotage", "Bot", "Configuration"]);
     expect(ADMIN_GROUPS.find(group => group.label === "Bot").pages.map(page => [page.id, page.label])).toEqual([["bot-publications", "Publications"], ["bot", "Statistiques"]]);
     expect(ADMIN_PAGES.map(page => [page.path, page.id])).toEqual(routes);
     for (const [path, id] of routes) {
@@ -163,37 +159,12 @@ describe("administration route contract", () => {
     await open(path);
     selectedView(id);
     expect(apiFetch.mock.calls.map(([endpoint]) => endpoint).sort()).toEqual((id === "purchases" ? ["auth-me", "admin-purchases?page=1&pageSize=10"] : ["auth-me"]).sort());
-    if (["requests", "subscriptions", "pricing"].includes(id)) expect(renderer.root.findByProps({ "data-admin-view": id }).props["data-embedded"]).toBe(true);
-    expect(renderer.root.findAllByType(PurchaseOverview)).toHaveLength(0);
-  });
-
-  it("loads the purchase summary only when it is opened and keeps it in the purchases page", async () => {
-    await open("/admin/achats");
-    expect(apiFetch.mock.calls.some(([endpoint]) => endpoint === "admin-purchases?view=overview")).toBe(false);
-    const summary = renderer.root.findByProps({ className: "administration-purchase-summary" });
-    await act(async () => summary.props.onToggle({ currentTarget: { open: true } }));
-    await act(async () => { await vi.dynamicImportSettled(); });
-    selectedView("purchases");
-    expect(renderer.root.findAllByType(PurchaseOverview)).toHaveLength(1);
-    expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "admin-purchases?view=overview")).toHaveLength(1);
-    await act(async () => summary.props.onToggle({ currentTarget: { open: false } }));
-    await act(async () => summary.props.onToggle({ currentTarget: { open: true } }));
-    expect(apiFetch.mock.calls.filter(([endpoint]) => endpoint === "admin-purchases?view=overview")).toHaveLength(1);
   });
 
   it("retains the selected account from a direct subscriptions link", async () => {
-    await open("/admin/abonnements?userId=selected-account");
-    selectedView("subscriptions");
-    expect(renderer.root.findByProps({ "data-admin-view": "subscriptions" }).props["data-selected-user"]).toBe("selected-account");
-  });
-
-  it.each([
-    ["/admin?tab=achats", "purchases"],
-    ["/admin?tab=vue-ensemble", "overview"],
-    ["/tarifs", "pricing"],
-  ])("keeps bookmarked %s usable with its canonical menu entry", async (path, id) => {
-    await open(path);
-    selectedView(id);
+    await open("/admin/comptes?userId=selected-account");
+    selectedView("accounts");
+    expect(renderer.root.findByProps({ "data-admin-view": "accounts" }).props["data-selected-user"]).toBe("selected-account");
   });
 
   it("keeps publications and statistics as separate Bot pages through links and browser back/forward", async () => {
@@ -228,7 +199,7 @@ describe("administration route contract", () => {
   it("preserves modified links for opening a destination in another tab", async () => {
     await open("/admin");
     for (const modifiers of [{ ctrlKey: true }, { metaKey: true }, { shiftKey: true }, { button: 1 }]) {
-      const event = await follow("/admin/achats", modifiers);
+      const event = await follow("/admin/comptes", modifiers);
       expect(event.preventDefault).not.toHaveBeenCalled();
     }
     expect(window.history.pushState).not.toHaveBeenCalled();
@@ -238,10 +209,10 @@ describe("administration route contract", () => {
 
 describe("administration editor navigation", () => {
   it.each(guardedDepartures)("keeps a dirty form until departure through the %s is confirmed", async (_label, depart) => {
-    await open("/admin/abonnements?userId=selected-account");
+    await open("/admin/comptes?userId=selected-account");
     await setFormState("Formulaire modifié");
     await depart();
-    selectedView("subscriptions");
+    selectedView("accounts");
     expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
     expect(window.history.pushState).not.toHaveBeenCalled();
     await clickButton("Rester sur cette page");
@@ -249,12 +220,12 @@ describe("administration editor navigation", () => {
     expect(renderer.root.findByProps({ "aria-label": "Formulaire modifié" }).props.checked).toBe(true);
     await depart();
     await clickButton("Quitter sans enregistrer");
-    selectedView("pricing");
-    expect(window.location.pathname).toBe("/admin/tarifs");
+    selectedView("usage");
+    expect(window.location.pathname).toBe("/admin/usage");
   });
 
   it("protects returning to the app and restores the initiating focus when staying", async () => {
-    await open("/admin/abonnements");
+    await open("/admin/comptes");
     await setFormState("Formulaire modifié");
     const focus = vi.fn();
     document.activeElement = { focus };
@@ -263,40 +234,40 @@ describe("administration editor navigation", () => {
     expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
     expect(window.history.pushState).not.toHaveBeenCalled();
     await clickButton("Rester sur cette page");
-    selectedView("subscriptions");
+    selectedView("accounts");
     expect(focus).toHaveBeenCalledOnce();
   });
 
   it.each(guardedDepartures)("blocks the %s while an editor is saving", async (_label, depart) => {
-    await open("/admin/abonnements");
+    await open("/admin/comptes");
     await setFormState("Formulaire modifié");
     await setFormState("Enregistrement en cours");
     expect(renderer.root.findByProps({ "aria-label": "Rubrique" }).props.disabled).toBe(true);
     await depart();
-    selectedView("subscriptions");
+    selectedView("accounts");
     expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(0);
     expect(window.history.pushState).not.toHaveBeenCalled();
   });
 
   it("blocks an open leave confirmation if saving starts and clears it after the form is saved", async () => {
-    await open("/admin/abonnements");
+    await open("/admin/comptes");
     await setFormState("Formulaire modifié");
-    await follow("/admin/tarifs");
+    await follow("/admin/usage");
     await setFormState("Enregistrement en cours");
     const leave = renderer.root.findAllByType(Button).find(node => node.props.children === "Quitter sans enregistrer");
     expect(leave.props.disabled).toBe(true);
     await clickButton("Quitter sans enregistrer");
-    selectedView("subscriptions");
+    selectedView("accounts");
     expect(window.history.pushState).not.toHaveBeenCalled();
     await setFormState("Formulaire modifié", false);
     await setFormState("Enregistrement en cours", false);
     expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(0);
-    await follow("/admin/tarifs");
-    selectedView("pricing");
+    await follow("/admin/usage");
+    selectedView("usage");
   });
 
   it("requires confirmation before logging out of a dirty editor and blocks logout while saving", async () => {
-    await open("/admin/abonnements");
+    await open("/admin/comptes");
     await setFormState("Formulaire modifié");
     await setFormState("Enregistrement en cours");
     const logout = renderer.root.findAllByType(Button).find(node => node.props.children === "Déconnexion");
@@ -308,7 +279,7 @@ describe("administration editor navigation", () => {
     await clickButton("Déconnexion");
     expect(apiFetch.mock.calls.map(([endpoint]) => endpoint)).toEqual(["auth-me"]);
     await clickButton("Rester sur cette page");
-    selectedView("subscriptions");
+    selectedView("accounts");
     await clickButton("Déconnexion");
     apiFetch.mockResolvedValueOnce({ ok: true });
     await clickButton("Quitter sans enregistrer");
@@ -375,7 +346,7 @@ describe("administration access boundary", () => {
 });
 
 it("B5 warns before unloading a dirty or saving administrative form", async () => {
-  await open("/admin/abonnements");
+  await open("/admin/comptes");
   const dispatch = () => { const event = { type: "beforeunload", preventDefault: vi.fn() }; window.dispatchEvent(event); return event; };
   expect(dispatch().preventDefault).not.toHaveBeenCalled();
   act(() => renderer.root.findByProps({ "aria-label": "Formulaire modifié" }).props.onChange({ target: { checked: true } }));

@@ -2,13 +2,13 @@ import { logFailure } from './_lib/safe-log';
 import type { Config } from '@netlify/functions';
 import { sql } from './_lib/db';
 import { json } from './_lib/http';
-import { ensureAccessRequestsSchema } from './_lib/schema';
+import { assertSchemaReady } from './_lib/migrations';
 
 // Netlify schedules are only invoked by the platform, never through a public URL
 // in production. No contact message is sent and no account/team data is affected.
 export default async function handler(_request: Request): Promise<Response> {
   try {
-    await ensureAccessRequestsSchema();
+    await assertSchemaReady();
     const rows = await sql`
       with deleted as (
         delete from access_requests where created_at <= now() - interval '6 months' returning id

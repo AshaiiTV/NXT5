@@ -4,7 +4,6 @@ import "./helpers/i18n.js";
 import { renderToStaticMarkup } from "react-dom/server";
 import { getLanguage, getLocale, setLanguage } from "../i18n/locale.js";
 import { audienceDate, audienceDecimal, audienceNumber, countryLabel } from "../pages/admin/audience-metrics.js";
-import { subscriptionPeriodLabel } from "../app/subscriptions.js";
 import { pngDateRange, pngFitText, pngNumber, pngWrapText } from "../utils/png-report.js";
 import { applyDocumentMetadata, getMetadata, metadataTags, PUBLIC_METADATA, SITE_ORIGIN } from "../seo/metadata.js";
 import { createSeoDocument } from "./helpers/seo-document.js";
@@ -34,7 +33,6 @@ describe("locale-dependent presentation", () => {
       const locale = getLocale();
       expect(audienceDate(timestamp)).toBe(new Intl.DateTimeFormat(locale, { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" }).format(new Date(timestamp)));
       expect(pngDateRange([source])).toBe(new Date(timestamp).toLocaleDateString(locale));
-      expect(subscriptionPeriodLabel({ planCode: "team", startsAt: timestamp })).toContain(new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric" }).format(new Date(timestamp)));
     }
     expect(source).toEqual({ game_date: timestamp });
   });

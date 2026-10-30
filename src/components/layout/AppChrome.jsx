@@ -7,7 +7,6 @@ import { draftViewFromPath, draftViewLabel, pathFromPage, profileViewFromPath, p
 import { cx, profileStatusLabel } from "../../app/helpers.js";
 import { Nxt5Wordmark, ResponsiveImage, RoleIcon, TeamAvatar } from "../brand/BrandAssets.jsx";
 import { Button, Surface } from "../ui/Core.jsx";
-import AccountSubscription from "../account/AccountSubscription.jsx";
 import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 import "./app-chrome.css";
 
@@ -136,12 +135,10 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
         {!!moreItems.length && <details className="nxt5-sidebar-group nxt5-sidebar-more" open={MORE_NAV_IDS.includes(active) ? true : undefined}><summary title={t("Préparation et partage")}><ChevronDown size={17} aria-hidden="true" /><span className="nxt5-sidebar-label">{t("Préparation et partage")}</span></summary>{moreItems.map((item) => renderNavItem(item, false))}</details>}
       </nav>
       <div className="nxt5-sidebar-footer">
-        {isPlatformAdmin && renderNavItem({ id: "social-calendar", label: "Calendrier", icon: CalendarDays }, false)}
         {isPlatformAdmin && <a href="https://nexus-rising-admin-nxt5.ashaii.chatgpt.site" target="_blank" rel="noopener noreferrer" aria-label="Nexus Rising" title="Nexus Rising" className="nxt5-sidebar-link nxt5-sidebar-admin"><Trophy size={19} aria-hidden="true" /><span className="nxt5-sidebar-label" translate="no">Nexus Rising</span></a>}
-        {isPlatformAdmin && <a href={pageHref("admin")} onClick={(event) => go(event, "admin")} aria-label={t("Administration")} title={t("Administration")} aria-current={["admin", "access-requests", "account-subscriptions"].includes(active) ? "page" : undefined} className={cx("nxt5-sidebar-link nxt5-sidebar-admin", ["admin", "access-requests", "account-subscriptions"].includes(active) && "is-active")}><ShieldCheck size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">{t("Administration")}</span></a>}
+        {isPlatformAdmin && <a href={pageHref("admin")} onClick={(event) => go(event, "admin")} aria-label={t("Administration")} title={t("Administration")} aria-current={["admin"].includes(active) ? "page" : undefined} className={cx("nxt5-sidebar-link nxt5-sidebar-admin", ["admin"].includes(active) && "is-active")}><ShieldCheck size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">{t("Administration")}</span></a>}
         <div className="nxt5-sidebar-account">
           <div className="nxt5-sidebar-account-identity"><span className="nxt5-sidebar-avatar"><RoleIcon role={profileRole} className="h-5 w-5" /></span><div className="nxt5-sidebar-label"><p title={user?.name || t("Coach")}>{user?.name || t("Coach")}</p><span title={linkedPlayer ? `${t(roleLabel(linkedPlayer.role))} · ${linkedPlayer.name}` : t(status)}>{linkedPlayer ? `${t(roleLabel(linkedPlayer.role))} · ${linkedPlayer.name}` : t(status)}</span></div></div>
-          <div className="nxt5-sidebar-subscription nxt5-sidebar-label"><AccountSubscription key={user?.id} compact /></div>
         </div>
         {renderNavItem({ id: "account-settings", label: "Paramètres", icon: Settings })}
         <button type="button" className="nxt5-sidebar-link nxt5-sidebar-logout" aria-label={t("Déconnexion")} title={t("Déconnexion")} onClick={onLogout}><LogOut size={19} aria-hidden="true" /><span className="nxt5-sidebar-label">{t("Déconnexion")}</span></button>
@@ -159,7 +156,7 @@ export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCr
   const [teamMenuOpen, setTeamMenuOpen] = React.useState(false);
   const teamPickerRef = React.useRef(null);
   const teamTriggerRef = React.useRef(null);
-  const isAdmin = ["admin", "access-requests", "account-subscriptions"].includes(active);
+  const isAdmin = ["admin"].includes(active);
 
   React.useEffect(() => {
     if (!teamMenuOpen) return undefined;
@@ -177,7 +174,7 @@ export function Topbar({ active, setOpen, currentTeam, teams, onSelectTeam, onCr
       <div className="nxt5-topbar-breadcrumb"><h1>{t(nav.label)}</h1>{detailLabel && <><ChevronRight size={14} aria-hidden="true" /><span>{t(detailLabel)}</span></>}</div>
     </div>
     <div className="nxt5-topbar-actions">
-      {active === "social-calendar" ? <span className="nxt5-topbar-admin"><CalendarDays size={16} aria-hidden="true" /><span>{t("Publications NXT5")}</span></span> : isAdmin ? <span className="nxt5-topbar-admin"><ShieldCheck size={16} aria-hidden="true" />{t("Administration")}</span> : <div className="nxt5-topbar-tools">
+      {isAdmin ? <span className="nxt5-topbar-admin"><ShieldCheck size={16} aria-hidden="true" />{t("Administration")}</span> : <div className="nxt5-topbar-tools">
       <div ref={teamPickerRef} className="nxt5-team-picker" onBlur={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget)) setTeamMenuOpen(false);
       }}>

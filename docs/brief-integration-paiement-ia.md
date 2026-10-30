@@ -1,3 +1,5 @@
+> Archive du 30 octobre 2026 : le système payant et ses parcours ont été retirés. NXT5 reste gratuit. Ce document conserve le contexte antérieur ; voir le [guide actuel de l’administration](administration-achats.md).
+
 # Brief complet à donner à une IA — intégration de la monétisation NXT5
 
 Copier tout le contenu de ce document dans une nouvelle tâche de développement ouverte à la racine du dépôt NXT5.

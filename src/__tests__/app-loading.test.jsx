@@ -240,7 +240,7 @@ it.each(["resolve", "reject"])("B9 ignores initial auth-me %s after successful l
 });
 
 
-it.each(['/tarifs', '/admin', '/admin/tarifs', '/admin/inconnu'])('N2-04: excludes admin route %s in the actual collection context for a non-admin', async path => {
+it.each(['/admin', '/admin/tarifs', '/admin/inconnu'])('N2-04: excludes admin route %s in the actual collection context for a non-admin', async path => {
   const app = mount(path);
   await app.loadModule();
   await app.resolve(0, { user });

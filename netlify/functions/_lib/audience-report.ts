@@ -49,7 +49,7 @@ export async function loadAudienceReport(filters: { days: number; device: string
       from audience_pages p join filtered s on s.id = p.session_id
       where p.viewed_at >= s.period_start and p.viewed_at < s.period_end group by p.session_id,s.period
     ), goal_metrics as (
-      select e.session_id,s.period,bool_or(e.name in ('signup','access_request')) as converted,count(*) as events
+      select e.session_id,s.period,bool_or(e.name='signup') as converted,count(*) as events
       from audience_events e join filtered s on s.id = e.session_id
       where e.created_at >= s.period_start and e.created_at < s.period_end group by e.session_id,s.period
     ), duration_metrics as (
@@ -82,7 +82,7 @@ export async function loadAudienceReport(filters: { days: number; device: string
     series_days as (
       select generate_series(l.current_start at time zone 'UTC', (l.window_end at time zone 'UTC') - interval '1 day', interval '1 day') as day from limits l
     ), daily_activity as (
-      select (e.created_at at time zone 'UTC')::date as day,s.id,s.visitor_id,bool_or(e.name in ('signup','access_request')) as converted
+      select (e.created_at at time zone 'UTC')::date as day,s.id,s.visitor_id,bool_or(e.name='signup') as converted
       from audience_events e join current_sessions s on s.id = e.session_id cross join limits l
       where e.created_at >= l.current_start and e.created_at < l.window_end group by 1,s.id,s.visitor_id
     ), daily_sessions as (

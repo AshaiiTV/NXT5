@@ -496,7 +496,7 @@ describe('administrator audience reports', () => {
     for (const name of ['pricing_view','login']) await collect(request('audience-events',{ ...first,type:'event',eventId:uid(),name }),desktop.context);
     const second = event({ source:'discord' });
     await collect(request('audience-events',second,{ 'user-agent':'iPhone Mobile Safari' }),mobile.context);
-    await collect(request('audience-events',{ ...second,type:'event',eventId:uid(),name:'access_request' }),mobile.context);
+    await collect(request('audience-events',{ ...second,type:'event',eventId:uid(),name:'signup' }),mobile.context);
     const full = await loadAudienceReport({ days:7,device:'all',source:'all' });
     expect(full.totals).toMatchObject({ visitors:2,sessions:2,pageviews:2,conversions:1,conversionRate:50,bounceRate:50 });
     const selected = await loadAudienceReport({ days:7,device:'desktop',source:'newsletter' });

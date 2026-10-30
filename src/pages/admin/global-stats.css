@@ -1,0 +1,39 @@
+.global-stats-filters > .relative { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:20px; }
+.global-stats-tabs { display:flex; flex-wrap:wrap; gap:8px; border-bottom:1px solid var(--nxt5-border); }
+.global-stats-tabs button { padding:12px 20px; min-height:48px; color:var(--nxt5-muted); border-bottom:2px solid transparent; font-weight:600; }
+.global-stats-tabs button[aria-pressed=true] { color:var(--nxt5-accent); border-bottom-color:var(--nxt5-accent); }
+.global-stats-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); padding-block:24px; border-bottom:1px solid var(--nxt5-border); gap:24px; }
+.global-stats-summary > div + div { border-left:1px solid var(--nxt5-border); padding-left:24px; }
+.global-stats-summary span { display:block; color:var(--nxt5-text-secondary); font-size:14px; }
+.global-stats-summary strong { display:block; font-size:32px; font-weight:650; margin:8px 0; font-variant-numeric:tabular-nums; }
+.global-stats-summary small { color:var(--nxt5-muted); font-size:13px; line-height:1.5; }
+.global-stats-layout { display:grid; grid-template-columns:minmax(0,1fr) 290px; align-items:start; gap:24px; }
+.global-stats-table-heading { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:24px; }
+.global-stats-table-heading h3 { margin:0; }
+.global-stats-tools { display:flex; align-items:flex-end; flex-wrap:wrap; gap:16px; margin-bottom:24px; }
+.global-stats-tools > label { flex:1; min-width:140px; }
+.global-stats-ranking-head,.global-stats-rank { display:grid; grid-template-columns:minmax(130px,2fr) 1fr 1fr 1.1fr; gap:16px; align-items:center; }
+.global-stats-ranking-head { font-size:12px; color:var(--nxt5-muted); padding:12px 0; border-bottom:1px solid var(--nxt5-border-strong); }
+.global-stats-rank { padding:16px 0; border-bottom:1px solid var(--nxt5-border); font-size:14px; font-variant-numeric:tabular-nums; }
+.global-stats-rank > div { display:flex; gap:16px; align-items:center; min-width:0; }
+.global-stats-rank strong { overflow-wrap:anywhere; }
+.global-stats-rank small { display:block; margin-top:4px; color:var(--nxt5-muted); }
+.global-stats-rank-number { width:24px; color:var(--nxt5-accent-2); flex-shrink:0; }
+.global-stats-export { position:sticky; top:24px; }
+.global-stats-export .admin-directory-panel > .relative { display:flex; flex-direction:column; gap:16px; }
+.global-stats-export svg { color:var(--nxt5-accent-2); }
+.global-stats-export h3 { margin:0; }
+.global-stats-export p { font-size:14px; color:var(--nxt5-text-secondary); line-height:1.6; }
+.global-stats-export .global-stats-export-note { font-size:13px; color:var(--nxt5-muted); }
+.global-stats-method h3 { font-size:18px; font-weight:650; margin-bottom:12px; }
+.global-stats-method p { max-width:90ch; margin-top:12px; font-size:14px; line-height:1.7; color:var(--nxt5-text-secondary); }
+@media(max-width:1200px) { .global-stats-layout { grid-template-columns:minmax(0,1fr); } .global-stats-export { position:static; } }
+@media(max-width:640px) { .global-stats-filters > .relative,.global-stats-summary { grid-template-columns:minmax(0,1fr); } .global-stats-summary { padding-block:16px; gap:20px; } .global-stats-summary > div + div { padding:0; border:0; } .global-stats-summary strong { font-size:28px; } .global-stats-tabs button { padding:12px 8px; flex:1; font-size:14px; } .global-stats-ranking-head,.global-stats-rank { gap:8px; grid-template-columns:minmax(100px,1.5fr) .8fr .8fr 1fr; } .global-stats-rank { font-size:12px; } .global-stats-rank > div { gap:8px; } .global-stats-rank-number { width:14px; font-size:11px; } .global-stats-ranking-head { font-size:11px; } .global-stats-tools { flex-direction:column; align-items:stretch; } }
+
+.global-stats[data-mode="gameBans"] :is(.global-stats-rank,.global-stats-ranking-head),.global-stats[data-mode="picks"] :is(.global-stats-rank,.global-stats-ranking-head),.global-stats[data-mode="bans"] :is(.global-stats-rank,.global-stats-ranking-head) { grid-template-columns:minmax(130px,2fr) 1fr 1fr; }
+@media(max-width:640px) {
+  .global-stats .global-stats-ranking-head { position:absolute; width:1px; height:1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+  .global-stats .global-stats-rank,.global-stats[data-mode="gameBans"] .global-stats-rank,.global-stats[data-mode="picks"] .global-stats-rank,.global-stats[data-mode="bans"] .global-stats-rank { grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px 8px; padding:20px 0; font-size:15px; }
+  .global-stats .global-stats-rank > div { grid-column:1 / -1; font-size:16px; }
+  .global-stats .global-stats-rank > span::before { display:block; content:attr(data-label); font-size:12px; line-height:1.5; color:var(--nxt5-muted); margin-bottom:8px; }
+}
