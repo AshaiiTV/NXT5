@@ -54,8 +54,10 @@ beforeEach(async()=>{
 });
 describe('platform team and profile administration',()=>{
   it('refuses non-admins before reading any data and rejects cross-site mutations',async()=>{
-    state.admin.mockRejectedValueOnce(Object.assign(new Error('Forbidden'),{status:403}));state.calls=0;
-    expect((await invoke('?teamId='+teamId)).status).toBe(403);expect(state.calls).toBe(0);
+    for(const query of ['', '?teamId='+teamId]) {
+      state.admin.mockRejectedValueOnce(Object.assign(new Error('Forbidden'),{status:403}));state.calls=0;
+      expect((await invoke(query)).status).toBe(403);expect(state.calls).toBe(0);
+    }
     const req=new Request(request('',{action:'team-delete'}),{headers:{Origin:'https://evil.example','Content-Type':'application/json'}});
     expect((await tools(req,{} as any)).status).toBe(403);
   });
@@ -71,6 +73,29 @@ describe('platform team and profile administration',()=>{
     const matches=await (await invoke('?teamId='+teamId+'&view=matches')).json();expect(matches.rows[0].participants[0].champion).toBe('Ahri');
     const d=await profile();expect(d.profile).toMatchObject({user_id:memberId,team_id:teamId});expect(d.pool).toHaveLength(1);expect(d.goals).toHaveLength(1);expect(d.matches).toHaveLength(1);
     for(const view of ['reports','compositions','planning','goals','drafts'])expect((await invoke('?teamId='+teamId+'&view='+view)).status).toBe(200);
+  });
+  it('returns the ordered starting roster independently of profile searches, pages and sections',async()=>{
+    for(const role of ['SUP','ADC','TOP','JGL'])await rows("insert into players(team_id,name,role,riot_id,opgg_url) values($1,$2,$3,$4,$5)",[teamId,role,role,role+'#TEST','https://www.op.gg/lol/summoners/euw/'+role+'-TEST']);
+    for(const [name,role,status] of [['Substitute','TOP','SUB'],['Inactive','MID','INACTIVE'],['Staff','COACH','MAIN'],['Legacy sub','SUB','MAIN']])await rows("insert into players(team_id,name,role,roster_status,riot_id) values($1,$2,$3,$4,$5)",[teamId,name,role,status,name+'#TEST']);
+    await rows("insert into players(team_id,name,role,riot_id) values($1,'Other team player','TOP','Other#TEST')",[otherTeam]);
+    const list=await (await invoke('?q=Alpha')).json(),roster=list.rows[0].mainRoster;
+    expect(roster.map((p:any)=>p.role)).toEqual(['TOP','JGL','MID','ADC','SUP']);
+    expect(roster.find((p:any)=>p.id===profileId)).toEqual({id:profileId,name:'Player',role:'MID',riot_id:'Player#TEST',opgg_url:null,roster_status:'MAIN'});
+    expect(roster[0].opgg_url).toBe('https://www.op.gg/lol/summoners/euw/TOP-TEST');
+    for(const view of ['profiles','members','matches']) {
+      const dossier=await (await invoke('?teamId='+teamId+'&view='+view+'&q=no-match&page=2')).json();
+      expect(dossier.rows).toEqual([]);
+      expect(dossier.team.mainRoster).toEqual(roster);
+    }
+    const other=await (await invoke('?teamId='+otherTeam)).json();
+    expect(other.team.mainRoster.map((p:any)=>p.riot_id)).toEqual(['Other#TEST']);
+  });
+  it('returns an empty roster for teams without starters and retains missing Riot IDs',async()=>{
+    const list=await (await invoke('?q=Other')).json();
+    expect(list.rows[0].mainRoster).toEqual([]);
+    expect((await (await invoke('?teamId='+otherTeam)).json()).team.mainRoster).toEqual([]);
+    await rows('update players set riot_id=null where id=$1',[profileId]);
+    expect((await detail()).team.mainRoster).toEqual([{id:profileId,name:'Player',role:'MID',riot_id:null,opgg_url:null,roster_status:'MAIN'}]);
   });
   it('edits team identity exactly once and rejects stale and concurrent edits',async()=>{
     const edit=await body('team-update',{name:'Updated',tag:'UPD',region:'EUW'});

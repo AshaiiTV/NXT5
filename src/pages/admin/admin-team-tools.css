@@ -27,3 +27,23 @@
 .admin-team-danger p { line-height:1.6; margin-bottom:16px; }
 .admin-team-danger .nxt5-input-wrap { margin-top:20px; }
 @media(max-width:640px) { .admin-team-records > li { align-items:flex-start; } .admin-team-records > li > .admin-team-actions { width:100%; margin-top:0; } .admin-team-tabs button { flex:1 0 42%; padding-inline:8px; } .admin-team-records > li > button { width:100%; } .admin-team-actions > button { flex:1 1 auto; } .admin-team-danger { padding:16px; } }
+
+.admin-team-tools .nxt5-page-actions { align-items:flex-start; }
+.admin-team-quick-actions { display:flex; flex-wrap:wrap; align-items:flex-start; gap:8px; max-width:100%; }
+.admin-roster-opgg { display:grid; gap:6px; min-width:0; max-width:360px; }
+.administration-shell p.admin-roster-opgg-hint { margin:0; font-size:14px; line-height:1.45; color:var(--nxt5-muted); overflow-wrap:anywhere; }
+.admin-roster-opgg-fallback { display:grid; gap:8px; min-width:0; }
+.administration-shell .admin-roster-opgg-fallback p { margin:0; font-size:14px; color:var(--nxt5-danger); }
+.admin-roster-opgg-fallback input { width:100%; min-width:0; min-height:44px; padding:10px; font-size:16px; }
+@media(max-width:640px) {
+  .admin-team-quick-actions { width:100%; }
+  .admin-team-quick-actions > .admin-roster-opgg { flex:1 1 100%; }
+  .admin-team-quick-actions > button { flex:1; }
+  .admin-roster-opgg { width:100%; max-width:none; }
+}
+
+@media(min-width:641px) {
+  .admin-team-quick-actions .admin-roster-opgg { justify-items:end; }
+  .admin-team-quick-actions .admin-roster-opgg > button { justify-self:end; min-width:14rem; }
+  .admin-team-quick-actions .admin-roster-opgg-hint { max-width:30ch; text-align:right; }
+}

@@ -16,6 +16,7 @@ import { getLocale } from "../../i18n/locale.js";
 
 import "./admin-team-tools.css";
 import TeamOwnerTransfer from "./TeamOwnerTransfer.jsx";
+import AdminRosterOpgg from "./AdminRosterOpgg.jsx";
 
 
 
@@ -173,7 +174,7 @@ function TeamDossier({id,navigate}) {
 
   return <div className="admin-directory-stack admin-team-tools"><Button variant="ghost" icon={ArrowLeft} disabled={mutation.busy || Boolean(editor)} onClick={()=>navigate("/admin/equipes")}>{t("Retour aux équipes")}</Button>
 
-    <PageHeader title={<span ref={heading} tabIndex={-1}>{team?.name || t("Dossier d’équipe")}</span>} subtitle={team ? `${team.tag} · ${team.region} · ${t("Responsable")} : ${team.owner_name}`:t("Contenu et administration de l’équipe.")}><Button icon={RefreshCw} variant="ghost" disabled={mutation.busy || Boolean(editor)} onClick={reload}>{t("Actualiser")}</Button></PageHeader>
+    <PageHeader title={<span ref={heading} tabIndex={-1}>{team?.name || t("Dossier d’équipe")}</span>} subtitle={team ? `${team.tag} · ${team.region} · ${t("Responsable")} : ${team.owner_name}`:t("Contenu et administration de l’équipe.")}>{team && <AdminRosterOpgg team={team} disabled={loading || mutation.busy || Boolean(editor)} />}<Button icon={RefreshCw} variant="ghost" disabled={mutation.busy || Boolean(editor)} onClick={reload}>{t("Actualiser")}</Button></PageHeader>
 
     <Notice error={mutation.error || resource.error} message={mutation.message} reload={reload} busy={mutation.busy} />
 
@@ -273,6 +274,6 @@ export default function AdminTeamTools({route,navigate}) {
 
   if(id)return <TeamDossier key={id} id={id} navigate={navigate} />;
 
-  return <div className="admin-directory-stack admin-team-tools"><PageHeader title={t("Équipes")} subtitle={t("Retrouve une équipe, explore son contenu et gère ses accès.")}><Button variant="ghost" icon={RefreshCw} disabled={resource.loading} onClick={()=>setRevision(value=>value+1)}>{t("Actualiser")}</Button></PageHeader><Notice error={resource.error} reload={()=>setRevision(value=>value+1)} /><Panel title="Répertoire des équipes"><TextInput label={t("Rechercher une équipe")} placeholder={t("Nom, tag, région ou responsable…")} value={q} type="search" onChange={value=>{setQ(value);setPage(1);}} maxLength={120} /><SelectInput label={t("Filtrer les équipes")} value={filter} onChange={value=>{setFilter(value);setPage(1);}}>{[["all","Toutes"],["recent","Import récent"],["quiet","Sans import depuis 30 j"],["never","Aucun import"],["empty","Sans profils"]].map(([key,label])=><option key={key} value={key}>{t(label)}</option>)}</SelectInput>{resource.loading ? <SkeletonRows count={4} />:resource.data && <><ul className="admin-team-records">{resource.data.rows.map(row=><li key={row.id}><div><strong>{row.name} [{row.tag}]</strong><p>{row.region} · {row.owner_name}</p><p>{t("{0} profils · {1} parties",[row.profiles,row.matches])}</p></div><Button variant="ghost" icon={ArrowRight} onClick={()=>navigate(teamPath(row.id))}>{t("Explorer")}</Button></li>)}</ul>{!resource.data.rows.length && <p>{t("Aucun résultat")}</p>}<Pagination data={resource.data} page={page} setPage={setPage} /></>}</Panel></div>;
+  return <div className="admin-directory-stack admin-team-tools"><PageHeader title={t("Équipes")} subtitle={t("Retrouve une équipe, explore son contenu et gère ses accès.")}><Button variant="ghost" icon={RefreshCw} disabled={resource.loading} onClick={()=>setRevision(value=>value+1)}>{t("Actualiser")}</Button></PageHeader><Notice error={resource.error} reload={()=>setRevision(value=>value+1)} /><Panel title="Répertoire des équipes"><TextInput label={t("Rechercher une équipe")} placeholder={t("Nom, tag, région ou responsable…")} value={q} type="search" onChange={value=>{setQ(value);setPage(1);}} maxLength={120} /><SelectInput label={t("Filtrer les équipes")} value={filter} onChange={value=>{setFilter(value);setPage(1);}}>{[["all","Toutes"],["recent","Import récent"],["quiet","Sans import depuis 30 j"],["never","Aucun import"],["empty","Sans profils"]].map(([key,label])=><option key={key} value={key}>{t(label)}</option>)}</SelectInput>{resource.loading ? <SkeletonRows count={4} />:resource.data && <><ul className="admin-team-records">{resource.data.rows.map(row=><li key={row.id}><div><strong>{row.name} [{row.tag}]</strong><p>{row.region} · {row.owner_name}</p><p>{t("{0} profils · {1} parties",[row.profiles,row.matches])}</p></div><div className="admin-team-quick-actions"><AdminRosterOpgg team={row} /><Button variant="ghost" icon={ArrowRight} onClick={()=>navigate(teamPath(row.id))}>{t("Explorer")}</Button></div></li>)}</ul>{!resource.data.rows.length && <p>{t("Aucun résultat")}</p>}<Pagination data={resource.data} page={page} setPage={setPage} /></>}</Panel></div>;
 
 }

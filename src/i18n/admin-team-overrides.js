@@ -1,4 +1,15 @@
 export const en = {
+  "Copier OP.GG titulaires de {0}": "Copy starting lineup OP.GG for {0}",
+  "Copier OP.GG titulaires": "Copy starting lineup OP.GG",
+  "Copié": "Copied",
+  "Copie…": "Copying…",
+  "Aucun titulaire dans cette équipe.": "No starting players in this team.",
+  "Renseigne les Riot IDs des titulaires au format Pseudo#TAG.": "Enter the starters’ Riot IDs in Name#TAG format.",
+  "Lien copié · {0}/{1} titulaires inclus": "Link copied · {0}/{1} starters included",
+  "{0}/{1} titulaires dans le lien": "{0}/{1} starters in the link",
+  "Riot IDs manquants ou invalides.": "Missing or invalid Riot IDs.",
+  "Copie impossible. Réessaie ou copie le lien ci-dessous.": "Unable to copy. Try again or copy the link below.",
+  "Lien OP.GG des titulaires": "Starting lineup OP.GG link",
   "Ouvrir le profil": "Open profile",
   "Ouvrir le profil de {0}": "Open {0}’s profile",
   "Recharger le dossier": "Reload dossier",
@@ -112,6 +123,17 @@ export const en = {
   "Suspension et réactivation": "Suspension and reactivation"
 };
 export const es = {
+  "Copier OP.GG titulaires de {0}": "Copiar OP.GG de los titulares de {0}",
+  "Copier OP.GG titulaires": "Copiar OP.GG de los titulares",
+  "Copié": "Copiado",
+  "Copie…": "Copiando…",
+  "Aucun titulaire dans cette équipe.": "No hay titulares en este equipo.",
+  "Renseigne les Riot IDs des titulaires au format Pseudo#TAG.": "Introduce los Riot IDs de los titulares con el formato Nombre#TAG.",
+  "Lien copié · {0}/{1} titulaires inclus": "Enlace copiado · {0}/{1} titulares incluidos",
+  "{0}/{1} titulaires dans le lien": "{0}/{1} titulares en el enlace",
+  "Riot IDs manquants ou invalides.": "Riot IDs ausentes o no válidos.",
+  "Copie impossible. Réessaie ou copie le lien ci-dessous.": "No se ha podido copiar. Inténtalo de nuevo o copia el enlace de abajo.",
+  "Lien OP.GG des titulaires": "Enlace OP.GG de los titulares",
   "Ouvrir le profil": "Abrir perfil",
   "Ouvrir le profil de {0}": "Abrir el perfil de {0}",
   "Recharger le dossier": "Recargar ficha",

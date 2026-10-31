@@ -108,7 +108,11 @@ async function read(request:Request) {
 
         (select count(*)::int from players p where p.team_id=t.id) as profiles,
 
-        (select count(*)::int from matches m where m.team_id=t.id) as matches
+        (select count(*)::int from matches m where m.team_id=t.id) as matches,
+
+        (select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'name',p.name,'role',p.role,'riot_id',p.riot_id,'opgg_url',p.opgg_url,'roster_status',p.roster_status)
+          order by array_position(array['TOP','JGL','MID','ADC','SUP'],p.role),p.name,p.id),'[]'::jsonb)
+          from players p where p.team_id=t.id and p.roster_status='MAIN' and p.role in ('TOP','JGL','MID','ADC','SUP')) as "mainRoster"
 
         from teams t join users u on u.id=t.owner_id
 
@@ -218,7 +222,11 @@ async function read(request:Request) {
 
     }
 
-    return [tx`select t.id,t.name,t.tag,t.region,t.owner_id,t.created_at,t.xmin::text as revision,u.name as owner_name from teams t join users u on u.id=t.owner_id where t.id=${teamId}`,counts(tx,teamId),listing,count];
+    return [tx`select t.id,t.name,t.tag,t.region,t.owner_id,t.created_at,t.xmin::text as revision,u.name as owner_name,
+      (select coalesce(jsonb_agg(jsonb_build_object('id',p.id,'name',p.name,'role',p.role,'riot_id',p.riot_id,'opgg_url',p.opgg_url,'roster_status',p.roster_status)
+        order by array_position(array['TOP','JGL','MID','ADC','SUP'],p.role),p.name,p.id),'[]'::jsonb)
+        from players p where p.team_id=t.id and p.roster_status='MAIN' and p.role in ('TOP','JGL','MID','ADC','SUP')) as "mainRoster"
+      from teams t join users u on u.id=t.owner_id where t.id=${teamId}`,counts(tx,teamId),listing,count];
 
   },{isolationLevel:'RepeatableRead',readOnly:true});
 
