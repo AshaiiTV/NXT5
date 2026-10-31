@@ -8,6 +8,7 @@ import { canonicalChampion, championDisplayName } from "../../../shared/champion
 import { canonicalRole, ROLES } from "../../../shared/roles.js";
 import { matchCategoryIds, matchDisplayName } from "../../utils/matches.js";
 import { buildDraftAssistance } from "../../utils/draft-assistance.js";
+import { resolveCompositionPick } from "../../utils/planning.js";
 import { openAppPath } from "../../app/routing.js";
 import { ChampionPortrait, POOL_TIER_LABELS } from "../../pages/workspace/workspace-shared.jsx";
 import "./draft-assistance.css";
@@ -43,7 +44,7 @@ export default function DraftAssistance({ data, teamId, slots, champions, onPick
   const activeCategory = categories.some(item => String(item.id) === category) ? category : "";
   const scopedMatches = useMemo(() => matches.filter(match => (!activePatch || String(match.patch || "").trim() === activePatch) && (!activeCategory || matchCategoryIds(match).map(String).includes(activeCategory))), [matches, activePatch, activeCategory]);
   const pool = data.championPool || EMPTY;
-  const excludedChampions = useMemo(() => Object.entries(slots).filter(([position]) => position !== role).map(([, slot]) => pool.find(row => String(row.id) === String(slot?.poolId))?.champion).filter(Boolean), [slots, role, pool]);
+  const excludedChampions = useMemo(() => Object.entries(slots).filter(([position]) => position !== role).map(([, slot]) => resolveCompositionPick(slot, pool)?.champion).filter(Boolean), [slots, role, pool]);
   const suggestions = useMemo(() => buildDraftAssistance({ teamId, player, role, opponentChampion: opponent, championPool: pool, matches: scopedMatches, excludedChampions }), [teamId, player, role, opponent, pool, scopedMatches, excludedChampions]);
   const opponentName = championDisplayName(opponent);
   const sourceUrl = opponent ? `https://mobalytics.gg/lol/champions/${championKey(opponent)}/counters/${MOBALYTICS_ROLES[role]}` : null;

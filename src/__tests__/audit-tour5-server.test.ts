@@ -346,6 +346,43 @@ it('T7-01 a composition whose pick was deleted stays editable and the stale pick
   expect((await updated.json()).composition).toMatchObject({ title: 'After', slots: { MID: { playerId, poolId: '' } } });
 });
 
+it('saves canonical champions outside the pool alongside legacy slots and never changes the pool', async () => {
+  const beforePool = await pool();
+  const response = await call(compositions, { title: 'Outside pool', slots: { TOP: { playerId, poolId: '', champion: 'Wukong' }, MID: { playerId, poolId } } });
+  expect(response.status).toBe(200);
+  const { composition } = await response.json();
+  expect(composition.slots).toEqual({ TOP: { playerId, poolId: '', champion: 'MonkeyKing' }, MID: { playerId, poolId } });
+  const updated = await call(compositions, { action: 'update', compositionId: composition.id, title: 'Updated', slots: { TOP: { playerId, poolId: '', champion: "Kai'Sa" } } });
+  expect(updated.status).toBe(200);
+  expect((await updated.json()).composition.slots.TOP).toEqual({ playerId, poolId: '', champion: 'Kaisa' });
+  expect((await database.pg.query('select slots from composition_types where id=$1', [composition.id])).rows[0].slots.TOP.champion).toBe('Kaisa');
+  expect(await pool()).toEqual(beforePool);
+  const cleared = await call(compositions, { action: 'update', compositionId: composition.id, title: 'Pool again', slots: { MID: { playerId, poolId } } });
+  expect((await cleared.json()).composition.slots).toEqual({ MID: { playerId, poolId } });
+});
+
+it.each([null, 3, {}, 'ChampionInvented', 'Ahri'.repeat(30)])('rejects an invalid free champion %j', async champion => {
+  expect((await call(compositions, { title: 'Invalid champion', slots: { MID: { playerId, poolId: '', champion } } })).status).toBe(400);
+  expect((await database.pg.query('select * from composition_types')).rows).toHaveLength(0);
+  expect(await audits()).toHaveLength(0);
+});
+
+it('rejects ambiguous pool and catalogue references and sanitizes foreign player references', async () => {
+  expect((await call(compositions, { title: 'Ambiguous', slots: { MID: { playerId, poolId, champion: 'Ahri' } } })).status).toBe(400);
+  const response = await call(compositions, { title: 'Public choice', slots: { MID: { playerId: uuid(999), poolId: '', champion: 'Ahri' } } });
+  expect((await response.json()).composition.slots.MID).toEqual({ playerId: '', poolId: '', champion: 'Ahri' });
+});
+
+it('rolls back a free-champion save when membership is revoked before its transaction', async () => {
+  actor.id = captain;
+  database.beforeBatch = () => database.pg.query('delete from team_members where team_id=$1 and user_id=$2', [teamId, captain]);
+  const beforePool = await pool();
+  expect((await call(compositions, { title: 'Revoked', slots: { MID: { playerId, poolId: '', champion: 'Syndra' } } })).status).toBe(409);
+  expect((await database.pg.query('select * from composition_types')).rows).toHaveLength(0);
+  expect(await audits()).toHaveLength(0);
+  expect(await pool()).toEqual(beforePool);
+});
+
 const reportId = uuid(50), compositionId = uuid(51);
 async function seedStaffMutation(action: string, kind: 'report' | 'composition' | 'pool') {
   if (kind === 'report') {

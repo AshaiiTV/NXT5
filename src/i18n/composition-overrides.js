@@ -1,5 +1,8 @@
 // Compact copy for the composition editor and champion picker.
 export const en = {
+  "Autres champions": "Other champions",
+  "Hors pool": "Outside pool",
+  "Maîtrise non renseignée": "Mastery not specified",
   "Choisir un champion · {0}": "Choose a champion · {0}",
   "Pool du joueur": "Player pool",
   "Niveau de maîtrise": "Mastery level",
@@ -11,6 +14,9 @@ export const en = {
 };
 
 export const es = {
+  "Autres champions": "Otros campeones",
+  "Hors pool": "Fuera del repertorio",
+  "Maîtrise non renseignée": "Dominio sin especificar",
   "Choisir un champion · {0}": "Elegir campeón · {0}",
   "Pool du joueur": "Repertorio del jugador",
   "Niveau de maîtrise": "Nivel de dominio",
