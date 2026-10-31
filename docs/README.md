@@ -49,6 +49,8 @@ Ils ne décrivent pas des fonctionnalités actives ni une commercialisation pré
 
 ### NXT5 Importer
 
+- [Nexus Rising : portail, accès et collecte automatique](nexus-rising-importer.md)
+- [Nexus Rising : saisons et formats de tournoi](nexus-rising-tournois.md)
 - [Changements](../importer-app/CHANGELOG.md)
 - [Validation Electron](../importer-app/docs/testing.md)
 

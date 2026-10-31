@@ -165,6 +165,16 @@ describe("public SEO and real component rendering", () => {
     }
   });
 
+  it("serves the guest-capable Nexus portal directly through the app shell", () => {
+    const rules = redirectRules(privatePaths, dynamicPaths).split("\n");
+    const headers = robotsHeaders({ noindex: false }, privatePaths, dynamicPaths);
+    for (const path of ["/nexus-rising", "/nexus-rising/"]) {
+      expect(rules).toContain(`${path} /app-shell.html 200`);
+      expect(headers).toContain(`${path}\n  X-Robots-Tag: noindex, follow\n`);
+    }
+    expect(sitemapXml({ noindex: false })).not.toContain("/nexus-rising");
+  });
+
   it("redirects exact legacy team URLs before rewrites without overriding query parameters", () => {
     const rules = redirectRules(privatePaths, dynamicPaths).split("\n").filter(line => line && !line.startsWith("#"));
     const legacyRules = rules.filter(line => ["/equipes", "/equipes/"].includes(line.split(/\s+/)[0]));

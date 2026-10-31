@@ -22,3 +22,11 @@ Depuis le tour 3 du 29 septembre, le runner accepte aussi des migrations `.mjs` 
 Ces rattrapages verrouillent les tables concernées contre les écritures concurrentes pendant leur transaction. Mesurer la durée sur une copie de taille représentative avant le déploiement ; les tests PGlite ne constituent pas cette mesure. Aucun rattrapage distant n’est lancé par les tests.
 
 `20261030_account_lifecycle.sql` ajoute l’état de suspension aux comptes et un trigger d’émission des sessions : il verrouille le compte et refuse une nouvelle session suspendue. Le schéma de référence est mis à jour ; les migrations précédentes restent immuables.
+
+## Première publication de Nexus Rising
+
+Pour ajouter Nexus Rising à la base NXT5 existante, définir temporairement `NXT5_MIGRATION_SCOPE=nexus-rising` dans le contexte Netlify `production`, portée `builds` uniquement. Le build utilise sa connexion serveur existante et applique exclusivement `20261031_nexus_import.sql`, puis `20261101_nexus_tournament.sql`. Ce mode ne lance pas le rattrapage historique des reviews. Toute autre valeur non vide est refusée avant connexion.
+
+Le contrôle préalable vérifie les colonnes natives, les marqueurs et empreintes, ainsi que l’absence de schéma Nexus partiel ou de game acceptée en double. Le journal `Nexus migration:` rapporte seulement des comptages, les clés appliquées et le résultat d’une seconde exécution, qui doit donner `replayAppliedCount: 0`. Les migrations utilisent la transaction et le verrou du runner existant ; elles ne créent aucune équipe, saison ou rencontre de démonstration.
+
+Après une publication réussie, vérifier `/nexus-rising`, l’API invitée et le refus des accès privés sans authentification, puis retirer cette variable temporaire. Les publications suivantes reprennent le runner habituel ; les deux migrations restent enregistrées et ne sont pas réappliquées. Les preuves de build et les contrôles HTTP attestent le déploiement web, pas le fonctionnement de l’importeur sur une partie LoL réelle.

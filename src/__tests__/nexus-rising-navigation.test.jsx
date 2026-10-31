@@ -16,22 +16,28 @@ function renderSidebar(props = {}) {
   return renderer.root;
 }
 
-describe("private Nexus Rising shortcut", () => {
-  it.each([false, undefined])("does not expose the shortcut without platform admin access (%s)", isPlatformAdmin => {
+describe("Nexus Rising portal shortcut", () => {
+  it.each(["second-team", "team & #?=private", null])("does not carry a private workspace team into the standalone portal (%s)", currentTeamId => {
+    const sidebar = renderSidebar({ currentTeamId });
+    const link = sidebar.findByProps({ "aria-label": "Nexus Rising" });
+    const url = new URL(link.props.href, "https://nxt5.test");
+    expect(url.pathname).toBe("/nexus-rising");
+    expect(url.search).toBe("");
+    expect(url.hash).toBe("");
+    expect(link.props.onClick).toBeUndefined();
+  });
+  it.each([false, undefined])("opens the public portal for regular accounts (%s)", isPlatformAdmin => {
     const sidebar = renderSidebar({ isPlatformAdmin });
-    expect(sidebar.findAllByProps({ "aria-label": "Nexus Rising" })).toHaveLength(0);
+    expect(sidebar.findByProps({ "aria-label": "Nexus Rising" }).props.href).toBe("/nexus-rising");
   });
 
-  it.each([false, true])("opens the private prototype immediately above Administration, including collapsed menus (%s)", collapsed => {
+  it.each([false, true])("opens the integrated portal above Administration, including collapsed menus (%s)", collapsed => {
     const sidebar = renderSidebar({ isPlatformAdmin: true, collapsed, currentTeamId: "private-team" });
     const links = sidebar.findByProps({ className: "nxt5-sidebar-footer" }).findAllByType("a");
-    const index = links.findIndex(link => link.props["aria-label"] === "Nexus Rising");
-    expect(index).toBeGreaterThanOrEqual(0);
-    expect(links.slice(index, index + 2).map(link => link.props["aria-label"])).toEqual(["Nexus Rising", "Administration"]);
-    expect(links[index].props.href).toBe("https://nexus-rising-admin-nxt5.ashaii.chatgpt.site");
-    expect(links[index].props.target).toBe("_blank");
-    expect(links[index].props.rel).toBe("noopener noreferrer");
-    expect(links[index].props.onClick).toBeUndefined();
-    expect(links[index + 1].props.href).toBe("/admin?team=private-team");
+    expect(links.slice(0, 2).map(link => link.props["aria-label"])).toEqual(["Nexus Rising", "Administration"]);
+    expect(links[0].props.href).toBe("/nexus-rising");
+    expect(links[0].props.target).toBeUndefined();
+    expect(links[0].props.onClick).toBeUndefined();
+    expect(links[1].props.href).toBe("/admin?team=private-team");
   });
 });

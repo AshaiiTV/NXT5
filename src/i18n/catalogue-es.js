@@ -1,4 +1,5 @@
 import { es as adminTeams } from "./admin-team-overrides.js";
+import { es as nexus } from "./nexus-overrides.js";
 import { es as compositions } from './composition-overrides.js';
 import { es as home } from './home-overrides.js';
 import base from './messages/es.json' with { type: 'json' };
@@ -86,6 +87,7 @@ const matchKillMap = {
 };
 export default { ...base, ...adminTeams, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap, ...compositions,
   ...debrief,
+  ...nexus,
   "Tuto vidéo : importer une partie sur Windows": "Vídeo tutorial: importar una partida en Windows",
   "YouTube · 2 min 31 · En français · Nouvel onglet": "YouTube · 2 min 31 · En francés · Nueva pestaña",
 };

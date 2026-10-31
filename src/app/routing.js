@@ -92,7 +92,7 @@ export function isAppPath(pathname = window.location.pathname) {
 
 export function isKnownPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  return PUBLIC_ROUTES.includes(path) || AUTH_PATHS.includes(path) || isAppPath(path);
+  return path === "/nexus-rising" || PUBLIC_ROUTES.includes(path) || AUTH_PATHS.includes(path) || isAppPath(path);
 }
 
 export function isSafeInternalPath(path = "") {

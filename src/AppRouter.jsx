@@ -22,6 +22,7 @@ import { useAppLoading } from "./components/loading/AppLoadingProvider.jsx";
 // The session, navigation and consent lifecycle stays mounted across both sides
 // of this boundary. No workspace module is requested for a public visitor.
 const PrivateApp = lazy(() => import("./AppContent.jsx"));
+const NexusRisingPage = lazy(() => import("./pages/nexus/NexusRisingPage.jsx"));
 const DemoPage = lazy(() => import("./pages/public/DemoPage.jsx").then((module) => ({ default: module.DemoPage })));
 
 function PrivateModuleLoading() {
@@ -82,7 +83,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const adminPage = adminPageFromRoute(route);
   const DemoComponent = initialDemoPage || DemoPage;
 
-  const rendersPrivateApp = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !PUBLIC_GUIDES[route.path] && !["/fonctionnalites", "/demo", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
+  const rendersPrivateApp = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !PUBLIC_GUIDES[route.path] && !["/nexus-rising", "/fonctionnalites", "/demo", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
   // Once authorized, the private module (including its download fallback)
   // owns the shared loader. Public routes always release it.
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersPrivateApp ? undefined : null);
@@ -92,6 +93,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (checkingSession && routeIsPrivate) return null;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
+  if (route.path === "/nexus-rising") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">{t("Chargement de Nexus Rising…")}</div>}><NexusRisingPage key={user?.id || "guest"} user={user} navigate={navigate} /></Suspense>;
   if (route.path === "/fonctionnalites") return <FeaturesPage navigate={navigate} user={user} />;
   if (route.path === "/demo") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">{t("Chargement de la démo…")}</div>}><DemoComponent navigate={navigate} user={user} /></Suspense>;
   if (PUBLIC_GUIDES[route.path]) return <PublicGuidePage path={route.path} navigate={navigate} user={user} />;
@@ -190,7 +192,7 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
         ? gameWorkspaceSectionLabel(gameWorkspaceSectionFromPath(route.path))
       : NAV.find((item) => item.path === route.path)?.label;
     const adminPage = adminPageFromRoute(route);
-    const title = adminPage ? `${t(adminPage.label)} · ${t("Administration")} — NXT5` : navTitle ? `${t(navTitle)} — NXT5` : undefined;
+    const title = route.path === "/nexus-rising" ? "Nexus Rising — NXT5" : adminPage ? `${t(adminPage.label)} · ${t("Administration")} — NXT5` : navTitle ? `${t(navTitle)} — NXT5` : undefined;
     applyDocumentMetadata(isKnownPath(route.path) ? route.path : "/404", { title });
   }, [route.path, route.search, language]);
 
