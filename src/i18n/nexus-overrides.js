@@ -223,6 +223,8 @@ const entries = [
   ["Vérification de ton accès…", "Checking your access…", "Verificando tu acceso…"],
   ["Saison I", "Season I", "Temporada I"],
   ["Janvier 2027", "January 2027", "Enero de 2027"],
+  ["Voir le Coming soon", "Preview Coming soon", "Ver Coming soon"],
+  ["Retour à l’espace staff", "Back to staff area", "Volver al espacio del staff"],
 ];
 export const en = Object.fromEntries(entries.map(([fr, value]) => [fr, value]));
 export const es = Object.fromEntries(entries.map(([fr, , value]) => [fr, value]));

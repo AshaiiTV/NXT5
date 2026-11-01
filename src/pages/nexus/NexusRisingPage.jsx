@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useEffect, useState } from "react";
-import { ArrowRight, LogIn, RefreshCw, ShieldCheck, Trophy, Users } from "lucide-react";
+import { ArrowRight, Eye, LogIn, RefreshCw, ShieldCheck, Trophy, Users } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { buildLoginRedirect } from "../../app/routing.js";
 import { Nxt5Wordmark } from "../../components/brand/BrandAssets.jsx";
@@ -27,6 +27,7 @@ export default function NexusRisingPage({ user, navigate }) {
   const [error, setError] = useState("");
   const [refresh, setRefresh] = useState(0);
   const [manage, setManage] = useState(false);
+  const [preview, setPreview] = useState(false);
   const [selected, setSelected] = useState("");
   const [seasonId, setSeasonId] = useState("");
   const [tab, setTab] = useState("schedule");
@@ -35,7 +36,7 @@ export default function NexusRisingPage({ user, navigate }) {
   const [leaveRequested, setLeaveRequested] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(isPlatformAdmin); setError(""); setOverview(null); setSelected(""); setManage(false); setRegistrationOpen(false); setLeaveRequested(false);
+    setLoading(isPlatformAdmin); setError(""); setOverview(null); setSelected(""); setManage(false); setPreview(false); setRegistrationOpen(false); setLeaveRequested(false);
     if (!isPlatformAdmin) return () => controller.abort();
     apiFetch("nexus-overview", { signal: controller.signal }).then(result => {
       if (!controller.signal.aborted) {
@@ -64,15 +65,21 @@ export default function NexusRisingPage({ user, navigate }) {
     if (guard.dirty) setLeaveRequested("account");
     else navigate("/accueil");
   }
-  function loseAccess() { setManage(false);setRegistrationOpen(false);setSelected("");setOverview({accountId,data:{access:"coming_soon"}}); }
+  function openPreview() {
+    if (!staff || guard.busy) return;
+    if (guard.dirty) setLeaveRequested("preview");
+    else { setPreview(true);setSelected("");setRegistrationOpen(false); }
+  }
+  function loseAccess() { setManage(false);setPreview(false);setRegistrationOpen(false);setSelected("");setOverview({accountId,data:{access:"coming_soon"}}); }
 
   if (!staff) return <NexusComingSoon user={user} navigate={navigate} verifying={isPlatformAdmin && !currentResult && loading} error={isPlatformAdmin && !currentResult ? error : ""} onRetry={()=>setRefresh(value=>value+1)} />;
+  if (preview) return <NexusComingSoon user={user} navigate={navigate} onExitPreview={()=>{setPreview(false);setManage(true);}} />;
 
   return <div className="nexus-page"><a className="nexus-skip" href="#nexus-content">{t("Aller au contenu")}</a>
     <header className="nexus-header"><a href="/nexus-rising" className="nexus-brand" aria-label="Nexus Rising" onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); openCalendar(); }}><Trophy size={26} aria-hidden="true" /><span translate="no">Nexus Rising<small>{t("Ligue amateur · EUW")}</small></span></a><div className="nexus-header-actions"><a href="/" className="nexus-nxt5" aria-label={t("Accueil NXT5")}><Nxt5Wordmark className="h-7 w-20 object-contain" /></a><LanguageSwitcher />{signedIn ? <Button variant="ghost" disabled={guard.busy} onClick={openAccount}>{user.name || t("Mon compte")}</Button> : <Button variant="ghost" icon={LogIn} onClick={() => navigate(buildLoginRedirect("/nexus-rising"))}>{t("Connexion NXT5")}</Button>}</div></header>
     <main id="nexus-content" className="nexus-main" tabIndex={-1}>
-      <div className="nexus-toolbar"><Badge tone={staff ? "purple" : signedIn ? "cyan" : "slate"}>{t(staff ? "Espace staff" : signedIn ? "Compte NXT5 connecté" : "Accès invité")}</Badge>{staff && <Button variant="ghost" icon={manage ? Trophy : ShieldCheck} disabled={guard.busy} onClick={() => { if (manage) openCalendar(); else setManage(true); }}>{t(manage ? "Voir le calendrier" : "Gérer les rencontres")}</Button>}</div>
-      {leaveRequested && <div className="nexus-message" role="alert"><p>{t("Quitter cette rubrique abandonnera tes modifications.")}</p><div className="nexus-actions"><Button variant="ghost" disabled={guard.busy} onClick={() => setLeaveRequested(false)}>{t("Rester sur cette page")}</Button><Button variant="ghost" disabled={guard.busy} onClick={() => { const destination = leaveRequested; setLeaveRequested(false); if (destination === "account") navigate("/accueil"); else {setManage(false);setRefresh(value=>value+1);} }}>{t("Quitter sans enregistrer")}</Button></div></div>}
+      <div className="nexus-toolbar"><Badge tone={staff ? "purple" : signedIn ? "cyan" : "slate"}>{t(staff ? "Espace staff" : signedIn ? "Compte NXT5 connecté" : "Accès invité")}</Badge>{staff && <div className="nexus-actions"><Button variant="ghost" icon={manage ? Trophy : ShieldCheck} disabled={guard.busy} onClick={() => { if (manage) openCalendar(); else setManage(true); }}>{t(manage ? "Voir le calendrier" : "Gérer les rencontres")}</Button><Button variant="ghost" icon={Eye} className="nexus-preview-trigger" disabled={guard.busy} onClick={openPreview}>{t("Voir le Coming soon")}</Button></div>}</div>
+      {leaveRequested && <div className="nexus-message" role="alert"><p>{t("Quitter cette rubrique abandonnera tes modifications.")}</p><div className="nexus-actions"><Button variant="ghost" disabled={guard.busy} onClick={() => setLeaveRequested(false)}>{t("Rester sur cette page")}</Button><Button variant="ghost" disabled={guard.busy} onClick={() => { const destination = leaveRequested; setLeaveRequested(false); if (destination === "account") navigate("/accueil"); else if(destination === "preview") {setPreview(true);setSelected("");setRegistrationOpen(false);} else {setManage(false);setRefresh(value=>value+1);} }}>{t("Quitter sans enregistrer")}</Button></div></div>}
       {manage && staff ? <Suspense fallback={<div role="status" aria-label={t("Chargement de l’espace staff")}><SkeletonRows count={3} /></div>}><NexusWorkspace onNavigationState={setGuard} onSessionExpired={loseAccess} /></Suspense> : <>
         <div className="nexus-intro"><div><p className="nexus-eyebrow">{season?.name || "Nexus Rising"}</p><h1>{t("La saison, partie après partie.")}</h1><p>{t("Retrouve les rencontres Nexus Rising et les résultats validés par le staff.")}</p></div><div className="nexus-member-note"><Users size={22} aria-hidden="true" /><p>{t(signedIn ? "Si tu fais partie d’une équipe NXT5 inscrite à Nexus Rising, les statistiques détaillées de ses rencontres s’affichent ici." : "Le calendrier et les résultats sont accessibles sans compte. Connecte ton compte NXT5 pour consulter les statistiques de ton équipe participante.")}</p></div></div>
         <div className="nexus-season-bar">{!!overview?.seasons?.length && <SelectInput label={t("Saison")} value={seasonId} onChange={value => { setSeasonId(value); setSelected(""); setTab("schedule"); }}>{overview.seasons.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</SelectInput>}{signedIn && <Button variant="ghost" icon={Users} onClick={() => setRegistrationOpen(value => !value)}>{t("Inscrire mon équipe")}</Button>}</div>

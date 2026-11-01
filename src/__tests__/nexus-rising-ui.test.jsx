@@ -27,6 +27,8 @@ describe("Nexus Rising access levels", () => {
     expect(button("Statistiques de mon équipe")).toBeUndefined();
     expect(button("Gérer les rencontres")).toBeUndefined();
     expect(button("Inscrire mon équipe")).toBeUndefined();
+    expect(button("Voir le Coming soon")).toBeUndefined();
+    expect(button("Retour à l’espace staff")).toBeUndefined();
     expect(text()).not.toContain("Calendrier Nexus Rising");
     expect(apiFetch).not.toHaveBeenCalled();
     act(()=>button("Retour à NXT5").props.onClick());
@@ -95,6 +97,75 @@ describe("Nexus Rising access levels", () => {
 });
 
 describe("Nexus staff workflow", () => {
+  const admin={id:"admin",is_platform_admin:true};
+  const workspaceData={fixtures:[],pairings:[],submissions:[],teams:[],seasons:[],registrations:[]};
+  async function staffPage() {
+    vi.stubGlobal("window", { addEventListener: vi.fn(), removeEventListener: vi.fn() });
+    apiFetch.mockImplementation(path=>Promise.resolve(path==="nexus-overview"?{access:"staff",fixtures:[fixture]}:workspaceData));
+    await mount(<NexusRisingPage user={admin} navigate={vi.fn()}/>);
+  }
+  async function openWorkspace() {
+    await act(async()=>button("Gérer les rencontres").props.onClick());
+    await act(async()=>{await vi.dynamicImportSettled();});
+  }
+  it("previews Coming soon only after staff confirmation and returns to staff without navigation",async()=>{
+    await staffPage();
+    const count=apiFetch.mock.calls.length;
+    act(()=>button("Voir le Coming soon").props.onClick());
+    expect(text()).toContain("Coming");expect(text()).not.toContain("Alpha");
+    expect(button("Retour à l’espace staff")).toBeTruthy();
+    expect(apiFetch).toHaveBeenCalledTimes(count);
+    await act(async()=>button("Retour à l’espace staff").props.onClick());
+    await act(async()=>{await vi.dynamicImportSettled();});
+    expect(button("Nouvelle saison")).toBeTruthy();
+    expect(button("Voir le Coming soon")).toBeTruthy();
+    expect(button("Retour à l’espace staff")).toBeUndefined();
+  });
+  it("keeps edits when the preview warning is cancelled and discards them only after confirmation",async()=>{
+    await staffPage();await openWorkspace();
+    act(()=>button("Nouvelle saison").props.onClick());
+    act(()=>renderer.root.findAllByType(TextInput).find(node=>node.props.label==="Nom de la saison").props.onChange("Brouillon non enregistré"));
+    act(()=>button("Voir le Coming soon").props.onClick());
+    expect(button("Retour à l’espace staff")).toBeUndefined();
+    expect(button("Quitter sans enregistrer")).toBeTruthy();
+    act(()=>button("Rester sur cette page").props.onClick());
+    expect(renderer.root.findAllByType(TextInput).find(node=>node.props.label==="Nom de la saison").props.value).toBe("Brouillon non enregistré");
+    act(()=>button("Voir le Coming soon").props.onClick());
+    act(()=>button("Quitter sans enregistrer").props.onClick());
+    expect(button("Retour à l’espace staff")).toBeTruthy();
+    await act(async()=>button("Retour à l’espace staff").props.onClick());
+    expect(button("Nouvelle saison")).toBeTruthy();
+    expect(text()).not.toContain("Brouillon non enregistré");
+  });
+  it("disables preview while a staff write is pending",async()=>{
+    await staffPage();await openWorkspace();
+    act(()=>button("Nouvelle saison").props.onClick());
+    act(()=>renderer.root.findAllByType(TextInput).find(node=>node.props.label==="Nom de la saison").props.onChange("Saison test"));
+    let finish;
+    apiFetch.mockImplementation((_path,options)=>options?.method==="POST"?new Promise(resolve=>{finish=resolve;}):Promise.resolve(workspaceData));
+    act(()=>renderer.root.findByType("form").props.onSubmit({preventDefault(){}}));
+    expect(button("Voir le Coming soon").props.disabled).toBe(true);
+    act(()=>button("Voir le Coming soon").props.onClick());
+    expect(button("Retour à l’espace staff")).toBeUndefined();
+    await act(async()=>finish({season:{id:"s"}}));
+  });
+  it.each([undefined,{id:"admin",is_platform_admin:false},{id:"other-admin",is_platform_admin:true}])("removes preview controls immediately when the account or role changes (%j)",async nextUser=>{
+    await staffPage();act(()=>button("Voir le Coming soon").props.onClick());
+    expect(button("Retour à l’espace staff")).toBeTruthy();
+    apiFetch.mockImplementation(()=>new Promise(()=>{}));
+    await act(async()=>renderer.update(<NexusRisingPage user={nextUser} navigate={vi.fn()}/>));
+    expect(button("Retour à l’espace staff")).toBeUndefined();
+    expect(button("Voir le Coming soon")).toBeUndefined();
+    expect(text()).not.toContain("Alpha");
+  });
+  it("keeps Coming soon without a staff return after access is revoked during preview",async()=>{
+    await staffPage();act(()=>button("Voir le Coming soon").props.onClick());
+    apiFetch.mockRejectedValue(Object.assign(new Error("Session expirée"),{status:401}));
+    await act(async()=>button("Retour à l’espace staff").props.onClick());
+    expect(text()).toContain("Coming");
+    expect(button("Retour à l’espace staff")).toBeUndefined();
+    expect(button("Voir le Coming soon")).toBeUndefined();
+  });
   it("uses season registrations instead of creating duplicate teams or free-text rosters", async () => {
     const request = vi.fn().mockResolvedValue({ fixtures: [], pairings: [], submissions: [], teams: [], seasons: [], registrations: [] });
     await mount(<NexusWorkspace request={request} />);

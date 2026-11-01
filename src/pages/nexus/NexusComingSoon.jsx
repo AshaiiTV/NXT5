@@ -7,14 +7,14 @@ import { buildLoginRedirect } from "../../app/routing.js";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 
-export default function NexusComingSoon({ user, navigate, verifying = false, error = "", onRetry }) {
+export default function NexusComingSoon({ user, navigate, verifying = false, error = "", onRetry, onExitPreview }) {
   useLanguage();
   return <div className="nexus-page nexus-coming">
     <a className="nexus-skip" href="#nexus-coming-content">{t("Aller au contenu")}</a>
     <div className="nexus-coming-art" aria-hidden="true" />
     <header className="nexus-coming-header">
       <a href="/" aria-label={t("Accueil NXT5")} className="nexus-coming-wordmark"><Nxt5Wordmark loading="eager" className="nexus-coming-logo" /></a>
-      <div className="nexus-coming-header-actions"><LanguageSwitcher />{!user && <Button variant="ghost" icon={LogIn} onClick={()=>navigate(buildLoginRedirect("/nexus-rising"))}>{t("Connexion NXT5")}</Button>}</div>
+      <div className="nexus-coming-header-actions"><LanguageSwitcher />{onExitPreview && <Button variant="ghost" icon={ArrowLeft} className="nexus-preview-trigger" onClick={onExitPreview}>{t("Retour à l’espace staff")}</Button>}{!user && <Button variant="ghost" icon={LogIn} onClick={()=>navigate(buildLoginRedirect("/nexus-rising"))}>{t("Connexion NXT5")}</Button>}</div>
     </header>
     <main id="nexus-coming-content" className="nexus-coming-main" tabIndex={-1}>
       <div className="nexus-coming-copy">

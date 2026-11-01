@@ -5,6 +5,7 @@
 .nexus-coming-header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:24px clamp(16px,4vw,64px); }
 .nexus-coming-logo { width:112px; height:40px; object-fit:contain; }
 .nexus-coming-header-actions { display:flex; align-items:center; gap:16px; }
+.nexus-page .nexus-preview-trigger { font-size:12px; padding:8px 12px; }
 .nexus-coming-main { width:100%; max-width:1680px; margin:auto; padding:48px clamp(24px,6vw,96px) 64px; flex:1; display:flex; align-items:center; justify-content:space-between; gap:48px; min-height:650px; }
 .nexus-coming-copy { min-width:0; max-width:850px; animation:nexus-arrive .8s cubic-bezier(.2,.7,.2,1) both; }
 .nexus-coming-name { display:flex; align-items:center; gap:12px; color:var(--nxt5-accent); font-size:clamp(18px,2vw,24px); font-weight:600; margin:0 0 24px; }
