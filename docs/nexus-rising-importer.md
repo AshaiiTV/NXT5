@@ -4,8 +4,9 @@
 
 ## Accès décidés
 
-- `/nexus-rising` est accessible sans compte NXT5 : calendrier, noms des équipes et résultats acceptés par le staff.
-- Les équipes Nexus Rising sont les équipes NXT5 existantes, dans la même base. Un compte NXT5 appartenant à une équipe d’une rencontre accède aux statistiques détaillées **acceptées de cette rencontre**, y compris les adversaires de la rencontre. Avoir seulement un compte ne donne pas accès aux statistiques privées de la ligue.
+- **Préouverture décidée le 1er novembre 2026 :** `/nexus-rising` affiche « Coming soon » aux visiteurs et aux comptes non administrateurs. Le portail complet reste réservé à l’administration NXT5 utilisée par Ashaii. Le nom affiché du profil ne donne aucun droit : la configuration d’administration existante fait autorité.
+- La page d’attente présente Saison I / janvier 2027, sans compte à rebours ni inscriptions. Elle ne charge pas les données Nexus. L’API publique renvoie un état `coming_soon` vide avant toute lecture du tournoi ; l’API d’inscription refuse les comptes non administrateurs. Une perte des droits retire le contenu du portail. La réouverture devra retirer ces restrictions côté page et serveur ensemble, puis revérifier les accès invité et membre.
+- Les équipes Nexus Rising sont les équipes NXT5 existantes, dans la même base. Le modèle conservé pour l’ouverture réserve les statistiques détaillées **acceptées d’une rencontre** aux membres de ses équipes et au staff. Avoir seulement un compte ne donne pas accès aux statistiques privées de la ligue.
 - Le staff utilise les droits d’administration de plateforme existants. Il peut créer les rencontres et liaisons, examiner les contributions, accepter ou rejeter une source et révoquer une liaison.
 - L’importeur fonctionne avec un code de rencontre, indépendamment de la connexion NXT5 du capitaine. Aucun mot de passe Riot n’est demandé.
 - L’entrée Nexus Rising du menu NXT5 ouvre `/nexus-rising` dans le même onglet. La V0 hébergée sur `nexus-rising-admin-nxt5.ashaii.chatgpt.site` reste une maquette distincte.

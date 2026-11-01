@@ -1,4 +1,30 @@
 .nexus-page { min-height:100vh; background:var(--nxt5-bg); color:var(--nxt5-text); }
+.nexus-coming { position:relative; isolation:isolate; min-height:100svh; display:flex; flex-direction:column; overflow:hidden; background:#090f20; }
+.nexus-coming-art { position:absolute; inset:0; z-index:-2; background-image:linear-gradient(90deg,rgba(7,12,27,.65) 0%,rgba(7,12,27,.26) 38%,rgba(7,12,27,.03) 75%),linear-gradient(0deg,rgba(7,12,27,.94),transparent 40%,rgba(7,12,27,.15)),url('/assets/nexus-rising-coming-soon.webp'); background-size:cover; background-position:center; animation:nexus-arrive 1.2s cubic-bezier(.2,.7,.2,1) both; }
+.nexus-coming::after { content:""; pointer-events:none; position:absolute; inset:0; z-index:-1; background:radial-gradient(ellipse at 70% 40%,transparent 15%,rgba(7,12,27,.25) 85%); }
+.nexus-coming-header { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:24px clamp(16px,4vw,64px); }
+.nexus-coming-logo { width:112px; height:40px; object-fit:contain; }
+.nexus-coming-header-actions { display:flex; align-items:center; gap:16px; }
+.nexus-coming-main { width:100%; max-width:1680px; margin:auto; padding:48px clamp(24px,6vw,96px) 64px; flex:1; display:flex; align-items:center; justify-content:space-between; gap:48px; min-height:650px; }
+.nexus-coming-copy { min-width:0; max-width:850px; animation:nexus-arrive .8s cubic-bezier(.2,.7,.2,1) both; }
+.nexus-coming-name { display:flex; align-items:center; gap:12px; color:var(--nxt5-accent); font-size:clamp(18px,2vw,24px); font-weight:600; margin:0 0 24px; }
+.nexus-coming-title { font-size:clamp(76px,12.5vw,176px); font-weight:900; letter-spacing:-.065em; line-height:.83; text-transform:uppercase; margin:0 0 32px; }
+.nexus-coming-title span { display:block; }
+.nexus-coming-title span:last-child { color:transparent; -webkit-text-stroke:1.5px rgba(211,232,255,.84); margin-top:12px; }
+.nexus-coming-description { font-size:clamp(16px,1.5vw,20px); line-height:1.6; color:var(--nxt5-text-secondary); max-width:380px; margin-bottom:24px; }
+.nexus-coming-actions { display:flex; flex-wrap:wrap; gap:16px; }
+.nexus-coming-status { color:var(--nxt5-muted); font-size:13px; margin-top:16px; }
+.nexus-coming-copy .nexus-message { margin-top:24px; max-width:480px; }
+.nexus-coming-edition { flex-shrink:0; align-self:flex-end; padding:0 0 8px 24px; border-left:2px solid var(--nxt5-accent); text-shadow:0 2px 24px #090f20; }
+.nexus-coming-edition span { color:var(--nxt5-text-secondary); font-size:14px; }
+.nexus-coming-edition p { color:var(--nxt5-text); font-size:26px; font-weight:700; margin:8px 0; }
+.nexus-coming-footer { display:flex; flex-wrap:wrap; gap:16px; align-items:center; padding:24px clamp(16px,4vw,64px); font-size:12px; color:var(--nxt5-muted); background:rgba(7,12,27,.35); }
+.nexus-coming-footer>span { flex:1; min-width:220px; }
+.nexus-coming-footer a { color:var(--nxt5-text-secondary); }
+@keyframes nexus-arrive { from { opacity:0; } to { opacity:1; } }
+@media(max-width:900px) { .nexus-coming-main { flex-direction:column; align-items:flex-start; gap:48px; min-height:600px; }.nexus-coming-edition { align-self:flex-start; }.nexus-coming-art { background-position:70% center; background-image:linear-gradient(90deg,rgba(7,12,27,.68),rgba(7,12,27,.18)),linear-gradient(0deg,rgba(7,12,27,.95),transparent 65%,rgba(7,12,27,.25)),url('/assets/nexus-rising-coming-soon.webp'); } }
+@media(max-width:600px) { .nexus-coming-header { padding:16px; flex-wrap:wrap; gap:12px; }.nexus-coming-logo { width:88px; height:32px; }.nexus-coming-header-actions { gap:8px; flex-wrap:wrap; }.nexus-coming-header-actions .nxt5-cyber-button { font-size:12px; padding:8px; }.nexus-coming-header-actions .nxt5-cyber-button svg { display:none; }.nexus-coming-main { padding:48px 24px; min-height:640px; gap:40px; }.nexus-coming-title { font-size:clamp(60px,16vw,96px); margin-bottom:24px; }.nexus-coming-name { font-size:18px; margin-bottom:24px; }.nexus-coming-title span:last-child { -webkit-text-stroke:1px rgba(211,232,255,.84); }.nexus-coming-description { max-width:280px; }.nexus-coming-edition p { font-size:22px; }.nexus-coming-footer { padding:20px 24px; gap:12px; } }
+@media(prefers-reduced-motion:reduce) { .nexus-coming-art,.nexus-coming-copy { animation:none; } }
 .nexus-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px clamp(16px,4vw,48px); border-bottom:1px solid var(--nxt5-border); background:linear-gradient(110deg,rgba(139,92,246,.12),transparent 70%),var(--nxt5-bg); }
 .nexus-brand { display:flex; align-items:center; gap:12px; min-width:0; color:var(--nxt5-text); text-decoration:none; font-weight:800; }
 .nexus-brand>svg { color:var(--nxt5-accent); flex-shrink:0; }

@@ -18,56 +18,79 @@ async function mount(element) { await act(async () => { renderer = TestRenderer.
 
 describe("Nexus Rising access levels", () => {
   it("recognizes the standalone route without a NXT5 login gate", () => { expect(isKnownPath("/nexus-rising/")).toBe(true); expect(isAppPath("/nexus-rising")).toBe(false); });
-  it("shows public results to guests and preserves the login return destination", async () => {
-    apiFetch.mockResolvedValue({ access: "guest", fixtures: [fixture] });
-    const navigate = vi.fn();
-    await mount(<NexusRisingPage navigate={navigate} />);
-    expect(text()).toContain("Alpha");
-    expect(text()).toContain("Accès invité");
+  it.each([undefined,{id:"member"},{id:"member",is_platform_admin:false}])("shows Coming soon without requesting any Nexus data for non-admins (%j)", async user => {
+    apiFetch.mockResolvedValue({access:"staff",fixtures:[fixture]});
+    const navigate=vi.fn();
+    await mount(<NexusRisingPage user={user} navigate={navigate}/>);
+    expect(text()).toContain("Coming");expect(text()).toContain("Soon");
+    expect(text()).not.toContain("Alpha");expect(text()).not.toContain("Player0#EUW");
     expect(button("Statistiques de mon équipe")).toBeUndefined();
     expect(button("Gérer les rencontres")).toBeUndefined();
-    expect(text()).not.toContain("Player0#EUW");
-    act(() => button("Connexion NXT5").props.onClick());
-    expect(navigate).toHaveBeenCalledWith("/connexion?next=%2Fnexus-rising");
-    expect(apiFetch.mock.calls.every(([path]) => path === "nexus-overview")).toBe(true);
+    expect(button("Inscrire mon équipe")).toBeUndefined();
+    expect(text()).not.toContain("Calendrier Nexus Rising");
+    expect(apiFetch).not.toHaveBeenCalled();
+    act(()=>button("Retour à NXT5").props.onClick());
+    expect(navigate).toHaveBeenCalledWith(user ? "/accueil" : "/");
+    if(!user){act(()=>button("Connexion NXT5").props.onClick());expect(navigate).toHaveBeenLastCalledWith("/connexion?next=%2Fnexus-rising");}
   });
-  it("only opens member details explicitly authorized by the server and keeps missing data unknown", async () => {
-    apiFetch.mockResolvedValue({ access: "member", fixtures: [{ ...fixture, canViewDetails: true, statistics: [{ gameId: "EUW1_1", participants: [{ riotId: "Authorized#EUW", championName: "Ahri", kills: 0, deaths: 1, assists: 2, goldEarned: null }] }] }, { ...fixture, id: "other", label: "Other encounter" }] });
-    await mount(<NexusRisingPage user={{ id: "member", name: "Member" }} navigate={vi.fn()} />);
+  it("keeps the full portal and missing statistics unknown for a server-authorized administrator", async () => {
+    apiFetch.mockResolvedValue({ access: "staff", fixtures: [{ ...fixture, canViewDetails: true, statistics: [{ gameId: "EUW1_1", participants: [{ riotId: "Authorized#EUW", championName: "Ahri", kills: 0, deaths: 1, assists: 2, goldEarned: null }] }] }, { ...fixture, id: "other", label: "Other encounter" }] });
+    await mount(<NexusRisingPage user={{ id: "admin", is_platform_admin:true }} navigate={vi.fn()} />);
     expect(renderer.root.findAllByType(Button).filter(node => node.props.children === "Statistiques de mon équipe")).toHaveLength(1);
     await act(async () => button("Statistiques de mon équipe").props.onClick());
-    expect(text()).toContain("Authorized#EUW");
-    expect(text()).toContain("—");
-    expect(button("Gérer les rencontres")).toBeUndefined();
+    expect(text()).toContain("Authorized#EUW");expect(text()).toContain("—");
+    expect(button("Gérer les rencontres")).toBeTruthy();
   });
   it("uses server game numbers and never numbers games from their arrival order", async () => {
-    apiFetch.mockResolvedValue({access:"guest",fixtures:[{...fixture,games:[{gameId:"EUW1_late",gameNumber:2,winner:"A",duration:1800},{gameId:"EUW1_unknown_order",winner:"B",duration:1800}]}]});
-    await mount(<NexusRisingPage navigate={vi.fn()}/>);
-    expect(text()).toContain("Partie 2");
-    expect(text()).toContain("EUW1_unknown_order");
-    expect(text()).not.toContain("Partie 1");
+    apiFetch.mockResolvedValue({access:"staff",fixtures:[{...fixture,games:[{gameId:"EUW1_late",gameNumber:2,winner:"A",duration:1800},{gameId:"EUW1_unknown_order",winner:"B",duration:1800}]}]});
+    await mount(<NexusRisingPage user={{id:"admin",is_platform_admin:true}} navigate={vi.fn()}/>);
+    expect(text()).toContain("Partie 2");expect(text()).toContain("EUW1_unknown_order");expect(text()).not.toContain("Partie 1");
   });
-  it("does not infer staff access from the account flag when the server denies it", async () => {
-    apiFetch.mockResolvedValue({ access: "guest", fixtures: [fixture] });
-    await mount(<NexusRisingPage user={{ id: "admin", is_platform_admin: true }} navigate={vi.fn()} />);
+  it.each(["coming_soon","guest","member"])("discards data when the server returns non-staff access (%s)", async access => {
+    apiFetch.mockResolvedValue({access,fixtures:[fixture]});
+    await mount(<NexusRisingPage user={{id:"admin",is_platform_admin:true}} navigate={vi.fn()}/>);
+    expect(text()).toContain("Coming");expect(text()).not.toContain("Alpha");
     expect(button("Gérer les rencontres")).toBeUndefined();
   });
-  it("removes the previous account's details while the next account is loading", async () => {
-    apiFetch.mockResolvedValue({ access: "member", fixtures: [{ ...fixture, canViewDetails: true, statistics: [{ gameId: "EUW1_1", participants: [{ riotId: "Private#EUW", kills: 1 }] }] }] });
-    await mount(<NexusRisingPage user={{ id: "member-a" }} navigate={vi.fn()} />);
-    await act(async () => button("Statistiques de mon équipe").props.onClick());
-    expect(text()).toContain("Private#EUW");
-    apiFetch.mockImplementation(() => new Promise(() => {}));
-    await act(async () => renderer.update(<NexusRisingPage user={{ id: "member-b" }} navigate={vi.fn()} />));
-    expect(text()).not.toContain("Private#EUW");
-    expect(button("Statistiques de mon équipe")).toBeUndefined();
+  it("destroys prior administrator details when the same account loses its role", async () => {
+    apiFetch.mockResolvedValue({access:"staff",fixtures:[{...fixture,canViewDetails:true,statistics:[{gameId:"EUW1_1",participants:[{riotId:"Private#EUW",kills:1}]}]}]});
+    await mount(<NexusRisingPage user={{id:"account",is_platform_admin:true}} navigate={vi.fn()}/>);
+    act(()=>button("Statistiques de mon équipe").props.onClick());expect(text()).toContain("Private#EUW");
+    const signal=apiFetch.mock.calls[0][1].signal;
+    await act(async()=>renderer.update(<NexusRisingPage user={{id:"account",is_platform_admin:false}} navigate={vi.fn()}/>));
+    expect(text()).toContain("Coming");expect(text()).not.toContain("Private#EUW");expect(text()).not.toContain("Alpha");
+    expect(signal.aborted).toBe(true);expect(apiFetch).toHaveBeenCalledTimes(1);
   });
-  it("shows an actionable error without exposing a stale overview", async () => {
+  it("aborts and ignores a late overview after logout", async () => {
+    let finish;
+    apiFetch.mockImplementationOnce(()=>new Promise(resolve=>{finish=resolve;}));
+    await mount(<NexusRisingPage user={{id:"admin",is_platform_admin:true}} navigate={vi.fn()}/>);
+    const signal=apiFetch.mock.calls[0][1].signal;
+    await act(async()=>renderer.update(<NexusRisingPage navigate={vi.fn()}/>));
+    await act(async()=>finish({access:"staff",fixtures:[fixture]}));
+    expect(signal.aborted).toBe(true);expect(text()).not.toContain("Alpha");expect(text()).toContain("Coming");
+    expect(apiFetch).toHaveBeenCalledTimes(1);
+  });
+  it.each([401,403])("shows Coming soon when the server rejects the stale administrator session (%s)",async status=>{
+    apiFetch.mockRejectedValue(Object.assign(new Error("Accès retiré"),{status}));
+    await mount(<NexusRisingPage user={{id:"admin",is_platform_admin:true}} navigate={vi.fn()}/>);
+    expect(text()).toContain("Coming");expect(text()).not.toContain("Accès retiré");expect(button("Gérer les rencontres")).toBeUndefined();
+  });
+  it("shows an actionable technical error for administrators without exposing a stale overview", async () => {
     apiFetch.mockRejectedValue(new Error("Service indisponible"));
-    await mount(<NexusRisingPage navigate={vi.fn()} />);
+    await mount(<NexusRisingPage user={{id:"admin",is_platform_admin:true}} navigate={vi.fn()} />);
     expect(renderer.root.findByProps({ role: "alert" }).children.length).toBeGreaterThan(0);
-    expect(button("Réessayer")).toBeTruthy();
-    expect(text()).not.toContain("Alpha");
+    expect(button("Réessayer")).toBeTruthy();expect(text()).not.toContain("Alpha");
+  });
+  it("closes the entire portal when the registration request detects withdrawn access",async()=>{
+    apiFetch.mockImplementation(path=>path==="nexus-overview"?Promise.resolve({access:"staff",fixtures:[fixture]}):Promise.reject(Object.assign(new Error("Ouverture prochaine"),{status:403,code:"NEXUS_COMING_SOON"})));
+    await mount(<NexusRisingPage user={{id:"admin",is_platform_admin:true}} navigate={vi.fn()}/>);
+    expect(text()).toContain("Alpha");
+    await act(async()=>button("Inscrire mon équipe").props.onClick());
+    await act(async()=>{await vi.dynamicImportSettled();});
+    expect(text()).toContain("Coming");expect(text()).not.toContain("Alpha");
+    expect(button("Inscrire mon équipe")).toBeUndefined();
+    expect(apiFetch.mock.calls.map(([path])=>path)).toEqual(["nexus-overview","nexus-registration"]);
   });
 });
 

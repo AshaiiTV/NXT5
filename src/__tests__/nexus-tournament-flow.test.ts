@@ -147,7 +147,7 @@ async function overview(user?: any) {
 }
 
 describe('native teams through tournament and the existing NXT5 importer', () => {
-  it('runs a season to its final, keeps retries idempotent and publishes only reviewed results to the right audience', async () => {
+  it('runs a season to its final, keeps retries idempotent and reserves reviewed results for staff during preopening', async () => {
     const season = await openAndRegister();
     const first = await generateSchedule({ seasonId: season.id });
     const repeated = await generateSchedule({ seasonId: season.id });
@@ -160,18 +160,17 @@ describe('native teams through tournament and the existing NXT5 importer', () =>
     const imported = await importGame(ready, firstWinner);
     expect(imported.binding).toMatchObject({ competitionId: 'nexus-rising', fixtureId: ready.id, roster: ready.roster });
     expect(await saveNexusSubmission(imported.token!, imported.data, imported.id)).toMatchObject({ duplicate: true, submissionId: imported.submissionId });
-    expect((await overview()).fixtures.find((f: any) => f.id === ready.id).games).toHaveLength(0);
+    const staff = {id: randomUUID(), is_platform_admin: true};
+    expect((await overview(staff)).fixtures.find((f: any) => f.id === ready.id).games).toHaveLength(0);
     await reviewTournamentSubmission({ submissionId: imported.submissionId, status: 'accepted' });
-    const guestFixture = (await overview()).fixtures.find((f: any) => f.id === ready.id);
-    expect(guestFixture.games).toHaveLength(1);
-    expect(guestFixture).not.toHaveProperty('statistics');
-    expect(guestFixture).not.toHaveProperty('roster');
+    const staffFixture = (await overview(staff)).fixtures.find((f: any) => f.id === ready.id);
+    expect(staffFixture.games).toHaveLength(1);
+    expect(staffFixture.statistics[0].participants).toHaveLength(10);
+    expect(JSON.stringify(staffFixture)).not.toContain(imported.token);
+    expect(await overview()).toEqual({access: 'coming_soon', seasons: [], fixtures: [], standings: [], playoffs: []});
     const owner = teams.find(t => t.id === ready.teamAId);
-    const memberFixture = (await overview({ id: owner.ownerId })).fixtures.find((f: any) => f.id === ready.id);
-    expect(memberFixture.statistics[0].participants).toHaveLength(10);
-    expect(JSON.stringify(memberFixture)).not.toContain(imported.token);
-    const outsiderFixture = (await overview({ id: teams[5].ownerId })).fixtures.find((f: any) => f.id === ready.id);
-    expect(outsiderFixture).not.toHaveProperty('statistics');
+    expect(await overview({ id: owner.ownerId })).toEqual({access: 'coming_soon', seasons: [], fixtures: [], standings: [], playoffs: []});
+    expect(await overview({ id: teams[5].ownerId })).toEqual({access: 'coming_soon', seasons: [], fixtures: [], standings: [], playoffs: []});
 
     for (const fixture of first.fixtures.slice(1)) {
       const winner = teams.findIndex(t => t.id === fixture.teamAId) < teams.findIndex(t => t.id === fixture.teamBId) ? 'A' : 'B';

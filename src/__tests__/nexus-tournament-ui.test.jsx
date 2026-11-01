@@ -114,6 +114,23 @@ describe("season management",()=>{
 });
 
 describe("native NXT5 teams",()=>{
+  it.each([{status:401},{status:403,code:"NEXUS_COMING_SOON"},{status:403,code:"PLATFORM_ADMIN_FORBIDDEN"}])("clears registration data and reports lost platform access after submit (%j)",async rejection=>{
+    const onAccessLost=vi.fn();
+    const request=vi.fn().mockImplementation((_path,options)=>options?.method==="POST"?Promise.reject(Object.assign(new Error("Accès retiré"),rejection)):Promise.resolve({seasons:[season],teams:[{id:"private-team",name:"Équipe privée"}],registrations:[]}));
+    await mount(<NexusRegistration request={request} onClose={vi.fn()} onAccessLost={onAccessLost}/>);
+    expect(text()).toContain("Équipe privée");
+    await act(async()=>renderer.root.findByType("form").props.onSubmit({preventDefault(){}}));
+    expect(onAccessLost).toHaveBeenCalledOnce();
+    expect(text()).not.toContain("Équipe privée");
+    expect(renderer.root.findAllByType("form")).toHaveLength(0);
+  });
+  it("keeps a team-specific refusal inside the registration form without revoking portal access",async()=>{
+    const onAccessLost=vi.fn();
+    const request=vi.fn().mockImplementation((_path,options)=>options?.method==="POST"?Promise.reject(Object.assign(new Error("Équipe non gérée"),{status:403,code:"NEXUS_REGISTRATION_FORBIDDEN"})):Promise.resolve({seasons:[season],teams:[{id:"a",name:"Alpha"}],registrations:[]}));
+    await mount(<NexusRegistration request={request} onClose={vi.fn()} onAccessLost={onAccessLost}/>);
+    await act(async()=>renderer.root.findByType("form").props.onSubmit({preventDefault(){}}));
+    expect(onAccessLost).not.toHaveBeenCalled();expect(text()).toContain("Équipe non gérée");expect(renderer.root.findAllByType("form")).toHaveLength(1);
+  });
   it("submits existing team and season identifiers and prevents a concurrent duplicate",async()=>{
     let finish;
     const request=vi.fn().mockImplementation((_path,options)=>options?.method==="POST"?new Promise(resolve=>{finish=resolve;}):Promise.resolve({seasons:[season],teams:[{id:"team-a",name:"Alpha"}],registrations:[]}));

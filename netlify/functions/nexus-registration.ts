@@ -1,5 +1,5 @@
 import type { Context } from "@netlify/functions";
-import { assertSessionSecret, requireAuth } from "./_lib/auth";
+import { assertSessionSecret, isPlatformAdmin, requireAuth } from "./_lib/auth";
 import { assertMethod, handleError, json, readJson } from "./_lib/http";
 import { assertRateLimit } from "./_lib/rate-limit";
 import { assertMatchSourceMutationEnvironment } from "./_lib/match-source-environment";
@@ -18,6 +18,9 @@ export default async function handler(request: Request, context: Context) {
     assertMethod(request, request.method === "GET" ? "GET" : "POST");
     assertSessionSecret();
     const user = await requireAuth(request, context);
+    if (!isPlatformAdmin(user)) {
+      nexusError("Nexus Rising ouvre bientôt.", 403, "NEXUS_COMING_SOON");
+    }
     await assertRateLimit(request, "nexus-registration", {
       limit: 30,
       windowSeconds: 60,

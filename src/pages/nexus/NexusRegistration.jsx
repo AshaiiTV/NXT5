@@ -5,7 +5,7 @@ import { Badge, Button, SelectInput, SkeletonRows, Surface } from "../../compone
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 
-export default function NexusRegistration({ onClose, request = apiFetch }) {
+export default function NexusRegistration({ onClose, onAccessLost, request = apiFetch }) {
   useLanguage();
   const [data, setData] = useState(null);
   const [seasonId,setSeasonId] = useState("");
@@ -16,6 +16,13 @@ export default function NexusRegistration({ onClose, request = apiFetch }) {
   const [notice,setNotice] = useState("");
   const lock = useRef(false);
   const mounted = useRef(true);
+  function fail(issue) {
+    if(!mounted.current)return;
+    if(issue.status===401 || ["NEXUS_COMING_SOON","PLATFORM_ADMIN_FORBIDDEN"].includes(issue.code)) {
+      setData(null);setSeasonId("");setTeamId("");setNotice("");setError("");
+      onAccessLost?.();
+    } else setError(issue.message || t("Chargement impossible. Réessaie."));
+  }
   async function load(signal) {
     const result = await request("nexus-registration",{signal});
     if (signal?.aborted || !mounted.current) return;
@@ -24,7 +31,7 @@ export default function NexusRegistration({ onClose, request = apiFetch }) {
   useEffect(()=>{
     mounted.current = true;
     const controller = new AbortController();
-    load(controller.signal).catch(issue=>{if(!controller.signal.aborted)setError(issue.message);}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
+    load(controller.signal).catch(issue=>{if(!controller.signal.aborted)fail(issue);}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
     return()=>{mounted.current=false;controller.abort();};
   },[]);
   async function register(event) {
@@ -36,7 +43,7 @@ export default function NexusRegistration({ onClose, request = apiFetch }) {
       if(!mounted.current)return;
       setNotice(t("Candidature envoyée. Le staff Nexus Rising va l’examiner."));
       await load();
-    } catch(issue){if(mounted.current)setError(issue.message);}
+    } catch(issue){fail(issue);}
     finally {lock.current=false;if(mounted.current)setBusy(false);}
   }
   const existing = data?.registrations?.find(row=>row.seasonId===seasonId&&row.teamId===teamId);

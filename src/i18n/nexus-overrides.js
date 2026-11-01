@@ -218,6 +218,11 @@ const entries = [
   ["Vainqueur de {0}", "Winner of {0}", "Ganador de {0}"],
   ["Perdant de {0}", "Loser of {0}", "Perdedor de {0}"],
   ["Poules", "Groups", "Grupos"],
+  ["La prochaine saison de Nexus Rising se prépare.", "The next Nexus Rising season is taking shape.", "La próxima temporada de Nexus Rising se está preparando."],
+  ["Retour à NXT5", "Back to NXT5", "Volver a NXT5"],
+  ["Vérification de ton accès…", "Checking your access…", "Verificando tu acceso…"],
+  ["Saison I", "Season I", "Temporada I"],
+  ["Janvier 2027", "January 2027", "Enero de 2027"],
 ];
 export const en = Object.fromEntries(entries.map(([fr, value]) => [fr, value]));
 export const es = Object.fromEntries(entries.map(([fr, , value]) => [fr, value]));

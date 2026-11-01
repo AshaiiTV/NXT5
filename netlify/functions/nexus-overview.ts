@@ -90,6 +90,16 @@ export default async function handler(request: Request, context: Context) {
           throw err;
       }
     }
+    const staff = Boolean(user && isPlatformAdmin(user));
+    if (!staff) {
+      return json({
+        access: "coming_soon",
+        seasons: [],
+        fixtures: [],
+        standings: [],
+        playoffs: [],
+      });
+    }
     await assertNexusSchema();
     const [state, membership] = await Promise.all([
       loadTournamentState(),
@@ -97,7 +107,6 @@ export default async function handler(request: Request, context: Context) {
         ? sql`select id from teams where owner_id = ${user.id} union select team_id as id from team_members where user_id = ${user.id}`
         : Promise.resolve([]),
     ]);
-    const staff = Boolean(user && isPlatformAdmin(user));
     const teamIds = new Set<string>(membership.map((row) => row.id));
     const seasons = state.seasons.filter(
       (row) => staff || row.status !== "draft",

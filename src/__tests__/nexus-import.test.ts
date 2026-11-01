@@ -14,6 +14,7 @@ import {
 const db = vi.hoisted(() => ({
   pg: null as any,
   beforeBatch: null as null | (() => Promise<void>),
+  calls: 0,
 }));
 const identity = vi.hoisted(() => ({ user: null as any, cookie: "" }));
 vi.mock("../../netlify/functions/_lib/auth", () => ({
@@ -40,6 +41,7 @@ vi.mock("../../netlify/functions/_lib/rate-limit", () => ({
 vi.mock("../../netlify/functions/_lib/db", async () => {
   const { neon, neonConfig } = await import("@neondatabase/serverless");
   neonConfig.fetchFunction = async (_url, options: any) => {
+    db.calls++;
     const body = JSON.parse(options.body);
     async function execute(connection: any, statement: any) {
       const result = await connection.query(statement.query, statement.params);
@@ -264,6 +266,7 @@ beforeAll(async () => {
 }, 20_000);
 beforeEach(async () => {
   db.beforeBatch = null;
+  db.calls = 0;
   identity.user = null;
   identity.cookie = "";
   for (const key of ["AWS_LAMBDA_FUNCTION_NAME", "LAMBDA_TASK_ROOT", "SITE_ID"])
@@ -639,17 +642,23 @@ describe("Nexus HTTP authorization and disclosure", () => {
             body: JSON.stringify(body),
           },
     );
-  it("allows guest consultation and refuses captain/admin endpoints without their distinct credentials", async () => {
+  it("returns only coming soon to guests without reading tournament data and preserves importer/admin authentication", async () => {
     await createNexusFixture(fixtureInput());
+    db.calls = 0;
     const publicView = await overviewHandler(
       request("nexus-overview"),
       context,
     );
     expect(publicView.status).toBe(200);
-    expect(await publicView.json()).toMatchObject({
-      access: "guest",
-      fixtures: [{ canViewDetails: false }],
+    expect(await publicView.json()).toEqual({
+      access: "coming_soon",
+      seasons: [],
+      fixtures: [],
+      standings: [],
+      playoffs: [],
     });
+    expect(db.calls).toBe(0);
+    expect(publicView.headers.get("cache-control")).toBe("no-store");
     expect((await adminHandler(request("nexus-admin"), context)).status).toBe(
       403,
     );
@@ -670,7 +679,7 @@ describe("Nexus HTTP authorization and disclosure", () => {
     await db.pg.exec(
       "update nexus_seasons set tie_resolution_note='Private staff deliberation'",
     );
-    identity.user = { id: randomUUID() };
+    identity.user = { id: randomUUID(), is_platform_admin: true };
     const response = await registrationHandler(
       request("nexus-registration"),
       context,
@@ -681,7 +690,7 @@ describe("Nexus HTTP authorization and disclosure", () => {
     expect(data.seasons[0]).not.toHaveProperty("tieResolutionNote");
     expect(JSON.stringify(data)).not.toContain("Private staff deliberation");
   });
-  it("requires both an NXT account and active membership in a mapped Nexus team for detailed data", async () => {
+  it("keeps the portal hidden from accounts and linked members, while the configured administrator retains access", async () => {
     const teamId = "00000000-0000-4000-8000-000000000021";
     const userId = "00000000-0000-4000-8000-000000000022";
     await db.pg.query("insert into teams(id,name) values ($1,$2)", [
@@ -699,12 +708,19 @@ describe("Nexus HTTP authorization and disclosure", () => {
       status: "accepted",
     });
     identity.cookie = "valid-nxt";
-    identity.user = { id: userId };
+    identity.user = { id: userId, name: "Ashaii" };
+    db.calls = 0;
     let response = await (
       await overviewHandler(request("nexus-overview"), context)
     ).json();
-    expect(response.access).toBe("guest");
-    expect(response.fixtures[0]).not.toHaveProperty("statistics");
+    expect(response).toEqual({
+      access: "coming_soon",
+      seasons: [],
+      fixtures: [],
+      standings: [],
+      playoffs: [],
+    });
+    expect(db.calls).toBe(0);
     await db.pg.query("insert into team_members values ($1,$2,'player')", [
       teamId,
       userId,
@@ -712,26 +728,85 @@ describe("Nexus HTTP authorization and disclosure", () => {
     response = await (
       await overviewHandler(request("nexus-overview"), context)
     ).json();
-    expect(response.access).toBe("member");
-    expect(response.fixtures[0].statistics[0].participants).toHaveLength(10);
-    expect(JSON.stringify(response)).not.toContain("token_hash");
-    await db.pg.query("delete from team_members where user_id=$1", [userId]);
+    expect(response).toEqual({
+      access: "coming_soon",
+      seasons: [],
+      fixtures: [],
+      standings: [],
+      playoffs: [],
+    });
+    expect(db.calls).toBe(0);
+    identity.user = {
+      id: randomUUID(),
+      name: "Configured administrator",
+      is_platform_admin: true,
+    };
     response = await (
       await overviewHandler(request("nexus-overview"), context)
     ).json();
-    expect(response.fixtures[0]).not.toHaveProperty("statistics");
+    expect(response.access).toBe("staff");
+    expect(response.fixtures[0].statistics[0].participants).toHaveLength(10);
+    expect(response.seasons).toHaveLength(1);
+    expect(JSON.stringify(response)).not.toContain("token_hash");
     identity.user = null;
-    expect(
-      (await overviewHandler(request("nexus-overview"), context)).status,
-    ).toBe(200);
+    db.calls = 0;
+    const expired = await overviewHandler(request("nexus-overview"), context);
+    expect(await expired.json()).toEqual({
+      access: "coming_soon",
+      seasons: [],
+      fixtures: [],
+      standings: [],
+      playoffs: [],
+    });
+    expect(db.calls).toBe(0);
   });
+  it.each(["GET", "POST"])(
+    "refuses %s registration for a non-admin before any tournament read or write",
+    async (method) => {
+      identity.user = { id: randomUUID(), name: "Ashaii" };
+      const response = await registrationHandler(
+        request(
+          "nexus-registration",
+          method === "POST"
+            ? {
+                action: "register",
+                seasonId: randomUUID(),
+                teamId: randomUUID(),
+              }
+            : undefined,
+        ),
+        context,
+      );
+      expect(response.status).toBe(403);
+      expect(await response.json()).toMatchObject({
+        code: "NEXUS_COMING_SOON",
+      });
+      expect(db.calls).toBe(0);
+      identity.user = null;
+      const anonymous = await registrationHandler(
+        request(
+          "nexus-registration",
+          method === "POST" ? { action: "register" } : undefined,
+        ),
+        context,
+      );
+      expect(anonymous.status).toBe(401);
+      expect(db.calls).toBe(0);
+    },
+  );
   it("keeps pending captures out of the guest response, but accessible to staff with explicit admin auth", async () => {
     const c = await bound();
     const submission = await saveNexusSubmission(c.token, body(c), "pending");
     const guest = await (
       await overviewHandler(request("nexus-overview"), context)
     ).json();
-    expect(guest.fixtures[0].games).toEqual([]);
+    expect(guest).toEqual({
+      access: "coming_soon",
+      seasons: [],
+      fixtures: [],
+      standings: [],
+      playoffs: [],
+    });
     identity.cookie = "admin-nxt";
     identity.user = {
       id: "00000000-0000-4000-8000-000000000099",
@@ -813,6 +888,31 @@ describe("Nexus native roster enrollment security", () => {
     }
     return { id, ownerId, players };
   }
+  it("lets staff register their own team but retains native team ownership checks", async () => {
+    const s = await season(),
+      owned = await nativeTeam("Owned"),
+      other = await nativeTeam("Other");
+    identity.user = { id: owned.ownerId, is_platform_admin: true };
+    const send = (teamId: string) =>
+      registrationHandler(
+        new Request("https://nxt5.org/.netlify/functions/nexus-registration", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ action: "register", seasonId: s.id, teamId }),
+        }),
+        {} as any,
+      );
+    const accepted = await send(owned.id);
+    expect(accepted.status).toBe(201);
+    expect((await accepted.json()).registration).toMatchObject({
+      teamId: owned.id,
+      status: "pending",
+    });
+    expect((await send(other.id)).status).toBe(403);
+    expect(
+      (await db.pg.query("select team_id from nexus_registrations")).rows,
+    ).toEqual([{ team_id: owned.id }]);
+  });
   it("uses direct elimination configuration before unused secondary playoff settings", async () => {
     const base = {
       name: "Format",

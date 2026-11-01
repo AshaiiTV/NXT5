@@ -5,7 +5,7 @@ Préparation locale au 1er novembre 2026. Ce document ne prouve ni un déploieme
 ## Décisions du projet
 
 - Nexus Rising utilise les comptes, équipes et profils de joueurs NXT5, dans la même base. Une inscription lie une équipe existante à une saison ; elle ne crée pas une deuxième identité d’équipe.
-- Le portail public reste accessible aux invités. Les données détaillées des rencontres acceptées sont réservées aux membres NXT5 des équipes concernées et au staff.
+- Pendant la préouverture demandée le 1er novembre, visiteurs et comptes non administrateurs voient « Coming soon ». Seule l’administration NXT5 utilisée par Ashaii accède au portail et aux inscriptions. Le modèle invité/membre prévu pour l’ouverture est conservé dans le code, mais n’est pas accessible pendant cette phase ; voir les [règles d’accès](nexus-rising-importer.md#accès-décidés).
 - Le même importeur NXT5 fournit les résultats des customs. Le code de liaison Nexus est un accès à une rencontre ; ce n’est pas un code de tournoi Riot et il ne crée pas le lobby LoL.
 - Le format de tournoi est configurable. Les modèles Nexus Rising ne constituent pas une décision sur le format définitif de la Saison I.
 
