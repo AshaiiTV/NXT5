@@ -30,7 +30,8 @@ describe("scrim finder page", () => {
   it("loads the team listing and lets the staff answer, confirm and publish", async () => {
     api.fetch.mockImplementation(async (path, options) => options?.method === "POST" ? { ok: true } : listing());
     const pushToast = vi.fn();
-    await mount(<ScrimFinder data={data} selectedTeamId="team-a" currentMember={{ role: "captain" }} user={{ id: "u1" }} pushToast={pushToast} />);
+    const refreshAll = vi.fn(async () => {});
+    await mount(<ScrimFinder data={data} selectedTeamId="team-a" currentMember={{ role: "captain" }} user={{ id: "u1" }} pushToast={pushToast} refreshAll={refreshAll} />);
     expect(api.fetch.mock.calls[0][0]).toBe("scrims-manage?teamId=team-a");
     expect(text()).toContain("Beta");
     expect(text()).toContain("Émeraude à Diamant");
@@ -46,6 +47,7 @@ describe("scrim finder page", () => {
     await act(async () => { button("Confirmer").props.onClick(); });
     const accept = api.fetch.mock.calls.filter(([, options]) => options?.method === "POST").at(-1);
     expect(JSON.parse(accept[1].body)).toMatchObject({ action: "accept", requestId: "req-c", expectedRevision: 1 });
+    expect(refreshAll).toHaveBeenCalledTimes(1);
 
     act(() => renderer.root.findAllByType(SelectInput).find((node) => node.props.label === "Nombre de games").props.onChange("5"));
     await act(async () => { renderer.root.findAllByType("form").find((form) => form.props.className === "scrim-form").props.onSubmit({ preventDefault() {} }); });

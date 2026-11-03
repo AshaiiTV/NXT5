@@ -8015,5 +8015,7 @@
   "Si la diffusion Discord est active avec un salon planning, le bot annonce le scrim confirmé dans ce salon.": "If Discord publishing is active with a planning channel, the bot announces the confirmed scrim there.",
   "Comment proposer un scrim à une autre équipe ?": "How do I offer a scrim to another team?",
   "Qui peut confirmer un scrim ?": "Who can confirm a scrim?",
-  "Où apparaît un scrim confirmé ?": "Where does a confirmed scrim appear?"
+  "Où apparaît un scrim confirmé ?": "Where does a confirmed scrim appear?",
+  "Tes droits sur cette équipe ont changé. Recharge la page.": "Your rights on this team changed. Reload the page.",
+  "La proposition ou ta réponse a changé entre-temps. Recharge la page.": "The offer or your answer changed in the meantime. Reload the page."
 }

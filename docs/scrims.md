@@ -15,7 +15,8 @@ Les membres sans rôle de staff consultent les propositions sans pouvoir publier
 
 - Tables `scrim_offers` et `scrim_requests` (migration `scrim-finder-20261104-v1`). Les lignes suivent l’équipe : supprimer l’équipe supprime ses propositions et réponses.
 - Dix propositions ouvertes au plus par équipe ; un créneau entre 30 minutes et 60 jours après la publication.
-- Les mutations sont limitées à 30 requêtes par minute et par adresse. La confirmation vérifie la révision de la proposition et verrouille la ligne : deux confirmations simultanées ne créent pas deux séances.
+- Les mutations sont limitées à 30 requêtes par minute et par adresse. La publication et la confirmation verrouillent la ligne de l’équipe et revérifient les droits du staff dans la transaction ; la confirmation verrouille aussi la proposition et la réponse, vérifie la révision et n’accepte qu’une réponse encore en attente. Deux confirmations simultanées ne créent pas deux séances ; une réponse retirée au même instant n’est pas acceptée.
+- Après une saison Nexus terminée, une équipe supprimée laisse ses rencontres sans lien d’équipe ; le classement et la vue d’ensemble ignorent ces rencontres au lieu d’échouer.
 - Les propositions exposent le nom et le tag de l’équipe, la région, le créneau, le niveau déclaré et la précision saisie. Le planning, les joueurs et les autres données de l’équipe restent privés. Le contact entre équipes passe par la précision ou le message de réponse ; aucun identifiant Discord personnel n’est révélé automatiquement.
 - Journal d’audit : `scrim.offer.create`, `scrim.offer.cancel`, `scrim.request.create`, `scrim.offer.accept`.
 

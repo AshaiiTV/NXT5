@@ -1,7 +1,11 @@
+import crypto from "node:crypto";
 import { sql } from "./db";
 import { cleanText } from "./text";
 import { TEAM_STAFF_ROLES } from "./teams";
 import { logFailure } from "./safe-log";
+import { isDiscordEnabled } from "./discord-config";
+import { botSettings, queueBotMessage } from "./discord-bot-schedule";
+import { botLink, botText } from "./discord-bot-common";
 
 export const SCRIM_TIERS = ["iron", "bronze", "silver", "gold", "platinum", "emerald", "diamond", "master"] as const;
 export const SCRIM_TIER_LABELS: Record<string, string> = {
@@ -37,6 +41,19 @@ export async function scrimMembership(userId: string, teamIdValue: unknown) {
 }
 function assertManager(membership: { canManage: boolean }) {
   if (!membership.canManage) scrimError("Seul le staff de l’équipe peut gérer les scrims.", 403, "SCRIM_FORBIDDEN");
+}
+// Team mutations serialize on the team row; a removed or demoted member fails
+// here with an invalid cast (22P02), distinct from the state guards (22012).
+function managerGuard(tx: any, userId: string, teamId: string) {
+  return [
+    tx`select id from teams where id = ${teamId} for update`,
+    tx`select (case when count(*) = 1 then '1' else 'staff_revoked' end)::integer as staff_still_allowed from teams t
+       where t.id = ${teamId} and (t.owner_id = ${userId} or exists (select 1 from team_members m
+         where m.team_id = t.id and m.user_id = ${userId} and m.role = any(${TEAM_STAFF_ROLES})))`,
+  ];
+}
+function revokedError(): never {
+  scrimError("Tes droits sur cette équipe ont changé. Recharge la page.", 403, "SCRIM_FORBIDDEN");
 }
 
 function offerView(row: any, viewerTeamId: string) {
@@ -97,7 +114,7 @@ export async function listScrims(userId: string, teamIdValue: unknown) {
       from scrim_offers o
       join teams t on t.id = o.team_id
       left join teams m on m.id = o.matched_team_id
-      where o.team_id = ${teamId} and (o.status = 'open' or o.starts_at > now() - interval '7 days')
+      where o.team_id = ${teamId} and o.starts_at > now() - interval '7 days'
       order by o.starts_at asc
       limit 100`,
     sql`
@@ -163,15 +180,27 @@ export async function createScrimOffer(userId: string, body: any) {
   const membership = await scrimMembership(userId, body.teamId);
   assertManager(membership);
   const offer = normalizeOffer(body);
-  const rows = await sql`
-    with open_count as (select count(*) as total from scrim_offers where team_id = ${membership.teamId} and status = 'open' and starts_at > now())
-    insert into scrim_offers (team_id, created_by, starts_at, duration_minutes, games, level_min, level_max, note)
-    select ${membership.teamId}, ${userId}, ${offer.startsAt}, ${offer.durationMinutes}, ${offer.games}, ${offer.levelMin}, ${offer.levelMax}, ${offer.note}
-    from open_count where total < ${MAX_OPEN_OFFERS_PER_TEAM}
-    returning *`;
-  if (!rows[0]) scrimError("Ton équipe a déjà dix propositions ouvertes. Annule-en une avant d’en publier une autre.", 409, "SCRIM_LIMIT");
-  await sql`insert into audit_logs (user_id, action, entity_type, entity_id, metadata) values (${userId}, 'scrim.offer.create', 'scrim_offer', ${rows[0].id}, ${JSON.stringify({ teamId: membership.teamId })}::jsonb)`;
-  return { offer: offerView({ ...rows[0], team_name: membership.team.name, team_tag: membership.team.tag }, membership.teamId) };
+  const offerId = crypto.randomUUID();
+  let results: any[];
+  try {
+    // The quota is counted under the team lock, so concurrent publications serialize.
+    results = await sql.transaction((tx) => [
+      ...managerGuard(tx, userId, membership.teamId),
+      tx`insert into scrim_offers (id, team_id, created_by, starts_at, duration_minutes, games, level_min, level_max, note)
+         select ${offerId}, ${membership.teamId}, ${userId}, ${offer.startsAt}, ${offer.durationMinutes}, ${offer.games}, ${offer.levelMin}, ${offer.levelMax}, ${offer.note}
+         where (select count(*) from scrim_offers where team_id = ${membership.teamId} and status = 'open' and starts_at > now()) < ${MAX_OPEN_OFFERS_PER_TEAM}
+         returning *`,
+      tx`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
+         select ${userId}, 'scrim.offer.create', 'scrim_offer', id, ${JSON.stringify({ teamId: membership.teamId })}::jsonb
+         from scrim_offers where id = ${offerId}`,
+    ]);
+  } catch (err: any) {
+    if (err?.code === "22P02") revokedError();
+    throw err;
+  }
+  const created = results[2][0];
+  if (!created) scrimError("Ton équipe a déjà dix propositions ouvertes. Annule-en une avant d’en publier une autre.", 409, "SCRIM_LIMIT");
+  return { offer: offerView({ ...created, team_name: membership.team.name, team_tag: membership.team.tag }, membership.teamId) };
 }
 
 export async function cancelScrimOffer(userId: string, body: any) {
@@ -257,12 +286,14 @@ export async function acceptScrimRequest(userId: string, body: any) {
   let results: any[];
   try {
     results = await sql.transaction((tx) => [
+      ...managerGuard(tx, userId, membership.teamId),
       tx`select id from scrim_offers where id = ${target.id} for update`,
+      tx`select id from scrim_requests where id = ${requestId} for update`,
       tx`select 1 / case when count(*) = 1 then 1 else 0 end as offer_still_open from scrim_offers
          where id = ${target.id} and team_id = ${membership.teamId} and status = 'open' and revision = ${target.revision} and starts_at > now()`,
       tx`select 1 / case when count(*) = 1 then 1 else 0 end as request_still_pending from scrim_requests where id = ${requestId} and offer_id = ${target.id} and status = 'pending'`,
-      tx`update scrim_offers set status = 'matched', matched_team_id = ${target.guest_team_id}, matched_request_id = ${requestId}, matched_at = now(), revision = revision + 1, updated_at = now() where id = ${target.id}`,
-      tx`update scrim_requests set status = 'accepted', updated_at = now() where id = ${requestId}`,
+      tx`update scrim_offers set status = 'matched', matched_team_id = ${target.guest_team_id}, matched_request_id = ${requestId}, matched_at = now(), revision = revision + 1, updated_at = now() where id = ${target.id} and status = 'open'`,
+      tx`update scrim_requests set status = 'accepted', updated_at = now() where id = ${requestId} and status = 'pending'`,
       tx`update scrim_requests set status = 'declined', updated_at = now() where offer_id = ${target.id} and id <> ${requestId} and status = 'pending'`,
       tx`insert into discord_team_events (team_id, title, event_type, starts_at, duration_minutes, details, created_by)
          values (${membership.teamId}, ${hostTitle}, 'scrim', ${target.starts_at}, ${target.duration_minutes}, ${details}, ${userId}),
@@ -272,10 +303,11 @@ export async function acceptScrimRequest(userId: string, body: any) {
          (${userId}, 'scrim.offer.accept', 'scrim_offer', ${target.id}, ${JSON.stringify({ teamId: membership.teamId, guestTeamId: target.guest_team_id, requestId })}::jsonb)`,
     ]);
   } catch (err: any) {
-    if (err?.code === "22012") scrimError("La proposition a changé entre-temps. Recharge la page.", 409, "SCRIM_STATE");
+    if (err?.code === "22P02") revokedError();
+    if (err?.code === "22012") scrimError("La proposition ou ta réponse a changé entre-temps. Recharge la page.", 409, "SCRIM_STATE");
     throw err;
   }
-  const events = results[6] as any[];
+  const events = results[9] as any[];
   await Promise.all(events.map((event) => announceScrimSession(event, event.team_id === membership.teamId ? target.guest_name : membership.team.name).catch((error) => {
     logFailure("[scrims] Discord announcement skipped.", { code: error?.code || "SCRIM_DISCORD_SKIPPED" });
   })));
@@ -285,10 +317,7 @@ export async function acceptScrimRequest(userId: string, body: any) {
 // Best effort: the bot outbox delivers within its five-minute tick when the team
 // has an active connection and a planning channel. Nothing here blocks the match.
 async function announceScrimSession(event: any, opponentName: string) {
-  const { isDiscordEnabled } = await import("./discord-config");
   if (!isDiscordEnabled()) return;
-  const { botSettings, queueBotMessage } = await import("./discord-bot-schedule");
-  const { botText, botLink } = await import("./discord-bot-common");
   const settings = await botSettings(event.team_id);
   const channelId = settings.channels?.planning;
   if (!channelId) return;

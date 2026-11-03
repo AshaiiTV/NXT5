@@ -3,6 +3,7 @@ import { assertMethod, handleError, json, readJson } from "./_lib/http";
 import { assertSessionSecret, requireAuth } from "./_lib/auth";
 import { assertRateLimit } from "./_lib/rate-limit";
 import { ensureAuditLogsSchema } from "./_lib/schema";
+import { withDiscordRuntime } from "./_lib/discord-runtime";
 import { acceptScrimRequest, cancelScrimOffer, createScrimOffer, declineScrimRequest, listScrims, respondToScrim, scrimError, withdrawScrimRequest } from "./_lib/scrims";
 
 const ACTIONS: Record<string, (userId: string, body: any) => Promise<unknown>> = {
@@ -14,7 +15,7 @@ const ACTIONS: Record<string, (userId: string, body: any) => Promise<unknown>> =
   decline: declineScrimRequest,
 };
 
-export default async function handler(request: Request, context: Context): Promise<Response> {
+async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertMethod(request, request.method === "GET" ? "GET" : "POST");
     assertSessionSecret();
@@ -32,3 +33,6 @@ export default async function handler(request: Request, context: Context): Promi
     return handleError(err);
   }
 }
+
+// The announcement after a confirmation reads the deploy context like the other Discord entry points.
+export default withDiscordRuntime(handler);

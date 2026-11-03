@@ -8015,5 +8015,7 @@
   "Si la diffusion Discord est active avec un salon planning, le bot annonce le scrim confirmé dans ce salon.": "Si la difusión de Discord está activa con un canal de planning, el bot anuncia el scrim confirmado en ese canal.",
   "Comment proposer un scrim à une autre équipe ?": "¿Cómo propongo un scrim a otro equipo?",
   "Qui peut confirmer un scrim ?": "¿Quién puede confirmar un scrim?",
-  "Où apparaît un scrim confirmé ?": "¿Dónde aparece un scrim confirmado?"
+  "Où apparaît un scrim confirmé ?": "¿Dónde aparece un scrim confirmado?",
+  "Tes droits sur cette équipe ont changé. Recharge la page.": "Tus permisos en este equipo cambiaron. Recarga la página.",
+  "La proposition ou ta réponse a changé entre-temps. Recharge la page.": "La propuesta o tu respuesta cambió mientras tanto. Recarga la página."
 }

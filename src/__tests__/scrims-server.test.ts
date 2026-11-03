@@ -3,7 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyMigrations, loadMigrations } from '../../tools/migration-runner.mjs';
 
-const db = vi.hoisted(() => ({ pg: null as any }));
+const db = vi.hoisted(() => ({ pg: null as any, beforeBatch: null as null | (() => Promise<void>) }));
 const identity = vi.hoisted(() => ({ userId: '' }));
 const discord = vi.hoisted(() => ({ enabled: false, settings: {} as any, queued: [] as any[] }));
 vi.mock('../../netlify/functions/_lib/auth', () => ({ assertSessionSecret: () => {}, requireAuth: async () => ({ id: identity.userId }) }));
@@ -37,6 +37,9 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
     }
     try {
       if (body.queries) {
+        const mutate = db.beforeBatch;
+        db.beforeBatch = null;
+        await mutate?.();
         const results = await db.pg.transaction(async (tx: any) => {
           const results = [];
           for (const query of body.queries) results.push(await execute(tx, query));
@@ -76,7 +79,7 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(async () => { await db.pg?.close(); });
 beforeEach(async () => {
-  discord.enabled = false; discord.settings = {}; discord.queued = [];
+  discord.enabled = false; discord.settings = {}; discord.queued = []; db.beforeBatch = null;
   await db.pg.exec('truncate users cascade; truncate audit_logs;');
   for (const [key, id] of Object.entries(users)) await rows("insert into users(id, account_name, name, password_hash) values ($1, $2, $2, 'hash')", [id, key]);
   await rows("insert into teams(id, owner_id, name, tag) values ($1, $2, 'Host Team', 'HST'), ($3, $4, 'Guest Team', 'GST'), ($5, $6, 'Third Team', 'TRD')", [teams.host, users.hostOwner, teams.guest, users.guestOwner, teams.third, users.thirdOwner]);
@@ -152,6 +155,22 @@ describe('answering and confirming a scrim', () => {
     expect(guestView.body.matched[0].requests[0]).toMatchObject({ status: 'accepted', message: 'On est chauds.' });
     expect((await call(users.thirdOwner, undefined, teams.third)).body.requests[0]).toMatchObject({ status: 'declined' });
     expect(await rows("select action from audit_logs where action = 'scrim.offer.accept'")).toHaveLength(1);
+  });
+
+  it('refuses a confirmation when the answer was withdrawn or the staff rights were revoked just before the transaction', async () => {
+    const { offer, guest } = await publishAndAnswer();
+    db.beforeBatch = async () => { await rows("update scrim_requests set status = 'withdrawn' where id = $1", [guest.id]); };
+    expect(await call(users.hostCoach, { action: 'accept', requestId: guest.id, expectedRevision: offer.revision })).toMatchObject({ status: 409, body: { code: 'SCRIM_STATE' } });
+    expect(await rows('select status from scrim_offers')).toEqual([{ status: 'open' }]);
+    expect(await rows('select status from scrim_requests where id = $1', [guest.id])).toEqual([{ status: 'withdrawn' }]);
+    expect(await rows('select id from discord_team_events')).toHaveLength(0);
+    await rows("update scrim_requests set status = 'pending' where id = $1", [guest.id]);
+    db.beforeBatch = async () => { await rows('delete from team_members where user_id = $1', [users.hostCoach]); };
+    expect((await call(users.hostCoach, { action: 'accept', requestId: guest.id, expectedRevision: offer.revision })).status).toBe(403);
+    expect(await rows('select status from scrim_offers')).toEqual([{ status: 'open' }]);
+    db.beforeBatch = async () => { await rows('delete from team_members where user_id = $1', [users.hostCoach]); };
+    expect((await call(users.hostCoach, offerBody({ startsAt: inHours(72) }))).status).toBe(403);
+    expect(await rows("select count(*)::int as n from scrim_offers")).toEqual([{ n: 1 }]);
   });
 
   it('announces the confirmed session to each team that has a planning channel', async () => {

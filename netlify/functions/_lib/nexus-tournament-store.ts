@@ -680,8 +680,14 @@ export async function loadTournamentState() {
     const approved = registrations.filter(
       (row) => row.season_id === season.id && row.status === "approved",
     );
+    // A team deleted after its season completed leaves fixtures without a
+    // side; the standings algorithms require two teams, so those are skipped.
     const regular = fixtures.filter(
-      (row) => row.season_id === season.id && row.stage === "regular",
+      (row) =>
+        row.season_id === season.id &&
+        row.stage === "regular" &&
+        row.team_a_id &&
+        row.team_b_id,
     );
     const groupIds =
       season.format === "groups"

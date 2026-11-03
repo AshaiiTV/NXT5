@@ -47,7 +47,8 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
 
 import deleteTeam from '../../netlify/functions/teams-delete';
 import accountLifecycle from '../../netlify/functions/admin-account-lifecycle';
-import { createSeason, updateSeason, registerTeam, reviewRegistration, generateSchedule } from '../../netlify/functions/_lib/nexus-tournament-store';
+import { createSeason, updateSeason, registerTeam, reviewRegistration, generateSchedule, loadTournamentState } from '../../netlify/functions/_lib/nexus-tournament-store';
+import { nexusOverview } from '../../netlify/functions/nexus-overview';
 
 const admin = '00000000-0000-4000-8000-000000000001', owner = '00000000-0000-4000-8000-000000000002', other = '00000000-0000-4000-8000-000000000003', session = '00000000-0000-4000-8000-000000000004';
 const context = { deploy: { context: 'production' }, cookies: { get: () => 'token', set: vi.fn() } } as any;
@@ -140,6 +141,14 @@ describe('deleting a team or an account engaged in Nexus Rising', () => {
     const [fixture] = await rows('select team_a, team_b, team_a_id, team_b_id from nexus_fixtures');
     const sides = [[fixture.team_a, fixture.team_a_id], [fixture.team_b, fixture.team_b_id]].sort(([name]) => (name === 'Alpha' ? -1 : 1));
     expect(sides).toEqual([['Alpha', null], ['Beta', teams.Beta.id]]);
+    // Every reader still works for this and every other season once a side is gone.
+    const state = await loadTournamentState();
+    expect(state.seasons.map((row: any) => row.id)).toEqual([season.id]);
+    expect(state.standings[0].rows.map((row: any) => row.teamId)).toEqual([teams.Beta.id]);
+    expect(state.fixtures[0].series).toBeNull();
+    const overview = nexusOverview(state.rawFixtures, state.games, new Set([teams.Beta.id]), true);
+    expect(overview).toHaveLength(1);
+    expect(overview[0]).toMatchObject({ teamA: fixture.team_a, series: null, canViewDetails: true });
   });
 
   it('refuses the administrator deletion of an engaged owner, then succeeds once the season completed', async () => {

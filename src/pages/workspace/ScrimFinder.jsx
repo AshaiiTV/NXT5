@@ -75,7 +75,7 @@ function OfferCard({ offer, children, highlight = false }) {
   </Surface>;
 }
 
-export function ScrimFinder({ data, selectedTeamId, currentMember, user, pushToast }) {
+export function ScrimFinder({ data, selectedTeamId, currentMember, user, pushToast, refreshAll }) {
   useLanguage();
   const [state, setState] = useState({ loading: true, error: "", result: null, teamId: null });
   const [busy, setBusy] = useState("");
@@ -113,6 +113,8 @@ export function ScrimFinder({ data, selectedTeamId, currentMember, user, pushToa
       await apiFetch("scrims-manage", { method: "POST", body: JSON.stringify({ teamId: selectedTeamId, ...body }) });
       if (success) pushToast?.({ type: "green", title: success[0], text: success[1] });
       await load();
+      // A confirmation created planning sessions: the shared planning data must follow.
+      if (body.action === "accept") await refreshAll?.().catch(() => {});
       return true;
     } catch (err) {
       pushToast?.(errorToast(err, t("Action impossible")));
