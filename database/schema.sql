@@ -594,6 +594,7 @@ create table if not exists scrim_offers (
   starts_at timestamptz not null,
   duration_minutes integer not null default 120 check (duration_minutes between 30 and 360),
   games integer not null default 3 check (games between 1 and 10),
+  series text not null default 'fixed' check (series in ('fixed','bo3','bo5')),
   level_min text not null check (level_min in ('iron','bronze','silver','gold','platinum','emerald','diamond','master')),
   level_max text not null check (level_max in ('iron','bronze','silver','gold','platinum','emerald','diamond','master')),
   note text not null default '' check (length(note) <= 500),

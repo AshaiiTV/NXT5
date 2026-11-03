@@ -131,7 +131,7 @@ Voir [les changements de l’Importer](importer-app/CHANGELOG.md) et [la validat
 
 ## Scrims entre équipes
 
-Dans **Scrims** (`/scrims`), le staff d’une équipe publie un créneau avec son niveau, répond aux propositions des autres équipes NXT5 et confirme une réponse. La confirmation crée la séance dans le planning des deux équipes et, si la diffusion Discord est active, l’annonce dans le salon planning. Voir [le guide des scrims](docs/scrims.md).
+Dans **Scrims** (`/scrims`), le staff d’une équipe publie un créneau avec son nombre de games et son niveau, répond aux propositions des autres équipes NXT5 et confirme une réponse. La confirmation crée la séance dans le planning des deux équipes et, si la diffusion Discord est active, l’annonce dans le salon planning. Voir [le guide des scrims](docs/scrims.md).
 
 ## Commandes du bot Discord
 

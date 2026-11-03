@@ -12,6 +12,7 @@ export const SCRIM_TIER_LABELS: Record<string, string> = {
   iron: "Fer", bronze: "Bronze", silver: "Argent", gold: "Or", platinum: "Platine", emerald: "Émeraude", diamond: "Diamant", master: "Maître et plus",
 };
 const MAX_OPEN_OFFERS_PER_TEAM = 10;
+export const SCRIM_FORMATS = ["1", "2", "3", "4", "5", "bo3", "bo5"] as const;
 const MAX_HORIZON_DAYS = 60;
 const PENDING_STATES = ["pending"];
 
@@ -56,16 +57,22 @@ function revokedError(): never {
   scrimError("Tes droits sur cette équipe ont changé. Recharge la page.", 403, "SCRIM_FORBIDDEN");
 }
 
+function teamView(row: any) {
+  return { id: row.team_id, name: row.team_name, tag: row.team_tag, avatar_data_url: row.avatar_data_url || null, avatar_zoom: row.avatar_zoom, avatar_x: row.avatar_x, avatar_y: row.avatar_y };
+}
 function offerView(row: any, viewerTeamId: string) {
   return {
     id: row.id,
     teamId: row.team_id,
     teamName: row.team_name,
     teamTag: row.team_tag,
+    team: teamView(row),
     region: row.team_region,
     startsAt: row.starts_at,
     durationMinutes: row.duration_minutes,
     games: row.games,
+    series: row.series || "fixed",
+    format: row.series === "bo3" || row.series === "bo5" ? row.series : String(row.games),
     levelMin: row.level_min,
     levelMax: row.level_max,
     note: row.note,
@@ -87,6 +94,7 @@ function requestView(row: any) {
     teamId: row.team_id,
     teamName: row.team_name,
     teamTag: row.team_tag,
+    team: teamView(row),
     message: row.message,
     status: row.status,
     createdAt: row.created_at,
@@ -99,7 +107,7 @@ export async function listScrims(userId: string, teamIdValue: unknown) {
   const { teamId } = membership;
   const [offers, mine, requests] = await Promise.all([
     sql`
-      select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region,
+      select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region, t.avatar_data_url, t.avatar_zoom, t.avatar_x, t.avatar_y,
         (select count(*) from scrim_requests r where r.offer_id = o.id and r.status = 'pending') as request_count,
         r.id as my_request_id, r.status as my_request_status, r.message as my_request_message
       from scrim_offers o
@@ -107,9 +115,9 @@ export async function listScrims(userId: string, teamIdValue: unknown) {
       left join scrim_requests r on r.offer_id = o.id and r.team_id = ${teamId}
       where o.status = 'open' and o.team_id <> ${teamId} and o.starts_at > now()
       order by o.starts_at asc
-      limit 200`,
+      limit 100`,
     sql`
-      select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region, m.name as matched_team_name,
+      select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region, t.avatar_data_url, t.avatar_zoom, t.avatar_x, t.avatar_y, m.name as matched_team_name,
         (select count(*) from scrim_requests r where r.offer_id = o.id and r.status = 'pending') as request_count
       from scrim_offers o
       join teams t on t.id = o.team_id
@@ -118,7 +126,7 @@ export async function listScrims(userId: string, teamIdValue: unknown) {
       order by o.starts_at asc
       limit 100`,
     sql`
-      select r.*, t.name as team_name, t.tag as team_tag, u.name as created_by_name,
+      select r.*, t.name as team_name, t.tag as team_tag, t.avatar_data_url, t.avatar_zoom, t.avatar_x, t.avatar_y, u.name as created_by_name,
         o.team_id as offer_team_id, o.status as offer_status, o.starts_at as offer_starts_at
       from scrim_requests r
       join teams t on t.id = r.team_id
@@ -135,7 +143,7 @@ export async function listScrims(userId: string, teamIdValue: unknown) {
     byOffer.set(row.offer_id, list);
   }
   const matchedOffers = await sql`
-    select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region, m.name as matched_team_name
+    select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region, t.avatar_data_url, t.avatar_zoom, t.avatar_x, t.avatar_y, m.name as matched_team_name
     from scrim_offers o
     join teams t on t.id = o.team_id
     left join teams m on m.id = o.matched_team_id
@@ -166,14 +174,17 @@ function normalizeOffer(body: any) {
   if (starts > Date.now() + MAX_HORIZON_DAYS * 86_400_000) scrimError("Le scrim doit avoir lieu dans les 60 prochains jours.");
   const durationMinutes = Number(body.durationMinutes ?? 120);
   if (!Number.isInteger(durationMinutes) || durationMinutes < 30 || durationMinutes > 360) scrimError("Durée invalide (30 à 360 minutes).");
-  const games = Number(body.games ?? 3);
-  if (!Number.isInteger(games) || games < 1 || games > 10) scrimError("Nombre de games invalide (1 à 10).");
+  // "1".."5" fixed games, or a best-of series ("bo3", "bo5"); older callers may send games.
+  const format = String(body.format ?? body.games ?? "3").toLowerCase();
+  if (!SCRIM_FORMATS.includes(format as any)) scrimError("Format de scrim invalide (1 à 5 games, BO3 ou BO5).");
+  const series = format === "bo3" || format === "bo5" ? format : "fixed";
+  const games = series === "fixed" ? Number(format) : Number(format.slice(2));
   const levelMin = String(body.levelMin || "");
   const levelMax = String(body.levelMax || "");
   if (!SCRIM_TIERS.includes(levelMin as any) || !SCRIM_TIERS.includes(levelMax as any)) scrimError("Niveau invalide.");
   if (SCRIM_TIERS.indexOf(levelMin as any) > SCRIM_TIERS.indexOf(levelMax as any)) scrimError("Le niveau minimum dépasse le niveau maximum.");
   const note = cleanText(body.note, 500);
-  return { startsAt: new Date(starts).toISOString(), durationMinutes, games, levelMin, levelMax, note };
+  return { startsAt: new Date(starts).toISOString(), durationMinutes, games, series, levelMin, levelMax, note };
 }
 
 export async function createScrimOffer(userId: string, body: any) {
@@ -186,8 +197,8 @@ export async function createScrimOffer(userId: string, body: any) {
     // The quota is counted under the team lock, so concurrent publications serialize.
     results = await sql.transaction((tx) => [
       ...managerGuard(tx, userId, membership.teamId),
-      tx`insert into scrim_offers (id, team_id, created_by, starts_at, duration_minutes, games, level_min, level_max, note)
-         select ${offerId}, ${membership.teamId}, ${userId}, ${offer.startsAt}, ${offer.durationMinutes}, ${offer.games}, ${offer.levelMin}, ${offer.levelMax}, ${offer.note}
+      tx`insert into scrim_offers (id, team_id, created_by, starts_at, duration_minutes, games, series, level_min, level_max, note)
+         select ${offerId}, ${membership.teamId}, ${userId}, ${offer.startsAt}, ${offer.durationMinutes}, ${offer.games}, ${offer.series}, ${offer.levelMin}, ${offer.levelMax}, ${offer.note}
          where (select count(*) from scrim_offers where team_id = ${membership.teamId} and status = 'open' and starts_at > now()) < ${MAX_OPEN_OFFERS_PER_TEAM}
          returning *`,
       tx`insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
@@ -261,8 +272,11 @@ export async function declineScrimRequest(userId: string, body: any) {
   return { ok: true };
 }
 
-function sessionTitle(opponent: string, games: number) {
-  return cleanText(`Scrim vs ${opponent} · ${games} game${games > 1 ? "s" : ""}`, 140);
+export function scrimFormatLabel(series: string, games: number) {
+  return series === "bo3" || series === "bo5" ? series.toUpperCase() : `${games} game${games > 1 ? "s" : ""}`;
+}
+function sessionTitle(opponent: string, series: string, games: number) {
+  return cleanText(`Scrim vs ${opponent} · ${scrimFormatLabel(series, games)}`, 140);
 }
 
 /** The offering team's staff confirms one answer. Both teams receive a planning session. */
@@ -280,8 +294,8 @@ export async function acceptScrimRequest(userId: string, body: any) {
   if (target.status !== "open") scrimError("Cette proposition n’est plus ouverte.", 409, "SCRIM_STATE");
   if (target.request_status !== "pending") scrimError("Cette réponse n’est plus en attente.", 409, "SCRIM_STATE");
   if (Number.isFinite(expectedRevision) && expectedRevision !== Number(target.revision)) scrimError("La proposition a changé. Recharge la page.", 409, "SCRIM_STATE");
-  const hostTitle = sessionTitle(target.guest_name, target.games);
-  const guestTitle = sessionTitle(membership.team.name, target.games);
+  const hostTitle = sessionTitle(target.guest_name, target.series, target.games);
+  const guestTitle = sessionTitle(membership.team.name, target.series, target.games);
   const details = cleanText(`${SCRIM_TIER_LABELS[target.level_min]} à ${SCRIM_TIER_LABELS[target.level_max]}. ${target.note || ""} ${target.message ? `Réponse : ${target.message}` : ""}`.trim(), 1500);
   let results: any[];
   try {

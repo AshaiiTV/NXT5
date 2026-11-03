@@ -616,7 +616,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     summary: "La page Scrims met en relation les équipes NXT5 qui cherchent un adversaire : une équipe publie un créneau avec son niveau, les autres répondent, le staff confirme et la séance est ajoutée au planning des deux équipes.",
     keywords: ['scrims', 'scrim', 'adversaire', 'proposition', 'créneau', 'niveau', 'équipe adverse', 'trouver une équipe', 'confirmer un scrim', 'répondre à une proposition'],
     steps: [
-      "Publie une proposition : date, durée, nombre de games, niveau minimum et maximum, précision facultative.",
+      "Publie une proposition : date, nombre de games, niveau minimum et maximum, précision facultative.",
       "Réponds aux propositions des autres équipes avec un message (disponibilités, niveau, contact).",
       "Confirme une réponse reçue : les autres sont refusées et la séance apparaît dans le planning des deux équipes.",
       "Avec une diffusion Discord active et un salon planning, le bot annonce le scrim confirmé."

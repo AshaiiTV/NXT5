@@ -68,7 +68,7 @@ async function call(userId: string, body?: any, teamId = teams.host) {
   return { status: response.status, body: await response.json() };
 }
 const inHours = (hours: number) => new Date(Date.now() + hours * 3600_000).toISOString();
-const offerBody = (extra: any = {}) => ({ action: 'create', startsAt: inHours(48), durationMinutes: 120, games: 3, levelMin: 'emerald', levelMax: 'diamond', note: 'Draft classique, pas de dodge.', ...extra });
+const offerBody = (extra: any = {}) => ({ action: 'create', startsAt: inHours(48), format: 'bo3', levelMin: 'emerald', levelMax: 'diamond', note: 'Draft classique, pas de dodge.', ...extra });
 
 beforeAll(async () => {
   db.pg = new PGlite();
@@ -93,7 +93,8 @@ describe('publishing scrim offers', () => {
     expect((await call(users.stranger, offerBody())).status).toBe(403);
     expect((await call(users.hostOwner, offerBody({ levelMin: 'diamond', levelMax: 'gold' }))).status).toBe(400);
     expect((await call(users.hostOwner, offerBody({ startsAt: inHours(-1) }))).status).toBe(400);
-    expect((await call(users.hostOwner, offerBody({ games: 11 }))).status).toBe(400);
+    expect((await call(users.hostOwner, offerBody({ format: '11' }))).status).toBe(400);
+    expect((await call(users.hostOwner, offerBody({ format: 'bo7' }))).status).toBe(400);
     expect((await call(users.hostOwner, { action: 'unknown' })).status).toBe(400);
     expect(await rows("select action from audit_logs where action = 'scrim.offer.create'")).toHaveLength(1);
   });
@@ -108,7 +109,8 @@ describe('publishing scrim offers', () => {
     expect(host.body.mine).toHaveLength(10);
     const guest = await call(users.guestOwner, undefined, teams.guest);
     expect(guest.body.offers).toHaveLength(10);
-    expect(guest.body.offers[0]).toMatchObject({ teamName: 'Host Team', teamTag: 'HST', levelMin: 'emerald', mine: false, myRequest: null });
+    expect(guest.body.offers[0]).toMatchObject({ teamName: 'Host Team', teamTag: 'HST', levelMin: 'emerald', format: 'bo3', series: 'bo3', games: 3, durationMinutes: 120, mine: false, myRequest: null });
+    expect((await call(users.hostOwner, offerBody({ format: '2', startsAt: inHours(100) }))).status).toBe(409);
     expect(await call(users.stranger, undefined, teams.guest)).toMatchObject({ status: 403 });
   });
 });
@@ -140,7 +142,7 @@ describe('answering and confirming a scrim', () => {
     expect(await call(users.hostCoach, { action: 'accept', requestId: guest.id, expectedRevision: 99 })).toMatchObject({ status: 409, body: { code: 'SCRIM_STATE' } });
     const accepted = await call(users.hostCoach, { action: 'accept', requestId: guest.id, expectedRevision: offer.revision });
     expect(accepted.status).toBe(200);
-    expect(accepted.body.events.map((event: any) => [event.teamId, event.title]).sort()).toEqual([[teams.host, 'Scrim vs Guest Team · 3 games'], [teams.guest, 'Scrim vs Host Team · 3 games']].sort());
+    expect(accepted.body.events.map((event: any) => [event.teamId, event.title]).sort()).toEqual([[teams.host, 'Scrim vs Guest Team · BO3'], [teams.guest, 'Scrim vs Host Team · BO3']].sort());
     expect(await rows('select status, matched_team_id from scrim_offers')).toEqual([{ status: 'matched', matched_team_id: teams.guest }]);
     expect(await rows('select team_id, status from scrim_requests order by created_at')).toEqual([{ team_id: teams.guest, status: 'accepted' }, { team_id: teams.third, status: 'declined' }]);
     expect(await rows("select team_id, event_type, duration_minutes, status from discord_team_events order by team_id")).toEqual(expect.arrayContaining([

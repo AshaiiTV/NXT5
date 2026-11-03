@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const api = vi.hoisted(() => ({ fetch: vi.fn() }));
 vi.mock("../api/client.js", () => ({ apiFetch: api.fetch, API_BASE: "/.netlify/functions" }));
 
-import { Button, SelectInput, TextAreaInput } from "../components/ui/Core.jsx";
+import { Button, SelectInput, TabNav, TextAreaInput } from "../components/ui/Core.jsx";
 import ScrimFinder, { ScrimOfferForm, levelRange } from "../pages/workspace/ScrimFinder.jsx";
 
 let renderer;
@@ -17,7 +17,7 @@ const soon = (hours) => new Date(Date.now() + hours * 3600_000).toISOString();
 const data = { teams: [{ id: "team-a", name: "Alpha" }] };
 const listing = (overrides = {}) => ({
   canManage: true,
-  offers: [{ id: "offer-b", teamId: "team-b", teamName: "Beta", teamTag: "BTA", startsAt: soon(30), durationMinutes: 120, games: 3, levelMin: "emerald", levelMax: "diamond", note: "Draft classique.", status: "open", mine: false, requestCount: 1, myRequest: null, revision: 1 }],
+  offers: [{ id: "offer-b", teamId: "team-b", teamName: "Beta", teamTag: "BTA", startsAt: soon(30), durationMinutes: 120, games: 3, series: "bo3", format: "bo3", levelMin: "emerald", levelMax: "diamond", note: "Draft classique.", status: "open", mine: false, requestCount: 1, myRequest: null, revision: 1 }],
   mine: [{ id: "offer-a", teamId: "team-a", teamName: "Alpha", startsAt: soon(48), durationMinutes: 90, games: 2, levelMin: "gold", levelMax: "gold", note: "", status: "open", mine: true, revision: 1, requestCount: 1, requests: [{ id: "req-c", teamName: "Gamma", teamTag: "GMA", message: "On est dispo.", status: "pending" }] }],
   requests: [],
   matched: [],
@@ -35,7 +35,8 @@ describe("scrim finder page", () => {
     expect(api.fetch.mock.calls[0][0]).toBe("scrims-manage?teamId=team-a");
     expect(text()).toContain("Beta");
     expect(text()).toContain("Émeraude à Diamant");
-    expect(text()).toContain("Gamma");
+    expect(text()).toContain("BO3");
+    expect(text()).not.toContain("Gamma");
 
     act(() => button("Répondre").props.onClick());
     act(() => renderer.root.findAllByType(TextAreaInput).find((node) => node.props.label === "Message pour l’équipe").props.onChange("Dispo mardi."));
@@ -44,15 +45,20 @@ describe("scrim finder page", () => {
     expect(JSON.parse(respond[1].body)).toEqual({ teamId: "team-a", action: "respond", offerId: "offer-b", message: "Dispo mardi." });
     expect(pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "green", title: "Réponse envoyée" }));
 
+    act(() => renderer.root.findByType(TabNav).props.onChange("mine"));
+    expect(text()).toContain("Gamma");
     await act(async () => { button("Confirmer").props.onClick(); });
     const accept = api.fetch.mock.calls.filter(([, options]) => options?.method === "POST").at(-1);
     expect(JSON.parse(accept[1].body)).toMatchObject({ action: "accept", requestId: "req-c", expectedRevision: 1 });
     expect(refreshAll).toHaveBeenCalledTimes(1);
 
-    act(() => renderer.root.findAllByType(SelectInput).find((node) => node.props.label === "Nombre de games").props.onChange("5"));
+    const formatSelect = renderer.root.findAllByType(SelectInput).find((node) => node.props.label === "Nombre de games");
+    expect(formatSelect.props.children.map((option) => option.props.value)).toEqual(["1", "2", "3", "4", "5", "bo3", "bo5"]);
+    act(() => formatSelect.props.onChange("bo5"));
     await act(async () => { renderer.root.findAllByType("form").find((form) => form.props.className === "scrim-form").props.onSubmit({ preventDefault() {} }); });
     const create = api.fetch.mock.calls.filter(([, options]) => options?.method === "POST").at(-1);
-    expect(JSON.parse(create[1].body)).toMatchObject({ action: "create", games: 5, levelMin: "emerald", levelMax: "diamond", durationMinutes: 120 });
+    expect(JSON.parse(create[1].body)).toMatchObject({ action: "create", format: "bo5", levelMin: "emerald", levelMax: "diamond" });
+    expect(JSON.parse(create[1].body)).not.toHaveProperty("durationMinutes");
   });
 
   it("keeps players read-only and reports a failed action without hiding the listing", async () => {
@@ -63,6 +69,7 @@ describe("scrim finder page", () => {
     const pushToast = vi.fn();
     await mount(<ScrimFinder data={data} selectedTeamId="team-a" currentMember={{ role: "player" }} user={{ id: "u2" }} pushToast={pushToast} />);
     expect(button("Répondre")).toBeUndefined();
+    act(() => renderer.root.findByType(TabNav).props.onChange("mine"));
     expect(button("Publier la proposition")).toBeUndefined();
     expect(text()).toContain("Seul le staff de l’équipe publie et confirme les scrims.");
   });
@@ -73,9 +80,10 @@ describe("scrim finder page", () => {
     expect(text()).toContain("Impossible de joindre NXT5 pour le moment.");
     api.fetch.mockResolvedValue(listing({ offers: [], mine: [], matched: [{ id: "offer-b", teamId: "team-b", teamName: "Beta", startsAt: soon(30), durationMinutes: 120, games: 3, levelMin: "gold", levelMax: "platinum", note: "", status: "matched", mine: false, requests: [{ id: "r", teamName: "Alpha", status: "accepted", message: "" }] }] }));
     await act(async () => { button("Réessayer").props.onClick(); });
-    expect(text()).toContain("Scrims confirmés");
-    expect(text()).toContain("Ta réponse a été acceptée.");
     expect(text()).toContain("Aucune proposition ouverte pour le moment");
+    act(() => renderer.root.findByType(TabNav).props.onChange("mine"));
+    expect(text()).toContain("Scrims confirmés");
+    expect(text()).toContain("La séance est dans vos deux plannings.");
   });
 
   it("refuses an inverted level range before sending", async () => {

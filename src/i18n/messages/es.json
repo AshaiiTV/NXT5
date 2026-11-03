@@ -8017,5 +8017,14 @@
   "Qui peut confirmer un scrim ?": "¿Quién puede confirmar un scrim?",
   "Où apparaît un scrim confirmé ?": "¿Dónde aparece un scrim confirmado?",
   "Tes droits sur cette équipe ont changé. Recharge la page.": "Tus permisos en este equipo cambiaron. Recarga la página.",
-  "La proposition ou ta réponse a changé entre-temps. Recharge la page.": "La propuesta o tu respuesta cambió mientras tanto. Recarga la página."
+  "La proposition ou ta réponse a changé entre-temps. Recharge la page.": "La propuesta o tu respuesta cambió mientras tanto. Recarga la página.",
+  "Publier une proposition avec la date, le nombre de games et le niveau de l’équipe. Seul le staff de l’équipe peut publier, répondre et confirmer.": "Publicar una propuesta con la fecha, el número de partidas y el nivel del equipo. Solo el staff del equipo puede publicar, responder y confirmar.",
+  "La séance est dans vos deux plannings.": "La sesión está en vuestros dos plannings.",
+  "{0} réponse(s) à traiter": "{0} respuesta(s) por tratar",
+  "Mes réponses": "Mis respuestas",
+  "Proposition fermée": "Propuesta cerrada",
+  "Aucun scrim en cours pour ton équipe": "Ningún scrim en curso para tu equipo",
+  "Publie une proposition ou réponds à une équipe dans Trouver un adversaire.": "Publica una propuesta o responde a un equipo en Encontrar un rival.",
+  "Mes scrims": "Mis scrims",
+  "Rubriques des scrims": "Secciones de scrims"
 }
