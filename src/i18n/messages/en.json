@@ -7928,5 +7928,7 @@
   "Débrief modifié": "Review updated",
   "Disponibilités enregistrées": "Availability saved",
   "Discord connecté": "Discord connected",
-  "Discord déconnecté": "Discord disconnected"
+  "Discord déconnecté": "Discord disconnected",
+  "Cette équipe est inscrite à une saison Nexus Rising en cours. Demande au staff de rejeter l’inscription ou de clôturer la saison, ou transfère l’équipe, avant de la supprimer.": "This team is registered in an ongoing Nexus Rising season. Ask the staff to reject the registration or close the season, or transfer the team, before deleting it.",
+  "Une équipe de ce compte est inscrite à une saison Nexus Rising en cours. Transfère-la ou fais clôturer la saison avant de supprimer le compte.": "A team of this account is registered in an ongoing Nexus Rising season. Transfer it or have the season closed before deleting the account."
 }

@@ -544,7 +544,7 @@ create table if not exists nexus_seasons (
 create table if not exists nexus_registrations (
   id uuid primary key default gen_random_uuid(),
   season_id uuid not null references nexus_seasons(id) on delete cascade,
-  team_id uuid not null references teams(id) on delete restrict,
+  team_id uuid not null references teams(id) on delete cascade,
   registered_by uuid references users(id) on delete set null,
   roster_player_ids jsonb not null default '[]'::jsonb,
   roster_riot_ids jsonb not null default '[]'::jsonb,
@@ -573,7 +573,7 @@ alter table nexus_fixtures alter column ends_at drop not null;
 alter table nexus_fixtures drop constraint if exists nexus_fixtures_roster_check;
 alter table nexus_fixtures drop constraint if exists nexus_fixtures_check;
 alter table nexus_fixtures add constraint nexus_fixture_native_teams check (
-  stage = 'legacy' or (season_id is not null and team_a_id is not null and team_b_id is not null and team_a_id <> team_b_id and fixture_key is not null)
+  stage = 'legacy' or (season_id is not null and fixture_key is not null and (team_a_id is null or team_b_id is null or team_a_id <> team_b_id))
 );
 alter table nexus_fixtures add constraint nexus_fixture_roster_window check (
   jsonb_typeof(roster) = 'array' and (

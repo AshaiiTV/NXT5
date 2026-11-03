@@ -60,6 +60,12 @@ Ils ne décrivent pas des fonctionnalités actives ni une commercialisation pré
 | --- | --- |
 | 2026-10-15 | [Enseignements des Reels et vérification de la production](enseignements-reels-2026-10-15.md) |
 | 2026-10-13 | [Historique : chargement progressif et retest de capacité](bench-history/capacity-2026-10-13.md) |
+| 2026-10-13 | [Finition du verre violet](design-polish-2026-10-13.md) |
+| 2026-10-13 | [Prolonger le Hero dans le site](hero-identity-2026-10-13.md) |
+| 2026-10-13 | [Accueil connecté : scène unifiée et débrief personnel](home-unified-2026-10-13.md) |
+| 2026-10-13 | [Effets autour du 5 au chargement](loading-effects-2026-10-13.md) |
+| 2026-10-13 | [Chargement NXT5 : verre sculptural](loading-glass-2026-10-13.md) |
+| 2026-10-13 | [Lecture détaillée d’une partie](match-reading-2026-10-13.md) |
 | 2026-10-12 | [Écran de chargement en verre violet](design-glass-loading-2026-10-12.md) |
 | 2026-10-12 | [Verre violet dans tous les exports visuels](design-glass-exports-2026-10-12.md) |
 | 2026-10-12 | [Verre violet dans l’ensemble du site](design-glass-sitewide-2026-10-12.md) |
@@ -91,6 +97,9 @@ Ils ne décrivent pas des fonctionnalités actives ni une commercialisation pré
 | 2026-09-24 | [Vérification du parcours de prise en main](verification-clarte-parcours-2026-09-24.md) |
 | 2026-09-28 | [Corrections de l’audit](audit-corrections-2026-09-28.md) |
 | 2026-09-29 | [Plafond journalier de l’assistant IA](assistant-plafond-2026-09-29.md) |
+| 2026-09-29 | [Audit croisé Claude ↔ GPT](audit-croise-2026-09-29.md) |
+| 2026-09-29 | [Importer 0.3.4 : noms de champions, détection du client, logo et ton](importer-champions-2026-09-29.md) |
+| 2026-09-29 | [Journaux serveur sécurisés](logs-securises-2026-09-29.md) |
 | 2026-09-29 | [Cohérence des textes publics](coherence-textes-2026-09-29.md) |
 | 2026-09-29 | [Nettoyage du dépôt](nettoyage-depot-2026-09-29.md) |
 | 2026-09-29 | [Mesure du chargement de l’historique](perf-historique-2026-09-29.md) |
