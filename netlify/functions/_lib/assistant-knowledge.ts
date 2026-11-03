@@ -49,6 +49,7 @@ export const ALLOWED_ASSISTANT_PATHS = [
   '/draft/pool',
   '/draft/compositions',
   '/planning',
+  '/scrims',
   '/mon-profil',
   '/mon-profil/champions',
   '/mon-profil/pool',
@@ -606,6 +607,37 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       triggers: ['précisions de planning', 'note planning', 'notes de planning', 'note visible', 'retard'],
       answer: "Les précisions enregistrées sont visibles par toute l’équipe pour la semaine affichée, avec une limite de 500 caractères. Le staff partage une note commune. Actualiser les précisions recharge les notes enregistrées ; si la sauvegarde échoue, utilise Réessayer l’enregistrement."
     }]
+  },
+  {
+    id: 'scrims',
+    title: 'Scrims entre équipes NXT5',
+    path: '/scrims',
+    actionLabel: 'Ouvrir les Scrims',
+    summary: "La page Scrims met en relation les équipes NXT5 qui cherchent un adversaire : une équipe publie un créneau avec son niveau, les autres répondent, le staff confirme et la séance est ajoutée au planning des deux équipes.",
+    keywords: ['scrims', 'scrim', 'adversaire', 'proposition', 'créneau', 'niveau', 'équipe adverse', 'trouver une équipe', 'confirmer un scrim', 'répondre à une proposition'],
+    steps: [
+      "Publie une proposition : date, durée, nombre de games, niveau minimum et maximum, précision facultative.",
+      "Réponds aux propositions des autres équipes avec un message (disponibilités, niveau, contact).",
+      "Confirme une réponse reçue : les autres sont refusées et la séance apparaît dans le planning des deux équipes.",
+      "Avec une diffusion Discord active et un salon planning, le bot annonce le scrim confirmé."
+    ],
+    suggestions: [
+      "Comment proposer un scrim à une autre équipe ?",
+      "Qui peut confirmer un scrim ?",
+      "Où apparaît un scrim confirmé ?"
+    ],
+    faq: [
+      {
+        question: 'Qui peut confirmer un scrim ?',
+        triggers: ['confirmer un scrim', 'qui confirme', 'accepter un scrim', 'publier un scrim', 'proposer un scrim'],
+        answer: "Seul le staff de l’équipe (propriétaire, capitaine, coach, assistant, analyste, manager, board) publie une proposition, répond à celles des autres équipes et confirme une réponse. Les autres membres consultent les propositions."
+      },
+      {
+        question: 'Où apparaît un scrim confirmé ?',
+        triggers: ['scrim confirmé', 'où apparaît', 'planning scrim', 'séance scrim'],
+        answer: "La confirmation crée une séance de type scrim dans le planning des deux équipes, visible dans Planning et dans /nxt planning. Si la diffusion Discord est active avec un salon planning, le bot l’annonce dans ce salon lors de son prochain passage."
+      }
+    ]
   },
   {
     id: 'player-profile',

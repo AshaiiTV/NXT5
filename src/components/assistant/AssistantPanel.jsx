@@ -26,6 +26,7 @@ const SECTION_SUGGESTIONS = {
   reviews: ["Comment préparer un débrief ?", "Comment réunir plusieurs parties dans un débrief ?", "Où retrouver mes anciens débriefs ?"],
   trends: ["Comment choisir les parties à analyser ?", "Comment interpréter les indicateurs d'équipe ?", "Comment retrouver la partie derrière un indicateur ?"],
   planning: ["Comment renseigner les disponibilités ?", "Qui peut modifier le planning ?", "Comment préparer une séance d'équipe ?"],
+  scrims: ["Comment proposer un scrim à une autre équipe ?", "Qui peut confirmer un scrim ?", "Où apparaît un scrim confirmé ?"],
   "champion-pool": ["Comment modifier les champions d'un joueur ?", "Comment indiquer le niveau de maîtrise d’un champion ?", "Comment distinguer un champion maîtrisé d’un champion en entraînement ?"],
   compositions: ["Comment créer une composition ?", "Comment utiliser l’aide au choix des champions ?", "Comment sont classées les suggestions de champions ?"],
   "player-profile": ["Comment consulter le profil d’un joueur ?", "Comment lire l'historique d'un joueur ?", "Où comparer ses champions aux champions adverses ?"],

@@ -7,3 +7,5 @@ overrides:
   undici@6: ^6.29.1
   # URI normalization advisories (GHSA-w74x-v6f9-j3xg and related), via electron-builder > ajv.
   fast-uri@3: ^3.1.9
+  # Glob DoS advisory GHSA-g3hv-75wg-m249 through electron-builder, asar and glob@7; only v11 is patched.
+  'minimatch@<11': ^11.0.4

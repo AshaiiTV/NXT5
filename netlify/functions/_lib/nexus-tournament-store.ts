@@ -334,6 +334,11 @@ export async function reviewRegistration(body: any) {
     tx`select id from players where id=any(${players.map((row) => row.id)}::uuid[]) order by id for update`,
     tx`select 1/case when count(*)=${players.length} then 1 else 0 end as approved_roster_current from players p join jsonb_to_recordset(${JSON.stringify(players.map((row) => ({ id: row.id, riot_id: row.riot_id })))}::jsonb) x(id uuid,riot_id text) on p.id=x.id and p.riot_id=x.riot_id where p.team_id=${registration.team_id} and p.roster_status in ('MAIN','SUB') and p.role=any(${PLAYING_ROLES})`,
     tx`select 1/case when count(*)=0 then 1 else 0 end as account_not_registered_elsewhere from nexus_season_players where season_id=${season.id} and registration_id<>${registration.id} and riot_id_key=any(${keys})`,
+    // A rejected registration frees its seats. An approved roster refresh keeps
+    // the former players reserved: a Riot account stays with its season team.
+    ...(body.status === "rejected"
+      ? [tx`delete from nexus_season_players where registration_id=${registration.id}`]
+      : []),
     tx`insert into nexus_season_players(season_id,registration_id,player_id,riot_id_key) select ${season.id},${registration.id},id,riot_id_key from jsonb_to_recordset(${JSON.stringify(players.map((row, index) => ({ id: row.id, riot_id_key: keys[index] })))}::jsonb) x(id uuid,riot_id_key text)
        on conflict(season_id,riot_id_key) do update set player_id=excluded.player_id where nexus_season_players.registration_id=excluded.registration_id`,
     tx`update nexus_registrations set status=${body.status},roster_player_ids=${JSON.stringify(players.map((row) => row.id))}::jsonb,roster_riot_ids=${JSON.stringify(riotIds)}::jsonb,reviewed_at=now() where id=${registration.id}`,
@@ -675,8 +680,14 @@ export async function loadTournamentState() {
     const approved = registrations.filter(
       (row) => row.season_id === season.id && row.status === "approved",
     );
+    // A team deleted after its season completed leaves fixtures without a
+    // side; the standings algorithms require two teams, so those are skipped.
     const regular = fixtures.filter(
-      (row) => row.season_id === season.id && row.stage === "regular",
+      (row) =>
+        row.season_id === season.id &&
+        row.stage === "regular" &&
+        row.team_a_id &&
+        row.team_b_id,
     );
     const groupIds =
       season.format === "groups"
@@ -691,7 +702,10 @@ export async function loadTournamentState() {
           ? approved.map((row) => row.team_id)
           : [
               ...new Set(
-                groupFixtures.flatMap((row) => [row.team_a_id, row.team_b_id]),
+                groupFixtures
+                  .flatMap((row) => [row.team_a_id, row.team_b_id])
+                  // A team deleted after its season completed leaves no link.
+                  .filter(Boolean),
               ),
             ];
       const result = calculateStandings(

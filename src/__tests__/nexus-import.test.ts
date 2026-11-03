@@ -269,7 +269,9 @@ beforeEach(async () => {
   db.calls = 0;
   identity.user = null;
   identity.cookie = "";
-  for (const key of ["AWS_LAMBDA_FUNCTION_NAME", "LAMBDA_TASK_ROOT", "SITE_ID"])
+  // Netlify deploy previews export CONTEXT=deploy-preview, which the mutation guard
+  // treats as isolated; these handlers are exercised with a neutral local context.
+  for (const key of ["AWS_LAMBDA_FUNCTION_NAME", "LAMBDA_TASK_ROOT", "SITE_ID", "CONTEXT"])
     vi.stubEnv(key, "");
   await db.pg.exec(
     "truncate nexus_seasons cascade; truncate teams cascade; truncate team_members;truncate players cascade;truncate users cascade;",

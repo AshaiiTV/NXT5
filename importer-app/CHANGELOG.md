@@ -1,3 +1,8 @@
+# NXT5 Importer 0.3.9
+
+- Electron 45.1.0, electron-builder 26.18.0 et pnpm 12.16.1 (correctifs de sécurité et de stabilité de la chaîne de construction, sans changement de fonctionnement).
+- Chaîne de construction : `minimatch` relevé en version 11 pour toutes les dépendances de build (avis GHSA-g3hv-75wg-m249), sans changement de fonctionnement.
+
 # NXT5 Importer 0.3.8
 
 - Correction du refus IPC au démarrage lorsque le chemin du launcher contient un tilde (`~`, notamment dans un chemin court Windows) ou des crochets.

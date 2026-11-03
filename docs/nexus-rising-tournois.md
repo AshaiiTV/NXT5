@@ -58,7 +58,9 @@ Une saison suit les étapes brouillon, inscriptions ouvertes, compétition, puis
 
 Le propriétaire, un capitaine ou un manager peut inscrire son équipe NXT5. Le staff examine son éligibilité et son effectif. Les critères de niveau ne sont pas déduits automatiquement d’un classement Riot non vérifié. Chaque rencontre conserve ses cinq profils de chaque côté pour que l’historique survive aux changements d’effectif.
 
-L’inscription accepte cinq à huit joueurs actifs, hors profils de staff non joueurs. Un même compte Riot ne peut appartenir à deux équipes approuvées dans la saison, y compris après un changement d’effectif. Le staff valide explicitement les mises à jour d’effectif ; les anciennes compositions de rencontre restent conservées.
+L’inscription accepte cinq à huit joueurs actifs, hors profils de staff non joueurs. Un même compte Riot ne peut appartenir à deux équipes approuvées dans la saison, y compris après un changement d’effectif. Le staff valide explicitement les mises à jour d’effectif ; les anciennes compositions de rencontre restent conservées. Le rejet d’une inscription libère les places de ses joueurs, qui peuvent alors être inscrits avec une autre équipe de la saison.
+
+Une équipe inscrite (inscription en attente ou approuvée) dans une saison non terminée ne peut pas être supprimée, ni par son propriétaire, ni par la suppression administrative du compte de ce propriétaire : le site répond 409 `NEXUS_TEAM_ENGAGED` et indique de faire rejeter l’inscription, clôturer la saison ou transférer l’équipe au préalable. Une fois la saison terminée ou l’inscription rejetée, la suppression emporte l’inscription et les places réservées ; les rencontres passées conservent les noms des équipes sans lien vers l’équipe supprimée, et le classement d’une saison terminée ne mentionne plus cette équipe.
 
 Seules les contributions acceptées comptent dans une série. Une game ne peut être acceptée qu’une fois dans la ligue. Une série incomplète n’a pas de vainqueur ; des données contradictoires ne sont pas transformées en résultat arbitraire. Les statistiques manquantes restent absentes.
 

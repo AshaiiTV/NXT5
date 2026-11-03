@@ -23,6 +23,10 @@ Ces rattrapages verrouillent les tables concernées contre les écritures concur
 
 `20261030_account_lifecycle.sql` ajoute l’état de suspension aux comptes et un trigger d’émission des sessions : il verrouille le compte et refuse une nouvelle session suspendue. Le schéma de référence est mis à jour ; les migrations précédentes restent immuables.
 
+`20261103_nexus_team_lifecycle.sql` (`nexus-team-lifecycle-20261103-v1`) remplace le lien restrictif entre une inscription Nexus et son équipe par une suppression en cascade, et autorise une rencontre générée sans lien d’équipe lorsque l’équipe a été supprimée. Les fonctions de suppression d’équipe et de compte refusent d’abord (409 `NEXUS_TEAM_ENGAGED`) toute équipe dont l’inscription n’est pas rejetée dans une saison non terminée ; ensuite, la suppression emporte l’inscription et les places réservées de ses joueurs, et les rencontres passées conservent les noms d’équipes. Le nom de la contrainte `nexus_fixture_native_teams` est conservé pour le contrôle préalable Nexus.
+
+`20261104_scrim_finder.sql` (`scrim-finder-20261104-v1`) crée `scrim_offers` et `scrim_requests` pour la [recherche de scrims](../docs/scrims.md). Les lignes suivent l’équipe en cascade ; la confirmation d’un scrim écrit ses séances dans `discord_team_events`, créée par `discord-bot-workflows-20260922-v1`.
+
 ## Première publication de Nexus Rising
 
 Pour ajouter Nexus Rising à la base NXT5 existante, définir temporairement `NXT5_MIGRATION_SCOPE=nexus-rising` dans le contexte Netlify `production`, portée `builds` uniquement. Le build utilise sa connexion serveur existante et applique exclusivement `20261031_nexus_import.sql`, puis `20261101_nexus_tournament.sql`. Ce mode ne lance pas le rattrapage historique des reviews. Toute autre valeur non vide est refusée avant connexion.

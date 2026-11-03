@@ -11,6 +11,7 @@ import {
   Sparkles,
   Swords,
   Users,
+  Handshake,
 } from "lucide-react";
 
 const NXT5_IMPORTER_DOWNLOAD_URL = "/.netlify/functions/importer-download";
@@ -26,6 +27,7 @@ export const NAV = [
   { id: "bot-discord", label: "Bot Discord", hint: "Connexion et publications", icon: Bot, path: "/bot-discord" },
   { id: "trends", label: "Analyses", hint: "Comparer tes parties", icon: Activity, shortcut: "N", path: "/tendances" },
   { id: "planning", label: "Planning", hint: "Organiser les séances", icon: CalendarDays, shortcut: "L", path: "/planning" },
+  { id: "scrims", label: "Scrims", hint: "Trouver un adversaire", icon: Handshake, path: "/scrims" },
   { id: "draft", label: "Draft & Pool", hint: "Choisir les champions", icon: Sparkles, shortcut: "D", path: "/draft/pool" },
   { id: "reports", label: "Débriefs", hint: "Noter les points à travailler", icon: FileText, shortcut: "R", path: "/rapports" },
   { id: "profile", label: "Mon profil", hint: "Suivre ta progression", icon: Activity, shortcut: "P", path: "/mon-profil" },
@@ -37,7 +39,7 @@ export const NAV = [
 ];
 
 export const PRIMARY_NAV_IDS = ["home", "teams", "matches", "planning", "profile"];
-export const MORE_NAV_IDS = ["reports", "trends", "draft", "bot-discord"];
+export const MORE_NAV_IDS = ["reports", "trends", "draft", "scrims", "bot-discord"];
 
 export const DRAFT_VIEW_ROUTES = [
   { id: "pool", label: "Champions des joueurs", path: "pool" },

@@ -269,6 +269,17 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       suggestions: ['How do I enter availability?', 'Who can add a session?', 'Who can see my schedule notes?'],
       faq: [{ question: 'Who can see my schedule notes?', triggers: ['schedule notes', 'schedule note', 'weekly notes', 'note visible', 'late'], answer: 'Saved notes are visible to the whole team for the displayed week, with a 500-character limit. Staff share one common note. Refresh notes reloads saved notes; if saving fails, use Retry saving.' }],
     },
+    scrims: {
+      title: 'Scrims between NXT5 teams', actionLabel: 'Open Scrims',
+      summary: 'The Scrims page connects NXT5 teams looking for an opponent: a team publishes a slot with its level, others answer, the staff confirms and the session is added to both teams’ schedules.',
+      keywords: ['scrims', 'scrim', 'opponent', 'offer', 'slot', 'level', 'opposing team', 'find a team', 'confirm a scrim', 'answer an offer'],
+      steps: ['Publish an offer: date, duration, number of games, minimum and maximum level, optional details.', 'Answer other teams’ offers with a message (availability, level, contact).', 'Confirm one received answer: the others are declined and the session appears in both teams’ schedules.', 'With active Discord publishing and a planning channel, the bot announces the confirmed scrim.'],
+      suggestions: ['How do I offer a scrim to another team?', 'Who can confirm a scrim?', 'Where does a confirmed scrim appear?'],
+      faq: [
+        { question: 'Who can confirm a scrim?', triggers: ['confirm a scrim', 'who confirms', 'accept a scrim', 'publish a scrim', 'offer a scrim'], answer: 'Only the team staff (owner, captain, coach, assistant, analyst, manager, board) publishes an offer, answers other teams’ offers and confirms an answer. Other members can browse the offers.' },
+        { question: 'Where does a confirmed scrim appear?', triggers: ['confirmed scrim', 'where does it appear', 'scrim schedule', 'scrim session'], answer: 'Confirming creates a scrim session in both teams’ schedules, visible in Schedule and in /nxt planning. If Discord publishing is active with a planning channel, the bot announces it there on its next pass.' },
+      ],
+    },
     'player-profile': {
       title: 'Player profile and follow-up', actionLabel: 'Open My profile',
       summary: 'My profile brings together Summary, Champions, Champions declared, History, Tracking and Card & Wrapped. Notes and notebooks remain subject to access permissions.',
@@ -582,6 +593,17 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       steps: ['Elige la semana que preparar.', 'Indica la disponibilidad y, si es necesario, una nota para esta semana (500 caracteres como máximo).', 'Añade las sesiones del equipo con su tipo y horario.', 'Comprueba la disponibilidad antes de confirmar una sesión.'],
       suggestions: ['¿Cómo indico mi disponibilidad?', '¿Quién puede añadir una sesión?', '¿Quién ve mis notas del calendario?'],
       faq: [{ question: '¿Quién ve mis notas del calendario?', triggers: ['notas del calendario', 'nota del calendario', 'notas semanales', 'nota visible', 'retraso'], answer: 'Las notas guardadas son visibles para todo el equipo durante la semana mostrada, con un límite de 500 caracteres. El cuerpo técnico comparte una nota común. Actualizar notas recarga las notas guardadas; si falla el guardado, utiliza Reintentar el guardado.' }],
+    },
+    scrims: {
+      title: 'Scrims entre equipos NXT5', actionLabel: 'Abrir los Scrims',
+      summary: 'La página Scrims conecta a los equipos NXT5 que buscan rival: un equipo publica una franja con su nivel, los demás responden, el staff confirma y la sesión se añade al calendario de los dos equipos.',
+      keywords: ['scrims', 'scrim', 'rival', 'propuesta', 'franja', 'nivel', 'equipo rival', 'encontrar un equipo', 'confirmar un scrim', 'responder a una propuesta'],
+      steps: ['Publica una propuesta: fecha, duración, número de partidas, nivel mínimo y máximo, detalles opcionales.', 'Responde a las propuestas de otros equipos con un mensaje (disponibilidad, nivel, contacto).', 'Confirma una respuesta recibida: las demás se rechazan y la sesión aparece en el calendario de los dos equipos.', 'Con la difusión de Discord activa y un canal de planning, el bot anuncia el scrim confirmado.'],
+      suggestions: ['¿Cómo propongo un scrim a otro equipo?', '¿Quién puede confirmar un scrim?', '¿Dónde aparece un scrim confirmado?'],
+      faq: [
+        { question: '¿Quién puede confirmar un scrim?', triggers: ['confirmar un scrim', 'quién confirma', 'aceptar un scrim', 'publicar un scrim', 'proponer un scrim'], answer: 'Solo el staff del equipo (propietario, capitán, coach, asistente, analista, manager, board) publica una propuesta, responde a las de otros equipos y confirma una respuesta. Los demás miembros consultan las propuestas.' },
+        { question: '¿Dónde aparece un scrim confirmado?', triggers: ['scrim confirmado', 'dónde aparece', 'calendario scrim', 'sesión scrim'], answer: 'La confirmación crea una sesión de tipo scrim en el calendario de los dos equipos, visible en Calendario y en /nxt planning. Si la difusión de Discord está activa con un canal de planning, el bot lo anuncia allí en su próximo paso.' },
+      ],
     },
     'player-profile': {
       title: 'Perfil y seguimiento del jugador', actionLabel: 'Abrir Mi perfil',

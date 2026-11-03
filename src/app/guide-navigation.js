@@ -24,6 +24,7 @@ export function guideSectionForRoute(route = {}) {
     "team-management": "teams-and-roster",
     reports: "reviews",
     planning: "planning",
+    scrims: "scrims",
     "bot-discord": "discord",
     "account-settings": "permissions-and-account",
   }[page] || "getting-started";
