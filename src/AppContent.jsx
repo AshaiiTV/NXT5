@@ -28,6 +28,7 @@ const PlayerUltimateProfile = lazy(() => import("./pages/workspace/PlayerUltimat
 const TrendsPage = lazy(() => import("./pages/workspace/TrendsPage.jsx").then((module) => ({ default: module.TrendsPage })));
 const GameWorkspace = lazy(() => import("./pages/workspace/GameWorkspace.jsx").then((module) => ({ default: module.GameWorkspace })));
 const Planning = lazy(() => import("./pages/workspace/Planning.jsx").then((module) => ({ default: module.Planning })));
+const ScrimFinder = lazy(() => import("./pages/workspace/ScrimFinder.jsx"));
 const AccountSettings = lazy(() => import("./pages/workspace/AccountSettings.jsx").then((module) => ({ default: module.AccountSettings })));
 const DraftWorkspace = lazy(() => import("./pages/workspace/DraftWorkspace.jsx").then((module) => ({ default: module.DraftWorkspace })));
 
@@ -357,6 +358,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
     if (active === "matches" || active === "reports") return <GameWorkspace data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} ensureHistory={ensureHistory} loadNextPage={loadNextPage} historyLoading={historyLoading} historyError={historyError} />;
     if (active === "trends") return <TrendsPage data={data} selectedTeamId={selectedTeamId} />;
     if (active === "planning") return <Planning data={data} selectedTeamId={selectedTeamId} planningStore={planningStore} currentMember={currentMember} user={user} refreshAll={refreshAll} />;
+    if (active === "scrims") return <ScrimFinder data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} pushToast={pushToast} />;
     if (active === "draft") return <DraftWorkspace data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;

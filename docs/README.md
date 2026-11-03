@@ -28,6 +28,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 ### Produit
 
 - [Chargement des historiques et garanties des analyses](chargement-historique.md)
+- [Scrims entre équipes NXT5](scrims.md)
 - [Internationalisation : français, anglais et espagnol](internationalisation.md)
 - [Carnets de matchups](carnets-matchups.md)
 - [Aide au choix des champions](draft-assistance.md)

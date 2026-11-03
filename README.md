@@ -129,6 +129,10 @@ La fenêtre d’enregistrement reprend le dossier du dernier export réussi, mê
 
 Voir [les changements de l’Importer](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
 
+## Scrims entre équipes
+
+Dans **Scrims** (`/scrims`), le staff d’une équipe publie un créneau avec son niveau, répond aux propositions des autres équipes NXT5 et confirme une réponse. La confirmation crée la séance dans le planning des deux équipes et, si la diffusion Discord est active, l’annonce dans le salon planning. Voir [le guide des scrims](docs/scrims.md).
+
 ## Commandes du bot Discord
 
 Le bot propose cinq commandes visibles : `/nxt help`, `/nxt lier`, `/nxt profil`, `/nxt voir` et `/nxt connecter`. Après la liaison personnelle Discord–NXT5, l’équipe est reconnue grâce au salon de commandes qui lui est réservé ; `/nxt voir` rassemble les consultations courantes. Le [guide de développement et d’activation](docs/discord-bot-commandes.md) décrit les droits, les rappels/bilans planifiés et l’ordre déploiement serveur → enregistrement de la commande Discord. Les contrôles locaux n’attestent pas un enregistrement ou un envoi réel.
