@@ -538,6 +538,7 @@ create table if not exists nexus_seasons (
   schedule_generated boolean not null default false,
   playoff_bracket jsonb,
   tie_resolution_note text,
+  tie_breakers jsonb not null default '[]'::jsonb constraint nexus_seasons_tie_breakers_check check (jsonb_typeof(tie_breakers) = 'array' and jsonb_array_length(tie_breakers) <= 4 and tie_breakers <@ '["headToHead","gameDifference","seriesWon","gamesWon"]'::jsonb),
   revision integer not null default 0,
   created_at timestamptz not null default now()
 );
