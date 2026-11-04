@@ -1,6 +1,6 @@
 # Import automatique des parties
 
-Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible dans Parties → Import automatique. Préparation locale au 5 novembre 2026 : la partie serveur et le site sont décrits ici ; l’onglet « Collecte automatique » de NXT5 Importer qui les utilise fait l’objet d’une livraison distincte (version 0.4.0), suivie d’un pilote sur une vraie custom.
+Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible dans Parties → Import automatique, et de l’onglet « Collecte automatique » de NXT5 Importer 0.4.0. Préparation locale au 5 novembre 2026 ; le pilote sur une vraie custom (ci-dessous) reste à effectuer avant de considérer la fonctionnalité comme en service.
 
 ## Parcours
 
@@ -18,6 +18,21 @@ Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible
 - Une partie déjà présente dans l’équipe est confirmée comme importée sans écriture. Les parties en attente conservent leur contenu jusqu’à finalisation ou abandon ; les autres ne gardent que l’identifiant et le motif.
 - Journal d’audit : `team_import.link.create`, `team_import.link.revoke`, `team_import.imported`, `team_import.pending`, `team_import.skipped`.
 - Aucun mot de passe Riot ni accès au compte Riot : l’Importer lit uniquement les interfaces locales du client, comme pour l’export manuel.
+
+## Côté NXT5 Importer
+
+- L’onglet Collecte automatique garde le jeton dans le processus principal (`collector.json` dans le dossier de données de l’application) ; l’interface ne reçoit qu’un résumé. Les parties récupérées sont conservées dans `collector-games/` jusqu’à leur envoi (ou plus longtemps si elles restent à finaliser).
+- Toutes les dix secondes, l’application lit `/lol-gameflow/v1/session` : une partie vue en cours (`InProgress`) après l’activation est mémorisée ; dès que le client en sort, la partie est lue dans l’historique du client (jusqu’à dix-huit essais) puis envoyée avec sa chronologie.
+- Une coupure réseau ou une indisponibilité de NXT5 reprogramme l’envoi (1, 2, 5, 15, 30 puis 60 minutes) ; un refus 401 marque la liaison révoquée et arrête la collecte ; un autre refus est final et affiché. « Envoyer une partie manquée » accepte un Game ID.
+- Un redémarrage conserve la liaison et les parties en attente, mais la collecte doit être réactivée explicitement.
+
+## Pilote à réaliser
+
+1. Sur le site, générer un code ; dans l’Importer 0.4.0, le coller, vérifier que l’équipe et l’effectif s’affichent, puis constater la liaison « Connectée » dans Parties.
+2. Activer la collecte, jouer une custom 5v5 avec au moins quatre joueurs de l’effectif, laisser l’Importer ouvert : la partie doit apparaître dans Parties sous deux minutes après la fin, importée avec le bon côté et les bons profils.
+3. Rejouer une custom en coupant le réseau pendant l’envoi : la partie reste « Nouvel essai prévu », puis part seule au retour du réseau, sans doublon.
+4. Révoquer la liaison depuis NXT5 pendant la collecte : l’Importer doit s’arrêter avec le motif, et un nouveau code doit la rétablir.
+5. Jouer avec un joueur hors effectif : la partie doit arriver « À finaliser » et s’importer via Finaliser.
 
 ## Vérifications
 

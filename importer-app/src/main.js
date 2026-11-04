@@ -3,6 +3,8 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
+import os from "node:os";
+import { createCollector } from "./collector.js";
 import { assertTrustedIpcSender } from "./ipc-security.js";
 import {
   StateStore,
@@ -45,6 +47,7 @@ const NXT5_SITE_URL = (() => {
 const catalog = createChampionCatalog();
 let store;
 let mainWindow;
+let collector;
 
 async function checkImporterUpdate() {
   try {
@@ -503,6 +506,8 @@ const handlers = {
     platform: process.platform,
     arch: process.arch,
     siteUrl: NXT5_SITE_URL,
+    deviceName: os.hostname().slice(0, 80),
+    collector: collector?.snapshot() || null,
     ...store.snapshot(),
     ...(store.loadWarning ? { warning: store.loadWarning } : {}),
   }),
@@ -579,6 +584,15 @@ const handlers = {
     await shell.openExternal(target);
     return true;
   },
+  // Automatic collection: the token stays in the main process; the renderer only sees a snapshot.
+  "collector-state": () => collector.snapshot(),
+  "collector-connect": (form) => collector.connect(form?.code, form?.label),
+  "collector-verify": () => collector.verify(),
+  "collector-forget": () => collector.forget(),
+  "collector-start": () => collector.start(),
+  "collector-stop": () => collector.stop(),
+  "collector-submit": (gameId) => collector.submitGame(gameId),
+  "collector-retry": (gameId) => collector.retry(String(gameId || "")),
 };
 for (const [channel, handler] of Object.entries(handlers))
   ipcMain.handle(channel, (event, value) => {
@@ -609,6 +623,22 @@ else {
       path.join(app.getPath("userData"), "preferences.json"),
     );
     await store.load();
+    collector = createCollector({
+      filePath: path.join(app.getPath("userData"), "collector.json"),
+      payloadDirectory: path.join(app.getPath("userData"), "collector-games"),
+      siteUrl: NXT5_SITE_URL,
+      platform: () => store.snapshot().settings.platform || "EUW1",
+      readLockfile: () => readLeagueLockfile(store.snapshot().settings.leaguePath),
+      lcuRequest,
+      fetchLocal: localMatch,
+      buildTimelineSummary,
+      appVersion: CURRENT_VERSION,
+      onChange: (snapshot) => {
+        if (mainWindow && !mainWindow.webContents.isDestroyed())
+          mainWindow.webContents.send("collector-update", snapshot);
+      },
+    });
+    await collector.load();
     createWindow();
   });
   app.on("window-all-closed", () => {
@@ -617,5 +647,8 @@ else {
   app.on("activate", () => {
     if (store && BrowserWindow.getAllWindows().length === 0) createWindow();
   });
-  app.on("before-quit", () => importer.cancel());
+  app.on("before-quit", () => {
+    importer.cancel();
+    collector?.stop();
+  });
 }

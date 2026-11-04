@@ -1,5 +1,7 @@
 # Vérifier NXT5 Importer
 
+La collecte automatique (`src/collector.js`) est couverte par `test/collector.test.mjs` avec un client LoL, un serveur NXT5 et des horloges simulés : liaison, observation d’une custom, envoi unique, reprise après coupure, révocation, partie absente de l’historique du client. Le parcours Electron ci-dessous ne l’exerce pas encore ; le pilote décrit dans [docs/import-automatique.md](../../docs/import-automatique.md) reste nécessaire.
+
 Les tests unitaires s’exécutent depuis `importer-app` avec `pnpm test`. Ils vérifient notamment la validation des données, les délais réseau, l’annulation, les préférences et les mises à jour. Le workflow de release les exécute avant de construire les applications.
 
 ## Test de l’application Electron

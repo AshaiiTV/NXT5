@@ -417,3 +417,22 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   .button.primary { border: 1px solid ButtonText; }
   .nxt-art::before { display: none; }
 }
+
+/* Collecte automatique */
+.collect-form { display: grid; gap: 10px; margin-top: 14px; }
+.collect-form input, .collect-manual input { width: 100%; min-height: 44px; padding: 10px 14px; border-radius: 12px; border: 1px solid rgba(148, 163, 184, 0.28); background: rgba(10, 10, 15, 0.55); color: inherit; font: inherit; letter-spacing: 0.04em; }
+.collect-form input:focus-visible, .collect-manual input:focus-visible { outline: 2px solid rgba(103, 232, 249, 0.8); outline-offset: 2px; }
+.collect-linked { margin-top: 12px; }
+.collect-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px 20px; margin: 0 0 14px; }
+.collect-facts dt { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.7; }
+.collect-facts dd { margin: 4px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+.collect-run { display: grid; gap: 12px; margin-top: 14px; }
+.collect-manual { display: grid; gap: 8px; margin-top: 18px; }
+.collect-manual-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.collect-manual-row input { flex: 1 1 220px; }
+.collect-games { display: grid; gap: 10px; margin-top: 14px; }
+.collect-games .history-row[data-status="imported"] strong { color: #6ee7b7; }
+.collect-games .history-row[data-status="pending"] strong { color: #fde68a; }
+.collect-games .history-row[data-status="failed"] strong, .collect-games .history-row[data-status="unauthorized"] strong { color: #fda4af; }
+body.is-collecting #collectTab { color: #67e8f9; }
+

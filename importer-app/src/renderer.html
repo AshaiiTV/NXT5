@@ -96,6 +96,10 @@
             <svg><use href="#i-history" /></svg><span>Historique</span
             ><span class="nav-count" id="historyCount">0</span>
           </button>
+          <button class="nav-item" id="collectTab" data-view="collect">
+            <svg><use href="#i-refresh" /></svg><span>Collecte automatique</span
+            ><span class="nav-count" id="collectCount" hidden>0</span>
+          </button>
           <button class="nav-item" id="settingsTab" data-view="settings">
             <svg><use href="#i-settings" /></svg><span>Paramètres</span>
           </button>
@@ -393,6 +397,105 @@
               Les 30 derniers exports sont conservés ici. Les fichiers restent à
               l’emplacement que tu as choisi.
             </p>
+          </div>
+        </section>
+        <section
+          id="collectView"
+          class="view"
+          aria-labelledby="collectHeading"
+          hidden
+        >
+          <div class="page-heading">
+            <p class="eyebrow">Sans manipulation</p>
+            <h1 id="collectHeading" tabindex="-1">Collecte automatique</h1>
+            <p>
+              Lie l’Importer à ton équipe NXT5 une seule fois. Ensuite, chaque
+              custom jouée avec l’Importer et le client ouverts est envoyée
+              à NXT5 à la fin de la partie.
+            </p>
+          </div>
+          <div class="settings-stack">
+            <section class="card settings-card" id="collectLinkCard">
+              <div class="settings-title">
+                <span class="icon-tile"><svg><use href="#i-shield" /></svg></span>
+                <div>
+                  <h2>Liaison avec ton équipe</h2>
+                  <p id="collectLinkSummary">Aucune équipe liée pour le moment.</p>
+                </div>
+              </div>
+              <form id="collectLinkForm" class="collect-form" novalidate>
+                <label for="collectCode">Code généré dans NXT5 (Parties → Import automatique)</label>
+                <input id="collectCode" type="text" autocomplete="off" spellcheck="false" placeholder="ABCD-1234-EF56-7890-AB12-CD34" maxlength="40" />
+                <label for="collectLabel">Nom de cet ordinateur (visible par le staff)</label>
+                <input id="collectLabel" type="text" autocomplete="off" maxlength="80" />
+                <div class="settings-actions">
+                  <button id="collectConnect" class="button primary compact" type="submit">
+                    Lier cet ordinateur <svg><use href="#i-check" /></svg>
+                  </button>
+                </div>
+                <p class="field-hint">Le code n’est valable qu’une fois, pendant 15 minutes. La liaison reste valable 90 jours et peut être révoquée depuis NXT5.</p>
+              </form>
+              <div id="collectLinked" class="collect-linked" hidden>
+                <dl class="collect-facts">
+                  <div><dt>Équipe</dt><dd id="collectTeam">—</dd></div>
+                  <div><dt>Effectif reconnu</dt><dd id="collectRoster">—</dd></div>
+                  <div><dt>Liaison valable jusqu’au</dt><dd id="collectExpires">—</dd></div>
+                </dl>
+                <div class="settings-actions">
+                  <button id="collectVerify" class="button compact" type="button">
+                    Vérifier la liaison <svg><use href="#i-refresh" /></svg></button
+                  ><button id="collectForget" class="text-button" type="button">Oublier la liaison sur cet ordinateur</button>
+                </div>
+              </div>
+              <div id="collectLinkStatus" class="notice" role="status" hidden></div>
+            </section>
+            <section class="card settings-card" id="collectRunCard" hidden>
+              <div class="settings-title">
+                <span class="icon-tile"><svg><use href="#i-export" /></svg></span>
+                <div>
+                  <h2>Collecte</h2>
+                  <p id="collectPhase">Collecte arrêtée.</p>
+                </div>
+              </div>
+              <div class="collect-run">
+                <button id="collectToggle" class="button primary" type="button">
+                  Activer la collecte <svg><use href="#i-arrow" /></svg>
+                </button>
+                <p class="field-hint" id="collectRunHint">
+                  Active la collecte avant la fin de la partie, puis laisse NXT5 Importer et le client League of Legends ouverts. Seules les customs observées après l’activation sont envoyées.
+                </p>
+              </div>
+              <form id="collectManualForm" class="collect-manual" novalidate>
+                <label for="collectManualId">Envoyer une partie manquée (Game ID)</label>
+                <div class="collect-manual-row">
+                  <input id="collectManualId" type="text" autocomplete="off" spellcheck="false" placeholder="EUW1_8035280010" maxlength="40" />
+                  <button id="collectManualSend" class="button compact" type="submit">Envoyer</button>
+                </div>
+              </form>
+              <div id="collectRunStatus" class="notice" role="status" hidden></div>
+            </section>
+            <section class="card settings-card" id="collectGamesCard" hidden>
+              <div class="settings-title">
+                <span class="icon-tile"><svg><use href="#i-history" /></svg></span>
+                <div>
+                  <h2>Parties envoyées</h2>
+                  <p>Le staff retrouve ces parties dans NXT5, onglet Parties.</p>
+                </div>
+              </div>
+              <div id="collectGames" class="collect-games"></div>
+            </section>
+            <section class="privacy-note">
+              <svg><use href="#i-shield" /></svg>
+              <div>
+                <h3>Ce qui est envoyé</h3>
+                <p>
+                  Uniquement les données de la partie lues dans le client
+                  League of Legends, comme pour un export manuel. Aucun mot de
+                  passe Riot, aucune lecture du jeu. Une partie non reconnue par
+                  NXT5 reste visible dans Parties pour être finalisée.
+                </p>
+              </div>
+            </section>
           </div>
         </section>
         <section
