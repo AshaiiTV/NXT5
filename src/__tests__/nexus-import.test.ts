@@ -261,7 +261,16 @@ beforeAll(async () => {
     ),
   );
   await db.pg.exec(
-    "insert into app_schema_migrations values ('nexus-tournament-20261101-v1')",
+    readFileSync(
+      new URL(
+        "../../database/migrations/20261104_nexus_tie_breakers.sql",
+        import.meta.url,
+      ),
+      "utf8",
+    ),
+  );
+  await db.pg.exec(
+    "insert into app_schema_migrations values ('nexus-tournament-20261101-v1'),('nexus-tie-breakers-20261104-v1')",
   );
 }, 20_000);
 beforeEach(async () => {

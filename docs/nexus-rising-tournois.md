@@ -50,7 +50,7 @@ La ronde suisse suivante n’est créée qu’après validation de toutes les s�
 
 Si l’algorithme ne trouve pas d’appariement sans revanche dans sa limite de recherche, la génération est bloquée et aucune rencontre partielle n’est enregistrée. Ce blocage ne prouve pas une impossibilité mathématique ; le staff doit examiner la situation.
 
-Le classement utilise trois points par victoire et zéro par défaite. Les modèles Nexus ajoutent la confrontation directe puis la différence de games ; les autres formats conservent les ex æquo à égalité de points. Pour plusieurs équipes à égalité dans un modèle Nexus, la confrontation directe est un mini-classement de leurs confrontations complètes, sans réapplication récursive après séparation du groupe. Cette interprétation est à harmoniser avec le règlement de saison ; une égalité restante requiert le staff.
+Le classement utilise trois points par victoire et zéro par défaite. Le départage à égalité de points est une règle de saison choisie explicitement (« Départage à égalité de points »), indépendante du tableau de playoffs et de la variante de double élimination : aucun départage par défaut, confrontation directe puis différence de games, l’ordre inverse, ou l’un des deux critères seul. Le point de départ « format bêta » sélectionne la confrontation directe puis la différence de games ; sans règle, les ex æquo restent à égalité. Pour plusieurs équipes à égalité, la confrontation directe est un mini-classement de leurs confrontations complètes, sans réapplication récursive après séparation du groupe. Cette interprétation est à harmoniser avec le règlement de saison ; une égalité restante requiert le staff.
 
 ### Équipes et résultats
 
@@ -64,7 +64,7 @@ Une équipe inscrite (inscription en attente ou approuvée) dans une saison non 
 
 Seules les contributions acceptées comptent dans une série. Une game ne peut être acceptée qu’une fois dans la ligue. Une série incomplète n’a pas de vainqueur ; des données contradictoires ne sont pas transformées en résultat arbitraire. Les statistiques manquantes restent absentes.
 
-Une égalité non résolue ne qualifie pas automatiquement l’équipe dont le nom apparaît en premier. Le staff doit établir les seeds et documenter les départages restants. Les corrections susceptibles de changer les participants d’une rencontre déjà liée à un importeur ou ayant reçu des parties sont bloquées.
+Une égalité non résolue ne qualifie pas automatiquement l’équipe dont le nom apparaît en premier. Le staff doit établir les seeds et documenter les départages restants : la décision de départage est obligatoire (10 caractères minimum) dès qu’une égalité concerne un seed, facultative sinon, et limitée à 2 000 caractères dans tous les cas. Les corrections susceptibles de changer les participants d’une rencontre déjà liée à un importeur ou ayant reçu des parties sont bloquées.
 
 ## Vérification avant mise en service
 

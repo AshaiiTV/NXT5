@@ -44,6 +44,7 @@ export async function loadMigrations() {
     ['nexus-team-lifecycle-20261103-v1', '../database/migrations/20261103_nexus_team_lifecycle.sql'],
     ['scrim-finder-20261104-v1', '../database/migrations/20261104_scrim_finder.sql'],
     ['scrim-series-20261104-v1', '../database/migrations/20261104_scrim_series.sql'],
+    ['nexus-tie-breakers-20261104-v1', '../database/migrations/20261104_nexus_tie_breakers.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const source = await readFile(new URL(file, import.meta.url), 'utf8');

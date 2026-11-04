@@ -49,14 +49,19 @@ describe("season management",()=>{
     act(()=>select("Type de tournoi").props.onChange("swiss"));
     expect(renderer.root.findAllByType(TextInput).some(node=>node.props.label==="Nombre de rondes suisses")).toBe(true);
     expect(select("Saison régulière")).toBeUndefined();
+    expect(select("Départage à égalité de points").props.value).toBe("none");
+    act(()=>select("Départage à égalité de points").props.onChange("gameDifference-headToHead"));
+    expect(select("Départage à égalité de points").props.value).toBe("gameDifference-headToHead");
     act(()=>select("Type de tournoi").props.onChange("double_elimination"));
+    expect(select("Départage à égalité de points")).toBeUndefined();
     expect(select("Variante de double élimination")).toBeTruthy();
     expect(select("Taille du tableau").findAllByType("option").map(node=>node.props.value)).toEqual([4,8,16]);
     expect(select("Format des rencontres régulières")).toBeUndefined();
     act(()=>button("Reprendre le format bêta").props.onClick());
     act(()=>renderer.root.findAllByType(TextInput).find(node=>node.props.label==="Nom de la saison").props.onChange("Essai bêta"));
     act(()=>renderer.root.findByType("form").props.onSubmit({preventDefault(){}}));
-    expect(action.mock.calls[0][0]).toMatchObject({format:"round_robin",doubleVariant:"nexus_site",playoffSize:6,rulesConfirmed:false,status:"draft"});
+    expect(action.mock.calls[0][0]).toMatchObject({format:"round_robin",doubleVariant:"nexus_site",playoffSize:6,tieBreakers:["headToHead","gameDifference"],rulesConfirmed:false,status:"draft"});
+    expect(select("Départage à égalité de points").props.value).toBe("headToHead-gameDifference");
   });
   it("requires an explicit unique order for direct elimination and never seeds on the first click",async()=>{
     const action=vi.fn();

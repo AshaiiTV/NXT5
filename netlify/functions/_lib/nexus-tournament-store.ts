@@ -15,6 +15,8 @@ import {
 } from "../../../shared/nexus-tournament.js";
 
 const MANAGEMENT_ROLES = ["captain", "manager"];
+export const TIE_BREAKERS = ["headToHead", "gameDifference", "seriesWon", "gamesWon"];
+const TIE_NOTE_MAX_LENGTH = 2000;
 const PLAYING_ROLES = ["TOP", "JGL", "MID", "ADC", "SUP", "SUB"];
 export function seasonView(row: any) {
   return {
@@ -40,6 +42,7 @@ export function seasonView(row: any) {
     scheduleGenerated: row.schedule_generated,
     playoffBracket: row.playoff_bracket,
     tieResolutionNote: row.tie_resolution_note,
+    tieBreakers: Array.isArray(row.tie_breakers) ? row.tie_breakers : [],
     createdAt: row.created_at,
   };
 }
@@ -75,7 +78,8 @@ function configuration(body: any) {
   const groupCount = body.groupCount ?? 2,
     advancePerGroup = body.advancePerGroup ?? 2,
     swissRounds = body.swissRounds ?? 3,
-    upperFinalBestOf = body.upperFinalBestOf ?? 3;
+    upperFinalBestOf = body.upperFinalBestOf ?? 3,
+    tieBreakers = body.tieBreakers ?? [];
   if (
     ![1, 2].includes(body.legs) ||
     ![1, 3, 5].includes(body.regularBestOf) ||
@@ -107,6 +111,14 @@ function configuration(body: any) {
     ![1, 3, 5].includes(upperFinalBestOf)
   )
     nexusError("Paramètres du format invalides.");
+  // The standings rule is a season decision of its own: it is never inferred
+  // from the bracket family or the double elimination variant.
+  if (
+    !Array.isArray(tieBreakers) ||
+    tieBreakers.some((key) => !TIE_BREAKERS.includes(key)) ||
+    new Set(tieBreakers).size !== tieBreakers.length
+  )
+    nexusError("Règles de départage invalides.");
   const direct = ["single_elimination", "double_elimination"].includes(format);
   const hasBracket = direct || body.playoffEnabled !== false;
   const isDouble = (direct ? format : playoffFormat) === "double_elimination";
@@ -137,6 +149,7 @@ function configuration(body: any) {
     swissRounds,
     doubleVariant,
     upperFinalBestOf,
+    tieBreakers: [...tieBreakers],
     resetFinal: body.resetFinal !== false,
     legs: body.legs,
     regularBestOf: body.regularBestOf,
@@ -183,8 +196,8 @@ export async function mutateSeason(
 export async function createSeason(body: any) {
   const config = configuration(body);
   const rows =
-    await sql`insert into nexus_seasons(name,legs,regular_best_of,playoff_size,playoff_best_of,playoff_format,final_best_of,rules_confirmed,format,playoff_enabled,group_count,advance_per_group,swiss_rounds,double_variant,upper_final_best_of,reset_final)
-    values(${config.name},${config.legs},${config.regularBestOf},${config.playoffSize},${config.playoffBestOf},${config.playoffFormat},${config.finalBestOf},${config.rulesConfirmed},${config.format},${config.playoffEnabled},${config.groupCount},${config.advancePerGroup},${config.swissRounds},${config.doubleVariant},${config.upperFinalBestOf},${config.resetFinal}) returning *`;
+    await sql`insert into nexus_seasons(name,legs,regular_best_of,playoff_size,playoff_best_of,playoff_format,final_best_of,rules_confirmed,format,playoff_enabled,group_count,advance_per_group,swiss_rounds,double_variant,upper_final_best_of,reset_final,tie_breakers)
+    values(${config.name},${config.legs},${config.regularBestOf},${config.playoffSize},${config.playoffBestOf},${config.playoffFormat},${config.finalBestOf},${config.rulesConfirmed},${config.format},${config.playoffEnabled},${config.groupCount},${config.advancePerGroup},${config.swissRounds},${config.doubleVariant},${config.upperFinalBestOf},${config.resetFinal},${JSON.stringify(config.tieBreakers)}::jsonb) returning *`;
   return seasonView(rows[0]);
 }
 export async function updateSeason(body: any) {
@@ -205,7 +218,10 @@ export async function updateSeason(body: any) {
     season.schedule_generated &&
     Object.keys(config)
       .filter((key) => key !== "name")
-      .some((key) => config[key] !== seasonView(season)[key])
+      .some(
+        (key) =>
+          JSON.stringify(config[key]) !== JSON.stringify(seasonView(season)[key]),
+      )
   )
     nexusError("Le format est verrouillé après génération du calendrier.", 409);
   if (status !== "draft" && !config.rulesConfirmed)
@@ -238,7 +254,7 @@ export async function updateSeason(body: any) {
       );
   }
   await mutateSeason(season, (tx) => [
-    tx`update nexus_seasons set name=${config.name},status=${status},legs=${config.legs},regular_best_of=${config.regularBestOf},playoff_size=${config.playoffSize},playoff_best_of=${config.playoffBestOf},playoff_format=${config.playoffFormat},final_best_of=${config.finalBestOf},rules_confirmed=${config.rulesConfirmed},format=${config.format},playoff_enabled=${config.playoffEnabled},group_count=${config.groupCount},advance_per_group=${config.advancePerGroup},swiss_rounds=${config.swissRounds},double_variant=${config.doubleVariant},upper_final_best_of=${config.upperFinalBestOf},reset_final=${config.resetFinal} where id=${season.id}`,
+    tx`update nexus_seasons set name=${config.name},status=${status},legs=${config.legs},regular_best_of=${config.regularBestOf},playoff_size=${config.playoffSize},playoff_best_of=${config.playoffBestOf},playoff_format=${config.playoffFormat},final_best_of=${config.finalBestOf},rules_confirmed=${config.rulesConfirmed},format=${config.format},playoff_enabled=${config.playoffEnabled},group_count=${config.groupCount},advance_per_group=${config.advancePerGroup},swiss_rounds=${config.swissRounds},double_variant=${config.doubleVariant},upper_final_best_of=${config.upperFinalBestOf},reset_final=${config.resetFinal},tie_breakers=${JSON.stringify(config.tieBreakers)}::jsonb where id=${season.id}`,
   ]);
   return seasonView(await getSeason(season.id));
 }
@@ -719,10 +735,7 @@ export async function loadTournamentState() {
               ? season.advance_per_group
               : season.playoff_size
             : null,
-          tieBreakers:
-            season.double_variant !== "standard"
-              ? ["headToHead", "gameDifference"]
-              : [],
+          tieBreakers: seasonView(season).tieBreakers,
           byes:
             season.format === "swiss"
               ? (season.swiss_state?.rounds || []).flatMap((round: any) =>
@@ -821,14 +834,21 @@ export async function seedPlayoffs(body: any) {
   )
     nexusError("Les seeds doivent désigner des équipes approuvées distinctes.");
   const standings = state.standings.filter((row) => row.seasonId === season.id);
+  // The note is stored whether or not a tie exists, so its size is always bounded.
+  if (body.tieResolutionNote != null && typeof body.tieResolutionNote !== "string")
+    nexusError("La décision de départage doit être un texte.");
   const note = String(body.tieResolutionNote || "").trim();
+  if (note.length > TIE_NOTE_MAX_LENGTH)
+    nexusError(
+      `La décision de départage ne peut pas dépasser ${TIE_NOTE_MAX_LENGTH} caractères.`,
+    );
   if (
     standings.some((row) =>
       row.ties.some((tie: any) =>
         tie.teamIds.some((id: string) => seeds.includes(id)),
       ),
     ) &&
-    (note.length < 10 || note.length > 2000)
+    note.length < 10
   )
     nexusError(
       "Documente la résolution des égalités avant de valider les seeds.",

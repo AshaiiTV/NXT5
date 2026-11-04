@@ -27,6 +27,8 @@ Ces rattrapages verrouillent les tables concernées contre les écritures concur
 
 `20261104_scrim_finder.sql` (`scrim-finder-20261104-v1`) crée `scrim_offers` et `scrim_requests` pour la [recherche de scrims](../docs/scrims.md) ; `20261104_scrim_series.sql` (`scrim-series-20261104-v1`) ajoute la colonne `series` (nombre de games fixe, BO3 ou BO5). Les lignes suivent l’équipe en cascade ; la confirmation d’un scrim écrit ses séances dans `discord_team_events`, créée par `discord-bot-workflows-20260922-v1`.
 
+`20261104_nexus_tie_breakers.sql` (`nexus-tie-breakers-20261104-v1`) ajoute à `nexus_seasons` la colonne `tie_breakers` (tableau JSON ordonné parmi `headToHead`, `gameDifference`, `seriesWon`, `gamesWon`, vide par défaut). Le classement n’infère plus ses départages de la variante de double élimination : les saisons dont le tableau est un modèle Nexus à six équipes reçoivent `["headToHead","gameDifference"]`, les autres restent sans départage. La migration est rejouable.
+
 ## Première publication de Nexus Rising
 
 Pour ajouter Nexus Rising à la base NXT5 existante, définir temporairement `NXT5_MIGRATION_SCOPE=nexus-rising` dans le contexte Netlify `production`, portée `builds` uniquement. Le build utilise sa connexion serveur existante et applique exclusivement `20261031_nexus_import.sql`, puis `20261101_nexus_tournament.sql`. Ce mode ne lance pas le rattrapage historique des reviews. Toute autre valeur non vide est refusée avant connexion.
