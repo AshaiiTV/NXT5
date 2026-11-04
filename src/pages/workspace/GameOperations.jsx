@@ -593,7 +593,7 @@ function ImportOpponentField({ teamId, value, onChange, disabled }) {
   </div>;
 }
 
-export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, onImported, onBusyChange, onDirtyChange, currentMember, user }) {
+export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, onImported, onBusyChange, onDirtyChange, currentMember, user, receivedImport = null, onReceivedImportConsumed }) {
   useLanguage();
   const [laneAssignments, setLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [enemyLaneAssignments, setEnemyLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
@@ -843,12 +843,28 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     if (!file || importing || fileImporting || creatingProfiles || categoryRequestRef.current || !selectedTeamId || !canImport) return;
     setFileError("");
     if (file.size > 5 * 1024 * 1024) { setFileError("Choisis un fichier JSON de 5 Mo maximum."); pushToast({ type: "red", title: "Fichier trop volumineux", text: "Choisis un fichier JSON de 5 Mo maximum." }); return; }
+    await importPayload(() => file.text().then((text) => JSON.parse(text)), file.name || "Prévisualisation JSON", file.size || 0);
+  }
+  // A received game (automatic import left for the staff) enters the same preview as a chosen file.
+  async function importReceivedPayload(payload, submission) {
+    if (importing || fileImporting || creatingProfiles || categoryRequestRef.current || !selectedTeamId || !canImport) return;
+    setFileError("");
+    await importPayload(async () => payload, submission?.gameId || "Partie reçue", 0);
+  }
+  // A game received by the automatic import is previewed like a chosen file.
+  const receivedImportRef = useRef(null);
+  useEffect(() => {
+    if (!receivedImport?.payload || receivedImportRef.current === receivedImport) return;
+    receivedImportRef.current = receivedImport;
+    onReceivedImportConsumed?.();
+    void importReceivedPayload(receivedImport.payload, receivedImport.submission);
+  }, [receivedImport]);
+  async function importPayload(readPayload, sourceLabel, size) {
     window.clearTimeout(progressTimer.current);
     setFileImporting(true);
-    setUploadProgress({ active: true, label: file.name || "Prévisualisation JSON", phase: "prepare", percent: 0, loaded: 0, total: file.size || 0 });
+    setUploadProgress({ active: true, label: sourceLabel, phase: "prepare", percent: 0, loaded: 0, total: size });
     try {
-      const text = await file.text();
-      const payload = JSON.parse(text);
+      const payload = await readPayload();
       const result = await apiUploadJson("matches-import-file", { teamId: selectedTeamId, payload, previewOnly: true }, updateUploadProgress);
       resetImportDraft();
       setPreviewPayload(payload);

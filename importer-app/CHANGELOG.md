@@ -1,3 +1,9 @@
+# NXT5 Importer 0.4.0
+
+- Nouvel onglet **Collecte automatique** : colle une fois le code généré dans NXT5 (Parties → Import automatique), active la collecte, puis laisse l’Importer et le client LoL ouverts. Chaque custom observée est récupérée dans le client à la fin de la partie et envoyée à NXT5, qui reconnaît le côté, les postes et les joueurs de l’effectif ; les parties non reconnues restent à finaliser sur le site.
+- Envois idempotents avec reprise automatique après une coupure réseau (1, 2, 5, 15, 30 puis 60 minutes), parties conservées localement jusqu’à l’envoi, arrêt immédiat si la liaison est révoquée depuis NXT5. Une partie manquée peut être envoyée par son Game ID. Un redémarrage conserve la liaison mais demande une nouvelle activation.
+- Le jeton de liaison ne quitte jamais le processus principal ; l’interface n’en reçoit qu’un résumé. Raccourci `Ctrl/⌘ + 3` pour l’onglet, `Ctrl/⌘ + 4` pour les paramètres.
+
 # NXT5 Importer 0.3.9
 
 - Electron 45.1.0, electron-builder 26.18.0 et pnpm 12.16.1 (correctifs de sécurité et de stabilité de la chaîne de construction, sans changement de fonctionnement).

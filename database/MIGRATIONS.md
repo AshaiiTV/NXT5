@@ -29,6 +29,8 @@ Ces rattrapages verrouillent les tables concernées contre les écritures concur
 
 `20261104_nexus_tie_breakers.sql` (`nexus-tie-breakers-20261104-v1`) ajoute à `nexus_seasons` la colonne `tie_breakers` (tableau JSON ordonné parmi `headToHead`, `gameDifference`, `seriesWon`, `gamesWon`, vide par défaut). Le classement n’infère plus ses départages de la variante de double élimination : les saisons dont le tableau est un modèle Nexus à six équipes reçoivent `["headToHead","gameDifference"]`, les autres restent sans départage. La migration est rejouable.
 
+`20261105_team_import_links.sql` (`team-import-links-20261105-v1`) crée `team_import_links` et `team_import_submissions` pour l’[import automatique](../docs/import-automatique.md) : liaison de NXT5 Importer par code à usage unique puis jeton révocable, et réception des parties avec leur état.
+
 ## Première publication de Nexus Rising
 
 Pour ajouter Nexus Rising à la base NXT5 existante, définir temporairement `NXT5_MIGRATION_SCOPE=nexus-rising` dans le contexte Netlify `production`, portée `builds` uniquement. Le build utilise sa connexion serveur existante et applique exclusivement `20261031_nexus_import.sql`, puis `20261101_nexus_tournament.sql`. Ce mode ne lance pas le rattrapage historique des reviews. Toute autre valeur non vide est refusée avant connexion.

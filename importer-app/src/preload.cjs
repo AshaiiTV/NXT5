@@ -16,4 +16,20 @@ contextBridge.exposeInMainWorld("nxt5", {
   },
   checkUpdate: () => ipcRenderer.invoke("check-update"),
   openExternal: (url) => ipcRenderer.invoke("open-external", url),
+  collector: {
+    state: () => ipcRenderer.invoke("collector-state"),
+    connect: (form) => ipcRenderer.invoke("collector-connect", form),
+    verify: () => ipcRenderer.invoke("collector-verify"),
+    forget: () => ipcRenderer.invoke("collector-forget"),
+    start: () => ipcRenderer.invoke("collector-start"),
+    stop: () => ipcRenderer.invoke("collector-stop"),
+    submit: (gameId) => ipcRenderer.invoke("collector-submit", gameId),
+    retry: (gameId) => ipcRenderer.invoke("collector-retry", gameId),
+    onUpdate: (callback) => {
+      if (typeof callback !== "function") return () => {};
+      const listener = (_event, snapshot) => callback(snapshot);
+      ipcRenderer.on("collector-update", listener);
+      return () => ipcRenderer.removeListener("collector-update", listener);
+    },
+  },
 });

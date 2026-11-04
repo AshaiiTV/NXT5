@@ -12,6 +12,7 @@ import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput, Read
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft, Settings } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { trackAudienceEvent } from "../../app/audience-client.js";
+import { ImporterAutoLink } from "../../components/importer/ImporterAutoLink.jsx";
 import { ImportGameFlow, GameActions, GameCategoryManager, GameOperationDialog, matchImportTitle, matchCategoriesForMatch, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor } from "./GameOperations.jsx";
 import "./games-workspace.css";
 import "./match-timeline-reading.css";
@@ -1367,6 +1368,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const [selectedArchiveId, setSelectedArchiveId] = useState(urlArchiveId);
   const selectedArchive = archives.find((archive) => String(archive.id) === String(selectedArchiveId));
   const [importOpen, setImportOpen] = useState(urlImportOpen && !urlMatchId && !urlArchiveId);
+  const [receivedImport, setReceivedImport] = useState(null);
   const [importBusy, setImportBusy] = useState(false);
   const [importDirty, setImportDirty] = useState(false);
   const [workspaceView, setWorkspaceView] = useState(urlView);
@@ -1557,8 +1559,9 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {!selectedMatchId && !selectedArchiveId && <div ref={importTriggerRef}>{renderImportAction()}</div>}
     </PageHeader>
     {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog className="game-import-dialog" title={t("Importer une partie")} onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy} dirty={importDirty} returnFocusRef={importTriggerRef}>
-      <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} onDirtyChange={setImportDirty} />
+      <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} onDirtyChange={setImportDirty} receivedImport={receivedImport} onReceivedImportConsumed={() => setReceivedImport(null)} />
     </GameOperationDialog>}
+    {!selectedMatchId && !selectedArchiveId && !importOpen && workspaceView !== "teams" && <ImporterAutoLink teamId={selectedTeamId} categories={matchCategories} canManage={canImport} pushToast={pushToast} refreshKey={data.matches?.length} onFinalize={async (payload, submission) => { setReceivedImport({ payload, submission }); setImportOpen(true); }} />}
 
     {selectedMatchId && <div ref={statsRef} id="selected-game-stats" tabIndex={-1} className="games-detail" aria-label={t("Analyse de la partie")}>
       <div className="games-detail-toolbar">

@@ -100,7 +100,7 @@ L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. L’[a
 
 ## Application NXT5 Importer
 
-Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.3.9** pour Windows, Mac Intel et Mac Apple Silicon.
+Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.4.0** pour Windows, Mac Intel et Mac Apple Silicon.
 
 1. Lance le `.exe` Windows ou ouvre `NXT5 Importer.app` après extraction du zip Mac adapté à ton processeur.
 2. Colle le numéro de la partie ou un ID complet comme `EUW1_7861632138`. Vérifie la région.
@@ -111,7 +111,9 @@ L’application vérifie d’abord les données auprès de NXT5/Riot puis essaie
 
 Les 30 derniers exports sont accessibles dans **Exports récents** : recherche, affichage dans Finder/Explorateur et réexport. Le récapitulatif précise la présence de la timeline ; son absence n’empêche pas l’export du match. Les fichiers sont enregistrés atomiquement et restent sur cet appareil jusqu’à leur import manuel dans NXT5. L’application nécessite un match de deux équipes de cinq joueurs, conformément au format du site.
 
-Raccourcis : `Ctrl/⌘ + Entrée` pour exporter, `Ctrl/⌘ + 1`, `2`, `3` pour changer de vue.
+L’onglet **Collecte automatique** lie l’application à une équipe NXT5 avec le code généré dans Parties → Import automatique, puis envoie seule chaque custom observée dans le client à la fin de la partie ; voir [le guide de l’import automatique](docs/import-automatique.md).
+
+Raccourcis : `Ctrl/⌘ + Entrée` pour exporter, `Ctrl/⌘ + 1`, `2`, `3`, `4` pour changer de vue.
 
 Les mises à jour sont proposées pour l’architecture de l’appareil. Les liens du site suivent la dernière version publiée ; une version demandée explicitement n’est jamais remplacée par une autre.
 
@@ -128,6 +130,10 @@ pnpm start
 La fenêtre d’enregistrement reprend le dossier du dernier export réussi, même après réouverture de l’application. Si ce dossier n’existe plus, elle revient dans Téléchargements.
 
 Voir [les changements de l’Importer](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
+
+## Import automatique des parties
+
+Dans **Parties → Import automatique**, le staff lie NXT5 Importer à l’équipe avec un code à usage unique. Chaque custom jouée avec l’Importer ouvert est ensuite envoyée et importée seule, avec le côté, les postes et les joueurs reconnus par les Riot ID de l’effectif ; les parties non reconnues restent à finaliser dans le formulaire habituel. Voir [le guide de l’import automatique](docs/import-automatique.md).
 
 ## Scrims entre équipes
 

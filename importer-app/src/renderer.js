@@ -36,6 +36,7 @@ let resultHistoryId = "";
 let updateDownloadUrl = "";
 let progressTimer;
 let unsubscribeProgress;
+let unsubscribeCollector;
 const dateFormat = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
   month: "short",
@@ -60,6 +61,7 @@ function showView(view, focus = false) {
   const names = {
     export: "Nouvel export",
     history: "Exports récents",
+    collect: "Collecte automatique",
     settings: "Paramètres",
   };
   if (!names[view]) return;
@@ -74,7 +76,97 @@ function showView(view, focus = false) {
   }
   $("#viewName").textContent = names[view];
   if (view === "history") renderHistory();
+  if (view === "collect") void refreshCollector();
   if (focus) $(`#${view}Heading`).focus({ preventScroll: true });
+}
+let collectorState = null;
+let collectorBusy = false;
+const longDate = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+function collectorStatusLabel(game) {
+  if (game.status === "sent")
+    return { sent: "Envoyée", imported: "Importée dans NXT5", pending: "À finaliser dans NXT5", skipped: "Ignorée par NXT5" }[game.result?.status || "sent"] || "Envoyée";
+  return { queued: game.attempts ? "Nouvel essai prévu" : "En file d’envoi", failed: "Échec", unauthorized: "Liaison révoquée" }[game.status] || game.status;
+}
+function renderCollector(snapshot) {
+  if (!snapshot) return;
+  collectorState = snapshot;
+  const linked = snapshot.linked;
+  $("#collectLinkForm").hidden = linked;
+  $("#collectLinked").hidden = !linked;
+  $("#collectRunCard").hidden = !linked;
+  $("#collectGamesCard").hidden = !snapshot.games.length;
+  $("#collectLinkSummary").textContent = linked
+    ? `${snapshot.link.teamName}${snapshot.link.teamTag ? ` · ${snapshot.link.teamTag}` : ""}${snapshot.link.label ? ` · ${snapshot.link.label}` : ""}`
+    : "Aucune équipe liée pour le moment.";
+  if (linked) {
+    $("#collectTeam").textContent = `${snapshot.link.teamName}${snapshot.link.teamTag ? ` (${snapshot.link.teamTag})` : ""}`;
+    $("#collectRoster").textContent = `${snapshot.link.roster?.length || 0} joueur(s) avec Riot ID`;
+    const expires = new Date(snapshot.link.expiresAt);
+    $("#collectExpires").textContent = Number.isFinite(expires.getTime()) ? longDate.format(expires) : "—";
+    if (snapshot.link.invalidReason) notice("#collectLinkStatus", "error", snapshot.link.invalidReason);
+    else notice("#collectLinkStatus", "success", "");
+  }
+  const toggle = $("#collectToggle");
+  toggle.replaceChildren(document.createTextNode(snapshot.active ? "Arrêter la collecte" : "Activer la collecte"), icon(snapshot.active ? "check" : "arrow"));
+  toggle.classList.toggle("primary", !snapshot.active);
+  toggle.disabled = collectorBusy || Boolean(snapshot.link?.invalidReason);
+  const phases = { idle: "Collecte arrêtée.", starting: "Démarrage…", "no-client": snapshot.clientMessage, watching: snapshot.clientMessage || "En attente d’une custom.", "in-game": `Partie en cours (${snapshot.currentGame}). Elle sera envoyée à la fin.`, capturing: `${snapshot.clientMessage} ${snapshot.currentGame}`.trim() };
+  $("#collectPhase").textContent = phases[snapshot.phase] || snapshot.clientMessage || "Collecte arrêtée.";
+  document.body.classList.toggle("is-collecting", snapshot.active);
+  const count = $("#collectCount");
+  count.hidden = !snapshot.pending;
+  count.textContent = String(snapshot.pending);
+  const list = $("#collectGames");
+  list.replaceChildren();
+  for (const game of snapshot.games.slice(0, 20)) {
+    const row = document.createElement("article");
+    row.className = "history-row";
+    row.dataset.status = game.status === "sent" ? game.result?.status || "sent" : game.status;
+    const details = document.createElement("div");
+    details.className = "history-detail";
+    const name = document.createElement("strong");
+    name.textContent = game.gameId;
+    const meta = document.createElement("p");
+    meta.textContent = [collectorStatusLabel(game), game.capturedAt ? date(game.capturedAt) : "", game.result?.reason || game.lastError || ""].filter(Boolean).join(" · ");
+    details.append(name, meta);
+    const actions = document.createElement("div");
+    actions.className = "history-actions";
+    if (game.status === "failed" || (game.status === "queued" && game.attempts > 0)) {
+      const retry = document.createElement("button");
+      retry.type = "button";
+      retry.className = "text-button";
+      retry.textContent = "Réessayer";
+      retry.setAttribute("aria-label", `Réessayer l’envoi de ${game.gameId}`);
+      retry.addEventListener("click", () => collectorAction(() => api.collector.retry(game.gameId), "#collectRunStatus"));
+      actions.append(retry);
+    }
+    row.append(details, actions);
+    list.append(row);
+  }
+}
+async function refreshCollector() {
+  if (!api?.collector) return;
+  try { renderCollector(await api.collector.state()); } catch (error) { notice("#collectLinkStatus", "error", cleanError(error)); }
+}
+async function collectorAction(run, target, success = "") {
+  if (!api?.collector || collectorBusy) return;
+  collectorBusy = true;
+  $("#collectToggle").disabled = true;
+  $("#collectConnect").disabled = true;
+  $("#collectManualSend").disabled = true;
+  try {
+    const snapshot = await run();
+    if (snapshot) renderCollector(snapshot);
+    if (success) notice(target, "success", success);
+    else notice(target, "success", "");
+  } catch (error) {
+    notice(target, "error", cleanError(error));
+  } finally {
+    collectorBusy = false;
+    $("#collectConnect").disabled = false;
+    $("#collectManualSend").disabled = false;
+    if (collectorState) renderCollector(collectorState);
+  }
 }
 function icon(name) {
   const element = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -522,12 +614,30 @@ $("#updateLink").addEventListener("click", () =>
 $("#revealFile").addEventListener("click", () =>
   revealExport(resultHistoryId, $("#revealFile")),
 );
+$("#collectLinkForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const code = $("#collectCode").value.trim();
+  const label = $("#collectLabel").value.trim() || appState.deviceName || "";
+  collectorAction(() => api.collector.connect({ code, label }), "#collectLinkStatus", "Équipe liée. Active la collecte avant ta prochaine custom.").then(() => { $("#collectCode").value = ""; });
+});
+$("#collectVerify").addEventListener("click", () => collectorAction(() => api.collector.verify(), "#collectLinkStatus", "Liaison vérifiée."));
+$("#collectForget").addEventListener("click", () => {
+  if (!window.confirm("Oublier la liaison sur cet ordinateur ? Il faudra un nouveau code pour la rétablir.")) return;
+  collectorAction(() => api.collector.forget(), "#collectLinkStatus", "Liaison oubliée.");
+});
+$("#collectToggle").addEventListener("click", () => collectorAction(() => (collectorState?.active ? api.collector.stop() : api.collector.start()), "#collectRunStatus"));
+$("#collectManualForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const gameId = $("#collectManualId").value.trim();
+  if (!gameId) return;
+  collectorAction(() => api.collector.submit(gameId), "#collectRunStatus", "Partie envoyée à NXT5.").then(() => { $("#collectManualId").value = ""; });
+});
 document.addEventListener("keydown", (event) => {
   if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey)
     return;
-  if (["1", "2", "3"].includes(event.key)) {
+  if (["1", "2", "3", "4"].includes(event.key)) {
     event.preventDefault();
-    showView({ 1: "export", 2: "history", 3: "settings" }[event.key], true);
+    showView({ 1: "export", 2: "history", 3: "collect", 4: "settings" }[event.key], true);
   }
   if (event.key === "Enter" && activeView === "export") {
     event.preventDefault();
@@ -563,11 +673,15 @@ async function initialize() {
     submit.disabled = false;
   }
   if (api.onProgress) unsubscribeProgress = api.onProgress(renderProgress);
+  if (api.collector?.onUpdate) unsubscribeCollector = api.collector.onUpdate(renderCollector);
+  if (!$("#collectLabel").value) $("#collectLabel").value = appState.deviceName || "";
+  if (appState.collector) renderCollector(appState.collector);
   void checkClient();
   void checkForUpdate();
 }
 window.addEventListener("pagehide", () => {
   clearInterval(progressTimer);
   unsubscribeProgress?.();
+  unsubscribeCollector?.();
 });
 void initialize();

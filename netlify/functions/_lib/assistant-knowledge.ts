@@ -145,8 +145,9 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     path: '/games',
     actionLabel: "Ouvrir Parties",
     summary: "Parties réunit les parties importées et leurs bilans. Importer une partie ouvre le choix du fichier. Les corrections restent accessibles depuis les options de chaque partie.",
-    keywords: ['import', 'importer', 'json', 'game id', 'games', 'partie', 'side', 'lane', 'profil', 'créer les profils', 'catégorie', 'scrim', 'upload', 'historique'],
+    keywords: ['import', 'importer', 'json', 'game id', 'games', 'partie', 'side', 'lane', 'profil', 'créer les profils', 'catégorie', 'scrim', 'upload', 'historique', 'import automatique', 'liaison', 'code de liaison', 'collecte automatique'],
     steps: [
+      "Pour ne plus rien faire à la main : dans Parties → Import automatique, lie NXT5 Importer à l’équipe avec un code, puis laisse l’Importer ouvert pendant les customs. Les parties reconnues arrivent seules ; les autres restent à finaliser.",
       "Prépare le fichier .json avec NXT5 Importer. L’aide Pas encore de fichier ? explique comment l’obtenir.",
       "Dans Parties, choisis Importer une partie, puis Choisir mon fichier.",
       "Choisis le côté de ton équipe, vérifie les postes des deux équipes et associe cinq profils différents. Crée les profils manquants depuis l’import si nécessaire.",
@@ -158,6 +159,11 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       "Comment retrouver une partie importée ?"
     ],
     faq: [
+      {
+        question: 'Comment importer mes parties automatiquement ?',
+        triggers: ['import automatique', 'importer automatiquement', 'lier l’importer', 'code de liaison', 'collecte automatique', 'partie reçue', 'à finaliser'],
+        answer: "Dans Parties → Import automatique, le staff génère un code et le colle dans l’onglet Collecte automatique de NXT5 Importer (valable 15 minutes, une seule fois). Ensuite, chaque custom jouée avec l’Importer ouvert arrive seule, avec le côté, les postes et les joueurs reconnus grâce aux Riot ID de l’effectif. Une partie non reconnue apparaît dans Parties reçues avec le bouton Finaliser, qui ouvre le formulaire d’import habituel. La liaison expire après 90 jours et se révoque d’un clic."
+      },
       {
         question: 'Comment choisir une équipe adverse pendant l’import ?',
         triggers: ['adversaire pendant l’import', 'équipe adverse à l’import', 'nouvelle équipe à l’import', 'réimport adversaire'],
