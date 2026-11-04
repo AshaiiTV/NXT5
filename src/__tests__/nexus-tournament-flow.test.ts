@@ -79,10 +79,10 @@ beforeAll(async () => {
     create table players(id uuid primary key,team_id uuid references teams(id),name text,riot_id text,role text,roster_status text);
     create table app_schema_migrations(migration_key text primary key);
   `);
-  for (const migration of ['20261031_nexus_import.sql','20261101_nexus_tournament.sql']) {
+  for (const migration of ['20261031_nexus_import.sql','20261101_nexus_tournament.sql','20261104_nexus_tie_breakers.sql']) {
     await db.pg.exec(readFileSync(new URL(`../../database/migrations/${migration}`, import.meta.url), 'utf8'));
   }
-  await db.pg.exec("insert into app_schema_migrations values ('nexus-import-20261031-v1'),('nexus-tournament-20261101-v1')");
+  await db.pg.exec("insert into app_schema_migrations values ('nexus-import-20261031-v1'),('nexus-tournament-20261101-v1'),('nexus-tie-breakers-20261104-v1')");
 }, 20_000);
 beforeEach(async () => {
   db.beforeBatch = null; identity.user = null; identity.cookie = ''; teams.length = 0;
@@ -139,6 +139,33 @@ async function complete(fixture: any, winner = 'A') {
   }
   return imported;
 }
+// A BO3 lost 1-2 lets game difference separate teams level on points.
+async function completeWithLoserGame(fixture: any, winner: 'A' | 'B') {
+  const ready = await prepare(fixture);
+  let imported: any = await importGame(ready, winner === 'A' ? 'B' : 'A');
+  await reviewTournamentSubmission({ submissionId: imported.submissionId, status: 'accepted' });
+  for (let i = 0; i < 2; i++) {
+    imported = await importGame(ready, winner, imported.token);
+    await reviewTournamentSubmission({ submissionId: imported.submissionId, status: 'accepted' });
+  }
+}
+// Three teams beat each other in a circle: everyone has three points, only
+// the game difference differs (team 1: +1, team 3: 0, team 2: -1).
+async function playCircularSeason(extra: any) {
+  const season = await openAndRegister(3, { regularBestOf: 3, playoffSize: 2, playoffFormat: 'single_elimination', doubleVariant: 'nexus_site', ...extra });
+  const schedule = await generateSchedule({ seasonId: season.id });
+  expect(schedule.fixtures).toHaveLength(3);
+  await updateSeason({ seasonId: season.id, status: 'running' });
+  const [one, two, three] = teams.slice(0, 3).map(team => team.id);
+  for (const fixture of schedule.fixtures) {
+    const pair = [fixture.teamAId, fixture.teamBId];
+    if (pair.includes(one) && pair.includes(two)) await complete(fixture, fixture.teamAId === one ? 'A' : 'B');
+    else if (pair.includes(two) && pair.includes(three)) await completeWithLoserGame(fixture, fixture.teamAId === two ? 'A' : 'B');
+    else await completeWithLoserGame(fixture, fixture.teamAId === three ? 'A' : 'B');
+  }
+  const table = (await loadTournamentState()).standings.find(row => row.seasonId === season.id)!;
+  return { season, table, one, two, three };
+}
 async function overview(user?: any) {
   identity.user = user || null; identity.cookie = user ? 'session-test' : '';
   const response = await overviewHandler(new Request('https://nxt5.test/.netlify/functions/nexus-overview'), {} as any);
@@ -191,6 +218,37 @@ describe('native teams through tournament and the existing NXT5 importer', () =>
     await expect(reviewTournamentSubmission({ submissionId: semi.submissionId, status: 'rejected' })).rejects.toMatchObject({ status: 409 });
     expect(await updateSeason({ seasonId: season.id, status: 'completed' })).toMatchObject({ status: 'completed' });
   }, 30_000);
+
+  it('applies only the configured tie-breakers, whatever the double elimination variant says', async () => {
+    await expect(createSeason(config({ tieBreakers: ['points'] }))).rejects.toThrow('Règles de départage invalides.');
+    await expect(createSeason(config({ tieBreakers: ['gameDifference', 'gameDifference'] }))).rejects.toThrow('Règles de départage invalides.');
+    expect((await createSeason(config())).tieBreakers).toEqual([]);
+
+    // The Nexus variant is stored but the playoffs are a single elimination: no rule is inferred from it.
+    const level = await playCircularSeason({});
+    expect(level.table.rows.map(row => row.points)).toEqual([3, 3, 3]);
+    expect(level.table.ties).toEqual([expect.objectContaining({ teamIds: expect.arrayContaining([level.one, level.two, level.three]), crossesQualification: true })]);
+    expect(level.table.qualificationBlocked).toBe(true);
+    await expect(seedPlayoffs({ seasonId: level.season.id, seeds: [level.one, level.three] })).rejects.toThrow('Documente la résolution des égalités');
+
+    const separated = await playCircularSeason({ tieBreakers: ['headToHead', 'gameDifference'] });
+    expect(separated.table.rows.map(row => [row.teamId, row.gameDifference])).toEqual([[separated.one, 1], [separated.three, 0], [separated.two, -1]]);
+    expect(separated.table.ties).toEqual([]);
+    expect(separated.table.rows.map(row => row.qualified)).toEqual([true, true, false]);
+    const seeds = [separated.one, separated.three];
+    // Without a tie the note stays optional, but never unbounded.
+    await expect(seedPlayoffs({ seasonId: separated.season.id, seeds, tieResolutionNote: 'x'.repeat(2001) })).rejects.toThrow('ne peut pas dépasser 2000 caractères');
+    await expect(seedPlayoffs({ seasonId: separated.season.id, seeds, tieResolutionNote: { text: 'objet' } })).rejects.toThrow('doit être un texte');
+    expect((await loadTournamentState()).rawSeasons.find(row => row.id === separated.season.id).playoff_bracket).toBeNull();
+    const seeded = await seedPlayoffs({ seasonId: separated.season.id, seeds, tieResolutionNote: 'Égalité levée par la différence de games.' });
+    expect(seeded.fixtures).toHaveLength(1);
+    expect(seeded.season.tieBreakers).toEqual(['headToHead', 'gameDifference']);
+    expect((await loadTournamentState()).rawSeasons.find(row => row.id === separated.season.id).tie_resolution_note).toBe('Égalité levée par la différence de games.');
+    // The locked format still accepts a plain status change.
+    await complete(seeded.fixtures[0]);
+    expect(await updateSeason({ seasonId: separated.season.id, status: 'completed' })).toMatchObject({ status: 'completed', tieBreakers: ['headToHead', 'gameDifference'] });
+    await expect(updateSeason({ seasonId: separated.season.id, tieBreakers: [] })).rejects.toMatchObject({ status: 409 });
+  }, 60_000);
 
   it('creates custom fixtures once per request, using approved native teams only', async () => {
     const season = await openAndRegister(2, { format: 'custom', playoffEnabled: false });
@@ -281,5 +339,40 @@ describe('native teams through tournament and the existing NXT5 importer', () =>
     expect(playoffs.fixtures).toHaveLength(1);
     await complete(playoffs.fixtures[0]);
     expect(await updateSeason({ seasonId: season.id, status: 'completed' })).toMatchObject({ status: 'completed' });
+  }, 30_000);
+});
+
+describe('nexus-tie-breakers migration on an existing Nexus schema', () => {
+  it('keeps the rule previously applied to Nexus brackets, leaves other seasons level and rejects unknown keys', async () => {
+    const pg = new PGlite();
+    await pg.exec(`
+      create table users(id uuid primary key);
+      create table teams(id uuid primary key, name text, owner_id uuid references users(id) on delete cascade);
+      create table team_members(team_id uuid, user_id uuid, role text);
+      create table players(id uuid primary key, team_id uuid references teams(id) on delete cascade, name text, riot_id text, role text, roster_status text);
+    `);
+    for (const migration of ['20261031_nexus_import.sql', '20261101_nexus_tournament.sql', '20261103_nexus_team_lifecycle.sql']) {
+      await pg.exec(readFileSync(new URL(`../../database/migrations/${migration}`, import.meta.url), 'utf8'));
+    }
+    await pg.query(`insert into nexus_seasons(name, format, playoff_enabled, playoff_format, double_variant, playoff_size) values
+      ('Bêta site', 'round_robin', true, 'double_elimination', 'nexus_site', 6),
+      ('Direct PDF', 'double_elimination', true, 'double_elimination', 'nexus_pdf', 6),
+      ('Variante oubliée', 'round_robin', true, 'single_elimination', 'nexus_site', 4),
+      ('Sans playoffs', 'swiss', false, 'double_elimination', 'nexus_pdf', 6),
+      ('Standard', 'round_robin', true, 'double_elimination', 'standard', 4)`);
+    const migration = readFileSync(new URL('../../database/migrations/20261104_nexus_tie_breakers.sql', import.meta.url), 'utf8');
+    await pg.exec(migration);
+    await pg.exec(migration);
+    expect((await pg.query('select name, tie_breakers from nexus_seasons order by name')).rows).toEqual([
+      { name: 'Bêta site', tie_breakers: ['headToHead', 'gameDifference'] },
+      { name: 'Direct PDF', tie_breakers: ['headToHead', 'gameDifference'] },
+      { name: 'Sans playoffs', tie_breakers: [] },
+      { name: 'Standard', tie_breakers: [] },
+      { name: 'Variante oubliée', tie_breakers: [] },
+    ]);
+    await expect(pg.query(`update nexus_seasons set tie_breakers = '["points"]'::jsonb where name = 'Standard'`)).rejects.toMatchObject({ constraint: 'nexus_seasons_tie_breakers_check' });
+    await expect(pg.query(`update nexus_seasons set tie_breakers = '{"headToHead":true}'::jsonb where name = 'Standard'`)).rejects.toMatchObject({ constraint: 'nexus_seasons_tie_breakers_check' });
+    await pg.query(`update nexus_seasons set tie_breakers = '["gameDifference","headToHead"]'::jsonb where name = 'Standard'`);
+    await pg.close();
   }, 30_000);
 });

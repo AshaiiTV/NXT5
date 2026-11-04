@@ -6,9 +6,19 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { NexusScheduleActions, NexusSeedFields } from "./NexusTournamentActions.jsx";
 
 export const seasonStatusLabel = status => ({ draft: t("Brouillon"), open: t("Inscriptions ouvertes"), running: t("En cours"), completed: t("Terminée") })[status] || status;
-const defaults = { name: "", format: "round_robin", legs: 1, regularBestOf: 1, playoffEnabled: true, playoffFormat: "single_elimination", playoffSize: 4, playoffBestOf: 3, finalBestOf: 5, groupCount: 2, advancePerGroup: 2, swissRounds: 3, doubleVariant: "standard", upperFinalBestOf: 3, resetFinal: true, rulesConfirmed: false, status: "draft" };
+const defaults = { name: "", format: "round_robin", legs: 1, regularBestOf: 1, playoffEnabled: true, playoffFormat: "single_elimination", playoffSize: 4, playoffBestOf: 3, finalBestOf: 5, groupCount: 2, advancePerGroup: 2, swissRounds: 3, doubleVariant: "standard", upperFinalBestOf: 3, resetFinal: true, tieBreakers: [], rulesConfirmed: false, status: "draft" };
 const formats = { round_robin: "Championnat", groups: "Poules", single_elimination: "Élimination simple", double_elimination: "Double élimination", swiss: "Rondes suisses", custom: "Calendrier libre" };
 const configOf = season => Object.fromEntries(Object.keys(defaults).map(key => [key, season?.[key] ?? defaults[key]]));
+// Ordered tie-breaker rules for teams level on points. The standings rule is
+// chosen on its own and no longer follows the double elimination variant.
+export const tieBreakerPresets = [
+  { id: "none", keys: [], label: "Aucun : les ex æquo restent à égalité" },
+  { id: "headToHead-gameDifference", keys: ["headToHead", "gameDifference"], label: "Confrontation directe, puis différence de games" },
+  { id: "gameDifference-headToHead", keys: ["gameDifference", "headToHead"], label: "Différence de games, puis confrontation directe" },
+  { id: "gameDifference", keys: ["gameDifference"], label: "Différence de games" },
+  { id: "headToHead", keys: ["headToHead"], label: "Confrontation directe" },
+];
+const tieBreakerPresetId = keys => tieBreakerPresets.find(preset => JSON.stringify(preset.keys) === JSON.stringify(keys || []))?.id || "";
 
 function RulesFields({ value, onChange, disabled, locked = false }) {
   const direct = ["single_elimination", "double_elimination"].includes(value.format);
@@ -29,6 +39,8 @@ function RulesFields({ value, onChange, disabled, locked = false }) {
     {!direct && <SelectInput label={t("Format des rencontres régulières")} value={value.regularBestOf} onChange={v => onChange("regularBestOf", Number(v))} disabled={inactive}>{[1,3,5].map(n => <option key={n} value={n}>BO{n}</option>)}</SelectInput>}
     {value.format === "groups" && <><TextInput type="number" label={t("Nombre de poules")} min={2} max={16} value={value.groupCount} onChange={v=>onChange("groupCount",Number(v))} required disabled={inactive}/>{value.playoffEnabled && <TextInput type="number" label={t("Qualifiés par poule")} min={1} max={8} value={value.advancePerGroup} onChange={v=>onChange("advancePerGroup",Number(v))} required disabled={inactive}/>}</>}
     {value.format === "swiss" && <TextInput type="number" label={t("Nombre de rondes suisses")} min={1} max={16} value={value.swissRounds} onChange={v=>onChange("swissRounds",Number(v))} required disabled={inactive}/>}
+    {!direct && <SelectInput label={t("Départage à égalité de points")} value={tieBreakerPresetId(value.tieBreakers)} onChange={id => onChange("tieBreakers", tieBreakerPresets.find(preset => preset.id === id)?.keys || [])} disabled={inactive}>{!tieBreakerPresetId(value.tieBreakers) && <option value="">{t("Règle personnalisée enregistrée")}</option>}{tieBreakerPresets.map(preset => <option key={preset.id} value={preset.id}>{t(preset.label)}</option>)}</SelectInput>}
+    {!direct && <p className="nexus-muted">{t("Une égalité qui subsiste après ces règles reste à départager par le staff.")}</p>}
     {!direct && <label className="nexus-checkbox"><input type="checkbox" checked={value.playoffEnabled} disabled={inactive} onChange={event=>onChange("playoffEnabled",event.target.checked)}/><span>{t("Ajouter des playoffs après cette phase")}</span></label>}
     {hasPlayoffs && <>{!direct && <SelectInput label={t("Tableau des playoffs")} value={value.playoffFormat} onChange={v => { onChange("playoffFormat", v); onChange("playoffSize", v === "double_elimination" && value.doubleVariant !== "standard" ? 6 : 4); }} disabled={inactive}><option value="single_elimination">{t("Élimination simple")}</option><option value="double_elimination">{t("Double élimination")}</option></SelectInput>}
     {double && <SelectInput label={t("Variante de double élimination")} value={value.doubleVariant} onChange={v=>{onChange("doubleVariant",v);onChange("playoffSize",v === "standard" ? 4 : 6);}} disabled={inactive}><option value="standard">{t("Standard")}</option><option value="nexus_site">{t("Nexus bêta · site · 6 équipes")}</option><option value="nexus_pdf">{t("Nexus bêta · règlement PDF · 6 équipes")}</option></SelectInput>}
@@ -95,7 +107,7 @@ export function NexusSeasonManager({ data, seasonId, setSeasonId, busy, action, 
   return <Surface variant="reading" className="nexus-card nexus-season-admin"><div className="nexus-section-title"><h2>{t("Saisons et inscriptions")}</h2><Button icon={Plus} variant="ghost" disabled={busy} onClick={() => setShowCreate(value => !value)}>{t(showCreate ? "Fermer le formulaire" : "Nouvelle saison")}</Button></div>
     {showCreate && <form className="nexus-form nexus-season-form" aria-label={t("Nouvelle saison")} onSubmit={event => { event.preventDefault(); action({ action: "createSeason", ...form }, result => { setForm(defaults); setShowCreate(false); setSeasonId(result.season.id); }); }}>
       <TextInput label={t("Nom de la saison")} value={form.name} onChange={name => setForm(previous => ({ ...previous, name }))} required disabled={busy} maxLength={120} />
-      <div><Button variant="ghost" type="button" disabled={busy} onClick={() => setForm(previous => ({ ...previous, format:"round_robin",legs:1,regularBestOf:3,playoffEnabled:true,playoffFormat:"double_elimination",doubleVariant:"nexus_site",playoffSize:6,playoffBestOf:3,upperFinalBestOf:3,finalBestOf:5,resetFinal:false,rulesConfirmed:false }))}>{t("Reprendre le format bêta")}</Button></div>
+      <div><Button variant="ghost" type="button" disabled={busy} onClick={() => setForm(previous => ({ ...previous, format:"round_robin",legs:1,regularBestOf:3,playoffEnabled:true,playoffFormat:"double_elimination",doubleVariant:"nexus_site",playoffSize:6,playoffBestOf:3,upperFinalBestOf:3,finalBestOf:5,resetFinal:false,tieBreakers:["headToHead","gameDifference"],rulesConfirmed:false }))}>{t("Reprendre le format bêta")}</Button></div>
       <p className="nexus-muted">{t("Le format bêta est un point de départ. Il ne confirme pas les règles de la Saison I.")}</p>
       <RulesFields value={form} onChange={(key,value) => setForm(previous => ({ ...previous, [key]: value }))} disabled={busy} />
       <p className="nexus-muted">{t("La saison sera créée en brouillon. Ouvre ensuite les inscriptions quand ses règles sont prêtes.")}</p>
