@@ -129,6 +129,10 @@ La fenêtre d’enregistrement reprend le dossier du dernier export réussi, mê
 
 Voir [les changements de l’Importer](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
 
+## Import automatique des parties
+
+Dans **Parties → Import automatique**, le staff lie NXT5 Importer à l’équipe avec un code à usage unique. Chaque custom jouée avec l’Importer ouvert est ensuite envoyée et importée seule, avec le côté, les postes et les joueurs reconnus par les Riot ID de l’effectif ; les parties non reconnues restent à finaliser dans le formulaire habituel. Voir [le guide de l’import automatique](docs/import-automatique.md).
+
 ## Scrims entre équipes
 
 Dans **Scrims** (`/scrims`), le staff d’une équipe publie un créneau avec son nombre de games et son niveau, répond aux propositions des autres équipes NXT5 et confirme une réponse. La confirmation crée la séance dans le planning des deux équipes et, si la diffusion Discord est active, l’annonce dans le salon planning. Voir [le guide des scrims](docs/scrims.md).

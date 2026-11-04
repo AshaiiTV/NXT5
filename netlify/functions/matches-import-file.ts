@@ -11,6 +11,7 @@ import { assertRateLimit } from './_lib/rate-limit';
 import { getTeamMemberEmails } from './_lib/team-member-emails';
 import { sendNotification } from './_lib/email';
 import { escapeHtml } from './_lib/text';
+import { settleTeamImport } from './_lib/team-import';
 
 function unwrapImportPayload(body) {
   const payload = body?.payload || body?.file || body;
@@ -139,6 +140,7 @@ export default async function handler(request: Request, context: Context): Promi
       opponentId: body.opponentId, newOpponentName: body.newOpponentName, signal: request.signal });
     wakeDiscordPublications(context);
 
+    await runOptionalImportTask('pending reception', () => settleTeamImport(teamId, resolvedGameId, savedMatch.id));
     await runOptionalImportTask('audit log', () => sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
         values (${user.id}, 'match.import_file', 'match', ${savedMatch.id}, ${JSON.stringify({ gameId: resolvedGameId, teamId, label, categoryIds })}::jsonb)

@@ -425,7 +425,7 @@ describe("imported games in Statistics", () => {
     expect(visible(renderer.root.findByProps({ type: "search" }))).toBe(false);
     expect(rows(renderer).filter(visible)).toHaveLength(0);
     const byAction = (left, right) => (left.payload.action || left.endpoint).localeCompare(right.payload.action || right.endpoint);
-    const requests = () => apiFetch.mock.calls.map(([endpoint, options]) => ({ endpoint, method: options.method, payload: JSON.parse(options.body) }))
+    const requests = () => apiFetch.mock.calls.map(([endpoint, options]) => ({ endpoint, method: options?.method, payload: options?.body ? JSON.parse(options.body) : {} }))
       .filter(({ endpoint, payload }) => endpoint === "match-details" || (endpoint === "opponents-drafts" && ["get-match-draft", "get-match-opponent"].includes(payload.action))).sort(byAction);
     const expectedRequests = [
       { endpoint: "match-details", method: "POST", payload: { teamId: "team", matchIds: [selected.id] } },

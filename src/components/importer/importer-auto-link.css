@@ -1,0 +1,24 @@
+.importer-auto-link { padding: 20px; }
+.importer-auto-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
+.importer-auto-head > svg { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; color: var(--nxt5-accent); }
+.importer-auto-head > div { flex: 1 1 320px; min-width: 0; }
+.importer-auto-head h3 { font-size: 18px; font-weight: 700; line-height: 1.4; }
+.importer-auto-head p, .importer-auto-hint { margin-top: 4px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.6; }
+.importer-auto-refresh { margin-left: auto; }
+.importer-auto-error { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; color: var(--nxt5-danger); }
+.importer-auto-create { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 16px; margin-top: 16px; }
+.importer-auto-create > label { flex: 1 1 260px; max-width: 360px; }
+.importer-auto-code { margin-top: 16px; padding: 16px; border-radius: var(--nxt5-radius-control); border: 1px solid rgba(103, 232, 249, .35); background: rgba(103, 232, 249, .08); }
+.importer-auto-code-label { color: var(--nxt5-text); font-size: var(--nxt5-font-body); line-height: 1.6; }
+.importer-auto-code-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 12px; }
+.importer-auto-code-row > code { padding: 10px 14px; border-radius: var(--nxt5-radius-control); border: 1px solid var(--nxt5-border-strong); background: var(--nxt5-surface-soft); font-size: 20px; font-weight: 700; letter-spacing: .08em; }
+.importer-auto-links, .importer-auto-received ul { display: grid; gap: 10px; margin-top: 14px; }
+.importer-auto-links > li, .importer-auto-received li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 12px 14px; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-control); background: var(--nxt5-surface-soft); }
+.importer-auto-links > li > svg { width: 18px; height: 18px; color: var(--nxt5-accent); }
+.importer-auto-links > li > div, .importer-auto-received li > div { display: grid; gap: 2px; flex: 1 1 220px; min-width: 0; }
+.importer-auto-links strong, .importer-auto-received strong { font-size: var(--nxt5-font-body); font-weight: 700; overflow-wrap: anywhere; }
+.importer-auto-links span, .importer-auto-received span { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; overflow-wrap: anywhere; }
+.importer-auto-received { margin-top: 18px; }
+.importer-auto-received h4 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font-size: var(--nxt5-font-body); font-weight: 700; }
+.importer-auto-received h4 > svg { width: 16px; height: 16px; color: var(--nxt5-accent); }
+.importer-auto-actions { display: flex; flex-wrap: wrap; gap: 8px; }
