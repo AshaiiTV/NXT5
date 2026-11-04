@@ -8,9 +8,7 @@ import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import { assertImportRequestActive, fetchRequestedRiotMatch } from './_lib/match-import-request';
 import { assertRateLimit } from './_lib/rate-limit';
-import { getTeamMemberEmails } from './_lib/team-member-emails';
-import { sendNotification } from './_lib/email';
-import { escapeHtml } from './_lib/text';
+import { notifyMatchImport } from './_lib/match-notifications';
 import { settleTeamImport } from './_lib/team-import';
 
 function unwrapImportPayload(body) {
@@ -40,26 +38,6 @@ function assertRiotMatchShape(match) {
   if (!match.info || !Array.isArray(match.info.participants) || !Array.isArray(match.info.teams)) {
     throw Object.assign(new Error('Fichier invalide : il manque info.participants ou info.teams.'), { status: 400, code: 'NXT5_IMPORT_FILE_INVALID' });
   }
-}
-
-async function notifyMatchImport({ request, teamId, matchId, gameId }) {
-  const emails = await getTeamMemberEmails(teamId, sql, 'notif_match');
-  if (!emails.length) return;
-  const siteUrl = String(process.env.PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/+$/, '');
-  const safeMatchId = escapeHtml(gameId || matchId);
-  const html = `
-    <p>Un nouveau match a été importé dans votre équipe.</p>
-    <p><strong>Match ID :</strong> ${safeMatchId}</p>
-    <p><strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
-    <p><a href="${escapeHtml(`${siteUrl}/games`)}" style="color:#67e8f9;font-weight:800;text-decoration:none">Voir le match sur NXT5</a></p>
-    <hr style="border:0;border-top:1px solid rgba(148,163,184,.18);margin:22px 0">
-    <p style="font-size:12px;color:#888">Pour ne plus recevoir ces emails, rendez-vous dans vos préférences NXT5.</p>
-  `;
-  await Promise.all(emails.map((email) => sendNotification({
-    to: email,
-    subject: `[NXT5] Nouveau match importé — ${gameId || matchId}`,
-    html
-  })));
 }
 
 async function runOptionalImportTask(label: string, task: () => Promise<unknown>) {
@@ -147,7 +125,7 @@ export default async function handler(request: Request, context: Context): Promi
       `);
 
     if (savedMatch.inserted) {
-      const notificationTask = runOptionalImportTask('notification email', () => notifyMatchImport({ request, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || resolvedGameId }));
+      const notificationTask = runOptionalImportTask('notification email', () => notifyMatchImport({ siteUrl: process.env.PUBLIC_SITE_URL || new URL(request.url).origin, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || resolvedGameId }));
       if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(notificationTask);
       else await notificationTask;
     }

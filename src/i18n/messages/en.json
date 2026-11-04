@@ -8060,5 +8060,6 @@
   "Ce tag n’appartient pas à l’équipe.": "This tag does not belong to the team.",
   "Cette partie n’est plus en attente.": "This game is no longer pending.",
   "Action de liaison inconnue.": "Unknown link action.",
-  "Exporter la partie avec la dernière version de NXT5 Importer, ou lier l’Importer à l’équipe depuis Parties → Import automatique : chaque custom jouée avec l’Importer ouvert arrive ensuite seule, et seules les parties non reconnues restent à finaliser.": "Export the game with the latest NXT5 Importer, or link the Importer to the team from Games → Automatic import: every custom played with the Importer open then arrives on its own, and only unrecognised games wait to be finalised."
+  "Exporter la partie avec la dernière version de NXT5 Importer, ou lier l’Importer à l’équipe depuis Parties → Import automatique : chaque custom jouée avec l’Importer ouvert arrive ensuite seule, et seules les parties non reconnues restent à finaliser.": "Export the game with the latest NXT5 Importer, or link the Importer to the team from Games → Automatic import: every custom played with the Importer open then arrives on its own, and only unrecognised games wait to be finalised.",
+  "Réception en cours": "Receiving"
 }

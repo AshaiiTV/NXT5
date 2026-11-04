@@ -71,21 +71,24 @@ export function linkView(row: any) {
     active,
   };
 }
+const RECEIVING_STALE_MINUTES = 10;
 export function submissionView(row: any) {
   return { id: row.id, gameId: row.game_id, status: row.status, reason: row.reason || "", matchId: row.match_id, createdAt: row.created_at, updatedAt: row.updated_at, linkId: row.link_id };
 }
 
 export async function listTeamImport(userId: string, teamIdValue: unknown) {
   const membership = await teamImportMembership(userId, teamIdValue);
-  const [links, submissions] = await Promise.all([
+  const [links, pending, recent] = await Promise.all([
     sql`select * from team_import_links where team_id = ${membership.teamId} and created_at > now() - interval '120 days' order by created_at desc limit 20`,
-    sql`select id, link_id, game_id, status, reason, match_id, created_at, updated_at from team_import_submissions where team_id = ${membership.teamId} order by created_at desc limit 40`,
+    // Every game still waiting for the staff stays reachable, whatever arrived since.
+    sql`select id, link_id, game_id, status, reason, match_id, created_at, updated_at from team_import_submissions where team_id = ${membership.teamId} and status = 'pending' order by created_at desc limit 100`,
+    sql`select id, link_id, game_id, status, reason, match_id, created_at, updated_at from team_import_submissions where team_id = ${membership.teamId} and status <> 'pending' order by created_at desc limit 40`,
   ]);
   return {
     canManage: membership.canManage,
     minRoster: AUTO_IMPORT_MIN_ROSTER,
     links: links.map(linkView).filter((link) => link.status !== "unused"),
-    submissions: submissions.map(submissionView),
+    submissions: [...pending, ...recent].map(submissionView),
   };
 }
 
@@ -233,31 +236,65 @@ export async function submitTeamImport(token: string, body: any, idempotencyKey:
   assertImportMatch(match);
   if (timeline) match.timeline = timeline;
 
-  const known = await sql`select * from team_import_submissions where team_id = ${team.id} and (game_id = ${gameId} or (link_id = ${link.id} and idempotency_key = ${idempotencyKey})) limit 1`;
-  if (known[0]) return { duplicate: true, submission: submissionView(known[0]) };
-  const existing = await sql`select id from matches where team_id = ${team.id} and game_id = ${gameId}`;
-  if (existing[0]) return { duplicate: true, submission: await recordSubmission({ team, link, gameId, idempotencyKey, status: "imported", reason: "Partie déjà présente dans NXT5.", matchId: existing[0].id }) };
-
+  const repeated = await sql`select * from team_import_submissions where link_id = ${link.id} and idempotency_key = ${idempotencyKey} and status <> 'receiving' limit 1`;
+  if (repeated[0]) return { duplicate: true, submission: submissionView(repeated[0]) };
   const count = await sql`select count(*)::int as total from team_import_submissions where link_id = ${link.id}`;
   if (Number(count[0]?.total || 0) >= MAX_SUBMISSIONS_PER_LINK) importError("Limite de parties atteinte pour cette liaison. Génère un nouveau code.", 429, "TEAM_IMPORT_LIMIT");
 
-  const roster = await sql`select * from players where team_id = ${team.id}`;
-  const categoryIds = await importCategoryIds(team.id, link);
-  if (!categoryIds.length) return { accepted: true, submission: await recordSubmission({ team, link, gameId, idempotencyKey, status: "pending", reason: "Aucun tag de partie disponible : choisis-en un dans NXT5.", payload: { match, timeline } }) };
-  const plan = resolveAutoAssignments(match, roster);
-  if ("skipped" in plan) return { accepted: true, submission: await recordSubmission({ team, link, gameId, idempotencyKey, status: "skipped", reason: String(plan.skipped) }) };
-  if ("pending" in plan) return { accepted: true, submission: await recordSubmission({ team, link, gameId, idempotencyKey, status: "pending", reason: String(plan.pending), payload: { match, timeline } }) };
+  // One reception per game and team: the first caller claims the row, a concurrent
+  // computer gets the existing record, a reception stuck for ten minutes is taken over.
+  const claimed = await sql`
+    insert into team_import_submissions (team_id, link_id, game_id, idempotency_key, status, reason)
+    values (${team.id}, ${link.id}, ${gameId}, ${idempotencyKey}, 'receiving', 'Réception en cours.')
+    on conflict (team_id, game_id) do update set link_id = excluded.link_id, idempotency_key = excluded.idempotency_key, updated_at = now()
+      where team_import_submissions.status = 'receiving' and team_import_submissions.updated_at < now() - (${RECEIVING_STALE_MINUTES} || ' minutes')::interval
+    returning *`;
+  if (!claimed[0]) {
+    const existing = (await sql`select * from team_import_submissions where team_id = ${team.id} and game_id = ${gameId}`)[0];
+    return { duplicate: true, submission: existing ? submissionView(existing) : { gameId, status: "receiving", reason: "Réception en cours sur un autre ordinateur." } };
+  }
+  const claim = claimed[0];
+  const settle = (status: string, reason: string, extra: { matchId?: string | null; payload?: any } = {}) => recordSubmission({ claim, link, team, gameId, status, reason, ...extra });
+  // The stored copy keeps one timeline so the staff can finalize it within the manual import limit.
+  const stored = () => ({ match: { ...match, timeline: undefined }, timeline });
   try {
-    const saved = await persistAnalyzedMatch({ team, gameId, match, roster, userId: link.created_by, laneAssignments: plan.laneAssignments, enemyLaneAssignments: plan.enemyLaneAssignments, playerAssignments: plan.playerAssignments, allyTeamSide: plan.allyTeamSide, categoryIds, signal });
-    const submission = await recordSubmission({ team, link, gameId, idempotencyKey, status: "imported", reason: "", matchId: saved.id });
-    return { accepted: true, imported: true, inserted: saved.inserted === true, matchId: saved.id, warnings: saved.warnings || [], submission };
-  } catch (err: any) {
-    // A validation refusal is kept for the staff with the payload; anything else is a real failure.
-    if (Number(err?.status) >= 400 && Number(err?.status) < 500) {
-      return { accepted: true, submission: await recordSubmission({ team, link, gameId, idempotencyKey, status: "pending", reason: cleanText(err.message, 300), payload: { match, timeline } }) };
+    const existing = await sql`select id from matches where team_id = ${team.id} and game_id = ${gameId}`;
+    if (existing[0]) return { duplicate: true, submission: await settle("imported", "Partie déjà présente dans NXT5.", { matchId: existing[0].id }) };
+    const roster = await sql`select * from players where team_id = ${team.id}`;
+    const categoryIds = await importCategoryIds(team.id, link);
+    if (!categoryIds.length) return { accepted: true, submission: await settle("pending", "Aucun tag de partie disponible : choisis-en un dans NXT5.", { payload: stored() }) };
+    const plan = resolveAutoAssignments(match, roster);
+    if ("skipped" in plan) return { accepted: true, submission: await settle("skipped", String(plan.skipped)) };
+    if ("pending" in plan) return { accepted: true, submission: await settle("pending", String(plan.pending), { payload: stored() }) };
+    let saved;
+    try {
+      saved = await persistAnalyzedMatch({ team, gameId, match, roster, userId: link.created_by, laneAssignments: plan.laneAssignments, enemyLaneAssignments: plan.enemyLaneAssignments, playerAssignments: plan.playerAssignments, allyTeamSide: plan.allyTeamSide, categoryIds, signal, guards: [
+        (tx: any) => tx`select id from team_import_links where id = ${link.id} for update`,
+        // A revocation or expiry completed before this transaction aborts the whole import.
+        (tx: any) => tx`select 1 / case when count(*) = 1 then 1 else 0 end as link_still_valid from team_import_links
+                   where id = ${link.id} and token_hash = ${hash(token)} and revoked_at is null and expires_at > clock_timestamp()`,
+      ] });
+    } catch (err: any) {
+      if (err?.code === "NXT5_IMPORT_REFERENCE_CHANGED" && !(await linkStillValid(link.id, token))) {
+        await sql`delete from team_import_submissions where id = ${claim.id} and status = 'receiving'`;
+        importError("Liaison expirée ou révoquée. Génère un nouveau code dans NXT5.", 401, "TEAM_IMPORT_UNAUTHORIZED");
+      }
+      // A validation refusal is kept for the staff with the payload; anything else is a real failure.
+      if (Number(err?.status) >= 400 && Number(err?.status) < 500) return { accepted: true, submission: await settle("pending", cleanText(err.message, 300), { payload: stored() }) };
+      throw err;
     }
+    const submission = await settle("imported", "", { matchId: saved.id });
+    return { accepted: true, imported: true, inserted: saved.inserted === true, teamId: team.id, matchId: saved.id, warnings: saved.warnings || [], submission };
+  } catch (err) {
+    // An unexpected failure releases the claim so the desktop app can retry.
+    await sql`delete from team_import_submissions where id = ${claim.id} and status = 'receiving'`.catch(() => {});
     throw err;
   }
+}
+
+async function linkStillValid(linkId: string, token: string) {
+  const rows = await sql`select id from team_import_links where id = ${linkId} and token_hash = ${hash(token)} and revoked_at is null and expires_at > clock_timestamp()`;
+  return Boolean(rows[0]);
 }
 
 /** The tag chosen with the link, else the team's default tag (created when missing). */
@@ -274,13 +311,11 @@ async function importCategoryIds(teamId: string, link: any): Promise<string[]> {
   return fallback[0] ? [fallback[0].id] : [];
 }
 
-async function recordSubmission({ team, link, gameId, idempotencyKey, status, reason, matchId = null, payload = null }: { team: any; link: any; gameId: string; idempotencyKey: string; status: string; reason: string; matchId?: string | null; payload?: any }) {
+async function recordSubmission({ claim, link, team, gameId, status, reason, matchId = null, payload = null }: { claim: any; link: any; team: any; gameId: string; status: string; reason: string; matchId?: string | null; payload?: any }) {
   const rows = await sql`
-    insert into team_import_submissions (team_id, link_id, game_id, idempotency_key, payload, status, reason, match_id)
-    values (${team.id}, ${link.id}, ${gameId}, ${idempotencyKey}, ${JSON.stringify(payload || {})}::jsonb, ${status}, ${reason}, ${matchId})
-    on conflict (team_id, game_id) do update set updated_at = now()
-    returning *`;
-  await sql`insert into audit_logs (user_id, action, entity_type, entity_id, metadata) values (${link.created_by}, ${`team_import.${status}`}, 'team_import_submission', ${rows[0].id}, ${JSON.stringify({ teamId: team.id, gameId, linkId: link.id })}::jsonb)`;
+    update team_import_submissions set status = ${status}, reason = ${reason}, match_id = ${matchId}, payload = ${JSON.stringify(payload || {})}::jsonb, updated_at = now()
+    where id = ${claim.id} returning *`;
+  await sql`insert into audit_logs (user_id, action, entity_type, entity_id, metadata) values (${link.created_by}, ${`team_import.${status}`}, 'team_import_submission', ${claim.id}, ${JSON.stringify({ teamId: team.id, gameId, linkId: link.id })}::jsonb)`;
   return submissionView(rows[0]);
 }
 
@@ -301,5 +336,5 @@ export async function dismissTeamImport(userId: string, body: any) {
 }
 /** Called after a manual import so a pending reception stops asking for attention. */
 export async function settleTeamImport(teamId: string, gameId: string, matchId: string) {
-  await sql`update team_import_submissions set status = 'imported', match_id = ${matchId}, reason = '', payload = '{}'::jsonb, updated_at = now() where team_id = ${teamId} and game_id = ${gameId} and status <> 'imported'`;
+  await sql`update team_import_submissions set status = 'imported', match_id = ${matchId}, reason = '', payload = '{}'::jsonb, updated_at = now() where team_id = ${teamId} and game_id = ${gameId} and status in ('pending', 'skipped', 'receiving')`;
 }

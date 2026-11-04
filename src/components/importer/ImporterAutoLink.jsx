@@ -10,8 +10,8 @@ import "./importer-auto-link.css";
 
 const LINK_TONES = { connected: "green", waiting: "yellow", expired: "slate", revoked: "slate" };
 const LINK_LABELS = { connected: "Connectée", waiting: "En attente de l’Importer", expired: "Expirée", revoked: "Révoquée" };
-const SUBMISSION_TONES = { imported: "green", pending: "yellow", skipped: "slate" };
-const SUBMISSION_LABELS = { imported: "Importée", pending: "À finaliser", skipped: "Ignorée" };
+const SUBMISSION_TONES = { imported: "green", pending: "yellow", skipped: "slate", receiving: "cyan" };
+const SUBMISSION_LABELS = { imported: "Importée", pending: "À finaliser", skipped: "Ignorée", receiving: "Réception en cours" };
 
 function formatDate(value, withTime = true) {
   const date = new Date(value);
@@ -104,7 +104,7 @@ export function ImporterAutoLink({ teamId, categories = [], canManage = false, b
 
     {submissions.length > 0 && <div className="importer-auto-received">
       <h4><Clock3 aria-hidden="true" />{t("Parties reçues")}{pending.length > 0 && <Badge tone="yellow">{t("{0} à finaliser", [pending.length])}</Badge>}</h4>
-      <ul>{submissions.slice(0, 12).map((row) => <li key={row.id}>
+      <ul>{[...pending, ...submissions.filter((row) => row.status !== "pending").slice(0, 12)].map((row) => <li key={row.id}>
         <div><strong translate="no">{row.gameId}</strong><span>{formatDate(row.createdAt)}{row.reason ? ` · ${row.reason}` : ""}</span></div>
         <Badge tone={SUBMISSION_TONES[row.status] || "slate"}>{t(SUBMISSION_LABELS[row.status] || row.status)}</Badge>
         {row.status === "pending" && canManage && <div className="importer-auto-actions">

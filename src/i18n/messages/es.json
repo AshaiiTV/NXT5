@@ -8060,5 +8060,6 @@
   "Ce tag n’appartient pas à l’équipe.": "Esta etiqueta no pertenece al equipo.",
   "Cette partie n’est plus en attente.": "Esta partida ya no está pendiente.",
   "Action de liaison inconnue.": "Acción de vinculación desconocida.",
-  "Exporter la partie avec la dernière version de NXT5 Importer, ou lier l’Importer à l’équipe depuis Parties → Import automatique : chaque custom jouée avec l’Importer ouvert arrive ensuite seule, et seules les parties non reconnues restent à finaliser.": "Exporta la partida con la última versión de NXT5 Importer, o vincula el Importer al equipo desde Partidas → Importación automática: cada custom jugada con el Importer abierto llega después sola, y solo las partidas no reconocidas quedan por finalizar."
+  "Exporter la partie avec la dernière version de NXT5 Importer, ou lier l’Importer à l’équipe depuis Parties → Import automatique : chaque custom jouée avec l’Importer ouvert arrive ensuite seule, et seules les parties non reconnues restent à finaliser.": "Exporta la partida con la última versión de NXT5 Importer, o vincula el Importer al equipo desde Partidas → Importación automática: cada custom jugada con el Importer abierto llega después sola, y solo las partidas no reconocidas quedan por finalizar.",
+  "Réception en cours": "Recepción en curso"
 }

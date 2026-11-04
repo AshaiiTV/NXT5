@@ -648,7 +648,7 @@ create table if not exists team_import_submissions (
   game_id text not null,
   idempotency_key text not null,
   payload jsonb not null default '{}'::jsonb,
-  status text not null check (status in ('imported','pending','skipped')),
+  status text not null check (status in ('receiving','imported','pending','skipped')),
   reason text not null default '' check (length(reason) <= 300),
   match_id uuid references matches(id) on delete set null,
   created_at timestamptz not null default now(),

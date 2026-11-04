@@ -3,7 +3,8 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { applyMigrations, loadMigrations } from '../../tools/migration-runner.mjs';
 
-const db = vi.hoisted(() => ({ pg: null as any }));
+const db = vi.hoisted(() => ({ pg: null as any, beforeBatch: null as null | (() => Promise<void>) }));
+const mail = vi.hoisted(() => ({ recipients: [] as string[], sent: [] as any[] }));
 const identity = vi.hoisted(() => ({ userId: '' }));
 vi.mock('../../netlify/functions/_lib/auth', () => ({ assertSessionSecret: () => {}, requireAuth: async () => ({ id: identity.userId }) }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {} }));
@@ -12,7 +13,8 @@ vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: a
 vi.mock('../../netlify/functions/_lib/safe-log', () => ({ logFailure: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/discord-wake', () => ({ wakeDiscordPublications: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/riot', () => ({ fetchRiotMatch: vi.fn(() => { throw new Error('Unexpected Riot request'); }) }));
-vi.mock('../../netlify/functions/_lib/team-member-emails', () => ({ getTeamMemberEmails: async () => [] }));
+vi.mock('../../netlify/functions/_lib/team-member-emails', () => ({ getTeamMemberEmails: async () => mail.recipients }));
+vi.mock('../../netlify/functions/_lib/email', () => ({ sendNotification: async (message: any) => { mail.sent.push(message); } }));
 vi.mock('../../netlify/functions/_lib/db', async () => {
   const { neon, neonConfig } = await import('@neondatabase/serverless');
   neonConfig.fetchFunction = async (_url, options: any) => {
@@ -34,6 +36,9 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
     }
     try {
       if (body.queries) {
+        const mutate = db.beforeBatch;
+        db.beforeBatch = null;
+        await mutate?.();
         const results = await db.pg.transaction(async (tx: any) => { const out = []; for (const query of body.queries) out.push(await execute(tx, query)); return out; });
         return new Response(JSON.stringify({ results }));
       }
@@ -109,6 +114,7 @@ beforeAll(async () => {
 afterAll(async () => { await db.pg?.close(); });
 beforeEach(async () => {
   for (const key of ['AWS_LAMBDA_FUNCTION_NAME', 'LAMBDA_TASK_ROOT', 'SITE_ID', 'CONTEXT']) vi.stubEnv(key, '');
+  db.beforeBatch = null; mail.recipients = []; mail.sent = [];
   await db.pg.exec('truncate users cascade; truncate audit_logs;');
   for (const [key, id] of Object.entries(users)) await rows("insert into users(id, account_name, name, password_hash) values ($1, $2, $2, 'hash')", [id, key]);
   await rows("insert into teams(id, owner_id, name, tag) values ($1, $2, 'Arcane Horizon', 'AH')", [team, users.owner]);
@@ -160,9 +166,12 @@ describe('receiving games from the desktop app', () => {
 
   it('imports a recognised custom with the roster, side, roles and default tag, idempotently', async () => {
     const token = await link();
+    mail.recipients = ['coach@example.test'];
     const game = customGame();
     const first = await submit(token, game, 'game-1');
     expect(first.status).toBe(201);
+    expect(mail.sent).toHaveLength(1);
+    expect(mail.sent[0]).toMatchObject({ to: 'coach@example.test', subject: expect.stringContaining(game.metadata.matchId) });
     expect(first.body).toMatchObject({ accepted: true, imported: true, inserted: true, submission: { status: 'imported', gameId: game.metadata.matchId } });
     const matches = await rows('select id, game_id, side, result, category_ids from matches where team_id = $1', [team]);
     expect(matches).toHaveLength(1);
@@ -175,6 +184,7 @@ describe('receiving games from the desktop app', () => {
     expect(again.status).toBe(200);
     expect(again.body).toMatchObject({ duplicate: true, submission: { status: 'imported' } });
     expect(await rows('select id from matches where team_id = $1', [team])).toHaveLength(1);
+    expect(mail.sent).toHaveLength(1);
     expect(await rows("select action from audit_logs where action = 'team_import.imported'")).toHaveLength(1);
   });
 
@@ -200,8 +210,11 @@ describe('receiving games from the desktop app', () => {
     expect(await rows('select id from matches where team_id = $1', [team])).toHaveLength(0);
     const unresolved = customGame({ positions: false });
     unresolved.info.participants.forEach((p: any) => { if (p.teamId === 200) { p.summoner1Id = 4; p.summoner2Id = 12; } });
-    const pending = await submit(token, unresolved);
+    const pending = await submit(token, unresolved, randomUUID(), { metadata: { matchId: unresolved.metadata.matchId }, info: { frames: [{ events: [] }] } });
     expect(pending.body.submission).toMatchObject({ status: 'pending' });
+    const [storedRow] = await rows('select payload from team_import_submissions where id = $1', [pending.body.submission.id]);
+    expect(storedRow.payload.match.timeline).toBeUndefined();
+    expect(storedRow.payload.timeline.info.frames).toHaveLength(1);
     expect(pending.body.submission.reason).toContain('adverse');
     const listing = await staff(users.coach);
     expect(listing.body.submissions.map((row: any) => row.status)).toEqual(['pending', 'skipped']);
@@ -221,6 +234,44 @@ describe('receiving games from the desktop app', () => {
     expect((await staff(users.coach)).body.submissions.find((row: any) => row.id === pending.body.submission.id)).toMatchObject({ status: 'imported' });
     expect((await staff(users.coach, { action: 'dismiss', submissionId: pending.body.submission.id })).status).toBe(404);
   });
+
+  it('refuses an import whose link was revoked right before the persistence transaction', async () => {
+    const token = await link();
+    const linkId = (await staff(users.coach)).body.links[0].id;
+    db.beforeBatch = async () => { await rows('update team_import_links set revoked_at = now() where id = $1', [linkId]); };
+    const result = await submit(token, customGame());
+    expect(result.status).toBe(401);
+    expect(await rows('select id from matches where team_id = $1', [team])).toHaveLength(0);
+    expect(await rows('select id from team_import_submissions where team_id = $1', [team])).toHaveLength(0);
+    expect(mail.sent).toHaveLength(0);
+  });
+
+  it('lets only one computer claim a game, and takes over a reception stuck for ten minutes', async () => {
+    const first = await link();
+    const second = await link();
+    const game = customGame();
+    await rows("insert into team_import_submissions(team_id, link_id, game_id, idempotency_key, status, reason) values ($1, (select id from team_import_links where team_id = $1 order by created_at limit 1), $2, 'other', 'receiving', 'Réception en cours.')", [team, game.metadata.matchId]);
+    const concurrent = await submit(second, game);
+    expect(concurrent.status).toBe(200);
+    expect(concurrent.body).toMatchObject({ duplicate: true, submission: { status: 'receiving' } });
+    expect(await rows('select id from matches where team_id = $1', [team])).toHaveLength(0);
+    await rows("update team_import_submissions set updated_at = now() - interval '11 minutes' where game_id = $1", [game.metadata.matchId]);
+    const takeover = await submit(first, game);
+    expect(takeover.body).toMatchObject({ imported: true, submission: { status: 'imported' } });
+    expect(await rows('select id from matches where team_id = $1', [team])).toHaveLength(1);
+    expect(await rows('select count(*)::int as n from team_import_submissions where team_id = $1', [team])).toEqual([{ n: 1 }]);
+  });
+
+  it('keeps every pending game listed whatever arrived afterwards', async () => {
+    const token = await link();
+    const unresolved = customGame({ positions: false });
+    unresolved.info.participants.forEach((p: any) => { if (p.teamId === 200) { p.summoner1Id = 4; p.summoner2Id = 12; } });
+    const pending = await submit(token, unresolved);
+    for (let index = 0; index < 45; index++) expect((await submit(token, customGame({ allies: ['Someone#EUW'] }))).body.submission.status).toBe('skipped');
+    const listing = await staff(users.coach);
+    expect(listing.body.submissions[0]).toMatchObject({ id: pending.body.submission.id, status: 'pending' });
+    expect(listing.body.submissions.filter((row: any) => row.status === 'skipped')).toHaveLength(40);
+  }, 60_000);
 
   it('resolves jungle from Smite and the last free role without positions', () => {
     const game = customGame({ positions: false });

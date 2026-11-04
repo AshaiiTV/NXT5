@@ -15,7 +15,8 @@ Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible
 
 - Tables `team_import_links` et `team_import_submissions` (migration `team-import-links-20261105-v1`). Les lignes suivent l’équipe. Le code et le jeton sont stockés hachés ; le jeton n’est jamais relu.
 - Fonctions : `team-import-link` (staff, session NXT5), `team-import-connect` (code → jeton), `team-import-session` (contrôle de liaison), `team-import-submissions` (réception, 5 Mo par partie, 30 envois par minute et par adresse, 500 parties par liaison).
-- Une partie déjà présente dans l’équipe est confirmée comme importée sans écriture. Les parties en attente conservent leur contenu jusqu’à finalisation ou abandon ; les autres ne gardent que l’identifiant et le motif.
+- Une partie déjà présente dans l’équipe est confirmée comme importée sans écriture. Une seule réception par partie et par équipe : le premier envoi réclame la ligne (`receiving`), un envoi concurrent d’un autre ordinateur reçoit l’état existant sans écrire, une réception bloquée depuis dix minutes est reprise. La liaison est verrouillée et revérifiée dans la transaction d’écriture : une révocation terminée avant l’écriture annule l’import (401).
+- Les parties en attente conservent leur contenu (une seule copie de la chronologie) jusqu’à finalisation ou abandon, et restent toutes listées quel que soit le nombre de réceptions suivantes ; les autres ne gardent que l’identifiant et le motif. Une partie nouvellement importée déclenche les e-mails de notification et les publications Discord habituels.
 - Journal d’audit : `team_import.link.create`, `team_import.link.revoke`, `team_import.imported`, `team_import.pending`, `team_import.skipped`.
 - Aucun mot de passe Riot ni accès au compte Riot : l’Importer lit uniquement les interfaces locales du client, comme pour l’export manuel.
 

@@ -408,7 +408,7 @@ async function runImportSideEffect(label: string, task: () => Promise<unknown>) 
   }
 }
 
-export async function persistAnalyzedMatch({ team, gameId, match, roster, userId, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [], opponentId, newOpponentName, signal }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId: string; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[]; opponentId?: unknown; newOpponentName?: unknown; signal?: AbortSignal }) {
+export async function persistAnalyzedMatch({ team, gameId, match, roster, userId, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [], opponentId, newOpponentName, signal, guards = [] }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId: string; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[]; opponentId?: unknown; newOpponentName?: unknown; signal?: AbortSignal; guards?: Array<(tx: any) => any> }) {
   assertImportRequestActive(signal);
   const opponentSelection = importOpponentInput(opponentId, newOpponentName);
   assertImportMatch(match);
@@ -550,6 +550,9 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       raw jsonb
     )
     where m.team_id = ${team.id} and m.game_id = ${gameId}`,
+      // Caller-specific authorizations (an Importer link, for instance) are rechecked
+      // under the same transaction: a 22012 here rolls back every write above.
+      ...(guards.map((guard) => guard(tx)) as any[]),
       tx`select * from matches where team_id = ${team.id} and game_id = ${gameId}`
     ]);
     savedMatch = results[results.length - 1][0];
