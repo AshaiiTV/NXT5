@@ -123,6 +123,7 @@ export function getHomeContext({ data = {}, currentTeam, currentMember, user, no
     return playedAt !== null && playedAt >= nowAt - HOME_RECENT_DAYS * DAY && playedAt <= nowAt;
   });
   const reports = uniqueTeamRows(data.reports, teamId)
+    .filter((report) => report.source !== "auto")
     .filter((report) => report.discord_status !== "draft" || manager)
     .map((report, index) => ({ report, index, at: timestamp(report.created_at) }))
     .sort((a, b) => (b.at ?? -Infinity) - (a.at ?? -Infinity) || a.index - b.index)

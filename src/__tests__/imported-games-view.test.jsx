@@ -182,7 +182,7 @@ describe("imported games interactions", () => {
     expect(text(renderer.root.findByProps({ className: "ig-selection" }))).toContain("hors des résultats affichés");
     expect(button(renderer, "Afficher dans la liste")).toBeUndefined();
     expect(button(renderer, "Voir le bilan")).toBeTruthy();
-    expect(button(renderer, "Créer un débrief")).toBeTruthy();
+    expect(button(renderer, "Ajouter une note")).toBeTruthy();
   });
 
   it("calls selection, deselection, stats and review creation actions", async () => {
@@ -190,7 +190,7 @@ describe("imported games interactions", () => {
     const settings = listProps({ matches: [selected], selectedMatchId: selected.id, selectedMatch: selected });
     const renderer = await render(<ImportedGames {...settings} />);
     await click(renderer, "Voir le bilan");
-    await click(renderer, "Créer un débrief");
+    await click(renderer, "Ajouter une note");
     expect(settings.onViewStats).toHaveBeenCalledTimes(1);
     expect(settings.onCreateReview).toHaveBeenCalledTimes(1);
     expect(settings.onOpenReview).not.toHaveBeenCalled();
@@ -207,9 +207,9 @@ describe("imported games interactions", () => {
     const selected = games(1)[0];
     const settings = listProps({ matches: [selected], selectedMatchId: selected.id, selectedMatch: selected, selectedReport: { id: "report" } });
     const renderer = await render(<ImportedGames {...settings} />);
-    expect(button(renderer, "Créer un débrief")).toBeUndefined();
-    await click(renderer, "Ouvrir le débrief");
-    await click(renderer, "Nouveau débrief");
+    expect(button(renderer, "Ajouter une note")).toBeUndefined();
+    await click(renderer, "Ouvrir la note");
+    await click(renderer, "Nouvelle note");
     expect(settings.onOpenReview).toHaveBeenCalledTimes(1);
     expect(settings.onCreateReview).toHaveBeenCalledTimes(1);
   });

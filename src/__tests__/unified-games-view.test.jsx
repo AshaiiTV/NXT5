@@ -347,9 +347,9 @@ describe("unified Games workspace", () => {
     const props = settings();
     props.data.reports = [{ id: "report-one", team_id: "team", match_ids: ["one"], title: "Décisions" }];
     const renderer = await mount("/games?match=one", props);
-    expect(button(renderer, "Préparer le débrief")).toBeUndefined();
-    await click(renderer, "Ouvrir le débrief");
-    expect(window.location.pathname).toBe("/rapports");
+    expect(button(renderer, "Ajouter une note")).toBeUndefined();
+    await click(renderer, "Ouvrir la note");
+    expect(window.location.pathname).toBe("/notes");
     expect(window.location.search).toBe("?report=report-one&match=one");
   });
 
@@ -468,7 +468,7 @@ describe("unified Games workspace", () => {
     expect(comparison.findAllByType("dialog")).toHaveLength(0);
     for (const metric of ["gold", "damage", "vision"]) expect(comparison.findAllByProps({ "data-team-metric": metric })).toHaveLength(1);
     const statsText = text(statistics);
-    const reviewIndex = statsText.indexOf("Préparer le débrief");
+    const reviewIndex = statsText.indexOf("Ajouter une note");
     expect(reviewIndex).toBeGreaterThanOrEqual(0);
     expect(statsText).not.toContain("Vue 5v5");
     for (const metric of ["K / D / A", "Dégâts aux champions", "Or final", "Score de vision"]) {

@@ -96,7 +96,7 @@ describe("adaptive team home", () => {
     const shortcut = links(renderer).find((link) => link.props.className === "nxt5-home-shortcut" && link.props.href === "/games");
     expect(text(shortcut)).toContain("1000 parties dans votre historique");
     expect(text(renderer.toJSON())).not.toContain("sur les 14 derniers jours");
-    expect(text(renderer.toJSON())).not.toContain("1 partie récente sans débrief enregistré.");
+    expect(text(renderer.toJSON())).not.toContain("1 partie récente à revoir.");
     expect(text(renderer.toJSON())).toContain("Scrim Equinox");
   });
 
@@ -151,8 +151,8 @@ describe("adaptive team home", () => {
     const props = fixture({ matches: [match({ id: "match / équipe" })] });
     const renderer = await render(props);
     expect(homeState(renderer)).toBe("review");
-    const action = links(renderer).find((link) => text(link) === "Préparer le débrief");
-    const destination = "/rapports?match=match%20%2F%20%C3%A9quipe&compose=1";
+    const action = links(renderer).find((link) => text(link) === "Ajouter une note");
+    const destination = "/notes?match=match%20%2F%20%C3%A9quipe&compose=1";
     expect(action.props.href).toBe(destination);
     follow(action);
     expect(props.navigate).toHaveBeenCalledWith(destination);
@@ -162,10 +162,10 @@ describe("adaptive team home", () => {
     const props = fixture({ matches: [match()], reports: [{ id: "report", team_id: "team", title: "Nos points à travailler", match_ids: ["match"], created_at: "2026-10-06T20:00:00Z" }] });
     const renderer = await render(props);
     expect(homeState(renderer)).toBe("active");
-    const action = links(renderer).find((link) => text(link) === "Relire le débrief");
-    expect(action.props.href).toBe("/rapports?report=report");
+    const action = links(renderer).find((link) => text(link) === "Ouvrir la note");
+    expect(action.props.href).toBe("/notes?report=report");
     follow(action);
-    expect(props.navigate).toHaveBeenCalledWith("/rapports?report=report");
+    expect(props.navigate).toHaveBeenCalledWith("/notes?report=report");
     expect(links(renderer).some((link) => link.props.href.includes("compose=1"))).toBe(false);
   });
 
@@ -175,17 +175,17 @@ describe("adaptive team home", () => {
     const renderer = await render(props);
     expect(homeState(renderer)).toBe("active");
     expect(text(renderer.toJSON())).toContain("Brouillon · staff uniquement");
-    expect(text(renderer.toJSON())).toContain("Brouillon de débrief");
-    expect(text(renderer.toJSON())).not.toContain("Débrief disponible");
-    const action = links(renderer).find((link) => text(link) === "Reprendre le débrief");
-    expect(action.props.href).toBe("/rapports?report=draft");
+    expect(text(renderer.toJSON())).toContain("Note disponible");
+    expect(text(renderer.toJSON())).not.toContain("Sans note");
+    const action = links(renderer).find((link) => text(link) === "Ouvrir la note");
+    expect(action.props.href).toBe("/notes?report=draft");
     follow(action);
-    expect(props.navigate).toHaveBeenCalledWith("/rapports?report=draft");
+    expect(props.navigate).toHaveBeenCalledWith("/notes?report=draft");
     await act(async () => renderer.update(<HomeWorkspace {...fixture({ ...snapshot, manager: false })} />));
     expect(homeState(renderer)).toBe("review");
     expect(text(renderer.toJSON())).not.toContain("Brouillon privé du staff");
     expect(text(renderer.toJSON())).not.toContain("Brouillon · staff uniquement");
-    expect(links(renderer).some((link) => link.props.href === "/rapports?report=draft")).toBe(false);
+    expect(links(renderer).some((link) => link.props.href === "/notes?report=draft")).toBe(false);
   });
 
   it("counts gameplay profiles including substitutes without counting staff or another team's players", async () => {
@@ -248,8 +248,8 @@ describe("adaptive team home", () => {
     const props = fixture({ matches: [match()], reports: [{ id: "report", team_id: "team", title: "Débrief enregistré", match_ids: ["match"] }] });
     props.data.historyComplete = false;
     const renderer = await render(props);
-    expect(text(renderer.toJSON())).not.toContain("Reprends le dernier débrief de ton équipe.");
-    expect(text(renderer.toJSON())).not.toContain("Retrouve le débrief de votre dernière partie");
+    expect(text(renderer.toJSON())).not.toContain("Retrouve les notes de ton équipe.");
+    expect(text(renderer.toJSON())).not.toContain("Relis les observations de l’équipe avant la prochaine séance.");
     expect(text(renderer.toJSON())).toContain("Ton espace équipe");
   });
 
@@ -301,7 +301,7 @@ describe("personal home debrief", () => {
     expect(text(panel)).not.toContain("Annonce ton reset avant le dragon.");
     expect(text(panel)).not.toContain("Ce débrief ne contient pas encore de passage attribuable à ton profil.");
     expect(panel.findAllByType("details")).toHaveLength(0);
-    expect(panel.findByType("a").props.href).toBe("/rapports?report=team-report");
+    expect(panel.findByType("a").props.href).toBe("/notes?report=team-report");
     // The rest of the team history may remain partial once this group is whole.
     await act(async () => renderer.update(<HomeWorkspace {...props} data={{ ...props.data, matches: groupGames }} />));
     panel = personalDebrief(renderer);
@@ -327,9 +327,9 @@ describe("personal home debrief", () => {
     expect(text(details[0].findByType("summary"))).toContain("Notes de l’équipe");
     expect(details.map(detail => Boolean(detail.props.open))).toEqual([false, false]);
     const action = panel.findByType("a");
-    expect(action.props.href).toBe("/rapports?report=team-report");
+    expect(action.props.href).toBe("/notes?report=team-report");
     follow(action);
-    expect(props.navigate).toHaveBeenCalledWith("/rapports?report=team-report");
+    expect(props.navigate).toHaveBeenCalledWith("/notes?report=team-report");
   });
 
   it("removes the preparation panel for a coach who also has a gameplay profile", async () => {

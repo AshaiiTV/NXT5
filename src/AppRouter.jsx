@@ -188,7 +188,7 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
   useEffect(() => {
     const navTitle = route.path === "/profil" || route.path.startsWith("/profil/") || route.path === "/mon-profil" || route.path.startsWith("/mon-profil/")
       ? `${t("Profil")} > ${t(profileViewLabel(profileViewFromPath(route.path)))}`
-      : ["/games", "/integration", "/statistiques", "/rapports"].includes(route.path)
+      : ["/games", "/integration", "/statistiques", "/rapports", "/notes"].includes(route.path)
         ? gameWorkspaceSectionLabel(gameWorkspaceSectionFromPath(route.path))
       : NAV.find((item) => item.path === route.path)?.label;
     const adminPage = adminPageFromRoute(route);

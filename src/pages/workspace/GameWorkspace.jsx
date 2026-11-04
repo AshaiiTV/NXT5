@@ -20,6 +20,7 @@ import { MatchDrafting as DraftImpactPanel } from "../../components/games/MatchD
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
 import { MatchVisualRecap } from "../../components/games/MatchVisualRecap.jsx";
 import VisualDebrief from "../../components/games/VisualDebrief.jsx";
+import NotesWorkspace from "./NotesWorkspace.jsx";
 import { debriefFocus, reviewResults } from "../../utils/debrief-focus.js";
 import "./debrief-workspace.css";
 import { MatchHeadToHead } from "../../components/games/MatchHeadToHead.jsx";
@@ -1215,7 +1216,7 @@ function MatchCoachBrief({ match, onReview, hasReview = false }) {
     <div className="games-brief-review">
       <h4>{t("À vérifier en débrief")}</h4>
       <p>{t(plainCoachText(snapshot.correct))}</p>
-      <Button type="button" icon={hasReview ? FileText : Plus} onClick={onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`))} disabled={!matchId}>{hasReview ? t("Ouvrir le débrief") : t("Préparer le débrief")}</Button>
+      <Button type="button" icon={hasReview ? FileText : Plus} onClick={onReview || (() => openAppPath(`/notes?match=${encodeURIComponent(matchId)}&compose=1`))} disabled={!matchId}>{hasReview ? t("Ouvrir la note") : t("Ajouter une note")}</Button>
     </div>
   </section>;
 }
@@ -1264,7 +1265,7 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
   const { context } = publication;
   const side = context.allySide;
   const tabs = [{ id: "debrief", label: "Débrief", icon: FileText }, { id: "versus", label: "Face-à-face", icon: Swords }, { id: "draft", label: "Drafting", icon: Clipboard }];
-  const review = onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(match.id)}&compose=1`));
+  const review = onReview || (() => openAppPath(`/notes?match=${encodeURIComponent(match.id)}&compose=1`));
   return <Surface variant="scene" className="nxt5-match-panel match-recap-page mt-5">
     <div className="match-recap-header">
       <div className="games-match-context">
@@ -1277,7 +1278,7 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
           <span>{side === "blue" ? t("Notre équipe : côté bleu") : side === "red" ? t("Notre équipe : côté rouge") : t("Côté non renseigné")}</span>
         </div>
       </div>
-      <Button type="button" icon={hasReview ? FileText : Plus} onClick={review} disabled={!match.id}>{hasReview ? t("Ouvrir le débrief") : t("Préparer le débrief")}</Button>
+      <Button type="button" icon={hasReview ? FileText : Plus} onClick={review} disabled={!match.id}>{hasReview ? t("Ouvrir la note") : t("Ajouter une note")}</Button>
     </div>
     {contextControls && <div className="games-match-links">{typeof contextControls === "function" ? contextControls({ onOpponentResolved: setOpponentName }) : contextControls}</div>}
     <TabNav idPrefix={id} panelId={`${id}-panel`} label={t("Vues de la partie")} items={tabs} activeId={tab} onChange={setTab} className="match-recap-tabs" />
@@ -1333,13 +1334,13 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch, sho
 
 const GAME_WORKSPACE_TABS = [
   { id: "games", label: "Parties", icon: Swords, path: "/games" },
-  { id: "review", label: "Débriefs", icon: FileText, path: "/rapports" },
+  { id: "review", label: "Notes", icon: FileText, path: "/notes" },
 ];
 
 function GameWorkspace(props) {
   useLanguage();
   return gameWorkspaceSectionFromPath(props.route?.path) === "review"
-    ? <Reports key={props.selectedTeamId} {...props} />
+    ? <NotesWorkspace key={props.selectedTeamId} {...props} />
     : <Statistics key={props.selectedTeamId} {...props} />;
 }
 
@@ -1393,6 +1394,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     return () => controller.abort();
   }, [selectedTeamId, workspaceView, selectedMatchId, selectedArchive?.id, data.bootstrapRevision, updateOpponentCount]);
   const [exportingStats, setExportingStats] = useState(false);
+  const [reviewStatusSaving, setReviewStatusSaving] = useState(false);
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
   const [savingArchive, setSavingArchive] = useState(false);
   const [archiveWorkspaceTab, setArchiveWorkspaceTab] = useState("select");
@@ -1452,17 +1454,29 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const selectedMatch = selectedMatchDetail
     ? { ...selectedMatchSummary, ...selectedMatchDetail, participants: selectedMatchDetail.participants || selectedMatchSummary?.participants || [] }
     : selectedMatchSummary;
-  const selectedReport = (data.reports || []).find((report) => report.team_id === selectedTeamId && reportMatchIds(report).includes(selectedMatchId));
+  const selectedReport = (data.reports || []).find((report) => report.team_id === selectedTeamId && report.source !== "auto" && reportMatchIds(report).includes(selectedMatchId));
   const selectedArchiveReport = selectedArchive ? (data.reports || []).find((report) => {
     const ids = reportMatchIds(report);
     const groupIds = archiveMatchIds(selectedArchive);
-    return report.team_id === selectedTeamId && groupIds.length && groupIds.length === ids.length && groupIds.every((id) => ids.includes(id));
+    return report.team_id === selectedTeamId && report.source !== "auto" && groupIds.length && groupIds.length === ids.length && groupIds.every((id) => ids.includes(id));
   }) : null;
   const wins = baseMatches.filter((match) => match.result === "Victoire").length;
   const losses = baseMatches.filter((match) => match.result === "Défaite").length;
   const openReview = () => openAppPath(selectedReport
-    ? `/rapports?report=${encodeURIComponent(selectedReport.id)}&match=${encodeURIComponent(selectedMatchId)}`
-    : `/rapports?match=${encodeURIComponent(selectedMatchId)}&compose=1`);
+    ? `/notes?report=${encodeURIComponent(selectedReport.id)}&match=${encodeURIComponent(selectedMatchId)}`
+    : `/notes?match=${encodeURIComponent(selectedMatchId)}&compose=1`);
+  async function toggleReviewStatus() {
+    if (!selectedMatch || reviewStatusSaving) return;
+    const status = selectedMatch.review_status === "done" ? "todo" : "done";
+    setReviewStatusSaving(true);
+    try {
+      await apiFetch("matches-manage", { method: "POST", body: JSON.stringify({ action: "review-status", teamId: selectedTeamId, matchId: selectedMatch.id, status }) });
+      await refreshAll();
+      pushToast?.({ type: "green", title: status === "done" ? "Partie traitée" : "Partie à revoir", text: matchDisplayName(selectedMatch) });
+    } catch (error) {
+      pushToast?.({ type: "red", title: "Mise à jour impossible", text: error.message });
+    } finally { setReviewStatusSaving(false); }
+  }
   function finishImport(result) {
     const id = result?.match?.id;
     setImportBusy(false);
@@ -1488,20 +1502,13 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     if (savingArchive || archiveForm.matchIds.length > 80) return;
     setSavingArchive(true);
     const creating = !archiveForm.id;
-    let groupSaved = false;
     try {
-      const result = await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: creating ? "create" : "update", teamId: selectedTeamId, archiveId: archiveForm.id, name: archiveForm.name, description: archiveForm.description, matchIds: archiveForm.matchIds }) });
-      groupSaved = true;
-      setArchiveForm((current) => ({ ...current, id: result.archive.id, reportPending: creating || current.reportPending }));
-      if ((creating || archiveForm.reportPending) && archiveForm.matchIds.length <= 20) {
-        const linked = matches.filter((match) => archiveForm.matchIds.includes(match.id));
-        await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, title: archiveForm.name, content: buildArchiveReportContent(archiveForm.name, linked), matchIds: archiveForm.matchIds }) });
-      }
+      await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: creating ? "create" : "update", teamId: selectedTeamId, archiveId: archiveForm.id, name: archiveForm.name, description: archiveForm.description, matchIds: archiveForm.matchIds }) });
       pushToast?.({ type: "green", title: creating ? "Groupe créé" : "Groupe mis à jour", text: "Le groupe est prêt dans Parties." });
       resetArchiveForm();
       setArchiveWorkspaceTab("select");
     } catch (err) {
-      pushToast?.({ type: "red", title: groupSaved ? "Groupe créé, débrief non généré" : "Archive impossible", text: groupSaved ? `Groupe créé, débrief non généré : ${err.message}` : err.message });
+      pushToast?.({ type: "red", title: "Archive impossible", text: err.message });
     } finally {
       try { await refreshAll?.(); }
       catch (err) { pushToast?.({ type: "red", title: "Actualisation impossible", text: err.message }); }
@@ -1564,6 +1571,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       <div className="games-detail-toolbar">
         <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectMatch("")}>{selectedArchive ? t("Retour au groupe") : t("Retour aux parties")}</Button>
         {selectedMatch && <div className="games-detail-actions">
+          {(canManageTeam || selectedMatch.created_by === user?.id) && <Button type="button" variant="ghost" icon={Check} onClick={toggleReviewStatus} disabled={reviewStatusSaving}>{selectedMatch.review_status === "done" ? t("Marquer à revoir") : t("Marquer comme traitée")}</Button>}
           <Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(false)} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError) || exportingStats}>{exportingStats ? t("Export…") : t("Exporter PNG")}</Button>
           {!loadingMatchDetail && !selectedMatchDetailError && <DiscordGameShare teamId={selectedTeamId} matchId={selectedMatch.id} matchName={matchDisplayName(selectedMatch)} matchRevision={selectedMatch.publication_revision ?? data.bootstrapRevision ?? ""} canPublish={canPublishDiscord} />}
           <GameActions key={selectedMatchId} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError)} match={selectedMatch} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onDeleted={() => updateLocation({ match: "", ...(selectedArchive && scopedMatches.length <= 1 ? { archive: "" } : {}) })} onUpdated={retryMatchDetail} />
@@ -1613,15 +1621,14 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
             <div className="games-group-fields"><TextInput label={t("Nom du groupe")} value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder={t("Scrim vs BK — 08/09")} required /><TextInput label={t("Description")} value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder={t("Session, objectif du bloc…")} /></div>
             <div className="games-group-heading"><p>{archiveForm.matchIds.length}{t(" partie(s) sélectionnée(s)")}</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.slice(0, 80).map((match) => match.id) }))} disabled={!matches.length}>{matches.length > 80 ? t("Sélectionner les 80 premières") : t("Tout sélectionner")}</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>{t("Vider")}</Button></div></div>
             <div className="games-group-picks">{matches.map((match) => <label key={match.id}><input type="checkbox" checked={archiveForm.matchIds.includes(match.id)} disabled={archiveForm.matchIds.length >= 80 && !archiveForm.matchIds.includes(match.id)} onChange={() => toggleArchiveMatch(match.id)} /><span><strong>{matchDisplayName(match)}</strong><span>{match.game_id} · {t(match.result) || t("Résultat inconnu")}</span></span></label>)}</div>
-            <p className="text-sm text-slate-300">{t("80 parties maximum par groupe. Un débrief automatique est généré à la création pour 20 parties maximum.")}</p>
-            {!archiveForm.id && archiveForm.matchIds.length > 20 && <p role="status" className="text-sm text-amber-100">{t("Ce groupe contient plus de 20 parties : il sera créé sans débrief automatique.")}</p>}
+            <p className="text-sm text-slate-300">{t("80 parties maximum par groupe.")}</p>
             {!matches.length && <p>{t("Importe une première partie pour créer un groupe.")}</p>}
             <div className="games-group-form-actions"><Button type="button" variant="ghost" onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab("select"); }}>{t("Annuler")}</Button><Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={!archiveForm.name.trim() || !archiveForm.matchIds.length || savingArchive}>{savingArchive ? t("Enregistrement…") : archiveForm.id ? t("Enregistrer") : t("Créer le groupe")}</Button></div>
           </fieldset>
         </form>}
       </Surface>}
       {selectedArchive && <>
-        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>{t("Tous les groupes")}</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>{t("Exporter le groupe PNG")}</Button>{!selectedMatchId && <DiscordGroupShare teamId={selectedTeamId} archiveId={selectedArchive.id} archiveName={selectedArchive.name} archiveRevision={JSON.stringify([selectedArchive.updated_at, selectedArchive.match_ids, data.bootstrapRevision])} canPublish={canPublishDiscord} />}{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>{t("Ouvrir le débrief")}</Button>}</div></div>
+        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>{t("Tous les groupes")}</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>{t("Exporter le groupe PNG")}</Button>{!selectedMatchId && <DiscordGroupShare teamId={selectedTeamId} archiveId={selectedArchive.id} archiveName={selectedArchive.name} archiveRevision={JSON.stringify([selectedArchive.updated_at, selectedArchive.match_ids, data.bootstrapRevision])} canPublish={canPublishDiscord} />}{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/notes?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>{t("Ouvrir la note")}</Button>}</div></div>
         <div className="games-detail-title"><h3>{selectedArchive.name}</h3>{selectedArchive.description && <p>{selectedArchive.description}</p>}</div>
         {!selectedMatchId && <GroupOpponentPanel teamId={selectedTeamId} archive={selectedArchive} user={user} onChanged={() => refreshAll({ throwOnError: true })} onCountChange={updateOpponentCount} />}
         <ScrimArchiveSummary matches={scopedMatches} showGames={false} />

@@ -52,9 +52,11 @@ describe("unified Games navigation", () => {
     expect(pageFromPath("/tendances")).toBe("trends");
     expect(pathFromPage("matches")).toBe("/games");
     expect(pathFromPage("stats")).toBe("/games");
-    expect(pathFromPage("reports")).toBe("/rapports");
+    expect(pathFromPage("reports")).toBe("/notes");
     expect(gameWorkspaceSectionLabel("games")).toBe("Parties");
-    expect(gameWorkspaceSectionLabel("review")).toBe("Débriefs");
+    expect(gameWorkspaceSectionLabel("review")).toBe("Notes");
+    expect(gameWorkspaceSectionFromPath("/notes")).toBe("review");
+    expect(canonicalAppPath("/rapports?report=abc")).toBe("/notes?report=abc");
     const visible = NAV.filter((item) => [...PRIMARY_NAV_IDS, ...MORE_NAV_IDS].includes(item.id));
     expect(visible.filter((item) => item.label === "Parties")).toHaveLength(1);
     expect(visible.some((item) => item.id === "stats")).toBe(false);
@@ -62,14 +64,14 @@ describe("unified Games navigation", () => {
     expect(visible.some((item) => item.id === "trends")).toBe(true);
   });
 
-  it("selects Débriefs and opens Parties without a guide button in the sidebar", () => {
+  it("selects Notes and opens Parties without a guide button in the sidebar", () => {
     const setActive = vi.fn();
     const setOpen = vi.fn();
     let renderer;
     act(() => { renderer = TestRenderer.create(<Sidebar active="reports" setActive={setActive} open={false} setOpen={setOpen} collapsed={false} setCollapsed={vi.fn()} roleLabel={(value) => value} />); });
     const selected = renderer.root.findAllByType("a").filter((link) => link.props["aria-current"] === "page");
     expect(selected).toHaveLength(1);
-    expect(selected[0].props["aria-label"]).toBe("Débriefs");
+    expect(selected[0].props["aria-label"]).toBe("Notes");
     const parties = renderer.root.findByProps({ "aria-label": "Parties" });
     expect(parties.props.title).toBe("Parties · Importer et revoir une partie");
     expect(parties.props.href).toBe("/games");

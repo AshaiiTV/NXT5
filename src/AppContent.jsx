@@ -247,7 +247,7 @@ function assistantEntityForRoute(route, data, selectedTeamId) {
   const matchId = params.get("match");
   const reportId = params.get("report");
   const playerId = params.get("player");
-  const candidates = route?.path === "/rapports"
+  const candidates = route?.path === "/rapports" || route?.path === "/notes"
     ? [
         { type: "report", id: reportId, items: teamReports, label: (item) => item.title || "Review sélectionnée" },
         { type: "match", id: matchId, items: teamMatches, label: matchDisplayName },

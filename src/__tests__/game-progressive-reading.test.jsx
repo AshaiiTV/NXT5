@@ -132,7 +132,7 @@ describe("progressive game reading", () => {
     expect(text(brief)).not.toContain("Notre équipe − adversaires");
     expect(text(brief)).not.toContain("Écart d’or final");
     expect(text(brief)).not.toContain("+0");
-    expect(action(renderer, "Préparer le débrief")).toBeDefined();
+    expect(action(renderer, "Ajouter une note")).toBeDefined();
   });
 
   it("preserves a measured zero as an available statistic", () => {
@@ -548,12 +548,12 @@ describe("progressive game reading", () => {
 
   it("keeps the game review action available without opening details", () => {
     const renderer = render();
-    const prepare = renderer.root.findAllByType(Button).find((node) => node.props.children === "Préparer le débrief");
+    const prepare = renderer.root.findAllByType(Button).find((node) => node.props.children === "Ajouter une note");
     act(() => prepare.props.onClick());
-    expect(openAppPath).toHaveBeenCalledWith("/rapports?match=game%2F1&compose=1");
+    expect(openAppPath).toHaveBeenCalledWith("/notes?match=game%2F1&compose=1");
     const onReview = vi.fn();
     act(() => renderer.update(<MatchDataPanel match={game()} onReview={onReview} hasReview />));
-    const existing = renderer.root.findAllByType(Button).find((node) => node.props.children === "Ouvrir le débrief");
+    const existing = renderer.root.findAllByType(Button).find((node) => node.props.children === "Ouvrir la note");
     act(() => existing.props.onClick());
     expect(onReview).toHaveBeenCalledOnce();
     expect(renderer.root.findAllByType("details").every((node) => node.props.open !== true)).toBe(true);
@@ -561,7 +561,7 @@ describe("progressive game reading", () => {
 
   it("disables the review action when the game has no saved identifier", () => {
     const renderer = render({ match: game("") });
-    const prepare = renderer.root.findAllByType(Button).find((node) => node.props.children === "Préparer le débrief");
+    const prepare = renderer.root.findAllByType(Button).find((node) => node.props.children === "Ajouter une note");
     expect(prepare.props.disabled).toBe(true);
     expect(openAppPath).not.toHaveBeenCalled();
   });

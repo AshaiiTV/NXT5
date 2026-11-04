@@ -15,11 +15,11 @@ export function getOnboardingSteps({ data = {}, currentTeam, currentMember, user
   if (!currentTeam?.id) return [];
   const teamRows = (key) => (data[key] || []).filter(row => sameId(row.team_id, currentTeam.id));
   const matches = sortTrendMatches(teamRows("matches").filter(row => row.id));
-  const reports = [...teamRows("reports")].filter(row => row.id).sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
+  const reports = [...teamRows("reports")].filter(row => row.id && row.source !== "auto").sort((a, b) => String(b.created_at || "").localeCompare(String(a.created_at || "")));
   const latestMatch = matches[0];
   const latestReport = reports[0];
   const matchPath = latestMatch ? `/games?match=${encodeURIComponent(latestMatch.id)}` : "";
-  const reportPath = latestReport ? `/rapports?report=${encodeURIComponent(latestReport.id)}` : "";
+  const reportPath = latestReport ? `/notes?report=${encodeURIComponent(latestReport.id)}` : "";
   const seen = (id) => discovered.includes(id);
   const manager = canManageOnboarding({ currentTeam, currentMember, user });
   if (manager) return [
@@ -29,10 +29,10 @@ export function getOnboardingSteps({ data = {}, currentTeam, currentMember, user
     { id: "reading", label: "Résumé", title: "Ouvre le résumé de ta partie", description: "Commence par le résultat et les écarts entre les équipes. Garde un point à discuter pour le débrief.",
       detail: seen("reading") ? "Résumé ouvert" : "Consulte le résultat et les écarts entre les équipes.",
       done: Boolean(latestMatch && seen("reading")), disabled: !latestMatch, action: "Voir ma partie", path: matchPath, help: "statistics", reason: !latestMatch ? "Le résumé sera disponible après ton premier import." : "" },
-    { id: "reports", label: "Débriefer", title: "Prépare ton premier débrief", description: "Note ce que l’équipe garde, ce qu’elle corrige et une action à travailler à la prochaine séance.",
-      detail: latestReport ? "Premier débrief enregistré" : "Choisis une action à travailler à la prochaine séance.",
-      done: Boolean(latestReport), disabled: !latestMatch && !latestReport, action: latestReport ? "Voir le débrief" : "Préparer le débrief",
-      path: reportPath || (latestMatch ? `/rapports?match=${encodeURIComponent(latestMatch.id)}&compose=1` : ""), help: "reviews", reason: !latestMatch && !latestReport ? "Importe une partie pour préparer le débrief." : "" },
+    { id: "reports", label: "Notes", title: "Note ce qu’il faut retenir", description: "Garde les observations de l’équipe et une action à essayer à la prochaine séance.",
+      detail: latestReport ? "Première note enregistrée" : "Écris une observation utile pour l’équipe.",
+      done: Boolean(latestReport), disabled: false, action: latestReport ? "Voir la note" : "Ajouter une note",
+      path: reportPath || (latestMatch ? `/notes?match=${encodeURIComponent(latestMatch.id)}&compose=1` : "/notes"), help: "reviews", reason: "" },
   ];
   const player = teamRows("players").find(row => sameId(row.user_id, user?.id));
   const hasAvailability = player && teamRows("availability").some(row => sameId(row.player_id, player.id)
@@ -45,9 +45,9 @@ export function getOnboardingSteps({ data = {}, currentTeam, currentMember, user
     { id: "planning", label: "Dispos", title: "Prépare ta prochaine séance", description: "Indique quand tu peux jouer. Ton équipe pourra organiser les entraînements en fonction de vos disponibilités.",
       detail: hasAvailability ? "Disponibilités renseignées" : "Choisis tes créneaux dans le planning.",
       done: Boolean(hasAvailability), disabled: !player, action: "Donner mes disponibilités", path: player ? "/planning" : "", help: "planning", reason: !player ? "Tes disponibilités seront accessibles une fois ton profil relié." : "" },
-    { id: "team-review", label: "Notre jeu", title: latestReport ? "Retrouve le débrief de ton équipe" : "Découvre une partie de ton équipe", description: latestReport ? "Retrouve les observations du staff et les points à travailler ensemble." : "Ouvre une partie pour découvrir son résumé et les résultats de l’équipe.",
-      detail: seen("team-review") ? "Espace de l’équipe ouvert" : "Consulte les parties et les débriefs de ton équipe.",
-      done: Boolean((latestMatch || latestReport) && seen("team-review")), disabled: !latestMatch && !latestReport, action: latestReport ? "Ouvrir le débrief" : "Voir une partie", path: reportPath || matchPath,
+    { id: "team-review", label: "Notre jeu", title: latestReport ? "Retrouve les notes de ton équipe" : "Découvre une partie de ton équipe", description: latestReport ? "Retrouve les observations du staff et les points à travailler ensemble." : "Ouvre une partie pour découvrir son résumé et les résultats de l’équipe.",
+      detail: seen("team-review") ? "Espace de l’équipe ouvert" : "Consulte les parties et les notes de ton équipe.",
+      done: Boolean((latestMatch || latestReport) && seen("team-review")), disabled: !latestMatch && !latestReport, action: latestReport ? "Ouvrir la note" : "Voir une partie", path: reportPath || matchPath,
       help: latestReport ? "reviews" : "statistics", reason: !latestMatch && !latestReport ? "Le staff prépare les premières parties. Tu les retrouveras ici dès leur import." : "" },
   ];
 }
@@ -58,7 +58,7 @@ export function onboardingVisitsForRoute({ route, data = {}, currentTeam, user }
   const params = new URLSearchParams(route.search || "");
   const inTeam = (key, id) => id && (data[key] || []).some(row => sameId(row.team_id, currentTeam.id) && sameId(row.id, id));
   if (["/games", "/integration", "/statistiques"].includes(route.path) && inTeam("matches", params.get("match"))) return ["reading", "team-review"];
-  if (route.path === "/rapports" && params.get("compose") !== "1" && inTeam("reports", params.get("report"))) return ["team-review"];
+  if (["/rapports", "/notes"].includes(route.path) && params.get("compose") !== "1" && inTeam("reports", params.get("report"))) return ["team-review"];
   if (route.path === "/mon-profil" || route.path.startsWith("/mon-profil/")) {
     const linked = (data.players || []).find(row => sameId(row.team_id, currentTeam.id) && sameId(row.user_id, user?.id));
     if (linked && (!params.get("player") || sameId(linked.id, params.get("player")))) return ["profile"];
