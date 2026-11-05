@@ -1,3 +1,14 @@
+# NXT5 Importer 0.4.1
+
+![Nouvelle interface NXT5 Importer : barre latérale et écran Exporter](docs/images/importer-0.4.1.png)
+
+*Aperçu avec connexion client simulée pour la validation.*
+
+- Interface entièrement redessinée : barre latérale fixe (Exporter, Collecte automatique, Historique, Paramètres) avec compteurs, état du client LoL et accès au site ; chaque écran a un titre, un sous-titre et des cartes arrondies sur fond bleu nuit.
+- Écran Exporter réorganisé : formulaire sur une carte unique, dernier export rappelé en haut, guide en trois étapes et raccourci vers la collecte automatique sur le côté ; la carte de résultat regroupe le fichier, ses caractéristiques et le chemin dans NXT5.
+- Historique, Collecte automatique et Paramètres repris avec les mêmes composants (lignes d’historique, pastilles d’état des parties, cartes Liaison / Collecte / Parties envoyées, cartes Client / Mises à jour).
+- Sous 900 px de large, la barre latérale devient une barre supérieure ; les états de focus, de chargement, d’erreur, le mouvement réduit et le contraste forcé sont conservés. Aucun changement de fonctionnement ni de raccourci.
+
 # NXT5 Importer 0.4.0
 
 - Nouvel onglet **Collecte automatique** : colle une fois le code généré dans NXT5 (Parties → Import automatique), active la collecte, puis laisse l’Importer et le client LoL ouverts. Chaque custom observée est récupérée dans le client à la fin de la partie et envoyée à NXT5, qui reconnaît le côté, les postes et les joueurs de l’effectif ; les parties non reconnues restent à finaliser sur le site.
