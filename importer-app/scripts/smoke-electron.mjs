@@ -408,7 +408,7 @@ async function runSmoke() {
     });
     await test('site action opens the integration page without external navigation', async () => {
       const state = await page.evaluate(() => window.nxt5.getAppState());
-      await page.locator('.header-actions [data-open-site]').click();
+      await page.locator('.sidebar [data-open-site]').click();
       assert.ok((await application.evaluate(() => globalThis.__NXT5_SMOKE.external)).includes(`${state.siteUrl}/integration`));
       assert.equal(await page.title(), 'NXT5 Importer');
     });
