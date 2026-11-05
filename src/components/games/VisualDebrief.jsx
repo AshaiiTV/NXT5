@@ -165,7 +165,7 @@ function Session({ matches, team, categories, focus, selectedId, onSelect, onOpe
   return <>
     <h3 className="vd-title"><Clock3 aria-hidden="true" />{t("En 10 secondes")}</h3>
     <GamePicker matches={matches} selectedId={actualId} onSelect={onSelect} />
-    <div className="vd-context"><div><Badge tone={result === "Victoire" ? "green" : result === "Défaite" ? "red" : "slate"}>{resultLabel(result)}</Badge><span><Clock3 aria-hidden="true" />{snapshot.context.duration || t("Durée inconnue")}</span><span>{snapshot.context.allySide === "blue" ? t("Côté bleu") : snapshot.context.allySide === "red" ? t("Côté rouge") : t("Côté inconnu")}</span></div>
+    <div className="vd-context"><div><Badge tone={result === "Victoire" ? "green" : result === "Défaite" ? "red" : "slate"}>{resultLabel(result)}</Badge><span><Clock3 aria-hidden="true" />{snapshot.context.duration || t("Durée inconnue")}</span><span className="vd-side" data-side={snapshot.context.allySide}>{snapshot.context.allySide === "blue" ? t("Côté bleu") : snapshot.context.allySide === "red" ? t("Côté rouge") : t("Côté inconnu")}</span></div>
       <div className="vd-context-actions">{Number.isFinite(snapshot.facts.kills.ally) && Number.isFinite(snapshot.facts.kills.enemy) && <span className="vd-score" aria-label={t("Éliminations : notre équipe {0}, adversaires {1}", [snapshot.facts.kills.ally, snapshot.facts.kills.enemy])}><Swords aria-hidden="true" /><b>{number(snapshot.facts.kills.ally)}</b><span>–</span><b>{number(snapshot.facts.kills.enemy)}</b></span>}
         {onOpenMatch && <Button type="button" variant="ghost" className="vd-open-match" icon={ArrowUpRight} onClick={() => onOpenMatch(actualId)}>{t("Voir la partie")}</Button>}</div>
     </div>

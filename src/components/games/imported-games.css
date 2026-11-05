@@ -59,8 +59,8 @@
 .ig-champions { display: flex; flex-wrap: wrap; gap: 4px; }
 .ig-champion { width: 28px; height: 28px; border: 1px solid rgba(196,181,253,.4); border-radius: 5px; flex-shrink: 0; object-fit: cover; box-shadow: 0 3px 9px rgba(2,6,17,.3); }
 .ig-side, .ig-missing { color: #c2d0e3; font-size: var(--nxt5-font-small); line-height: 1.5; }
-.ig-side-blue { color: #bae6fd; }
-.ig-side-red { color: #fecdd3; }
+.ig-side-blue { color: var(--nxt5-side-blue-text); }
+.ig-side-red { color: var(--nxt5-side-red-text); }
 .ig-date { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; grid-column: 1 / -1; grid-row: 4; color: #e2eaf7; font-size: var(--nxt5-font-small); line-height: 1.5; font-variant-numeric: tabular-nums; }
 .ig-date > span:last-child { color: #c2d0e3; font-size: var(--nxt5-font-small); }
 .ig-review { display: inline-flex; align-items: center; gap: 6px; grid-column: 2; grid-row: 1; color: #e2d5b7; font-size: var(--nxt5-font-small); }

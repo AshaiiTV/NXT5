@@ -158,7 +158,7 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
   report.sides.forEach((entry, index) => {
     const panelX = margin + index * sideWidth;
     const x = panelX + 22;
-    const accent = entry.key === "Blue" ? "blue" : entry.key === "Red" ? "red" : "muted";
+    const accent = entry.key === "Blue" ? "sideBlueText" : entry.key === "Red" ? "sideRedText" : "muted";
     pngPanel(ctx, panelX, 434, sideWidth - 16, 114, { accent, radius: 14 });
     label(t(entry.key === "Blue" ? "Côté bleu" : entry.key === "Red" ? "Côté rouge" : "Côté inconnu"), x, 461, sideWidth - 60, { color: pngAccent(accent) });
     fit(pngPercent(entry.winrate), x, 500, sideWidth - 48, { font: "700 36px Inter, Arial, sans-serif" });

@@ -33,8 +33,10 @@
 .opponents-source svg { flex: none; }
 .opponents-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 16px; }
 .opponents-draft-camps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
-.opponents-camp { min-width: 0; border-top: 3px solid var(--nxt5-accent); padding-top: 12px; }
-.opponents-camp[data-side="red"] { border-top-color: var(--nxt5-danger); }
+.opponents-camp { min-width: 0; border-top: 3px solid var(--nxt5-side-blue); padding-top: 12px; }
+.opponents-camp[data-side="red"] { border-top-color: var(--nxt5-side-red); }
+.opponents-camp[data-side="blue"] .opponents-camp-heading { color: var(--nxt5-side-blue-text); }
+.opponents-camp[data-side="red"] .opponents-camp-heading { color: var(--nxt5-side-red-text); }
 .opponents-camp-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-height: 30px; color: var(--nxt5-text-secondary); font-size: .875rem; }
 .opponents-camp h4 { margin: 8px 0 16px; font-weight: 700; font-size: 1.125rem; overflow-wrap: anywhere; }
 .opponents-camp h5 { margin: 16px 0 8px; font-size: .875rem; font-weight: 600; color: var(--nxt5-text-secondary); }

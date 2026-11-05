@@ -937,7 +937,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                   <div className="game-import-section-heading"><h3 id="game-import-side-title">{t("Choisis ton équipe")}</h3></div>
                   {suggestedSide && <p className="game-import-recognition">{t("Ton équipe a été reconnue grâce aux cinq Riot ID. Vérifie les postes et les profils avant de confirmer.")}</p>}
                   <div className="game-import-side-options">
-                    {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} aria-pressed={allyTeamSide === team.side} className="game-import-side">
+                    {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} aria-pressed={allyTeamSide === team.side} data-side={team.side?.toLowerCase()} className="game-import-side">
                       <span className="game-import-side-heading"><strong>{team.side === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</strong><span className="game-import-side-indicator" aria-hidden="true">{allyTeamSide === team.side && <Check size={14} />}</span><Badge tone={team.win ? "green" : "red"}>{team.win ? t("Victoire") : t("Défaite")}</Badge></span>
                       <span className="game-import-side-champions">{team.participants.map((participant) => <span key={participant.participantId} className="game-import-side-champion"><ChampionPortrait champion={participant.champion} alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" /><span>{championDisplayName(participant.champion)}</span></span>)}</span>
                     </button>)}
@@ -952,7 +952,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                 </section>}
                 {allyTeamSide && <>
                   <section className="game-import-team" aria-labelledby="game-import-allies-title">
-                    <div className="game-import-section-heading"><h3 id="game-import-allies-title">{t("Notre équipe")}</h3><span>{allyTeamSide === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</span></div>
+                    <div className="game-import-section-heading"><h3 id="game-import-allies-title">{t("Notre équipe")}</h3><span data-side={allyTeamSide?.toLowerCase()}>{allyTeamSide === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</span></div>
                     <div className="game-import-roster-head" aria-hidden="true"><span>{t("Poste")}</span><span>{t("Champion joué")}</span><span>{t("Profil lié")}</span></div>
                     <div className="game-import-roster">
                       {COMP_ROLES.map((role) => {
@@ -976,7 +976,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                     </div>
                   </section>
                   <section className="game-import-team game-import-enemies" aria-labelledby="game-import-enemies-title">
-                    <div className="game-import-section-heading"><h3 id="game-import-enemies-title">{t("Équipe adverse")}</h3><span>{enemyPreviewTeam?.side === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</span></div>
+                    <div className="game-import-section-heading"><h3 id="game-import-enemies-title">{t("Équipe adverse")}</h3><span data-side={enemyPreviewTeam?.side?.toLowerCase()}>{enemyPreviewTeam?.side === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</span></div>
                     <p className="game-import-enemy-help">{t("Vérifie les postes adverses. Un poste déjà pris est échangé.")}</p>
                     {enemyPreviewTeam && !enemyAssignmentsReady && <p role="status" className="mb-3 text-sm text-rose-100">{t("Attribue un poste à chaque champion adverse pour confirmer l’import.")}</p>}
                     <div className="game-import-enemy-roster">

@@ -96,7 +96,7 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
     return teamKey === "ALLY" ? own : oppositeSideKey(own);
   };
   const sideLabel = (match, teamKey = "ALLY") => side(match, teamKey) === "blue" ? "Côté bleu" : side(match, teamKey) === "red" ? "Côté rouge" : "Côté inconnu";
-  const sideColor = (match, teamKey = "ALLY") => side(match, teamKey) === "red" ? PNG_THEME.red : side(match, teamKey) === "blue" ? PNG_THEME.cyan : PNG_THEME.muted;
+  const sideColor = (match, teamKey = "ALLY") => side(match, teamKey) === "red" ? PNG_THEME.sideRedText : side(match, teamKey) === "blue" ? PNG_THEME.sideBlueText : PNG_THEME.muted;
   const championCounts = (teamKey) => Array.from(scoped.flatMap((match) => rowsFor(match, teamKey)).reduce((map, row) => {
     if (row.champion) map.set(row.champion, (map.get(row.champion) || 0) + 1);
     return map;
@@ -221,10 +221,10 @@ async function exportStatsPng(options) {
 function metricSideMarkerMeta(marker) {
   const key = String(marker || "").toLowerCase();
   return {
-    blue: { label: "Bleu", text: "< Bleu", tone: "cyan", canvasAccent: "cyan" },
-    red: { label: "Rouge", text: "Rouge >", tone: "red", canvasAccent: "pink" },
+    blue: { label: "Bleu", text: "< Bleu", tone: "side-blue", canvasAccent: "sideBlueText" },
+    red: { label: "Rouge", text: "Rouge >", tone: "side-red", canvasAccent: "sideRedText" },
     ally: { label: "NXT5", text: "NXT5 >", tone: "cyan", canvasAccent: "cyan" },
-    enemy: { label: "ADV", text: "< ADV", tone: "red", canvasAccent: "pink" },
+    enemy: { label: "ADV", text: "< ADV", tone: "slate", canvasAccent: "muted" },
     tie: { label: "Égal", text: "Égal", tone: "slate", canvasAccent: "yellow" },
   }[key] || null;
 }
@@ -471,10 +471,10 @@ function ObjectiveTeamCard({ match, teamKey, side, title, data: providedData, sh
     ["Nashor", data.barons, "baron", "purple"],
     ["Tours", data.towers, "tower", "blue"],
   ];
-  return <section className={cx("min-w-0 px-3 py-3 sm:px-4", isRed ? "bg-rose-500/[0.035]" : "border-b border-white/[0.08] bg-cyan-400/[0.035] xl:border-b-0 xl:border-r")}>
+  return <section className={cx("min-w-0 px-3 py-3 sm:px-4", isRed ? "bg-red-500/[0.045]" : "border-b border-white/[0.08] bg-blue-500/[0.045] xl:border-b-0 xl:border-r")}>
     <div className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2">
-        <span className={cx("h-2 w-2 shrink-0 rounded-full ", isRed ? "bg-rose-300 text-rose-300" : "bg-cyan-200 text-cyan-200")} />
+        <span className={cx("h-2 w-2 shrink-0 rounded-full ", isRed ? "bg-red-500 text-red-500" : "bg-blue-500 text-blue-500")} />
         <h4 className="break-words text-xs font-semibold text-white">{title}</h4>
       </div>
       <p className="shrink-0 text-xs font-semibold text-slate-400"><span className="text-white">{data.dragonCount}</span>{t(data.dragonCount > 1 ? " drakes" : " drake")}</p>
@@ -528,16 +528,16 @@ function ObjectiveHud({ match, compact = false }) {
             const isRed = event.side === "RED";
             const isBlue = event.side === "BLUE";
             return <li key={`${event.timestamp}-${index}`} className="flex shrink-0 items-center">
-              <div className={cx("relative flex min-h-[4rem] w-[10.5rem] items-center gap-2 overflow-hidden rounded-xl border px-2.5 py-2 sm:w-[10.5rem]", isRed ? "border-rose-200/12 bg-rose-500/[0.045]" : isBlue ? "border-cyan-200/12 bg-cyan-400/[0.045]" : "border-white/10 bg-white/[0.025]")}>
-                <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full", isRed ? "bg-rose-300/70" : isBlue ? "bg-cyan-200/70" : "bg-slate-400/70")} />
+              <div className={cx("relative flex min-h-[4rem] w-[10.5rem] items-center gap-2 overflow-hidden rounded-xl border px-2.5 py-2 sm:w-[10.5rem]", isRed ? "border-red-500/25 bg-red-500/[0.06]" : isBlue ? "border-blue-500/25 bg-blue-500/[0.06]" : "border-white/10 bg-white/[0.025]")}>
+                <span className={cx("absolute inset-y-2 left-0 w-0.5 rounded-r-full", isRed ? "bg-red-500/80" : isBlue ? "bg-blue-500/80" : "bg-slate-400/70")} />
                 <span className={cx("flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border", tone(objectiveEventTone(event)))}>
                   <ObjectivePictogram type={objectivePictogramType(event)} fallback={objectiveEventIcon(event)} className="h-6 w-6" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex min-w-0 items-center gap-1">
                     <time className="shrink-0 text-xs font-black tabular-nums text-white">{event.time}</time>
-                    <span className={cx("h-1 w-1 shrink-0 rounded-full", isRed ? "bg-rose-300" : isBlue ? "bg-cyan-200" : "bg-slate-400")} />
-                    <span className={cx("whitespace-nowrap text-xs font-black uppercase", isRed ? "text-rose-100/75" : isBlue ? "text-cyan-100/75" : "text-slate-300")}>{isRed ? t("Rouge") : isBlue ? t("Bleu") : "—"}</span>
+                    <span className={cx("h-1 w-1 shrink-0 rounded-full", isRed ? "bg-red-500" : isBlue ? "bg-blue-500" : "bg-slate-400")} />
+                    <span className={cx("whitespace-nowrap text-xs font-black uppercase", isRed ? "text-red-300" : isBlue ? "text-blue-300" : "text-slate-300")}>{isRed ? t("Rouge") : isBlue ? t("Bleu") : "—"}</span>
                   </span>
                   <span className="mt-0.5 block text-xs font-black leading-4 text-white">{t(event.label)}</span>
                 </span>
@@ -952,7 +952,7 @@ function VersusPlayerMini({ row, side, opponent, align = "left" }) {
     ...itemSlots(row).filter(Boolean).map((id) => ({ id, type: "item" })),
     ...(trinket ? [{ id: trinket, type: "trinket" }] : []),
   ] : [];
-  return <div className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-2.5", side === "ALLY" ? "border-cyan-300/18 bg-cyan-400/[0.055]" : "border-rose-300/18 bg-rose-500/[0.055]")}>
+  return <div className={cx("relative min-w-0 overflow-hidden rounded-2xl border p-2.5", align === "right" ? "border-red-500/25 bg-red-500/[0.055]" : "border-blue-500/25 bg-blue-500/[0.055]")}>
     <div className={cx("relative z-10 flex min-w-0 items-center gap-2.5", align === "right" && "flex-row-reverse text-right")}>
       <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-black/35 md:h-14 md:w-14">
         {row ? <ChampionPortrait row={row} champion={row.champion} alt={row.champion} /> : <Crown className="m-3 h-6 w-6 text-slate-300" />}
@@ -1020,8 +1020,8 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
     const trinket = row ? trinketItemId(row) : 0;
     const items = row ? [...itemSlots(row).filter(Boolean).map((id) => ({ id, type: "item" })), ...(trinket ? [{ id: trinket, type: "trinket" }] : [])] : [];
     const isBlue = side === "blue";
-    return <div className={cx("rounded-2xl border p-3", isBlue ? "border-cyan-300/14 bg-cyan-400/[0.055]" : "border-rose-300/14 bg-rose-500/[0.055]")}>
-      <div className={cx("mb-3 flex flex-wrap items-center gap-2", align === "right" && "justify-end")}><Badge tone={isBlue ? "cyan" : "red"}>{isBlue ? t("Côté bleu") : t("Côté rouge")}</Badge><Badge tone={teamKey === "ALLY" ? "green" : "slate"}><span className="block max-w-48 truncate" title={teamBadge(teamKey)}>{teamBadge(teamKey)}</span></Badge></div>
+    return <div className={cx("rounded-2xl border p-3", isBlue ? "border-blue-500/25 bg-blue-500/[0.06]" : "border-red-500/25 bg-red-500/[0.06]")}>
+      <div className={cx("mb-3 flex flex-wrap items-center gap-2", align === "right" && "justify-end")}><Badge tone={isBlue ? "side-blue" : "side-red"}>{isBlue ? t("Côté bleu") : t("Côté rouge")}</Badge><Badge tone={teamKey === "ALLY" ? "green" : "slate"}><span className="block max-w-48 truncate" title={teamBadge(teamKey)}>{teamBadge(teamKey)}</span></Badge></div>
       <div className={cx("flex min-w-0 items-center gap-3", align === "right" && "justify-end text-right")}>
         <ChampionPortrait row={row} champion={row?.champion} alt={row?.champion || role} className="h-12 w-12 rounded-xl object-cover" />
         <div className="min-w-0">
@@ -1050,7 +1050,7 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
             const cleanDiff = Number.isFinite(Number(diff)) ? Number(diff) : null;
             return <tr key={label}>
               <th scope="row">{t(label)}</th><td>{left}</td>
-              <td className={cleanDiff === null ? "text-slate-400" : cleanDiff >= 0 ? "text-cyan-100" : "text-rose-100"}>{formatSideDiff(cleanDiff)}</td>
+              <td className={cleanDiff === null ? "text-slate-400" : cleanDiff >= 0 ? "text-blue-300" : "text-red-300"}>{formatSideDiff(cleanDiff)}</td>
               <td>{right}</td>
             </tr>;
           })}</tbody>
@@ -1062,7 +1062,7 @@ function LaneComparisonPanel({ match, role, allyRow, enemyRow, teamName }) {
       const diff = Number(left || 0) - Number(right || 0);
       const blueWins = direction === "lower" ? diff < 0 : diff > 0;
       const leader = !diff ? "Égal" : blueWins ? "Côté bleu" : "Côté rouge";
-      return <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="text-xs font-semibold text-slate-300">{t(label)}</p><p className="mt-2 text-sm font-black text-white">{Number(left || 0).toFixed(1)}% / {Number(right || 0).toFixed(1)}%</p><p className={cx("mt-1 text-xs font-black", !diff ? "text-slate-300" : blueWins ? "text-cyan-200" : "text-rose-200")}>{leader}</p></div>;
+      return <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"><p className="text-xs font-semibold text-slate-300">{t(label)}</p><p className="mt-2 text-sm font-black text-white">{Number(left || 0).toFixed(1)}% / {Number(right || 0).toFixed(1)}%</p><p className={cx("mt-1 text-xs font-black", !diff ? "text-slate-300" : blueWins ? "text-blue-300" : "text-red-300")}>{leader}</p></div>;
     })}</div>
   </div>;
 }
@@ -1071,8 +1071,8 @@ function SideColumnHeader({ side, align = "left" }) {
   useLanguage();
   const isBlue = side === "blue";
   const Icon = isBlue ? Shield : Swords;
-  return <div className={cx("flex items-center gap-2 rounded-2xl border px-3 py-2", isBlue ? "border-cyan-300/22 bg-cyan-400/[0.075] text-cyan-100" : "border-rose-300/22 bg-rose-500/[0.075] text-rose-100", align === "right" && "justify-end")}>
-    <span className={cx("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border bg-black/25", isBlue ? "border-cyan-200/30" : "border-rose-200/30")}>
+  return <div className={cx("flex items-center gap-2 rounded-2xl border px-3 py-2", isBlue ? "border-blue-500/35 bg-blue-500/[0.08] text-blue-300" : "border-red-500/35 bg-red-500/[0.08] text-red-300", align === "right" && "justify-end")}>
+    <span className={cx("flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border bg-black/25", isBlue ? "border-blue-500/35" : "border-red-500/35")}>
       <Icon className="h-4 w-4" />
     </span>
     <span className="text-xs font-semibold text-white">{isBlue ? t("Côté bleu") : t("Côté rouge")}</span>
@@ -1108,7 +1108,7 @@ function MatchVersusOverview({ match, teamName }) {
             const redRow = byRole(redRows, role);
             const blueGold = blueRow ? statValue(blueRow, "gold") : 0;
             const redGold = redRow ? statValue(redRow, "gold") : 0;
-            const diff = (blueKey === "ALLY" ? blueGold - redGold : redGold - blueGold);
+            const diff = blueGold - redGold;
             const winningEdge = blueGold === redGold ? "·" : blueGold > redGold ? "<" : ">";
             const open = openRole === role;
             return <div key={role} className={cx("rounded-[1.35rem] transition", open && "bg-cyan-400/[0.045] p-1 ring-1 ring-cyan-200/18")}>
@@ -1117,7 +1117,7 @@ function MatchVersusOverview({ match, teamName }) {
                 <div className={cx("flex flex-col items-center justify-center rounded-2xl border px-1.5 py-2 text-center transition", open ? "border-cyan-200/40 bg-cyan-400/14 " : "border-white/10 bg-black/35")}>
                   <RoleIcon role={role} className="h-5 w-5" />
                   <span className="mt-1 text-xs font-semibold text-white">{role}</span>
-                  <span className={cx("nxt5-versus-gold-diff mt-1 rounded-lg px-2 py-1 text-xs font-black", diff >= 0 ? "bg-emerald-400/12 text-emerald-100" : "bg-rose-500/12 text-rose-100")}>{winningEdge} {formatCompactGoldDiff(diff)}</span>
+                  <span className={cx("nxt5-versus-gold-diff mt-1 rounded-lg px-2 py-1 text-xs font-black", diff >= 0 ? "bg-blue-500/12 text-blue-300" : "bg-red-500/12 text-red-400")}>{winningEdge} {formatCompactGoldDiff(diff)}</span>
                   <ChevronDown className={cx("mt-1 h-3.5 w-3.5 text-cyan-100 transition", open && "rotate-180")} />
                 </div>
                 <VersusPlayerMini row={redRow} side={redKey} opponent={blueRow} align="right" />

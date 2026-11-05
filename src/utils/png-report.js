@@ -16,6 +16,10 @@ export const PNG_THEME = Object.freeze({
   green: "#6ee7b7",
   yellow: "#fcd34d",
   red: "#fda4af",
+  sideBlue: "#3b82f6",
+  sideBlueText: "#93c5fd",
+  sideRed: "#ef4444",
+  sideRedText: "#ff5757",
   purple: "#c4b5fd",
   pink: "#e879f9",
 });
