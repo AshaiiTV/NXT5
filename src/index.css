@@ -72,6 +72,10 @@ button,
   --nxt5-accent: #67e8f9;
   --nxt5-accent-2: #c4b5fd;
   --nxt5-danger: #fda4af;
+  --nxt5-side-blue: #3b82f6;
+  --nxt5-side-blue-text: #93c5fd;
+  --nxt5-side-red: #ef4444;
+  --nxt5-side-red-text: #ff5757;
   /* Action ink stays dark independently of the page background. */
   --nxt5-on-accent: #020611;
   --nxt5-font-body: 1rem;

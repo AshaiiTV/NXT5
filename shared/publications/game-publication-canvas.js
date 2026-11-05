@@ -6,7 +6,7 @@ const FONT = '"NXT5 Export", Arial, sans-serif';
 const font = (size, weight = 500) => `${weight} ${size}px ${FONT}`;
 const sideLabel = (side) => side === 'blue' ? 'Côté bleu' : side === 'red' ? 'Côté rouge' : 'Côté inconnu';
 // Map sides independently from the win/loss palette: red side is not a defeat.
-const sideColor = (side) => side === 'blue' ? '#93c5fd' : side === 'red' ? '#fca5a5' : P.muted;
+const sideColor = (side) => side === 'blue' ? P.sideBlueText : side === 'red' ? P.sideRedText : P.muted;
 const colorFor = (value) => value === null || value === 0 ? P.muted : value < 0 ? P.red : P.green;
 const signed = (value) => value === null || value === undefined ? '—' : `${value > 0 ? '+' : ''}${pngNumber(value)}`;
 const SPELL_NAMES = { 1: 'Purge', 3: 'Fatigue', 4: 'Saut éclair', 6: 'Fantôme', 7: 'Soin', 11: 'Châtiment', 12: 'Téléportation', 13: 'Clarté', 14: 'Embrasement', 21: 'Barrière', 32: 'Marquage' };

@@ -87,6 +87,8 @@ export function tone(t) {
     yellow: "border-amber-200/40 bg-amber-300/14 text-amber-50 shadow-amber-400/18",
     red: "border-rose-200/35 bg-rose-400/12 text-rose-50 shadow-rose-400/16",
     blue: "border-sky-200/38 bg-sky-400/14 text-sky-50 shadow-sky-400/18",
+    "side-blue": "border-blue-500/55 bg-blue-500/14 text-blue-300",
+    "side-red": "border-red-500/55 bg-red-500/14 text-red-300",
   }[t || "slate"];
 }
 

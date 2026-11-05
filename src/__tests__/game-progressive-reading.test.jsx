@@ -377,13 +377,12 @@ describe("progressive game reading", () => {
       expect(middle.findByProps({ "data-metric": metric }).props["data-tone"]).toBe("missing");
     }
     const damage = middle.findByProps({ "data-metric": "damage" });
-    expect(text(damage.findByProps({ className: "mhh-values" }).children[0])).toBe("Notre équipe : 0");
+    expect(text(damage.findByProps({ className: "mhh-metric-pair" }).children[0])).toBe("0");
     expect(text(middle.findAllByProps({ "data-player-stat": "kda" })[0])).toContain("—/0/—");
-    act(() => middle.findByProps({ "aria-label": "Repères du rôle MID" }).props.onClick({ currentTarget: { focus: vi.fn() } }));
-    const dialog = comparison.findByType("dialog");
-    expect(dialog.findByProps({ "data-metric": "cs10" }).children.map(visibleText)).toEqual(["—", "CS à 10 min", "—"]);
-    expect(dialog.findAllByType("img")).toHaveLength(0);
-    expect(dialog.findAllByProps({ "data-metric": "damage" })).toHaveLength(0);
+    act(() => middle.findByProps({ "aria-label": "Repères du rôle MID" }).props.onClick());
+    const details = comparison.findByProps({ className: "mhh-details" });
+    expect(details.findByProps({ "data-metric": "cs10" }).children.map(visibleText)).toEqual(["—", "CS à 10 min", "—"]);
+    expect(details.findAllByProps({ "data-metric": "damage" })).toHaveLength(0);
     expect(text(comparison)).toContain("Un tiret indique une donnée indisponible.");
   });
 

@@ -1,4 +1,8 @@
 {
+  "Cinq postes, deux équipes. Ouvrez les détails de chaque poste.": "Five roles, two teams. Open each role for details.",
+  "Détails du poste {0}": "Details for {0}",
+  "Totaux d’équipe": "Team totals",
+  "Les valeurs se lisent bleu puis rouge ; la flèche indique le côté devant.": "Values are shown blue then red; the arrow points to the leading side.",
   "La connexion est temporairement indisponible. Réessaie dans quelques instants.": "The connection is temporarily unavailable. Try again in a few moments.",
   "Service temporairement indisponible. Reessaie quand le site est pret.": "Service temporarily unavailable. Try again when the site is ready.",
   "Erreur {0}.": "Error {0}.",

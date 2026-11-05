@@ -10,6 +10,8 @@
 .nxt5-badge[data-tone="yellow"] { border-color: rgb(252 211 77 / .32); background: rgb(252 211 77 / .08); color: #fde68a; }
 .nxt5-badge[data-tone="cyan"] { border-color: rgb(103 232 249 / .3); background: rgb(103 232 249 / .08); color: #a5f3fc; }
 .nxt5-badge[data-tone="blue"] { border-color: rgb(125 211 252 / .3); background: rgb(56 189 248 / .1); color: #bae6fd; }
+.nxt5-badge[data-tone="side-blue"] { border-color: rgb(59 130 246 / .55); background: rgb(59 130 246 / .14); color: var(--nxt5-side-blue-text); }
+.nxt5-badge[data-tone="side-red"] { border-color: rgb(239 68 68 / .55); background: rgb(239 68 68 / .14); color: var(--nxt5-side-red-text); }
 .nxt5-badge[data-tone="purple"] { border-color: rgb(196 181 253 / .3); background: rgb(167 139 250 / .1); color: #ddd6fe; }
 .nxt5-badge:is([data-tone="pink"], [data-tone="orange"]) { border-color: rgb(240 171 252 / .3); background: rgb(232 121 249 / .08); color: #f5d0fe; }
 

@@ -1827,7 +1827,7 @@
   font-size: 12px;
   white-space: nowrap;
 }
-.ps-side-label i { width: 5px; height: 5px; background: #67e8f9; transform: rotate(45deg); }
+.ps-side-label i { width: 5px; height: 5px; background: var(--nxt5-side-blue); transform: rotate(45deg); }
 .ps-draft .ps-draft-roster { margin-top: 25px; gap: 9px; }
 .ps-draft .ps-draft-roster button {
   min-height: clamp(185px, 17vw, 245px);

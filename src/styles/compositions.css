@@ -98,8 +98,8 @@ html.nxt5-low-gpu .nxt5-compositions-page :is(.nxt5-composition-editor, .nxt5-co
 .nxt5-composition-sides > div { display: flex; gap: .5rem; }
 .nxt5-composition-sides button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 50px; padding: .625rem 1rem; border: 1px solid var(--nxt5-border); background: transparent; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); font-weight: 600; }
 .nxt5-composition-sides button > span { width: .5rem; height: .5rem; flex: 0 0 .5rem; border-radius: 50%; background: var(--side-color); }
-.nxt5-composition-sides .is-blue { --side-color: #7dd3fc; }
-.nxt5-composition-sides .is-red { --side-color: #fda4af; }
+.nxt5-composition-sides .is-blue { --side-color: var(--nxt5-side-blue-text); }
+.nxt5-composition-sides .is-red { --side-color: var(--nxt5-side-red-text); }
 .nxt5-composition-sides button:hover { background: var(--nxt5-surface-soft); }
 .nxt5-composition-sides button[aria-pressed="true"] { color: var(--side-color); border-color: var(--side-color); background: var(--nxt5-surface-soft); box-shadow: inset 0 -2px var(--side-color); }
 .nxt5-composition-editor-slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; margin-top: 1.5rem; }
