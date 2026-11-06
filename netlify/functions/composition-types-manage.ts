@@ -4,27 +4,34 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { ensureAuditLogsSchema, ensureCompositionTypesSchema } from './_lib/schema';
 import { cleanText } from './_lib/text';
+import { knownChampionId } from '../../shared/champion-catalog.js';
 
 const SLOT_ROLES = ['TOP', 'JGL', 'MID', 'ADC', 'SUP'];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function invalidSlots(): never {
   throw Object.assign(new Error('Les emplacements de la composition sont invalides.'), { status: 400 });
 }
-function normalizeSlots(value: unknown): Record<string, { playerId: string; poolId: string }> {
+function normalizeSlots(value: unknown): Record<string, { playerId: string; poolId: string; champion?: string }> {
   if (value === undefined) return {};
   if (!value || typeof value !== 'object' || Array.isArray(value)) invalidSlots();
   return Object.fromEntries(Object.entries(value).map(([role, slot]) => {
     if (!SLOT_ROLES.includes(role)) invalidSlots();
     if (slot === null) return [role, { playerId: '', poolId: '' }];
     if (!slot || typeof slot !== 'object' || Array.isArray(slot)
-      || Object.keys(slot).some(key => !['playerId', 'poolId'].includes(key))) invalidSlots();
+      || Object.keys(slot).some(key => !['playerId', 'poolId', 'champion'].includes(key))) invalidSlots();
     const ids = ['playerId', 'poolId'].map(key => {
       const id = slot[key];
       if (id === undefined || id === '') return '';
       if (typeof id !== 'string' || !UUID.test(id)) invalidSlots();
       return id.toLowerCase();
     });
-    return [role, { playerId: ids[0], poolId: ids[1] }];
+    let champion = '';
+    if (slot.champion !== undefined && slot.champion !== '') {
+      if (typeof slot.champion !== 'string' || slot.champion.length > 80) invalidSlots();
+      champion = knownChampionId(slot.champion);
+      if (!champion || ids[1]) invalidSlots();
+    }
+    return [role, { playerId: ids[0], poolId: ids[1], ...(champion ? { champion } : {}) }];
   }));
 }
 
@@ -93,7 +100,8 @@ export default async function handler(request: Request, context: Context): Promi
       const results = await sql.transaction(tx => [
         ...lockedTeamQueries(tx),
         tx`with valid_slots as (
-          select coalesce(jsonb_object_agg(slot.key, jsonb_build_object('playerId', coalesce(p.id::text, ''), 'poolId', coalesce(cp.id::text, ''))), '{}'::jsonb) as slots
+          select coalesce(jsonb_object_agg(slot.key, jsonb_build_object('playerId', coalesce(p.id::text, ''), 'poolId', coalesce(cp.id::text, ''))
+            || case when slot.value ? 'champion' then jsonb_build_object('champion', slot.value->>'champion') else '{}'::jsonb end), '{}'::jsonb) as slots
           from jsonb_each(${JSON.stringify(slots)}::jsonb) slot
           left join players p on p.id = nullif(slot.value->>'playerId', '')::uuid and p.team_id = ${teamId}
           left join champion_pool cp on cp.id = nullif(slot.value->>'poolId', '')::uuid and cp.team_id = ${teamId}
@@ -123,7 +131,8 @@ export default async function handler(request: Request, context: Context): Promi
     const results = await sql.transaction(tx => [
       ...lockedTeamQueries(tx),
       tx`with valid_slots as (
-        select coalesce(jsonb_object_agg(slot.key, jsonb_build_object('playerId', coalesce(p.id::text, ''), 'poolId', coalesce(cp.id::text, ''))), '{}'::jsonb) as slots
+        select coalesce(jsonb_object_agg(slot.key, jsonb_build_object('playerId', coalesce(p.id::text, ''), 'poolId', coalesce(cp.id::text, ''))
+          || case when slot.value ? 'champion' then jsonb_build_object('champion', slot.value->>'champion') else '{}'::jsonb end), '{}'::jsonb) as slots
         from jsonb_each(${JSON.stringify(slots)}::jsonb) slot
         left join players p on p.id = nullif(slot.value->>'playerId', '')::uuid and p.team_id = ${teamId}
         left join champion_pool cp on cp.id = nullif(slot.value->>'poolId', '')::uuid and cp.team_id = ${teamId}
