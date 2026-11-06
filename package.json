@@ -22,27 +22,27 @@
   },
   "dependencies": {
     "@fontsource/inter": "5.3.0",
-    "@napi-rs/canvas": "1.0.13",
+    "@napi-rs/canvas": "1.1.0",
     "@neondatabase/serverless": "^1.2.0",
     "@netlify/blobs": "11.1.7",
     "@netlify/functions": "^6.0.3",
-    "argon2": "^0.45.1",
+    "argon2": "^0.45.2",
     "bcryptjs": "^3.0.3",
     "gsap": "3.15.0",
-    "jose": "6.2.13",
-    "openai": "^7.45.1",
-    "three": "0.186.1"
+    "jose": "6.2.15",
+    "openai": "^7.47.0",
+    "three": "0.187.0"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.5.13",
-    "@tailwindcss/postcss": "4.3.3",
+    "@electric-sql/pglite": "0.5.15",
+    "@tailwindcss/postcss": "4.3.4",
     "@types/node": "^26.6.6",
     "@typescript/typescript6": "6.0.2",
-    "@vitejs/plugin-react": "6.1.2",
+    "@vitejs/plugin-react": "6.2.1",
     "esbuild": "0.28.2",
-    "lucide-react": "^1.63.0",
+    "lucide-react": "^1.67.0",
     "pg": "8.23.1",
-    "playwright": "1.62.1",
+    "playwright": "1.64.1",
     "postcss": "^8.5.32",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
@@ -50,7 +50,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2",
     "vite": "8.3.5",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   },
   "overrides": {
     "source-map-js": "1.2.2"
