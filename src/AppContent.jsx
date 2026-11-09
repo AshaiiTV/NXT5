@@ -47,12 +47,24 @@ function requiresCompleteHistory(page, route) {
     || params.get("import") === "1" || Boolean(view && view !== "games");
 }
 
-function HistoryLoadingState({ error, loading, onRetry }) {
+function HistoryLoadingState({ error, loading, progress, onRetry }) {
+  const total = Number(progress?.total);
+  const determinate = !error && Number.isFinite(total) && total > 0 && Number.isFinite(Number(progress?.loaded));
+  const loaded = determinate ? Math.max(0, Math.min(total, Number(progress.loaded))) : 0;
+  const received = determinate ? t("{0} parties reçues sur {1}", [loaded, total]) : "";
   return <Surface className="p-5 sm:p-6">
     <div role={error ? "alert" : "status"} aria-live="polite" aria-busy={loading}>
       <p className="text-base font-semibold text-white">{t(error ? "L’historique complet n’a pas pu être chargé." : "Chargement de toutes les games…")}</p>
-      {error ? <Button type="button" variant="ghost" icon={RefreshCw} onClick={onRetry} disabled={loading} className="mt-4">{t("Réessayer")}</Button> : <div className="mt-4"><SkeletonRows count={4} /></div>}
+      {error && <Button type="button" variant="ghost" icon={RefreshCw} onClick={onRetry} disabled={loading} className="mt-4">{t("Réessayer")}</Button>}
     </div>
+    {/* Counts change with every page: exposed by the progress bar, not announced live. */}
+    {determinate && <div className="nxt5-history-progress">
+      <p aria-hidden="true">{received}</p>
+      <div role="progressbar" aria-label={t("Chargement des parties")} aria-valuemin={0} aria-valuemax={total} aria-valuenow={loaded} aria-valuetext={received}>
+        <span style={{ transform: `scaleX(${loaded / total})` }} />
+      </div>
+    </div>}
+    {!error && <div className="mt-4"><SkeletonRows count={4} /></div>}
   </Surface>;
 }
 
@@ -305,11 +317,24 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
     onError: (error) => pushToast({ type: "red", title: "Enregistrement impossible", text: error.message }),
   }));
   useEffect(() => { planningStore.resume(); return () => planningStore.pause(); }, [planningStore]);
-  const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll, ensureHistory, loadNextPage, historyLoading, historyError } = useTeamData(planningStore, route.search, { requireHistory: requiresHistory });
+  const { data, setData, selectedTeamId, setSelectedTeamId, loading, loadingProgress, bootstrapped, bootstrapReady, apiError, refreshAll, ensureHistory, loadNextPage, historyLoading, historyError } = useTeamData(planningStore, route.search, { requireHistory: requiresHistory, prefetchHistory: true });
   const teamCreation = useTeamCreation({ setSelectedTeamId, refreshAll, pushToast });
   const independentAccountPage = active === "account-settings";
   const waitingForBootstrap = !independentAccountPage && !bootstrapReady && (!bootstrapped || loading);
-  useAppLoading(waitingForBootstrap && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
+  const historyComplete = data.historyComplete !== false && !data.pagination?.hasMore;
+  const waitingForHistory = requiresHistory && !historyComplete;
+  // The shared screen that covered a team's bootstrap stays up while an
+  // analysis route completes its history, with its game count, rather than
+  // handing over to a second loader. Once released, the workspace and its
+  // navigation stay available: later routes load their history in the page.
+  const [sharedScreenCoversHistory, setSharedScreenCoversHistory] = useState(true);
+  const holdingForHistory = sharedScreenCoversHistory && waitingForHistory && bootstrapReady && !historyError && !apiError;
+  const sharedScreen = waitingForBootstrap || holdingForHistory;
+  useEffect(() => {
+    if (waitingForBootstrap) setSharedScreenCoversHistory(true);
+    else if (!holdingForHistory) setSharedScreenCoversHistory(false);
+  }, [waitingForBootstrap, holdingForHistory]);
+  useAppLoading(sharedScreen && isAppPath(route.path) ? "bootstrap" : null, loadingProgress);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantPrompt, setAssistantPrompt] = useState("");
 
@@ -344,8 +369,6 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   const assistantSelectedEntity = assistantEntityForRoute(route, data, currentTeam?.id || selectedTeamId);
   const setupParams = new URLSearchParams(route.search);
   const isTeamSetup = active === "teams" && (["create", "setup", "join"].some(key => setupParams.get(key) === "1") || setupParams.has("invite"));
-  const historyComplete = data.historyComplete !== false && !data.pagination?.hasMore;
-  const waitingForHistory = requiresHistory && !historyComplete;
   useEffect(() => {
     if (!requiresHistory || !bootstrapReady || historyComplete || historyLoading || historyError || data.selectedTeamId !== selectedTeamId) return;
     void ensureHistory?.().catch(() => {});
@@ -372,7 +395,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   const nextStep = onboardingSteps.find(step => !step.done && !step.disabled);
   const showStartReturn = onboardingReady && !onboarding.dismissed && onboardingSteps.some(step => !step.done) && !isTeamSetup && ["teams", "team-management", "matches", "reports", "planning", "profile"].includes(active);
   const helpSection = guideSectionForRoute(route);
-  const currentPage = waitingForHistory ? <HistoryLoadingState error={historyError} loading={historyLoading} onRetry={() => { void ensureHistory?.().catch(() => {}); }} /> : active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} loading={loading} apiError={apiError} /> : page;
+  const currentPage = waitingForHistory ? <HistoryLoadingState error={historyError} loading={historyLoading} progress={loadingProgress} onRetry={() => { void ensureHistory?.().catch(() => {}); }} /> : active === "home" && currentTeam ? <HomeWorkspace data={data} currentTeam={currentTeam} currentMember={currentMember} user={user} steps={onboardingSteps} onboarding={onboarding} navigate={navigate} loading={loading} apiError={apiError} /> : page;
   const guardedPage = currentPage;
   const assistantLauncher = active !== "home" && data.teams.length > 0 && <button type="button" onClick={() => assistantOpen ? setAssistantOpen(false) : openAssistant()} aria-label={assistantOpen ? t("Fermer l'assistant NXT5") : t("Ouvrir l'assistant NXT5")} title={t("Assistant")} aria-haspopup="dialog" aria-expanded={assistantOpen} className={cx("nxt5-assistant-launcher nxt5-chrome-icon-button", assistantOpen && "is-open")}>
       <span aria-hidden="true">{assistantOpen ? <X className="h-5 w-5" /> : <MessageCircleQuestion className="h-5 w-5" />}</span>
@@ -383,7 +406,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   const inactivityReturnModal = user?.email_verified && user?.inactivity_notice
     ? <InactivityReturnModal user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} />
     : null;
-  if (waitingForBootstrap) return null;
+  if (sharedScreen) return null;
   if (!bootstrapReady && !independentAccountPage) return <div className="relative min-h-screen text-white">
     <AmbientBackground />
     <main className="relative z-10 mx-auto max-w-3xl px-4 py-12">

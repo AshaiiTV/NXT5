@@ -112,14 +112,16 @@ describe("on-demand complete history in the workspace", () => {
     expect(requests).toHaveLength(3);
   });
 
-  it.each([["/games?match=a-0", "games"], ["/games?archive=group", "games"], ["/games?import=1", "games"], ["/games?view=groups", "games"], ["/games?view=teams", "games"], ["/draft/adversaires", "games"], ["/rapports", "games"], ["/tendances", "trends"], ["/mon-profil", "profile"], ["/draft/pool", "draft"]])("keeps %s behind the complete-history gate with navigation available", async (path, page) => {
+  it.each([["/games?match=a-0", "games"], ["/games?archive=group", "games"], ["/games?import=1", "games"], ["/games?view=groups", "games"], ["/games?view=teams", "games"], ["/draft/adversaires", "games"], ["/rapports", "games"], ["/tendances", "trends"], ["/mon-profil", "profile"], ["/draft/pool", "draft"]])("keeps a direct link to %s behind the shared loader until its complete history is ready", async (path, page) => {
     await open(path);
     await resolve(0, snapshot());
-    shell();
     expect(renderedPages()).toHaveLength(0);
-    expect(renderer.root.findAllByProps({ role: "status" })).toHaveLength(1);
-    expect(requests).toHaveLength(2);
+    expect(renderer.root.findAllByProps({ "data-history-navigation": true })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ role: "status" })).toHaveLength(0);
+    expect(requests).toHaveLength(3);
     expect(requests[1].url).toContain("matchesOnly=1");
+    expect(requests[1].url).toContain("offset=100");
+    expect(requests[2].url).toContain("offset=200");
     await resolve(1, snapshot({ offset: 100 }));
     expect(renderedPages()).toHaveLength(0);
     await resolve(2, snapshot({ offset: 200 }));
@@ -131,14 +133,19 @@ describe("on-demand complete history in the workspace", () => {
     await open();
     await resolve(0, snapshot());
     await update("/tendances");
-    expect(requests).toHaveLength(2);
+    expect(requests).toHaveLength(3);
     expect(renderedPages()).toHaveLength(0);
+    shell();
+    const progress = () => renderer.root.findByProps({ role: "progressbar" }).props;
+    expect(progress()).toMatchObject({ "aria-valuenow": 100, "aria-valuemax": 201, "aria-valuetext": "100 parties reçues sur 201" });
     await update("/accueil");
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "home", "data-games": 100 });
     await update("/mon-profil");
-    expect(requests).toHaveLength(2);
+    expect(requests).toHaveLength(3);
     expect(renderedPages()).toHaveLength(0);
+    shell();
     await resolve(1, snapshot({ offset: 100 }));
+    expect(progress()).toMatchObject({ "aria-valuenow": 200, "aria-valuemax": 201 });
     await resolve(2, snapshot({ offset: 200 }));
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "profile", "data-games": 201 });
   });
@@ -150,25 +157,29 @@ describe("on-demand complete history in the workspace", () => {
     shell();
     expect(renderedPages()).toHaveLength(0);
     expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
-    expect(requests).toHaveLength(2);
+    expect(renderer.root.findAllByProps({ role: "progressbar" })).toHaveLength(0);
+    expect(requests).toHaveLength(3);
     const retry = renderer.root.findAllByType("button").find((button) => button.children.includes("Réessayer"));
     await act(async () => { void retry.props.onClick(); });
-    expect(requests).toHaveLength(3);
-    expect(requests[2].url).toContain("offset=0");
-    await resolve(2, snapshot({ total: 1 }));
+    expect(requests).toHaveLength(4);
+    expect(requests[3].url).toContain("offset=0");
+    await resolve(3, snapshot({ total: 1 }));
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "trends", "data-games": 1 });
   });
 
   it("does not expose the old team's history after selecting another team", async () => {
-    await open("/tendances");
+    await open();
     await resolve(0, snapshot());
+    await update("/tendances");
+    expect(requests).toHaveLength(3);
     const select = renderer.root.findAllByType("button").find((button) => button.children.includes("Autre équipe"));
     await act(async () => select.props.onClick());
-    expect(requests).toHaveLength(3);
-    expect(requests[2].url).toContain("teamId=b");
+    expect(requests).toHaveLength(4);
+    expect(requests[3].url).toContain("teamId=b");
     await resolve(1, snapshot({ offset: 100 }));
+    await resolve(2, snapshot({ offset: 200 }));
     expect(renderedPages()).toHaveLength(0);
-    await resolve(2, snapshot({ teamId: "b", total: 1 }));
+    await resolve(3, snapshot({ teamId: "b", total: 1 }));
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "trends", "data-games": 1, "data-team": "b" });
   });
 });
