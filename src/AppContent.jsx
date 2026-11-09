@@ -369,8 +369,10 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   const assistantSelectedEntity = assistantEntityForRoute(route, data, currentTeam?.id || selectedTeamId);
   const setupParams = new URLSearchParams(route.search);
   const isTeamSetup = active === "teams" && (["create", "setup", "join"].some(key => setupParams.get(key) === "1") || setupParams.has("invite"));
+  // Also while history is loading: the route joins a background completion so
+  // its failure is shown here instead of being retried silently.
   useEffect(() => {
-    if (!requiresHistory || !bootstrapReady || historyComplete || historyLoading || historyError || data.selectedTeamId !== selectedTeamId) return;
+    if (!requiresHistory || !bootstrapReady || historyComplete || historyError || data.selectedTeamId !== selectedTeamId) return;
     void ensureHistory?.().catch(() => {});
   }, [requiresHistory, bootstrapReady, historyComplete, historyLoading, historyError, data.selectedTeamId, selectedTeamId, ensureHistory]);
 

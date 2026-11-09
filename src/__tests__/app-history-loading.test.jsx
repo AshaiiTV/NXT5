@@ -167,6 +167,25 @@ describe("on-demand complete history in the workspace", () => {
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "trends", "data-games": 1 });
   });
 
+  it("shows the failure of a background completion once an analysis route waits for it", async () => {
+    vi.useFakeTimers();
+    try {
+      await open();
+      await resolve(0, snapshot());
+      await act(async () => { vi.advanceTimersByTime(1500); });
+      expect(requests).toHaveLength(3);
+      expect(requests[1].url).toContain("offset=100");
+      await update("/tendances");
+      expect(requests).toHaveLength(3);
+      await act(async () => requests[1].reject(new Error("Réseau indisponible")));
+      expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
+      expect(renderedPages()).toHaveLength(0);
+      expect(requests).toHaveLength(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it("does not expose the old team's history after selecting another team", async () => {
     await open();
     await resolve(0, snapshot());
