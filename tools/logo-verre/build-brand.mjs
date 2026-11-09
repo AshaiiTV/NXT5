@@ -6,7 +6,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { logo, logoMono, symbol, icon, iconSquare, favicon, favicon5, iconMono } from "./brand.mjs";
+import { logo, logoMono, symbol, icon, iconSquare, favicon, iconMono } from "./brand.mjs";
+import { glassFaviconPng, GLASS_FIVE_SOURCE } from "./glass-favicon.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const pub = (p) => path.join(root, "public", p);
@@ -89,18 +90,14 @@ const iconPng = await raster(icon(), 512);
 await write("assets/brand/nxt5-icone-512.png", iconPng);
 await write("assets/brand/nxt5-icone-256.webp", await webp(iconPng, 256));
 
-// Favicons : le 5 violet seul, dessiné pour chaque taille ; SVG net à toute résolution.
-const fav16 = await raster(favicon5(16), 16);
-const fav32 = await raster(favicon5(32), 32);
-const fav48 = await raster(favicon5(48), 48);
+// Favicons : le 5 en verre de l’accueil, rendu par sa scène Three.js (render-glass-five.mjs).
+const fav16 = await glassFaviconPng(16);
+const fav32 = await glassFaviconPng(32);
+const fav48 = await glassFaviconPng(48);
 await write("favicon-16x16.png", fav16);
 await write("favicon-32x32.png", fav32);
 await write("favicon.ico", ico([{ size: 16, png: fav16 }, { size: 32, png: fav32 }, { size: 48, png: fav48 }]));
-await write("favicon.svg", favicon5(16) + "\n");
-// Rendu 4K du favicon (présentation, hors site).
-const docs4k = path.join(root, "docs/assets/logo-verre-2026-11-09/favicon-5-4096.png");
-await fs.writeFile(docs4k, await raster(favicon5(4096), 4096));
-written.push("../docs/assets/logo-verre-2026-11-09/favicon-5-4096.png");
+console.log(`Source du favicon : ${path.relative(root, GLASS_FIVE_SOURCE)}`);
 await write("apple-touch-icon.png", await raster(iconSquare({ safe: 0.2 }), 180));
 await write("android-chrome-192x192.png", await raster(favicon(), 192));
 await write("android-chrome-512x512.png", await raster(favicon(), 512));

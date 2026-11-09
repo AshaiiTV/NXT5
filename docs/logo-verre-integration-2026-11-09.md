@@ -9,7 +9,7 @@ Après la présentation des [cinq pistes](logo-verre-pistes-2026-11-09.md), l’
 | Logo | NXT en verre dépoli presque blanc, 5 en cristal violet facetté, 1,32 fois plus haut et posé sur la même ligne de base. Pas de halo intégré : la lueur violette vient du CSS. | En-têtes, barre latérale, chargement, pied de page, exports PNG, rendu Discord, image de partage. |
 | Symbole | Le 5 en cristal seul, fond transparent. | Décor des cartes joueur et Wrapped ; le poster 3D de l’accueil reste l’image des grandes scènes. |
 | Icône | Le 5 gravé et éclairé dans une tuile de verre fumé, liseré spectral, tranche cyan → fuchsia. | Icônes d’installation, barre repliée, accueil connecté, emblème d’équipe par défaut, données structurées. |
-| Favicon | Le 5 seul, sans tuile, dégradé lilas `#c4b5fd` vers violet `#7c3aed`. Mêmes proportions que le 5 du logo (barre médiane à 46/130 de la hauteur), redessiné sur la grille des pixels à 16, 32 et 48 px (barres d’épaisseur entière, italique de 12° conservé). | Onglets, favoris, historique. Choisi par l’utilisateur après une première version en tuile jugée trop terne. |
+| Favicon | Le 5 en verre de l’accueil lui-même : rendu par la scène Three.js de `src/pages/home/glass-scene.js` (même contour, extrusion biseautée, verre physique, studio de lumière), pose de repos de l’accueil, fond transparent. À 16, 32 et 48 px : éclaircissement modéré et légère accentuation pour rester lisible sur les onglets sombres. | Onglets, favoris, historique. Choisi par l’utilisateur après deux versions vectorielles jugées trop éloignées du 5 de l’accueil. |
 | Une couleur | Logo et icône en aplat blanc `#f1f5f9` ou nuit `#111827`. | Fonds clairs, impression, broderie. Le logo en verre n’est pas prévu pour un fond clair. |
 
 L’ancien emblème lance, ailes et anneau ainsi que l’ancien wordmark chromé sont retirés du site.
@@ -21,9 +21,9 @@ Tous les fichiers de marque sont générés par `node tools/logo-verre/build-bra
 - SVG maîtres (kit de marque public) : `nxt5-logo.svg`, `nxt5-logo-blanc.svg`, `nxt5-logo-nuit.svg`, `nxt5-symbole.svg`, `nxt5-icone.svg`, `nxt5-icone-blanc.svg`, `nxt5-icone-nuit.svg`.
 - Logo : `nxt5-logo.png` (1 280 × 461), `nxt5-logo-640.webp`, `nxt5-logo-320.webp`.
 - Symbole : `nxt5-symbole-512.png`, `nxt5-symbole-256.webp`. Icône : `nxt5-icone-512.png` (512 × 529, tranche comprise), `nxt5-icone-256.webp`.
-- Racine de `public/` : `favicon.svg` (5 calé sur la grille de 16 px, net à tout zoom), `favicon-16x16.png`, `favicon-32x32.png`, `favicon.ico` (16, 32 et 48 px), `apple-touch-icon.png` (180, plein cadre), `android-chrome-192x192.png`, `android-chrome-512x512.png` et le nouveau `android-chrome-maskable-512x512.png` (5 dans la zone sûre de 80 %).
+- Racine de `public/` : `favicon-16x16.png`, `favicon-32x32.png`, `favicon.ico` (16, 32 et 48 px), tirés du rendu 3D, `apple-touch-icon.png` (180, plein cadre), `android-chrome-192x192.png`, `android-chrome-512x512.png` et le nouveau `android-chrome-maskable-512x512.png` (5 dans la zone sûre de 80 %).
 - `public/og-nxt5.png` : régénérée par `tools/generate-social-card.mjs` avec le nouveau logo et le 5 en verre de l’accueil à la place de l’emblème.
-- Rendu 4K du favicon (4 096 × 4 096, présentation) : `docs/assets/logo-verre-2026-11-09/favicon-5-4096.png`, hors site.
+- Rendu 3D du 5 de l’accueil : `public/assets/brand/nxt5-5-verre-4096.png` (4 096 × 4 096, fond transparent), produit par `node tools/logo-verre/render-glass-five.mjs` à partir de la scène réelle ; le banc relève seulement le plafond de résolution. Il sert de source aux favicons (`tools/logo-verre/glass-favicon.mjs`) et de fichier de marque.
 - Retirés : `public/assets/nxt5-logo*.{png,webp}`, `nxt5-wordmark*.{png,webp}`, `nxt5-loader-favicon*.{png,webp}`. Plus aucune référence dans le code du site.
 
 ## Intégration
@@ -32,7 +32,7 @@ Tous les fichiers de marque sont générés par `node tools/logo-verre/build-bra
 - `AppChrome.jsx` (barre repliée) et `AppContent.jsx` (accueil connecté) utilisent `BrandIcon` ; la signature de `ProductStory.jsx` utilise l’icône.
 - Exports PNG (statistiques globales, profil, analyses, tendances, groupes de parties), rendu des publications dans le navigateur et côté serveur (`netlify/functions/_lib/publication-render.ts`, `included_files` de `netlify.toml`) : nouveau logo PNG. Carte joueur et Wrapped : nouveau logo et symbole en cristal.
 - `src/seo/metadata.js` : logo de l’organisation dans les données structurées = icône 512 px, lisible sur fond blanc.
-- `index.html` : favicon SVG ajouté, versions de cache des favicons incrémentées (`?v=10`, Apple `?v=7`). `public/manifest.webmanifest` : ajout de l’icône `maskable`.
+- `index.html` : versions de cache des favicons incrémentées (`?v=11`, Apple `?v=7`). `public/manifest.webmanifest` : ajout de l’icône `maskable`.
 - `tools/optimize-assets.mjs` : la liste des conversions du logo est retirée, remplacée par le générateur. Guides `docs/seo.md` et `docs/kofi-nxt5.md` mis à jour.
 
 ## Hors périmètre
