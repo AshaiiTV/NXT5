@@ -76,9 +76,11 @@ export function favicon({ simple = false } = {}) {
 // Favicon retenu le 9 novembre 2026 : le 5 violet seul, sans tuile, dégradé lilas vers violet.
 // Aux petites tailles, le 5 est redessiné sur la grille des pixels : barres horizontales
 // d’épaisseur entière et ordonnées entières, italique de 12° conservé sur les fûts.
+// Proportions identiques au 5 du logo (grille 100 × 130) : barre médiane à 46/130 de la hauteur,
+// espace intérieur haut (20) plus petit que l’espace bas (32), chanfreins de 18/100.
 const FAVICON_GRID = {
-  16: { H: 13, t: 3, tv: 3.2 },
-  32: { H: 28, t: 6, tv: 6.4 },
+  16: { H: 14, t: 3, tv: 3.2 },
+  32: { H: 28, t: 6, tv: 6.2 },
   48: { H: 42, t: 8, tv: 8.6 },
 };
 const K12 = Math.tan((12 * Math.PI) / 180);
@@ -88,8 +90,7 @@ export function favicon5Path(S) {
   const { H, t, tv } = g;
   const W = H * (100 / 130);
   const sL = W * 0.14, stemR = sL + tv, bowlL = W - tv, c = W * 0.18;
-  const gap = snap ? Math.floor((H - 3 * t) / 2) : (H - 3 * t) / 2;
-  const m = t + gap;
+  const m = snap ? Math.round((H * 46) / 130) : (H * 46) / 130;
   const pts = [[sL, 0], [W, 0], [W, t], [stemR, t], [stemR, m], [W - c, m], [W, m + c], [W, H - c], [W - c, H], [0, H], [0, H - t], [bowlL, H - t], [bowlL, m + t], [sL, m + t]];
   const x0 = (S - (W + K12 * H)) / 2;
   const y0 = snap ? Math.round((S - H) / 2) : (S - H) / 2;

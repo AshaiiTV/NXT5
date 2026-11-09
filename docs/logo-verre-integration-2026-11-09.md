@@ -9,7 +9,7 @@ Après la présentation des [cinq pistes](logo-verre-pistes-2026-11-09.md), l’
 | Logo | NXT en verre dépoli presque blanc, 5 en cristal violet facetté, 1,32 fois plus haut et posé sur la même ligne de base. Pas de halo intégré : la lueur violette vient du CSS. | En-têtes, barre latérale, chargement, pied de page, exports PNG, rendu Discord, image de partage. |
 | Symbole | Le 5 en cristal seul, fond transparent. | Décor des cartes joueur et Wrapped ; le poster 3D de l’accueil reste l’image des grandes scènes. |
 | Icône | Le 5 gravé et éclairé dans une tuile de verre fumé, liseré spectral, tranche cyan → fuchsia. | Icônes d’installation, barre repliée, accueil connecté, emblème d’équipe par défaut, données structurées. |
-| Favicon | Le 5 seul, sans tuile, dégradé lilas `#c4b5fd` vers violet `#7c3aed`. Redessiné sur la grille des pixels à 16, 32 et 48 px (barres d’épaisseur entière, italique de 12° conservé). | Onglets, favoris, historique. Choisi par l’utilisateur après une première version en tuile jugée trop terne. |
+| Favicon | Le 5 seul, sans tuile, dégradé lilas `#c4b5fd` vers violet `#7c3aed`. Mêmes proportions que le 5 du logo (barre médiane à 46/130 de la hauteur), redessiné sur la grille des pixels à 16, 32 et 48 px (barres d’épaisseur entière, italique de 12° conservé). | Onglets, favoris, historique. Choisi par l’utilisateur après une première version en tuile jugée trop terne. |
 | Une couleur | Logo et icône en aplat blanc `#f1f5f9` ou nuit `#111827`. | Fonds clairs, impression, broderie. Le logo en verre n’est pas prévu pour un fond clair. |
 
 L’ancien emblème lance, ailes et anneau ainsi que l’ancien wordmark chromé sont retirés du site.
