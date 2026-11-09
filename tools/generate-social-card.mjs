@@ -3,7 +3,8 @@
  * Usage: node tools/generate-social-card.mjs
  *
  * Brand reference: the single NXT5 charter linked by this checkout's AGENTS.md.
- * Do not substitute the retired, incomplete nxt5-mark assets for the emblem.
+ * Emblem: the Monolithe glass tile (public/assets/brand/nxt5-emblem.svg) rasterised by
+ * tools/generate-brand-assets.mjs; wordmark: the Sculpture lockup from the same source.
  */
 import { writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -81,25 +82,15 @@ text('Prépare ton équipe.', 64, 328, 64, 700, headlineGradient, 748);
 text('L’espace de travail des équipes et coachs', 64, 407, 28, 400, PNG_THEME.muted, 730);
 text('League of Legends.', 64, 449, 28, 500, PNG_THEME.text, 730);
 
-// The complete emblem floats within the same glass material as the product.
-pngPanel(context, 832, 180, 304, 300, { radius: 32 });
+// The Monolithe emblem is itself a glass tile: draw it directly, with the product's violet halo.
 context.save();
-context.beginPath();
-context.roundRect(832, 180, 304, 300, 32);
-context.clip();
-const reflection = context.createLinearGradient(960, 180, 1050, 480);
-reflection.addColorStop(0, 'rgba(196,181,253,.26)');
-reflection.addColorStop(1, 'rgba(139,92,246,0)');
-context.fillStyle = reflection;
-context.beginPath();
-context.moveTo(1030, 180);
-context.lineTo(1120, 180);
-context.lineTo(935, 480);
-context.lineTo(890, 480);
-context.closePath();
-context.fill();
+const halo = context.createRadialGradient(984, 340, 20, 984, 340, 230);
+halo.addColorStop(0, 'rgba(139,92,246,.34)');
+halo.addColorStop(1, 'rgba(139,92,246,0)');
+context.fillStyle = halo;
+context.fillRect(754, 110, 460, 460);
 context.restore();
-pngImageContain(context, emblem, 862, 210, 244, 240);
+pngImageContain(context, emblem, 834, 180, 300, 300);
 
 context.fillStyle = 'rgba(154, 182, 218, 0.18)';
 context.fillRect(64, 526, 1072, 1);

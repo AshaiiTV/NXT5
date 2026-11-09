@@ -398,7 +398,7 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
       <main className="relative z-10 mx-auto w-full max-w-6xl px-3 py-6 sm:px-4 sm:py-8 lg:px-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <ResponsiveImage src="/assets/nxt5-loader-favicon.png" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14" />
+            <ResponsiveImage src="/assets/nxt5-loader-favicon.png?v=2" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp?v=2" }]} alt="NXT5" width="512" height="512" decoding="async" className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14" />
             <div className="min-w-0"><Nxt5Wordmark className="h-auto w-[8.5rem] max-w-[40vw] object-left" /><p className="mt-1 text-xs font-medium text-slate-400">{t("Ton espace équipe")}</p></div>
           </div>
           <div className="flex flex-wrap gap-2">

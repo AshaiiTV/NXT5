@@ -21,18 +21,18 @@ export function BrandLogo({ compact = false, className = "" }) {
   return (
     <div className={cx("flex items-center gap-3", className)}>
       <ResponsiveImage
-        src="/assets/nxt5-logo.png"
+        src="/assets/nxt5-logo.png?v=2"
         sources={[
-          { srcSet: compact ? "/assets/nxt5-logo-320.webp" : "/assets/nxt5-logo-640.webp" },
+          { srcSet: compact ? "/assets/nxt5-logo-320.webp?v=2" : "/assets/nxt5-logo-640.webp?v=2" },
         ]}
         alt="NXT5"
-        width="1254"
-        height="989"
+        width="1500"
+        height="510"
         loading={compact ? "lazy" : "eager"}
         decoding="async"
         className={cx(
-          "object-contain drop-shadow-[0_0_30px_rgba(34,211,238,.36)]",
-          compact ? "h-12 w-28 object-left" : "h-16 w-auto max-w-[220px] sm:max-w-[300px]"
+          "object-contain drop-shadow-[0_0_28px_rgba(139,92,246,.3)]",
+          compact ? "h-12 w-36 object-left" : "h-16 w-auto max-w-[240px] sm:max-w-[320px]"
         )}
       />
     </div>
@@ -41,7 +41,7 @@ export function BrandLogo({ compact = false, className = "" }) {
 
 export function Nxt5Wordmark({ className = "", sizes, loading = "lazy" }) {
   useLanguage();
-  return <ResponsiveImage src="/assets/nxt5-wordmark.png?v=3" sources={[{ srcSet: "/assets/nxt5-wordmark-640.webp 640w, /assets/nxt5-wordmark-320.webp 320w" }]} alt="NXT5" width="1115" height="350" sizes={sizes} loading={loading} decoding="async" className={cx("object-contain drop-shadow-[0_0_18px_rgba(34,211,238,.30)]", className)} />;
+  return <ResponsiveImage src="/assets/nxt5-wordmark.png?v=4" sources={[{ srcSet: "/assets/nxt5-wordmark-640.webp?v=4 640w, /assets/nxt5-wordmark-320.webp?v=4 320w" }]} alt="NXT5" width="1204" height="350" sizes={sizes} loading={loading} decoding="async" className={cx("object-contain drop-shadow-[0_0_18px_rgba(139,92,246,.28)]", className)} />;
 }
 
 export function TeamAvatar({ team, className = "h-12 w-12" }) {
@@ -49,7 +49,8 @@ export function TeamAvatar({ team, className = "h-12 w-12" }) {
   if (team?.avatar_data_url) {
     return <div className={cx("overflow-hidden rounded-xl border border-cyan-300/25 bg-black/30", className)}><img src={team.avatar_data_url} alt={team.name || t("Team")} className="h-full w-full object-cover" loading="lazy" decoding="async" style={{ transform: "scale(" + Number(team.avatar_zoom || 1) + ")", objectPosition: Number(team.avatar_x ?? 50) + "% " + Number(team.avatar_y ?? 50) + "%" }} /></div>;
   }
-  return <ResponsiveImage src="/assets/nxt5-logo.png" sources={[{ srcSet: "/assets/nxt5-logo-320.webp 320w, /assets/nxt5-logo-640.webp 640w" }]} alt="NXT5" width="1254" height="989" loading="lazy" decoding="async" className={cx("object-contain object-left drop-shadow-[0_0_18px_rgba(34,211,238,.35)]", className)} />;
+  // Sans emblème d’équipe, l’avatar par défaut est l’emblème Monolithe : la tuile de verre porte ses propres angles arrondis.
+  return <ResponsiveImage src="/assets/nxt5-loader-favicon.png?v=2" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp?v=2 256w, /assets/nxt5-loader-favicon-512.webp?v=2 512w" }]} alt="NXT5" width="512" height="512" loading="lazy" decoding="async" className={cx("object-contain object-center drop-shadow-[0_0_14px_rgba(139,92,246,.3)]", className)} />;
 }
 
 export function RoleIcon({ role, className = "h-7 w-7", lightweight = false }) {

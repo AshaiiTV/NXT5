@@ -4,8 +4,8 @@
   "description": "NXT5 réunit les outils de travail de ton équipe League of Legends : analyse de parties, débriefs, préparation de draft et planning d’entraînement.",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#00d8ff",
-  "background_color": "#0a0a0f",
+  "theme_color": "#111827",
+  "background_color": "#111827",
   "icons": [
     {
       "src": "/favicon-32x32.png",

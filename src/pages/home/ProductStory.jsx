@@ -221,7 +221,7 @@ function ChampionArt({ champion, loading = false, className = "" }) {
 
 function SceneSignature({ children }) {
   useLanguage();
-  return <div className="ps-scene-signature"><img src="/assets/nxt5-loader-favicon-256.webp" alt="NXT5" width="28" height="28" />
+  return <div className="ps-scene-signature"><img src="/assets/nxt5-loader-favicon-256.webp?v=2" alt="NXT5" width="28" height="28" />
     <span>{children}</span><span className="ps-example">{t("Exemple fictif")}</span></div>;
 }
 
