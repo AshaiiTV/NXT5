@@ -104,7 +104,6 @@ html.nxt5-low-gpu .nxt5-compositions-page :is(.nxt5-composition-editor, .nxt5-co
 .nxt5-composition-sides button[aria-pressed="true"] { color: var(--side-color); border-color: var(--side-color); background: var(--nxt5-surface-soft); box-shadow: inset 0 -2px var(--side-color); }
 .nxt5-composition-editor-slots { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; margin-top: 1.5rem; }
 .nxt5-composition-slot { display: grid; grid-row: span 3; grid-template-rows: subgrid; gap: .5rem; min-width: 0; padding: .75rem; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-control); background: var(--nxt5-field); transition: border-color 140ms, background-color 140ms; }
-.nxt5-composition-slot.is-active { border-color: var(--nxt5-accent); background: var(--nxt5-spectrum-soft); box-shadow: inset 0 2px var(--nxt5-accent); }
 .nxt5-composition-slot-heading { display: flex; align-items: center; gap: .625rem; min-height: 44px; color: var(--nxt5-text); }
 .nxt5-composition-slot-heading > span { color: var(--nxt5-accent); }
 .nxt5-composition-slot-heading h4 { font-size: var(--nxt5-font-body); font-weight: 650; }
@@ -140,6 +139,8 @@ button.nxt5-composition-selection-preview:hover { border-color: var(--nxt5-accen
   .nxt5-composition-sides > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .nxt5-composition-editor-slots { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 1.25rem; }
   .nxt5-composition-slot { padding: .5rem; }
+  .nxt5-composition-slot-heading { gap: .25rem; }
+  .nxt5-composition-slot-heading h4 { flex-shrink: 0; }
   .nxt5-composition-slot-player { align-self: center; }
   .nxt5-composition-slot-player .nxt5-field-label { margin-bottom: .25rem; }
   .nxt5-composition-selection-preview { min-height: 88px; padding: .5rem; gap: .5rem; }
@@ -167,7 +168,6 @@ button.nxt5-composition-selection-preview:hover { border-color: var(--nxt5-accen
 .nxt5-composition-team-scroll { max-width: 100%; overflow-x: auto; margin-top: .75rem; padding: 3px 3px .5rem; scrollbar-width: thin; scrollbar-color: var(--nxt5-accent-2) var(--nxt5-field); }
 .nxt5-composition-team-pools { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); min-width: 1000px; gap: .5rem; }
 .nxt5-composition-team-role { display: grid; grid-template-rows: subgrid; grid-row: span 5; min-width: 0; padding: .5rem; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-control); }
-.nxt5-composition-team-role.is-active { border-color: var(--nxt5-accent); background: var(--nxt5-spectrum-soft); }
 .nxt5-composition-team-pools[data-tier-count="3"] > .nxt5-composition-team-role { grid-row: span 4; }
 .nxt5-composition-team-pools[data-tier-count="2"] > .nxt5-composition-team-role { grid-row: span 3; }
 .nxt5-composition-team-pools[data-tier-count="1"] > .nxt5-composition-team-role { grid-row: span 2; }
@@ -179,16 +179,25 @@ button.nxt5-composition-selection-preview:hover { border-color: var(--nxt5-accen
 .nxt5-composition-team-tier-heading { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-bottom: .5rem; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); font-variant-numeric: tabular-nums; }
 .nxt5-composition-team-tier-heading > span:first-child > span { width: 24px; height: 24px; border-radius: 6px; }
 .nxt5-composition-team-tier-heading svg { width: 16px; height: 16px; }
+.nxt5-composition-team-tier-name { min-width: 0; margin-right: auto; color: var(--nxt5-text-secondary); font-weight: 600; overflow-wrap: anywhere; }
 .nxt5-composition-bank .nxt5-composition-pick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; align-content: start; }
 .nxt5-composition-bank .nxt5-composition-pick { align-items: center; justify-content: flex-start; gap: .25rem; min-height: 44px; background: var(--nxt5-surface-soft); padding: .25rem; text-align: center; }
 .nxt5-composition-bank .nxt5-composition-pick-portrait { flex: 0 0 32px; width: 32px; height: 32px; border-radius: 4px; }
 .nxt5-composition-bank .nxt5-composition-pick-check { right: 0; bottom: 0; width: 16px; height: 16px; }
 .nxt5-composition-bank .nxt5-composition-pick-check svg { width: 12px; height: 12px; }
-.nxt5-composition-bank .nxt5-composition-pick-name { padding: 0; }
+.nxt5-composition-bank .nxt5-composition-pick-name { min-width: 0; padding: 0; }
 .nxt5-composition-team-empty { padding-block: .5rem; color: var(--nxt5-muted); text-align: center; }
 .nxt5-composition-pick-check { position: absolute; display: grid; place-items: center; inset: auto .25rem .25rem auto; width: 24px; height: 24px; border-radius: 50%; background: var(--nxt5-accent); color: var(--nxt5-on-accent); }
 .nxt5-composition-bank-empty { display: grid; justify-items: start; gap: 1rem; padding: 1.25rem 0; color: var(--nxt5-muted); }
 .nxt5-composition-glossary-toggle { margin-top: 1.5rem; }
+@container compositions (min-width: 1300px) {
+  .nxt5-composition-bank .nxt5-composition-pick { flex-direction: row; gap: .25rem; text-align: left; }
+  .nxt5-composition-bank .nxt5-composition-pick-portrait { flex-basis: 24px; width: 24px; height: 24px; }
+  .nxt5-composition-bank .nxt5-composition-pick-name { flex: 1; }
+}
+@container compositions (min-width: 1500px) {
+  .nxt5-composition-bank .nxt5-composition-pick-portrait { flex-basis: 32px; width: 32px; height: 32px; }
+}
 @container compositions (max-width: 700px) {
   .nxt5-composition-bank { padding: .75rem; }
   .nxt5-composition-bank-heading > .nxt5-field { flex: 1 1 100%; }
