@@ -33,4 +33,9 @@ Aucun parcours, calcul, API ou donnée n’est modifié.
 
 ## Vérifications
 
-Voir la section « Vérifications » complétée en fin de travail dans le message de livraison ; les commandes exécutées sont `npm run verify` (i18n, TypeScript, Vitest, build et prérendu) et `npm run test:layout` (marges, débordements, chevauchements et focus de 320 à 1 920 px).
+- `npm run verify` : i18n (3 910 messages couverts en anglais et espagnol), TypeScript, **240 suites / 4 574 tests** Vitest, build Vite et prérendu SEO des 13 pages (404 réelle, routes privées noindex, sitemap, robots).
+- `npm run test:layout` : 10 contrôles navigateur valides (marges, chevauchements, surcharges, débordements, focus) de 320 à 1 920 px, dans les deux ordres de chargement CSS.
+- Harnais local avec les vrais composants : `BrandLogo`, wordmark de la barre latérale (164 × 58) et du chargement, symbole replié (46 px), `TeamAvatar` sans emblème à 32, 36, 48, 62 et 38 px, avatar personnalisé inchangé, favicons 16/32 et icône Apple. Aucune erreur JavaScript.
+- Pages publiques Accueil, Fonctionnalités et Connexion rendues à 1 280 px : wordmark en en-tête, 5 en verre existant conservé. `git diff --check` propre.
+
+Ces contrôles utilisent des données fictives et le serveur Vite ; ils ne certifient pas le rendu des exports PNG en production. Les captures restent dans le dossier de travail de la session, hors dépôt.
