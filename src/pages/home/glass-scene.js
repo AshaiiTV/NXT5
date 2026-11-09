@@ -54,7 +54,7 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
   signal?.addEventListener?.("abort", abort, { once: true });
 
   try {
-    const THREE = await Promise.race([import("three"), cancelled]);
+    const THREE = await Promise.race([import("./glass-three.js"), cancelled]);
     if (disposed || !THREE) return idleController;
     const ownGeometry = (geometry) => {
       geometries.add(geometry);
