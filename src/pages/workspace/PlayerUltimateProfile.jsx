@@ -108,7 +108,7 @@ async function renderPlayerProfilePng({ player, rows = [], category = "Toutes le
   const { canvas, ctx } = pngCreateCanvas(W, H);
   const fit = (text, x, y, maxWidth, options = {}) => pngFitText(ctx, text, x, y, maxWidth, { font: "500 22px Inter, Arial, sans-serif", min: 20, ...options });
   const images = new Map();
-  const logoPromise = pngLoadImage("/assets/nxt5-wordmark.png");
+  const logoPromise = pngLoadImage("/assets/brand/nxt5-logo-3d.png");
   const roleAsset = { TOP: "top", JGL: "jungle", MID: "middle", ADC: "bottom", SUP: "utility" }[normalizeProfileRole(player?.role)];
   const roleImagePromise = roleAsset ? pngLoadImage(`/assets/roles/position-${roleAsset}.svg`) : null;
   await Promise.all(champions.map(async (stat) => {

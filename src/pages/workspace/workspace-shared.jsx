@@ -168,7 +168,7 @@ async function renderChampionTierListPng({ player, rows = [], rowsByTier, catego
   const { canvas, ctx } = pngCreateCanvas(W, H);
   const fit = (text, x, y, maxWidth, options = {}) => pngFitText(ctx, text, x, y, maxWidth, { font: "500 22px Inter, Arial, sans-serif", min: 20, ...options });
   const images = new Map();
-  const logoPromise = pngLoadImage("/assets/nxt5-wordmark.png");
+  const logoPromise = pngLoadImage("/assets/brand/nxt5-logo-3d.png");
   await Promise.all(entries.map(async ({ row }) => {
     const sources = championPortraitSources(row, row?.champion);
     let portrait = null;

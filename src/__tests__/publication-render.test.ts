@@ -56,7 +56,7 @@ describe('single game publication PNG for downloads and Discord', () => {
     const snapshot = buildGamePublicationSnapshot(publicationFixture({ side }));
     const server = await renderGamePublicationPng(snapshot);
     const browser = await renderGamePublicationCanvas(snapshot, {
-      createCanvas, loadLogo: () => loadImage('public/assets/nxt5-wordmark.png'),
+      createCanvas, loadLogo: () => loadImage('public/assets/brand/nxt5-logo-3d.png'),
       loadAssets: data => loadGamePublicationAssets(data, async () => icon, { loadObjectiveImage: url => loadImage(`public${url}`) }),
     });
     expect([server.width, server.height]).toEqual([browser.width, browser.height]);

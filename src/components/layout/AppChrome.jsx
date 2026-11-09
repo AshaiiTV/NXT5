@@ -5,7 +5,7 @@ import { Activity, ArrowRight, AlertTriangle, BookOpen, CalendarDays, Check, Che
 import { MORE_NAV_IDS, NAV, PRIMARY_NAV_IDS } from "../../app/constants.jsx";
 import { draftViewFromPath, draftViewLabel, pathFromPage, profileViewFromPath, profileViewLabel } from "../../app/routing.js";
 import { cx, profileStatusLabel } from "../../app/helpers.js";
-import { Nxt5Wordmark, ResponsiveImage, RoleIcon, TeamAvatar } from "../brand/BrandAssets.jsx";
+import { BrandIcon, Nxt5Wordmark, RoleIcon, TeamAvatar } from "../brand/BrandAssets.jsx";
 import { Button, Surface } from "../ui/Core.jsx";
 import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 import "./app-chrome.css";
@@ -127,7 +127,7 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
     <aside ref={sidebarRef} id="nxt5-sidebar" className={cx("nxt5-sidebar", collapsed && "is-collapsed", open && "is-open")} role={!isDesktop && open ? "dialog" : undefined} aria-modal={!isDesktop && open ? true : undefined} aria-label={t("Navigation NXT5")} aria-hidden={!isDesktop && !open ? true : undefined}>
       <div className="nxt5-sidebar-brand">
         <div className="nxt5-sidebar-wordmark"><Nxt5Wordmark className="nxt5-sidebar-wordmark-image" /></div>
-        <div className="nxt5-sidebar-symbol"><ResponsiveImage src="/assets/nxt5-loader-favicon.png" sources={[{ srcSet: "/assets/nxt5-loader-favicon-256.webp" }]} alt="NXT5" width="512" height="512" className="nxt5-sidebar-symbol-image" /></div>
+        <div className="nxt5-sidebar-symbol"><BrandIcon className="nxt5-sidebar-symbol-image" /></div>
         <button ref={closeRef} type="button" aria-label={t("Fermer le menu")} onClick={() => setOpen(false)} className="nxt5-chrome-icon-button nxt5-sidebar-close"><X size={20} aria-hidden="true" /></button>
       </div>
       <nav className="nxt5-sidebar-navigation" aria-label={t("Espace équipe")}>

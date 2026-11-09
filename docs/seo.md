@@ -6,7 +6,7 @@ Ce chantier prépare une présentation plus précise pour les équipes et coachs
 
 L’accueil garde son accroche et explique le rôle de NXT5 dans le travail d’une équipe. `/fonctionnalites` détaille l’analyse, les débriefs, la préparation des champions, le planning et le partage Discord. Ces descriptions correspondent aux capacités de cette version ; elles n’annoncent ni clients professionnels, ni bénéfices sportifs mesurés, ni offre commerciale activée.
 
-La [charte unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) reste la référence. Ne pas en créer de copie. La carte `public/og-nxt5.png` utilise le wordmark officiel, l’emblème complet et Inter locale. Pour la régénérer :
+La [charte unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) reste la référence. Ne pas en créer de copie. La carte `public/og-nxt5.png` utilise le logo en verre (`public/assets/brand/nxt5-logo-3d.png`), le 5 en verre de l’accueil et Inter locale. Les favicons, icônes d’installation et le logo des données structurées viennent de `node tools/logo-verre/build-brand.mjs`. Pour régénérer la carte :
 
 ```sh
 node tools/generate-social-card.mjs

@@ -22,7 +22,7 @@ Merci pour ton soutien à NXT5 ! Ta contribution encourage le projet et la suite
 
 **Site :** https://nxt5.org
 
-**Avatar :** `public/assets/nxt5-loader-favicon.png`, carré 512 × 512 avec les trois branches du trident vérifiées. Le logo complet `public/assets/nxt5-logo.png` reste disponible pour une illustration plus large. Ne pas employer les anciens assets `nxt5-mark` du site.
+**Avatar :** `public/android-chrome-maskable-512x512.png`, carré 512 × 512 plein cadre dont le 5 reste dans un cercle de 80 %, adapté aux avatars ronds. Le logo horizontal `public/assets/brand/nxt5-logo-3d.png` sert aux illustrations plus larges. L’ancien emblème lance et ailes est retiré depuis le 9 novembre 2026 : le changement d’avatar sur Ko-fi reste à faire manuellement.
 
 ## Réglages enregistrés et vérifiés
 
