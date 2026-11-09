@@ -60,6 +60,19 @@ Le banc `bench:history` mesure séparément l’ouverture après la première pa
 
 Les tests couvrent la pagination manuelle et complète, les données partielles, la déduplication, une analyse demandée pendant une page manuelle, les filtres exhaustifs, les réponses obsolètes, les changements d’équipe, les révocations, le réessai et un enregistrement du planning pendant le chargement. Ils couvrent aussi la limite de trois lots simultanés, l’assemblage de réponses arrivées dans le désordre, l’arrêt des lots voisins après un échec, la complétion en arrière-plan et ses conditions, ainsi que l’écran partagé maintenu puis libéré en cas d’erreur. Les tests SQL comparent exactement les anciennes et nouvelles projections, avec des valeurs nulles et des colonnes supplémentaires.
 
+### Lots parallèles : mesure locale du 9 novembre 2026
+
+Le banc `bench:history` a été rejoué avec le gestionnaire `bootstrap` réel, sur la version précédente puis sur la version parallèle, sur la même machine (Node 22.23, PGlite 0.5.13, une répétition chacune). Les durées comprennent l’ouverture et l’analyse complète demandée.
+
+| Parties | Avant (lots successifs) | Après (3 lots simultanés) |
+| --- | --- | --- |
+| 100 | 208 ms | 166 ms |
+| 500 | 985 ms | 900 ms |
+| 1 000 | 1 917 ms | 1 627 ms |
+| 3 000 | 5 208 ms | 5 444 ms |
+
+Les écarts restent dans le bruit d’une répétition unique. Ce banc exécute les requêtes SQL une à une sur un moteur local, sans réseau : il vérifie l’historique complet, l’ordre et la validation des lots avec les réponses réelles du serveur, et l’absence de régression. Il ne peut pas montrer le gain attendu, qui porte sur les allers-retours réseau. Avec trois lots simultanés, 1 000 parties demandent 3 vagues de requêtes au lieu de 9. Ce gain reste une hypothèse tant qu’il n’est pas mesuré entre navigateur, Netlify et Neon.
+
 Le [retest de capacité du 13 octobre 2026](bench-history/capacity-2026-10-13.md) utilise les handlers réels et un PostgreSQL natif local, avec des données synthétiques et sans accès aux services de production.
 
 Une mesure de capacité doit distinguer le premier affichage et le téléchargement complet, conserver les échecs et les arrivées abandonnées, et indiquer l’infrastructure utilisée. Une faible latence d’ouverture locale ne certifie pas la tenue de 100 000 utilisateurs simultanés en production.
