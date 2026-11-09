@@ -114,7 +114,7 @@ export function getMetadata(path = "/", { noindex = false, title, socialLinks = 
         {
           "@type": "Organization", "@id": `${SITE_ORIGIN}/#organization`, name: "NXT5", url: `${SITE_ORIGIN}/`,
           description: translate("Projet indépendant d’analyse et de préparation pour les équipes League of Legends."),
-          logo: { "@type": "ImageObject", url: `${SITE_ORIGIN}/assets/brand/nxt5-icone-512.png` },
+          logo: { "@type": "ImageObject", url: `${SITE_ORIGIN}/assets/brand/nxt5-icone-3d-512.png` },
           sameAs: socialLinks.map(({ href }) => href),
         },
         {

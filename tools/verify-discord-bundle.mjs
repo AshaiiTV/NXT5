@@ -12,7 +12,7 @@ for (const name of ['discord-publish-background', 'team-discord-publish', 'team-
   const zip = path.join(root, name + '.zip');
   const files = execFileSync('unzip', ['-Z', '-1', zip], { encoding: 'utf8' }).trim().split('\n');
   const native = 'node_modules/@napi-rs/canvas-linux-x64-gnu/skia.linux-x64-gnu.node';
-  for (const required of [native, 'public/assets/brand/nxt5-logo.png', ...['dragon', 'grub', 'herald', 'baron', 'tower'].map(name => `public/assets/objectives/${name}.png`), ...[400,500,600,700].map((weight) => `node_modules/@fontsource/inter/files/inter-latin-${weight}-normal.woff2`)]) {
+  for (const required of [native, 'public/assets/brand/nxt5-logo-3d.png', ...['dragon', 'grub', 'herald', 'baron', 'tower'].map(name => `public/assets/objectives/${name}.png`), ...[400,500,600,700].map((weight) => `node_modules/@fontsource/inter/files/inter-latin-${weight}-normal.woff2`)]) {
     if (!files.includes(required)) throw new Error(`${name} is missing ${required}. Build on Linux, or install the matching optional Linux binary before a local draft deployment.`);
   }
   const binary = execFileSync('unzip', ['-p', zip, native], { maxBuffer: 80 * 1024 * 1024 });

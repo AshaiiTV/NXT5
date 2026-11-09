@@ -27,7 +27,7 @@ for (const weight of [400, 500, 600, 700]) {
 }
 
 const [wordmark, glassFive, atmosphere, ...roles] = await Promise.all([
-  loadImage(localPath('public/assets/brand/nxt5-logo.png')),
+  loadImage(localPath('public/assets/brand/nxt5-logo-3d.png')),
   loadImage(localPath('public/assets/home-motion/glass-poster.webp')),
   loadImage(localPath('public/assets/home-motion/atmosphere.webp')),
   ...['top', 'jungle', 'middle', 'bottom', 'utility'].map(role => loadImage(localPath(`public/assets/roles/position-${role}.svg`))),

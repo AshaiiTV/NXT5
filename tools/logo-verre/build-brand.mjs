@@ -1,4 +1,5 @@
-// Génère la famille du logo NXT5 « verre » : SVG maîtres, PNG, WebP, favicons et ICO.
+// Génère la famille du logo NXT5 : le 5 de l’accueil (rendu 3D) partout, NXT en verre dépoli.
+// Prérequis : public/assets/brand/nxt5-5-verre-4096.png, produit par render-glass-five.mjs.
 // Usage : node tools/logo-verre/build-brand.mjs
 // Navigateur : npx playwright install chromium (ou NXT5_CHROMIUM=/chemin/vers/chromium).
 import fs from "node:fs/promises";
@@ -6,8 +7,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { logo, logoMono, symbol, icon, iconSquare, favicon, iconMono } from "./brand.mjs";
-import { glassFaviconPng, GLASS_FIVE_SOURCE } from "./glass-favicon.mjs";
+import { logo, logoMono, iconMono } from "./brand.mjs";
+import { GLASS_FIVE_SOURCE, glassFiveDataUri, glassSymbolPng, glassFaviconPng, glassIconPng } from "./glass-five.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const pub = (p) => path.join(root, "public", p);
@@ -63,45 +64,46 @@ async function write(rel, data) {
   written.push(rel);
 }
 
-// SVG maîtres (kit de marque public).
-const L = logo();
-const files = {
-  "assets/brand/nxt5-logo.svg": L.svg,
+// Versions une couleur (vectorielles, contour exact du 5 de l’accueil).
+const vectors = {
   "assets/brand/nxt5-logo-blanc.svg": logoMono(WHITE),
   "assets/brand/nxt5-logo-nuit.svg": logoMono(NIGHT),
-  "assets/brand/nxt5-symbole.svg": symbol(),
-  "assets/brand/nxt5-icone.svg": icon(),
   "assets/brand/nxt5-icone-blanc.svg": iconMono(WHITE),
   "assets/brand/nxt5-icone-nuit.svg": iconMono(NIGHT),
 };
-for (const [rel, markup] of Object.entries(files)) await write(rel, markup + "\n");
+for (const [rel, markup] of Object.entries(vectors)) await write(rel, markup + "\n");
+console.log(`Source du 5 : ${path.relative(root, GLASS_FIVE_SOURCE)}`);
 
-// Logo horizontal : PNG maître (exports PNG, rendu serveur) et WebP pour l’interface.
-const logoPng = await raster(L.svg, 1280);
-await write("assets/brand/nxt5-logo.png", logoPng);
-await write("assets/brand/nxt5-logo-640.webp", await webp(logoPng, 640));
-await write("assets/brand/nxt5-logo-320.webp", await webp(logoPng, 320));
+// Logo horizontal : NXT vectoriel + 5 rendu en 3D. PNG maître (exports, rendu serveur) et WebP.
+const L = logo(await glassFiveDataUri(1200));
+const logoPng = await raster(L.svg, 1600);
+await write("assets/brand/nxt5-logo-3d.png", logoPng);
+await write("assets/brand/nxt5-logo-3d-640.webp", await webp(logoPng, 640));
+await write("assets/brand/nxt5-logo-3d-320.webp", await webp(logoPng, 320));
 
-// Symbole et icône.
-const symbolPng = await raster(symbol(), 512);
-await write("assets/brand/nxt5-symbole-512.png", symbolPng);
-await write("assets/brand/nxt5-symbole-256.webp", await webp(symbolPng, 256));
-const iconPng = await raster(icon(), 512);
-await write("assets/brand/nxt5-icone-512.png", iconPng);
-await write("assets/brand/nxt5-icone-256.webp", await webp(iconPng, 256));
+// Symbole : le 5 seul, transparent (carte joueur, Wrapped, kit).
+const symbolPng = await glassSymbolPng(512);
+await write("assets/brand/nxt5-symbole-3d-512.png", symbolPng);
+await write("assets/brand/nxt5-symbole-3d-256.webp", await webp(symbolPng, 256));
 
-// Favicons : le 5 en verre de l’accueil, rendu par sa scène Three.js (render-glass-five.mjs).
+// Icône d’interface : le 5 sur tuile bleu nuit cerclée d’un filet violet.
+const iconPng = await glassIconPng(512, { border: true });
+await write("assets/brand/nxt5-icone-3d-512.png", iconPng);
+await write("assets/brand/nxt5-icone-3d-256.webp", await webp(iconPng, 256));
+
+// Favicons.
 const fav16 = await glassFaviconPng(16);
 const fav32 = await glassFaviconPng(32);
 const fav48 = await glassFaviconPng(48);
 await write("favicon-16x16.png", fav16);
 await write("favicon-32x32.png", fav32);
 await write("favicon.ico", ico([{ size: 16, png: fav16 }, { size: 32, png: fav32 }, { size: 48, png: fav48 }]));
-console.log(`Source du favicon : ${path.relative(root, GLASS_FIVE_SOURCE)}`);
-await write("apple-touch-icon.png", await raster(iconSquare({ safe: 0.2 }), 180));
-await write("android-chrome-192x192.png", await raster(favicon(), 192));
-await write("android-chrome-512x512.png", await raster(favicon(), 512));
-await write("android-chrome-maskable-512x512.png", await raster(iconSquare({ safe: 0.29 }), 512));
+
+// Icônes d’installation : Apple plein cadre (le système arrondit), Android arrondie et « maskable ».
+await write("apple-touch-icon.png", await glassIconPng(180, { radius: 0, fill: 0.7 }));
+await write("android-chrome-192x192.png", await glassIconPng(192));
+await write("android-chrome-512x512.png", await glassIconPng(512));
+await write("android-chrome-maskable-512x512.png", await glassIconPng(512, { radius: 0, fill: 0.56 }));
 
 await browser.close();
 for (const rel of written) {

@@ -16,10 +16,10 @@ export function ResponsiveImage({ src, sources = [], alt, className = "", fetchP
   );
 }
 
-// Logo NXT5 « verre » : NXT en verre dépoli, 5 en cristal violet (outil : tools/logo-verre).
-const LOGO = { src: "/assets/brand/nxt5-logo.png", srcSet: "/assets/brand/nxt5-logo-640.webp 640w, /assets/brand/nxt5-logo-320.webp 320w", width: "1280", height: "461" };
-// Icône : le 5 gravé dans une tuile de verre fumé, pour les petites tailles et l’emblème d’équipe par défaut.
-const ICON = { src: "/assets/brand/nxt5-icone-512.png", srcSet: "/assets/brand/nxt5-icone-256.webp", width: "512", height: "529" };
+// Logo NXT5 : NXT en verre dépoli et le 5 de la page d’accueil, rendu en 3D (outil : tools/logo-verre).
+const LOGO = { src: "/assets/brand/nxt5-logo-3d.png", srcSet: "/assets/brand/nxt5-logo-3d-640.webp 640w, /assets/brand/nxt5-logo-3d-320.webp 320w", width: "1600", height: "573" };
+// Icône : le même 5 sur une tuile bleu nuit, pour les petites tailles et l’emblème d’équipe par défaut.
+const ICON = { src: "/assets/brand/nxt5-icone-3d-512.png", srcSet: "/assets/brand/nxt5-icone-3d-256.webp", width: "512", height: "512" };
 
 export function BrandLogo({ compact = false, className = "" }) {
   useLanguage();

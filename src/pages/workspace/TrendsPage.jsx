@@ -130,7 +130,7 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
   const coverage = (count, games = report.games) => `${pngNumber(count)} / ${pngNumber(games)} games`;
   const signedGold = report.gold.value === null ? "—" : `${report.gold.value > 0 ? "+" : ""}${pngNumber(report.gold.value)}`;
   const imageCache = new Map();
-  const imageUrls = new Set(["/assets/brand/nxt5-logo.png"]);
+  const imageUrls = new Set(["/assets/brand/nxt5-logo-3d.png"]);
   const roleAssets = { TOP: "top", JGL: "jungle", MID: "middle", ADC: "bottom", SUP: "utility" };
   report.roles.forEach(({ role }) => { if (roleAssets[role]) imageUrls.add(`/assets/roles/position-${roleAssets[role]}.svg`); });
   champions.forEach((entry) => championPortraitSources(entry.champion, entry.champion).forEach((url) => imageUrls.add(url)));
@@ -142,7 +142,7 @@ export async function renderTrendsPng({ matches = [], teamName = "Notre équipe"
     title: teamName,
     subtitle: `${categoryName} · ${periodLabel} · ${pngDateRange(matches)}`,
     eyebrow: "Tendances d’équipe",
-    logo: imageCache.get("/assets/brand/nxt5-logo.png"),
+    logo: imageCache.get("/assets/brand/nxt5-logo-3d.png"),
     meta: `${pngNumber(report.games)} games`,
   });
   pngMetricStrip(ctx, { x: margin, y: 200, width: contentWidth, items: [

@@ -21,7 +21,7 @@ export async function renderGamePublicationPng(snapshot, { loadAssets = (data) =
   await prepareFonts();
   const { canvas } = await renderGamePublicationCanvas(snapshot, {
     createCanvas(width, height) { const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; return canvas; },
-    loadLogo: () => pngLoadImage('/assets/brand/nxt5-logo.png'),
+    loadLogo: () => pngLoadImage('/assets/brand/nxt5-logo-3d.png'),
     loadAssets,
   });
   return canvas;
