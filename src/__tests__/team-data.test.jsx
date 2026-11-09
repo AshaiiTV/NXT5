@@ -2,7 +2,7 @@ import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
-import { useTeamData } from "../hooks/useTeamData.js";
+import { BACKGROUND_HISTORY_MAX_GAMES, HISTORY_CONCURRENCY, scheduleHistoryPrefetch, useTeamData } from "../hooks/useTeamData.js";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
 const cleanups = [];
@@ -171,8 +171,9 @@ describe("progressive team history lifecycle in React", () => {
     expect(await next).toBe(true);
     expect(app.state.data.matches).toHaveLength(200);
     expect(app.state.data.historyComplete).toBe(false);
-    expect(app.requests).toHaveLength(3);
+    expect(app.requests).toHaveLength(4);
     expectRequest(app.requests[2], { offset: 200, teamId: "a", matchesOnly: true });
+    expectRequest(app.requests[3], { offset: 300, teamId: "a", matchesOnly: true });
     await app.resolve(2, page("a", history, 200));
     expect(app.state.data.matches).toHaveLength(200);
     await app.resolve(3, page("a", history, 300));
@@ -301,9 +302,10 @@ describe("progressive team history lifecycle in React", () => {
     const history = games("a", 205);
     await app.resolve(0, page("a", history));
     const first = demand(app), second = demand(app);
-    expect(app.requests).toHaveLength(2);
+    expect(app.requests).toHaveLength(3);
     expect(app.state.historyLoading).toBe(true);
     expectRequest(app.requests[1], { offset: 100, teamId: "a", matchesOnly: true });
+    expectRequest(app.requests[2], { offset: 200, teamId: "a", matchesOnly: true });
     await app.resolve(1, page("a", history, 100));
     expect(app.state.data.matches).toHaveLength(100);
     expect(app.state.data.historyComplete).toBe(false);
@@ -371,16 +373,18 @@ describe("progressive team history lifecycle in React", () => {
     const old = games("a", 205), other = games("b", 101);
     await app.resolve(0, page("a", old));
     const obsolete = demand(app);
+    expect(app.requests).toHaveLength(3);
     app.select("b");
     expect(app.requests[1].options.signal.aborted).toBe(true);
+    expect(app.requests[2].options.signal.aborted).toBe(true);
     expect(app.state.bootstrapReady).toBe(false);
-    await app.resolve(2, page("b", other));
+    await app.resolve(3, page("b", other));
     expect(app.state.data.selectedTeamId).toBe("b");
     const done = demand(app);
     await app.resolve(1, page("a", old, 100));
     expect(await obsolete).toHaveProperty("name", "AbortError");
     expect(app.state.data.selectedTeamId).toBe("b");
-    await app.resolve(3, page("b", other, 100));
+    await app.resolve(4, page("b", other, 100));
     expect(await done).toBe(true);
     expect(app.state.data.matches).toEqual(other);
     expect(app.state.historyError).toBe("");
@@ -507,5 +511,229 @@ describe("progressive team history lifecycle in React", () => {
     expect(await demand(app)).toBe(true);
     expect(app.requests).toHaveLength(1);
     expect(app.state.loadingProgress).toEqual({ loaded: 0, total: 0 });
+  });
+});
+
+function backgroundScheduler() {
+  const jobs = [];
+  return {
+    schedule(run) {
+      const job = { run, pending: true };
+      jobs.push(job);
+      return () => { job.pending = false; };
+    },
+    get pending() { return jobs.filter((job) => job.pending); },
+    async run() {
+      const [job] = jobs.filter((candidate) => candidate.pending);
+      expect(job, "a background completion is scheduled").toBeDefined();
+      job.pending = false;
+      await act(async () => job.run());
+    },
+  };
+}
+
+describe("parallel follow-up pages", () => {
+  it("keeps at most three pages in flight and assembles out-of-order answers in server order", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 550);
+    await app.resolve(0, page("a", history));
+    const full = demand(app);
+    expect(HISTORY_CONCURRENCY).toBe(3);
+    expect(app.requests).toHaveLength(4);
+    [100, 200, 300].forEach((offset, index) => expectRequest(app.requests[index + 1], { offset, teamId: "a", matchesOnly: true }));
+    await app.resolve(3, page("a", history, 300));
+    expect(app.requests).toHaveLength(5);
+    expectRequest(app.requests[4], { offset: 400, teamId: "a", matchesOnly: true });
+    expect(app.state.loadingProgress).toEqual({ loaded: 200, total: 550 });
+    await app.resolve(4, page("a", history, 400));
+    expectRequest(app.requests[5], { offset: 500, teamId: "a", matchesOnly: true });
+    await app.resolve(5, page("a", history, 500));
+    await app.resolve(2, page("a", history, 200));
+    expect(app.state.data.historyComplete).toBe(false);
+    expect(app.state.data.matches).toEqual(history.slice(0, 100));
+    await app.resolve(1, page("a", history, 100));
+    expect(await full).toBe(true);
+    expect(app.state.data.matches).toEqual(history);
+    expect(app.state.loadingProgress).toEqual({ loaded: 550, total: 550 });
+    expect(app.requests).toHaveLength(6);
+    expect(app.renders.every((render) => !render.complete || render.matches.length === 550)).toBe(true);
+  });
+
+  it("stops sibling pages after a failure and never requests the remaining offsets", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 450);
+    await app.resolve(0, page("a", history));
+    const full = demand(app);
+    expect(app.requests).toHaveLength(4);
+    await app.reject(2);
+    expect(await full).toBeInstanceOf(Error);
+    expect(app.requests[1].options.signal.aborted).toBe(true);
+    expect(app.requests[3].options.signal.aborted).toBe(true);
+    await app.resolve(1, page("a", history, 100));
+    expect(app.requests).toHaveLength(4);
+    expect(app.state.historyError).toBeTruthy();
+    expect(app.state.data.historyComplete).toBe(false);
+    expect(app.state.data.matches).toEqual(history.slice(0, 100));
+  });
+});
+
+describe("background history completion", () => {
+  it("completes a bounded history when scheduled and keeps it complete through refreshes", async () => {
+    const background = backgroundScheduler();
+    const app = mount("?team=a", { prefetchHistory: background.schedule });
+    const history = games("a", 205);
+    await app.resolve(0, page("a", history));
+    expect(app.requests).toHaveLength(1);
+    expect(background.pending).toHaveLength(1);
+    await background.run();
+    expect(app.requests).toHaveLength(3);
+    expect(app.state.historyLoading).toBe(true);
+    await app.resolve(2, page("a", history, 200));
+    await app.resolve(1, page("a", history, 100));
+    expect(app.state.data.historyComplete).toBe(true);
+    expect(app.state.data.matches).toEqual(history);
+    expect(app.state.historyError).toBe("");
+    expect(background.pending).toHaveLength(0);
+    const next = games("a", 206, "next");
+    let refreshed;
+    act(() => { refreshed = app.state.refreshAll(); });
+    await app.resolve(3, page("a", next));
+    expect(app.state.data.matches).toEqual(history);
+    await app.resolve(4, page("a", next, 100));
+    await app.resolve(5, page("a", next, 200));
+    expect(await refreshed).toBe(true);
+    expect(app.state.data.matches).toEqual(next);
+    expect(background.pending).toHaveLength(0);
+  });
+
+  it("keeps a background failure silent, without retry loops, and retries from a fresh page on demand", async () => {
+    const background = backgroundScheduler();
+    const app = mount("?team=a", { prefetchHistory: background.schedule });
+    const history = games("a", 205), fresh = games("a", 205, "fresh");
+    await app.resolve(0, page("a", history));
+    await background.run();
+    await app.reject(1);
+    expect(app.requests[2].options.signal.aborted).toBe(true);
+    expect(app.state.historyError).toBe("");
+    expect(app.state.historyLoading).toBe(false);
+    expect(app.state.data.matches).toEqual(history.slice(0, 100));
+    expect(background.pending).toHaveLength(0);
+    const retried = demand(app);
+    expectRequest(app.requests[3], { teamId: "a" });
+    await app.resolve(3, page("a", fresh));
+    await app.resolve(4, page("a", fresh, 100));
+    await app.resolve(5, page("a", fresh, 200));
+    expect(await retried).toBe(true);
+    expect(app.state.data.matches).toEqual(fresh);
+    expect(app.state.historyError).toBe("");
+  });
+
+  it("surfaces the failure once an explicit request joins the background task", async () => {
+    const background = backgroundScheduler();
+    const app = mount("?team=a", { prefetchHistory: background.schedule });
+    await app.resolve(0, page("a", games("a", 205)));
+    await background.run();
+    const joined = demand(app);
+    expect(app.requests).toHaveLength(3);
+    await app.reject(1);
+    expect(await joined).toBeInstanceOf(Error);
+    expect(app.state.historyError).toBeTruthy();
+  });
+
+  it.each([0, 100, BACKGROUND_HISTORY_MAX_GAMES + 1])("leaves a history of %i games to explicit requests", async (total) => {
+    const background = backgroundScheduler();
+    const app = mount("?team=a", { prefetchHistory: background.schedule });
+    await app.resolve(0, page("a", games("a", total)));
+    expect(background.pending).toHaveLength(0);
+    expect(app.requests).toHaveLength(1);
+  });
+
+  it("cancels a pending completion when the team changes and schedules the new team", async () => {
+    const background = backgroundScheduler();
+    const app = mount("?team=a", { prefetchHistory: background.schedule });
+    await app.resolve(0, page("a", games("a", 205)));
+    expect(background.pending).toHaveLength(1);
+    app.select("b");
+    expect(background.pending).toHaveLength(0);
+    await app.resolve(1, page("b", games("b", 150)));
+    expect(background.pending).toHaveLength(1);
+    await background.run();
+    expectRequest(app.requests[2], { offset: 100, teamId: "b", matchesOnly: true });
+    await app.resolve(2, page("b", games("b", 150), 100));
+    expect(app.state.data.matches).toEqual(games("b", 150));
+  });
+
+  it("does not start in the background while a manual page is loading, then completes the rest", async () => {
+    const background = backgroundScheduler();
+    const app = mount("?team=a", { prefetchHistory: background.schedule });
+    const history = games("a", 305);
+    await app.resolve(0, page("a", history));
+    const next = more(app);
+    expect(background.pending).toHaveLength(0);
+    await app.resolve(1, page("a", history, 100));
+    expect(await next).toBe(true);
+    expect(background.pending).toHaveLength(1);
+    await background.run();
+    expectRequest(app.requests[2], { offset: 200, teamId: "a", matchesOnly: true });
+    expectRequest(app.requests[3], { offset: 300, teamId: "a", matchesOnly: true });
+    await app.resolve(2, page("a", history, 200));
+    await app.resolve(3, page("a", history, 300));
+    expect(app.state.data.matches).toEqual(history);
+  });
+});
+
+describe("background scheduling", () => {
+  afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
+
+  it("waits for the delay, a visible page and an idle moment", () => {
+    vi.useFakeTimers();
+    let idleCallback;
+    const requestIdleCallback = vi.fn((callback) => { idleCallback = callback; return 7; });
+    vi.stubGlobal("window", { requestIdleCallback, cancelIdleCallback: vi.fn() });
+    const listeners = {};
+    const page = { visibilityState: "hidden", addEventListener: vi.fn((type, listener) => { listeners[type] = listener; }), removeEventListener: vi.fn() };
+    vi.stubGlobal("document", page);
+    const run = vi.fn();
+    scheduleHistoryPrefetch(run);
+    vi.advanceTimersByTime(1499);
+    expect(page.addEventListener).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(page.addEventListener).toHaveBeenCalledWith("visibilitychange", expect.any(Function));
+    expect(requestIdleCallback).not.toHaveBeenCalled();
+    page.visibilityState = "visible";
+    listeners.visibilitychange();
+    expect(page.removeEventListener).toHaveBeenCalledWith("visibilitychange", listeners.visibilitychange);
+    expect(requestIdleCallback).toHaveBeenCalledWith(expect.any(Function), { timeout: 2000 });
+    expect(run).not.toHaveBeenCalled();
+    idleCallback();
+    expect(run).toHaveBeenCalledTimes(1);
+  });
+
+  it("never runs once cancelled", () => {
+    vi.useFakeTimers();
+    let idleCallback;
+    const cancelIdleCallback = vi.fn();
+    vi.stubGlobal("window", { requestIdleCallback: (callback) => { idleCallback = callback; return 3; }, cancelIdleCallback });
+    vi.stubGlobal("document", { visibilityState: "visible" });
+    const run = vi.fn();
+    const cancelBeforeDelay = scheduleHistoryPrefetch(run);
+    cancelBeforeDelay();
+    vi.runAllTimers();
+    const cancelWhileIdle = scheduleHistoryPrefetch(run);
+    vi.runAllTimers();
+    cancelWhileIdle();
+    expect(cancelIdleCallback).toHaveBeenCalledWith(3);
+    idleCallback();
+    expect(run).not.toHaveBeenCalled();
+  });
+
+  it.each([{ saveData: true }, { effectiveType: "2g" }, { effectiveType: "slow-2g" }])("does not download in the background on %o", (connection) => {
+    vi.useFakeTimers();
+    vi.stubGlobal("navigator", { connection });
+    const run = vi.fn();
+    scheduleHistoryPrefetch(run);
+    expect(vi.getTimerCount()).toBe(0);
+    vi.runAllTimers();
+    expect(run).not.toHaveBeenCalled();
   });
 });

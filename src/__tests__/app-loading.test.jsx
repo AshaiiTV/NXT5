@@ -36,6 +36,7 @@ vi.mock("../components/layout/AppChrome.jsx", () => ({
 }));
 vi.mock("../pages/workspace/Planning.jsx", () => ({ Planning: ({ planningStore }) => <button data-edit-planning onClick={() => planningStore.forContext({ teamId: "a", playerId: "p", weekStart: "2026-09-28" }).setNotes("Disponibilités")}>Modifier le planning</button> }));
 vi.mock("../pages/workspace/Teams.jsx", () => ({ Teams: ({ data }) => <main data-page="teams" data-games={data.matches.length} /> }));
+vi.mock("../pages/workspace/TrendsPage.jsx", () => ({ TrendsPage: ({ data }) => <main data-page="trends" data-games={data.matches.length} /> }));
 vi.mock("../components/assistant/AssistantPanel.jsx", () => ({ default: () => null }));
 vi.mock("../pages/public/DemoPage.jsx", () => ({ DemoPage: () => <main data-page="demo" /> }));
 vi.mock("../pages/public/PublicGuides.jsx", () => ({
@@ -130,7 +131,55 @@ describe("one continuous application loading screen", () => {
     expect(app.pages[0].props["data-games"]).toBe(100);
     expect(app.requests).toHaveLength(2);
     expect(visual).toEqual({ mounts: 1, unmounts: 1 });
+    // The only pending timer completes this short history in the background.
+    expect(vi.getTimerCount()).toBe(1);
+    await act(async () => { vi.advanceTimersByTime(1499); });
+    expect(app.requests).toHaveLength(2);
+    await act(async () => { vi.advanceTimersByTime(1); });
+    expect(app.requests).toHaveLength(3);
+    expect(app.requests[2].url).toContain("offset=100");
+    expect(app.requests[2].url).toContain("matchesOnly=1");
+    expect(app.loaders).toHaveLength(0);
+    await app.resolve(2, { selectedTeamId: "a", matches: matches.slice(100),
+      pagination: { offset: 100, total: 101, nextOffset: null, hasMore: false } });
+    expect(app.pages[0].props["data-games"]).toBe(101);
+    expect(app.loaders).toHaveLength(0);
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("keeps the same screen, with its game count, while a direct analysis link completes its history", async () => {
+    const app = mount("/tendances");
+    await app.loadModule();
+    await app.resolve(0, { user });
+    const identity = app.loaders[0].props["data-loader"];
+    const history = Array.from({ length: 205 }, (_, index) => ({ id: String(index), team_id: "a" }));
+    const pageAt = (offset) => ({ selectedTeamId: "a", matches: history.slice(offset, offset + 100),
+      pagination: { offset, total: 205, nextOffset: offset + 100 < 205 ? offset + 100 : null, hasMore: offset + 100 < 205 } });
+    await app.resolve(1, { ...emptySnapshot, ...pageAt(0), teams: [{ id: "a" }] });
+    expect(app.pages).toHaveLength(0);
+    expect(app.loaders).toHaveLength(1);
+    expect(app.loaders[0].props).toMatchObject({ "data-loader": identity, "data-phase": "bootstrap", "data-progress": { loaded: 100, total: 205 } });
+    expect(app.requests.slice(2).map((request) => new URL(request.url, "https://nxt5.test").searchParams.get("offset"))).toEqual(["100", "200"]);
+    await app.resolve(3, pageAt(200));
+    expect(app.loaders[0].props["data-progress"]).toEqual({ loaded: 105, total: 205 });
+    await app.resolve(2, pageAt(100));
+    expect(app.loaders).toHaveLength(0);
+    expect(app.pages[0].props).toMatchObject({ "data-page": "trends", "data-games": 205 });
+    expect(visual).toEqual({ mounts: 1, unmounts: 1 });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("releases the screen on a history failure so the page can offer a retry", async () => {
+    const app = mount("/tendances");
+    await app.loadModule();
+    await app.resolve(0, { user });
+    const history = Array.from({ length: 150 }, (_, index) => ({ id: String(index), team_id: "a" }));
+    await app.resolve(1, { ...emptySnapshot, teams: [{ id: "a" }], selectedTeamId: "a", matches: history.slice(0, 100),
+      pagination: { offset: 0, total: 150, nextOffset: 100, hasMore: true } });
+    expect(app.loaders).toHaveLength(1);
+    await app.reject(2);
+    expect(app.loaders).toHaveLength(0);
+    expect(JSON.stringify(app.renderer.toJSON())).toContain("L’historique complet n’a pas pu être chargé.");
   });
 
   it.each(["/", "/connexion", "/confidentialite", "/mot-de-passe-oublie", "/page-inconnue", "/demo", "/guides/importer-premier-scrim", "/guides/preparer-debrief", "/guides/nonexistent"])("shows %s without the staff loader while its module and session resolve", async (path) => {
