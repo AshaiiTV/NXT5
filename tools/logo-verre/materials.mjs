@@ -145,17 +145,19 @@ export function tile(id, x, y, size, glyphPolys, o = {}) {
 <feOffset in="SourceAlpha" dx="${f(2.2 * u)}" dy="${f(3 * u)}" result="o"/><feGaussianBlur in="o" stdDeviation="${f(1.4 * u)}" result="ob"/>
 <feComposite in="SourceAlpha" in2="ob" operator="out" result="ring"/><feFlood flood-color="#1e1047" flood-opacity=".85"/><feComposite in2="ring" operator="in" result="sh"/>
 <feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="sh"/></feMerge></filter>`;
+  // simple : rendu 16 px sans flou ni ombre interne ; edge : tranche colorée sous la tuile ; border : liseré spectral.
+  const { simple = false, edge = true, border = true } = o;
   const body = `
-<rect x="${f(x)}" y="${f(y + 4 * u)}" width="${f(size)}" height="${f(size)}" rx="${f(r)}" fill="url(#${id}-tk)" opacity=".85"/>
+${edge ? `<rect x="${f(x)}" y="${f(y + 4 * u)}" width="${f(size)}" height="${f(size)}" rx="${f(r)}" fill="url(#${id}-tk)" opacity=".85"/>` : ""}
 <rect x="${f(x)}" y="${f(y)}" width="${f(size)}" height="${f(size)}" rx="${f(r)}" fill="url(#${id}-t)"/>
 <g clip-path="url(#${id}-tc)">
 <rect x="${f(x)}" y="${f(y)}" width="${f(size)}" height="${f(size)}" fill="url(#${id}-gl)"/>
-<path d="${D}" fill="#a78bfa" opacity=".9" filter="url(#${id}-b)"/>
-<path d="${D}" fill="url(#${id}-5)" filter="url(#${id}-in)"/>
+${simple ? "" : `<path d="${D}" fill="#a78bfa" opacity=".9" filter="url(#${id}-b)"/>`}
+<path d="${D}" fill="url(#${id}-5)"${simple ? "" : ` filter="url(#${id}-in)"`}/>
 <rect x="${f(x)}" y="${f(y)}" width="${f(size)}" height="${f(size)}" fill="url(#${id}-ts)"/>
-<path d="M${f(x + size * 0.58)} ${f(y - 4)}L${f(x + size * 0.7)} ${f(y - 4)}L${f(x + size * 0.18)} ${f(y + size + 4)}L${f(x + size * 0.06)} ${f(y + size + 4)}Z" fill="#ffffff" fill-opacity=".07"/>
+${simple ? "" : `<path d="M${f(x + size * 0.58)} ${f(y - 4)}L${f(x + size * 0.7)} ${f(y - 4)}L${f(x + size * 0.18)} ${f(y + size + 4)}L${f(x + size * 0.06)} ${f(y + size + 4)}Z" fill="#ffffff" fill-opacity=".07"/>`}
 </g>
-<rect x="${f(x + t / 2)}" y="${f(y + t / 2)}" width="${f(size - t)}" height="${f(size - t)}" rx="${f(r - t / 2)}" fill="none" stroke="url(#${id}-te)" stroke-width="${f(t)}" stroke-opacity=".9"/>`;
+${border ? `<rect x="${f(x + t / 2)}" y="${f(y + t / 2)}" width="${f(size - t)}" height="${f(size - t)}" rx="${f(Math.max(r - t / 2, 0))}" fill="none" stroke="url(#${id}-te)" stroke-width="${f(t)}" stroke-opacity=".9"/>` : ""}`;
   return { defs, body };
 }
 

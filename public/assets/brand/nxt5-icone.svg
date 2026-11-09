@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 124" role="img" aria-label="NXT5"><defs>
+<linearGradient id="ic-t" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#36406a"/><stop offset=".45" stop-color="#231d4a"/><stop offset="1" stop-color="#121a30"/></linearGradient>
+<linearGradient id="ic-te" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a5f3fc"/><stop offset=".45" stop-color="#c4b5fd" stop-opacity=".35"/><stop offset="1" stop-color="#f0abfc"/></linearGradient>
+<linearGradient id="ic-ts" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".18"/><stop offset=".42" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+<linearGradient id="ic-tk" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#8b5cf6"/><stop offset="1" stop-color="#d946ef"/></linearGradient>
+<linearGradient id="ic-5" x1="0" y1="0" x2=".7" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#ddd6fe"/><stop offset=".75" stop-color="#a78bfa"/><stop offset="1" stop-color="#7c3aed"/></linearGradient>
+<radialGradient id="ic-gl" cx=".5" cy=".62" r=".55"><stop offset="0" stop-color="#8b5cf6" stop-opacity=".65"/><stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/></radialGradient>
+<clipPath id="ic-tc"><rect x="0" y="0" width="120" height="120" rx="30"/></clipPath>
+<filter id="ic-b" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>
+<filter id="ic-in" x="-10%" y="-10%" width="120%" height="120%">
+<feOffset in="SourceAlpha" dx="2.2" dy="3" result="o"/><feGaussianBlur in="o" stdDeviation="1.4" result="ob"/>
+<feComposite in="SourceAlpha" in2="ob" operator="out" result="ring"/><feFlood flood-color="#1e1047" flood-opacity=".85"/><feComposite in2="ring" operator="in" result="sh"/>
+<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="sh"/></feMerge></filter></defs>
+<rect x="0" y="4" width="120" height="120" rx="30" fill="url(#ic-tk)" opacity=".85"/>
+<rect x="0" y="0" width="120" height="120" rx="30" fill="url(#ic-t)"/>
+<g clip-path="url(#ic-tc)">
+<rect x="0" y="0" width="120" height="120" fill="url(#ic-gl)"/>
+<path d="M47.71 24L95.34 24L92.28 38.4L59.05 38.4L56.7 49.48L79.96 49.48L87.81 59.45L82.16 86.03L70.07 96L24.66 96L27.72 81.6L68.7 81.6L72.47 63.88L39.24 63.88Z" fill="#a78bfa" opacity=".9" filter="url(#ic-b)"/>
+<path d="M47.71 24L95.34 24L92.28 38.4L59.05 38.4L56.7 49.48L79.96 49.48L87.81 59.45L82.16 86.03L70.07 96L24.66 96L27.72 81.6L68.7 81.6L72.47 63.88L39.24 63.88Z" fill="url(#ic-5)" filter="url(#ic-in)"/>
+<rect x="0" y="0" width="120" height="120" fill="url(#ic-ts)"/>
+<path d="M69.6 -4L84 -4L21.6 124L7.2 124Z" fill="#ffffff" fill-opacity=".07"/>
+</g>
+<rect x="1.5" y="1.5" width="117" height="117" rx="28.5" fill="none" stroke="url(#ic-te)" stroke-width="3" stroke-opacity=".9"/></svg>

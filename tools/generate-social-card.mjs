@@ -3,7 +3,8 @@
  * Usage: node tools/generate-social-card.mjs
  *
  * Brand reference: the single NXT5 charter linked by this checkout's AGENTS.md.
- * Do not substitute the retired, incomplete nxt5-mark assets for the emblem.
+ * Logo: glass wordmark from tools/logo-verre/build-brand.mjs; symbol: the homepage glass 5.
+ * The former lance-and-wings emblem and the nxt5-mark assets are retired.
  */
 import { writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -25,9 +26,9 @@ for (const weight of [400, 500, 600, 700]) {
   }
 }
 
-const [wordmark, emblem, atmosphere, ...roles] = await Promise.all([
-  loadImage(localPath('public/assets/nxt5-wordmark.png')),
-  loadImage(localPath('public/assets/nxt5-loader-favicon.png')),
+const [wordmark, glassFive, atmosphere, ...roles] = await Promise.all([
+  loadImage(localPath('public/assets/brand/nxt5-logo.png')),
+  loadImage(localPath('public/assets/home-motion/glass-poster.webp')),
   loadImage(localPath('public/assets/home-motion/atmosphere.webp')),
   ...['top', 'jungle', 'middle', 'bottom', 'utility'].map(role => loadImage(localPath(`public/assets/roles/position-${role}.svg`))),
 ]);
@@ -65,7 +66,7 @@ function text(value, x, y, size, weight, fill, maxWidth) {
   context.fillText(value, x, y);
 }
 
-drawAsset(wordmark, 64, 56, 218);
+drawAsset(wordmark, 64, 50, 200);
 context.font = `500 25px "${fontFamily}"`;
 context.textAlign = 'right';
 context.fillStyle = PNG_THEME.muted;
@@ -81,25 +82,25 @@ text('Prépare ton équipe.', 64, 328, 64, 700, headlineGradient, 748);
 text('L’espace de travail des équipes et coachs', 64, 407, 28, 400, PNG_THEME.muted, 730);
 text('League of Legends.', 64, 449, 28, 500, PNG_THEME.text, 730);
 
-// The complete emblem floats within the same glass material as the product.
-pngPanel(context, 832, 180, 304, 300, { radius: 32 });
+// The glass 5 stands on a violet pool of light, as on the homepage and loading screen.
+const pool = context.createRadialGradient(984, 470, 10, 984, 470, 210);
+pool.addColorStop(0, 'rgba(167,139,250,.5)');
+pool.addColorStop(.45, 'rgba(139,92,246,.18)');
+pool.addColorStop(1, 'rgba(139,92,246,0)');
 context.save();
+context.translate(0, 470);
+context.scale(1, .32);
+context.fillStyle = pool;
 context.beginPath();
-context.roundRect(832, 180, 304, 300, 32);
-context.clip();
-const reflection = context.createLinearGradient(960, 180, 1050, 480);
-reflection.addColorStop(0, 'rgba(196,181,253,.26)');
-reflection.addColorStop(1, 'rgba(139,92,246,0)');
-context.fillStyle = reflection;
-context.beginPath();
-context.moveTo(1030, 180);
-context.lineTo(1120, 180);
-context.lineTo(935, 480);
-context.lineTo(890, 480);
-context.closePath();
+context.arc(984, 0, 210, 0, Math.PI * 2);
 context.fill();
 context.restore();
-pngImageContain(context, emblem, 862, 210, 244, 240);
+const halo = context.createRadialGradient(984, 320, 20, 984, 320, 230);
+halo.addColorStop(0, 'rgba(139,92,246,.22)');
+halo.addColorStop(1, 'rgba(139,92,246,0)');
+context.fillStyle = halo;
+context.fillRect(0, 0, width, height);
+pngImageContain(context, glassFive, 824, 124, 320, 330);
 
 context.fillStyle = 'rgba(154, 182, 218, 0.18)';
 context.fillRect(64, 526, 1072, 1);

@@ -108,7 +108,7 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
     const urls = [...new Set((Array.isArray(sources) ? sources : [sources]).filter(Boolean))].slice(0, 2);
     if (urls.length) imageGroups.set(JSON.stringify(urls), urls);
   };
-  addImageGroup("/assets/nxt5-wordmark.png");
+  addImageGroup("/assets/brand/nxt5-logo.png");
   championLists.flat().forEach(([champion]) => addImageGroup(championPortraitSources(champion, champion)));
   await Promise.all([...imageGroups.values()].map(async (urls) => {
     for (const url of urls) {
@@ -130,7 +130,7 @@ async function renderStatsPng({ title, subtitle, matches, team, categories = [],
     const image = (Array.isArray(sources) ? sources : [sources]).map((url) => imageCache.get(url)).find(Boolean);
     if (image) pngImageCover(ctx, image, x, y, size, size, radius);
   };
-  const header = () => pngHeader(ctx, { width: W, margin: M, title: title || "Groupe de games", eyebrow: "Groupe de games", subtitle: [teamName, pngDateRange(scoped), subtitle].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index).join(" · "), logo: imageCache.get("/assets/nxt5-wordmark.png") });
+  const header = () => pngHeader(ctx, { width: W, margin: M, title: title || "Groupe de games", eyebrow: "Groupe de games", subtitle: [teamName, pngDateRange(scoped), subtitle].filter(Boolean).filter((value, index, list) => list.indexOf(value) === index).join(" · "), logo: imageCache.get("/assets/brand/nxt5-logo.png") });
   const measures = [["Kills", "kills", 1], ["Morts", "deaths", 1], ["Assists", "assists", 1], ["Or", "gold", 0], ["Dégâts champions", "damage", 0], ["Score de vision", "vision", 1]].map(([label, key, digits]) => {
     const pairs = paired(key);
     return { label, digits, count: pairs.length, ally: pngMean(pairs.map((pair) => pair.ally)), enemy: pngMean(pairs.map((pair) => pair.enemy)), diff: pngMean(pairs.map((pair) => pair.ally - pair.enemy)) };
