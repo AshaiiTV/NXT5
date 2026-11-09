@@ -3,6 +3,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import GlassScene from "../components/brand/GlassScene.jsx";
 import { createGlassScene } from "../pages/home/glass-scene.js";
+import { createGlassProgress } from "../components/brand/glass-progress.js";
 
 const engine = vi.hoisted(() => ({ createGlassScene: vi.fn() }));
 vi.mock("../pages/home/glass-scene.js", () => engine);
@@ -140,6 +141,38 @@ describe("shared glass scene lifecycle", () => {
     expect(scene.setActive).toHaveBeenLastCalledWith(true);
     expect(createGlassScene).toHaveBeenCalledOnce();
     expect(scene.dispose).not.toHaveBeenCalled();
+  });
+
+  it("forwards page scroll progress, keeps it while paused and stops at unmount", async () => {
+    const progress = createGlassProgress();
+    const scene = { ...controller(), setProgress: vi.fn() };
+    createGlassScene.mockResolvedValue(scene);
+    progress.set(0.4);
+    await mount({ progress });
+    expect(scene.setProgress).toHaveBeenLastCalledWith(0.4);
+    progress.set(0.7);
+    expect(scene.setProgress).toHaveBeenLastCalledWith(0.7);
+    act(() => intersections[0].update(false));
+    expect(scene.setActive).toHaveBeenLastCalledWith(false);
+    progress.set(0.9);
+    expect(scene.setProgress).toHaveBeenLastCalledWith(0.9);
+    const calls = scene.setProgress.mock.calls.length;
+    act(() => renderer.unmount()); renderer = undefined;
+    progress.set(0.1);
+    expect(scene.setProgress).toHaveBeenCalledTimes(calls);
+    expect(scene.dispose).toHaveBeenCalledOnce();
+  });
+
+  it("does not forward progress to a disposed engine in reduced motion", async () => {
+    const progress = createGlassProgress();
+    const scene = { ...controller(), setProgress: vi.fn() };
+    createGlassScene.mockResolvedValue(scene);
+    await mount({ progress });
+    act(() => { reduced.matches = true; reduced.dispatch("change"); });
+    expect(scene.dispose).toHaveBeenCalledOnce();
+    const calls = scene.setProgress.mock.calls.length;
+    progress.set(0.5);
+    expect(scene.setProgress).toHaveBeenCalledTimes(calls);
   });
 
   it("finishes and disposes a cancelled setup before starting another on the same canvas", async () => {

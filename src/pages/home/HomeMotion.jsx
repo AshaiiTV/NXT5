@@ -6,6 +6,7 @@ import { Nxt5Wordmark } from "../../components/brand/BrandAssets.jsx";
 import { Button } from "../../components/ui/Core.jsx";
 import ProductStory from "./ProductStory.jsx";
 import GlassScene from "../../components/brand/GlassScene.jsx";
+import { createGlassProgress } from "../../components/brand/glass-progress.js";
 import { LegalLinks, PublicTextLink } from "../public/PublicPages.jsx";
 import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 
@@ -44,6 +45,7 @@ export default function HomeMotion({ navigate }) {
   useLanguage();
   const pageRef = useRef(null);
   const motionPositionRef = useRef(null);
+  const [glassProgress] = useState(createGlassProgress);
   const [paused, setPaused] = useState(false);
   const [systemReduced, setSystemReduced] = useState(false);
   const [shortViewport, setShortViewport] = useState(false);
@@ -133,6 +135,8 @@ export default function HomeMotion({ navigate }) {
               value: 1,
               duration: 1,
               onUpdate: () => {
+                // The sculpture turns towards the manifesto with the same scrub.
+                glassProgress.set(driver.value);
                 const fading = driver.value > 0.05;
                 if (
                   fading &&
@@ -263,6 +267,7 @@ export default function HomeMotion({ navigate }) {
       cancelAnimationFrame(refreshFrame);
       layoutObserver?.disconnect();
       context?.revert();
+      glassProgress.set(0);
       introActions.inert = false;
       scrollCue.inert = false;
       window.removeEventListener("scroll", updateHeader);
@@ -348,7 +353,7 @@ export default function HomeMotion({ navigate }) {
               className="hm-glass-wrap"
               aria-hidden="true"
             >
-              <GlassScene className="hm-glass-scene" motionEnabled={!reduced} />
+              <GlassScene className="hm-glass-scene" motionEnabled={!reduced} progress={glassProgress} />
             </div>
             <div className="hm-clouds-front" aria-hidden="true" />
             <div className="hm-ground-shade" aria-hidden="true" />

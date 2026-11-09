@@ -8,8 +8,12 @@ const loadEngine = () => engineModule ??= import("../../pages/home/glass-scene.j
   throw error;
 });
 
-/** One sculpture and motion system for every NXT5 scene, at every viewport size. */
-export default function GlassScene({ className = "", posterClassName = "", canvasClassName = "", motionEnabled = true }) {
+/**
+ * One sculpture and motion system for every NXT5 scene, at every viewport size.
+ * `progress` is an optional createGlassProgress() source driven by the page's
+ * scroll timeline; without it the sculpture keeps its resting pose.
+ */
+export default function GlassScene({ className = "", posterClassName = "", canvasClassName = "", motionEnabled = true, progress = null }) {
   const sceneRef = useRef(null);
   const canvasRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -92,6 +96,7 @@ export default function GlassScene({ className = "", posterClassName = "", canva
           }
           controller = scene;
           if (pointer[0] || pointer[1]) controller.setPointer(...pointer);
+          if (progress) controller.setProgress(progress.get());
           controller.setActive(true);
         })
         .catch(fallback)
@@ -107,6 +112,8 @@ export default function GlassScene({ className = "", posterClassName = "", canva
         controller?.setPointer(x, y);
       }
     });
+    // Progress is kept even while paused, so the pose is right when it resumes.
+    const unsubscribeProgress = progress?.subscribe(value => controller?.setProgress(value));
     const preferences = new MutationObserver(update);
     preferences.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     const intersection = typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver(([entry]) => {
@@ -123,6 +130,7 @@ export default function GlassScene({ className = "", posterClassName = "", canva
       disposed = true;
       currentRequest?.abort.abort();
       unsubscribePointer();
+      unsubscribeProgress?.();
       preferences.disconnect();
       intersection?.disconnect();
       reduced.removeEventListener("change", update);
@@ -130,7 +138,7 @@ export default function GlassScene({ className = "", posterClassName = "", canva
       document.removeEventListener("visibilitychange", update);
       controller?.dispose();
     };
-  }, [motionEnabled]);
+  }, [motionEnabled, progress]);
 
   return (
     <div ref={sceneRef} className={`nxt5-glass-scene ${className}${ready ? " is-ready" : ""}`} aria-hidden="true">
