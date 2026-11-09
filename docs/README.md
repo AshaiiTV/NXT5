@@ -60,6 +60,7 @@ Ils ne décrivent pas des fonctionnalités actives ni une commercialisation pré
 
 | Date | Rapport |
 | --- | --- |
+| 2026-11-09 | [Pistes de logo dans la direction « 5 en verre »](logo-verre-pistes-2026-11-09.md) |
 | 2026-10-15 | [Enseignements des Reels et vérification de la production](enseignements-reels-2026-10-15.md) |
 | 2026-10-13 | [Historique : chargement progressif et retest de capacité](bench-history/capacity-2026-10-13.md) |
 | 2026-10-13 | [Finition du verre violet](design-polish-2026-10-13.md) |

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" ><defs>
+<linearGradient id="c-f-t" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#36406a"/><stop offset=".45" stop-color="#231d4a"/><stop offset="1" stop-color="#121a30"/></linearGradient>
+<linearGradient id="c-f-te" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a5f3fc"/><stop offset=".45" stop-color="#c4b5fd" stop-opacity=".35"/><stop offset="1" stop-color="#f0abfc"/></linearGradient>
+<linearGradient id="c-f-ts" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff" stop-opacity=".18"/><stop offset=".42" stop-color="#ffffff" stop-opacity="0"/></linearGradient>
+<linearGradient id="c-f-tk" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#22d3ee"/><stop offset=".5" stop-color="#8b5cf6"/><stop offset="1" stop-color="#d946ef"/></linearGradient>
+<linearGradient id="c-f-5" x1="0" y1="0" x2=".7" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#ddd6fe"/><stop offset=".75" stop-color="#a78bfa"/><stop offset="1" stop-color="#7c3aed"/></linearGradient>
+<radialGradient id="c-f-gl" cx=".5" cy=".62" r=".55"><stop offset="0" stop-color="#8b5cf6" stop-opacity=".65"/><stop offset="1" stop-color="#8b5cf6" stop-opacity="0"/></radialGradient>
+<clipPath id="c-f-tc"><rect x="2" y="0" width="60" height="60" rx="15"/></clipPath>
+<filter id="c-f-b" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.5"/></filter>
+<filter id="c-f-in" x="-10%" y="-10%" width="120%" height="120%">
+<feOffset in="SourceAlpha" dx="1.1" dy="1.5" result="o"/><feGaussianBlur in="o" stdDeviation="0.7" result="ob"/>
+<feComposite in="SourceAlpha" in2="ob" operator="out" result="ring"/><feFlood flood-color="#1e1047" flood-opacity=".85"/><feComposite in2="ring" operator="in" result="sh"/>
+<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="sh"/></feMerge></filter></defs>
+<rect x="2" y="2" width="60" height="60" rx="15" fill="url(#c-f-tk)" opacity=".85"/>
+<rect x="2" y="0" width="60" height="60" rx="15" fill="url(#c-f-t)"/>
+<g clip-path="url(#c-f-tc)">
+<rect x="2" y="0" width="60" height="60" fill="url(#c-f-gl)"/>
+<path d="M25.86 12L49.67 12L48.14 19.2L31.53 19.2L30.35 24.74L41.98 24.74L45.91 29.72L43.08 43.02L37.04 48L14.33 48L15.86 40.8L36.35 40.8L38.23 31.94L21.62 31.94Z" fill="#a78bfa" opacity=".9" filter="url(#c-f-b)"/>
+<path d="M25.86 12L49.67 12L48.14 19.2L31.53 19.2L30.35 24.74L41.98 24.74L45.91 29.72L43.08 43.02L37.04 48L14.33 48L15.86 40.8L36.35 40.8L38.23 31.94L21.62 31.94Z" fill="url(#c-f-5)" filter="url(#c-f-in)"/>
+<rect x="2" y="0" width="60" height="60" fill="url(#c-f-ts)"/>
+<path d="M36.8 -4L44 -4L12.8 64L5.6 64Z" fill="#ffffff" fill-opacity=".07"/>
+</g>
+<rect x="2.75" y="0.75" width="58.5" height="58.5" rx="14.25" fill="none" stroke="url(#c-f-te)" stroke-width="1.5" stroke-opacity=".9"/></svg>
