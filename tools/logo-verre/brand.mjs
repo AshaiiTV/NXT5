@@ -73,6 +73,32 @@ export function favicon({ simple = false } = {}) {
   return svg(`0 0 ${size} ${size}`, [tile("fv", 0, 0, size, glyph, { radius: 0.22, edge: false, simple })], 'role="img" aria-label="NXT5"');
 }
 
+// Favicon retenu le 9 novembre 2026 : le 5 violet seul, sans tuile, dégradé lilas vers violet.
+// Aux petites tailles, le 5 est redessiné sur la grille des pixels : barres horizontales
+// d’épaisseur entière et ordonnées entières, italique de 12° conservé sur les fûts.
+const FAVICON_GRID = {
+  16: { H: 13, t: 3, tv: 3.2 },
+  32: { H: 28, t: 6, tv: 6.4 },
+  48: { H: 42, t: 8, tv: 8.6 },
+};
+const K12 = Math.tan((12 * Math.PI) / 180);
+export function favicon5Path(S) {
+  const g = FAVICON_GRID[S] || { H: S * 0.875, t: S * 0.875 * 0.2, tv: S * 0.875 * 0.2 };
+  const snap = Boolean(FAVICON_GRID[S]);
+  const { H, t, tv } = g;
+  const W = H * (100 / 130);
+  const sL = W * 0.14, stemR = sL + tv, bowlL = W - tv, c = W * 0.18;
+  const gap = snap ? Math.floor((H - 3 * t) / 2) : (H - 3 * t) / 2;
+  const m = t + gap;
+  const pts = [[sL, 0], [W, 0], [W, t], [stemR, t], [stemR, m], [W - c, m], [W, m + c], [W, H - c], [W - c, H], [0, H], [0, H - t], [bowlL, H - t], [bowlL, m + t], [sL, m + t]];
+  const x0 = (S - (W + K12 * H)) / 2;
+  const y0 = snap ? Math.round((S - H) / 2) : (S - H) / 2;
+  return "M" + pts.map(([x, y]) => `${+(x0 + x + K12 * (H - y)).toFixed(3)} ${+(y0 + y).toFixed(3)}`).join("L") + "Z";
+}
+export function favicon5(S = 16) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}" role="img" aria-label="NXT5"><defs><linearGradient id="fv5" x1="0" y1="0" x2=".4" y2="1"><stop offset="0" stop-color="#c4b5fd"/><stop offset="1" stop-color="#7c3aed"/></linearGradient></defs><path d="${favicon5Path(S)}" fill="url(#fv5)"/></svg>`;
+}
+
 export function iconMono(color) {
   const glyph = fit(five(), { x: 24, y: 24, w: 72, h: 72 });
   return svg("0 0 120 120", [{ defs: "", body: `<rect x="4" y="4" width="112" height="112" rx="28" fill="none" stroke="${color}" stroke-width="8"/>` }, flat("im", glyph, color)], 'role="img" aria-label="NXT5"');
