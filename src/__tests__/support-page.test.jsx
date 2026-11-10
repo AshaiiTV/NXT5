@@ -17,6 +17,7 @@ describe("support page", () => {
   it.each(["", "javascript:alert(1)"])("shows an honest closed state for an unavailable destination (%s)", (supportUrl) => {
     const html = renderToStaticMarkup(<SupportPage supportUrl={supportUrl} />);
     expect(html).toContain("Les contributions ne sont pas encore ouvertes.");
+    expect(html).toContain("Ton soutien financera la suite.");
     expect(html.indexOf("Les contributions ne sont pas encore ouvertes.")).toBeLessThan(html.indexOf("Tu pourras choisir le montant"));
     expect(html).toContain('href="/reseaux"');
     expect(html).not.toContain("nxt5-support-cta");
@@ -29,6 +30,8 @@ describe("support page", () => {
     expect(html).toContain('target="_blank" rel="noopener noreferrer"');
     expect(html).toContain("nouvel onglet");
     expect(html).toContain("ponctuelle ou mensuelle");
+    expect(html).toContain("Ton soutien finance la suite.");
+    expect(html).not.toContain("Ton soutien financera la suite.");
     expect(html).toContain("Le soutien est facultatif.");
     expect(html).not.toContain("ne sont pas encore ouvertes");
     expect(html).not.toMatch(/<(form|iframe|input)\b/);
