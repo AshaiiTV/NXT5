@@ -13,7 +13,7 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 describe("public SEO and real component rendering", () => {
   it("renders the real homepage and features in the public shell, with crawlable links", () => {
     expect(render("/")).toContain('<h1 id="home-title">Comprends tes parties.');
-    expect(render("/fonctionnalites")).toContain("<h1>Analyse, coaching et organisation pour ton équipe League of Legends.</h1>");
+    expect(render("/fonctionnalites")).toContain("<h1>Ton équipe League of Legends, en clair.</h1>");
     expect(render("/")).toContain('href="/fonctionnalites"');
     expect(render("/fonctionnalites")).toContain('href="/creer-un-compte"');
     expect(isKnownPath("/fonctionnalites")).toBe(true);
