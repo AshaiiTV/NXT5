@@ -11,14 +11,14 @@
   isolation: isolate;
   min-height: 100svh;
   overflow: clip;
-  background: var(--nxt5-bg, #111827);
+  background: var(--nxt5-bg, #070a14);
   color: var(--nxt5-text, #f1f5f9);
 }
-.nxt5-sync-ambient { position: absolute; z-index: -1; inset: 0; overflow: hidden; pointer-events: none; background: #111827; }
+.nxt5-sync-ambient { position: absolute; z-index: -1; inset: 0; overflow: hidden; pointer-events: none; background: #070a14; }
 .nxt5-sync-atmosphere { position: absolute; inset: 0; background: url('/assets/loading/glass-atmosphere.webp') center / cover no-repeat; opacity: .8; }
-.nxt5-sync-ambient::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #11182700 25%, #1118276b 52%, #111827eb 81%), linear-gradient(180deg, #111827bf, transparent 26%, transparent 72%, #111827ed); }
+.nxt5-sync-ambient::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #070a1400 25%, #070a146b 52%, #070a14eb 81%), linear-gradient(180deg, #070a14bf, transparent 26%, transparent 72%, #070a14ed); }
 .nxt5-sync-light { position: absolute; inset: 0; background: radial-gradient(ellipse at 28% 44%, #7c3aed2e, transparent 38%), radial-gradient(ellipse at 12% 64%, #22d3ee14, transparent 32%); }
-.nxt5-sync-horizon { position: absolute; top: 69%; left: 0; width: 65%; height: 1px; transform: rotate(-8deg); background: linear-gradient(90deg, transparent, #a78bfa37 40%, #e879f91f 75%, transparent); }
+.nxt5-sync-horizon { position: absolute; top: 69%; left: 0; width: 65%; height: 1px; transform: rotate(-8deg); background: linear-gradient(90deg, transparent, #a78bfa37 40%, #c4b5fd1f 75%, transparent); }
 .nxt5-sync-shell { position: relative; display: flex; flex-direction: column; min-height: 100svh; width: min(100%, 1680px); margin-inline: auto; padding: 38px clamp(24px, 4.5vw, 76px) 28px; }
 .nxt5-sync-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; position: relative; z-index: 2; }
 .nxt5-sync-wordmark { display: block; width: 132px; height: auto; filter: none; }
@@ -31,7 +31,7 @@
 .nxt5-sync-art-aura { position: absolute; z-index: 0; inset: 0 -4% 8%; background: radial-gradient(ellipse at 51% 43%, #9b70ff2e, transparent 59%), radial-gradient(ellipse at 25% 63%, #22d3ee15, transparent 31%); }
 .nxt5-sync-refraction { position: absolute; z-index: 1; inset: 4% 6% 23%; overflow: hidden; mask-image: radial-gradient(ellipse, #000 20%, transparent 72%); }
 .nxt5-sync-refraction > span { position: absolute; inset: 7% 0; background: linear-gradient(119deg, transparent 25%, #67e8f916 38%, #a5f3fc3d 40%, #67e8f910 40.5%, transparent 54%); transform-origin: 48% 70%; animation: nxt5-sync-refract 10s ease-in-out infinite; }
-.nxt5-sync-refraction > span + span { inset: 4% -8%; background: linear-gradient(116deg, transparent 50%, #c4b5fd20 61%, #e9d5ff32 62%, #d946ef08 62.5%, transparent 71%); animation-delay: -4s; animation-duration: 13s; }
+.nxt5-sync-refraction > span + span { inset: 4% -8%; background: linear-gradient(116deg, transparent 50%, #c4b5fd20 61%, #e9d5ff32 62%, #a78bfa08 62.5%, transparent 71%); animation-delay: -4s; animation-duration: 13s; }
 .nxt5-sync-stage { position: absolute; z-index: 0; width: 100%; height: 28%; bottom: 12%; left: 0; animation: nxt5-sync-stage-in 720ms cubic-bezier(.16, 1, .3, 1) both; }
 .nxt5-sync-stage-halo { position: absolute; inset: -45% 0 -35%; background: radial-gradient(ellipse at 50% 62%, #c4b5fd23 2%, #8b5cf621 21%, #8b5cf60d 38%, transparent 62%); }
 .nxt5-sync-stage-reflection { position: absolute; top: 39%; left: 22%; right: 21%; height: 27%; border-radius: 50%; background: radial-gradient(ellipse, #e9d5ff4d, #8b5cf62b 40%, transparent 72%); transform-origin: center; animation: nxt5-sync-reflection 8.8s ease-in-out infinite; }
@@ -41,7 +41,7 @@
 .nxt5-sync-core { position: absolute; z-index: 3; left: 50%; bottom: 23%; width: min(94%, 79cqh); aspect-ratio: 729 / 665; transform: translateX(-50%); }
 .nxt5-sync-glass-scene { position: relative; width: 100%; height: 100%; }
 .nxt5-sync-roles { position: absolute; z-index: 5; bottom: 0; left: 50%; transform: translateX(-50%); display: flex; justify-content: space-between; gap: 16px; width: min(76%, 420px); padding-top: 22px; }
-.nxt5-sync-roles::before { content: ''; position: absolute; top: 0; left: -4%; right: -4%; height: 1px; background: linear-gradient(90deg, transparent, #67e8f932 15%, #c4b5fd59 50%, #e879f932 85%, transparent); }
+.nxt5-sync-roles::before { content: ''; position: absolute; top: 0; left: -4%; right: -4%; height: 1px; background: linear-gradient(90deg, transparent, #67e8f932 15%, #c4b5fd59 50%, #c4b5fd32 85%, transparent); }
 .nxt5-sync-role { display: flex; flex-direction: column; align-items: center; gap: 10px; min-width: 28px; }
 .nxt5-sync-role .nxt5-sync-role-icon { width: 25px; height: 25px; opacity: .9; }
 .nxt5-sync-role-name { color: var(--sync-color); font-size: 10px; font-weight: 500; letter-spacing: .14em; }
@@ -57,7 +57,7 @@
 .nxt5-sync-waiting { display: flex; align-items: center; gap: 4px; padding-bottom: 5px; }
 .nxt5-sync-waiting > i { display: block; width: 3px; height: 3px; border-radius: 50%; background: #c4b5fd; opacity: .7; }
 .nxt5-sync-progress { position: relative; height: 3px; overflow: hidden; margin-top: 12px; border-radius: 3px; background: #c4b5fd26; }
-.nxt5-sync-progress > span { display: block; width: 100%; height: 100%; transform-origin: left; background: var(--nxt5-spectrum-gradient, linear-gradient(105deg, #67e8f9, #a78bfa 65%, #e879f9)); }
+.nxt5-sync-progress > span { display: block; width: 100%; height: 100%; transform-origin: left; background: var(--nxt5-spectrum-gradient, linear-gradient(105deg, #67e8f9, #a78bfa 65%, #c4b5fd)); }
 .nxt5-sync-progress:not(.is-determinate) > span { width: 36%; animation: nxt5-sync-progress 1.8s cubic-bezier(.45, 0, .55, 1) infinite; }
 .nxt5-sync-progress.is-determinate > span { transition: transform 180ms cubic-bezier(.23, 1, .32, 1); }
 .nxt5-sync-steps { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 16px; margin: 21px 0 0; padding: 0; list-style: none; }
@@ -93,7 +93,7 @@
   .nxt5-sync-main { display: flex; flex-direction: column; justify-content: center; padding: 16px 0 26px; }
   .nxt5-sync-art { flex-shrink: 0; width: min(calc(100% + 28px), 460px); height: clamp(235px, 38svh, 370px); margin: 0; }
   .nxt5-sync-atmosphere { background-position: 27% 40%; opacity: .74; }
-  .nxt5-sync-ambient::after { background: linear-gradient(180deg, #111827b8, #11182700 22%, #11182729 45%, #111827df 67%, #111827 100%); }
+  .nxt5-sync-ambient::after { background: linear-gradient(180deg, #070a14b8, #070a1400 22%, #070a1429 45%, #070a14df 67%, #070a14 100%); }
   .nxt5-sync-light { background: radial-gradient(ellipse at 50% 28%, #8b5cf634, transparent 49%); }
   .nxt5-sync-horizon { top: 36%; width: 100%; }
   .nxt5-sync-core { bottom: 22%; width: min(88%, 78cqh); }
@@ -171,3 +171,10 @@ html.nxt5-low-gpu .nxt5-sync-screen *, html.nxt5-low-gpu .nxt5-sync-screen *::be
 html.nxt5-low-gpu .nxt5-sync-atmosphere { display: none; }
 html.nxt5-low-gpu .nxt5-sync-refraction, html.nxt5-low-gpu .nxt5-sync-caustic { display: none; }
 html.nxt5-low-gpu .nxt5-sync-progress:not(.is-determinate) > span { width: 100%; opacity: .5; }
+
+/* Prisme uses the selected material, without a second animated light show. */
+.nxt5-sync-atmosphere, .nxt5-sync-horizon, .nxt5-sync-stage, .nxt5-sync-refraction, .nxt5-sync-art-aura { display: none; }
+.nxt5-sync-ambient, .nxt5-sync-ambient::after { background: var(--nxt5-bg); }
+.nxt5-sync-core { aspect-ratio: 1; }
+.nxt5-sync-status p { color: var(--nxt5-text-secondary); font-size: 16px; }
+.nxt5-sync-role-name { font-size: 12px; letter-spacing: .04em; }

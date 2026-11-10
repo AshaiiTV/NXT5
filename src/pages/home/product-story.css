@@ -7,10 +7,10 @@
   position: relative;
   isolation: isolate;
   margin-top: -12svh;
-  background: linear-gradient(180deg, #11182700, #111827 120px);
+  background: linear-gradient(180deg, #070a1400, #070a14 120px);
 }
 .ps-story::before {
-  content: "";
+  content: none;
   position: absolute;
   inset: 100px 0 auto;
   height: 800px;
@@ -23,12 +23,12 @@
 .ps-story [data-role="JGL"] { --ps-role-color: #93c5fd; }
 .ps-story [data-role="MID"] { --ps-role-color: #c4b5fd; }
 .ps-story [data-role="ADC"] { --ps-role-color: #d8b4fe; }
-.ps-story [data-role="SUP"] { --ps-role-color: #f0abfc; }
+.ps-story [data-role="SUP"] { --ps-role-color: #c4b5fd; }
 .ps-team-scene[data-selected-role="TOP"] { --ps-selected-color: #67e8f9; }
 .ps-team-scene[data-selected-role="JGL"] { --ps-selected-color: #93c5fd; }
 .ps-team-scene[data-selected-role="MID"] { --ps-selected-color: #c4b5fd; }
 .ps-team-scene[data-selected-role="ADC"] { --ps-selected-color: #d8b4fe; }
-.ps-team-scene[data-selected-role="SUP"] { --ps-selected-color: #f0abfc; }
+.ps-team-scene[data-selected-role="SUP"] { --ps-selected-color: #c4b5fd; }
 /* Positions match the fixed, illustrative 33:45 timeline in ProductStory. */
 .ps-chart-objective[data-objective="dragon"] { left: 58.5754985755%; top: 58.2894736842%; }
 .ps-chart-objective[data-objective="baron"] { left: 81.9008547009%; top: 34.1228070175%; }
@@ -115,9 +115,9 @@
   text-align: left;
   gap: 17px;
   padding: 16px 18px 18px;
-  background: transparent;
+  background: var(--nxt5-surface);
   border: 0;
-  border-top: 1px solid transparent;
+  border-top: 1px solid var(--nxt5-border);
   transition:
     background 180ms,
     color 180ms;
@@ -130,11 +130,11 @@
   right: 0;
   height: 2px;
   opacity: 0;
-  background: linear-gradient(90deg, #67e8f9, #a78bfa, #e879f9);
+  background: linear-gradient(90deg, #67e8f9, #a78bfa, #c4b5fd);
   transition: opacity 180ms;
 }
 .ps-chapters button[aria-pressed="true"] {
-  background: linear-gradient(180deg, transparent, #a78bfa0e);
+  background: #211a3c;
   border-top-color: #a78bfa10;
 }
 .ps-chapters button[aria-pressed="true"]::after {
@@ -260,7 +260,7 @@
     transparent,
     #67e8f988,
     #c4b5fdbb,
-    #e879f966,
+    #c4b5fd66,
     transparent
   );
 }
@@ -1046,7 +1046,7 @@
   z-index: -2;
   pointer-events: none;
   background:
-    linear-gradient(90deg, #111827 8%, #11182766 70%, #111827aa),
+    linear-gradient(90deg, #070a14 8%, #070a1466 70%, #070a14aa),
     url("/assets/home-motion/atmosphere.webp") center 58% / cover;
   opacity: 0.7;
   mask-image: linear-gradient(transparent, #000 35%, #000 75%, transparent);
@@ -1076,8 +1076,8 @@
   gap: 28px;
   min-height: 56px;
   padding: 17px 23px;
-  color: #020611;
-  background: linear-gradient(105deg, #22d3ee, #3b82f6 55%, #d946ef);
+  color: #fff;
+  background: var(--nxt5-action);
   border: 1px solid #a5b4fc45;
   border-radius: 2px;
   font-size: 16px;
@@ -1805,7 +1805,7 @@
   font-variant-numeric: tabular-nums;
 }
 .ps-kill-score strong:nth-of-type(2) {
-  color: #f0abfc;
+  color: #c4b5fd;
 }
 .ps-kill-score svg {
   color: var(--ps-muted);
@@ -1857,7 +1857,7 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(180deg, #11182733, #11182700 30%, #11182780 62%, #10192bf5 83%);
+  background: linear-gradient(180deg, #070a1433, #070a1400 30%, #070a1480 62%, #10192bf5 83%);
 }
 .ps-draft .ps-draft-roster button[aria-pressed="true"] {
   border-color: var(--ps-role-color);
@@ -1872,7 +1872,7 @@
   width: 28px;
   height: 28px;
   margin: 0;
-  background: #111827c9;
+  background: #070a14c9;
   border: 1px solid #c4b5fd44;
   border-radius: 50%;
 }
@@ -1917,7 +1917,7 @@
   gap: 8px;
   padding: 18px 3px 13px;
   color: var(--ps-role-color);
-  background: linear-gradient(180deg, #111827, #29384d66);
+  background: linear-gradient(180deg, #070a14, #29384d66);
   border-bottom: 2px solid var(--ps-role-color);
 }
 .ps-planning .ps-ready-player img { width: 27px; height: 27px; }

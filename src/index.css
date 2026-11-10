@@ -57,18 +57,20 @@ button,
   src: url("@fontsource/inter/files/inter-latin-900-normal.woff2") format("woff2");
 }
 
+@font-face { font-family: "Chakra Petch"; font-style: italic; font-weight: 600; font-display: swap; src: url("/assets/fonts/chakra-petch/chakra-petch-latin-600-italic.woff2") format("woff2"); }
+
 :root {
   color-scheme: dark;
-  --nxt5-bg: #111827;
-  --nxt5-surface: #1e293b;
-  --nxt5-surface-raised: #29384d;
-  --nxt5-field: #111b2d;
-  --nxt5-surface-soft: rgba(181, 200, 225, 0.065);
-  --nxt5-border: rgba(181, 200, 225, 0.22);
-  --nxt5-border-strong: rgba(181, 200, 225, 0.38);
-  --nxt5-text: #f1f5f9;
-  --nxt5-text-secondary: #cbd5e1;
-  --nxt5-muted: #afbfd3;
+  --nxt5-bg: #070a14;
+  --nxt5-surface: #11172a;
+  --nxt5-surface-raised: #1a2340;
+  --nxt5-field: #0d1324;
+  --nxt5-surface-soft: #0d1324;
+  --nxt5-border: #303b58;
+  --nxt5-border-strong: #66779b;
+  --nxt5-text: #f4f6ff;
+  --nxt5-text-secondary: #b8c3dc;
+  --nxt5-muted: #92a0be;
   --nxt5-accent: #67e8f9;
   --nxt5-accent-2: #c4b5fd;
   --nxt5-danger: #fda4af;
@@ -76,31 +78,34 @@ button,
   --nxt5-side-blue-text: #93c5fd;
   --nxt5-side-red: #ef4444;
   --nxt5-side-red-text: #ff5757;
-  /* Action ink stays dark independently of the page background. */
+  /* Ink on light cyan accents; primary actions use --nxt5-on-action. */
   --nxt5-on-accent: #020611;
   --nxt5-font-body: 1rem;
   --nxt5-font-ui: .9375rem;
   --nxt5-font-small: .875rem;
   --nxt5-font-micro: .75rem;
   --nxt5-reading-width: 68ch;
-  --nxt5-primary-gradient: linear-gradient(to right, #22d3ee, #3b82f6, #d946ef);
+  --nxt5-action: #7c3aed;
+  --nxt5-action-hover: #6d28d9;
+  --nxt5-on-action: #fff;
+  --nxt5-primary-gradient: linear-gradient(var(--nxt5-action), var(--nxt5-action));
   /* Decorative accents; primary actions and semantic state colors stay distinct. */
-  --nxt5-spectrum-stops: #67e8f9, #818cf8 38%, #a78bfa 65%, #e879f9;
+  --nxt5-spectrum-stops: #67e8f9, #c4b5fd 65%, #c4b5fd;
   --nxt5-spectrum-gradient: linear-gradient(105deg, var(--nxt5-spectrum-stops));
-  --nxt5-spectrum-soft: linear-gradient(105deg, rgba(103, 232, 249, .07), rgba(139, 92, 246, .12) 62%, rgba(232, 121, 249, .07));
-  --nxt5-spectrum-text: linear-gradient(105deg, #a5f3fc, #c4b5fd 55%, #f0abfc);
-  --nxt5-glass-background: linear-gradient(135deg, #263248, #221e42 62%, #1b273c);
+  --nxt5-spectrum-soft: linear-gradient(105deg, rgba(103, 232, 249, .07), rgba(139, 92, 246, .12) 62%, rgba(196, 181, 253, .07));
+  --nxt5-spectrum-text: linear-gradient(105deg, #a5f3fc, #c4b5fd 55%, #c4b5fd);
+  --nxt5-glass-background: linear-gradient(135deg, #191c38, #17112e 62%, #11172a);
   --nxt5-glass-border: rgba(196, 181, 253, .34);
   --nxt5-glass-highlight: rgba(226, 232, 255, .22);
   --nxt5-glass-shadow: inset 0 1px 0 rgba(226, 232, 255, .1), 0 16px 48px rgba(2, 6, 17, .23);
   --nxt5-glass-reflection: radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, .25), transparent 46%), radial-gradient(ellipse at 0% 0%, rgba(103, 232, 249, .075), transparent 36%);
   /* Static facets live at the frame's edge; the reading field stays even. */
   --nxt5-glass-facet: linear-gradient(135deg, transparent 20%, rgba(196, 181, 253, .07) 46%, rgba(196, 181, 253, .025) 62%, transparent 82%);
-  --nxt5-scene-background: linear-gradient(90deg, #111827 0%, rgba(17, 24, 39, .97) 35%, rgba(17, 24, 39, .66) 67%, rgba(17, 24, 39, .32)), linear-gradient(180deg, rgba(17, 24, 39, .68), transparent 42%, #111827 100%), url("/assets/home-motion/atmosphere.webp") right 58% / cover no-repeat;
-  --nxt5-edge-gradient: linear-gradient(100deg, rgba(103, 232, 249, .7), rgba(196, 181, 253, .65) 42%, rgba(232, 121, 249, .4) 68%, transparent);
+  --nxt5-scene-background: linear-gradient(90deg, #070a14 0%, rgba(17, 24, 39, .97) 35%, rgba(17, 24, 39, .66) 67%, rgba(17, 24, 39, .32)), linear-gradient(180deg, rgba(17, 24, 39, .68), transparent 42%, #070a14 100%), url("/assets/home-motion/atmosphere.webp") right 58% / cover no-repeat;
+  --nxt5-edge-gradient: linear-gradient(100deg, rgba(103, 232, 249, .7), rgba(196, 181, 253, .65) 42%, rgba(196, 181, 253, .4) 68%, transparent);
   --nxt5-glow-violet: rgba(139, 92, 246, .28);
   --nxt5-glow-cyan: rgba(103, 232, 249, .16);
-  --nxt5-glow-fuchsia: rgba(232, 121, 249, .14);
+  --nxt5-glow-fuchsia: rgba(196, 181, 253, .14);
   --nxt5-ease-out: cubic-bezier(.23, 1, .32, 1);
   --nxt5-radius-panel: 1rem;
   --nxt5-radius-control: 0.625rem;
@@ -308,7 +313,7 @@ textarea {
 .nxt5-cyber-button { border-radius: var(--nxt5-radius-button); }
 .nxt5-button-primary {
   background-image: var(--nxt5-primary-gradient);
-  color: var(--nxt5-on-accent);
+  color: var(--nxt5-on-action);
 }
 .nxt5-input-shell,
 input.nxt5-control,

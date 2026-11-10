@@ -383,7 +383,7 @@ export function NotFoundPage({ navigate }) {
         <LinkButton href="/creer-un-compte" navigate={navigate}>{t("Créer un compte")}</LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
-        <Surface variant="scene" glow className="nxt5-auth-card">
+        <Surface variant="reading" glow className="nxt5-auth-card">
           <Badge tone="red">404</Badge>
           <h1>{t("Page introuvable")}</h1>
           <p className="nxt5-auth-intro">{t("Aucune page NXT5 ne se trouve à cette adresse. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.")}</p>
@@ -438,7 +438,7 @@ export function ForgotPasswordPage({ navigate }) {
         <PublicTextLink href={loginHref} navigate={navigate} className="nxt5-entry-header-link">{t("Retour à la connexion")}</PublicTextLink>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
-        <Surface variant="scene" glow className="nxt5-auth-card">
+        <Surface variant="reading" glow className="nxt5-auth-card">
           <p className="nxt5-entry-eyebrow">{t("Récupération du compte")}</p>
           <h1>{t("Mot de passe oublié ?")}</h1>
           <p className="nxt5-auth-intro">{t("Entre l’e-mail de ton compte pour recevoir un lien de réinitialisation.")}</p>
@@ -495,7 +495,7 @@ export function ResetPasswordPage({ navigate, onAuth }) {
         <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">{t("Se connecter")}</LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
-        <Surface variant="scene" glow className="nxt5-auth-card">
+        <Surface variant="reading" glow className="nxt5-auth-card">
           <Badge tone="purple">{t("Nouveau mot de passe")}</Badge>
           <h1>{t("Réinitialiser le mot de passe")}</h1>
           {!token ? (<div className="mt-6 space-y-4"><p role="alert" className="nxt5-auth-notice is-error">{t("Ce lien de réinitialisation est incomplet. Demande un nouveau lien pour retrouver l’accès à ton compte.")}</p><LinkButton href="/mot-de-passe-oublie" navigate={navigate}>{t("Demander un nouveau lien")}</LinkButton></div>) : done ? (<div className="mt-6 space-y-4">
@@ -597,7 +597,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
           </div>
           <TeamRoleSignature />
         </section>
-        <Surface variant="scene" glow className="nxt5-auth-card">
+        <Surface variant="reading" glow className="nxt5-auth-card">
           <p className="nxt5-entry-eyebrow">{isRegister ? t("Bienvenue sur NXT5") : t("Bon retour sur NXT5")}</p>
           <h1>{isRegister && registrationRequested ? t("Demande reçue") : isSocialComplete ? t("Termine ton inscription") : isRegister ? t("Créer un compte") : t("Connexion")}</h1>
           <p className="nxt5-auth-intro">{isRegister && registrationRequested ? t("Consulte ta messagerie pour la suite de l’inscription.") : isSocialComplete ? t("Confirme tes informations pour créer ton compte NXT5.") : isRegister ? t("Crée ton compte pour ouvrir ou rejoindre un espace équipe. Accès gratuit.") : t("Retrouve tes équipes, tes parties et tes débriefs.")}</p>
@@ -606,7 +606,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
           {isRegister && registrationRequested ? <div className="nxt5-registration-confirmation"><p ref={registrationStatusRef} tabIndex={-1} role="status" className="nxt5-auth-notice is-success">{t("Si cette adresse peut être utilisée, tu recevras un e-mail de vérification. Si tu as déjà un compte, connecte-toi ou réinitialise ton mot de passe.")}</p><p>{t("Pour confirmer une nouvelle inscription, connecte-toi avec le mot de passe choisi, puis ouvre le lien de vérification reçu par e-mail dans ce même navigateur.")}</p><p>{t("Vérifie aussi tes courriers indésirables. Aucun abonnement n’a été activé.")}</p><LinkButton href={`/connexion${querySuffix}`} navigate={navigate} icon={ArrowRight}>{t("Se connecter")}</LinkButton><PublicTextLink href={`/mot-de-passe-oublie${querySuffix}`} navigate={navigate} className="nxt5-entry-text-link">{t("Réinitialiser mon mot de passe")}</PublicTextLink></div> : isSocialComplete ? <SocialSignup onComplete={completeAuth} loginHref={`/connexion${querySuffix}`} existingAccountHref="/connexion?next=%2Fparametres" /> : <>
           <SocialLogin flow={isRegister ? "register" : "login"} rememberMe={rememberMe} disabled={loading} />
           <form onSubmit={submit} className="nxt5-auth-form">
-            <TextInput label={isRegister ? t("E-mail") : t("E-mail ou ancien pseudo")} value={form.email} onChange={(v) => patch("email", v)} placeholder={isRegister ? "joueur@exemple.com" : t("joueur@exemple.com ou ancien pseudo")} type={isRegister ? "email" : "text"} autoComplete={isRegister ? "email" : "username"} required icon={Mail} />
+            <TextInput label={isRegister ? t("E-mail") : t("E-mail ou ancien pseudo")} value={form.email} onChange={(v) => patch("email", v)} placeholder="joueur@exemple.com" type={isRegister ? "email" : "text"} autoComplete={isRegister ? "email" : "username"} required icon={Mail} />
             {isRegister && <TextInput label={t("Pseudo")} value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder={t("Ex : Joueur NXT5")} autoComplete="nickname" required icon={UserPlus} />}
             <TextInput label={t("Mot de passe")} value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" autoComplete={isRegister ? "new-password" : "current-password"} required icon={Lock} />
             <div className="nxt5-auth-preferences"><PremiumToggle checked={rememberMe} onChange={setRememberMe} title={t("Rester connecté")} text={t("Sur cet appareil.")} /></div>

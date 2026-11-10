@@ -42,7 +42,7 @@
 .ig-game:focus-visible { z-index: 1; outline-offset: -2px; }
 .ig-game:disabled { cursor: default; }
 .ig-game:disabled:hover { background: transparent; }
-.ig-game[aria-pressed="true"], .ig-game[aria-pressed="true"]:disabled:hover { background: linear-gradient(100deg, rgba(103,232,249,.1), rgba(139,92,246,.17) 58%, rgba(232,121,249,.06)); box-shadow: inset 3px 0 0 var(--nxt5-accent), inset 0 1px rgba(196,181,253,.2); }
+.ig-game[aria-pressed="true"], .ig-game[aria-pressed="true"]:disabled:hover { background: linear-gradient(100deg, rgba(103,232,249,.1), rgba(139,92,246,.17) 58%, rgba(196,181,253,.06)); box-shadow: inset 3px 0 0 var(--nxt5-accent), inset 0 1px rgba(196,181,253,.2); }
 .ig-result { display: inline-flex; align-items: center; gap: 8px; grid-column: 1; grid-row: 1; font-size: var(--nxt5-font-small); font-weight: 700; color: #c2d0e3; }
 .ig-result > span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; background: rgba(255,255,255,.055); font-size: var(--nxt5-font-small); }
 .ig-win { color: #a7f3d0; }

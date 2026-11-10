@@ -1,8 +1,8 @@
 import React from "react";
 import "./public-scene.css";
-import GlassScene from "../../components/brand/GlassScene.jsx";
+import GlassScene from "../../components/brand/PrismeScene.jsx";
 
-/** Page-specific atmosphere around the shared interactive sculpture. */
+/** Page-specific atmosphere around the selected Prisme sculpture. */
 export function PublicScene({ className = "", imageClassName = "", children }) {
   return <div className={`nxt5-public-scene ${className}`} aria-hidden="true">
     <div className="nxt5-public-scene-plane" />

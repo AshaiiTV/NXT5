@@ -13,7 +13,7 @@
 .champion-pick-wr { font-weight: 700; font-size: var(--nxt5-font-body); font-variant-numeric: tabular-nums; }
 .champion-pagination { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; font-size: var(--nxt5-font-small); }
 .champion-dossier { border-left: 1px solid var(--nxt5-border-strong); padding-left: 28px; }
-.champion-dossier-heading { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; padding: 20px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-control); background: radial-gradient(ellipse at 100% 0, rgba(232,121,249,.1), transparent 70%), var(--nxt5-glass-background); box-shadow: inset 0 1px var(--nxt5-glass-highlight); }
+.champion-dossier-heading { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; padding: 20px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-control); background: radial-gradient(ellipse at 100% 0, rgba(196,181,253,.1), transparent 70%), var(--nxt5-glass-background); box-shadow: inset 0 1px var(--nxt5-glass-highlight); }
 .champion-dossier-heading .draft-key-portrait { width: 80px; height: 80px; flex-basis: 80px; border: 1px solid rgba(226,232,255,.4); box-shadow: 0 8px 24px rgba(2,6,17,.3); }
 .champion-dossier-heading > div { min-width: 0; }
 .champion-dossier .champion-dossier-heading h4 { font-size: clamp(26px, 3.2cqi, 34px); font-weight: 750; letter-spacing: -.035em; line-height: 1.2; overflow-wrap: anywhere; margin: 6px 0 0; scroll-margin-top: 100px; }

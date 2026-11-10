@@ -98,7 +98,7 @@
 .discord-team-nav button svg { flex-shrink: 0; }
 .discord-team-nav button[aria-current] { color: var(--nxt5-accent); border-bottom-color: var(--nxt5-accent); background: linear-gradient(110deg,rgba(103,232,249,.08),rgba(139,92,246,.23)); box-shadow: inset 0 1px rgba(196,181,253,.14); }
 .discord-team-nav button:hover { color: var(--nxt5-text); }
-.discord-next-action { display: flex; align-items: center; gap: 1.5rem; justify-content: space-between; padding: 1.1rem 1.25rem; border: 1px solid var(--nxt5-glass-border); border-left: 3px solid var(--nxt5-accent-2); border-radius: 0 var(--nxt5-radius-control) var(--nxt5-radius-control) 0; background: linear-gradient(110deg,rgba(139,92,246,.19),rgba(232,121,249,.06)); box-shadow: inset 0 1px var(--nxt5-glass-highlight); }
+.discord-next-action { display: flex; align-items: center; gap: 1.5rem; justify-content: space-between; padding: 1.1rem 1.25rem; border: 1px solid var(--nxt5-glass-border); border-left: 3px solid var(--nxt5-accent-2); border-radius: 0 var(--nxt5-radius-control) var(--nxt5-radius-control) 0; background: linear-gradient(110deg,rgba(139,92,246,.19),rgba(196,181,253,.06)); box-shadow: inset 0 1px var(--nxt5-glass-highlight); }
 .discord-next-action.is-ready { border-left-color: var(--nxt5-accent); }
 .discord-next-action > div { min-width: 0; }
 .discord-next-action h4 { margin-top: .3rem; font-size: 1.15rem; }

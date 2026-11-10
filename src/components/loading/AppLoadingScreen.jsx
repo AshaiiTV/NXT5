@@ -3,7 +3,7 @@ import { t } from "../../i18n/translate.js";
 import React from "react";
 import { Check } from "lucide-react";
 import { Nxt5Wordmark, RoleIcon } from "../brand/BrandAssets.jsx";
-import GlassScene from "../brand/GlassScene.jsx";
+import GlassScene from "../brand/PrismeScene.jsx";
 import "./AppLoadingScreen.css";
 
 const ROLES = [
@@ -11,7 +11,7 @@ const ROLES = [
   { name: "JGL", color: "#71d5ff" },
   { name: "MID", color: "#a4bbff" },
   { name: "ADC", color: "#c4b5fd" },
-  { name: "SUP", color: "#e879f9" },
+  { name: "SUP", color: "#c4b5fd" },
 ];
 
 const PHASES = [

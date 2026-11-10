@@ -5,7 +5,7 @@
 .profile-showcase-stage { --scene-accent: #42dfff; --scene-wash: rgba(34,211,238,.085); --entry-x: 28px; position: relative; isolation: isolate; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .92fr); gap: 24px 48px; align-items: center; padding: 36px clamp(20px, 4cqi, 56px) 24px; overflow: hidden; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel); background: #06101f; }
 .profile-showcase-stage::before { content: ""; position: absolute; z-index: -1; inset: 0; background: linear-gradient(120deg, transparent 46%, var(--scene-wash) 46%, var(--scene-wash) 73%, transparent 73%); pointer-events: none; }
 .profile-showcase-stage.chapter-1.is-story, .profile-showcase-stage.chapter-4.is-story { --scene-accent: #c1a1ff; --scene-wash: rgba(167,139,250,.09); }
-.profile-showcase-stage.chapter-2.is-story { --scene-accent: #f3a1ed; --scene-wash: rgba(232,121,249,.09); }
+.profile-showcase-stage.chapter-2.is-story { --scene-accent: #f3a1ed; --scene-wash: rgba(196,181,253,.09); }
 .profile-showcase-stage[data-direction="backward"] { --entry-x: -28px; }
 .profile-showcase-content { display: contents; }
 .profile-showcase-story { min-width: 0; max-width: 500px; overflow-wrap: anywhere; animation: showcase-copy-enter .46s cubic-bezier(.2,.7,.2,1) both; }
