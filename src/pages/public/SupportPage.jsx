@@ -29,7 +29,7 @@ export function SupportPage({ navigate, user, supportUrl = SUPPORT_URL }) {
           <section className="nxt5-support-story" aria-labelledby="support-title">
             <p className="nxt5-entry-eyebrow">{t("Un projet indépendant")}</p>
             <h1 id="support-title" className="nxt5-page-title">{t("Soutenir NXT5")}</h1>
-            <p>{t("Je développe NXT5 pour aider les équipes à préparer leurs parties. Ton soutien financera la suite.")}</p>
+            <p>{t(destination ? "Je développe NXT5 pour aider les équipes à préparer leurs parties. Ton soutien finance la suite." : "Je développe NXT5 pour aider les équipes à préparer leurs parties. Ton soutien financera la suite.")}</p>
           </section>
           <div className="nxt5-support-visual">
             <PublicScene className="nxt5-support-sculpture" />
@@ -45,10 +45,10 @@ export function SupportPage({ navigate, user, supportUrl = SUPPORT_URL }) {
               <Heart aria-hidden="true" className="nxt5-support-heart" size={28} />
               <h2 id="contribute-title">{t("Contribuer au développement")}</h2>
               {destination ? (<>
-                  <p>{t("Choisis le montant et une contribution ponctuelle ou mensuelle sur la page de soutien.")}</p>
+                  <p>{t("Choisis ton montant : contribution ponctuelle ou mensuelle.")}</p>
                   <LinkButton href={destination} target="_blank" icon={ArrowUpRight} className="nxt5-support-cta">{t("Soutenir le projet")}<span className="sr-only">{t(" (nouvel onglet)")}</span>
                   </LinkButton>
-                  <p className="nxt5-support-external">{t("Le paiement s’effectue sur la plateforme de soutien, dans un nouvel onglet.")}</p>
+                  <p className="nxt5-support-external">{t("Paiement sur la plateforme de soutien (nouvel onglet).")}</p>
                 </>) : (<div className="nxt5-support-pending">
                   <p>{t("Les contributions ne sont pas encore ouvertes.")}</p>
                   <p>{t("Tu pourras choisir le montant et la fréquence.")}</p>
