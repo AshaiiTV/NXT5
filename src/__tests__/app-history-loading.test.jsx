@@ -15,7 +15,7 @@ vi.mock("../components/layout/AppChrome.jsx", () => ({
 vi.mock("../pages/public/PublicPages.jsx", () => ({ LegalLinks: () => null, SiteHeader: () => null }));
 vi.mock("../pages/workspace/HomeWorkspace.jsx", () => ({ default: ({ data }) => <section data-history-page="home" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));
 vi.mock("../pages/workspace/Teams.jsx", () => ({ Teams: () => <section data-history-page="teams" /> }));
-vi.mock("../pages/workspace/GameWorkspace.jsx", () => ({ GameWorkspace: ({ data, loadNextPage }) => <section data-history-page="games" data-games={data.matches.length} data-team={data.selectedTeamId}><button data-history-next onClick={() => { void loadNextPage?.().catch(() => {}); }}>Charger la suite</button></section> }));
+vi.mock("../pages/workspace/GameWorkspace.jsx", () => ({ GameWorkspace: ({ data }) => <section data-history-page="games" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));
 vi.mock("../pages/workspace/TrendsPage.jsx", () => ({ TrendsPage: ({ data }) => <section data-history-page="trends" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));
 vi.mock("../pages/workspace/PlayerUltimateProfile.jsx", () => ({ PlayerUltimateProfile: ({ data }) => <section data-history-page="profile" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));
 vi.mock("../pages/workspace/DraftWorkspace.jsx", () => ({ DraftWorkspace: ({ data }) => <section data-history-page="draft" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));
@@ -84,66 +84,45 @@ async function resolve(index, value) {
   await act(async () => { await vi.dynamicImportSettled(); });
 }
 
-describe("on-demand complete history in the workspace", () => {
-  it("opens home after the first page without requesting older games", async () => {
-    await open();
-    expect(renderedPages()).toHaveLength(0);
-    await resolve(0, snapshot({ total: 1000 }));
-    shell();
-    expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "home", "data-games": 100, "data-team": "a" });
-    expect(requests).toHaveLength(1);
-  });
-
-  it("opens the default games list immediately and appends only one page per explicit request", async () => {
-    await open("/games?team=a");
-    await resolve(0, snapshot());
-    shell();
-    expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "games", "data-games": 100 });
-    expect(requests).toHaveLength(1);
-    await act(async () => renderer.root.findByProps({ "data-history-next": true }).props.onClick());
-    expect(requests).toHaveLength(2);
-    expect(requests[1].url).toContain("offset=100");
-    await resolve(1, snapshot({ offset: 100 }));
-    expect(renderedPages()[0].props["data-games"]).toBe(200);
-    expect(requests).toHaveLength(2);
-    await act(async () => renderer.root.findByProps({ "data-history-next": true }).props.onClick());
-    await resolve(2, snapshot({ offset: 200 }));
-    expect(renderedPages()[0].props["data-games"]).toBe(201);
-    expect(requests).toHaveLength(3);
-  });
-
-  it.each([["/games?match=a-0", "games"], ["/games?archive=group", "games"], ["/games?import=1", "games"], ["/games?view=groups", "games"], ["/games?view=teams", "games"], ["/draft/adversaires", "games"], ["/rapports", "games"], ["/tendances", "trends"], ["/mon-profil", "profile"], ["/draft/pool", "draft"]])("keeps %s behind the complete-history gate with navigation available", async (path, page) => {
+describe("one complete team synchronization before the workspace", () => {
+  it.each([
+    ["/accueil", "home"], ["/games?team=a", "games"], ["/games?match=a-0", "games"],
+    ["/games?archive=group", "games"], ["/games?import=1", "games"],
+    ["/games?view=groups", "games"], ["/games?view=teams", "games"],
+    ["/draft/adversaires", "games"], ["/rapports", "games"],
+    ["/tendances", "trends"], ["/mon-profil", "profile"], ["/draft/pool", "draft"],
+  ])("opens %s only after every team game has loaded", async (path, page) => {
     await open(path);
-    await resolve(0, snapshot());
-    shell();
     expect(renderedPages()).toHaveLength(0);
-    expect(renderer.root.findAllByProps({ role: "status" })).toHaveLength(1);
+    await resolve(0, snapshot());
+    expect(renderedPages()).toHaveLength(0);
     expect(requests).toHaveLength(2);
     expect(requests[1].url).toContain("matchesOnly=1");
+    expect(renderer.root.findAllByProps({ "data-history-navigation": true })).toHaveLength(0);
     await resolve(1, snapshot({ offset: 100 }));
     expect(renderedPages()).toHaveLength(0);
+    expect(requests).toHaveLength(3);
     await resolve(2, snapshot({ offset: 200 }));
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": page, "data-games": 201, "data-team": "a" });
     shell();
   });
 
-  it("lets home stay usable while history loads and deduplicates route changes", async () => {
+  it("deduplicates history while routes change and reuses it after opening", async () => {
     await open();
     await resolve(0, snapshot());
     await update("/tendances");
-    expect(requests).toHaveLength(2);
-    expect(renderedPages()).toHaveLength(0);
     await update("/accueil");
-    expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "home", "data-games": 100 });
-    await update("/mon-profil");
-    expect(requests).toHaveLength(2);
     expect(renderedPages()).toHaveLength(0);
+    expect(requests).toHaveLength(2);
     await resolve(1, snapshot({ offset: 100 }));
     await resolve(2, snapshot({ offset: 200 }));
+    expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "home", "data-games": 201 });
+    await update("/mon-profil");
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "profile", "data-games": 201 });
+    expect(requests).toHaveLength(3);
   });
 
-  it("keeps a failed partial history hidden and retries only on request", async () => {
+  it("offers a retry after a failed initial synchronization", async () => {
     await open("/tendances");
     await resolve(0, snapshot());
     await act(async () => requests[1].reject(new Error("Réseau indisponible")));
@@ -159,16 +138,18 @@ describe("on-demand complete history in the workspace", () => {
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "trends", "data-games": 1 });
   });
 
-  it("does not expose the old team's history after selecting another team", async () => {
+  it("hides the old team until the selected team is fully synchronized", async () => {
     await open("/tendances");
     await resolve(0, snapshot());
+    await resolve(1, snapshot({ offset: 100 }));
+    await resolve(2, snapshot({ offset: 200 }));
+    shell();
     const select = renderer.root.findAllByType("button").find((button) => button.children.includes("Autre équipe"));
     await act(async () => select.props.onClick());
-    expect(requests).toHaveLength(3);
-    expect(requests[2].url).toContain("teamId=b");
-    await resolve(1, snapshot({ offset: 100 }));
     expect(renderedPages()).toHaveLength(0);
-    await resolve(2, snapshot({ teamId: "b", total: 1 }));
+    expect(requests).toHaveLength(4);
+    expect(requests[3].url).toContain("teamId=b");
+    await resolve(3, snapshot({ teamId: "b", total: 1 }));
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "trends", "data-games": 1, "data-team": "b" });
   });
 });
