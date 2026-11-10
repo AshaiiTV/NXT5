@@ -158,7 +158,7 @@ export function createAudienceClient({ request = apiFetch, win = globalThis.wind
         update({ choice, version: result?.version || AUDIENCE_CONSENT_VERSION, expiresAt: result?.expiresAt || null, loaded: true, error: "" });
         if (choice === "accepted") start(); else stop();
       } catch {
-        if (epoch === generation) { stop(); update({ loaded: true, choice: optedOut() ? "rejected" : null, error: "Les préférences sont momentanément indisponibles. Le suivi reste désactivé." }); }
+        if (epoch === generation) { stop(); update({ loaded: true, choice: optedOut() ? "rejected" : null, error: "Préférences indisponibles. Suivi désactivé." }); }
       }
       return state;
     })().finally(() => { loading = null; });

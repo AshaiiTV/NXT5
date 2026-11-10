@@ -308,7 +308,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
           {!messages.length && !loading && (<div className="flex min-h-full flex-col justify-center py-6">
               <MessageCircleQuestion className="h-8 w-8 text-cyan-100" />
               <h3 className="mt-4 text-xl font-black text-white">{t("Que veux-tu faire sur cette page ?")}</h3>
-              <p className="mt-2 max-w-sm text-sm font-normal leading-6 text-slate-400">{t("Pose une question sur NXT5 ou choisis une suggestion.")}</p>
+              <p className="mt-2 max-w-sm text-sm font-normal leading-6 text-slate-400">{t("Pose une question ou choisis un sujet.")}</p>
               <div className="mt-6 border-y border-white/10">
                 {routeSuggestions.map((suggestion) => (
                   <button key={suggestion} type="button" onClick={() => requestAnswer(suggestion)} className="group flex w-full items-center justify-between gap-3 border-b border-white/10 px-1 py-3.5 text-left text-sm font-bold leading-5 text-slate-200 transition last:border-b-0 hover:text-cyan-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-200/70">

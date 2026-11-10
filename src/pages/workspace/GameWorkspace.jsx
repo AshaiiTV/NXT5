@@ -1150,12 +1150,12 @@ function playerSideTimings(match, role) {
   const topWindow = timingWindow(firstTopObjective, "T-90 avant les Grubs/Herald");
   const key = normalizeProfileRole(role);
   if (key === "TOP") return {
-    weakside: `${dragonWindow} si le plan engage bot : sécuriser la wave, garder la sortie et ne pas contester sans couverture.`,
-    strongside: `${topWindow} quand l'équipe joue top : préparer le crash, conserver les ressources et demander le move jungle/support.`,
+    weakside: `${dragonWindow} si le plan joue bot : protéger la wave et garder une sortie sans couverture.`,
+    strongside: `${topWindow} si le plan joue top : préparer le crash et le soutien jungle/support.`,
   };
   if (key === "ADC" || key === "SUP") return {
-    weakside: `${topWindow} si jungle et mid jouent le haut de carte : refuser la pression, protéger la wave et signaler le dive avant qu'il commence.`,
-    strongside: `${dragonWindow} quand le dragon est la priorité : crash, reset synchronisé puis contrôle de rivière avant le contact.`,
+    weakside: `${topWindow} si jungle et mid jouent top : protéger la wave et annoncer le risque de dive.`,
+    strongside: `${dragonWindow} si le dragon est prioritaire : crash, reset commun et contrôle de rivière.`,
   };
   if (key === "MID") return {
     weakside: "À l’opposé du prochain objectif, sans priorité de voie : récupérer les sbires sans forcer un déplacement tardif.",
@@ -1555,7 +1555,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   }
 
   return <div className="nxt5-data-dense nxt5-stats-page nxt5-games-page min-w-0">
-    <PageHeader eyebrow={selectedTeamName} title={t("Parties")} subtitle={selectedMatchId ? t("Comprends le résultat, choisis une piste de travail, puis explore les détails.") : workspaceView === "teams" ? t("Retrouve les équipes adverses, leurs champions et les parties associées.") : t("Ouvre une partie pour comprendre ce qui s’est passé et préparer la prochaine session.")}>
+    <PageHeader eyebrow={selectedTeamName} title={t("Parties")} subtitle={selectedMatchId ? t("Résultat, pistes de travail et détails.") : workspaceView === "teams" ? t("Équipes adverses, champions et parties.") : t("Ouvre une partie pour préparer la suite.")}>
       {!selectedMatchId && !selectedArchiveId && <div ref={importTriggerRef}>{renderImportAction()}</div>}
     </PageHeader>
     {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog className="game-import-dialog" title={t("Importer une partie")} onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy} dirty={importDirty} returnFocusRef={importTriggerRef}>
@@ -1877,7 +1877,7 @@ function buildArchiveReportContent(name, matches) {
   const losses = linked.length - wins;
   return [
     "VERDICT COACH",
-    `- Ce bloc affiche ${wins} victoire${wins > 1 ? "s" : ""} et ${losses} défaite${losses > 1 ? "s" : ""}. Le score ne suffit pas : la review doit isoler le pattern qui se répète et la décision qui l'alimente.`,
+    `- Ce bloc affiche ${wins} victoire${wins > 1 ? "s" : ""} et ${losses} défaite${losses > 1 ? "s" : ""}. Isoler le pattern répété et sa décision clé.`,
     "",
     `Groupe: ${name || "Groupe"}`,
     "",
@@ -1885,9 +1885,9 @@ function buildArchiveReportContent(name, matches) {
     ...reportRawSummaryLines(linked),
     "",
     "CHECKPOINTS VOD",
-    "- Comparer la première transition de map des games : information disponible, call et coût de la décision.",
-    "- Comparer les 60 secondes avant chaque objectif décisif : waves, resets, vision et responsabilité du setup.",
-    "- Isoler une séquence gagnée et une séquence perdue sur le même thème pour séparer exécution et résultat.",
+    "- Première transition de map : information, call, coût.",
+    "- Avant chaque objectif décisif : waves, resets, vision, responsable.",
+    "- Comparer une séquence gagnée et une perdue sur le même thème.",
     "",
     "PLAN D'EXÉCUTION",
     "- 1. Nommer un seul standard collectif pour le prochain bloc.",
@@ -2158,7 +2158,7 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
     <div className="nxt5-data-dense nxt5-reviews-page min-w-0">
       <PageHeader
         title={t("Débriefs")}
-        subtitle={t("L’essentiel de la partie. Les décisions pour la suivante.")}
+        subtitle={t("Bilan de la partie et suite à donner.")}
       >
         <Button icon={Plus} onClick={startBlankReview}>{draftAvailable ? t("Reprendre le brouillon") : t("Préparer un débrief")}</Button>
       </PageHeader>

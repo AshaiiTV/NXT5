@@ -33,8 +33,8 @@ export default function SocialPage({ navigate, user }) {
         <PublicInformationNav navigate={navigate} activePath="/reseaux" />
         <header className="nxt5-information-hero nxt5-enter">
           <Badge tone="cyan">{t("La communauté NXT5")}</Badge>
-          <h1 className="nxt5-metal-text">{t("La communauté et les réseaux NXT5")}</h1>
-          <p>{t("Suis les vidéos et les actualités NXT5 sur YouTube et Instagram. Rejoins la communauté sur Discord pour poser une question ou partager une idée.")}</p>
+          <h1 className="nxt5-metal-text">{t("Communauté NXT5")}</h1>
+          <p>{t("Retrouve NXT5 sur Discord, YouTube et Instagram.")}</p>
         </header>
 
         {discord && <Surface glow className="nxt5-community-feature nxt5-enter">
@@ -63,7 +63,7 @@ export default function SocialPage({ navigate, user }) {
           })}</ul></Surface>
         </section>}
         {!links.length && <Surface><p className="nxt5-community-empty">{t("Aucun lien vers les réseaux de NXT5 n’est disponible sur cette page.")}</p></Surface>}
-        <p id="social-new-tab" className="nxt5-social-link-note"><ArrowUpRight aria-hidden="true" size={15} />{t("Les liens vers les réseaux s’ouvrent dans un nouvel onglet.")}</p>
+        <p id="social-new-tab" className="nxt5-social-link-note"><ArrowUpRight aria-hidden="true" size={15} />{t("Liens ouverts dans un nouvel onglet.")}</p>
 
         <section id="contact" className="nxt5-contact-section" aria-label={t("Contacter NXT5")}>
           <PageHeader eyebrow={t("Besoin d’aide ?")} title={t("Contacter l’équipe")} subtitle={t("Choisis le contact adapté à ta demande.")} />
@@ -78,7 +78,7 @@ export default function SocialPage({ navigate, user }) {
               <div className="nxt5-contact-privacy">
                 <LifeBuoy aria-hidden="true" size={24} />
                 <h3>{t("Trouve qui contacter.")}</h3>
-                <p>{t("La page Contact explique comment signaler un problème technique ou demander de l’aide pour ton compte, tes données personnelles ou une publication Discord.")}</p>
+                <p>{t("Pour une aide technique, ton compte ou tes données, ouvre Contact.")}</p>
                 <PublicTextLink href="/contact" navigate={navigate}>{t("Consulter les contacts et les démarches")}<ArrowRight aria-hidden="true" size={16} /></PublicTextLink>
               </div>
             </Surface>

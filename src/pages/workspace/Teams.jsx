@@ -504,7 +504,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   }
 
   if (managementOnly) return <div className="nxt5-data-dense nxt5-teams-page nxt5-team-management-page">
-    <PageHeader eyebrow={t("Gestion de l’équipe")} title={selectedTeam ? <span className="team-manager-page-title"><span aria-hidden="true"><TeamAvatar team={selectedTeam} className="h-12 w-12" /></span><span>{selectedTeam.name}</span></span> : t("Gestion de l’équipe")} subtitle={t("Gère l’effectif, les invitations et les informations de ton équipe.")}>
+    <PageHeader eyebrow={t("Gestion de l’équipe")} title={selectedTeam ? <span className="team-manager-page-title"><span aria-hidden="true"><TeamAvatar team={selectedTeam} className="h-12 w-12" /></span><span>{selectedTeam.name}</span></span> : t("Gestion de l’équipe")} subtitle={t("Effectif, invitations et informations de l’équipe.")}>
       <LinkButton href="/mon-equipe" navigate={openAppPath} variant="ghost" icon={ArrowLeft}>{t("Retour à l’équipe")}</LinkButton>
     </PageHeader>
     {selectedTeam ? <div className="space-y-5">
@@ -522,7 +522,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
   return <div ref={pageRef} className="nxt5-teams-page" data-entry={showSetup ? "true" : undefined}><div className={!showSetup ? "team-identity-header" : undefined}>
     {!showSetup && <div className="team-identity-avatar" aria-hidden="true"><TeamAvatar team={selectedTeam} className="team-identity-image" /></div>}
-    <PageHeader eyebrow={showSetup ? t("Bienvenue dans NXT5") : t("Équipe")} title={showSetup ? pendingCreation ? t("Ton équipe est créée. On continue.") : setupIntent === "create" ? t("Créons ton espace d’équipe.") : setupIntent === "join" ? t("Retrouve ton équipe.") : t("Comment veux-tu commencer ?") : selectedTeam.name} subtitle={showSetup ? setupIntent === "choose" && !pendingCreation ? t("Choisis ta situation. On te guide pour la suite.") : undefined : [selectedTeam.tag, selectedTeam.region, t(activeRoster.length === 1 ? "{0} joueur actif" : "{0} joueurs actifs", [activeRoster.length])].filter(Boolean).join(" · ")}>{hasTeams && <>
+    <PageHeader eyebrow={showSetup ? t("Bienvenue dans NXT5") : t("Équipe")} title={showSetup ? pendingCreation ? t("Ton équipe est créée. On continue.") : setupIntent === "create" ? t("Créons ton espace d’équipe.") : setupIntent === "join" ? t("Retrouve ton équipe.") : t("Comment veux-tu commencer ?") : selectedTeam.name} subtitle={showSetup ? setupIntent === "choose" && !pendingCreation ? t("Crée une équipe ou rejoins-la.") : undefined : [selectedTeam.tag, selectedTeam.region, t(activeRoster.length === 1 ? "{0} joueur actif" : "{0} joueurs actifs", [activeRoster.length])].filter(Boolean).join(" · ")}>{hasTeams && <>
       {!showSetup && <Button type="button" icon={Clipboard} disabled={!activeRoster.length} title={activeRoster.length ? t("Copier le lien des titulaires et des remplaçants") : t("Ajoute un titulaire ou un remplaçant pour copier le multi OP.GG")} onClick={() => copyMultiOpggLink(activeRoster, "de l’équipe")}>{t("Copier le multi OP.GG")}</Button>}
       {canManageRoster && !showSetup && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>{t("Gestion de l’équipe")}</LinkButton>}
       {showSetup && <Button type="button" variant="ghost" icon={X} disabled={saving} onClick={closeSetup}>{t("Fermer les formulaires")}</Button>}

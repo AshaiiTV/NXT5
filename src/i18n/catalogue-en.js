@@ -1,4 +1,5 @@
 import { en as adminTeams } from "./admin-team-overrides.js";
+import { en as concise } from "./concise-overrides.js";
 import { en as nexus } from "./nexus-overrides.js";
 import { en as compositions } from './composition-overrides.js';
 import { en as home } from './home-overrides.js';
@@ -89,6 +90,7 @@ const matchKillMap = {
 export default { ...base, ...adminTeams, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...assistantRefresh, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap, ...compositions,
   ...debrief,
   ...nexus,
+  ...concise,
   "Tuto vidéo : importer une partie sur Windows": "Video tutorial: import a game on Windows",
   "YouTube · 2 min 31 · En français · Nouvel onglet": "YouTube · 2 min 31 · In French · New tab",
 };
