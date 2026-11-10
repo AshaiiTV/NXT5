@@ -15,8 +15,8 @@ const C = { ...PNG_THEME, secondary: PNG_THEME.muted, violet: "#C4B5FD" };
 export async function loadProfileShowcaseAssets(champion = "") {
   const [championArt, logo, mark] = await Promise.all([
     loadProfileChampionArt(champion),
-    pngLoadImage("/assets/brand/prisme/nxt5-prisme-640.webp"),
-    pngLoadImage("/assets/brand/nxt5-symbole-3d-256.webp"),
+    pngLoadImage("/assets/brand/prisme/nxt5-prisme-mono-640.png"),
+    pngLoadImage("/assets/brand/prisme/nxt5-prisme-5-256.webp"),
   ]);
   return { ...championArt, logo, mark };
 }
@@ -61,8 +61,7 @@ function artwork(ctx, assets, region) {
   if (drawProfileChampionArt(ctx, assets, region)) return true;
   const centerX = region.x + region.width / 2;
   const centerY = region.y + region.height / 2;
-  pngImageContain(ctx, assets.mark, centerX - 96, centerY - 124, 192, 192);
-  fit(ctx, t("Illustration indisponible"), centerX, centerY + 113, 26, C.secondary, 400, region.width - 20, "center");
+  pngImageContain(ctx, assets.mark, centerX - 140, centerY - 140, 280, 280);
   return false;
 }
 
@@ -87,7 +86,7 @@ function duration(seconds) {
 }
 
 function header(ctx, r, assets, { story = false, chapter = 0 } = {}) {
-  pngImageContain(ctx, assets.logo, 70, 66, 156, 49);
+  pngImageContain(ctx, assets.logo, 70, 58, 210, 70);
   fit(ctx, r.contextLabel || t("PARTIES SÉLECTIONNÉES"), 1006, 88, 24, C.text, 500, 690, "right");
   fit(ctx, r.dateLabel || t("Dates indisponibles"), 1006, 128, 24, C.secondary, 400, 690, "right");
   if (story) {
