@@ -4,6 +4,7 @@ import { readTrendsRoute } from "./trends-navigation.js";
 /** Keep contextual Help aligned with the view actually selected by the router. */
 export function guideSectionForRoute(route = {}) {
   const path = normalizePath(route.path || "/accueil");
+  if (path === "/nexus-rising") return "nexus-rising";
   const params = new URLSearchParams(route.search || "");
   const page = pageFromPath(path);
   if (page === "guide") return params.get("section") || "getting-started";

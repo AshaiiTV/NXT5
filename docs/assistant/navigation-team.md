@@ -2,26 +2,14 @@
 
 ## Démarrage
 
-Le parcours recommandé est : créer ou rejoindre une équipe, construire le roster, lier les comptes, importer une game, lire les statistiques ou tendances, puis créer une review.
+Depuis `/accueil`, créer ou rejoindre une équipe, puis suivre le prochain pas proposé selon le rôle et l’activité. Les profils joueurs peuvent être préparés dans Gestion de l’équipe ou créés pendant l’import. Les parties se trouvent dans `/games`, les débriefs dans `/rapports` et les analyses dans `/tendances`.
 
-## Équipe
+## Mon équipe et gestion
 
-La page `/equipes` présente les joueurs, les groupes Main Team et Subs, le staff et les principaux champions joués. Le groupe Main Team sert notamment à ouvrir ou copier l'OP.GG des titulaires sans inclure les remplaçants.
+`/mon-equipe` présente titulaires, remplaçants et encadrement. Copier le multi OP.GG réunit les titulaires **et** les remplaçants qui ont un Riot ID valide ; le staff est exclu. `/gestion-equipe` sert à créer les profils, choisir leur poste et leur statut dans l’effectif, lier les comptes NXT5 et régler les accès.
 
-## Gestion équipe
+Un écart de nombre de parties entre joueurs peut venir d’une association erronée dans un import, d’un doublon ou d’un changement de Riot ID. Vérifier d’abord la partie concernée dans `/games`.
 
-La page `/gestion-equipe` permet aux rôles autorisés de :
+## Mon profil
 
-1. Ajouter ou modifier un profil.
-2. Régler son nom, son rôle et son groupe Main Team ou Sub.
-3. Lier le bon compte NXT5 au profil.
-4. Attribuer un niveau d'accès.
-5. Créer une invitation temporaire.
-
-La section Santé des données se consulte aussi dans `/gestion-equipe`. Elle signale les points à vérifier dans le roster, les profils liés et les imports de l’équipe sélectionnée.
-
-Un écart de nombre de games entre deux joueurs vient généralement d'une mauvaise assignation de profil dans un import, d'un doublon ou d'un changement de Riot ID.
-
-## Mon Profil
-
-`/mon-profil` regroupe Synthèse, Champions, Pool, Historique et Coaching. Un profil vide doit d'abord être contrôlé dans Gestion équipe, puis dans les assignations des games importées.
+`/mon-profil` réunit Synthèse, Champions, Champions déclarés, Historique, Suivi et Carte & Wrapped. Les notes et carnets sont soumis aux droits d’accès. Si un profil semble vide, vérifier le compte lié dans Gestion de l’équipe puis les joueurs associés aux parties importées.

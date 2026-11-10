@@ -13,6 +13,7 @@ import { en as opponents } from './opponents-overrides.js';
 import { en as groupOpponents } from './group-opponents-overrides.js';
 import { en as draftIntelligence } from './draft-intelligence-overrides.js';
 import { en as helpFeatures } from './help-features-overrides.js';
+import { en as assistantRefresh } from './assistant-refresh-overrides.js';
 import { en as playerComparison } from './player-comparison-overrides.js';
 import { en as socialCalendar } from './social-calendar-overrides.js';
 import { en as matchRecap } from './match-recap-overrides.js';
@@ -85,7 +86,7 @@ const matchKillMap = {
   "Événements incomplets": "Incomplete events",
   "Exécution": "Execution",
 };
-export default { ...base, ...adminTeams, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap, ...compositions,
+export default { ...base, ...adminTeams, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...assistantRefresh, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap, ...compositions,
   ...debrief,
   ...nexus,
   "Tuto vidéo : importer une partie sur Windows": "Video tutorial: import a game on Windows",
