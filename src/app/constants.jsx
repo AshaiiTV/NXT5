@@ -52,7 +52,6 @@ export const PROFILE_VIEW_ROUTES = [
   { id: "pool", label: "Champion pool", path: "pool" },
   { id: "history", label: "Historique", path: "historique" },
   { id: "coaching", label: "Suivi", path: "coaching" },
-  { id: "showcase", label: "Carte & Wrapped", path: "carte" },
 ];
 
 export const AUTH_ROUTES = {

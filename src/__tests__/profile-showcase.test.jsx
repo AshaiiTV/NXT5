@@ -51,16 +51,30 @@ describe("player card and Wrapped", () => {
     expect(loadProfileShowcaseAssets).toHaveBeenLastCalledWith("Braum");
   });
 
-  it("keeps the default profile and offers a routed, keyboard reachable sixth section", async () => {
+  it("keeps five profile sections and opens the card through the legacy link", async () => {
     expect(profileViewFromPath("/mon-profil")).toBe("overview");
-    expect(profileViewFromPath("/mon-profil/carte")).toBe("showcase");
-    expect(profilePathFromView("showcase")).toBe("/mon-profil/carte");
+    expect(profileViewFromPath("/mon-profil/carte")).toBe("overview");
+    expect(profilePathFromView("overview")).toBe("/mon-profil");
     const change = vi.fn();
-    await mount(<ProfileNavigation activeId="showcase" onChange={change} />);
-    const tab = renderer.root.findByProps({ id: "profile-tab-showcase" });
+    await mount(<ProfileNavigation activeId="overview" onChange={change} />);
+    expect(renderer.root.findAllByProps({ role: "tab" })).toHaveLength(5);
+    expect(renderer.root.findAllByProps({ id: "profile-tab-showcase" })).toHaveLength(0);
+    const tab = renderer.root.findByProps({ id: "profile-tab-overview" });
     expect(tab.props["aria-selected"]).toBe(true);
     expect(tab.props.tabIndex).toBe(0);
-    expect(text(tab)).toContain("Carte & Wrapped");
+    expect(text(tab)).toContain("Synthèse");
+  });
+
+  it("shows the card on demand within Synthèse", async () => {
+    vi.stubGlobal("window", { location: new URL("https://nxt5.test/mon-profil?player=p1") });
+    const matches = rows.map((row) => ({ ...row.match, team_id: "t1", participants: [{ ...row, player_id: "p1", team_key: "ALLY", role: "ADC" }] }));
+    await mount(<PlayerUltimateProfile data={{ players: [{ ...player, team_id: "t1" }], matches, teams: [{ id: "t1", name: "Astral" }], matchCategories: [] }} selectedTeamId="t1" user={{ id: "reader" }} route={{ path: "/mon-profil", search: "?player=p1" }} navigate={vi.fn()} />);
+    expect(renderer.root.findAllByType("canvas")).toHaveLength(0);
+    const reveal = button("Afficher la carte et le Wrapped");
+    expect(reveal.props["aria-expanded"]).toBe(false);
+    await act(async () => reveal.props.onClick());
+    expect(renderer.root.findByType("canvas").props["aria-label"]).toContain("Nova, Astral");
+    expect(button("Masquer la carte et le Wrapped").props["aria-expanded"]).toBe(true);
   });
 
   it("uses current player and category data, flips the card and exports exactly the visible face", async () => {

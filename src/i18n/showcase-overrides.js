@@ -1,6 +1,15 @@
 // Reviewed product vocabulary for the player card and its Wrapped reader.
 export const en = {
   "Carte & Wrapped": "Card & Wrapped",
+  "Explore ta carte et les cinq chapitres du Wrapped à partir des parties sélectionnées.": "Explore your card and the five Wrapped chapters from the selected matches.",
+  "Afficher la carte et le Wrapped": "Show the card and Wrapped",
+  "Masquer la carte et le Wrapped": "Hide the card and Wrapped",
+  "Le profil réunit Synthèse, Champions joués, Champion pool, Historique et Suivi pour le joueur sélectionné. La carte et le Wrapped se trouvent dans Synthèse.": "The profile brings together Summary, Played champions, Champion pool, History and Tracking for the selected player. The card and Wrapped are in Summary.",
+  "Consulter Champions joués pour les résultats et les matchups, ou Champion pool pour les choix préparés dans Draft.": "Open Played champions for results and matchups, or Champion pool for picks prepared in Draft.",
+  "Dans Synthèse, afficher la carte et le Wrapped pour découvrir et exporter ton bilan personnel.": "In Summary, show the card and Wrapped to explore and export your personal recap.",
+  "La carte et le Wrapped se trouvent dans Synthèse. Ils utilisent les parties reliées au joueur dans la catégorie sélectionnée, sans attribuer une note de niveau.": "The card and Wrapped are in Summary. They use matches linked to the player in the selected category without assigning a skill rating.",
+  "Ouvrir la carte dans Synthèse": "Open the card in Summary",
+  "Dans Mon profil, choisir le joueur et la catégorie, puis afficher Carte & Wrapped dans Synthèse.": "In My profile, choose the player and category, then show Card & Wrapped in Summary.",
   "La carte": "The card",
   "Le Wrapped": "Wrapped",
   "Le bilan": "The overview",
@@ -19,6 +28,15 @@ export const en = {
 
 export const es = {
   "Carte & Wrapped": "Carta y Wrapped",
+  "Explore ta carte et les cinq chapitres du Wrapped à partir des parties sélectionnées.": "Explora tu carta y los cinco capítulos del Wrapped con las partidas seleccionadas.",
+  "Afficher la carte et le Wrapped": "Mostrar la carta y el Wrapped",
+  "Masquer la carte et le Wrapped": "Ocultar la carta y el Wrapped",
+  "Le profil réunit Synthèse, Champions joués, Champion pool, Historique et Suivi pour le joueur sélectionné. La carte et le Wrapped se trouvent dans Synthèse.": "El perfil reúne Resumen, Campeones jugados, Champion pool, Historial y Seguimiento para el jugador seleccionado. La carta y el Wrapped están en Resumen.",
+  "Consulter Champions joués pour les résultats et les matchups, ou Champion pool pour les choix préparés dans Draft.": "Abre Campeones jugados para ver resultados y enfrentamientos, o Champion pool para las elecciones preparadas en Draft.",
+  "Dans Synthèse, afficher la carte et le Wrapped pour découvrir et exporter ton bilan personnel.": "En Resumen, muestra la carta y el Wrapped para explorar y exportar tu balance personal.",
+  "La carte et le Wrapped se trouvent dans Synthèse. Ils utilisent les parties reliées au joueur dans la catégorie sélectionnée, sans attribuer une note de niveau.": "La carta y el Wrapped están en Resumen. Usan las partidas vinculadas al jugador en la categoría seleccionada sin asignar una valoración de nivel.",
+  "Ouvrir la carte dans Synthèse": "Abrir la carta en Resumen",
+  "Dans Mon profil, choisir le joueur et la catégorie, puis afficher Carte & Wrapped dans Synthèse.": "En Mi perfil, elige el jugador y la categoría y muestra Carta y Wrapped en Resumen.",
   "La carte": "La carta",
   "Le Wrapped": "Wrapped",
   "Le bilan": "El balance",
