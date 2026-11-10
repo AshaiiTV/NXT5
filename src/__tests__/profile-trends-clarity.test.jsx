@@ -3,11 +3,14 @@ import TestRenderer, { act } from "react-test-renderer";
 import { AlertTriangle } from "lucide-react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { PlayerUltimateProfile } from "../pages/workspace/PlayerUltimateProfile.jsx";
+import { ProfileShowcase } from "../components/profile/ProfileShowcase.jsx";
 import { ProfileNavigation } from "../pages/workspace/ProfileNavigation.jsx";
 import { TrendsOverview } from "../components/trends/TrendsOverview.jsx";
 import { ProgressionObjectives } from "../components/trends/ProgressionObjectives.jsx";
 import { SelectInput } from "../components/ui/Core.jsx";
 import { analysisCopy } from "../components/trends/analysis-copy.js";
+
+vi.mock("../utils/profile-showcase-canvas.js", () => ({ drawProfileShowcase: vi.fn(), loadProfileShowcaseAssets: vi.fn(async () => ({ art: null, logo: null, mark: null })) }));
 
 let renderer;
 afterEach(() => { act(() => renderer?.unmount()); renderer = null; vi.unstubAllGlobals(); });
@@ -15,15 +18,21 @@ const text = (node) => typeof node === "string" ? node : (node?.children || []).
 const mount = (element) => { act(() => { renderer = TestRenderer.create(element); }); return renderer; };
 
 describe("profile and analyses reading order", () => {
-  it("starts the profile with a next step, explains the first metrics, and retains scoped navigation", () => {
+  it("shows the Wrapped before one review prompt, keeps explanations folded, and retains scoped navigation", async () => {
+    vi.stubGlobal("document", { fonts: { ready: Promise.resolve() } });
     vi.stubGlobal("window", { location: new URL("https://nxt5.test/mon-profil?player=p1") });
     const navigate = vi.fn();
     const player = { id: "p1", team_id: "t1", name: "Joueur test", role: "MID" };
     const match = { id: "source-1", team_id: "t1", result: "Victoire", game_date: "2026-09-20", participants: [{ id: "row", player_id: "p1", team_key: "ALLY", role: "MID", champion: "Ahri", kills: 4, deaths: 2, assists: 6, kill_participation: 60 }] };
-    mount(<PlayerUltimateProfile data={{ players: [player], matches: [match], teams: [{ id: "t1" }] }} selectedTeamId="t1" user={{ id: "reader" }} route={{ path: "/mon-profil", search: "?player=p1" }} navigate={navigate} />);
+    await act(async () => { mount(<PlayerUltimateProfile data={{ players: [player], matches: [match], teams: [{ id: "t1" }] }} selectedTeamId="t1" user={{ id: "reader" }} route={{ path: "/mon-profil", search: "?player=p1" }} navigate={navigate} />); });
+    await act(async () => { await import("../components/profile/ProfileShowcase.jsx"); });
+    expect(renderer.root.findByType(ProfileShowcase).props.embedded).toBe(true);
     const panel = renderer.root.findByProps({ id: "profile-panel" });
     const content = text(panel);
-    expect(content.indexOf("À essayer à la prochaine session")).toBeLessThan(content.indexOf("Les résultats en un regard"));
+    expect(content.indexOf("Ton Wrapped")).toBeGreaterThanOrEqual(0);
+    expect(content.indexOf("Ton Wrapped")).toBeLessThan(content.indexOf("À vérifier en débrief"));
+    expect(content.indexOf("À vérifier en débrief")).toBeLessThan(content.indexOf("Données et méthode de cette édition"));
+    expect(renderer.root.findAllByProps({ className: "profile-showcase-card-facts" })).toHaveLength(1);
     expect(content).toContain("Part des éliminations de l’équipe");
     expect(content).toContain("Les CS comptent les sbires et monstres tués");
     expect(panel.findAllByType("details").every((detail) => !detail.props.open)).toBe(true);

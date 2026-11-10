@@ -81,7 +81,7 @@ function ShowcaseCanvas({ canvasRef, report, assets, view, chapter, onError }) {
   return <canvas ref={ref} width={1080} height={1620} role="img" aria-label={t(accessibleDescription(report, view, chapter))} className="profile-showcase-canvas" />;
 }
 
-export function ProfileShowcase({ player, rows = [], teamName = "", category = "", teammates = [], navigate, embedded = false }) {
+export function ProfileShowcase({ player, rows = [], teamName = "", category = "", teammates = [], navigate, embedded = false, summaryMetrics = [], afterVisual = null }) {
   const language = useLanguage();
   const report = useMemo(() => buildProfileShowcase({ player, rows, teamName, category: category || t("Toutes les parties"), teammates }), [player, rows, teamName, category, teammates, language]);
   const [mode, setMode] = useState("card");
@@ -189,11 +189,14 @@ export function ProfileShowcase({ player, rows = [], teamName = "", category = "
     return <div className={"profile-showcase-stage " + (mode === "story" ? "is-story" : "is-card") + " chapter-" + chapter} data-direction={direction} onKeyDown={navigateWithKeys}>
       <div className="profile-showcase-content">
       <section key={mode + "-" + chapter} className="profile-showcase-story" aria-label={mode === "story" ? t("Parcourir le Wrapped") : t("Bilan de la carte")}>
-        <p className="profile-showcase-eyebrow"><span />{mode === "story" ? String(chapter + 1).padStart(2, "0") + " / 05 · " + t(CHAPTERS[chapter]) : t("Édition joueur") + " / " + (report.role || "NXT5")}</p>
-        {embedded && mode === "card" && !inDialog ? <><h4 className="profile-showcase-headline">{t("Ton Wrapped, chapitre par chapitre.")}</h4><nav className="profile-showcase-chapter-index" aria-label={t("Chapitres du Wrapped")}><ol>{CHAPTERS.map((label, index) => <li key={label}><button type="button" onClick={() => openChapter(index)}><span className="profile-showcase-index-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><span className="profile-showcase-index-copy"><strong>{t(label)}</strong><small>{chapterTeaser(report, index)}</small></span><ArrowRight aria-hidden="true" /></button></li>)}</ol></nav></> : <h3 id={embedded && mode === "story" && !inDialog ? "profile-showcase-story-heading" : undefined} tabIndex={embedded && mode === "story" && !inDialog ? -1 : undefined} className="profile-showcase-headline">{mode === "story" ? <StoryHeadline report={report} chapter={chapter} /> : <>{t("Ta carte.")}<strong>{t("Tes résultats.")}</strong></>}</h3>}
+        <p className={`profile-showcase-eyebrow${embedded && mode === "card" && !inDialog ? " sr-only" : ""}`}><span />{mode === "story" ? String(chapter + 1).padStart(2, "0") + " / 05 · " + t(CHAPTERS[chapter]) : t("Édition joueur") + " / " + (report.role || "NXT5")}</p>
+        {embedded && mode === "card" && !inDialog ? <><h4 className="profile-showcase-headline">{t("Ton Wrapped")}</h4><nav className="profile-showcase-chapter-index" aria-label={t("Chapitres du Wrapped")}><ol>{CHAPTERS.map((label, index) => <li key={label}><button type="button" onClick={() => openChapter(index)}><span className="profile-showcase-index-number" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><span className="profile-showcase-index-copy"><small>{t(label)}</small><strong>{chapterTeaser(report, index)}</strong></span><ArrowRight aria-hidden="true" /></button></li>)}</ol></nav></> : <h3 id={embedded && mode === "story" && !inDialog ? "profile-showcase-story-heading" : undefined} tabIndex={embedded && mode === "story" && !inDialog ? -1 : undefined} className="profile-showcase-headline">{mode === "story" ? <StoryHeadline report={report} chapter={chapter} /> : <>{t("Ta carte.")}<strong>{t("Tes résultats.")}</strong></>}</h3>}
         {!embedded && <p className="profile-showcase-identity">{mode === "card" ? report.playerName + " · " + report.teamName : report.playerName}</p>}
-        {(!embedded || mode === "story" || inDialog) && <p className="profile-showcase-description">{mode === "card" ? t("Garde une carte de tes résultats et retrouve ton champion le plus joué, ta partie marquante et ton évolution dans le Wrapped.") : t(copy.description)}</p>}
+        {(!embedded || inDialog) && <p className="profile-showcase-description">{mode === "card" ? t("Garde une carte de tes résultats et retrouve ton champion le plus joué, ta partie marquante et ton évolution dans le Wrapped.") : t(copy.description)}</p>}
         {mode === "card" && <div className="profile-showcase-launch"><Button type="button" icon={Play} onClick={embedded && !inDialog ? () => openChapter(0) : openReader}>{t("Découvrir le Wrapped")}</Button>{(!embedded || inDialog) && <span>{t("5 chapitres · à ton rythme")}</span>}</div>}
+        {embedded && mode === "card" && !inDialog && <dl className="profile-showcase-card-facts">
+          {[["KDA", number(report.metrics.kda.value, 1)], ["CS / min", number(report.metrics.csPerMin.value, 1)], ["KP", number(report.metrics.kp.value, 0, " %")], ...summaryMetrics.filter((metric) => metric.label !== "Participation aux éliminations" && metric.value !== "—").map((metric) => [metric.label === "Dégâts moyens aux champions" ? "Dégâts / partie" : metric.label, metric.value])].filter(([, value]) => value !== "—").map(([label, value]) => <div key={label}><dt title={t(label)}>{t(label)}</dt><dd>{value}</dd></div>)}
+        </dl>}
         {embedded && mode === "story" && !inDialog && <Button type="button" variant="ghost" icon={ArrowLeft} onClick={returnToCard}>{t("Retour à la carte")}</Button>}
         {mode === "story" && chapter === 2 && report.highlight?.matchId && <a className="profile-text-action" href={"/games?match=" + encodeURIComponent(report.highlight.matchId)} onClick={(event) => { if (!navigate || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); if (inDialog) setExpanded(false); navigate("/games?match=" + encodeURIComponent(report.highlight.matchId)); }}>{t("Ouvrir la partie source")}<ArrowRight aria-hidden="true" /></a>}
         {mode === "story" && chapter === 3 && report.progression?.excludedCount > 0 && <p className="profile-showcase-meta">{t("{0} parties exclues : date ou mesure indisponible.", [report.progression.excludedCount])}</p>}
@@ -206,7 +209,7 @@ export function ProfileShowcase({ player, rows = [], teamName = "", category = "
           <ShowcaseCanvas canvasRef={inDialog ? undefined : canvasRef} report={report} assets={assets} view={view} chapter={chapter} onError={onRenderError} />
         </div>
         <figcaption>{t(currentLabel)}</figcaption>
-        {embedded && mode === "card" && !inDialog && <dl className="profile-showcase-card-facts"><div><dt>{t("KDA global")}</dt><dd>{number(report.metrics.kda.value, 1)}</dd></div><div><dt>{t("CS / min")}</dt><dd>{number(report.metrics.csPerMin.value, 1)}</dd></div><div><dt>{t("Participation (KP)")}</dt><dd>{number(report.metrics.kp.value, 0, " %")}</dd></div></dl>}
+
         {!ready && <p className="profile-showcase-status" role="status">{t("Préparation du visuel…")}</p>}
         {ready && champion && (view === "front" || mode === "story" && (chapter === 1 || chapter === 2)) && !assets.art && !renderError && <p className="profile-showcase-status">{t("Portrait du champion indisponible.")}{" "}<button type="button" onClick={() => setRetry((value) => value + 1)}>{t("Réessayer")}</button></p>}
         {renderError && <div role="alert" className="profile-showcase-error"><p>{t(renderError)}</p><Button type="button" variant="ghost" onClick={() => setRetry((value) => value + 1)}>{t("Réessayer")}</Button></div>}
@@ -215,9 +218,9 @@ export function ProfileShowcase({ player, rows = [], teamName = "", category = "
       <div className="profile-showcase-controls">
         {mode === "story" && <ChapterControls chapter={chapter} onChange={openChapter} />}
         <div className="profile-showcase-actions">
-          {mode === "card" && <Button type="button" variant="ghost" icon={Rotate3d} onClick={() => { setBack(!back); setExportStatus(""); }}>{t(back ? "Voir le recto" : "Voir le verso")}</Button>}
+          {mode === "card" && <Button type="button" variant="ghost" icon={Rotate3d} onClick={() => { setBack(!back); setExportStatus(""); }}>{t(embedded && !inDialog ? (back ? "Recto" : "Verso") : (back ? "Voir le recto" : "Voir le verso"))}</Button>}
           {!inDialog && <Button type="button" variant="ghost" icon={Expand} onClick={expand} disabled={!!renderError}>{t("Agrandir")}</Button>}
-          <Button type="button" variant="ghost" icon={exporting ? Loader2 : Download} onClick={download} disabled={exporting || !ready || !!renderError}>{exportLabel}</Button>
+          <Button type="button" variant="ghost" icon={exporting ? Loader2 : Download} onClick={download} disabled={exporting || !ready || !!renderError}>{embedded && !inDialog && !exporting ? t("Exporter") : exportLabel}</Button>
         </div>
         {exportStatus && <p role={exportFailed ? "alert" : "status"} className="profile-showcase-status">{t(exportStatus)}</p>}
         {mode === "story" && <p className="profile-showcase-reader-hint">{t("À ton rythme · flèches du clavier ou glissement sur le visuel")}</p>}
@@ -232,6 +235,7 @@ export function ProfileShowcase({ player, rows = [], teamName = "", category = "
       <p className="profile-showcase-meta">{t("{0} parties", [report.games])} · {report.dateLabel}</p>
     </div>}
     <div id="showcase-panel" role={embedded ? "region" : "tabpanel"} aria-label={embedded ? t("Carte et Wrapped du joueur") : undefined} aria-labelledby={embedded ? undefined : "showcase-tab-" + mode}>{renderStage()}</div>
+    {afterVisual}
     <details className="profile-disclosure profile-showcase-data"><summary>{t("Données et méthode de cette édition")}</summary>
       <p>{report.contextLabel} · {report.dateLabel}. {t(report.datedGames > 1 ? "{0} parties datées sur {1}" : "{0} partie datée sur {1}", [report.datedGames, report.games])}{t(". « — » indique une valeur indisponible.")}</p>
       <p>{t(copy.description)}{t(" Taux de victoire : ")}{pngPercent(report.results.rate)}{t(", sur ")}{report.results.known}{t(" résultats connus.")}</p>

@@ -70,6 +70,7 @@ describe("player card and Wrapped", () => {
     const matches = rows.map((row) => ({ ...row.match, team_id: "t1", participants: [{ ...row, player_id: "p1", team_key: "ALLY", role: "ADC" }] }));
     await mount(<PlayerUltimateProfile data={{ players: [{ ...player, team_id: "t1" }], matches, teams: [{ id: "t1", name: "Astral" }], matchCategories: [] }} selectedTeamId="t1" user={{ id: "reader" }} route={{ path: "/mon-profil", search: "?player=p1" }} navigate={vi.fn()} />);
     expect(renderer.root.findByType("canvas").props["aria-label"]).toContain("Nova, Astral");
+    expect(renderer.root.findAllByProps({ className: "profile-showcase-card-facts" })).toHaveLength(1);
     const section = renderer.root.findByProps({ id: "carte-wrapped" });
     expect(section.findAllByType("button").filter((node) => ["Le bilan", "Le champion signature", "La partie marquante", "L’évolution", "L’équipe"].some((label) => text(node).includes(label)))).toHaveLength(5);
     expect(renderer.root.findByProps({ className: "profile-content" }).children[0]).toBe(section);

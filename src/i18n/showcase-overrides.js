@@ -1,5 +1,10 @@
 // Reviewed product vocabulary for the player card and its Wrapped reader.
 export const en = {
+  "Exporter": "Export",
+  "Dégâts / partie": "Damage / match",
+  "Recto": "Front",
+  "Verso": "Back",
+  "Ton Wrapped": "Your Wrapped",
   "Carte & Wrapped": "Card & Wrapped",
   "Toutes": "All",
   "{0} parties · {1} victoires": "{0} matches · {1} wins",
@@ -43,6 +48,11 @@ export const en = {
 };
 
 export const es = {
+  "Exporter": "Exportar",
+  "Dégâts / partie": "Daño / partida",
+  "Recto": "Anverso",
+  "Verso": "Reverso",
+  "Ton Wrapped": "Tu Wrapped",
   "Carte & Wrapped": "Carta y Wrapped",
   "Toutes": "Todas",
   "{0} parties · {1} victoires": "{0} partidas · {1} victorias",

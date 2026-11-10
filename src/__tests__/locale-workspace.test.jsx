@@ -56,7 +56,8 @@ describe("translated workspace rendering", () => {
     expect(outputs.home).toContain("Session personnelle");
     expect(outputs.profile).toContain("Victoire");
     expect(outputs.match).toContain("Session personnelle");
-    expect(outputs.profile).toContain(t("Les résultats en un regard"));
+    expect(outputs.profile).toContain(t("Autres statistiques et aide à la lecture"));
+    expect(outputs.profile).toContain(t("Carte & Wrapped").replaceAll("&", "&amp;"));
     expect(outputs.objectives).toContain(t("Objectifs de la prochaine session"));
     expect(text(outputs.details)).toContain(t("champions"));
     expect(text(outputs.home)).toContain(language === "en" ? "3 recent matches" : "3 partidas recientes");

@@ -226,3 +226,20 @@
   .profile-metrics dd { margin-block: 8px; }
   .profile-next-step { padding: 16px; }
 }
+
+/* A visual summary: compact figures, one review prompt, explanations on demand. */
+.nxt5-profile-page[data-profile-view="overview"] .profile-showcase-section { gap: 12px; }
+.nxt5-profile-page[data-profile-view="overview"] .profile-review-layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding-bottom: 12px; align-items: center; }
+.nxt5-profile-page[data-profile-view="overview"] .profile-review h3 { font-size: 20px; margin: 8px 0 0; }
+.nxt5-profile-page[data-profile-view="overview"] .profile-next-step { padding: 0; border: 0; background: none; margin: 0; }
+.nxt5-profile-page[data-profile-view="overview"] .profile-next-step p { font-size: 14px; line-height: 1.6; }
+.nxt5-profile-page[data-profile-view="overview"] .profile-next-step .nxt5-control { margin-top: 12px; }
+@media (max-width: 720px) {
+  .nxt5-profile-page[data-profile-view="overview"] .profile-review-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+}
+.nxt5-profile-page[data-profile-view="overview"] .profile-showcase-intro { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.nxt5-profile-page[data-profile-view="overview"] .profile-showcase-intro:focus-within { position: static; width: auto; height: auto; clip-path: none; }
+@media (max-width: 720px) {
+  .nxt5-profile-page[data-profile-view="overview"] .profile-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-control { min-width: 44px; min-height: 44px; }
+}
