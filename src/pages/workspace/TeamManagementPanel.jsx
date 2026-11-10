@@ -115,10 +115,9 @@ export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveT
         <SelectInput label={t("Poste ou fonction")} value={playerForm.role} onChange={(role) => setPlayerForm({ ...playerForm, role, riotId: isStaffRole(role) ? "" : playerForm.riotId, opggUrl: isStaffRole(role) ? "" : playerForm.opggUrl, rosterStatus: isStaffRole(role) ? "INACTIVE" : role === "SUB" ? "SUB" : playerForm.rosterStatus === "INACTIVE" ? "AUTO" : playerForm.rosterStatus })}>{PROFILE_ROLES.map((role) => <option key={role} value={role}>{t(roleLabel(role))}</option>)}</SelectInput>
         <SelectInput label={t("Effectif")} value={playerForm.rosterStatus} onChange={(rosterStatus) => setPlayerForm({ ...playerForm, rosterStatus })} disabled={isStaffRole(playerForm.role) || playerForm.role === "SUB"}><option value="AUTO">{t("Automatique")}</option>{ROSTER_STATUS_OPTIONS.map((item) => <option key={item.id} value={item.id}>{t(item.label)}</option>)}</SelectInput>
         <div className="flex items-end"><Button type="submit" disabled={saving || !canManageRoster} icon={saving ? Loader2 : UserPlus} className="w-full">{isStaffRole(playerForm.role) ? t("Ajouter au staff") : t("Ajouter le joueur")}</Button></div>
-      </form> : <p className="mt-4 text-sm leading-6 text-slate-300">{t("Seul le staff peut ajouter des profils. Demande à ton capitaine, coach ou manager d’ajouter les joueurs.")}</p>}
+      </form> : <p className="mt-4 text-sm leading-6 text-slate-300">{t("Demande au staff d’ajouter les joueurs.")}</p>}
 
         </section>
-        {!canManageRoster && <p className="team-manager-help">{t("Seul le staff peut ajouter des profils. Demande à ton capitaine, coach ou manager d’ajouter les joueurs.")}</p>}
         {groups.filter((group) => group.players.length).map((group) => <section key={group.id} aria-label={group.label}>
           <h4 className="team-manager-group-title">{group.label}<span>{group.players.length}</span></h4>
           <ul className="team-manager-list">{[...group.players].sort((a, b) => PROFILE_ROLES.indexOf(a.role) - PROFILE_ROLES.indexOf(b.role)).map((player) => <li key={player.id}>
@@ -151,7 +150,7 @@ export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveT
           </li>)}</ul>
         </section>)}
         {canManageRoster && adding && <div className="team-import-next" aria-label={t("Après les joueurs")}>
-          <div><h5>{t("Ensuite, ajoute une partie")}</h5><p>{gameplayCount >= 5 ? t("Les profils joueurs sont prêts. Tu pourras vérifier qui a joué avant d’enregistrer la partie.") : t("Profils joueurs : {0}/5 minimum. Les membres du staff ne comptent pas parmi ces cinq joueurs.", [gameplayCount])}</p></div>
+          <div><h5>{t("Ensuite, ajoute une partie")}</h5><p>{gameplayCount >= 5 ? t("Profils prêts. Vérifie les joueurs lors de l’import.") : t("Profils joueurs : {0}/5 minimum. Les membres du staff ne comptent pas parmi ces cinq joueurs.", [gameplayCount])}</p></div>
           {gameplayCount >= 5 && <LinkButton href="/games?import=1" navigate={openAppPath} variant="ghost" icon={Upload}>{t("Importer une partie")}</LinkButton>}
         </div>}
       </Surface>
@@ -178,7 +177,7 @@ export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveT
           {activeCodes.length > 0 && canInvite && <Button type="button" variant="danger" onClick={onRevokeInvites} disabled={saving}>{t("Révoquer les invitations")}</Button>}
         </div>
       </div>
-        <div className="team-manager-toolbar team-manager-accounts-heading"><div><h3>{t("Comptes de l’équipe")}</h3><p className="team-manager-description">{t("Ces comptes peuvent se connecter à l’espace d’équipe. Les droits sont enregistrés dès leur modification.")}</p></div><Badge tone="purple">{members.length}</Badge></div>
+        <div className="team-manager-toolbar team-manager-accounts-heading"><div><h3>{t("Comptes de l’équipe")}</h3><p className="team-manager-description">{t("Ces comptes accèdent à l’équipe. Les droits sont enregistrés immédiatement.")}</p></div><Badge tone="purple">{members.length}</Badge></div>
         {!canInvite && <p className="team-manager-help">{t("Seuls le propriétaire, le capitaine et le manager peuvent créer une invitation.")}</p>}
         {!canManageMembers && <p className="team-manager-help">{t("Seuls le propriétaire et le capitaine peuvent modifier les droits d’accès.")}</p>}
         <ul className="team-manager-accounts">{members.map((member) => {

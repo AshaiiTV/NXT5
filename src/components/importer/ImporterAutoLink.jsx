@@ -79,7 +79,7 @@ export function ImporterAutoLink({ teamId, categories = [], canManage = false, b
       <Wand2 aria-hidden="true" />
       <div>
         <h3>{t("Import automatique")}</h3>
-        <p>{t("Lie NXT5 Importer à ton équipe une seule fois. Ensuite, chaque custom jouée avec l’Importer ouvert arrive ici toute seule, avec le côté, les postes et les joueurs reconnus.")}</p>
+        <p>{t("Lie l’Importer une fois. Les customs jouées avec l’app ouverte arrivent ici avec côté, postes et joueurs reconnus.")}</p>
       </div>
       <Button variant="ghost" icon={state.loading ? Loader2 : RefreshCw} disabled={state.loading} onClick={() => load()} className="importer-auto-refresh">{t("Actualiser")}</Button>
     </div>

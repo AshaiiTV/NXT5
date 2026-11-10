@@ -90,7 +90,7 @@ export function TrendEvolution({ matches = [], onOpenMatch }) {
         <div>
           <p className="trend-evolution-eyebrow">{t("Trajectoire de l’équipe")}</p>
           <h3 id={headingId}>{t("Une mesure, partie après partie")}</h3>
-          <p className="trend-evolution-description">{t("Repère les pics, les creux et les ruptures dans toute la sélection, puis ouvre la partie concernée.")}</p>
+          <p className="trend-evolution-description">{t("Repère les écarts et ouvre les parties concernées.")}</p>
         </div>
         <div className="trend-series-metric-control"><SelectInput label={t("Mesure à suivre")} value={metricKey} onChange={setMetricKey} aria-label={t("Mesure à suivre")}>{TREND_SERIES_METRICS.map(({ key, label }) => <option key={key} value={key}>{t(label)}</option>)}</SelectInput></div>
       </div>

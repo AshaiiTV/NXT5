@@ -988,13 +988,15 @@ export function buildFallbackAssistantResponse(message: unknown, matches: Assist
   const primary = selected[0] || getAssistantKnowledge(language)[0];
   const faq = bestFaq(message, selected);
   const sourcesByRelevance = faq ? [faq.source, ...selected.filter(entry => entry.id !== faq.source.id)] : selected;
-  const answer = faq
-    ? faq.faq.answer
+  const genericHelp = /(?:utiliser cette page|prochaine étape|où trouver la fonctionnalité|aide.moi sur la section|use this page|next step|where can i find the feature|help me with the .+ section of the guide|usar esta página|siguiente paso|dónde encuentro la función|ayúdame con la sección)/i.test(String(message || ''));
+  const details = !faq && genericHelp && primary.steps.length >= 4 ? primary.steps.slice(0, 4) : [];
+  const answer = faq ? faq.faq.answer : details.length
+    ? primary.summary
     : `${primary.summary}\n\n${primary.steps.slice(0, 4).map((step, index) => `${index + 1}. ${step}`).join('\n')}`;
   const suggestions = sourcesByRelevance.flatMap((entry) => entry.suggestions).filter((value, index, array) => array.indexOf(value) === index).slice(0, 3);
   const actions = sanitizeAssistantActions(sourcesByRelevance.slice(0, 2).map((entry) => ({ label: entry.actionLabel, path: entry.path })));
   const sources = sourcesByRelevance.slice(0, 3).map(({ id, title, path }) => ({ id, title, path }));
-  return { answer, actions, suggestions, sources, fallback: true };
+  return { answer, details, actions, suggestions, sources, fallback: true };
 }
 
 export function sanitizeAssistantActions(value: unknown): AssistantAction[] {

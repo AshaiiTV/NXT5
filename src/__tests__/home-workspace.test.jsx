@@ -359,7 +359,7 @@ describe("personal home debrief", () => {
   it("asks an unlinked player to link their profile instead of showing another player's notes", async () => {
     const renderer = await render(personalFixture({ userId: "unlinked" }));
     const panel = personalDebrief(renderer);
-    expect(text(panel)).toContain("relier ton compte à ton profil joueur");
+    expect(text(panel)).toContain("lier ton compte à ton profil");
     expect(text(panel)).not.toContain("Lumen");
     expect(panel.findAllByType("details")).toHaveLength(0);
     expect(panel.findByType("a").props.href).toBe("/mon-equipe");
@@ -402,7 +402,7 @@ describe("personal home debrief", () => {
     const nextTeam = fixture({ teamId: "other", manager: false, userId: "teammate-user", players: props.data.players,
       reports: props.data.reports, matchArchives: props.data.matchArchives, matches: props.data.matches });
     await act(async () => renderer.update(<HomeWorkspace {...nextTeam} />));
-    expect(text(personalDebrief(renderer))).toContain("relier ton compte à ton profil joueur");
+    expect(text(personalDebrief(renderer))).toContain("lier ton compte à ton profil");
     expect(text(personalDebrief(renderer))).not.toContain("Alterna Scrim");
     expect(text(personalDebrief(renderer))).not.toContain("Note personnelle d’Orion");
   });

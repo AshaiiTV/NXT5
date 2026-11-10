@@ -47,7 +47,7 @@ it("sets the time zone only for the demo and explains it next to its introductio
   act(() => { renderer = TestRenderer.create(<DemoExplorer />); });
   const list = renderer.root.findByType(ImportedGames);
   expect(list.props.dateTimeZone).toBe("Europe/Paris");
-  expect(list.props.description).toContain("Horaires affichés à l’heure de Paris.");
+  expect(list.props.description).toContain("Horaires à l’heure de Paris.");
   expect(renderer.root.findAllByType("time").map(node => node.props.dateTime)).toEqual([
     "2026-09-23T18:00:00.000Z", "2026-09-22T18:00:00.000Z", "2026-09-21T18:00:00.000Z",
   ]);

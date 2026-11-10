@@ -87,7 +87,7 @@ function HomePlayerDebrief({ context, navigate, historyComplete }) {
       </div> : <p className="nxt5-home-section-intro">{!group ? t("Aucun groupe de parties n’est encore disponible.") : !report ? t("Le débrief de ce groupe n’est pas encore disponible.") : t("Ce débrief ne contient pas encore de passage attribuable à ton profil.")}</p>}
       {report && <PublicTextLink href={reportPath(report)} navigate={navigate} className="nxt5-home-text-link">{t("Relire le débrief")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>}
     </> : <>
-      <p className="nxt5-home-section-intro">{t("Demande à ton responsable de relier ton compte à ton profil joueur pour retrouver ici tes remarques de débrief.")}</p>
+      <p className="nxt5-home-section-intro">{t("Demande au responsable de lier ton compte à ton profil pour voir tes notes.")}</p>
       <PublicTextLink href="/mon-equipe" navigate={navigate} className="nxt5-home-text-link">{t("Voir mon équipe")}<ArrowRight size={16} aria-hidden="true" /></PublicTextLink>
     </>}
   </section>;
@@ -98,7 +98,7 @@ function homeFocus(context, now, historyComplete) {
   if (!matches.length) return {
     kind: "start", title: "Prépare les premières parties de ton équipe.", subtitle: "Retrouve les parties, les débriefs et le planning de ton équipe.",
     label: "Pour commencer", heading: canImport ? "Ajoute votre première partie" : "Prends tes repères dans l’équipe",
-    text: canImport ? "Importe une partie pour retrouver son résumé et préparer votre premier débrief. Tu peux créer les profils joueurs pendant l’import." : "Retrouve les joueurs et le planning. Les parties apparaîtront ici dès leur ajout par le staff.",
+    text: canImport ? "Tu peux créer les profils joueurs pendant l’import, puis préparer le premier débrief." : "Consulte l’effectif et le planning. Les parties apparaîtront après leur import par le staff.",
     href: canImport ? "/games?import=1" : linkedPlayer ? `/mon-profil?player=${encodeURIComponent(linkedPlayer.id)}` : "/mon-equipe",
     action: canImport ? "Importer une partie" : linkedPlayer ? "Ouvrir mon profil" : "Voir mon équipe", icon: canImport ? Upload : Users,
   };
@@ -112,7 +112,7 @@ function homeFocus(context, now, historyComplete) {
   if (!historyComplete) return {
     kind: "active", title: "Ton espace équipe", subtitle: "Retrouve les parties, les débriefs et le planning de ton équipe.",
     label: "Parties", heading: matchDisplayName(latestMatch, "Partie de l’équipe"),
-    text: "Ouvre le résumé pour retrouver le résultat et les points à discuter avec l’équipe.",
+    text: "Ouvre le résumé pour voir le résultat et les points à discuter.",
     href: matchPath(latestMatch), action: "Voir la partie", icon: Swords,
   };
   const pending = unreviewedRecentMatches[0];
@@ -120,7 +120,7 @@ function homeFocus(context, now, historyComplete) {
     kind: "review", title: canReview ? "Place au débrief." : "Retrouve les dernières parties de ton équipe.",
     subtitle: `${countLabel(unreviewedRecentMatches.length, "partie récente", "parties récentes")} sans débrief enregistré.`,
     label: canReview ? "Votre prochain débrief" : "Votre dernière activité", heading: matchDisplayName(pending, "Partie de l’équipe"),
-    text: canReview ? "Reprends cette partie, note un point à garder et une action à travailler ensemble." : "Ouvre le résumé pour retrouver le résultat et les points à discuter avec l’équipe.",
+    text: canReview ? "Reprends cette partie, note un point à garder et une action à travailler ensemble." : "Ouvre le résumé pour voir le résultat et les points à discuter.",
     href: canReview ? reviewPath(pending) : matchPath(pending), action: canReview ? "Préparer le débrief" : "Voir la partie", icon: canReview ? FileText : Swords,
     secondary: canReview ? { href: matchPath(pending), label: "Voir la partie" } : null,
   };
@@ -129,7 +129,7 @@ function homeFocus(context, now, historyComplete) {
     const report = context.reportForMatch(recent);
     const draft = report?.discord_status === "draft";
     return {
-      kind: "active", title: draft ? "Ton débrief est en cours." : "Reprends le dernier débrief de ton équipe.", subtitle: "Retrouve le débrief de votre dernière partie et les points à travailler pour la suite.",
+      kind: "active", title: draft ? "Ton débrief est en cours." : "Reprends le dernier débrief de ton équipe.", subtitle: "Retrouve le dernier débrief et les points à travailler.",
       label: draft ? "Brouillon · staff uniquement" : "À reprendre ensemble", heading: report?.title || matchDisplayName(recent, "Votre dernière partie"),
       text: draft ? "Reprends ce brouillon avant de le partager avec l’équipe." : "Relis les observations de l’équipe avant la prochaine séance.",
       href: report ? reportPath(report) : matchPath(recent), action: report ? draft ? "Reprendre le débrief" : "Relire le débrief" : "Voir la partie", icon: FileText,

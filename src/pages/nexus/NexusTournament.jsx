@@ -108,7 +108,7 @@ export function NexusSeasonManager({ data, seasonId, setSeasonId, busy, action, 
     {showCreate && <form className="nexus-form nexus-season-form" aria-label={t("Nouvelle saison")} onSubmit={event => { event.preventDefault(); action({ action: "createSeason", ...form }, result => { setForm(defaults); setShowCreate(false); setSeasonId(result.season.id); }); }}>
       <TextInput label={t("Nom de la saison")} value={form.name} onChange={name => setForm(previous => ({ ...previous, name }))} required disabled={busy} maxLength={120} />
       <div><Button variant="ghost" type="button" disabled={busy} onClick={() => setForm(previous => ({ ...previous, format:"round_robin",legs:1,regularBestOf:3,playoffEnabled:true,playoffFormat:"double_elimination",doubleVariant:"nexus_site",playoffSize:6,playoffBestOf:3,upperFinalBestOf:3,finalBestOf:5,resetFinal:false,tieBreakers:["headToHead","gameDifference"],rulesConfirmed:false }))}>{t("Reprendre le format bêta")}</Button></div>
-      <p className="nexus-muted">{t("Le format bêta est un point de départ. Il ne confirme pas les règles de la Saison I.")}</p>
+      <p className="nexus-muted">{t("Ce format bêta ne fixe pas les règles de la Saison I.")}</p>
       <RulesFields value={form} onChange={(key,value) => setForm(previous => ({ ...previous, [key]: value }))} disabled={busy} />
       <p className="nexus-muted">{t("La saison sera créée en brouillon. Ouvre ensuite les inscriptions quand ses règles sont prêtes.")}</p>
       <div><Button type="submit" disabled={busy || !form.name.trim()}>{t("Créer le brouillon")}</Button></div>

@@ -33,7 +33,7 @@ export function ImporterDownloadPanel({ fileImporting, hasTeam, hasPreview, onIm
           {hasPreview && <Check className="importer-file-check" aria-hidden="true" />}
           <div>
             <h3 id="importer-download-title">{hasPreview ? t("Fichier chargé") : t("Ajoute le fichier de ta partie")}</h3>
-            <p>{hasPreview ? t("Rien n’est encore enregistré.") : t("Choisis le fichier .json créé par NXT5 Importer. Tu pourras vérifier les équipes et les joueurs avant l’enregistrement.")}</p>
+            <p>{hasPreview ? t("Rien n’est encore enregistré.") : t("Choisis le fichier .json de NXT5 Importer, puis vérifie équipes et joueurs.")}</p>
           </div>
         </div>
         <div className="importer-file-actions">
@@ -47,7 +47,7 @@ export function ImporterDownloadPanel({ fileImporting, hasTeam, hasPreview, onIm
         {children && <div className="importer-file-progress">{children}</div>}
         {!hasPreview && <details className="importer-download-details mt-5 border-t border-cyan-100/10">
           <summary className="min-h-11 cursor-pointer py-3 text-sm font-semibold text-white">{t("Pas encore de fichier ? Obtenir NXT5 Importer")}</summary>
-          <p className="max-w-2xl text-sm leading-6 text-slate-300">{t("Ouvre League of Legends sur ton ordinateur, puis utilise NXT5 Importer pour exporter ta partie. Reviens ici avec le fichier .json obtenu.")}</p>
+          <p className="max-w-2xl text-sm leading-6 text-slate-300">{t("Ouvre League of Legends, exporte la partie avec NXT5 Importer, puis ajoute le .json ici.")}</p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="w-full sm:w-72">
             <SelectInput label={t("Version de l’application")} value={selectedVersion} onChange={setSelectedVersion}>

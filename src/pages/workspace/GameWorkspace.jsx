@@ -799,7 +799,7 @@ function MatchTimelineReview({ match, teamName, enemyName, loading = false, erro
       </div>
       <div className="match-timeline-perspective"><span className="match-timeline-team is-ally">{ownName}</span><span className="match-timeline-team is-enemy">{enemyName || t("Adversaire")}</span><p>{t("Les scores et écarts se lisent toujours dans cet ordre.")}</p></div>
       <div className="match-timeline-phases" aria-live="polite" aria-atomic="false">
-        {events.length ? phases.filter((phase) => selectedPhase === "all" || phase.id === selectedPhase).map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} teamName={teamName} />) : <div className="match-timeline-empty"><Shield aria-hidden="true" /><div><strong>{t("Aucun moment clé exploitable")}</strong><p>{t("Ce fichier ne permet pas de reconstituer les moments clés de la partie. Les statistiques finales restent consultables au-dessus.")}</p></div></div>}
+        {events.length ? phases.filter((phase) => selectedPhase === "all" || phase.id === selectedPhase).map((phase) => <TimelinePhaseColumn key={phase.id} phase={phase} kills={kills} match={match} teamName={teamName} />) : <div className="match-timeline-empty"><Shield aria-hidden="true" /><div><strong>{t("Aucun moment clé exploitable")}</strong><p>{t("Chronologie indisponible pour ce fichier. Les statistiques finales restent visibles.")}</p></div></div>}
       </div>
       <ReadingDetails className="match-timeline-method" title={t("Comment lire ces données")}><p>{t("Les échanges regroupent des éliminations espacées de 24 secondes au maximum. Ils peuvent réunir des actions éloignées : ils ne prouvent ni un combat collectif ni sa cause.")}</p><p>{t("Le journal retient les objectifs, certaines structures et les échanges de 3 éliminations ou plus, ou avec un écart d’au moins 2. L’or provient du dernier relevé antérieur disponible, pas de la seconde exacte de l’action.")}</p></ReadingDetails>
     </div>}
@@ -903,7 +903,7 @@ function DeathContextPanel({ match }) {
   const topRepeated = data.repeated[0];
   const objectives = objectiveEvents(match);
   return <section className="games-analysis-section match-reading-chapter match-reading-deaths">
-    <DeepReadingHeading number="01" title={t("Ce qui entoure les morts")} description={t("Relie le moment, le joueur et l’objectif. La chronologie donne des indices, pas la cause d’une mort.")} />
+    <DeepReadingHeading number="01" title={t("Ce qui entoure les morts")} description={t("Relie le moment, le joueur et l’objectif sans déduire la cause.")} />
     <div className="match-death-reading">
       <div className="match-death-observed">
         <p className="match-reading-eyebrow"><Eye aria-hidden="true" />{t("Observé dans les événements")}</p>

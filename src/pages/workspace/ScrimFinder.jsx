@@ -224,7 +224,7 @@ export function ScrimFinder({ data, selectedTeamId, currentMember, user, pushToa
   </div>;
 
   return <div className="space-y-4 scrim-page">
-    <PageHeader eyebrow={t("Équipe")} title={t("Scrims")} subtitle={t("Publie un créneau, réponds aux propositions des autres équipes NXT5 et confirme : la séance arrive dans les deux plannings.")}>
+    <PageHeader eyebrow={t("Équipe")} title={t("Scrims")} subtitle={t("Publie un créneau, réponds et confirme : le scrim rejoint les deux plannings.")}>
       <Button variant="ghost" icon={state.loading ? Loader2 : RefreshCw} disabled={state.loading} onClick={() => load()}>{t("Actualiser")}</Button>
     </PageHeader>
     {state.error && <Surface className="scrim-card"><div role="alert" className="scrim-error"><p>{state.error}</p><Button variant="ghost" icon={RefreshCw} onClick={() => load()}>{t("Réessayer")}</Button></div></Surface>}

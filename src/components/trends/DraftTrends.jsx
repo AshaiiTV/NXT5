@@ -255,7 +255,7 @@ function DraftTrendsModule({ model, onOpenSources, sourceGamesForMatches, detail
   return <Surface className="draft-trends-surface">
     <div className="draft-trends-content">
       <header className="draft-module-heading">
-        <div><h3>{t("Les choix de champions de l’équipe")}</h3><p className="draft-description">{t("La draft est le choix des champions avant la partie. Compare les habitudes de l’équipe et ouvre les parties pour comprendre leurs résultats.")}</p></div>
+        <div><h3>{t("Les choix de champions de l’équipe")}</h3><p className="draft-description">{t("Compare les drafts et ouvre les parties pour comprendre les résultats.")}</p></div>
         <p className="draft-context">{active.games}{t(active.games > 1 ? " drafts" : " draft")}{t(active.games > 1 ? " disponibles" : " disponible")}</p>
       </header>
       {!active.games ? <p className="draft-empty">{t("Les champions et les compositions apparaîtront avec les participants de tes parties importées.")}</p> : <>

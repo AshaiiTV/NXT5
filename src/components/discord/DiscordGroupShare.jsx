@@ -94,7 +94,7 @@ function DiscordGroupShareForm({ teamId, archiveId, archiveName, onClose, return
   }
   return <GameOperationDialog title={t("Exporter le groupe sur Discord")} description={archiveName || t("Groupe sélectionné")} onClose={onClose} busy={busy} returnFocusRef={returnFocusRef}>
     <div className="discord-share discord-share-content">
-      <p>{t("Le bot envoie un seul bilan du groupe avec son visuel dans le salon de l’équipe. Toutes les parties du groupe sont prises en compte.")}</p>
+      <p>{t("Le bot publie un bilan unique et son visuel pour toutes les parties du groupe.")}</p>
       <DiscordFeedback loading={refreshing} error={metadataError || previewError || action.error} />
       {connection.data?.configured === false && <p>{t("Le bot Discord n’est pas encore disponible.")}</p>}
       {connection.data?.configured && !connected && !connection.loading && !metadataError && <p>{t("Relie le bot au serveur Discord de cette équipe. ")}<a className="discord-link" href="/bot-discord">{t("Configurer Bot Discord")}</a></p>}
