@@ -13,28 +13,28 @@ const FEATURES = [
   {
     id: "analyse", icon: BarChart3, label: "Analyse de parties",
     title: "Examiner les résultats des parties.",
-    text: "Retrouve le résultat, les écarts entre équipes et les statistiques des joueurs. Compare plusieurs parties dans Analyses et rouvre la partie à l’origine d’une observation.",
+    text: "Résultats, écarts et statistiques des joueurs. Rouvre les parties sources depuis Analyses.",
     detail: "Dans Analyses, compare des périodes ou des catégories de parties pour préparer les questions du prochain débrief. Tiens compte du nombre de parties et des données manquantes pour interpréter les tendances.",
     items: ["Statistiques d’équipe et détail des joueurs", "Chronologie des objectifs et des combats, selon les données importées", "Comparaison de périodes et suivi des champions joués"],
   },
   {
     id: "coaching", icon: FileText, label: "Coaching et débriefs",
     title: "Noter les actions à travailler.",
-    text: "Relie le débrief à ses parties sources. Rassemble les observations, les questions du staff et les objectifs des joueurs avant la prochaine séance.",
+    text: "Relie les parties, les observations et les objectifs du prochain débrief.",
     detail: "Les profils joueurs réunissent les parties, les champions et le suivi individuel. Retrouve les adversaires rencontrés avec chaque champion et leurs statistiques pour préparer les points à discuter avec le joueur.",
     items: ["Débriefs associés aux parties", "Objectifs et notes de suivi des joueurs", "Statistiques par champion et adversaire rencontré"],
   },
   {
     id: "draft", icon: Swords, label: "Draft et champions",
     title: "Préparer les cinq choix ensemble.",
-    text: "Déclare les champions préparés par chaque joueur, puis compose les cinq rôles. Distingue la maîtrise déclarée de ce que montrent les parties jouées.",
+    text: "Prépare les champions des cinq rôles. Compare la maîtrise déclarée aux parties jouées.",
     detail: "Distingue les champions déclarés par les joueurs ou le staff de ceux joués dans les parties importées. Avant l’entraînement, discute avec l’équipe des statuts de préparation et des compositions enregistrées.",
     items: ["Champions préparés par joueur et par rôle", "Statuts de maîtrise déclarés par l’équipe", "Préparation et conservation des compositions"],
   },
   {
     id: "organisation", icon: CalendarDays, label: "Équipe et planning",
     title: "Retrouver qui joue et quand.",
-    text: "Réunis titulaires, remplaçants et encadrement. Les disponibilités partagées aident à préparer entraînements, matchs et débriefs dans le planning.",
+    text: "Retrouve l’effectif et les disponibilités pour planifier les séances.",
     detail: "Le manager peut organiser les rendez-vous, le coach préparer les débriefs et les joueurs retrouver le travail prévu. Les droits dans l’équipe déterminent les actions accessibles à chacun.",
     items: ["Effectif, rôles et profils joueurs", "Disponibilités partagées", "Séances d’entraînement, matchs et débriefs"],
   },
@@ -69,8 +69,8 @@ export function FeaturesPage({ navigate, user }) {
       <header className="nxt5-features-intro nxt5-public-intro">
         <div className="nxt5-features-intro-copy">
         <p className="nxt5-entry-eyebrow">{t("Les outils NXT5")}</p>
-        <h1>{t("Analyse, coaching et organisation pour ton équipe League of Legends.")}</h1>
-        <p>{t("Retrouve les parties et les joueurs de ton équipe dans NXT5. Compare les résultats, note tes observations et prépare les points à travailler à l’entraînement.")}</p>
+        <h1>{t("Ton équipe League of Legends, en clair.")}</h1>
+        <p>{t("Compare les parties, note tes observations et prépare la prochaine séance.")}</p>
         <div className="nxt5-entry-actions"><LinkButton href="/demo" navigate={navigate} icon={ArrowRight}>{t("Essayer la démo")}</LinkButton><LinkButton href={user ? "/mon-equipe" : "/creer-un-compte"} navigate={navigate} variant="ghost">{user ? t("Ouvrir mon équipe") : t("Créer mon espace équipe")}</LinkButton></div>
         <p className="nxt5-features-access">{t("Accès gratuit. L’import nécessite Windows ou Mac et League of Legends ouvert ; la démo se consulte sans installation.")}</p>
         </div>
@@ -89,7 +89,7 @@ export function FeaturesPage({ navigate, user }) {
       </section>)}</div>
 
       <section className="nxt5-features-routine" aria-labelledby="routine-title">
-        <div className="nxt5-entry-section-heading"><p className="nxt5-entry-eyebrow">{t("Un usage concret")}</p><h2 id="routine-title">{t("Préparer le prochain entraînement.")}</h2><p>{t("Après une série de scrims (parties d’entraînement entre équipes), prépare la séance suivante avec ton équipe.")}</p></div>
+        <div className="nxt5-entry-section-heading"><p className="nxt5-entry-eyebrow">{t("Un usage concret")}</p><h2 id="routine-title">{t("Préparer le prochain entraînement.")}</h2><p>{t("Après les scrims, prépare la séance suivante.")}</p></div>
         <ol className="nxt5-entry-steps">{[
           ["Réunir les parties", "Importe les matchs de la séance et retrouve-les dans leur contexte."],
           ["Choisir les faits utiles", "Compare les parties et vérifie les observations avec les joueurs."],

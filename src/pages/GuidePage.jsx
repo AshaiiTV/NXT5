@@ -89,7 +89,7 @@ export default function GuidePage({ route, navigate, onOpenAssistant }) {
   const selectSection = (id) => navigate?.(`/guide?section=${encodeURIComponent(id)}`);
 
   return <div className="min-w-0 nxt5-guide-page">
-    <PageHeader eyebrow={t("Guide NXT5")} title={t("Que veux-tu faire ?")} subtitle={t("Choisis une rubrique pour suivre les étapes et ouvrir la page correspondante.")} />
+    <PageHeader eyebrow={t("Guide NXT5")} title={t("Que veux-tu faire ?")} subtitle={t("Choisis un sujet pour voir les étapes.")} />
     <div className="nxt5-guide-layout">
       <nav aria-label={t("Sommaire du guide")} className="nxt5-guide-nav">
         <label className="nxt5-guide-mobile-label">{t("Rubrique du guide")}<select value={current.id} onChange={(event) => selectSection(event.target.value)}>{GUIDE_SECTIONS.map((section) => <option key={section.id} value={section.id}>{t(section.label)}</option>)}</select></label>

@@ -115,7 +115,9 @@ export function SocialLogin({ flow = "login", rememberMe = false, disabled = fal
       {providers.map((provider) => <ProviderSignInButton key={provider.id} provider={provider} disabled={disabled || Boolean(busy)} loading={busy === provider.id} onClick={() => start(provider.id)} />)}
     </div><p className="nxt5-social-divider">{t("Ou avec ton e-mail")}</p></>}
     {busy && <p className="mt-3 text-center text-sm text-slate-300" role="status">{t("Ouverture de ")}{t(providerLabel(busy))}…</p>}
-    {error && <div className="mt-3 space-y-2"><Feedback>{t(error)}</Feedback>{!providers.length && <Button type="button" variant="ghost" onClick={() => setAttempt((value) => value + 1)}>{t("Réessayer")}</Button>}</div>}
+    {error && (!providers.length
+      ? <p role="alert" className="nxt5-social-inline-error">{t("Autres méthodes indisponibles.")} <button type="button" onClick={() => setAttempt((value) => value + 1)}>{t("Réessayer")}</button></p>
+      : <div className="mt-3"><Feedback>{t(error)}</Feedback></div>)}
   </section>;
 }
 

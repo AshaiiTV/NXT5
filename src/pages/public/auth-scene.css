@@ -57,7 +57,7 @@
   transform: perspective(400px) rotateX(54deg);
   mask-image: linear-gradient(90deg, transparent, #000 25% 75%, transparent);
 }
-.nxt5-auth-story-copy { position: relative; margin-top: 1.1rem; }
+.nxt5-auth-story-copy { position: relative; order: -1; margin-bottom: 1.1rem; }
 .nxt5-auth-immersive .nxt5-auth-story-copy .nxt5-entry-eyebrow { color: #bcb1e0; text-transform: uppercase; letter-spacing: .16em; font-size: .75rem; }
 .nxt5-auth-immersive .nxt5-auth-story h2 { margin: .85rem 0 0; font-size: clamp(2.3rem, 3.4vw, 3.15rem); letter-spacing: -.055em; line-height: 1.07; text-wrap: balance; }
 .nxt5-auth-story-copy > p:last-child { max-width: 29rem; margin-top: 1rem; color: #bcc6da; line-height: 1.7; font-size: 1rem; }
