@@ -41,7 +41,7 @@
 .player-comparison-row { --player-bar: #67e8f9; display: grid; grid-template-rows: var(--value-height) var(--tower-height) auto auto; grid-template-columns: minmax(0, 1fr); align-content: start; min-width: 0; text-align: center; }
 .player-comparison-row[data-role="JGL"] { --player-bar: #a5b4fc; }
 .player-comparison-row[data-role="MID"] { --player-bar: #c4b5fd; }
-.player-comparison-row[data-role="ADC"] { --player-bar: #e879f9; }
+.player-comparison-row[data-role="ADC"] { --player-bar: #c4b5fd; }
 .player-comparison-row[data-role="SUP"] { --player-bar: #93c5fd; }
 .player-comparison-identity { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; grid-row: 3; min-width: 0; padding: 22px 8px 0; }
 .player-comparison-identity > span { display: grid; place-items: center; flex: 0 0 42px; width: 44px; border: 1px solid color-mix(in srgb, var(--player-bar) 55%, transparent); border-radius: 12px; background: linear-gradient(145deg, color-mix(in srgb, var(--player-bar) 22%, #24314a), #28213f 70%); box-shadow: inset 0 1px #f0eeff38, 0 4px 14px #0508184d; }

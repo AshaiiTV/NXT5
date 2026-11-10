@@ -97,7 +97,7 @@
 .team-identity-avatar { flex: 0 0 84px; display: grid; place-items: center; width: 84px; height: 84px; margin-top: 2px; padding: 10px; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-panel); background: var(--nxt5-surface); }
 .team-identity-image { display: block; width: 62px; height: 62px; object-position: center; filter: none; }
 .team-identity-avatar picture { display: block; }
-.team-identity-header { align-items: center; margin-bottom: 24px; padding: 24px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: radial-gradient(ellipse at 0% 0%,rgba(103,232,249,.13),transparent 45%), radial-gradient(ellipse at 100% 100%,rgba(232,121,249,.13),transparent 50%), var(--nxt5-glass-background); box-shadow: var(--nxt5-glass-shadow); }
+.team-identity-header { align-items: center; margin-bottom: 24px; padding: 24px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: radial-gradient(ellipse at 0% 0%,rgba(103,232,249,.13),transparent 45%), radial-gradient(ellipse at 100% 100%,rgba(196,181,253,.13),transparent 50%), var(--nxt5-glass-background); box-shadow: var(--nxt5-glass-shadow); }
 .team-identity-header > .nxt5-page-header { margin-bottom: 0; padding: 0; border: 0; background: none; box-shadow: none; }
 .team-identity-header > .nxt5-page-header::before, .team-identity-header > .nxt5-page-header::after { display: none; }
 .team-identity-avatar { border-color: rgba(196,181,253,.52); background: linear-gradient(135deg,rgba(196,181,253,.18),rgba(139,92,246,.25) 55%,rgba(17,24,39,.8)); box-shadow: inset 1px 1px 0 var(--nxt5-glass-highlight), 0 6px 28px rgba(139,92,246,.19); }
@@ -105,19 +105,19 @@
 .team-roster-champion { border-color: rgba(196,181,253,.5); box-shadow: 0 3px 14px rgba(139,92,246,.16); }
 .team-roster-row:hover { background: linear-gradient(100deg,rgba(103,232,249,.05),rgba(139,92,246,.1),transparent); }
 .team-roster-staff li { padding: 12px 16px; border-color: #c4b5fd; background: linear-gradient(110deg,rgba(139,92,246,.12),transparent); }
-/* Roster glass: reflected facets above the identities, real champion art below. */
+/* Prisme: opaque roster cards keep identities and champion art readable. */
 .team-roster-list[data-roster="main"] { display: grid; gap: 12px; }
 .team-roster-list[data-roster="main"] > li { min-width: 0; border: 0; }
 .team-roster-list[data-roster="main"] .team-roster-row {
   position: relative; isolation: isolate; overflow: hidden; height: 100%; padding: 20px;
   grid-template-columns: 7rem minmax(0,1fr) minmax(200px,264px) 18px; gap: 20px;
   border: 1px solid rgba(196,181,253,.38); border-radius: 16px;
-  background: radial-gradient(ellipse at 0% 0%,rgba(103,232,249,.13),transparent 58%), linear-gradient(155deg,rgba(196,181,253,.15),rgba(139,92,246,.12) 38%,rgba(17,24,39,.94) 82%);
+  background: var(--nxt5-surface);
   box-shadow: inset 1px 1px 0 rgba(226,232,255,.16), inset -1px -1px 0 rgba(139,92,246,.08), 0 12px 28px rgba(2,6,17,.18);
   transition: border-color 180ms, box-shadow 180ms, transform 180ms;
 }
 .team-roster-list[data-roster="main"] .team-roster-row::before {
-  content: ""; position: absolute; z-index: -1; pointer-events: none; inset: 0;
+  content: none; position: absolute; z-index: -1; pointer-events: none; inset: 0;
   background: linear-gradient(135deg,rgba(226,232,255,.13),rgba(196,181,253,.03) 48%,transparent 49%);
   clip-path: polygon(0 0,100% 0,100% 14%,0 43%);
 }

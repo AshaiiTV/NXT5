@@ -54,7 +54,7 @@ describe("published immersive home", () => {
     const html = renderToStaticMarkup(<HomeScreen />);
     expect(html.match(/<h1(?:\s|>)/g)).toHaveLength(1);
     expect(html).toContain("Comprends tes parties.");
-    expect(html).toContain("/assets/home-motion/glass-poster.webp");
+    expect(html).toContain("/assets/brand/prisme/nxt5-prisme-1280.webp");
     expect(html).toContain('aria-label="Moment de la partie"');
     for (const href of ["/connexion", "/creer-un-compte", "/demo", "/fonctionnalites", "/mentions-legales", "/confidentialite", "/contact"])
       expect(html).toContain(`href="${href}"`);

@@ -64,24 +64,25 @@ export async function sendEmailVerificationEmail({ to, token }) {
     subject: 'Confirme ton adresse e-mail NXT5',
     text: `Bienvenue sur NXT5 !\n\nConfirme ton adresse e-mail pour activer les notifications de ton espace d'équipe :\n${verifyUrl}\n\nCe lien est valable 24h.\n\nSi tu n'as pas créé de compte sur NXT5, ignore cet e-mail.`,
     html: `
-      <div style="margin:0;padding:0;background:#f4f7fb;font-family:Inter,Arial,sans-serif;color:#e5eefb">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#f4f7fb">
+      <div style="margin:0;padding:0;background:#070a14;font-family:Inter,Arial,sans-serif;color:#e5eefb">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#070a14">
           <tr>
             <td align="center" style="padding:34px 14px">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;border-collapse:collapse;overflow:hidden;border-radius:30px;background:#050814;box-shadow:0 28px 80px rgba(5,8,20,.24)">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:660px;border-collapse:collapse;overflow:hidden;border-radius:16px;background:#050814;box-shadow:0 28px 80px rgba(5,8,20,.24)">
                 <tr>
-                  <td style="padding:0;background:linear-gradient(135deg,#07111f 0%,#050814 48%,#170b2b 100%)">
-                    <div style="height:6px;background:linear-gradient(90deg,#00d8ff 0%,#8b5cf6 55%,#ec4899 100%)"></div>
+                  <td style="padding:0;background:#11172a">
+                    <div style="height:6px;background:#7c3aed"></div>
                     <div style="padding:36px 34px 32px">
                       <div style="display:inline-block;margin:0 0 22px;padding:7px 12px;border:1px solid rgba(103,232,249,.32);border-radius:999px;background:rgba(8,145,178,.16);color:#a5f3fc;font-size:12px;font-weight:900;letter-spacing:.09em;text-transform:uppercase">Vérification e-mail</div>
+                      <img src="${htmlSiteUrl}/assets/brand/prisme/nxt5-prisme-mono-640.png" alt="NXT5" width="180" height="51" style="display:block;margin:0 0 24px;border:0" />
                       <h1 style="margin:0;color:#ffffff;font-size:32px;line-height:1.08;font-weight:900">Active ton accès NXT5</h1>
                       <p style="margin:18px 0 0;color:#dbeafe;font-size:16px;line-height:1.7">Bienvenue sur NXT5. Confirme cette adresse e-mail pour sécuriser ton compte et recevoir les notifications importantes de ton équipe.</p>
 
                       <div style="margin:30px 0 28px">
-                        <a href="${htmlVerifyUrl}" style="display:inline-block;border-radius:18px;background:linear-gradient(135deg,#22d3ee 0%,#3b82f6 48%,#d946ef 100%);color:#ffffff;text-decoration:none;padding:16px 24px;font-size:15px;font-weight:900;box-shadow:0 18px 42px rgba(34,211,238,.24)">Confirmer mon adresse</a>
+                        <a href="${htmlVerifyUrl}" style="display:inline-block;border-radius:2px;background:#7c3aed;color:#ffffff;text-decoration:none;padding:16px 24px;font-size:15px;font-weight:900;box-shadow:none">Confirmer mon adresse</a>
                       </div>
 
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;border-spacing:0">
                         <tr>
                           <td style="border:1px solid rgba(250,204,21,.24);border-radius:18px;background:rgba(113,63,18,.22);padding:17px 18px">
                             <p style="margin:0;color:#fef3c7;font-size:14px;line-height:1.6;font-weight:900">Lien valable pendant 24h</p>
@@ -92,7 +93,7 @@ export async function sendEmailVerificationEmail({ to, token }) {
 
                       <div style="margin-top:18px;border:1px solid rgba(148,163,184,.18);border-radius:18px;background:rgba(15,23,42,.58);padding:18px 18px 16px">
                         <p style="margin:0;color:#f8fafc;font-size:14px;line-height:1.6;font-weight:800">Le bouton ne s'ouvre pas ?</p>
-                        <p style="margin:8px 0 0;color:#a8b3c7;font-size:13px;line-height:1.6">Copie ce lien dans ton navigateur :</p>
+                        <p style="margin:8px 0 0;color:#b8c3dc;font-size:13px;line-height:1.6">Copie ce lien dans ton navigateur :</p>
                         <p style="margin:8px 0 0;color:#67e8f9;font-size:12px;line-height:1.55;word-break:break-all">${htmlVerifyUrl}</p>
                       </div>
 
@@ -101,7 +102,7 @@ export async function sendEmailVerificationEmail({ to, token }) {
                         <p style="margin:7px 0 0;color:#fecdd3;font-size:13px;line-height:1.6">Ignore cet e-mail. Aucun accès ne sera accordé sans validation du lien.</p>
                       </div>
 
-                      <p style="margin:24px 0 0;color:#64748b;font-size:12px;line-height:1.6">Cet e-mail a été envoyé automatiquement par NXT5 depuis ${htmlSiteUrl}. Ne transfère pas ce lien de vérification.</p>
+                      <p style="margin:24px 0 0;color:#92a0be;font-size:13px;line-height:1.6">Cet e-mail a été envoyé automatiquement par NXT5 depuis ${htmlSiteUrl}. Ne transfère pas ce lien de vérification.</p>
                     </div>
                   </td>
                 </tr>
@@ -128,25 +129,25 @@ export async function sendPasswordResetEmail({ to, name, resetUrl }) {
     subject,
     text: `Salut ${safeName},\n\nTu as demandé à réinitialiser ton mot de passe NXT5.\n\nOuvre ce lien dans les 30 prochaines minutes :\n${resetUrl}\n\nSi tu n'es pas à l'origine de cette demande, contacte le support NXT5 dès que possible :\n${supportUrl}`,
     html: `
-        <div style="margin:0;padding:0;background:#f4f7fb;font-family:Inter,Arial,sans-serif;color:#e5eefb">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#f4f7fb">
+        <div style="margin:0;padding:0;background:#070a14;font-family:Inter,Arial,sans-serif;color:#e5eefb">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#070a14">
             <tr>
               <td align="center" style="padding:32px 14px">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border-collapse:collapse;overflow:hidden;border-radius:28px;background:#070b16;box-shadow:0 24px 70px rgba(7,11,22,.22)">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border-collapse:collapse;overflow:hidden;border-radius:16px;background:#070b16;box-shadow:0 24px 70px rgba(7,11,22,.22)">
                   <tr>
-                    <td style="padding:0;background:linear-gradient(135deg,#07111f 0%,#050814 55%,#11152a 100%)">
-                      <div style="height:6px;background:linear-gradient(90deg,#00d8ff,#7c3aed,#22c55e)"></div>
+                    <td style="padding:0;background:#11172a">
+                      <div style="height:6px;background:#7c3aed"></div>
                       <div style="padding:34px 34px 30px">
                         <div style="display:inline-block;margin:0 0 22px;padding:7px 11px;border:1px solid rgba(103,232,249,.30);border-radius:999px;background:rgba(8,145,178,.14);color:#9beafe;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase">Sécurité du compte</div>
                         <h1 style="margin:0;color:#ffffff;font-size:30px;line-height:1.12;font-weight:900">Réinitialisation de ton mot de passe</h1>
                         <p style="margin:18px 0 0;color:#cbd5e1;font-size:16px;line-height:1.65">Salut ${htmlName},</p>
                         <p style="margin:10px 0 0;color:#e2e8f0;font-size:16px;line-height:1.65">On a reçu une demande pour modifier le mot de passe de ton compte NXT5. Utilise le bouton ci-dessous pour choisir un nouveau mot de passe.</p>
                         <div style="margin:28px 0 26px">
-                          <a href="${htmlResetUrl}" style="display:inline-block;border-radius:16px;background:#00d8ff;color:#020511;text-decoration:none;padding:15px 22px;font-size:15px;font-weight:900;box-shadow:0 16px 38px rgba(0,216,255,.24)">Changer mon mot de passe</a>
+                          <a href="${htmlResetUrl}" style="display:inline-block;border-radius:2px;background:#7c3aed;color:#ffffff;text-decoration:none;padding:15px 22px;font-size:15px;font-weight:900;box-shadow:none">Changer mon mot de passe</a>
                         </div>
                         <div style="border:1px solid rgba(148,163,184,.18);border-radius:18px;background:rgba(15,23,42,.56);padding:18px 18px 16px">
                           <p style="margin:0;color:#f8fafc;font-size:14px;line-height:1.6;font-weight:800">Ce lien expire dans 30 minutes.</p>
-                          <p style="margin:8px 0 0;color:#a8b3c7;font-size:13px;line-height:1.6">Si le bouton ne fonctionne pas, copie ce lien dans ton navigateur :</p>
+                          <p style="margin:8px 0 0;color:#b8c3dc;font-size:13px;line-height:1.6">Si le bouton ne fonctionne pas, copie ce lien dans ton navigateur :</p>
                           <p style="margin:8px 0 0;color:#67e8f9;font-size:12px;line-height:1.55;word-break:break-all">${htmlResetUrl}</p>
                         </div>
                         <div style="margin-top:18px;border:1px solid rgba(251,113,133,.24);border-radius:18px;background:rgba(127,29,29,.20);padding:16px 18px">
@@ -154,7 +155,7 @@ export async function sendPasswordResetEmail({ to, name, resetUrl }) {
                           <p style="margin:7px 0 0;color:#fecdd3;font-size:13px;line-height:1.6">Contacte le support NXT5 dès que possible afin que l'on puisse t'aider à sécuriser ton compte.</p>
                           <p style="margin:10px 0 0"><a href="${htmlSupportUrl}" style="color:#67e8f9;font-size:13px;font-weight:800;text-decoration:none">Contacter le support</a></p>
                         </div>
-                        <p style="margin:24px 0 0;color:#64748b;font-size:12px;line-height:1.6">Cet e-mail a été envoyé automatiquement par NXT5. Ne partage jamais ton lien de réinitialisation.</p>
+                        <p style="margin:24px 0 0;color:#92a0be;font-size:13px;line-height:1.6">Cet e-mail a été envoyé automatiquement par NXT5. Ne partage jamais ton lien de réinitialisation.</p>
                       </div>
                     </td>
                   </tr>
@@ -181,25 +182,25 @@ export async function sendInactivityReminderEmail({ to, name }) {
     subject: 'Ton espace NXT5 est toujours prêt',
     text: `Salut ${safeName},\n\nCela fait environ trois mois que ton compte NXT5 n'a pas été actif. Ton espace et tes données sont toujours disponibles.\n\nReprendre sur NXT5 : ${workspaceUrl}\n\nTu peux désactiver ce rappel dans tes paramètres : ${settingsUrl}`,
     html: `
-      <div style="margin:0;padding:0;background:#f4f7fb;font-family:Inter,Arial,sans-serif;color:#e5eefb">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#f4f7fb">
+      <div style="margin:0;padding:0;background:#070a14;font-family:Inter,Arial,sans-serif;color:#e5eefb">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#070a14">
           <tr>
             <td align="center" style="padding:32px 14px">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border-collapse:collapse;overflow:hidden;border-radius:28px;background:#070b16;box-shadow:0 24px 70px rgba(7,11,22,.22)">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border-collapse:collapse;overflow:hidden;border-radius:16px;background:#070b16;box-shadow:0 24px 70px rgba(7,11,22,.22)">
                 <tr>
-                  <td style="padding:0;background:linear-gradient(135deg,#07111f 0%,#050814 55%,#170b2b 100%)">
-                    <div style="height:6px;background:linear-gradient(90deg,#00d8ff,#7c3aed,#ec4899)"></div>
+                  <td style="padding:0;background:#11172a">
+                    <div style="height:6px;background:#7c3aed"></div>
                     <div style="padding:34px 34px 30px">
                       <div style="display:inline-block;margin:0 0 22px;padding:7px 11px;border:1px solid rgba(103,232,249,.30);border-radius:999px;background:rgba(8,145,178,.14);color:#9beafe;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase">Ton espace NXT5</div>
                       <h1 style="margin:0;color:#ffffff;font-size:30px;line-height:1.12;font-weight:900">Content de te revoir, ${htmlName}</h1>
                       <p style="margin:18px 0 0;color:#e2e8f0;font-size:16px;line-height:1.65">Cela fait environ trois mois que ton compte n'a pas été actif. Tes équipes et tes données sont toujours disponibles, exactement là où tu les as laissées.</p>
                       <div style="margin:28px 0 26px">
-                        <a href="${htmlWorkspaceUrl}" style="display:inline-block;border-radius:16px;background:linear-gradient(135deg,#22d3ee,#3b82f6 52%,#d946ef);color:#ffffff;text-decoration:none;padding:15px 22px;font-size:15px;font-weight:900;box-shadow:0 16px 38px rgba(34,211,238,.22)">Retrouver mon espace</a>
+                        <a href="${htmlWorkspaceUrl}" style="display:inline-block;border-radius:2px;background:#7c3aed;color:#ffffff;text-decoration:none;padding:15px 22px;font-size:15px;font-weight:900;box-shadow:none">Retrouver mon espace</a>
                       </div>
                       <div style="border:1px solid rgba(148,163,184,.18);border-radius:18px;background:rgba(15,23,42,.56);padding:17px 18px">
                         <p style="margin:0;color:#cbd5e1;font-size:13px;line-height:1.65">Ce rappel n'inclut aucune donnée d'équipe ou de jeu. Il est envoyé une seule fois par période d'inactivité.</p>
                       </div>
-                      <p style="margin:22px 0 0;color:#64748b;font-size:12px;line-height:1.7">Tu ne souhaites plus recevoir ce rappel ? <a href="${htmlSettingsUrl}" style="color:#67e8f9;text-decoration:none;font-weight:800">Modifie tes préférences d'e-mail</a>.</p>
+                      <p style="margin:22px 0 0;color:#92a0be;font-size:13px;line-height:1.7">Tu ne souhaites plus recevoir ce rappel ? <a href="${htmlSettingsUrl}" style="color:#67e8f9;text-decoration:none;font-weight:800">Modifie tes préférences d'e-mail</a>.</p>
                     </div>
                   </td>
                 </tr>
@@ -223,14 +224,14 @@ export async function sendSocialSignupEmail({ to, signupUrl }: { to: string; sig
 function notificationShell({ subject, html }) {
   const safeSubject = escapeHtml(subject);
   return `
-    <div style="margin:0;padding:0;background:#f4f7fb;font-family:Inter,Arial,sans-serif;color:#e5eefb">
-      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#f4f7fb">
+    <div style="margin:0;padding:0;background:#070a14;font-family:Inter,Arial,sans-serif;color:#e5eefb">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#070a14">
         <tr>
           <td align="center" style="padding:32px 14px">
-            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border-collapse:collapse;overflow:hidden;border-radius:28px;background:#070b16;box-shadow:0 24px 70px rgba(7,11,22,.22)">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border-collapse:collapse;overflow:hidden;border-radius:16px;background:#070b16;box-shadow:0 24px 70px rgba(7,11,22,.22)">
               <tr>
-                <td style="padding:0;background:linear-gradient(135deg,#07111f 0%,#050814 55%,#11152a 100%)">
-                  <div style="height:6px;background:linear-gradient(90deg,#00d8ff,#7c3aed,#22c55e)"></div>
+                <td style="padding:0;background:#11172a">
+                  <div style="height:6px;background:#7c3aed"></div>
                   <div style="padding:34px 34px 30px">
                     <div style="display:inline-block;margin:0 0 22px;padding:7px 11px;border:1px solid rgba(103,232,249,.30);border-radius:999px;background:rgba(8,145,178,.14);color:#9beafe;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase">Notification NXT5</div>
                     <h1 style="margin:0;color:#ffffff;font-size:30px;line-height:1.12;font-weight:900">${safeSubject}</h1>

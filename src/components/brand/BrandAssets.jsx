@@ -16,26 +16,25 @@ export function ResponsiveImage({ src, sources = [], alt, className = "", fetchP
   );
 }
 
-// Logo NXT5 : NXT en verre dépoli et le 5 de la page d’accueil, rendu en 3D (outil : tools/logo-verre).
-const LOGO = { src: "/assets/brand/nxt5-logo-3d.png", srcSet: "/assets/brand/nxt5-logo-3d-640.webp 640w, /assets/brand/nxt5-logo-3d-320.webp 320w", width: "1600", height: "573" };
-// Icône : le même 5 sur une tuile bleu nuit, pour les petites tailles et l’emblème d’équipe par défaut.
-const ICON = { src: "/assets/brand/nxt5-icone-3d-512.png", srcSet: "/assets/brand/nxt5-icone-3d-256.webp", width: "512", height: "512" };
+const LOGO = { src: "/assets/brand/prisme/nxt5-prisme-source.png", srcSet: "/assets/brand/prisme/nxt5-prisme-640.webp 640w, /assets/brand/prisme/nxt5-prisme-320.webp 320w", width: "1536", height: "432" };
+const MONO = "/assets/brand/prisme/nxt5-prisme-mono-blanc.svg";
+const ICON = { src: "/assets/brand/prisme/icon-512.png", width: "512", height: "512" };
 
 export function BrandLogo({ compact = false, className = "" }) {
   useLanguage();
   return (
     <div className={cx("flex items-center gap-3", className)}>
       <ResponsiveImage
-        src={LOGO.src}
-        sources={[{ srcSet: LOGO.srcSet }]}
+        src={compact ? MONO : LOGO.src}
+        sources={compact ? [] : [{ srcSet: LOGO.srcSet }]}
         sizes={compact ? "112px" : "(max-width: 639px) 220px, 300px"}
         alt="NXT5"
         width={LOGO.width}
         height={LOGO.height}
-        loading={compact ? "lazy" : "eager"}
+        loading="eager"
         decoding="async"
         className={cx(
-          "object-contain drop-shadow-[0_0_24px_rgba(139,92,246,.28)]",
+          "object-contain",
           compact ? "h-12 w-28 object-left" : "h-16 w-auto max-w-[220px] sm:max-w-[300px]"
         )}
       />
@@ -45,12 +44,12 @@ export function BrandLogo({ compact = false, className = "" }) {
 
 export function Nxt5Wordmark({ className = "", sizes, loading = "lazy" }) {
   useLanguage();
-  return <ResponsiveImage src={LOGO.src} sources={[{ srcSet: LOGO.srcSet }]} alt="NXT5" width={LOGO.width} height={LOGO.height} sizes={sizes} loading={loading} decoding="async" className={cx("object-contain drop-shadow-[0_0_18px_rgba(139,92,246,.26)]", className)} />;
+  return <ResponsiveImage src={MONO} alt="NXT5" width={LOGO.width} height={LOGO.height} sizes={sizes} loading={loading} decoding="async" className={cx("object-contain", className)} />;
 }
 
 export function BrandIcon({ className = "h-12 w-12", loading = "lazy", alt = "NXT5" }) {
   useLanguage();
-  return <ResponsiveImage src={ICON.src} sources={[{ srcSet: ICON.srcSet }]} alt={alt} width={ICON.width} height={ICON.height} loading={loading} decoding="async" className={cx("object-contain", className)} />;
+  return <ResponsiveImage src={ICON.src} alt={alt} width={ICON.width} height={ICON.height} loading={loading} decoding="async" className={cx("object-contain", className)} />;
 }
 
 export function TeamAvatar({ team, className = "h-12 w-12" }) {
@@ -58,7 +57,7 @@ export function TeamAvatar({ team, className = "h-12 w-12" }) {
   if (team?.avatar_data_url) {
     return <div className={cx("overflow-hidden rounded-xl border border-cyan-300/25 bg-black/30", className)}><img src={team.avatar_data_url} alt={team.name || t("Team")} className="h-full w-full object-cover" loading="lazy" decoding="async" style={{ transform: "scale(" + Number(team.avatar_zoom || 1) + ")", objectPosition: Number(team.avatar_x ?? 50) + "% " + Number(team.avatar_y ?? 50) + "%" }} /></div>;
   }
-  return <BrandIcon className={className} />;
+  return <BrandIcon className={className} loading="eager" />;
 }
 
 export function RoleIcon({ role, className = "h-7 w-7", lightweight = false }) {

@@ -3,7 +3,7 @@
  * Usage: node tools/generate-social-card.mjs
  *
  * Brand reference: the single NXT5 charter linked by this checkout's AGENTS.md.
- * Logo: glass wordmark from tools/logo-verre/build-brand.mjs; symbol: the homepage glass 5.
+ * Logo and symbol: the selected Prisme assets in public/assets/brand/prisme.
  * The former lance-and-wings emblem and the nxt5-mark assets are retired.
  */
 import { writeFile } from 'node:fs/promises';
@@ -18,6 +18,7 @@ const localPath = (relativePath) => fileURLToPath(new URL(relativePath, root));
 const width = 1200;
 const height = 630;
 const fontFamily = 'NXT5 Social';
+GlobalFonts.registerFromPath(localPath('public/assets/fonts/chakra-petch/chakra-petch-latin-600-italic.woff2'), 'NXT5 Display');
 
 for (const weight of [400, 500, 600, 700]) {
   const path = require.resolve(`@fontsource/inter/files/inter-latin-${weight}-normal.woff2`);
@@ -26,10 +27,9 @@ for (const weight of [400, 500, 600, 700]) {
   }
 }
 
-const [wordmark, glassFive, atmosphere, ...roles] = await Promise.all([
-  loadImage(localPath('public/assets/brand/nxt5-logo-3d.png')),
-  loadImage(localPath('public/assets/home-motion/glass-poster.webp')),
-  loadImage(localPath('public/assets/home-motion/atmosphere.webp')),
+const [wordmark, glassFive, ...roles] = await Promise.all([
+  loadImage(localPath('public/assets/brand/prisme/nxt5-prisme-source.png')),
+  loadImage(localPath('public/assets/brand/prisme/nxt5-prisme-5-512.webp')),
   ...['top', 'jungle', 'middle', 'bottom', 'utility'].map(role => loadImage(localPath(`public/assets/roles/position-${role}.svg`))),
 ]);
 const canvas = createCanvas(width, height);
@@ -38,16 +38,6 @@ context.imageSmoothingEnabled = true;
 context.imageSmoothingQuality = 'high';
 
 pngBackground(context, width, height);
-context.save();
-context.globalAlpha = .48;
-context.drawImage(atmosphere, 0, 0, width, height);
-context.restore();
-const veil = context.createLinearGradient(0, 0, width, height);
-veil.addColorStop(0, 'rgba(17,24,39,.87)');
-veil.addColorStop(.62, 'rgba(34,30,66,.45)');
-veil.addColorStop(1, 'rgba(17,24,39,.72)');
-context.fillStyle = veil;
-context.fillRect(0, 0, width, height);
 
 function drawAsset(image, x, y, displayWidth) {
   // Preserve the complete image, its transparency, colors and original ratio.
@@ -72,29 +62,15 @@ context.textAlign = 'right';
 context.fillStyle = PNG_THEME.muted;
 context.fillText('nxt5.org', 1136, 100);
 
-text('Analyse tes parties.', 64, 250, 64, 700, PNG_THEME.text, 748);
-const headlineGradient = context.createLinearGradient(64, 0, 718, 0);
-headlineGradient.addColorStop(0, '#A5F3FC');
-headlineGradient.addColorStop(0.55, '#C4B5FD');
-headlineGradient.addColorStop(1, '#F0ABFC');
-text('Prépare ton équipe.', 64, 328, 64, 700, headlineGradient, 748);
+context.textAlign = 'left';
+context.font = 'italic 600 64px \"NXT5 Display\"';
+context.fillStyle = PNG_THEME.text;
+context.fillText('Analyse tes parties.', 64, 250);
+context.fillText('Prépare ton équipe.', 64, 328);
 
 text('L’espace de travail des équipes et coachs', 64, 407, 28, 400, PNG_THEME.muted, 730);
 text('League of Legends.', 64, 449, 28, 500, PNG_THEME.text, 730);
 
-// The glass 5 stands on a violet pool of light, as on the homepage and loading screen.
-const pool = context.createRadialGradient(984, 470, 10, 984, 470, 210);
-pool.addColorStop(0, 'rgba(167,139,250,.5)');
-pool.addColorStop(.45, 'rgba(139,92,246,.18)');
-pool.addColorStop(1, 'rgba(139,92,246,0)');
-context.save();
-context.translate(0, 470);
-context.scale(1, .32);
-context.fillStyle = pool;
-context.beginPath();
-context.arc(984, 0, 210, 0, Math.PI * 2);
-context.fill();
-context.restore();
 const halo = context.createRadialGradient(984, 320, 20, 984, 320, 230);
 halo.addColorStop(0, 'rgba(139,92,246,.22)');
 halo.addColorStop(1, 'rgba(139,92,246,0)');
@@ -108,7 +84,7 @@ const accentGradient = context.createLinearGradient(64, 0, 256, 0);
 accentGradient.addColorStop(0, '#67E8F9');
 accentGradient.addColorStop(0.38, '#818CF8');
 accentGradient.addColorStop(0.65, '#A78BFA');
-accentGradient.addColorStop(1, '#E879F9');
+accentGradient.addColorStop(1, '#C4B5FD');
 context.fillStyle = accentGradient;
 context.fillRect(64, 526, 192, 2);
 
@@ -116,7 +92,9 @@ text('Analyse · Débriefs · Draft · Planning', 64, 576, 25, 500, PNG_THEME.mu
 roles.forEach((role, index) => {
   const x = 838 + index * 62;
   pngPanel(context, x, 547, 50, 50, { radius: 12 });
-  pngImageContain(context, role, x + 10, 557, 30, 30);
+  const roleCanvas=createCanvas(30,30),roleCtx=roleCanvas.getContext('2d');
+  pngImageContain(roleCtx,role,0,0,30,30);roleCtx.globalCompositeOperation='source-in';roleCtx.fillStyle='#C4B5FD';roleCtx.fillRect(0,0,30,30);
+  context.drawImage(roleCanvas,x+10,557);
 });
 
 const output = localPath('public/og-nxt5.png');

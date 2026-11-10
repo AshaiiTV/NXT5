@@ -405,7 +405,7 @@ export function NotFoundPage({ navigate }) {
         <LinkButton href="/creer-un-compte" navigate={navigate}>{t("Créer un compte")}</LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
-        <Surface variant="scene" glow className="nxt5-auth-card">
+        <Surface variant="reading" glow className="nxt5-auth-card">
           <Badge tone="red">404</Badge>
           <h1>{t("Page introuvable")}</h1>
           <p className="nxt5-auth-intro">{t("Cette page n’existe pas. Retourne à l’accueil ou connecte-toi.")}</p>
@@ -460,7 +460,7 @@ export function ForgotPasswordPage({ navigate }) {
         <PublicTextLink href={loginHref} navigate={navigate} className="nxt5-entry-header-link">{t("Retour à la connexion")}</PublicTextLink>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
-        <Surface variant="scene" glow className="nxt5-auth-card">
+        <Surface variant="reading" glow className="nxt5-auth-card">
           <p className="nxt5-entry-eyebrow">{t("Récupération du compte")}</p>
           <h1>{t("Mot de passe oublié ?")}</h1>
           <p className="nxt5-auth-intro">{t("Entre ton e-mail pour recevoir un lien de réinitialisation.")}</p>
@@ -517,7 +517,7 @@ export function ResetPasswordPage({ navigate, onAuth }) {
         <LinkButton href="/connexion" navigate={navigate} variant="ghost" className="hidden md:inline-flex">{t("Se connecter")}</LinkButton>
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
-        <Surface variant="scene" glow className="nxt5-auth-card">
+        <Surface variant="reading" glow className="nxt5-auth-card">
           <Badge tone="purple">{t("Nouveau mot de passe")}</Badge>
           <h1>{t("Réinitialiser le mot de passe")}</h1>
           {!token ? (<div className="mt-6 space-y-4"><p role="alert" className="nxt5-auth-notice is-error">{t("Ce lien de réinitialisation est incomplet. Demande un nouveau lien pour retrouver l’accès à ton compte.")}</p><LinkButton href="/mot-de-passe-oublie" navigate={navigate}>{t("Demander un nouveau lien")}</LinkButton></div>) : done ? (<div className="mt-6 space-y-4">
@@ -619,7 +619,7 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
           </div>
           <TeamRoleSignature />
         </section>
-        <Surface variant="scene" glow className="nxt5-auth-card">
+        <Surface variant="reading" glow className="nxt5-auth-card">
           <p className="nxt5-entry-eyebrow">{isRegister ? t("Bienvenue") : t("Bon retour")}</p>
           <h1>{isRegister && registrationRequested ? t("Demande reçue") : isSocialComplete ? t("Termine ton inscription") : isRegister ? t("Créer un compte") : t("Connexion")}</h1>
           {(isRegister || isSocialComplete) && <p className="nxt5-auth-intro">{isRegister && registrationRequested ? t("Consulte ta messagerie pour la suite de l’inscription.") : isSocialComplete ? t("Confirme tes informations pour créer ton compte NXT5.") : t("Crée ou rejoins une équipe. Accès gratuit.")}</p>}

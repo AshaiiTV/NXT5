@@ -4,31 +4,21 @@
   "description": "NXT5 réunit les outils de travail de ton équipe League of Legends : analyse de parties, débriefs, préparation de draft et planning d’entraînement.",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#00d8ff",
-  "background_color": "#0a0a0f",
+  "theme_color": "#070a14",
+  "background_color": "#070a14",
   "icons": [
     {
-      "src": "/favicon-32x32.png",
-      "sizes": "32x32",
-      "type": "image/png"
-    },
-    {
-      "src": "/apple-touch-icon.png",
-      "sizes": "180x180",
-      "type": "image/png"
-    },
-    {
-      "src": "/android-chrome-192x192.png",
+      "src": "/assets/brand/prisme/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/android-chrome-512x512.png",
+      "src": "/assets/brand/prisme/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
     },
     {
-      "src": "/android-chrome-maskable-512x512.png",
+      "src": "/assets/brand/prisme/icon-maskable-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

@@ -6,7 +6,7 @@ import { ArrowRight, CalendarDays, FileText, Swords, Target, Upload, Users } fro
 import { BeginnerCompass } from "../../components/layout/AppChrome.jsx";
 import { Badge, Button, PageHeader } from "../../components/ui/Core.jsx";
 import { RoleIcon, TeamAvatar } from "../../components/brand/BrandAssets.jsx";
-import GlassScene from "../../components/brand/GlassScene.jsx";
+import GlassScene from "../../components/brand/PrismeScene.jsx";
 import SessionCountdown from "../../components/home/SessionCountdown.jsx";
 import { ROLES } from "../../../shared/roles.js";
 import { rosterPlayersByStatus } from "../../utils/roster.js";

@@ -12,7 +12,7 @@
 .nxt5-features-role-dock > div { display: flex; flex-direction: column; align-items: center; gap: .65rem; min-width: 0; color: #c9bde9; font-size: .65rem; font-weight: 600; letter-spacing: .12em; }
 .nxt5-features-role-dock > div + div { border-left: 1px solid rgba(196,181,253,.13); }
 .nxt5-features-role-icon { display: block; width: 1.65rem; height: 1.65rem; object-fit: contain; }
-.nxt5-features-index { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; padding: .75rem 0; border-block: 1px solid var(--nxt5-glass-border); background: linear-gradient(90deg, #30214960, #1e293b20); }
+.nxt5-features-index { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: .5rem; padding: .75rem 0; border-block: 1px solid var(--nxt5-glass-border); background: linear-gradient(90deg, #30214960, #11172a20); }
 .nxt5-features-index a { display: flex; align-items: center; gap: .625rem; min-height: 48px; padding: .625rem; border-radius: var(--nxt5-radius-button); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 600; line-height: 1.55; }
 .nxt5-features-index a svg { flex-shrink: 0; color: var(--nxt5-accent-2); }
 .nxt5-features-index a svg:last-child { margin-left: auto; }

@@ -17,7 +17,7 @@ export function Badge({ children, tone: badgeTone = "slate", pulse = false, clas
   );
 }
 
-export function Surface({ children, className = "", delay = 0, glow = false, variant = "frame" }) {
+export function Surface({ children, className = "", delay = 0, glow = false, variant = "reading" }) {
   useLanguage();
   return (
     <div

@@ -112,7 +112,7 @@
 .nxt5-entry-role-signature > span:nth-child(2)::after { background: #818cf8; }
 .nxt5-entry-role-signature > span:nth-child(3)::after { background: #a78bfa; }
 .nxt5-entry-role-signature > span:nth-child(4)::after { background: #c084fc; }
-.nxt5-entry-role-signature > span:nth-child(5)::after { background: #e879f9; }
+.nxt5-entry-role-signature > span:nth-child(5)::after { background: #c4b5fd; }
 .nxt5-entry-role-signature img { filter: brightness(0) invert(.9); }
 .nxt5-entry-preview-frame .demo-match-summary { padding: .5rem 1.5rem 1.5rem; border: 0; border-radius: 0; box-shadow: none; }
 .nxt5-entry-preview-frame .nxt5-surface-accent { display: none; }
@@ -152,7 +152,7 @@
 .nxt5-entry-feature:last-child { padding-bottom: 0; }
 .nxt5-entry-feature-heading { display: flex; align-items: center; justify-content: center; min-height: 44px; border-radius: 10px; background: var(--nxt5-surface-soft); color: var(--nxt5-accent); }
 .nxt5-entry-feature:nth-child(2) .nxt5-entry-feature-heading { color: var(--nxt5-accent-2); }
-.nxt5-entry-feature:nth-child(3) .nxt5-entry-feature-heading { color: #f0abfc; }
+.nxt5-entry-feature:nth-child(3) .nxt5-entry-feature-heading { color: #c4b5fd; }
 .nxt5-entry-feature-heading span { color: var(--nxt5-muted); font-size: var(--nxt5-font-micro); font-variant-numeric: tabular-nums; }
 .nxt5-entry-feature h3 { margin-top: .35rem; font-size: 1.125rem; line-height: 1.4; font-weight: 650; letter-spacing: -.02em; }
 .nxt5-entry-feature p { max-width: var(--nxt5-reading-width); margin-top: .65rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.8; }
@@ -162,7 +162,7 @@
 .nxt5-entry-steps > li > span { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid var(--nxt5-border); border-radius: 50%; color: var(--nxt5-accent-2); font-size: var(--nxt5-font-small); font-variant-numeric: tabular-nums; }
 .nxt5-entry-steps h3 { font-size: var(--nxt5-font-body); font-weight: 600; }
 .nxt5-entry-steps p { margin-top: .55rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.75; }
-.nxt5-entry-start { display: flex; align-items: center; justify-content: space-between; gap: 2rem; margin-block: 0 3rem; padding: clamp(1.5rem, 3vw, 2.5rem); border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: radial-gradient(ellipse at 95% 0%, rgba(232,121,249,.16), transparent 65%), var(--nxt5-glass-background); box-shadow: var(--nxt5-glass-shadow); }
+.nxt5-entry-start { display: flex; align-items: center; justify-content: space-between; gap: 2rem; margin-block: 0 3rem; padding: clamp(1.5rem, 3vw, 2.5rem); border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: radial-gradient(ellipse at 95% 0%, rgba(196,181,253,.16), transparent 65%), var(--nxt5-glass-background); box-shadow: var(--nxt5-glass-shadow); }
 .nxt5-entry-start h2 { margin-top: .65rem; font-size: clamp(1.55rem, 2.6vw, 2rem); font-weight: 650; letter-spacing: -.035em; line-height: 1.3; }
 .nxt5-entry-start p:last-child { margin-top: .7rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.7; max-width: var(--nxt5-reading-width); }
 .nxt5-entry-start > a { flex-shrink: 0; }
@@ -172,7 +172,7 @@
 .nxt5-auth-story .nxt5-entry-role-signature > span { gap: 1rem; padding: 1.5rem .3rem 1rem; border: 1px solid rgba(196,181,253,.3); border-radius: 12px 12px 3px 3px; background: linear-gradient(155deg,rgba(103,232,249,.14),transparent 32%), var(--nxt5-glass-background); color: var(--nxt5-text-secondary); box-shadow: inset 0 1px rgba(225,231,255,.22), 0 12px 26px #080b1726; }
 .nxt5-auth-story .nxt5-entry-role-signature > span:nth-child(2n) { transform: translateY(.65rem); }
 .nxt5-auth-story .nxt5-entry-role-signature > span:nth-child(3) { background: linear-gradient(155deg,rgba(196,181,253,.22),transparent 45%), var(--nxt5-glass-background); border-color: rgba(196,181,253,.55); }
-.nxt5-auth-story .nxt5-entry-role-signature > span:nth-child(n+4) { background: linear-gradient(155deg,rgba(232,121,249,.16),transparent 42%), var(--nxt5-glass-background); }
+.nxt5-auth-story .nxt5-entry-role-signature > span:nth-child(n+4) { background: linear-gradient(155deg,rgba(196,181,253,.16),transparent 42%), var(--nxt5-glass-background); }
 .nxt5-auth-story .nxt5-entry-role-signature img { width: 2.15rem; height: 2.15rem; }
 .nxt5-auth-story .nxt5-entry-role-signature > span::after { width: 24px; opacity: .9; }
 .nxt5-auth-story h2 { margin-top: 1rem; font-size: clamp(2.5rem, 4vw, 3.5rem); font-weight: 700; letter-spacing: -.045em; line-height: 1.12; }
@@ -182,7 +182,7 @@
 .nxt5-auth-story li > svg { flex-shrink: 0; margin-top: .15rem; color: #95deec; }
 .nxt5-auth-story strong { display: block; font-size: var(--nxt5-font-body); font-weight: 600; }
 .nxt5-auth-story li span { display: block; margin-top: .45rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.7; }
-.nxt5-entry-page .nxt5-auth-card { width: 100%; padding: clamp(1.5rem, 3vw, 2.5rem); border-color: var(--nxt5-glass-border); box-shadow: inset 0 1px rgba(226,232,255,.2), 0 30px 75px #080b1766, 16px -12px 65px rgba(139,92,246,.14); }
+.nxt5-entry-page .nxt5-auth-card.nxt5-surface { background: var(--nxt5-surface); width: 100%; padding: clamp(1.5rem, 3vw, 2.5rem); border-color: var(--nxt5-glass-border); box-shadow: inset 0 1px rgba(226,232,255,.2), 0 30px 75px #080b1766, 16px -12px 65px rgba(139,92,246,.14); }
 .nxt5-auth-card h1 { margin-top: .7rem; font-size: 2rem; font-weight: 650; letter-spacing: -.04em; line-height: 1.2; }
 .nxt5-auth-intro { margin-top: .8rem; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.75; }
 .nxt5-auth-form { display: grid; gap: 1.25rem; margin-top: 1.75rem; }
@@ -285,4 +285,4 @@
 .nxt5-registration-confirmation { display: grid; gap: 1.25rem; margin-top: 1.5rem; }
 .nxt5-registration-confirmation > p { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.75; }
 .nxt5-registration-confirmation [tabindex="-1"]:focus { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
-html.nxt5-low-gpu .nxt5-entry-page::before { background: linear-gradient(135deg, #111827, #211d37 62%, #111827); }
+html.nxt5-low-gpu .nxt5-entry-page::before { background: linear-gradient(135deg, #070a14, #211d37 62%, #070a14); }

@@ -33,7 +33,7 @@
 .scrim-pills { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 .scrim-pill { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--nxt5-border-strong); font-size: var(--nxt5-font-small); font-weight: 600; line-height: 1.3; color: var(--nxt5-text); }
 .scrim-pill > svg { width: 14px; height: 14px; color: var(--nxt5-accent-2); }
-.scrim-pill-format { border-color: rgba(232, 121, 249, .45); background: rgba(232, 121, 249, .10); }
+.scrim-pill-format { border-color: rgba(196, 181, 253, .45); background: rgba(196, 181, 253, .10); }
 .scrim-note { margin-top: 12px; padding: 12px 14px; border-left: 2px solid var(--nxt5-border-strong); background: var(--nxt5-surface-soft); color: var(--nxt5-text); font-size: var(--nxt5-font-body); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 .scrim-matched { margin-top: 12px; color: #6ee7b7; font-size: var(--nxt5-font-body); font-weight: 600; line-height: 1.6; }
 .scrim-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 14px; }

@@ -1,16 +1,16 @@
 import { getLocale } from "../i18n/locale.js";
 import { t } from "../i18n/translate.js";
 export const PNG_THEME = Object.freeze({
-  bg: "#111827",
-  panel: "#221e42",
-  panelAlt: "#1b273c",
-  reading: "#1e293b",
-  glassStart: "#263248",
+  bg: "#070a14",
+  panel: "#11172a",
+  panelAlt: "#1a2340",
+  reading: "#11172a",
+  glassStart: "#191c38",
   glassBorder: "rgba(196,181,253,.34)",
-  border: "#48516d",
-  text: "#f1f5f9",
-  muted: "#cbd5e1",
-  subtle: "#afbfd3",
+  border: "#303b58",
+  text: "#f4f6ff",
+  muted: "#b8c3dc",
+  subtle: "#92a0be",
   cyan: "#67e8f9",
   blue: "#93c5fd",
   green: "#6ee7b7",
@@ -21,7 +21,7 @@ export const PNG_THEME = Object.freeze({
   sideRed: "#ef4444",
   sideRedText: "#ff5757",
   purple: "#c4b5fd",
-  pink: "#e879f9",
+  pink: "#c4b5fd",
 });
 
 export function pngAccent(name = "cyan") {
@@ -96,7 +96,7 @@ export function pngLine(ctx, x1, y1, x2, y2, color = PNG_THEME.border, width = 1
   ctx.restore();
 }
 
-export function pngPanel(ctx, x, y, w, h, { fill = PNG_THEME.panel, stroke = PNG_THEME.border, radius = 18, accent, material = "glass" } = {}) {
+export function pngPanel(ctx, x, y, w, h, { fill = PNG_THEME.panel, stroke = PNG_THEME.border, radius = 16, accent, material = "reading" } = {}) {
   if (w <= 0 || h <= 0) return;
   // Custom fills encode results, sides, and charts. Only the shared surface
   // receives glass; a measured state must never inherit the brand gradient.
@@ -196,13 +196,13 @@ export function pngMetricStrip(ctx, { x = 64, y = 200, width, items = [] }) {
 }
 
 export function pngHeader(ctx, { width, title, subtitle = "", eyebrow = "", logo, meta, margin = 64 }) {
-  pngPanel(ctx, margin - 20, 28, width - margin * 2 + 40, 150, { radius: 20 });
-  const textWidth = width - margin * 2 - 270;
-  if (eyebrow) pngFitText(ctx, eyebrow, margin, 62, textWidth, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.cyan, localize: true });
-  pngFitText(ctx, title, margin, 117, textWidth, { font: "700 44px Inter, Arial, sans-serif", min: 28 });
-  pngFitText(ctx, subtitle, margin, 156, width - margin * 2, { font: "500 22px Inter, Arial, sans-serif", color: PNG_THEME.muted });
-  pngImageContain(ctx, logo, width - margin - 204, 46, 204, 65);
-  if (meta) pngFitText(ctx, meta, width - margin, 129, 240, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right", localize: true });
+  pngPanel(ctx, margin, 28, width - margin * 2, 150, { radius: 16 });
+  const textWidth = width - margin * 2 - 326;
+  if (eyebrow) pngFitText(ctx, eyebrow, margin + 28, 62, textWidth, { font: "600 20px Inter, Arial, sans-serif", color: PNG_THEME.cyan, localize: true });
+  pngFitText(ctx, title, margin + 28, 117, textWidth, { font: "700 44px Inter, Arial, sans-serif", min: 28 });
+  pngFitText(ctx, subtitle, margin + 28, 156, width - margin * 2 - 56, { font: "500 22px Inter, Arial, sans-serif", color: PNG_THEME.muted });
+  pngImageContain(ctx, logo, width - margin - 232, 46, 204, 65);
+  if (meta) pngFitText(ctx, meta, width - margin - 28, 129, 240, { font: "500 20px Inter, Arial, sans-serif", color: PNG_THEME.muted, align: "right", localize: true });
   return 200;
 }
 
