@@ -140,6 +140,26 @@ function more(app) {
 }
 
 describe("progressive team history lifecycle in React", () => {
+  it("loads team analyses in the background without updating the workspace for every page", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 205);
+    await app.resolve(0, page("a", history));
+    let complete;
+    act(() => { complete = app.state.ensureHistory({ background: true }); });
+    expectRequest(app.requests[1], { offset: 100, teamId: "a", matchesOnly: true });
+    await app.resolve(1, page("a", history, 100));
+    expect(app.state.loadingProgress).toEqual({ loaded: 100, total: 205 });
+    expect(app.state.data.matches).toHaveLength(100);
+    expectRequest(app.requests[2], { offset: 200, teamId: "a", matchesOnly: true });
+    await app.resolve(2, page("a", history, 200));
+    expect(await complete).toBe(true);
+    expect(app.state.data.matches).toHaveLength(205);
+    expect(app.state.data.historyComplete).toBe(true);
+    app.refresh();
+    await app.resolve(3, page("a", history));
+    expect(app.requests).toHaveLength(4);
+  });
+
   it("appends one requested page at a time, deduplicates clicks and stops at the end", async () => {
     const app = mount("?team=a");
     const history = games("a", 205);

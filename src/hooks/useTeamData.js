@@ -57,7 +57,7 @@ async function completeHistory(snapshot, signal, isCurrent, onProgress, pageLimi
       throw new Error("La suite de l’historique reçue est invalide. Réessaie.");
     }
     pages += 1;
-    onProgress({ loaded: matches.size, total: snapshot.total });
+    onProgress?.({ loaded: matches.size, total: snapshot.total });
   }
   if (!pagination?.hasMore && matches.size !== snapshot.total) throw new Error("L’historique est incomplet. Réessaie pour analyser toutes les games.");
   return { matches: [...matches.values()], pagination };
@@ -122,13 +122,13 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
     if (linkedTeamId && linkedTeamId !== selected.current) setSelectedTeamId(linkedTeamId);
   }, [linkedTeamId, setSelectedTeamId]);
 
-  const startHistory = useCallback((target, nextOnly = false) => {
+  const startHistory = useCallback((target, nextOnly = false, background = false) => {
     const active = historyTask.current;
     if (active?.ticket === target.ticket) {
       if (!nextOnly && active.nextOnly) {
         return active.promise.then(() => {
           if (generation.current !== target.ticket || selected.current !== target.teamId) throw interrupted();
-          return startHistory(target);
+          return startHistory(target, false, background);
         });
       }
       return active.promise;
@@ -142,7 +142,7 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
     historyTask.current = task;
     task.promise = (async () => {
       try {
-        const complete = await completeHistory(target, controller.signal, isCurrent, setLoadingProgress, nextOnly ? 1 : Infinity);
+        const complete = await completeHistory(target, controller.signal, isCurrent, background ? null : setLoadingProgress, nextOnly ? 1 : Infinity);
         if (!isCurrent() || controller.signal.aborted) throw interrupted();
         target.complete = complete.matches.length === target.total;
         target.failed = false;
@@ -218,7 +218,7 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
       initialReady = true;
       bootstrap.finish(true);
       if (bootstrapTask.current === bootstrap) bootstrapTask.current = null;
-      if (loadHistoryAfterBootstrap && !next.complete) { historyDemanded.current = true; await startHistory(next); }
+      if (loadHistoryAfterBootstrap && !next.complete) await startHistory(next);
       return true;
     } catch (error) {
       if (ticket !== generation.current || controller.signal.aborted) return false;
@@ -243,16 +243,18 @@ export function useTeamData(planningStore, routeSearch = "", options = {}) {
   }, [planningStore, linkedArchiveId, cancelRequests, startHistory]);
   refresh.current = refreshAll;
 
-  const ensureHistory = useCallback(() => {
-    historyDemanded.current = true;
-    historyDemandRevision.current += 1;
+  const ensureHistory = useCallback((options = {}) => {
+    if (!options.background && options.persist !== false) {
+      historyDemanded.current = true;
+      historyDemandRevision.current += 1;
+    }
     const pending = bootstrapTask.current;
-    if (pending?.ticket === generation.current) return pending.promise.then(ready => ready ? ensureHistory() : false);
+    if (pending?.ticket === generation.current) return pending.promise.then(ready => ready ? ensureHistory(options) : false);
     if (latestData.current.selectedTeamId === selected.current && latestData.current.historyComplete === true) return Promise.resolve(true);
     const target = snapshot.current;
     if (!target || target.ticket !== generation.current || target.teamId !== selected.current) return Promise.resolve(false);
     if (target.failed) return refresh.current({ history: true, throwOnError: true });
-    return startHistory(target);
+    return startHistory(target, false, options.background === true);
   }, [startHistory]);
 
   const loadNextPage = useCallback(async () => {
