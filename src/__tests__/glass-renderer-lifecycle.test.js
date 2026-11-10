@@ -12,7 +12,7 @@ vi.mock("three", async (importOriginal) => {
       constructor(options) {
         if (gpu.constructorError) throw new Error("GPU unavailable");
         this.options = options;
-        this.capabilities = { maxTextureSize: gpu.dimension };
+        this.capabilities = { maxTextureSize: gpu.dimension, getMaxAnisotropy: () => 8 };
         this.setPixelRatio = vi.fn();
         this.setClearColor = vi.fn();
         this.setSize = vi.fn();

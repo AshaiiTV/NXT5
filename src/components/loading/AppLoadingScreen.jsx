@@ -3,7 +3,7 @@ import { t } from "../../i18n/translate.js";
 import React from "react";
 import { Check } from "lucide-react";
 import { Nxt5Wordmark, RoleIcon } from "../brand/BrandAssets.jsx";
-import GlassScene from "../brand/PrismeScene.jsx";
+import GlassScene from "../brand/GlassScene.jsx";
 import "./AppLoadingScreen.css";
 
 const ROLES = [

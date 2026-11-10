@@ -1,6 +1,6 @@
 import React from "react";
 import "./public-scene.css";
-import GlassScene from "../../components/brand/PrismeScene.jsx";
+import GlassScene from "../../components/brand/GlassScene.jsx";
 
 /** Page-specific atmosphere around the selected Prisme sculpture. */
 export function PublicScene({ className = "", imageClassName = "", children }) {

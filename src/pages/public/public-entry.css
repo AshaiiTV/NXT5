@@ -286,3 +286,11 @@
 .nxt5-registration-confirmation > p { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.75; }
 .nxt5-registration-confirmation [tabindex="-1"]:focus { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
 html.nxt5-low-gpu .nxt5-entry-page::before { background: linear-gradient(135deg, #070a14, #211d37 62%, #070a14); }
+
+/* Keep the primary public entry action on the same row as the brand. */
+@media (max-width: 767px) {
+  .nxt5-features-page .nxt5-entry-header { gap: .5rem; }
+  .nxt5-features-page .nxt5-entry-header > a img { width: 90px; }
+  .nxt5-features-page .nxt5-entry-header-actions { grid-column: 2; grid-row: 1; flex-wrap: nowrap; }
+  .nxt5-features-page .nxt5-entry-header-actions .nxt5-cyber-button { padding-inline: .6rem; font-size: .8125rem; white-space: nowrap; }
+}

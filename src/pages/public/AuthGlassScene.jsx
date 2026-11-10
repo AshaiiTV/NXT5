@@ -1,5 +1,5 @@
 import React from "react";
-import GlassScene from "../../components/brand/PrismeScene.jsx";
+import GlassScene from "../../components/brand/GlassScene.jsx";
 
 export default function AuthGlassScene() {
   return <GlassScene

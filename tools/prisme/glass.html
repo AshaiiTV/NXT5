@@ -1,0 +1,4 @@
+<!doctype html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><!--seo:start--><!--seo:end--><style>html,body{margin:0;background:transparent}canvas{display:block;width:100vw;height:100vh}</style></head><body><canvas aria-label="Banc de rendu du 5 Prisme"></canvas><script type="module">
+import {createGlassScene} from '/src/pages/home/glass-scene.js';
+window.glassController = await createGlassScene({canvas:document.querySelector('canvas'),onReady:()=>document.body.dataset.ready='true',onError:()=>document.body.dataset.error='true'});
+</script></body></html>
