@@ -10,7 +10,7 @@
   background: linear-gradient(180deg, #070a1400, #070a14 120px);
 }
 .ps-story::before {
-  content: none;
+  content: "";
   position: absolute;
   inset: 100px 0 auto;
   height: 800px;

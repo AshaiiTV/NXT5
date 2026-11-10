@@ -1,4 +1,4 @@
-import GlassScene from "../../components/brand/PrismeScene.jsx";
+import GlassScene from "../../components/brand/GlassScene.jsx";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import { getLocale } from "../../i18n/locale.js";

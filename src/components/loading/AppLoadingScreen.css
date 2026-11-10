@@ -172,9 +172,5 @@ html.nxt5-low-gpu .nxt5-sync-atmosphere { display: none; }
 html.nxt5-low-gpu .nxt5-sync-refraction, html.nxt5-low-gpu .nxt5-sync-caustic { display: none; }
 html.nxt5-low-gpu .nxt5-sync-progress:not(.is-determinate) > span { width: 100%; opacity: .5; }
 
-/* Prisme uses the selected material, without a second animated light show. */
-.nxt5-sync-atmosphere, .nxt5-sync-horizon, .nxt5-sync-stage, .nxt5-sync-refraction, .nxt5-sync-art-aura { display: none; }
-.nxt5-sync-ambient, .nxt5-sync-ambient::after { background: var(--nxt5-bg); }
-.nxt5-sync-core { aspect-ratio: 1; }
 .nxt5-sync-status p { color: var(--nxt5-text-secondary); font-size: 16px; }
 .nxt5-sync-role-name { font-size: 12px; letter-spacing: .04em; }

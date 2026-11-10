@@ -122,5 +122,3 @@
 }
 html.nxt5-low-gpu .nxt5-auth-immersive .nxt5-auth-card { box-shadow: inset 0 1px #eff3ff26; }
 html.nxt5-low-gpu .nxt5-auth-immersive::before { background: linear-gradient(115deg, #0d1424, #272044 48%, #0d1424); }
-
-.nxt5-auth-immersive::before, .nxt5-auth-art::before, .nxt5-auth-art::after, .nxt5-auth-horizon { display: none; }
