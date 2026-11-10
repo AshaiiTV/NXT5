@@ -8,5 +8,5 @@ import "./integrations.css";
 
 export default function IntegrationsPage({ navigate }) {
   useLanguage();
-  return <div className="admin-directory-stack"><PageHeader title={t("Intégrations")} subtitle={t("Vérifie le bot Discord et les liens publics de NXT5.")} /><DiscordAdminStatus /><Surface variant="reading"><h3 className="nxt5-card-title">{t("Réseaux sociaux")}</h3><p className="my-4 text-sm text-slate-300">{t("Consulte les liens publics de NXT5 et les réseaux renseignés sur le site.")}</p><LinkButton href="/reseaux" navigate={navigate} variant="ghost">{t("Voir la page Réseaux")}</LinkButton></Surface></div>;
+  return <div className="admin-directory-stack"><PageHeader title={t("Intégrations")} subtitle={t("Bot Discord et liens publics.")} /><DiscordAdminStatus /><Surface variant="reading"><h3 className="nxt5-card-title">{t("Réseaux sociaux")}</h3><p className="my-4 text-sm text-slate-300">{t("Liens et réseaux publics de NXT5.")}</p><LinkButton href="/reseaux" navigate={navigate} variant="ghost">{t("Voir la page Réseaux")}</LinkButton></Surface></div>;
 }

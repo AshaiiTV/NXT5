@@ -26,7 +26,7 @@ describe('assistant knowledge', () => {
   });
   it('accepts only documented help topics, including the player champions alias', () => {
     expect(normalizeAssistantSection('champion-analysis')).toBe('champion-analysis');
-    for (const section of ['opponents', 'match-drafter', 'drafter-analysis']) {
+    for (const section of ['opponents', 'match-drafter', 'drafter-analysis', 'nexus-rising']) {
       expect(normalizeAssistantSection(section)).toBe(section);
     }
     expect(normalizeAssistantSection('player-champions')).toBe('player-profile');
@@ -337,6 +337,26 @@ describe('assistant knowledge', () => {
   });
 
   it.each([
+    ['fr', 'Quels formats et onglets sont disponibles pour les scrims ?', 'BO3', '/scrims'],
+    ['en', 'Which scrim formats and tabs are available?', 'BO3', '/scrims'],
+    ['es', '¿Qué formatos y pestañas tienen los scrims?', 'BO3', '/scrims'],
+    ['fr', 'Pourquoi Nexus Rising affiche Coming soon ?', 'préouverture', '/nexus-rising'],
+    ['en', 'Why does Nexus Rising show Coming soon?', 'pre-opening', '/nexus-rising'],
+    ['es', '¿Por qué Nexus Rising muestra Próximamente?', 'preapertura', '/nexus-rising'],
+    ['fr', 'Où trouver la collecte automatique dans NXT5 Importer 0.4.1 ?', 'barre latérale', '/games'],
+    ['en', 'Where is Automatic collection in NXT5 Importer 0.4.1?', 'sidebar', '/games'],
+    ['es', '¿Dónde está la recogida automática en NXT5 Importer 0.4.1?', 'barra lateral', '/games'],
+    ['fr', 'Comment lire les cinq duels par poste ?', 'côté bleu', '/games'],
+    ['en', 'How do I read the five role matchups?', 'blue then red', '/games'],
+    ['es', '¿Cómo leo los cinco duelos por puesto?', 'azul y luego rojo', '/games'],
+  ] as const)('retrieves recent product help in %s: %s', (language, question, fact, path) => {
+    const matches = retrieveAssistantKnowledge(question, path, 4, language);
+    const response = buildFallbackAssistantResponse(question, matches, language);
+    expect(response.answer).toContain(fact);
+    expect(response.actions[0].path).toBe(path);
+  });
+
+  it.each([
     ['Comment préparer un débrief ?', '/rapports', 'reviews'],
     ['Comment organiser les titulaires et les remplaçants ?', '/equipes', 'teams-and-roster'],
     ['Comment indiquer le niveau de maîtrise d’un champion ?', '/draft/pool', 'champion-pool'],
@@ -424,7 +444,7 @@ describe('assistant knowledge', () => {
   });
 
   it('keeps the adaptive home and new destinations available without allowing arbitrary paths', () => {
-    for (const path of ['/accueil', '/bot-discord', '/mon-profil/carte']) {
+    for (const path of ['/accueil', '/bot-discord', '/mon-profil/carte', '/nexus-rising']) {
       expect(safeAssistantRoute(path)).toBe(path);
       expect(sanitizeAssistantActions([{ label: 'Ouvrir', path }])).toEqual([{ label: 'Ouvrir', path }]);
     }

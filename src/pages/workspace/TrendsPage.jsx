@@ -341,7 +341,7 @@ function TrendsPage({ data, selectedTeamId }) {
   ];
 
   if (trendPanel === "drafts") return <div className="nxt5-data-dense nxt5-trends-page">
-    <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Retrouve les priorités de sélection et les bans des drafts importées.")} />
+    <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Picks et bans des drafts importées.")} />
     <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
     {trendPanelOptions.map(([id]) => <div key={id} id={`trend-panel-${id}`} role="tabpanel" aria-labelledby={`trend-tab-${id}`} hidden={id !== "drafts"} tabIndex={0}>
       {id === "drafts" && <DrafterAnalysis key={selectedTeamId} teamId={selectedTeamId} matches={baseMatches} players={data.players || []} championPool={data.championPool || []} />}
@@ -349,7 +349,7 @@ function TrendsPage({ data, selectedTeamId }) {
   </div>;
 
   if (!matches.length && (trendPanel !== "comparison" || !baseMatches.length)) return <div className="nxt5-data-dense nxt5-trends-page">
-    {detailHeader || <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.")} />}
+    {detailHeader || <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Compare les parties et repère les tendances.")} />}
     <TrendNavigation items={trendPanelOptions} activeId={trendPanel} onChange={setTrendPanel} />
     {baseMatches.length > 0 && <div className="trends-filters"><div className="trends-filter-controls"><SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes les parties")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput><TrendPeriodFilter value={trendPeriod} onChange={setTrendPeriod} /></div></div>}
     <div id={`trend-panel-${trendPanel}`} role="tabpanel" aria-labelledby={`trend-tab-${trendPanel}`} tabIndex={0}><Surface><EmptyState icon={Activity} title={baseMatches.length ? t("Aucune partie dans cette sélection") : t("Vos analyses commencent ici")} text={baseMatches.length ? t("Choisis une autre période ou catégorie pour retrouver les analyses de l’équipe.") : t("Importe tes premières parties pour suivre les résultats et repérer les points à travailler.")} /><div className="mt-4 flex justify-center"><Button type="button" icon={baseMatches.length ? RefreshCw : Upload} onClick={() => { if (baseMatches.length) { navigation.resetFilters(); } else openAppPath("/games?import=1"); }}>{baseMatches.length ? t("Voir toutes les parties") : t("Importer une partie")}</Button></div></Surface></div>
@@ -614,7 +614,7 @@ function TrendsPage({ data, selectedTeamId }) {
       label: "Répartition des rôles",
       title: focusRoleModel ? `${roleLabel(focusRoleModel.role)} structure le jeu` : "Ressources non isolées",
       value: focusRoleModel ? `${Math.round(focusRoleModel.goldShare || 0)}% or` : "—",
-      text: focusRoleModel ? `${roleLabel(focusRoleModel.role)} capte ${Math.round(focusRoleModel.goldShare || 0)}% de l'or, ${Math.round(focusRoleModel.damageShare || 0)}% des dégâts et ${Math.round(focusRoleModel.kp || 0)}% KP. À lire comme le rôle autour duquel l'équipe s'organise le plus souvent.` : "Le volume ne permet pas encore de lire une répartition fiable.",
+      text: focusRoleModel ? `${roleLabel(focusRoleModel.role)} capte ${Math.round(focusRoleModel.goldShare || 0)}% de l'or, ${Math.round(focusRoleModel.damageShare || 0)}% des dégâts et ${Math.round(focusRoleModel.kp || 0)}% KP. Ce rôle structure le plus souvent le jeu.` : "Le volume ne permet pas encore de lire une répartition fiable.",
       details: roleSystemRows.slice(0, 3).map((row) => `${roleLabel(row.role)} : ${row.functionLabel}, ${Math.round(row.goldShare || 0)}% or, ${Math.round(row.damageShare || 0)}% dégâts, ${winrateLabel(row.wr)} de victoires`),
       sourceGames: focusRoleModel?.sourceGames || sourceGames,
     },
@@ -678,7 +678,7 @@ function TrendsPage({ data, selectedTeamId }) {
       toneName: deathsPerGame >= 20 || fragilePattern?.wr < 45 ? "red" : "purple",
       label: "Priorité review",
       title: fragilePattern ? `Stabiliser ${fragilePattern.label}` : "Conserver les forces identifiées",
-      text: fragilePattern ? `${fragilePattern.label} descend à ${winrateLabel(fragilePattern.wr)} de victoires sur ${fragilePattern.games} games. Croiser cette séquence avec les morts avant objectif, la vision du side faible et le plan de draft associé.` : `Le bloc reste à stabiliser collectivement : ${teamKpAverage}% KP équipe, ${objectiveRatio(sumRows(ally, "deaths"), matches.length)} morts/game et ${signedAvg(visionDiff)} vision moyenne. Objectif : conserver le plan fort sans surcharger une seule condition de victoire.`,
+      text: fragilePattern ? `${fragilePattern.label} descend à ${winrateLabel(fragilePattern.wr)} de victoires sur ${fragilePattern.games} games. Croiser cette séquence avec les morts avant objectif, la vision du side faible et le plan de draft associé.` : `Le bloc reste à stabiliser collectivement : ${teamKpAverage}% KP équipe, ${objectiveRatio(sumRows(ally, "deaths"), matches.length)} morts/game et ${signedAvg(visionDiff)} vision moyenne. Garder le plan fort sans dépendre d'une seule condition.`,
       evidence: [`KP équipe ${teamKpAverage}%`, `Morts équipe ${objectiveRatio(sumRows(ally, "deaths"), matches.length)}/G`, `Vision ${signedAvg(visionDiff)}`].filter(Boolean),
       sourceGames: fragilePattern?.sourceGames || sourceGames,
     },
@@ -769,7 +769,7 @@ function TrendsPage({ data, selectedTeamId }) {
       title = "Préparer la vision autour des objectifs";
       target = "Écart de vision positif 60 s avant l’objectif";
       current = signedAvg(visionDiff);
-      why = "La préparation des objectifs passe par le support, même si l'exécution reste collective.";
+      why = "Le support prépare les objectifs ; l'équipe les joue.";
       progress = 42;
     } else if (kp < 58) {
       title = "Participer aux actions de l’équipe";
@@ -925,7 +925,7 @@ function TrendsPage({ data, selectedTeamId }) {
         title: "Reprendre l'information carte",
         target: "Vision diff positive sur le prochain bloc",
         current: signedAvg(visionDiff),
-        why: "L'équipe joue avec moins d'information que l'adversaire, ce qui fragilise setups et entrées rivière.",
+        why: "Moins d'information que l'adversaire fragilise les setups et l'accès rivière.",
         progress,
         toneName: objectiveTone(progress),
         sourceGames,
@@ -1021,7 +1021,7 @@ function TrendsPage({ data, selectedTeamId }) {
   };
 
   return <div className="nxt5-data-dense nxt5-trends-page">
-    {detailHeader || <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Compare plusieurs parties pour repérer ce qui revient. Commence par la synthèse, puis ouvre les détails utiles.")}>
+    {detailHeader || <PageHeader eyebrow={t("Comprendre l’équipe")} title={t("Analyses de l’équipe")} subtitle={t("Compare les parties et repère les tendances.")}>
       {trendPanel !== "comparison" && <Button type="button" variant="ghost" icon={ImageIcon} disabled={exportState === "loading"} onClick={exportTrends}>{exportState === "loading" ? t("Export en cours…") : t("Exporter la synthèse")}</Button>}
     </PageHeader>}
     {exportState === "error" && <p role="alert" className="trends-export-status">{t("L’export n’a pas abouti. Réessaie avec le bouton « Exporter la synthèse ».")}</p>}

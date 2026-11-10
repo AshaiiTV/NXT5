@@ -157,7 +157,7 @@ export const LEGAL_PAGES = {
   "/mentions-legales": {
     eyebrow: "Cadre légal",
     title: "Mentions légales",
-    intro: "Informations relatives à l’édition, à l’hébergement et à l’utilisation du site nxt5.org, conformément au cadre français applicable aux services en ligne.",
+    intro: "Éditeur, hébergement et règles d’utilisation de nxt5.org.",
     sections: [
       ["Éditeur du service", `NXT5 est édité à titre non professionnel par ${NXT5_EDITOR_NAME}, qui en assure la direction de la publication. Tu peux contacter l’éditeur par e-mail à ${NXT5_CONTACT_EMAIL}, notamment pour toute question sur le service, un signalement ou une demande relative à tes données personnelles.`],
       ["Objet du site", "NXT5 propose des outils de gestion d’équipe, d’import de matchs, de consultation statistique, de préparation de compositions, de champion pool, de planning et de rédaction de débriefs. Le service est réservé à un usage d’organisation, d’analyse et de suivi sportif par les utilisateurs autorisés."],
@@ -176,7 +176,7 @@ export const LEGAL_PAGES = {
   "/confidentialite": {
     eyebrow: "Données",
     title: "Politique de confidentialité",
-    intro: "Cette politique décrit précisément les données utilisées par NXT5, leurs finalités, leur durée de conservation, les prestataires concernés et les droits des personnes.",
+    intro: "Données utilisées, durées de conservation, prestataires et droits.",
     sections: [
       ["Responsable du traitement", `Le responsable du traitement est ${NXT5_EDITOR_NAME}, éditeur de NXT5. Pour toute question sur tes données personnelles ou pour exercer tes droits, écris à ${NXT5_CONTACT_EMAIL}. Ce contact privé est également indiqué sur la page Contact. Ne publie aucune donnée sensible dans un salon Discord public.`],
       ["Données de compte et de sécurité", "NXT5 traite l’adresse e-mail, le pseudonyme, le mot de passe sous forme hachée lorsqu’il existe, les préférences de notification, les dates de création et de dernière activité du compte, ainsi que l’état d’envoi d’un éventuel rappel d’inactivité. Pour sécuriser les connexions, le service traite aussi un identifiant de session haché, l’adresse IP, le navigateur utilisé, les tentatives récentes et des journaux d’actions."],
@@ -287,7 +287,7 @@ export const LEGAL_PAGES = {
   "/contact": {
     eyebrow: "Support",
     title: "Contact",
-    intro: "Pour demander de l’aide ou signaler un problème, contacte NXT5 en privé. Tu peux aussi rejoindre la communauté sur le serveur Discord officiel.",
+    intro: "Besoin d’aide ou d’un contact privé ? Écris à NXT5.",
     sections: [
       ["Contact privé par e-mail", `Pour contacter ${NXT5_EDITOR_NAME}, éditeur de NXT5 et responsable du traitement des données, écris à ${NXT5_CONTACT_EMAIL}. Utilise cette adresse pour les demandes liées à ton compte, à la sécurité, à tes données personnelles ou à l’exercice de tes droits.`],
       ["Discord NXT5", "Sur le serveur Discord, partage tes retours, signale un bug, propose une fonctionnalité ou demande de l’aide. Privilégie ce canal pour une réponse rapide."],
@@ -306,6 +306,26 @@ export function LegalPage({ route, navigate, user }) {
   const page = LEGAL_PAGES[route.path] || LEGAL_PAGES["/mentions-legales"];
   const group = INFORMATION_GROUPS.find((item) => item.pages.some(([path]) => path === route.path)) || INFORMATION_GROUPS[0];
   const sectionId = (index) => `document-${route.path.replace(/\//g, "")}-${index + 1}`;
+  const sectionsRef = useRef([]);
+  const [allSectionsOpen, setAllSectionsOpen] = useState(false);
+  useEffect(() => {
+    setAllSectionsOpen(false);
+    if (page.contact) return;
+    sectionsRef.current.forEach((section) => { if (section) section.open = false; });
+    const openHashSection = () => {
+      const index = page.sections.findIndex((_, position) => `#${sectionId(position)}` === window.location.hash);
+      if (index >= 0 && sectionsRef.current[index]) sectionsRef.current[index].open = true;
+    };
+    openHashSection();
+    window.addEventListener("hashchange", openHashSection);
+    return () => window.removeEventListener("hashchange", openHashSection);
+  }, [route.path]);
+  const updateExpandedState = () => setAllSectionsOpen(sectionsRef.current.filter(Boolean).every((section) => section.open));
+  const toggleAllSections = () => {
+    const next = !allSectionsOpen;
+    sectionsRef.current.forEach((section) => { if (section) section.open = next; });
+    setAllSectionsOpen(next);
+  };
   return (
     <div className="nxt5-information-page">
       <AmbientBackground />
@@ -337,7 +357,7 @@ export function LegalPage({ route, navigate, user }) {
               <summary>{t("Sommaire du document")}<ChevronDown aria-hidden="true" size={16} /></summary>
               <nav aria-label={t("Sommaire du document")}>
                 <ol>{page.sections.map(([title], index) => (
-                  <li key={title}><a href={`#${sectionId(index)}`}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>{t(title)}</a></li>
+                  <li key={title}><a href={`#${sectionId(index)}`} onClick={() => { if (sectionsRef.current[index]) sectionsRef.current[index].open = true; }}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>{t(title)}</a></li>
                 ))}</ol>
               </nav>
             </details>
@@ -345,11 +365,13 @@ export function LegalPage({ route, navigate, user }) {
           </aside>
           <Surface variant="reading" className="nxt5-document-surface">
             <article aria-labelledby="document-title" className="nxt5-document-body">
+              {!page.contact && <button type="button" className="nxt5-document-expand-all" onClick={toggleAllSections}>{t(allSectionsOpen ? "Tout replier" : "Tout afficher")}</button>}
               {page.sections.map(([title, text], index) => (
-                <section id={sectionId(index)} key={title} tabIndex={-1} className="nxt5-document-section">
-                  <h2><span aria-hidden="true" className="nxt5-section-number">{String(index + 1).padStart(2, "0")}</span>{t(title)}</h2>
-                  <p>{t(text)}</p>
-                </section>
+                page.contact ? <section id={sectionId(index)} key={title} tabIndex={-1} className="nxt5-document-section">
+                  <h2><span aria-hidden="true" className="nxt5-section-number">{String(index + 1).padStart(2, "0")}</span>{t(title)}</h2><p>{t(text)}</p>
+                </section> : <details id={sectionId(index)} key={title} ref={(node) => { sectionsRef.current[index] = node; }} onToggle={updateExpandedState} className="nxt5-document-section">
+                  <summary><h2><span aria-hidden="true" className="nxt5-section-number">{String(index + 1).padStart(2, "0")}</span>{t(title)}</h2><ChevronDown aria-hidden="true" size={18} /></summary><p>{t(text)}</p>
+                </details>
               ))}
               {!!page.resources?.length && <section className="nxt5-document-resources">
                 <h2>{t("Références")}</h2>
@@ -386,7 +408,7 @@ export function NotFoundPage({ navigate }) {
         <Surface variant="reading" glow className="nxt5-auth-card">
           <Badge tone="red">404</Badge>
           <h1>{t("Page introuvable")}</h1>
-          <p className="nxt5-auth-intro">{t("Aucune page NXT5 ne se trouve à cette adresse. Reviens à l’accueil ou connecte-toi pour accéder à ton espace.")}</p>
+          <p className="nxt5-auth-intro">{t("Cette page n’existe pas. Retourne à l’accueil ou connecte-toi.")}</p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <LinkButton href="/" navigate={navigate} variant="ghost">{t("Retour accueil")}</LinkButton>
             <LinkButton href="/connexion" navigate={navigate} icon={Lock}>{t("Se connecter")}</LinkButton>
@@ -441,7 +463,7 @@ export function ForgotPasswordPage({ navigate }) {
         <Surface variant="reading" glow className="nxt5-auth-card">
           <p className="nxt5-entry-eyebrow">{t("Récupération du compte")}</p>
           <h1>{t("Mot de passe oublié ?")}</h1>
-          <p className="nxt5-auth-intro">{t("Entre l’e-mail de ton compte pour recevoir un lien de réinitialisation.")}</p>
+          <p className="nxt5-auth-intro">{t("Entre ton e-mail pour recevoir un lien de réinitialisation.")}</p>
           <form onSubmit={submit} className="nxt5-auth-form" aria-busy={loading}>
             <TextInput label={t("E-mail du compte")} name="email" value={email} onChange={setEmail} placeholder="joueur@exemple.com" type="email" autoComplete="email" required icon={Mail} />
             {message && <div role="status" className="nxt5-auth-notice is-success">{t(message)}</div>}
@@ -593,15 +615,15 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
           <div className="nxt5-auth-story-copy">
             <p className="nxt5-entry-eyebrow">{t("Ton espace équipe")}</p>
             <h2 id="auth-story-title">{t("Cinq rôles.")}<br /><span>{t("Une même direction.")}</span></h2>
-            <p>{t("Retrouve tes joueurs, tes parties et les points à travailler lors de la prochaine séance.")}</p>
+            <p>{t("Joueurs, parties et points à travailler.")}</p>
           </div>
           <TeamRoleSignature />
         </section>
         <Surface variant="reading" glow className="nxt5-auth-card">
-          <p className="nxt5-entry-eyebrow">{isRegister ? t("Bienvenue sur NXT5") : t("Bon retour sur NXT5")}</p>
+          <p className="nxt5-entry-eyebrow">{isRegister ? t("Bienvenue") : t("Bon retour")}</p>
           <h1>{isRegister && registrationRequested ? t("Demande reçue") : isSocialComplete ? t("Termine ton inscription") : isRegister ? t("Créer un compte") : t("Connexion")}</h1>
-          <p className="nxt5-auth-intro">{isRegister && registrationRequested ? t("Consulte ta messagerie pour la suite de l’inscription.") : isSocialComplete ? t("Confirme tes informations pour créer ton compte NXT5.") : isRegister ? t("Crée ton compte pour ouvrir ou rejoindre un espace équipe. Accès gratuit.") : t("Retrouve tes équipes, tes parties et tes débriefs.")}</p>
-          {isRegister && !registrationRequested && <p className="nxt5-auth-intro">{t("L’import de tes parties nécessite NXT5 Importer sur Windows ou Mac avec League of Legends ouvert. ")}<PublicTextLink href="/demo" navigate={navigate}>{t("Tu peux d’abord essayer la démo sans compte.")}</PublicTextLink></p>}
+          {(isRegister || isSocialComplete) && <p className="nxt5-auth-intro">{isRegister && registrationRequested ? t("Consulte ta messagerie pour la suite de l’inscription.") : isSocialComplete ? t("Confirme tes informations pour créer ton compte NXT5.") : t("Crée ou rejoins une équipe. Accès gratuit.")}</p>}
+          {isRegister && !registrationRequested && <p className="nxt5-auth-intro">{t("L’import nécessite NXT5 Importer sur Windows ou Mac, avec League of Legends ouvert. ")}<PublicTextLink href="/demo" navigate={navigate}>{t("Essaie la démo sans compte.")}</PublicTextLink></p>}
           {socialStatus && <div className="mt-4"><SocialNotice status={socialStatus} /></div>}
           {isRegister && registrationRequested ? <div className="nxt5-registration-confirmation"><p ref={registrationStatusRef} tabIndex={-1} role="status" className="nxt5-auth-notice is-success">{t("Si cette adresse peut être utilisée, tu recevras un e-mail de vérification. Si tu as déjà un compte, connecte-toi ou réinitialise ton mot de passe.")}</p><p>{t("Pour confirmer une nouvelle inscription, connecte-toi avec le mot de passe choisi, puis ouvre le lien de vérification reçu par e-mail dans ce même navigateur.")}</p><p>{t("Vérifie aussi tes courriers indésirables. Aucun abonnement n’a été activé.")}</p><LinkButton href={`/connexion${querySuffix}`} navigate={navigate} icon={ArrowRight}>{t("Se connecter")}</LinkButton><PublicTextLink href={`/mot-de-passe-oublie${querySuffix}`} navigate={navigate} className="nxt5-entry-text-link">{t("Réinitialiser mon mot de passe")}</PublicTextLink></div> : isSocialComplete ? <SocialSignup onComplete={completeAuth} loginHref={`/connexion${querySuffix}`} existingAccountHref="/connexion?next=%2Fparametres" /> : <>
           <SocialLogin flow={isRegister ? "register" : "login"} rememberMe={rememberMe} disabled={loading} />
@@ -609,13 +631,12 @@ export function AuthPage({ mode, onAuth, pushToast, navigate }) {
             <TextInput label={isRegister ? t("E-mail") : t("E-mail ou ancien pseudo")} value={form.email} onChange={(v) => patch("email", v)} placeholder="joueur@exemple.com" type={isRegister ? "email" : "text"} autoComplete={isRegister ? "email" : "username"} required icon={Mail} />
             {isRegister && <TextInput label={t("Pseudo")} value={form.displayName} onChange={(v) => patch("displayName", v)} placeholder={t("Ex : Joueur NXT5")} autoComplete="nickname" required icon={UserPlus} />}
             <TextInput label={t("Mot de passe")} value={form.password} onChange={(v) => patch("password", v)} placeholder="••••••••" type="password" autoComplete={isRegister ? "new-password" : "current-password"} required icon={Lock} />
-            <div className="nxt5-auth-preferences"><PremiumToggle checked={rememberMe} onChange={setRememberMe} title={t("Rester connecté")} text={t("Sur cet appareil.")} /></div>
+            <div className="nxt5-auth-preferences"><PremiumToggle checked={rememberMe} onChange={setRememberMe} title={t("Rester connecté")} text={t("30 jours sur cet appareil.")} /></div>
             {isRegister && <LegalConsent checked={legalAccepted} onChange={setLegalAccepted} />}
             {error && <div role="alert" className="nxt5-auth-notice is-error">{t(error)}</div>}
             <Button type="submit" disabled={loading || (isRegister && !legalAccepted)} icon={loading ? Loader2 : isRegister ? UserPlus : ArrowRight} className="nxt5-auth-submit">{loading ? t("Chargement…") : isRegister ? t("Créer le compte") : t("Entrer dans NXT5")}</Button>
           </form>
           {!isRegister && <div className="nxt5-auth-recovery"><PublicTextLink href={`/mot-de-passe-oublie${querySuffix}`} navigate={navigate}>{t("Mot de passe oublié ?")}</PublicTextLink></div>}
-          <p className="nxt5-auth-alternative">{isRegister ? t("Déjà inscrit ? ") : t("Pas encore de compte ? ")}<PublicTextLink href={isRegister ? `/connexion${querySuffix}` : `/creer-un-compte${querySuffix}`} navigate={navigate}>{isRegister ? t("Se connecter") : t("Créer un compte")}</PublicTextLink></p>
           </>}
         </Surface>
       </main>

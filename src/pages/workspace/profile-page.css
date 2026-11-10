@@ -35,6 +35,15 @@
 }
 .profile-content { display: flex; flex-direction: column; gap: 20px; min-width: 0; scroll-margin-top: 90px; }
 .profile-content > * { min-width: 0; }
+.profile-showcase-section { min-width: 0; border-top: 1px solid var(--nxt5-border-strong); padding-top: 20px; scroll-margin-top: 90px; }
+.profile-showcase-intro { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px 24px; }
+.profile-showcase-intro > div { min-width: 0; max-width: 68ch; }
+.profile-showcase-intro h3 { font-size: 20px; line-height: 1.4; font-weight: 700; }
+.profile-showcase-intro h3:focus { outline: 2px solid var(--nxt5-accent); outline-offset: 4px; }
+.profile-showcase-intro p { margin-top: 6px; font-size: var(--nxt5-font-body); line-height: 1.65; color: var(--nxt5-text-secondary); }
+.profile-showcase-intro > .nxt5-control { flex: 0 0 auto; }
+#profile-showcase-content { min-width: 0; }
+#profile-showcase-content:not(:empty) { margin-top: 20px; }
 .nxt5-profile-page .profile-section-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; margin-bottom: 20px; }
 .profile-section-heading > div { flex: 1; min-width: min(220px,100%); }
 .nxt5-profile-page .profile-section-heading h3, .profile-followup-intro h3 { font-size: 20px; line-height: 1.4; font-weight: 700; }

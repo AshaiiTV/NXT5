@@ -1,0 +1,38 @@
+// Guide and assistant copy for the current Scrims flow and Nexus Rising pre-opening.
+export const en = {
+  "Scrims sépare Trouver un adversaire et Mes scrims. Le staff publie un créneau et son niveau, les autres équipes répondent, puis le staff confirme.": "Scrims separates Find an opponent and My scrims. Staff publish a slot and level, other teams reply, then staff confirm.",
+  "Dans Mes scrims, publier une proposition avec la date, le format (1 à 5 parties, BO3 ou BO5) et le niveau. Seul le staff peut publier, répondre et confirmer ; aucune durée n’est à saisir.": "In My scrims, publish an offer with the date, format (1 to 5 games, BO3 or BO5) and level. Only staff can publish, reply and confirm; duration is no longer entered.",
+  "Dans Trouver un adversaire, parcourir les propositions des autres équipes et répondre avec un message.": "In Find an opponent, browse other teams' offers and reply with a message.",
+  "Dans Mes scrims, confirmer une réponse reçue : les autres sont refusées et la séance est ajoutée au planning des deux équipes pour deux heures par défaut.": "In My scrims, confirm a received reply: the others are declined and the session is added to both teams' schedules for two hours by default.",
+  "Nexus Rising": "Nexus Rising",
+  "Comprendre la préouverture de Nexus Rising": "Understand the Nexus Rising pre-opening",
+  "Le portail Nexus Rising utilise les comptes et équipes NXT5. Pendant la préouverture, les visiteurs et les comptes non administrateurs voient Coming soon ; seule l’administration autorisée accède aux inscriptions et aux rencontres.": "The Nexus Rising portal uses NXT5 accounts and teams. During pre-opening, visitors and non-admin accounts see Coming soon; only authorised administrators can access registration and fixtures.",
+  "Ouvrir Nexus Rising": "Open Nexus Rising",
+  "Ouvrir Nexus Rising depuis le menu NXT5, dans le même onglet.": "Open Nexus Rising from the NXT5 menu in the same tab.",
+  "Pendant la préouverture, consulter Coming soon. La connexion avec un compte ordinaire ne débloque pas les inscriptions.": "During pre-opening, view Coming soon. Signing in with an ordinary account does not unlock registration.",
+  "Une fois le portail ouvert aux équipes, l’inscription réutilisera une équipe NXT5 existante et sera soumise à la validation du staff.": "Once the portal opens to teams, registration will reuse an existing NXT5 team and require staff approval.",
+  "Pour une rencontre autorisée, le staff remet un code Nexus à un capitaine ; il active la collecte dans NXT5 Importer avant la fin de la partie.": "For an authorised fixture, staff give a Nexus code to a captain, who starts collection in NXT5 Importer before the game ends.",
+  "Seules les parties acceptées par le staff comptent pour le score, le classement et les playoffs.": "Only games accepted by staff count toward the score, standings and playoffs.",
+  "Pourquoi Nexus Rising affiche Coming soon ?": "Why does Nexus Rising show Coming soon?",
+  "Puis-je inscrire mon équipe à Nexus Rising ?": "Can I register my team for Nexus Rising?",
+  "Comment sont validés les résultats Nexus Rising ?": "How are Nexus Rising results validated?",
+};
+
+export const es = {
+  "Scrims sépare Trouver un adversaire et Mes scrims. Le staff publie un créneau et son niveau, les autres équipes répondent, puis le staff confirme.": "Scrims separa Buscar rival y Mis scrims. El staff publica una franja y su nivel, otros equipos responden y el staff confirma.",
+  "Dans Mes scrims, publier une proposition avec la date, le format (1 à 5 parties, BO3 ou BO5) et le niveau. Seul le staff peut publier, répondre et confirmer ; aucune durée n’est à saisir.": "En Mis scrims, publica una propuesta con fecha, formato (1 a 5 partidas, BO3 o BO5) y nivel. Solo el staff puede publicar, responder y confirmar; ya no se indica la duración.",
+  "Dans Trouver un adversaire, parcourir les propositions des autres équipes et répondre avec un message.": "En Buscar rival, consulta las propuestas de otros equipos y responde con un mensaje.",
+  "Dans Mes scrims, confirmer une réponse reçue : les autres sont refusées et la séance est ajoutée au planning des deux équipes pour deux heures par défaut.": "En Mis scrims, confirma una respuesta recibida: las demás se rechazan y la sesión se añade al calendario de ambos equipos durante dos horas por defecto.",
+  "Nexus Rising": "Nexus Rising",
+  "Comprendre la préouverture de Nexus Rising": "Entender la preapertura de Nexus Rising",
+  "Le portail Nexus Rising utilise les comptes et équipes NXT5. Pendant la préouverture, les visiteurs et les comptes non administrateurs voient Coming soon ; seule l’administration autorisée accède aux inscriptions et aux rencontres.": "El portal Nexus Rising usa cuentas y equipos NXT5. Durante la preapertura, visitantes y cuentas no administradoras ven Próximamente; solo la administración autorizada accede a inscripciones y encuentros.",
+  "Ouvrir Nexus Rising": "Abrir Nexus Rising",
+  "Ouvrir Nexus Rising depuis le menu NXT5, dans le même onglet.": "Abre Nexus Rising desde el menú NXT5 en la misma pestaña.",
+  "Pendant la préouverture, consulter Coming soon. La connexion avec un compte ordinaire ne débloque pas les inscriptions.": "Durante la preapertura, consulta Próximamente. Iniciar sesión con una cuenta normal no abre las inscripciones.",
+  "Une fois le portail ouvert aux équipes, l’inscription réutilisera une équipe NXT5 existante et sera soumise à la validation du staff.": "Cuando el portal abra a los equipos, la inscripción reutilizará un equipo NXT5 existente y requerirá la aprobación del staff.",
+  "Pour une rencontre autorisée, le staff remet un code Nexus à un capitaine ; il active la collecte dans NXT5 Importer avant la fin de la partie.": "Para un encuentro autorizado, el staff entrega un código Nexus a un capitán, que activa la recogida en NXT5 Importer antes de terminar la partida.",
+  "Seules les parties acceptées par le staff comptent pour le score, le classement et les playoffs.": "Solo las partidas aceptadas por el staff cuentan para el marcador, la clasificación y los playoffs.",
+  "Pourquoi Nexus Rising affiche Coming soon ?": "¿Por qué Nexus Rising muestra Próximamente?",
+  "Puis-je inscrire mon équipe à Nexus Rising ?": "¿Puedo inscribir mi equipo en Nexus Rising?",
+  "Comment sont validés les résultats Nexus Rising ?": "¿Cómo se validan los resultados de Nexus Rising?",
+};

@@ -9,6 +9,8 @@ L'assistant est une aide contextuelle en lecture seule. Il explique l'interface,
 - `netlify/functions/_lib/assistant-knowledge.ts` contient la base d'aide, la recherche lexicale, les chemins autorisés et le mode de secours local.
 - Les fichiers de ce dossier servent de référence éditoriale lors des évolutions du produit.
 
+Les parcours actuels sont décrits dans [Navigation et équipe](navigation-team.md), [Parties et débriefs](imports-stats-reviews.md), [Analyses, draft, planning et scrims](strategy-draft-planning.md), [Nexus Rising](nexus-rising.md) et [Permissions et dépannage](permissions-troubleshooting.md).
+
 ## Garanties
 
 - L'historique reste uniquement dans l'état React et disparaît au rechargement.

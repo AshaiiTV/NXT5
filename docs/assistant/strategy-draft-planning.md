@@ -1,17 +1,17 @@
-# Tendances, pools, compos et planning
+# Analyses, draft, planning et scrims
 
-## Tendances
+## Analyses
 
-`/tendances` agrège les games du contexte sélectionné. La page montre le winrate global et par side, les rôles moteurs, les écarts récurrents et les games à revoir. Un signal doit être contrôlé en ouvrant une game source avant de devenir une décision staff.
+`/tendances` compare les parties sélectionnées. Vérifier le nombre de parties et rouvrir les sources avant de retenir une piste. Drafts & bans étudie les drafts Drafter enregistrées avec ses propres filtres ; les fréquences ne prouvent pas l’efficacité d’un choix.
 
-## Champion Pool
+## Champions et compositions
 
-`/draft/pool` classe les champions de chaque joueur par tier de maîtrise. Les statuts distinguent les picks de confiance, situationnels, en validation et en développement.
-
-## Compositions
-
-`/draft/compositions` permet de préparer les compositions de l’équipe. Les champions sont glissés depuis le pool vers leur rôle. Le side, les tags et la condition de jeu rendent la composition exploitable par le staff.
+`/draft/pool` contient les champions déclarés et leur maîtrise. `/draft/compositions` permet de préparer cinq postes, un côté et un plan de jeu. L’aide au choix rapproche le pool et les parties de l’équipe ; la maîtrise déclarée passe avant le nombre de parties. Le taux de victoire ne classe pas les suggestions et les chiffres Mobalytics ne sont pas importés dans NXT5.
 
 ## Planning
 
-`/planning` centralise les disponibilités des joueurs et du staff, sur la semaine courante ou suivante. Les événements disponibles sont Scrim, Match et Review. Les permissions déterminent qui peut créer ou modifier un événement d'équipe.
+`/planning` réunit disponibilités, séances et précisions hebdomadaires. Une précision enregistrée est visible par toute l’équipe pour la semaine affichée ; le staff partage une note commune. Les séances peuvent être des entraînements, matchs ou débriefs selon les droits du membre.
+
+## Scrims entre équipes
+
+`/scrims` comporte **Trouver un adversaire** pour les propositions des autres équipes et **Mes scrims** pour publier, suivre les réponses et revoir les scrims confirmés. Le staff choisit une date, un niveau et un format de 1 à 5 parties, BO3 ou BO5 ; le formulaire ne demande plus de durée. Confirmer une réponse refuse les autres et crée une séance dans le planning des deux équipes, de deux heures par défaut. Le bot Discord l’annonce si la diffusion et un salon planning sont actifs. Voir [le guide Scrims](../scrims.md).

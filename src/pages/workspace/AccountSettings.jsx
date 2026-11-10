@@ -143,7 +143,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
   }
 
   return <div className="nxt5-account-settings nxt5-data-dense min-w-0">
-    <PageHeader eyebrow={t("Ton compte")} title={t("Paramètres")} subtitle={t("Gère tes informations, tes moyens de connexion et les e-mails que tu reçois.")} />
+    <PageHeader eyebrow={t("Ton compte")} title={t("Paramètres")} subtitle={t("Informations, connexions et e-mails.")} />
     <div className="nxt5-account-sections">
       <Surface glow className="nxt5-account-identity p-5">
         <div><h3 className="text-xl font-semibold text-white">{t("Pseudo et e-mail")}</h3><p className="mt-2 text-sm font-normal leading-6 text-slate-300">{t("Ces informations servent à te reconnaître dans NXT5 et à récupérer ton compte.")}</p></div>

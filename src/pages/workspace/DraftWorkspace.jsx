@@ -368,7 +368,7 @@ function Champions({ data, setData, selectedTeamId, pushToast, currentMember, us
 
   return (
     <div className="nxt5-pool-page">
-      <PageHeader eyebrow={t("Draft · Choisir les champions")} title={t("Champions des joueurs")} subtitle={t("Le champion pool est la liste des champions préparés par chaque joueur. Choisis un joueur, puis classe ses champions selon sa maîtrise.")}>
+      <PageHeader eyebrow={t("Draft · Choisir les champions")} title={t("Champions des joueurs")} subtitle={t("Choisis un joueur et classe ses champions par maîtrise.")}>
         {selectedPlayer && canManageSelectedPool && <Button type="button" icon={Plus} onClick={() => libraryRef.current?.querySelector("input")?.focus()}>{t("Ajouter un champion")}</Button>}
         <Button type="button" variant="ghost" icon={Download} onClick={exportSelectedTierList} disabled={!selectedPlayer || !selectedRows.length}>{t("Exporter la liste en PNG")}</Button>
       </PageHeader>

@@ -1,4 +1,5 @@
 import { es as adminTeams } from "./admin-team-overrides.js";
+import { es as concise } from "./concise-overrides.js";
 import { es as nexus } from "./nexus-overrides.js";
 import { es as compositions } from './composition-overrides.js';
 import { es as home } from './home-overrides.js';
@@ -13,6 +14,7 @@ import { es as opponents } from './opponents-overrides.js';
 import { es as groupOpponents } from './group-opponents-overrides.js';
 import { es as draftIntelligence } from './draft-intelligence-overrides.js';
 import { es as helpFeatures } from './help-features-overrides.js';
+import { es as assistantRefresh } from './assistant-refresh-overrides.js';
 import { es as playerComparison } from './player-comparison-overrides.js';
 import { es as socialCalendar } from './social-calendar-overrides.js';
 import { es as matchRecap } from './match-recap-overrides.js';
@@ -85,9 +87,10 @@ const matchKillMap = {
   "Événements incomplets": "Eventos incompletos",
   "Exécution": "Ejecución",
 };
-export default { ...base, ...adminTeams, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap, ...compositions,
+export default { ...base, ...adminTeams, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...assistantRefresh, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap, ...compositions,
   ...debrief,
   ...nexus,
+  ...concise,
   "Tuto vidéo : importer une partie sur Windows": "Vídeo tutorial: importar una partida en Windows",
   "YouTube · 2 min 31 · En français · Nouvel onglet": "YouTube · 2 min 31 · En francés · Nueva pestaña",
 };
