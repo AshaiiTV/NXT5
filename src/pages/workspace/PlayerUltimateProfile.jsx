@@ -4,7 +4,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { matchSideLabel } from "../../utils/statistics.js";
 import React, { useEffect, useRef, useState } from "react";
 import { DiscordProgressionGoals } from "../../components/discord/DiscordWorkflows.jsx";
-import { Activity, AlertTriangle, Check, Clipboard, Crown, Download, Eye, FileText, Flame, Gauge, Loader2, Shield, Swords, Target, Trophy, ArrowRight, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, RefreshCw, Search, ShieldCheck, BookOpen, BarChart3 } from "lucide-react";
+import { Activity, AlertTriangle, Check, Clipboard, Crown, Download, FileText, Flame, Gauge, Loader2, Shield, Swords, Target, Trophy, ArrowRight, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, RefreshCw, Search, ShieldCheck, BookOpen, BarChart3 } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { profilePathFromView, profileViewFromPath, openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TabNav } from "../../components/ui/Core.jsx";
@@ -303,7 +303,6 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const linkedPlayer = players.find((player) => player.user_id === user?.id);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [profileView, setProfileView] = useState(() => profileViewFromPath(route?.path || window.location.pathname));
-  const [showShowcase, setShowShowcase] = useState(() => /\/(?:mon-)?profil\/carte\/?$/.test(route?.path || window.location.pathname));
   const legacyShowcaseFocus = useRef(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedProfileChampion, setSelectedProfileChampion] = useState("");
@@ -328,9 +327,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   }, [selectedTeamId]);
   useEffect(() => {
     setProfileView(profileViewFromPath(route?.path || window.location.pathname));
-    if (/\/(?:mon-)?profil\/carte\/?$/.test(route?.path || window.location.pathname)) {
-      setShowShowcase(true);
-    } else legacyShowcaseFocus.current = false;
+    if (!/\/(?:mon-)?profil\/carte\/?$/.test(route?.path || window.location.pathname)) legacyShowcaseFocus.current = false;
   }, [route?.path]);
   function openProfileView(viewId) {
     if (viewId === profileView) return;
@@ -499,15 +496,15 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     <div className="profile-identity-header">
     <span className="profile-identity-role" aria-hidden="true"><RoleIcon role={selectedPlayer.role} className="profile-identity-icon" /></span>
     <PageHeader eyebrow={t("Profil joueur")} title={selectedPlayer.name} subtitle={`${roleLabel(selectedPlayer.role)} · ${selectedPlayer.riot_id || "Riot ID non renseigné"}${selectedPlayer.user_id === user?.id ? " · Ton profil" : ""}`}>
-      <Button type="button" variant="ghost" icon={exporting ? Loader2 : Download} onClick={downloadProfile} disabled={exporting || !games}>{exporting ? t("Export en cours…") : t("Exporter le résumé")}</Button>
+      <Button type="button" variant="ghost" icon={exporting ? Loader2 : Download} aria-label={exporting ? t("Export en cours…") : t("Exporter le résumé")} title={exporting ? t("Export en cours…") : t("Exporter le résumé")} onClick={downloadProfile} disabled={exporting || !games}>{exporting ? t("Export en cours…") : t("Exporter le résumé")}</Button>
     </PageHeader>
-    {topChampion && <div className="profile-signature"><ChampionPortrait champion={topChampion.champion} alt="" className="profile-signature-portrait" /><span><small>{t("Champion le plus joué")}</small><strong>{championDisplayName(topChampion.champion)}</strong></span></div>}
+    {topChampion && profileView !== "overview" && <div className="profile-signature"><ChampionPortrait champion={topChampion.champion} alt="" className="profile-signature-portrait" /><span><small>{t("Champion le plus joué")}</small><strong>{championDisplayName(topChampion.champion)}</strong></span></div>}
     </div>
     {exportStatus && <p role="status" className="profile-notice">{t(exportStatus)}</p>}
     <div className="profile-context">
       <div className="profile-filters">
         <SelectInput label={t("Joueur")} value={selectedPlayer.id} onChange={selectProfile}>{players.map((player) => <option key={player.id} value={player.id}>{t(roleLabel(player.role))} · {player.name}</option>)}</SelectInput>
-        <SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes les parties")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
+        <SelectInput label={t("Catégorie")} value={selectedCategoryId} onChange={setSelectedCategoryId}><option value="">{t("Toutes")}</option>{matchCategories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>
       </div>
       <div className="profile-scope"><p><strong>{games}{t(" parties analysées")}</strong> · {activeProfileCategory?.name || t("Tous les contextes")}{rows.length ? t(" · {0} au {1}", [t(profileHistoryDateLabel(sortedProfileRows[sortedProfileRows.length - 1])) || t("date inconnue"), t(profileHistoryDateLabel(sortedProfileRows[0])) || t("date inconnue")]) : ""}</p>{selectedCategoryId && <button type="button" className="profile-text-action" onClick={() => setSelectedCategoryId("")}>{t("Réinitialiser le contexte")}</button>}</div>
     </div>
@@ -515,13 +512,13 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
     <section id="profile-panel" role="tabpanel" aria-label={PROFILE_SECTIONS.find((section) => section.id === profileView)?.label} tabIndex={0} className="profile-content" key={`${selectedPlayer.id}-${selectedCategoryId}-${profileView}`}>
       {profileView === "overview" && <>
         {games > 0 ? <>
+          <section id="carte-wrapped" className="profile-showcase-section" aria-labelledby="profile-showcase-title">
+            <div className="profile-showcase-intro"><div><h3 id="profile-showcase-title" tabIndex={-1}>{t("Carte & Wrapped")}</h3><p>{t("Ta carte et cinq chapitres construits avec les parties sélectionnées.")}</p></div></div>
+            <React.Suspense fallback={<p role="status" className="profile-notice">{t("Chargement de la carte et du Wrapped…")}</p>}><ProfileShowcase embedded player={selectedPlayer} rows={rows} teamName={selectedTeam?.name} category={activeProfileCategory?.name || t("Toutes les parties")} teammates={players} navigate={navigate || openAppPath} /></React.Suspense>
+          </section>
           <CoachDiagnosticPanel player={selectedPlayer} games={games} issues={coachIssues} strengths={coachStrengths} onFollowUp={() => { openProfileView("coaching"); requestAnimationFrame(() => document.getElementById("profile-panel")?.focus()); }} />
           <Surface className="profile-summary"><div className="profile-section-heading"><h3>{t("Les résultats en un regard")}</h3><span>{t("Sur la sélection ci-dessus · « — » signifie indisponible")}</span></div><dl className="profile-metrics">{metrics.map((metric) => <div key={metric.label}><dt>{t(metric.label)}</dt><dd>{metric.value}</dd><p>{t(metric.detail)}</p>{metric.explanation && <p className="profile-metric-explanation">{t(metric.explanation)}</p>}</div>)}</dl>{games < 5 && <p className="profile-sample-note">{t("Échantillon limité : ")}{games}{t(" parties. Confirme les observations sur les prochaines sessions.")}</p>}</Surface>
           <details className="profile-disclosure"><summary>{t("Autres statistiques et aide à la lecture")}</summary><dl className="profile-secondary-stats"><div><dt>{t("Ratio KDA")}</dt><dd>{kda}</dd><p>{t("(Kills + assists) ÷ morts, avec un minimum de 1 mort au dénominateur.")}</p></div><div><dt>{t("Score de vision")}</dt><dd>{meanMetric("vision")}</dd><p>{t("Moyenne par partie renseignée.")}</p></div><div><dt>{t("Farm à 20 min")}</dt><dd>{globalCs.at20 === null ? "—" : t("{0} CS", [globalCs.at20])}</dd><p>{cs20Values.length}{t(" parties renseignées.")}</p></div></dl><p>{t("La participation aux kills mesure les kills et assists du joueur rapportés aux kills de son équipe. Les CS comptent les sbires et monstres tués. « — » indique une donnée indisponible. Ces statistiques décrivent un résultat ; elles ne démontrent pas sa cause.")}</p></details>
-          <section id="carte-wrapped" className="profile-showcase-section" aria-labelledby="profile-showcase-title">
-            <div className="profile-showcase-intro"><div><h3 id="profile-showcase-title" tabIndex={-1}>{t("Carte & Wrapped")}</h3><p>{t("Explore ta carte et les cinq chapitres du Wrapped à partir des parties sélectionnées.")}</p></div><Button type="button" variant="ghost" icon={Eye} aria-expanded={showShowcase} aria-controls="profile-showcase-content" onClick={() => setShowShowcase((value) => !value)}>{t(showShowcase ? "Masquer la carte et le Wrapped" : "Afficher la carte et le Wrapped")}</Button></div>
-            <div id="profile-showcase-content">{showShowcase && <React.Suspense fallback={<p role="status" className="profile-notice">{t("Chargement de la carte et du Wrapped…")}</p>}><ProfileShowcase embedded player={selectedPlayer} rows={rows} teamName={selectedTeam?.name} category={activeProfileCategory?.name || t("Toutes les parties")} teammates={players} navigate={navigate || openAppPath} /></React.Suspense>}</div>
-          </section>
         </> : <Surface><EmptyState icon={Activity} title={t("Aucune partie dans cette sélection")} text={selectedCategoryId ? t("Change le contexte pour retrouver les résultats de ce joueur.") : t("Les résultats apparaîtront dès qu’une partie importée sera reliée à ce joueur.")} /><Button type="button" variant="ghost" onClick={() => selectedCategoryId ? setSelectedCategoryId("") : openAppPath("/games?import=1")}>{selectedCategoryId ? t("Voir tous les contextes") : t("Importer une partie")}</Button></Surface>}
         <ProfileLinkAuditPanel player={selectedPlayer} matches={filteredMatches} issues={profileLinkIssues} open={profileLinkAuditOpen} canRepair={canRepairProfileLinks} repairingId={repairingProfileLinkId} onToggle={() => setProfileLinkAuditOpen((value) => !value)} onRepair={repairProfileLink} />
       </>}

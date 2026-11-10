@@ -65,16 +65,18 @@ describe("player card and Wrapped", () => {
     expect(text(tab)).toContain("Synthèse");
   });
 
-  it("shows the card on demand within Synthèse", async () => {
+  it("shows the card and all five Wrapped chapters at the top of Synthèse", async () => {
     vi.stubGlobal("window", { location: new URL("https://nxt5.test/mon-profil?player=p1") });
     const matches = rows.map((row) => ({ ...row.match, team_id: "t1", participants: [{ ...row, player_id: "p1", team_key: "ALLY", role: "ADC" }] }));
     await mount(<PlayerUltimateProfile data={{ players: [{ ...player, team_id: "t1" }], matches, teams: [{ id: "t1", name: "Astral" }], matchCategories: [] }} selectedTeamId="t1" user={{ id: "reader" }} route={{ path: "/mon-profil", search: "?player=p1" }} navigate={vi.fn()} />);
-    expect(renderer.root.findAllByType("canvas")).toHaveLength(0);
-    const reveal = button("Afficher la carte et le Wrapped");
-    expect(reveal.props["aria-expanded"]).toBe(false);
-    await act(async () => reveal.props.onClick());
     expect(renderer.root.findByType("canvas").props["aria-label"]).toContain("Nova, Astral");
-    expect(button("Masquer la carte et le Wrapped").props["aria-expanded"]).toBe(true);
+    const section = renderer.root.findByProps({ id: "carte-wrapped" });
+    expect(section.findAllByType("button").filter((node) => ["Le bilan", "Le champion signature", "La partie marquante", "L’évolution", "L’équipe"].some((label) => text(node).includes(label)))).toHaveLength(5);
+    expect(renderer.root.findByProps({ className: "profile-content" }).children[0]).toBe(section);
+    await act(async () => section.findAllByType("button").find((node) => text(node).includes("Le champion signature")).props.onClick());
+    expect(renderer.root.findByProps({ "aria-current": "step" }).props["aria-label"]).toContain("Chapitre 2");
+    await act(async () => button("Retour à la carte").props.onClick());
+    expect(renderer.root.findByType("canvas").props["aria-label"]).toContain("Nova, Astral");
   });
 
   it("uses current player and category data, flips the card and exports exactly the visible face", async () => {

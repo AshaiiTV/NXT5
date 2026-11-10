@@ -35,15 +35,13 @@
 }
 .profile-content { display: flex; flex-direction: column; gap: 20px; min-width: 0; scroll-margin-top: 90px; }
 .profile-content > * { min-width: 0; }
-.profile-showcase-section { min-width: 0; border-top: 1px solid var(--nxt5-border-strong); padding-top: 20px; scroll-margin-top: 90px; }
+.profile-showcase-section { min-width: 0; scroll-margin-top: 90px; }
 .profile-showcase-intro { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px 24px; }
 .profile-showcase-intro > div { min-width: 0; max-width: 68ch; }
-.profile-showcase-intro h3 { font-size: 20px; line-height: 1.4; font-weight: 700; }
+.profile-showcase-intro h3 { font-size: clamp(24px, 2.7cqi, 32px); line-height: 1.2; font-weight: 750; letter-spacing: -.035em; }
 .profile-showcase-intro h3:focus { outline: 2px solid var(--nxt5-accent); outline-offset: 4px; }
-.profile-showcase-intro p { margin-top: 6px; font-size: var(--nxt5-font-body); line-height: 1.65; color: var(--nxt5-text-secondary); }
-.profile-showcase-intro > .nxt5-control { flex: 0 0 auto; }
-#profile-showcase-content { min-width: 0; }
-#profile-showcase-content:not(:empty) { margin-top: 20px; }
+.profile-showcase-intro p { margin-top: 6px; font-size: var(--nxt5-font-body); line-height: 1.55; color: var(--nxt5-text-secondary); }
+.profile-showcase-section > .profile-showcase { margin-top: 18px; }
 .nxt5-profile-page .profile-section-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; margin-bottom: 20px; }
 .profile-section-heading > div { flex: 1; min-width: min(220px,100%); }
 .nxt5-profile-page .profile-section-heading h3, .profile-followup-intro h3 { font-size: 20px; line-height: 1.4; font-weight: 700; }
@@ -149,6 +147,9 @@
   .profile-identity-role { flex-basis: 52px; width: 52px; height: 52px; border-radius: var(--nxt5-radius-control); }
   .profile-identity-icon { width: 28px; height: 28px; }
   .profile-context { padding: 18px; }
+  .profile-filters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .profile-filters > label { width: 100%; max-width: none; min-width: 0; }
+  .profile-context > .profile-scope { margin-top: 12px; padding-top: 10px; }
   .nxt5-profile-page .profile-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .profile-tabs { display: none; }
   .profile-mobile-navigation { display: block; }
@@ -162,6 +163,20 @@
     .nxt5-profile-page .profile-goals form input, .nxt5-profile-page .profile-goals form select, .profile-notes textarea { font-size: var(--nxt5-font-body); }
   .nxt5-profile-page .profile-secondary-stats { grid-template-columns: minmax(0,1fr); }
   .profile-content { gap: 16px; }
+}
+@container profile-page (max-width: 660px) {
+  .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header { align-items: center; gap: 12px; margin-bottom: 12px; padding: 14px; }
+  .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header > .nxt5-page-header { display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; }
+  .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-page-header > :first-child { flex: 1 1 auto; min-width: 0; }
+  .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-page-actions { flex: 0 0 44px; }
+  .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-page-actions .nxt5-control { width: 44px; min-width: 44px; min-height: 44px; padding: 0; font-size: 0; }
+  .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-page-eyebrow { margin-bottom: 4px; }
+  .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-page-subtitle { margin-top: 4px; line-height: 1.4; }
+  .nxt5-profile-page[data-profile-view="overview"] .profile-context { margin-bottom: 14px; padding: 14px; }
+  .nxt5-profile-page[data-profile-view="overview"] .profile-navigation { margin-bottom: 14px; }
+}
+@container profile-page (max-width: 340px) {
+  .profile-filters { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   .nxt5-profile-page *, .nxt5-profile-page *::before, .nxt5-profile-page *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
