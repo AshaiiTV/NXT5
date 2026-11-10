@@ -50,6 +50,7 @@ export const ALLOWED_ASSISTANT_PATHS = [
   '/draft/compositions',
   '/planning',
   '/scrims',
+  '/nexus-rising',
   '/mon-profil',
   '/mon-profil/champions',
   '/mon-profil/pool',
@@ -165,6 +166,11 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
         answer: "Dans Parties → Import automatique, le staff génère un code et le colle dans l’onglet Collecte automatique de NXT5 Importer (valable 15 minutes, une seule fois). Ensuite, chaque custom jouée avec l’Importer ouvert arrive seule, avec le côté, les postes et les joueurs reconnus grâce aux Riot ID de l’effectif. Une partie non reconnue apparaît dans Parties reçues avec le bouton Finaliser, qui ouvre le formulaire d’import habituel. La liaison expire après 90 jours et se révoque d’un clic."
       },
       {
+        question: 'Où trouver la collecte automatique dans NXT5 Importer 0.4.1 ?',
+        triggers: ['importer 0.4.1', 'barre latérale importer', 'où est collecte automatique', 'nouvelle interface importer'],
+        answer: 'Dans NXT5 Importer 0.4.1, la barre latérale regroupe Exporter, Collecte automatique, Historique et Paramètres. Dans une fenêtre de moins de 900 px, elle devient une barre supérieure. Le fonctionnement et les raccourcis de la collecte n’ont pas changé depuis la version 0.4.0.'
+      },
+      {
         question: 'Comment choisir une équipe adverse pendant l’import ?',
         triggers: ['adversaire pendant l’import', 'équipe adverse à l’import', 'nouvelle équipe à l’import', 'réimport adversaire'],
         answer: 'Après le fichier et le choix de ton côté, utilise Équipe adverse (facultatif) pour sélectionner une fiche ou Nouvelle équipe. La nouvelle fiche et son rattachement sont enregistrés seulement à la confirmation de l’import ; annuler ne crée pas cette fiche adverse. Non renseignée laisse une nouvelle partie sans adversaire et conserve le lien d’une partie réimportée. Si un groupe impose l’adversaire, modifie le lien du groupe pour le changer.'
@@ -258,7 +264,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     path: '/games',
     actionLabel: 'Ouvrir les parties',
     summary: 'Le détail d’une partie propose Draft de la partie (facultatif) pour vérifier un lien public Drafter.lol puis enregistrer ses picks et bans. Le staff peut ajouter, remplacer ou détacher cette draft.',
-    keywords: ['lien drafter', 'import drafter', 'importer drafter', 'drafter.lol', 'vérifier la draft', 'rattacher la draft', 'draft de la partie', 'remplacer la draft', 'détacher la draft'],
+    keywords: ['lien drafter', 'import drafter', 'importer drafter', 'drafter.lol', 'vérifier la draft', 'rattacher la draft', 'draft de la partie', 'remplacer la draft', 'détacher la draft', 'draft détachée de sa partie'],
     steps: [
       'Dans Parties, ouvre la partie puis Draft de la partie (facultatif).',
       'Colle le lien public Drafter.lol de la bonne game, puis clique sur Vérifier la draft.',
@@ -279,7 +285,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       },
       {
         question: 'Que devient une draft remplacée ou détachée ?',
-        triggers: ['remplacer la draft', 'détacher la draft', 'draft remplacée', 'draft détachée'],
+        triggers: ['remplacer la draft', 'détacher la draft', 'draft remplacée', 'draft détachée', 'draft détachée de sa partie'],
         answer: 'Depuis la partie, le staff peut choisir Remplacer la draft et vérifier le nouveau lien avant de l’enregistrer, ou Détacher la draft puis confirmer le détachement. L’ancienne draft reste dans l’historique d’Analyses → Drafts & bans, sans lien avec cette partie. Le détachement ne supprime ni la partie ni son association à une équipe adverse.'
       },
       {
@@ -320,6 +326,11 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
           "écart à 10"
         ],
         "answer": "CS 10 et CS 20 indiquent les sbires et monstres éliminés à 10 et 20 minutes. Dans Face-à-face, sélectionne un rôle pour consulter les repères disponibles des deux joueurs. Compare ces valeurs avec l’or, les morts et les moments clés de Débrief. Une donnée absente reste affichée « — »."
+      },
+      {
+        question: 'Comment lire les cinq duels par poste ?',
+        triggers: ['cinq duels', 'duels par poste', 'face à face postes', 'couleur des côtés'],
+        answer: 'Dans Face-à-face, ouvre le détail de chaque poste pour comparer les deux joueurs. Les valeurs se lisent côté bleu puis côté rouge ; la flèche indique le côté devant. Un tiret signale une donnée indisponible.'
       }
     ]
   },
@@ -619,12 +630,12 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: 'Scrims entre équipes NXT5',
     path: '/scrims',
     actionLabel: 'Ouvrir les Scrims',
-    summary: "La page Scrims met en relation les équipes NXT5 qui cherchent un adversaire : une équipe publie un créneau avec son niveau, les autres répondent, le staff confirme et la séance est ajoutée au planning des deux équipes.",
-    keywords: ['scrims', 'scrim', 'adversaire', 'proposition', 'créneau', 'niveau', 'équipe adverse', 'trouver une équipe', 'confirmer un scrim', 'répondre à une proposition'],
+    summary: "Scrims sépare Trouver un adversaire et Mes scrims. Le staff publie un créneau avec un format de 1 à 5 parties, BO3 ou BO5 ; après confirmation, la séance apparaît dans le planning des deux équipes.",
+    keywords: ['scrims', 'scrim', 'adversaire', 'proposition', 'créneau', 'niveau', 'équipe adverse', 'trouver une équipe', 'confirmer un scrim', 'répondre à une proposition', 'trouver un adversaire', 'mes scrims', 'format', 'bo3', 'bo5'],
     steps: [
-      "Publie une proposition : date, nombre de games, niveau minimum et maximum, précision facultative.",
-      "Réponds aux propositions des autres équipes avec un message (disponibilités, niveau, contact).",
-      "Confirme une réponse reçue : les autres sont refusées et la séance apparaît dans le planning des deux équipes.",
+      "Dans Mes scrims, le staff publie une proposition : date, format (1 à 5 parties, BO3 ou BO5), niveaux minimum et maximum, précision facultative. Le formulaire ne demande plus de durée.",
+      "Dans Trouver un adversaire, parcours les propositions des autres équipes et réponds avec un message.",
+      "Dans Mes scrims, confirme une réponse reçue : les autres sont refusées et la séance apparaît dans le planning des deux équipes.",
       "Avec une diffusion Discord active et un salon planning, le bot annonce le scrim confirmé."
     ],
     suggestions: [
@@ -642,6 +653,48 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
         question: 'Où apparaît un scrim confirmé ?',
         triggers: ['scrim confirmé', 'où apparaît', 'planning scrim', 'séance scrim'],
         answer: "La confirmation crée une séance de type scrim dans le planning des deux équipes, visible dans Planning et dans /nxt planning. Si la diffusion Discord est active avec un salon planning, le bot l’annonce dans ce salon lors de son prochain passage."
+      },
+      {
+        question: 'Quels formats et onglets sont disponibles pour les scrims ?',
+        triggers: ['format scrim', 'formats scrims', 'bo3', 'bo5', 'trouver un adversaire', 'mes scrims', 'durée scrim'],
+        answer: 'Trouver un adversaire affiche les propositions des autres équipes. Mes scrims regroupe les propositions de ton équipe, ses réponses envoyées et les scrims confirmés. À la publication, choisis 1 à 5 parties, BO3 ou BO5 ; la durée ne se saisit plus. La séance confirmée garde deux heures par défaut dans le planning.'
+      }
+    ]
+  },
+  {
+    id: 'nexus-rising',
+    title: 'Nexus Rising',
+    path: '/nexus-rising',
+    actionLabel: 'Ouvrir Nexus Rising',
+    summary: 'Nexus Rising est le portail de la ligue lié aux comptes et équipes NXT5. Pendant la préouverture, les visiteurs et les comptes non administrateurs voient Coming soon ; les inscriptions et les rencontres sont réservées à l’administration autorisée.',
+    keywords: ['nexus rising', 'ligue', 'tournoi', 'saison', 'inscription', 'classement', 'playoffs', 'coming soon', 'code de rencontre', 'importer nexus', 'départage'],
+    steps: [
+      'Ouvre Nexus Rising depuis le menu NXT5 : la page reste dans le même onglet.',
+      'Pendant la préouverture, consulte Coming soon. Le portail et les inscriptions ne sont accessibles qu’à l’administration autorisée.',
+      'Le portail utilise les équipes NXT5 existantes ; les résultats ne comptent qu’après validation des contributions par le staff.',
+      'Pour une rencontre autorisée, le staff donne un code de liaison Nexus à un capitaine du roster ; ce code ne crée pas de lobby League of Legends.'
+    ],
+    suggestions: ['Pourquoi Nexus Rising affiche Coming soon ?', 'Puis-je inscrire mon équipe à Nexus Rising ?', 'Comment sont validés les résultats Nexus Rising ?'],
+    faq: [
+      {
+        question: 'Pourquoi Nexus Rising affiche Coming soon ?',
+        triggers: ['nexus coming soon', 'nexus inaccessible', 'portail nexus fermé', 'préouverture nexus'],
+        answer: 'Nexus Rising est en préouverture. Les visiteurs et les comptes non administrateurs voient Coming soon sur /nexus-rising. Seule l’administration NXT5 autorisée voit le portail de préparation ; se connecter avec un compte ordinaire ne débloque pas les inscriptions.'
+      },
+      {
+        question: 'Puis-je inscrire mon équipe à Nexus Rising ?',
+        triggers: ['inscrire mon équipe à nexus', 'inscription nexus rising', 'rejoindre la ligue', 'saison nexus'],
+        answer: 'Pas pendant la préouverture actuelle : l’inscription est réservée à l’administration autorisée. Pour l’ouverture future, le portail réutilise une équipe NXT5 existante ; le propriétaire, un capitaine ou un manager pourra demander son inscription, puis le staff vérifiera l’effectif et l’éligibilité.'
+      },
+      {
+        question: 'Comment sont validés les résultats Nexus Rising ?',
+        triggers: ['résultats nexus', 'code de rencontre', 'importer nexus', 'game acceptée', 'classement nexus'],
+        answer: 'Le staff prépare la rencontre et donne un code personnel à usage unique à un capitaine autorisé. Le capitaine lie NXT5 Importer à la rencontre et active la collecte avant la fin de la partie. Le staff examine ensuite les contributions : seule une partie acceptée compte pour le score du BO, le classement et le tableau. La réception seule ne valide aucun résultat.'
+      },
+      {
+        question: 'Comment départager les équipes à égalité dans Nexus Rising ?',
+        triggers: ['départage nexus', 'égalité nexus', 'tie breaker nexus', 'seeds nexus'],
+        answer: 'Le départage à égalité de points est choisi explicitement pour chaque saison. Il peut utiliser la confrontation directe et la différence de parties dans l’ordre défini par le staff. Une égalité restante ne qualifie personne automatiquement : le staff documente sa décision avant d’attribuer un seed concerné.'
       }
     ]
   },

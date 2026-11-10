@@ -51,6 +51,7 @@ describe("contextual help", () => {
     ["/tendances?rubrique=playstyle", "trends"],
     ["/tendances?rubrique=ai-objectives", "trends"],
     ["/planning", "planning"],
+    ["/nexus-rising", "nexus-rising"],
     ["/bot-discord", "discord"],
     ["/parametres", "permissions-and-account"],
     ["/guide?section=discord", "discord"],
@@ -65,7 +66,7 @@ describe("contextual help", () => {
     expect(new Set(GUIDE_SECTIONS.map(section => section.id)).size).toBe(GUIDE_SECTIONS.length);
     for (const section of GUIDE_SECTIONS) {
       const { pathname: path, search } = new URL(section.path, "https://nxt5.org");
-      expect(isAppPath(path), section.id).toBe(true);
+      expect(isAppPath(path) || path === "/nexus-rising", section.id).toBe(true);
       // These instructions start from a shared page before selecting the relevant control.
       const destinationSection = { troubleshooting: "permissions-and-account", "match-drafter": "statistics" }[section.id] || section.id;
       expect(guideSectionForRoute({ path, search }), section.id).toBe(destinationSection);
