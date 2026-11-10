@@ -7,7 +7,7 @@
   align-items: start;
   gap: clamp(2rem, 6vw, 5rem);
 }
-.nxt5-support-story { min-width: 0; }
+.nxt5-support-left, .nxt5-support-right, .nxt5-support-story, .nxt5-support-visual, .nxt5-support-contribute { min-width: 0; }
 .nxt5-support-story h1 { margin-top: 1rem; }
 .nxt5-support-story > p:not(.nxt5-entry-eyebrow),
 .nxt5-support-impact p,
@@ -18,7 +18,6 @@
   line-height: 1.8;
 }
 .nxt5-support-story > p:not(.nxt5-entry-eyebrow) { margin-top: 1.25rem; max-width: 37rem; }
-.nxt5-support-story > .nxt5-support-intro { color: var(--nxt5-text); font-size: 1.125rem; }
 .nxt5-public-scene.nxt5-support-sculpture { width: min(85%, 25rem); margin: 2rem auto 1rem; }
 .nxt5-support-layout.nxt5-public-intro::before { bottom: auto; height: 48rem; background-position: center, center, 35% 65%; }
 .nxt5-support-impact { display: grid; gap: 1.5rem; list-style: none; padding: 0; margin: 2rem 0 0; }
@@ -33,7 +32,6 @@
 .nxt5-support-impact li > svg { box-sizing: content-box; padding: .6rem; border: 1px solid var(--nxt5-glass-border); border-radius: 10px; background: var(--nxt5-glass-background); }
 .nxt5-support-card h2 { font-size: 1.5rem; line-height: 1.3; font-weight: 650; letter-spacing: -.025em; }
 .nxt5-support-card p { margin-top: .75rem; }
-.nxt5-support-card .nxt5-support-choice { margin-top: 1.5rem; }
 .nxt5-support-cta { width: 100%; min-height: 48px; margin-top: 1.5rem; }
 .nxt5-support-card .nxt5-support-external { font-size: var(--nxt5-font-small); color: var(--nxt5-muted); }
 .nxt5-support-card .nxt5-support-optional { margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--nxt5-border); font-size: var(--nxt5-font-small); }
@@ -43,16 +41,19 @@
 .nxt5-support-community > svg { flex-shrink: 0; margin-top: .2rem; color: var(--nxt5-accent); }
 .nxt5-support-community p { margin-top: .35rem; font-size: var(--nxt5-font-body); }
 .nxt5-support-community a { margin-top: .35rem; font-size: var(--nxt5-font-ui); }
-.nxt5-support-thanks { margin-top: 3rem; color: var(--nxt5-muted); font-size: var(--nxt5-font-body); line-height: 1.7; }
 @media (min-width: 768px) {
   .nxt5-support-contribute { padding-top: 2.25rem; }
   .nxt5-support-page .nxt5-support-card { border-color: rgba(196,181,253,.3); background: radial-gradient(ellipse at 100% 0%,rgba(196,181,253,.12),transparent 55%),linear-gradient(145deg,rgba(33,23,63,.96),rgba(11,11,29,.98)); box-shadow: inset 0 1px rgba(226,232,255,.15), 0 28px 70px rgba(2,6,17,.35); }
 }
 @media (max-width: 767px) {
-  .nxt5-support-layout { grid-template-columns: minmax(0, 1fr); gap: 2rem; }
+  .nxt5-support-layout { grid-template-columns: minmax(0, 1fr); grid-template-areas: "story" "contribute" "visual" "community"; gap: 1.5rem; }
+  .nxt5-support-left, .nxt5-support-right { display: contents; }
+  .nxt5-support-story { grid-area: story; }
+  .nxt5-support-contribute { grid-area: contribute; }
+  .nxt5-support-visual { grid-area: visual; }
+  .nxt5-support-community { grid-area: community; margin-top: 0; }
   .nxt5-support-back { margin-bottom: 1.5rem; }
   .nxt5-support-main { padding-bottom: 2rem; }
-  .nxt5-support-thanks { margin-top: 2rem; }
-  .nxt5-public-scene.nxt5-support-sculpture { width: min(65%, 14rem); margin-block: 1.5rem .5rem; }
+  .nxt5-public-scene.nxt5-support-sculpture { width: min(65%, 14rem); margin-block: .5rem; }
   .nxt5-support-impact { margin-top: 1rem; }
 }

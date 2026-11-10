@@ -2,7 +2,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import "./assistant-panel.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { AlertCircle, ArrowRight, BookOpen, Loader2, MessageCircleQuestion, RefreshCw, Send, Trash2, WifiOff, X } from "lucide-react";
+import { AlertCircle, ArrowRight, BookOpen, ChevronRight, Loader2, MessageCircleQuestion, RefreshCw, Send, Trash2, WifiOff, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { isSafeInternalPath } from "../../app/routing.js";
 import { guideSectionForRoute } from "../../app/guide-navigation.js";
@@ -56,6 +56,12 @@ function assistantText(payload) {
   const body = responseBody(payload);
   const value = body?.answer ?? body?.reply ?? body?.content ?? (typeof body?.message === "string" ? body.message : body?.message?.content);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function assistantDetails(payload) {
+  const details = responseBody(payload)?.details;
+  if (!Array.isArray(details)) return [];
+  return details.filter((step) => typeof step === "string" && step.trim()).map((step) => step.trim()).slice(0, 4);
 }
 
 function assistantActions(payload) {
@@ -233,6 +239,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
         id: messageId(),
         role: "assistant",
         content: answer,
+        details: assistantDetails(result),
         actions: assistantActions(result),
         suggestions: assistantSuggestions(result),
         sources: assistantSources(result),
@@ -294,7 +301,6 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-cyan-200/22 bg-cyan-400/10 text-cyan-100"><MessageCircleQuestion className="h-5 w-5" /></span>
             <div className="min-w-0">
               <h2 id="nxt5-assistant-title" className="truncate text-lg font-black text-white">{t("Assistant NXT5")}</h2>
-              <p className="mt-0.5 text-xs font-semibold text-slate-400">{t("De l’aide pour utiliser NXT5")}</p>
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
@@ -303,16 +309,16 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
             <button type="button" onClick={onClose} aria-label={t("Fermer l'assistant")} title={t("Fermer")} className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.035] text-slate-300 transition hover:border-cyan-200/30 hover:bg-cyan-300/10 hover:text-white focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-200/70"><X className="h-5 w-5" /></button>
           </div>
         </header>
-        <div className="shrink-0 px-4 pt-4 sm:px-5"><ImporterTutorialLink className="w-full" /></div>
+        {!messages.length && <div className="shrink-0 px-4 pt-4 sm:px-5"><ImporterTutorialLink className="w-full" /></div>}
         <div className="min-h-0 flex-1 overflow-y-auto bg-[var(--nxt5-field)] px-4 py-5 sm:px-5" aria-live="polite" aria-busy={loading}>
           {!messages.length && !loading && (<div className="flex min-h-full flex-col justify-center py-6">
               <MessageCircleQuestion className="h-8 w-8 text-cyan-100" />
-              <h3 className="mt-4 text-xl font-black text-white">{t("Que veux-tu faire sur cette page ?")}</h3>
+              <h3 className="mt-4 text-balance text-xl font-black text-white">{t("Que veux-tu faire sur cette page ?")}</h3>
               <p className="mt-2 max-w-sm text-sm font-normal leading-6 text-slate-400">{t("Pose une question ou choisis un sujet.")}</p>
               <div className="mt-6 border-y border-white/10">
                 {routeSuggestions.map((suggestion) => (
                   <button key={suggestion} type="button" onClick={() => requestAnswer(suggestion)} className="group flex w-full items-center justify-between gap-3 border-b border-white/10 px-1 py-3.5 text-left text-sm font-bold leading-5 text-slate-200 transition last:border-b-0 hover:text-cyan-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-cyan-200/70">
-                    <span>{suggestion}</span><ArrowRight className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" />
+                    <span className="text-balance">{suggestion}</span><ArrowRight className="h-4 w-4 shrink-0 text-slate-500 transition group-hover:translate-x-0.5 group-hover:text-cyan-200" />
                   </button>
                 ))}
               </div>
@@ -323,6 +329,13 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
               <article key={message.id} className={cx("min-w-0", message.role === "user" && "ml-auto max-w-[88%]")}>
                 <p className="mb-1.5 text-xs font-black uppercase tracking-[0.14em] text-slate-500">{message.role === "user" ? t("Toi") : t("Assistant")}</p>
                 <div className={cx("whitespace-pre-wrap break-words text-sm font-normal leading-6", message.role === "user" ? "rounded-2xl rounded-tr-md border border-cyan-200/20 bg-cyan-400/10 px-4 py-3 text-cyan-50" : "border-l-2 border-cyan-300/55 pl-4 text-slate-200")}>{message.content}</div>
+                {message.role === "assistant" && !!message.details?.length && <details className="group mt-3 ml-4 border-l-2 border-white/10 pl-4 text-sm text-slate-300" onToggle={(event) => {
+                  const disclosure = event.currentTarget;
+                  if (disclosure.open) requestAnimationFrame(() => disclosure.querySelector("li:last-child")?.scrollIntoView({ block: "nearest", behavior: "auto" }));
+                }}>
+                  <summary className="flex min-h-11 w-fit cursor-pointer items-center gap-2 font-bold text-cyan-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-200/70"><ChevronRight className="h-4 w-4 shrink-0 transition-transform group-open:rotate-90" aria-hidden="true" /><span className="group-open:hidden">{t("Voir les {0} étapes", [message.details.length])}</span><span className="hidden group-open:inline">{t("Masquer les étapes")}</span></summary>
+                  <ol className="list-decimal space-y-2 py-2 pl-5 leading-6">{message.details.map((step, stepIndex) => <li key={`${message.id}-step-${stepIndex}`}>{step}</li>)}</ol>
+                </details>}
                 {!!message.actions?.length && <div className="mt-3 flex flex-wrap gap-2 pl-4">
                   {message.actions.map((action) => <button key={`${message.id}-${action.path}`} type="button" onClick={() => openInternalPath(action.path)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-cyan-200/22 bg-cyan-400/10 px-3 min-h-11 py-2 text-left text-xs font-black text-cyan-50 transition hover:border-cyan-200/45 hover:bg-cyan-300/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-200/70"><span>{t(action.label)}</span><ArrowRight className="h-3.5 w-3.5 shrink-0" /></button>)}
                 </div>}
@@ -348,7 +361,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
 
         <form onSubmit={submit} className="shrink-0 border-t border-cyan-100/12 bg-[var(--nxt5-surface)] px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-5 sm:pt-4">
           <div className="flex items-end gap-2 rounded-2xl border border-cyan-100/16 bg-[var(--nxt5-field)] p-2 transition-within focus-within:border-cyan-200/45 focus-within:ring-4 focus-within:ring-cyan-300/10">
-            <textarea ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit(event); } }} rows={2} maxLength={800} disabled={loading} aria-label={t("Question pour l'assistant NXT5")} placeholder={t("Pose une question sur NXT5")} className="max-h-36 min-h-[3rem] min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-semibold leading-5 text-white outline-hidden placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-60" />
+            <textarea ref={inputRef} value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit(event); } }} rows={2} maxLength={800} disabled={loading} aria-label={t("Question pour l'assistant NXT5")} placeholder={t("Pose ta question")} className="max-h-36 min-h-[3rem] min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm font-semibold leading-5 text-white outline-hidden placeholder:text-slate-500 disabled:cursor-not-allowed disabled:opacity-60" />
             <button type="submit" disabled={loading || !draft.trim()} aria-label={t("Envoyer la question")} title={t("Envoyer")} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-200/30 bg-cyan-400/15 text-cyan-50  transition hover:border-cyan-100/55 hover:bg-cyan-300/22 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-cyan-200/70 disabled:cursor-not-allowed disabled:opacity-35">{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}</button>
           </div>
         </form>

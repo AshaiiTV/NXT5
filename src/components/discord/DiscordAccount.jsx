@@ -80,7 +80,7 @@ export default function DiscordAccount({ user }) {
         <p className="discord-account-next">{t("Pour commencer : lance ")}<code>/nxt help</code>{t(" dans le salon Discord associé à ton équipe.")}</p>
         {managing && <div id={manageId} className="discord-account-management">
           <p className="break-words text-sm leading-6 text-slate-300">{t("Identifiant Discord : ")}{state.link.discord_user_id}</p>
-          <p className="text-sm leading-6 text-slate-300">{t("Cette liaison concerne ton compte personnel. L’installation du bot et les publications se règlent pour toute l’équipe ci-dessous.")}</p>
+          <p className="text-sm leading-6 text-slate-300">{t("Cette liaison est personnelle. L’installation du bot se règle pour l’équipe ci-dessous.")}</p>
           {unlink ? <div className="discord-confirm" role="group" aria-label={t("Confirmer la déliaison")}>
             <p className="text-sm leading-6 text-slate-200">{t("Retirer cette liaison révoque les accès Discord à ton compte et les actions en attente.")}</p>
             <div className="flex flex-wrap gap-3"><Button type="button" variant="danger" disabled={busy || loading} onClick={remove}>{busy ? t("Déliaison…") : t("Confirmer la déliaison")}</Button><Button type="button" variant="ghost" disabled={busy} onClick={() => setUnlink(false)}>{t("Conserver la liaison")}</Button></div>

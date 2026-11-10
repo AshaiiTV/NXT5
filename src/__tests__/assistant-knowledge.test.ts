@@ -44,7 +44,10 @@ describe('assistant knowledge', () => {
   ] as const)('keeps the selected guide topic for a generic %s request', (language, question, section) => {
     const matches = retrieveAssistantKnowledge(question, '/guide', 4, language, section);
     expect(matches[0].id).toBe(section);
-    expect(buildFallbackAssistantResponse(question, matches, language).sources[0].id).toBe(section);
+    const response = buildFallbackAssistantResponse(question, matches, language);
+    expect(response.sources[0].id).toBe(section);
+    expect(response.answer).toBe(matches[0].summary);
+    expect(response.details).toEqual(matches[0].steps.slice(0, 4));
   });
 
   it.each([

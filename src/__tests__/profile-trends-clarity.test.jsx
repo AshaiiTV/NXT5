@@ -79,7 +79,7 @@ describe("profile and analyses reading order", () => {
     mount(<ProgressionObjectives teamObjective={{ title: "Vision", why: "À vérifier", target: "<= 16 morts équipe par game", current: "18 morts/G", sourceGames }} roleObjectives={[]} gamesCount={3} onOpenSources={onOpenSources} onOpenContracts={onOpenContracts} />);
     expect(text(renderer.toJSON())).toContain("≤ 16 morts équipe par partie");
     expect(text(renderer.toJSON())).toContain("18 morts par partie");
-    expect(text(renderer.toJSON())).toContain("Des cibles proposées à partir de la sélection");
+    expect(text(renderer.toJSON())).toContain("Cibles proposées à partir de cette sélection");
     const buttons = renderer.root.findAllByType("button");
     act(() => buttons[0].props.onClick());
     expect(onOpenSources.mock.calls[0][0].games).toBe(sourceGames);

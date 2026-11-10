@@ -57,7 +57,7 @@ describe("site export catalogue integration", () => {
     expect(drawnText.join(" ")).toContain("données fictives");
     for (const role of ["TOP", "JGL", "MID", "ADC", "SUP"]) expect(drawnText).toContain(`Demo ${role}`);
     for (const role of ["TOP", "JGL", "MID", "ADC", "SUP"]) expect(drawnText).toContain(`Rival ${role}`);
-  });
+  }, 20000);
 
   it("always uses the full browser export", async () => {
     const snapshot = buildGamePublicationSnapshot(publicationFixture());

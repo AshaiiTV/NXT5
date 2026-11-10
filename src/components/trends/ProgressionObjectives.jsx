@@ -16,7 +16,7 @@ export function ProgressionObjectives({ teamObjective, roleObjectives, gamesCoun
       <h3 id="progression-objectives-title">{t("Objectifs de la prochaine session")}</h3>
       <p>{gamesCount}{t(gamesCount > 1 ? " parties" : " partie")}{t(gamesCount > 1 ? " analysées" : " analysée")}</p>
     </header>
-    <p className="objectives-intro">{t("Des cibles proposées à partir de la sélection. Vérifie les parties sources avec l’équipe avant de retenir une consigne.")}</p>
+    <p className="objectives-intro">{t("Cibles proposées à partir de cette sélection. Vérifie les parties sources avec l’équipe.")}</p>
 
     <div className="objectives-team">
       <div className="objectives-priority">

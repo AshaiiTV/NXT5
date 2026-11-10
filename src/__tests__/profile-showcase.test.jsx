@@ -205,7 +205,7 @@ describe("player card and Wrapped", () => {
 
   it("shows empty and unavailable data without presenting a fictional edition", async () => {
     await mount(<ProfileShowcase {...props} rows={[]} />);
-    expect(text(renderer.toJSON())).toContain("Aucune partie reliée");
+    expect(text(renderer.toJSON())).toContain("Aucune partie pour ce joueur dans cette sélection");
     expect(renderer.root.findAllByType("canvas")).toHaveLength(0);
     expect(loadProfileShowcaseAssets).not.toHaveBeenCalled();
     await act(async () => renderer.update(<ProfileShowcase {...props} rows={[{ champion: "Jhin", match: { id: "unknown" } }]} />));

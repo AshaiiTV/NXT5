@@ -153,7 +153,7 @@ describe("native NXT5 teams",()=>{
     const request=vi.fn().mockResolvedValue({seasons:[season],teams:[],registrations:[]});
     await mount(<NexusRegistration request={request} onClose={vi.fn()}/>);
     expect(button("Envoyer la candidature")).toBeUndefined();
-    expect(text()).toContain("Tu ne gères aucune équipe");
+    expect(text()).toContain("Aucune équipe à inscrire");
   });
   it("selects five source player IDs per side and rejects an incomplete lineup",async()=>{
     const rosterA=Array.from({length:6},(_,index)=>({id:`a${index}`,name:`Alpha${index}`,riotId:`Alpha${index}#EUW`}));

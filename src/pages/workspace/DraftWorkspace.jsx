@@ -694,7 +694,7 @@ function CompositionTagLexicon({ open }) {
   if (!open) return null;
   return <Surface className="mt-4">
     <h3 className="text-xl font-black text-white">{t("Comprendre les styles de jeu")}</h3>
-    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("Les étiquettes décrivent ce qu’un champion peut apporter à la composition. Utilise-les pour préparer tes choix ; elles ne prédisent pas le résultat de la partie.")}</p>
+    <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("Les étiquettes aident à préparer la composition ; elles ne prédisent pas le résultat.")}</p>
     <dl className="nxt5-composition-lexicon">{CHAMPION_TAG_DEFINITIONS.map(([tag, definition]) => <div key={tag}><dt className="text-sm font-bold text-cyan-100">{t(tagLabel(tag))}</dt><dd className="mt-1 text-sm leading-6 text-slate-300">{t(definition)}</dd></div>)}</dl>
     <section className="nxt5-composition-section">
       <h4 className="text-sm font-black text-violet-100">{t("Étiquettes pour retrouver une composition")}</h4>
@@ -832,7 +832,7 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
               </fieldset>
             </div>
 
-            {!rows.length && <div className="nxt5-composition-prerequisite"><p>{t("Aucun champion n’est encore déclaré. Prépare d’abord les listes des joueurs pour choisir les cinq champions de la composition.")}</p><Button type="button" variant="ghost" onClick={() => openAppPath("/draft/pool")}>{t("Préparer les listes de champions")}</Button></div>}
+            {!rows.length && <div className="nxt5-composition-prerequisite"><p>{t("Déclare les champions des joueurs avant de créer une composition.")}</p><Button type="button" variant="ghost" onClick={() => openAppPath("/draft/pool")}>{t("Préparer les listes de champions")}</Button></div>}
 
             <div className="nxt5-composition-editor-slots">
               {COMP_ROLES.map((role) => <CompositionSlot key={role} role={role} slot={form.slots[role] || {}} players={players} rows={rows} onChange={updateSlot} active={role === activeRole} onChoose={setActiveRole} />)}

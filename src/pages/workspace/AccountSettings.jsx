@@ -180,7 +180,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
       <Surface className="p-5">
         <details className="nxt5-account-disclosure">
           <summary><span><span className="nxt5-account-disclosure-title">{t("Affichage sur cet appareil")}</span><span className="nxt5-account-disclosure-hint">{visualMode === "low" ? t("Mode performance activé") : t("Rendu complet activé")}</span></span><ChevronDown aria-hidden="true" size={18} /></summary>
-          <p className="mt-3 text-sm leading-6 text-slate-300">{t("Si le site manque de fluidité, réduis les effets visuels. Ce choix s’applique uniquement à cet appareil.")}</p>
+          <p className="mt-3 text-sm leading-6 text-slate-300">{t("Réduis les effets visuels sur cet appareil si le site ralentit.")}</p>
         <div className="nxt5-account-visual-options">
           {[
             ["full", "Rendu complet", "Tous les effets visuels"],
