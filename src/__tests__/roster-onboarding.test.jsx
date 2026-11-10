@@ -133,26 +133,25 @@ describe("readable team roster", () => {
   const profileLinks = (node) => node.findAllByType("a").filter((link) => link.props.href?.startsWith("/mon-profil?player="));
   const playerIds = (node) => profileLinks(node).map((link) => new URL(link.props.href, window.location).searchParams.get("player"));
 
-  it("keeps the roster usable and loads historical champion statistics only on request", async () => {
-    const settings = { ...props(), onLoadHistory: vi.fn().mockResolvedValue(true) };
+  it("keeps the roster usable while full history loads in the background", async () => {
+    const settings = { ...props(), onLoadHistory: vi.fn() };
     settings.data = { ...settings.data, historyComplete: false, players: [player], matches: [{
       id: "latest", team_id: team.id, participants: [{ player_id: player.id, role: "TOP", team_key: "ALLY", champion: "Ornn" }],
     }] };
     const { renderer, update } = await render(settings);
     expect(playerIds(renderer.root)).toEqual([player.id]);
-    expect(content(renderer)).not.toContain("Champions les plus joués");
-    expect(content(renderer)).toContain("Historique complet à charger");
+    expect(content(renderer)).toContain("Champions les plus joués");
+    expect(content(renderer)).toContain("Chargement…");
+    expect(content(renderer)).not.toContain("Historique complet à charger");
     expect(settings.onLoadHistory).not.toHaveBeenCalled();
-    const load = () => renderer.root.findAllByType(Button).find((button) => button.props.children === "Charger les analyses de l’équipe");
-    await act(async () => load().props.onClick());
-    expect(settings.onLoadHistory).toHaveBeenCalledOnce();
-    await update({ ...settings, historyLoading: true });
-    expect(load().props.disabled).toBe(true);
-    expect(content(renderer)).not.toContain("Champions les plus joués");
+    expect(renderer.root.findAllByType(Button).find((button) => button.props.children === "Charger les analyses de l’équipe")).toBeUndefined();
+    await update({ ...settings, historyError: "Réseau indisponible" });
+    expect(content(renderer)).toContain("Indisponible");
     await update({ ...settings, data: { ...settings.data, historyComplete: true } });
     expect(content(renderer)).toContain("Champions les plus joués");
-    expect(content(renderer)).toContain("Ornn · 1 partie");
-    expect(load()).toBeUndefined();
+    expect(content(renderer)).not.toContain("Chargement…");
+    expect(renderer.root.findAllByProps({ role: "img" }).some((node) => node.props["aria-label"] === "Ornn · 1 partie")).toBe(true);
+    expect(settings.onLoadHistory).not.toHaveBeenCalled();
   });
 
   it("shows each profile once in role order, retains inactive profiles in details and keeps staff non-interactive", async () => {
@@ -204,12 +203,11 @@ describe("readable team roster", () => {
     const [link] = profileLinks(renderer.root);
     const portraits = link.findAll((node) => node.props.role === "img");
     expect(portraits.map((node) => node.props["aria-label"])).toEqual(["Ornn · 2 parties", "Camille · 1 partie", "Gnar · 1 partie"]);
+    expect(portraits.map((node) => node.findByProps({ className: "team-roster-champion-count" }).children)).toEqual([["2"], ["1"], ["1"]]);
     const artwork = portraits[0].findByType("img");
-    expect(decodeURIComponent(artwork.props.src)).toContain("/loading/Ornn_0.jpg");
+    expect(decodeURIComponent(artwork.props.src)).toContain("/img/champion/Ornn.png");
     await act(async () => artwork.props.onError());
-    expect(decodeURIComponent(portraits[0].findByType("img").props.src)).toContain("/img/champion/Ornn.png");
     expect(portraits[0].props["aria-label"]).toBe("Ornn · 2 parties");
-    expect(portraits[0].findByProps({ className: "team-roster-champion-name" }).children).toEqual(["Ornn"]);
   });
 
   it("keeps native modified-click navigation and opens the encoded profile on an ordinary click", async () => {

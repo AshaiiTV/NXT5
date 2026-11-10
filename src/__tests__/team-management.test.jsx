@@ -61,26 +61,27 @@ const text = (node) => node.children.map((child) => typeof child === "string" ? 
 const submit = (form) => form.props.onSubmit({ preventDefault() {} });
 
 describe("team management views", () => {
-  it("keeps roster editing available while withholding partial data-health conclusions", async () => {
+  it("keeps roster editing available without prompting for full history", async () => {
     const props = settings();
     props.data.historyComplete = false;
-    props.onLoadHistory = vi.fn().mockResolvedValue(true);
+    const loadHistory = vi.fn();
+    props.onLoadHistory = loadHistory;
     const { renderer, update } = await render(props);
     openEdit(renderer);
     change(editForm(renderer), "Nom", "Profil en cours");
     await switchTab(renderer, "settings");
     expect(JSON.stringify(renderer.toJSON())).not.toContain("Santé des données");
-    expect(props.onLoadHistory).not.toHaveBeenCalled();
-    await act(async () => action(renderer.root, "Charger les analyses de l’équipe").props.onClick());
-    expect(props.onLoadHistory).toHaveBeenCalledOnce();
+    expect(action(renderer.root, "Charger les analyses de l’équipe")).toBeUndefined();
+    expect(loadHistory).not.toHaveBeenCalled();
     await update({ ...props, historyError: "Réseau indisponible" });
     expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
-    expect(action(renderer.root, "Réessayer")).toBeDefined();
+    expect(action(renderer.root, "Réessayer")).toBeUndefined();
     await update({ ...props, data: { ...props.data, historyComplete: true } });
     await act(async () => { await vi.dynamicImportSettled(); });
     expect(JSON.stringify(renderer.toJSON())).toContain("Santé des données");
     await switchTab(renderer, "roster");
     expect(editForm(renderer).findByProps({ label: "Nom" }).props.value).toBe("Profil en cours");
+    expect(loadHistory).not.toHaveBeenCalled();
   });
 
   it("shows one tab panel at a time and retains profile and team drafts across tabs", async () => {

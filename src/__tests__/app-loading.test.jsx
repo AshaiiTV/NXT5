@@ -35,6 +35,7 @@ vi.mock("../components/layout/AppChrome.jsx", () => ({
   ApiBanner: ({ error, onRetry }) => error ? <aside role="alert">{error}<button onClick={onRetry}>Réessayer</button></aside> : null,
 }));
 vi.mock("../pages/workspace/Planning.jsx", () => ({ Planning: ({ planningStore }) => <button data-edit-planning onClick={() => planningStore.forContext({ teamId: "a", playerId: "p", weekStart: "2026-09-28" }).setNotes("Disponibilités")}>Modifier le planning</button> }));
+vi.mock("../pages/workspace/HomeWorkspace.jsx", () => ({ default: () => <main data-page="home-workspace" /> }));
 vi.mock("../pages/workspace/Teams.jsx", () => ({ Teams: ({ data }) => <main data-page="teams" data-games={data.matches.length} /> }));
 vi.mock("../components/assistant/AssistantPanel.jsx", () => ({ default: () => null }));
 vi.mock("../pages/public/DemoPage.jsx", () => ({ DemoPage: () => <main data-page="demo" /> }));
@@ -107,8 +108,8 @@ function mount(path = "/equipes") {
 }
 
 describe("one continuous application loading screen", () => {
-  it("retains one visual instance through module, session and first bootstrap page, then opens the workspace", async () => {
-    const app = mount();
+  it.each(["/equipes", "/gestion-equipe"])("retains one visual instance on %s until every team game is loaded", async (path) => {
+    const app = mount(path);
     const identity = app.loaders[0].props["data-loader"];
     const expectPhase = (phase) => {
       expect(app.loaders).toHaveLength(1);
@@ -123,14 +124,96 @@ describe("one continuous application loading screen", () => {
     await app.resolve(0, { user });
     expectPhase("bootstrap");
     expect(app.loaders[0].props["data-progress"]).toBeNull();
+    const matches = Array.from({ length: 205 }, (_, index) => ({ id: String(index), team_id: "a" }));
+    await app.resolve(1, { ...emptySnapshot, teams: [{ id: "a" }], selectedTeamId: "a", matches: matches.slice(0, 100),
+      pagination: { offset: 0, total: 205, nextOffset: 100, hasMore: true } });
+    expectPhase("bootstrap");
+    expect(app.loaders[0].props["data-progress"]).toEqual({ loaded: 100, total: 205 });
+    expect(app.pages).toHaveLength(0);
+    expect(app.requests).toHaveLength(3);
+    expect(app.requests[2].url).toContain("offset=100");
+    expect(app.requests[2].url).toContain("matchesOnly=1");
+    await app.resolve(2, { selectedTeamId: "a", matches: matches.slice(100, 200),
+      pagination: { offset: 100, total: 205, nextOffset: 200, hasMore: true } });
+    expectPhase("bootstrap");
+    expect(app.loaders[0].props["data-progress"]).toEqual({ loaded: 200, total: 205 });
+    expect(app.pages).toHaveLength(0);
+    expect(app.requests[3].url).toContain("offset=200");
+    await app.resolve(3, { selectedTeamId: "a", matches: matches.slice(200),
+      pagination: { offset: 200, total: 205, nextOffset: null, hasMore: false } });
+    expect(app.loaders).toHaveLength(0);
+    expect(app.pages[0].props["data-games"]).toBe(205);
+    expect(visual).toEqual({ mounts: 1, unmounts: 1 });
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("releases the shared screen and offers a retry if full team history fails", async () => {
+    const app = mount();
+    await app.loadModule();
+    await app.resolve(0, { user });
     const matches = Array.from({ length: 101 }, (_, index) => ({ id: String(index), team_id: "a" }));
     await app.resolve(1, { ...emptySnapshot, teams: [{ id: "a" }], selectedTeamId: "a", matches: matches.slice(0, 100),
       pagination: { offset: 0, total: 101, nextOffset: 100, hasMore: true } });
+    expect(app.loaders).toHaveLength(1);
+    await app.reject(2);
     expect(app.loaders).toHaveLength(0);
-    expect(app.pages[0].props["data-games"]).toBe(100);
-    expect(app.requests).toHaveLength(2);
+    expect(app.renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
+    expect(app.renderer.root.findAllByType("button").some((button) => button.children.includes("Réessayer"))).toBe(true);
+  });
+
+  it.each(["/accueil", "/planning", "/games", "/mon-equipe?setup=1"])("completes team history on the initial screen before opening %s", async (path) => {
+    const app = mount(path);
+    await app.loadModule();
+    await app.resolve(0, { user });
+    const matches = Array.from({ length: 101 }, (_, index) => ({ id: String(index), team_id: "a" }));
+    await app.resolve(1, { ...emptySnapshot, teams: [{ id: "a" }], selectedTeamId: "a", matches: matches.slice(0, 100),
+      pagination: { offset: 0, total: 101, nextOffset: 100, hasMore: true } });
+    expect(app.loaders).toHaveLength(1);
+    expect(app.loaders[0].props["data-progress"]).toEqual({ loaded: 100, total: 101 });
+    expect(app.pages).toHaveLength(0);
+    expect(app.requests).toHaveLength(3);
+    await app.resolve(2, { selectedTeamId: "a", matches: matches.slice(100),
+      pagination: { offset: 100, total: 101, nextOffset: null, hasMore: false } });
+    expect(app.loaders).toHaveLength(0);
+    expect(app.renderer.root.findAllByProps({ id: "workspace-content" })).toHaveLength(1);
+  });
+
+  it("repeats the full synchronization after a browser refresh", async () => {
+    const matches = Array.from({ length: 101 }, (_, index) => ({ id: String(index), team_id: "a" }));
+    for (let visit = 0; visit < 2; visit += 1) {
+      const app = mount("/mon-equipe");
+      expect(app.loaders).toHaveLength(1);
+      await app.loadModule();
+      await app.resolve(0, { user });
+      await app.resolve(1, { ...emptySnapshot, teams: [{ id: "a" }], selectedTeamId: "a", matches: matches.slice(0, 100),
+        pagination: { offset: 0, total: 101, nextOffset: 100, hasMore: true } });
+      expect(app.loaders).toHaveLength(1);
+      expect(app.requests[2].url).toContain("offset=100");
+      await app.resolve(2, { selectedTeamId: "a", matches: matches.slice(100),
+        pagination: { offset: 100, total: 101, nextOffset: null, hasMore: false } });
+      expect(app.loaders).toHaveLength(0);
+      expect(app.pages[0].props["data-games"]).toBe(101);
+      act(() => app.renderer.unmount());
+    }
+    expect(visual).toEqual({ mounts: 2, unmounts: 2 });
+  });
+
+  it("keeps the completed team in memory while navigating between workspace pages", async () => {
+    const app = mount("/accueil");
+    await app.loadModule();
+    await app.resolve(0, { user });
+    const matches = Array.from({ length: 101 }, (_, index) => ({ id: String(index), team_id: "a" }));
+    await app.resolve(1, { ...emptySnapshot, teams: [{ id: "a" }], selectedTeamId: "a", matches: matches.slice(0, 100),
+      pagination: { offset: 0, total: 101, nextOffset: 100, hasMore: true } });
+    await app.resolve(2, { selectedTeamId: "a", matches: matches.slice(100),
+      pagination: { offset: 100, total: 101, nextOffset: null, hasMore: false } });
+    expect(app.loaders).toHaveLength(0);
+    window.location = new URL("https://nxt5.test/mon-equipe");
+    act(() => window.addEventListener.mock.calls.find(([event]) => event === "popstate")[1]());
+    expect(app.loaders).toHaveLength(0);
+    expect(app.requests).toHaveLength(3);
+    expect(app.pages[0].props["data-games"]).toBe(101);
     expect(visual).toEqual({ mounts: 1, unmounts: 1 });
-    expect(vi.getTimerCount()).toBe(0);
   });
 
   it.each(["/", "/connexion", "/confidentialite", "/mot-de-passe-oublie", "/page-inconnue", "/demo", "/guides/importer-premier-scrim", "/guides/preparer-debrief", "/guides/nonexistent"])("shows %s without the staff loader while its module and session resolve", async (path) => {
