@@ -13,6 +13,8 @@
 .profile-showcase-eyebrow > span { width: 18px; height: 3px; background: currentColor; flex: 0 0 auto; }
 .profile-showcase-story .profile-showcase-headline { font-size: clamp(36px, 5.1cqi, 70px); line-height: 1.02; letter-spacing: -.055em; font-weight: 850; margin: 0 0 24px; color: var(--nxt5-text); text-wrap: balance; }
 .profile-showcase-headline strong { display: block; font-weight: inherit; color: var(--scene-accent); }
+.profile-showcase.is-embedded .is-card .profile-showcase-headline { font-size: clamp(22px, 2.5cqi, 30px); line-height: 1.3; letter-spacing: -.025em; margin-bottom: 0; }
+.profile-showcase.is-embedded .is-card .profile-showcase-launch { margin-top: 18px; }
 .profile-showcase-identity { color: var(--nxt5-text); font-size: var(--nxt5-font-body); font-weight: 650; line-height: 1.6; margin-bottom: 12px; }
 .profile-showcase-description { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.7; max-width: 42ch; margin-bottom: 12px; }
 .profile-showcase-context { color: var(--nxt5-muted); font-size: var(--nxt5-font-small); line-height: 1.7; margin-top: 28px; }

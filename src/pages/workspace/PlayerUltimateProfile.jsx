@@ -303,6 +303,8 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const linkedPlayer = players.find((player) => player.user_id === user?.id);
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [profileView, setProfileView] = useState(() => profileViewFromPath(route?.path || window.location.pathname));
+  const [showShowcase, setShowShowcase] = useState(() => /\/(?:mon-)?profil\/carte\/?$/.test(route?.path || window.location.pathname));
+  const legacyShowcaseFocus = useRef(false);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedProfileChampion, setSelectedProfileChampion] = useState("");
   const [coachingContent, setCoachingContent] = useState("");
@@ -326,6 +328,9 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   }, [selectedTeamId]);
   useEffect(() => {
     setProfileView(profileViewFromPath(route?.path || window.location.pathname));
+    if (/\/(?:mon-)?profil\/carte\/?$/.test(route?.path || window.location.pathname)) {
+      setShowShowcase(true);
+    } else legacyShowcaseFocus.current = false;
   }, [route?.path]);
   function openProfileView(viewId) {
     if (viewId === profileView) return;
@@ -357,6 +362,14 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const activeProfileCategory = matchCategories.find((category) => String(category.id || "") === String(selectedCategoryId || ""));
   const rows = selectedPlayer ? playerIntegratedRows(selectedPlayer, filteredMatches) : [];
   const games = rows.length;
+  useEffect(() => {
+    if (!/\/(?:mon-)?profil\/carte\/?$/.test(route?.path || window.location.pathname) || !games || legacyShowcaseFocus.current) return;
+    const title = document.getElementById?.("profile-showcase-title");
+    if (!title) return;
+    legacyShowcaseFocus.current = true;
+    title.focus?.({ preventScroll: true });
+    title.scrollIntoView?.({ block: "start" });
+  }, [route?.path, games, selectedPlayer?.id]);
   const profileLinkIssues = selectedPlayer ? profileLinkAuditRows(selectedPlayer, filteredMatches, players) : [];
   const selectedTeam = (data.teams || []).find((team) => String(team.id || "") === String(selectedTeamId || ""));
   const canRepairProfileLinks = selectedTeam?.owner_id === user?.id || canStaffManage(currentMember?.role);
@@ -409,7 +422,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
 
   const coachSignals = games ? [
     cs10Target && globalCs.at10 !== null && globalCs.at10 < cs10Target - 8 && { kind: "issue", priority: 94, title: "Vérifier les sbires obtenus en début de partie", text: `${globalCs.at10} sbires et monstres tués (CS) à 10 min en moyenne sur ${cs10Values.length} parties renseignées. Le repère proposé pour le poste est de ${cs10Target} ; il reste à adapter à l’adversaire.`, action: "Revoir les premières vagues de sbires et le premier retour à la base, puis comparer le résultat à 10 minutes sur les prochaines parties.", toneName: "cyan", icon: Target, rows: lowCsRows },
-    highDeathRows.length > 0 && { kind: "issue", priority: 88, title: "Revoir les parties avec le plus de morts", text: `${highDeathRows.length} parties atteignent au moins ${Math.max(4, Math.ceil(avgDeaths + 1))} morts, pour ${avgDeaths.toFixed(1)} en moyenne sur la sélection. Le score seul ne dit pas si ces morts étaient évitables.`, action: "Classer les morts par contexte : gestion des sbires, vision ou combat. Choisir ensuite une situation à mieux préparer.", toneName: "cyan", icon: Shield, rows: highDeathRows },
+    highDeathRows.length > 0 && { kind: "issue", priority: 88, title: "Revoir les parties avec le plus de morts", text: `${highDeathRows.length} parties atteignent au moins ${Math.max(4, Math.ceil(avgDeaths + 1))} morts, pour ${new Intl.NumberFormat(getLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(avgDeaths)} morts en moyenne sur la sélection. Le score seul ne dit pas si ces morts étaient évitables.`, action: "Classer les morts par contexte : gestion des sbires, vision ou combat. Choisir ensuite une situation à mieux préparer.", toneName: "cyan", icon: Shield, rows: highDeathRows },
     lowKpRows.length > 0 && { kind: "issue", priority: 84, title: "Vérifier la participation aux éliminations", text: `${lowKpRows.length} parties sont sous 50 % de participation aux éliminations de l’équipe. Jouer seul sur une voie pour y maintenir la pression (splitpush) peut expliquer cet écart.`, action: "Revoir le placement et les déplacements avant les objectifs. Vérifier si le joueur devait rejoindre son équipe ou maintenir la pression sur une voie.", toneName: "cyan", icon: Swords, rows: lowKpRows },
     topChampionShare >= 65 && { kind: "issue", priority: 68, title: "Préparer une alternative au champion le plus joué", text: `${championDisplayName(topChampion.champion)} représente ${topChampionShare} % des ${games} parties analysées. Ce volume décrit les choix de champions, pas leur maîtrise.`, action: `Vérifier dans Champion pool quelle alternative jouer si ${championDisplayName(topChampion.champion)} est indisponible.`, toneName: "cyan", icon: Crown, rows: topChampion.rows },
     { kind: "strength", priority: 1, title: "Choisir un point à confirmer en débrief", text: "Ces résultats donnent des repères. Ils ne suffisent pas à déterminer, seuls, une priorité de progression.", action: "Ouvrir une partie récente, choisir un comportement observable et le suivre sur la prochaine session.", toneName: "cyan", icon: Target, rows: sortedProfileRows.slice(0, 3) },
@@ -505,13 +518,16 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
           <CoachDiagnosticPanel player={selectedPlayer} games={games} issues={coachIssues} strengths={coachStrengths} onFollowUp={() => { openProfileView("coaching"); requestAnimationFrame(() => document.getElementById("profile-panel")?.focus()); }} />
           <Surface className="profile-summary"><div className="profile-section-heading"><h3>{t("Les résultats en un regard")}</h3><span>{t("Sur la sélection ci-dessus · « — » signifie indisponible")}</span></div><dl className="profile-metrics">{metrics.map((metric) => <div key={metric.label}><dt>{t(metric.label)}</dt><dd>{metric.value}</dd><p>{t(metric.detail)}</p>{metric.explanation && <p className="profile-metric-explanation">{t(metric.explanation)}</p>}</div>)}</dl>{games < 5 && <p className="profile-sample-note">{t("Échantillon limité : ")}{games}{t(" parties. Confirme les observations sur les prochaines sessions.")}</p>}</Surface>
           <details className="profile-disclosure"><summary>{t("Autres statistiques et aide à la lecture")}</summary><dl className="profile-secondary-stats"><div><dt>{t("Ratio KDA")}</dt><dd>{kda}</dd><p>{t("(Kills + assists) ÷ morts, avec un minimum de 1 mort au dénominateur.")}</p></div><div><dt>{t("Score de vision")}</dt><dd>{meanMetric("vision")}</dd><p>{t("Moyenne par partie renseignée.")}</p></div><div><dt>{t("Farm à 20 min")}</dt><dd>{globalCs.at20 === null ? "—" : t("{0} CS", [globalCs.at20])}</dd><p>{cs20Values.length}{t(" parties renseignées.")}</p></div></dl><p>{t("La participation aux kills mesure les kills et assists du joueur rapportés aux kills de son équipe. Les CS comptent les sbires et monstres tués. « — » indique une donnée indisponible. Ces statistiques décrivent un résultat ; elles ne démontrent pas sa cause.")}</p></details>
+          <section id="carte-wrapped" className="profile-showcase-section" aria-labelledby="profile-showcase-title">
+            <div className="profile-showcase-intro"><div><h3 id="profile-showcase-title" tabIndex={-1}>{t("Carte & Wrapped")}</h3><p>{t("Explore ta carte et les cinq chapitres du Wrapped à partir des parties sélectionnées.")}</p></div><Button type="button" variant="ghost" icon={Eye} aria-expanded={showShowcase} aria-controls="profile-showcase-content" onClick={() => setShowShowcase((value) => !value)}>{t(showShowcase ? "Masquer la carte et le Wrapped" : "Afficher la carte et le Wrapped")}</Button></div>
+            <div id="profile-showcase-content">{showShowcase && <React.Suspense fallback={<p role="status" className="profile-notice">{t("Chargement de la carte et du Wrapped…")}</p>}><ProfileShowcase embedded player={selectedPlayer} rows={rows} teamName={selectedTeam?.name} category={activeProfileCategory?.name || t("Toutes les parties")} teammates={players} navigate={navigate || openAppPath} /></React.Suspense>}</div>
+          </section>
         </> : <Surface><EmptyState icon={Activity} title={t("Aucune partie dans cette sélection")} text={selectedCategoryId ? t("Change le contexte pour retrouver les résultats de ce joueur.") : t("Les résultats apparaîtront dès qu’une partie importée sera reliée à ce joueur.")} /><Button type="button" variant="ghost" onClick={() => selectedCategoryId ? setSelectedCategoryId("") : openAppPath("/games?import=1")}>{selectedCategoryId ? t("Voir tous les contextes") : t("Importer une partie")}</Button></Surface>}
         <ProfileLinkAuditPanel player={selectedPlayer} matches={filteredMatches} issues={profileLinkIssues} open={profileLinkAuditOpen} canRepair={canRepairProfileLinks} repairingId={repairingProfileLinkId} onToggle={() => setProfileLinkAuditOpen((value) => !value)} onRepair={repairProfileLink} />
       </>}
       {profileView === "champions" && <ProfileChampionsView championStats={championStats} selectedChampion={activeProfileChampion} onSelectChampion={setSelectedProfileChampion} selectedPlayer={selectedPlayer} selectedCategoryId={selectedCategoryId} teamId={selectedTeamId} userId={user?.id} navigate={navigate} bootstrapRevision={data.bootstrapRevision} />}
       {profileView === "pool" && <ProfileChampionPoolView championPool={championPool} championStats={championStats} selectedPlayer={selectedPlayer} pushToast={pushToast} exportRows={rows} category={activeProfileCategory?.name || "Toutes les catégories"} />}
       {profileView === "history" && <ProfileHistoryView rows={rows} selectedCategoryId={selectedCategoryId} navigate={navigate} />}
-      {profileView === "showcase" && <React.Suspense fallback={<p role="status" className="profile-notice">{t("Chargement de la carte et du Wrapped…")}</p>}><ProfileShowcase player={selectedPlayer} rows={rows} teamName={selectedTeam?.name} category={activeProfileCategory?.name || t("Toutes les parties")} teammates={players} navigate={navigate || openAppPath} /></React.Suspense>}
       {profileView === "coaching" && <>
         <div className="profile-followup-intro"><h3>{t("Objectifs et notes")}</h3><p>{t("Les objectifs suivent les parties du contexte sélectionné. Les notes restent communes à tous les contextes du joueur.")}</p></div>
         <DiscordProgressionGoals goals={data.botGoals} teamId={selectedTeamId} playerId={selectedPlayer.id} />
