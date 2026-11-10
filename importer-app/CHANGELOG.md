@@ -1,3 +1,10 @@
+# NXT5 Importer 0.4.2 — Prisme
+
+- Nouvelle identité Prisme commune au site : logo NXT5, 5 en verre violet et icônes natives Windows/macOS.
+- Palette nuit, lavande et violet d’action ; cartes de lecture opaques, champs et états de focus harmonisés.
+- Ajustements de la navigation compacte, des marges du logo et de l’encart de collecte.
+- Parcours d’export et de collecte, historique, préférences et raccourcis conservés.
+
 # NXT5 Importer 0.4.1
 
 ![Nouvelle interface NXT5 Importer : barre latérale et écran Exporter](docs/images/importer-0.4.1.png)
