@@ -10,6 +10,7 @@
     "build:preview": "node tools/build-preview.mjs",
     "test": "vitest run",
     "test:layout": "node tools/verify-roster-layout.mjs",
+    "test:framing": "node tools/verify-ui-framing.mjs",
     "preview": "vite preview",
     "optimize:assets": "node tools/optimize-assets.mjs",
     "typecheck": "node node_modules/typescript/bin/tsc --noEmit",

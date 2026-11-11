@@ -84,7 +84,7 @@
 .nxt5-start-return { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; margin-bottom: 20px; padding-bottom: 8px; border-bottom: 1px solid var(--nxt5-border); font-size: var(--nxt5-font-small); }
 .nxt5-start-return button { min-height: 44px; color: var(--nxt5-accent); }
 .nxt5-start-return > span { color: var(--nxt5-muted); }
-.nxt5-topbar { position: sticky; top: 0; z-index: 30; min-width: 0; min-height: 76px; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 2rem; border-bottom: 1px solid rgba(196, 181, 253, .24); background: var(--nxt5-surface); box-shadow: 0 6px 24px rgba(2, 6, 17, .14), inset 0 -1px 0 rgba(226, 232, 255, .055); }
+.nxt5-topbar { position: sticky; top: 0; z-index: 30; min-width: 0; min-height: var(--nxt5-chrome-header-height); display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem var(--nxt5-workspace-gutter); border-bottom: 1px solid rgba(196, 181, 253, .24); background: var(--nxt5-surface); box-shadow: 0 6px 24px rgba(2, 6, 17, .14), inset 0 -1px 0 rgba(226, 232, 255, .055); }
 .nxt5-topbar-location, .nxt5-topbar-actions, .nxt5-topbar-tools { display: flex; align-items: center; min-width: 0; }
 .nxt5-topbar-location { flex: 1; gap: .75rem; }
 .nxt5-topbar-page-icon { display: grid; place-items: center; flex: 0 0 auto; width: 36px; height: 36px; border: 1px solid var(--nxt5-glass-border); border-radius: 10px; background: var(--nxt5-glass-reflection), var(--nxt5-glass-background); color: var(--nxt5-accent); box-shadow: inset 0 1px 0 var(--nxt5-glass-highlight); }
@@ -114,9 +114,9 @@
 .nxt5-team-create { display: flex; align-items: center; gap: .625rem; width: 100%; min-height: 48px; margin-top: .5rem; padding: .625rem; border-top: 1px solid var(--nxt5-border); color: #b1edf6; text-align: left; font-size: var(--nxt5-font-small); font-weight: 600; }
 .nxt5-team-create:hover { background: rgba(103, 232, 249, .06); }
 
-.nxt5-app-shell { width: 100%; margin-left: 0; }
+.nxt5-app-shell { --nxt5-workspace-gutter: 2rem; width: 100%; margin-left: 0; }
 .nxt5-sidebar-aware-overlay { left: 0 !important; width: 100% !important; }
-.nxt5-workspace-main { width: 100%; min-width: 0; max-width: 1680px; margin: 0 auto; padding: 2rem; }
+.nxt5-workspace-main { width: 100%; min-width: 0; max-width: 1680px; margin: 0 auto; padding: 2rem var(--nxt5-workspace-gutter); }
 .nxt5-workspace-skip { position: fixed; top: .5rem; left: .5rem; z-index: 200; transform: translateY(-160%); padding: .75rem 1rem; border: 1px solid #67e8f9; background: var(--nxt5-surface); color: var(--nxt5-text); border-radius: 2px; }
 .nxt5-workspace-skip:focus { transform: translateY(0); }
 .nxt5-assistant-launcher { border-color: var(--nxt5-glass-border); background: var(--nxt5-glass-background); color: #d5eef6; box-shadow: inset 0 1px 0 var(--nxt5-glass-highlight); }
@@ -131,6 +131,7 @@
 
 @media (min-width: 1024px) {
   .nxt5-sidebar { z-index: 40; width: 16.5rem; visibility: visible; transform: none; }
+  .nxt5-sidebar-brand { flex: 0 0 var(--nxt5-chrome-header-height); min-height: var(--nxt5-chrome-header-height); }
   .nxt5-sidebar.is-collapsed { width: 5rem; padding-inline: .75rem; }
   .nxt5-sidebar.is-collapsed .nxt5-sidebar-label, .nxt5-sidebar.is-collapsed .nxt5-sidebar-group-label, .nxt5-sidebar.is-collapsed .nxt5-sidebar-wordmark { display: none; }
   .nxt5-sidebar.is-collapsed .nxt5-sidebar-symbol { display: block; }
@@ -145,14 +146,15 @@
 }
 
 @media (min-width: 1600px) {
-  .nxt5-workspace-main { padding: 2.25rem 2.5rem; }
-  .nxt5-topbar { padding-inline: 2.5rem; }
+  .nxt5-app-shell { --nxt5-workspace-gutter: 2.5rem; }
+  .nxt5-workspace-main { padding-block: 2.25rem; }
 }
 
 @media (max-width: 767px) {
   .nxt5-ambient-calm::after { width: 100%; height: 480px; opacity: .6; }
-  .nxt5-workspace-main { padding: 1.25rem 1rem; }
-  .nxt5-topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; min-height: 68px; padding: .5rem .75rem; gap: .375rem .5rem; }
+  .nxt5-app-shell { --nxt5-workspace-gutter: 1rem; }
+  .nxt5-workspace-main { padding-block: 1.25rem; }
+  .nxt5-topbar { display: grid; grid-template-columns: minmax(0, 1fr) auto; min-height: 68px; padding: .5rem var(--nxt5-workspace-gutter); gap: .375rem .5rem; }
   .nxt5-topbar-location { gap: .25rem; }
   .nxt5-topbar-page-icon { display: none; }
   .nxt5-topbar-breadcrumb { gap: .2rem; }

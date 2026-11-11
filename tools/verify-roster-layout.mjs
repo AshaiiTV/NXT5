@@ -80,6 +80,7 @@ try {
             cards: [...document.querySelectorAll('.team-roster-list > li')].map(rect),
             headings: [...document.querySelectorAll('.team-roster-heading')].map(rect),
             overrides: [...document.querySelectorAll('main > .nxt5-surface')].slice(1).map(el => parseFloat(getComputedStyle(el).paddingLeft)),
+            arrowOffsets: [...document.querySelectorAll('[data-roster="main"] .team-roster-row')].map(row => { const arrow = rect(row.querySelector(".team-roster-arrow")), role = rect(row.querySelector(".team-roster-role")); return Math.abs((arrow.top + arrow.bottom - role.top - role.bottom) / 2); }),
             overflow: document.documentElement.scrollWidth > innerWidth,
           };
         });
@@ -88,6 +89,7 @@ try {
         assert.deepEqual(geometry.overrides, [0, 16, width < 640 ? 12 : 16], label + ': explicit and responsive padding overrides');
         assert.deepEqual(pageErrors, [], label + ': JavaScript errors');
         assert.equal(geometry.overflow, false, label + ': horizontal overflow');
+        assert(geometry.arrowOffsets.every(offset => offset < 1), label + ': profile arrows centered with role');
         for (const r of [geometry.title, geometry.action, ...geometry.cards, ...geometry.headings]) {
           assert(r.left >= geometry.panel.left + geometry.inset, label + ': left inset');
           assert(r.right <= geometry.panel.right - geometry.inset + 1, label + ': right inset');
