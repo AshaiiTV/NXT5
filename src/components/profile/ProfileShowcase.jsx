@@ -35,9 +35,9 @@ function chapterCopy(report, chapter) {
 }
 
 function chapterTeaser(report, chapter) {
-  if (chapter === 0) return t("{0} parties · {1} victoires", [report.games, report.results.wins]);
+  if (chapter === 0) return t("{0} parties · {1} victoires", [report.games, report.results.wins]).replace(/(\d) /g, "$1\u00a0");
   if (chapter === 1) return report.signature ? championDisplayName(report.signature.champion) : t("À découvrir");
-  if (chapter === 2) return report.highlight ? t("{0} éliminations", [report.highlight.kills]) : t("À découvrir");
+  if (chapter === 2) return report.highlight ? t("{0} éliminations", [report.highlight.kills]).replace(/(\d) /g, "$1\u00a0") : t("À découvrir");
   if (chapter === 3) return report.progression ? evolutionDelta(report.progression) : t("À découvrir");
   return report.teamName || t("Équipe non renseignée");
 }

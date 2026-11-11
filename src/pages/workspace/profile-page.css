@@ -166,9 +166,6 @@
 }
 @container profile-page (max-width: 660px) {
   .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header { align-items: center; gap: 12px; margin-bottom: 12px; padding: 14px; }
-  .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header > .nxt5-page-header { display: flex; flex-wrap: nowrap; gap: 8px; align-items: center; }
-  .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-page-header > :first-child { flex: 1 1 auto; min-width: 0; }
-  .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-page-actions { flex: 0 0 44px; }
   .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-page-actions .nxt5-control { width: 44px; min-width: 44px; min-height: 44px; padding: 0; font-size: 0; }
   .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-page-eyebrow { margin-bottom: 4px; }
   .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-page-subtitle { margin-top: 4px; line-height: 1.4; }
@@ -242,4 +239,15 @@
 @media (max-width: 720px) {
   .nxt5-profile-page[data-profile-view="overview"] .profile-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .nxt5-profile-page[data-profile-view="overview"] .profile-identity-header .nxt5-control { min-width: 44px; min-height: 44px; }
+}
+
+/* Reserve the full reading width for player names on narrow screens. */
+@container profile-page (max-width: 480px) {
+  .nxt5-profile-page .profile-identity-header { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: start; }
+  .nxt5-profile-page .profile-identity-header > .nxt5-page-header { display: contents; }
+  .nxt5-profile-page .profile-identity-role { grid-column: 1; grid-row: 1; margin: 0; }
+  .nxt5-profile-page .profile-identity-header .nxt5-page-header > :first-child { grid-column: 1 / -1; grid-row: 2; }
+  .nxt5-profile-page .profile-identity-header .nxt5-page-actions { grid-column: 2; grid-row: 1; justify-self: end; justify-content: flex-end; align-self: center; }
+  .nxt5-profile-page .profile-identity-header .nxt5-page-title { hyphens: auto; overflow-wrap: break-word; }
+  .nxt5-profile-page .profile-signature { grid-column: 1 / -1; }
 }
