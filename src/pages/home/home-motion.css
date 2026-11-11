@@ -748,19 +748,20 @@
 }
 
 /* The historical sculpture leads the compact, diagonally composed mobile hero. */
-@media (max-width: 700px) and (min-height: 601px) {
+@media (max-width: 700px) and (min-height: 601px), (max-width: 599px) {
   .hm-sticky,
-  .hm-reduced .hm-sticky {
+  .hm-reduced .hm-sticky,
+  .hm-short .hm-sticky {
     height: clamp(640px, calc(90vw + 410px), 900px);
     min-height: 0;
   }
   .hm-outline-wrap {
     left: 6%;
     top: 90px;
-    width: 55%;
+    width: min(55%, 240px);
   }
   .hm-glass-wrap {
-    width: 90%;
+    width: min(90%, 410px);
     height: auto;
     aspect-ratio: 729 / 665;
     right: -1%;
@@ -768,7 +769,7 @@
     transform-origin: 50% 50%;
   }
   .hm-intro {
-    top: calc(90vw + 130px);
+    top: min(calc(90vw + 130px), 540px);
     bottom: auto;
   }
   .hm-intro-actions { margin-top: 18px; }
@@ -778,14 +779,14 @@
     background: linear-gradient(transparent 38%, #070a1440 52%, #070a14e8 69%, var(--nxt5-bg) 100%);
   }
 }
-@media (max-width: 360px) and (min-height: 601px) {
+@media (max-width: 360px) {
   .hm-outline-wrap { top: 86px; }
   .hm-glass-wrap { top: 150px; }
 }
 @media (max-height: 600px) and (min-width: 600px) {
   .hm-short .hm-outline-wrap { width: 42%; top: 27%; }
 }
-@media (max-width: 360px) and (min-height: 601px) {
+@media (max-width: 360px) {
   .hm-scroll-cue { display: none; }
 }
 @media (max-height: 600px) and (max-width: 700px) {
