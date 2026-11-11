@@ -134,8 +134,8 @@ export default function GlassScene({ className = "", posterClassName = "", canva
 
   return (
     <div ref={sceneRef} className={`nxt5-glass-scene ${className}${ready ? " is-ready" : ""}`} aria-hidden="true">
-      <img className={`nxt5-glass-poster ${posterClassName}`} src="/assets/brand/prisme/glass-poster.webp"
-        srcSet="/assets/brand/prisme/glass-poster.webp 729w, /assets/brand/prisme/glass-poster@2x.webp 1458w, /assets/brand/prisme/glass-poster@3x.webp 2187w"
+      <img className={`nxt5-glass-poster ${posterClassName}`} src="/assets/brand/prisme/classic-poster.webp"
+        srcSet="/assets/brand/prisme/classic-poster.webp 729w, /assets/brand/prisme/classic-poster@2x.webp 1458w, /assets/brand/prisme/classic-poster@3x.webp 2187w"
         sizes="(max-width: 760px) 90vw, (max-width: 1600px) 50vw, 900px"
         width="729" height="665" alt="" decoding="async" draggable="false" />
       <canvas ref={canvasRef} className={`nxt5-glass-canvas ${canvasClassName}`} width="729" height="665" />

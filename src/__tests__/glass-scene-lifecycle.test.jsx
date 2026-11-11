@@ -78,7 +78,7 @@ describe("shared glass scene lifecycle", () => {
     await mount({ motionEnabled: mode !== "paused" });
     expect(createGlassScene).not.toHaveBeenCalled();
     expect(isReady()).toBe(false);
-    expect(renderer.root.findByType("img").props.src).toBe("/assets/brand/prisme/glass-poster.webp");
+    expect(renderer.root.findByType("img").props.src).toBe("/assets/brand/prisme/classic-poster.webp");
   });
 
   it("uses the same engine on mobile, with a static fallback until its first frame", async () => {
