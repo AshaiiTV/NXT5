@@ -18,7 +18,7 @@ export async function exportGlobalStats(data,mode,format="portrait") {
   await document.fonts?.ready;
   const height=format==="story" ? 1920:1350;
   const {canvas,ctx}=pngCreateCanvas(1080,height);
-  const logo=await pngLoadImage("/assets/brand/prisme/nxt5-prisme-source.png");
+  const logo=await pngLoadImage("/assets/brand/prisme/nxt5-unified-source.png");
   pngBackground(ctx,1080,height);
   pngHeader(ctx,{width:1080,title:modeLabel(mode),subtitle:t("Les tendances de l’échantillon NXT5"),logo});
   pngFitText(ctx,periodLabel(data),64,248,952,{font:"500 22px Inter, Arial, sans-serif",color:"#CBD5E1"});

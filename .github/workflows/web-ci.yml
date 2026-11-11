@@ -22,6 +22,9 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run verify
-      - run: npx playwright install --with-deps chromium
+      # The hosted runner ships Chrome and its OS dependencies. Avoid an apt
+      # download before testing: mirror/DNS outages must not gate browser setup.
       - run: npm run test:layout
+        env:
+          LAYOUT_BROWSER_CHANNEL: chrome
       - run: node tools/audit-dependencies.mjs

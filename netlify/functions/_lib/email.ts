@@ -74,7 +74,7 @@ export async function sendEmailVerificationEmail({ to, token }) {
                     <div style="height:6px;background:#7c3aed"></div>
                     <div style="padding:36px 34px 32px">
                       <div style="display:inline-block;margin:0 0 22px;padding:7px 12px;border:1px solid rgba(103,232,249,.32);border-radius:999px;background:rgba(8,145,178,.16);color:#a5f3fc;font-size:12px;font-weight:900;letter-spacing:.09em;text-transform:uppercase">Vérification e-mail</div>
-                      <img src="${htmlSiteUrl}/assets/brand/prisme/nxt5-prisme-mono-640.png" alt="NXT5" width="180" height="51" style="display:block;margin:0 0 24px;border:0" />
+                      <img src="${htmlSiteUrl}/assets/brand/prisme/nxt5-unified-mono-640.png" alt="NXT5" width="180" height="51" style="display:block;margin:0 0 24px;border:0" />
                       <h1 style="margin:0;color:#ffffff;font-size:32px;line-height:1.08;font-weight:900">Active ton accès NXT5</h1>
                       <p style="margin:18px 0 0;color:#dbeafe;font-size:16px;line-height:1.7">Bienvenue sur NXT5. Confirme cette adresse e-mail pour sécuriser ton compte et recevoir les notifications importantes de ton équipe.</p>
 

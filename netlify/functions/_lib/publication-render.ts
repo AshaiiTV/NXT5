@@ -30,7 +30,7 @@ function prepareFont() {
 async function bundledLogo() {
   if (!logoPromise) {
     // Netlify included_files preserves this path. Never fetch a URL from a snapshot.
-    const filename = path.join(process.cwd(), 'public/assets/brand/prisme/nxt5-prisme-source.png');
+    const filename = path.join(process.cwd(), 'public/assets/brand/prisme/nxt5-unified-source.png');
     logoPromise = readFile(filename).then((bytes) => loadImage(bytes));
     logoPromise.catch(() => { logoPromise = undefined; });
   }

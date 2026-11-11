@@ -28,8 +28,8 @@ for (const weight of [400, 500, 600, 700]) {
 }
 
 const [wordmark, glassFive, ...roles] = await Promise.all([
-  loadImage(localPath('public/assets/brand/prisme/nxt5-prisme-source.png')),
-  loadImage(localPath('public/assets/brand/prisme/nxt5-prisme-5-512.webp')),
+  loadImage(localPath('public/assets/brand/prisme/nxt5-unified-source.png')),
+  loadImage(localPath('public/assets/brand/prisme/nxt5-unified-5-512.webp')),
   ...['top', 'jungle', 'middle', 'bottom', 'utility'].map(role => loadImage(localPath(`public/assets/roles/position-${role}.svg`))),
 ]);
 const canvas = createCanvas(width, height);

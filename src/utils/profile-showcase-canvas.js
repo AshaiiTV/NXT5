@@ -15,8 +15,8 @@ const C = { ...PNG_THEME, secondary: PNG_THEME.muted, violet: "#C4B5FD" };
 export async function loadProfileShowcaseAssets(champion = "") {
   const [championArt, logo, mark] = await Promise.all([
     loadProfileChampionArt(champion),
-    pngLoadImage("/assets/brand/prisme/nxt5-prisme-mono-640.png"),
-    pngLoadImage("/assets/brand/prisme/nxt5-prisme-5-256.webp"),
+    pngLoadImage("/assets/brand/prisme/nxt5-unified-mono-640.png"),
+    pngLoadImage("/assets/brand/prisme/nxt5-unified-5-256.webp"),
   ]);
   return { ...championArt, logo, mark };
 }
