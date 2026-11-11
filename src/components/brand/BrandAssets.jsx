@@ -16,9 +16,9 @@ export function ResponsiveImage({ src, sources = [], alt, className = "", fetchP
   );
 }
 
-const LOGO = { src: "/assets/brand/prisme/nxt5-prisme-source.png", srcSet: "/assets/brand/prisme/nxt5-prisme-640.webp 640w, /assets/brand/prisme/nxt5-prisme-320.webp 320w", width: "1536", height: "432" };
-const MONO = "/assets/brand/prisme/nxt5-prisme-mono-blanc.svg";
-const ICON = { src: "/assets/brand/prisme/icon-512.png", width: "512", height: "512" };
+const LOGO = { src: "/assets/brand/prisme/nxt5-unified-source.png", srcSet: "/assets/brand/prisme/nxt5-unified-640.webp 640w, /assets/brand/prisme/nxt5-unified-320.webp 320w", width: "1536", height: "432" };
+const MONO = "/assets/brand/prisme/nxt5-unified-mono-blanc.svg";
+const ICON = { src: "/assets/brand/prisme/unified-icon-512.png", width: "512", height: "512" };
 
 export function BrandLogo({ compact = false, className = "" }) {
   useLanguage();

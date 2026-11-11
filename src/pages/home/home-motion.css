@@ -746,3 +746,60 @@
     white-space: nowrap;
   }
 }
+
+/* The historical sculpture leads the compact, diagonally composed mobile hero. */
+@media (max-width: 700px) and (min-height: 601px) {
+  .hm-sticky,
+  .hm-reduced .hm-sticky {
+    height: clamp(640px, calc(90vw + 410px), 900px);
+    min-height: 0;
+  }
+  .hm-outline-wrap {
+    left: 6%;
+    top: 90px;
+    width: 55%;
+  }
+  .hm-glass-wrap {
+    width: 90%;
+    height: auto;
+    aspect-ratio: 729 / 665;
+    right: -1%;
+    top: 170px;
+    transform-origin: 50% 50%;
+  }
+  .hm-intro {
+    top: calc(90vw + 130px);
+    bottom: auto;
+  }
+  .hm-intro-actions { margin-top: 18px; }
+  .hm-signature { margin-bottom: 10px !important; }
+  .hm-scroll-cue { bottom: 22px; left: var(--hm-gutter); }
+  .hm-ground-shade {
+    background: linear-gradient(transparent 38%, #070a1440 52%, #070a14e8 69%, var(--nxt5-bg) 100%);
+  }
+}
+@media (max-width: 360px) and (min-height: 601px) {
+  .hm-outline-wrap { top: 86px; }
+  .hm-glass-wrap { top: 150px; }
+}
+@media (max-height: 600px) and (min-width: 600px) {
+  .hm-short .hm-outline-wrap { width: 42%; top: 27%; }
+}
+@media (max-width: 360px) and (min-height: 601px) {
+  .hm-scroll-cue { display: none; }
+}
+@media (max-height: 600px) and (max-width: 700px) {
+  .hm-scroll-cue { display: none; }
+}
+@media (max-width: 360px) {
+  .hm-header nav { gap: 8px; }
+  .hm-header nav > a { white-space: nowrap; font-size: 11px; }
+  .hm-header .hm-demo-link { padding-inline: 8px; gap: 5px; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .hm-motion-toggle.nxt5-cyber-button {
+    top: 88px;
+    bottom: auto;
+    right: max(12px, env(safe-area-inset-right));
+  }
+}

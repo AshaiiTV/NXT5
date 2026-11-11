@@ -91,7 +91,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .brand { display: flex; align-items: center; gap: 10px; padding: 2px 0; text-decoration: none; color: var(--text); }
 
 .brand-name { display: flex; flex-direction: column; gap: 2px; }
-.brand-wordmark { display: block; height: auto; width: 172px; object-fit: contain; margin-left: -11px; }
+.brand-wordmark { display: block; height: auto; width: 172px; object-fit: contain; }
 .brand small { color: var(--dim); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
 .nav { display: flex; flex-direction: column; gap: 4px; }
 .nav-item {
