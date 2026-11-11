@@ -691,9 +691,9 @@
   .hm-short .hm-glass-wrap {
     width: 34%;
     right: 12%;
-    top: 12%;
+    top: 10%;
     height: 45%;
-    scale: .88;
+    scale: .8;
     transform-origin: 50% 100%;
   }
   .hm-short .hm-intro {

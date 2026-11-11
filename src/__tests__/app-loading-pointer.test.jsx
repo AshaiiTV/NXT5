@@ -108,7 +108,7 @@ describe("loading integration with the shared glass scene", () => {
     expect(isReady()).toBe(true);
     act(() => createGlassScene.mock.calls[0][0].onError(new Error("WebGL context lost")));
     expect(isReady()).toBe(false);
-    expect(scene().findByType("img").props.src).toBe("/assets/brand/prisme/glass-poster.webp");
+    expect(scene().findByType("img").props.src).toBe("/assets/brand/prisme/classic-poster.webp");
     expect(renderer.root.findByProps({ role: "progressbar" }).props["aria-valuetext"]).toBe("7 parties reçues sur 18");
     expect(renderer.root.findByProps({ role: "status" }).findByType("h1").children).toEqual(["Synchronisation en cours"]);
     act(() => renderer.update(<AppLoadingScreen phase="bootstrap" progress={{ loaded: 12, total: 18 }} />));
@@ -121,7 +121,7 @@ describe("loading integration with the shared glass scene", () => {
     await mount({ phase: "bootstrap", progress: { loaded: 2, total: 9 } });
     expect(createGlassScene).not.toHaveBeenCalled();
     expect(isReady()).toBe(false);
-    expect(scene().findByType("img").props.src).toBe("/assets/brand/prisme/glass-poster.webp");
+    expect(scene().findByType("img").props.src).toBe("/assets/brand/prisme/classic-poster.webp");
     expect(renderer.root.findByProps({ role: "progressbar" }).props["aria-valuenow"]).toBe(2);
   });
 
@@ -130,7 +130,7 @@ describe("loading integration with the shared glass scene", () => {
     vi.stubGlobal("document", undefined);
     const html = renderToStaticMarkup(<AppLoadingScreen phase="session" />);
     expect(html).toContain("nxt5-glass-scene nxt5-sync-glass-scene");
-    expect(html).toContain("/assets/brand/prisme/glass-poster.webp");
+    expect(html).toContain("/assets/brand/prisme/classic-poster.webp");
     expect(html).toContain("Connexion à ton espace");
     expect(html).not.toMatch(/nxt5-sync-core-(pointer|arrival|float)|nxt5-sync-glass-light/);
     expect(createGlassScene).not.toHaveBeenCalled();

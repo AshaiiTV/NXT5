@@ -85,7 +85,7 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
       powerPreference: "high-performance",
       preserveDrawingBuffer: false,
     });
-    renderer.setClearColor(0x111827, 0);
+    renderer.setClearColor(0x070a14, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.02;
@@ -140,18 +140,26 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
     }
 
     const sculpture = new THREE.Group();
-    sculpture.scale.setScalar(0.9);
     scene.add(sculpture);
 
     // Angular cuts and the slant are part of the contour, so the silhouette
     // remains recognisable when the camera turns and on narrow screens.
-    // The selected Prisme silhouette, traced in the same source coordinates
-    // as nxt5-prisme-5-blanc.svg. Keep its forward slant in the geometry.
     const contour = [
-      [1435,358],[1172,359],[1113,540],[1285,540],[1287,542],
-      [1274,579],[1099,579],[1071,662],[1325,663],[1361,636],
-      [1400,510],[1362,470],[1231,471],[1230,468],[1241,438],[1410,438],
-    ].map(([x, y]) => new THREE.Vector2((x - 1253) / 69.32, (510.5 - y) / 69.32));
+      [-1.55, 2.2],
+      [1.5, 2.2],
+      [1.5, 1.34],
+      [-0.64, 1.34],
+      [-0.64, 0.48],
+      [1.04, 0.48],
+      [1.48, 0.04],
+      [1.48, -1.75],
+      [1.03, -2.2],
+      [-1.55, -2.2],
+      [-1.55, -1.31],
+      [0.56, -1.31],
+      [0.56, -0.43],
+      [-1.55, -0.43],
+    ].map(([x, y]) => new THREE.Vector2(x + y * 0.24, y));
     const shape = new THREE.Shape(contour);
     const depth = 0.65;
     const geometry = ownGeometry(
@@ -159,9 +167,9 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
         depth,
         steps: 1,
         bevelEnabled: true,
-        bevelThickness: 0.05,
-        bevelSize: 0.025,
-        bevelSegments: 1,
+        bevelThickness: 0.105,
+        bevelSize: 0.085,
+        bevelSegments: 6,
         curveSegments: 1,
       }),
     );
@@ -200,8 +208,8 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
       seed = (seed * 1664525 + 1013904223) >>> 0;
       return seed / 4294967296;
     };
-    const columns = 5;
-    const rows = 5;
+    const columns = 11;
+    const rows = 15;
     const grid = Array.from({ length: rows + 1 }, (_, y) =>
       Array.from({ length: columns + 1 }, (_, x) => [
         ((x + (x > 0 && x < columns ? (random() - 0.5) * 0.8 : 0)) / columns) *
@@ -236,29 +244,28 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
     facetNormals.offset.set(0.49, 0.49);
     textures.add(facetNormals);
 
-    // The selected Prisme facets are recessed inside the physical volume.
-    // Their colour is refracted by the shell; the sides and reflections are
-    // real geometry, not a transformed image plane.
-    let prismeFacets;
+    // Transmission cannot sample a CSS background. A recessed core, confined
+    // to the silhouette, supplies the same local atmosphere for real optical
+    // refraction. No plane or rectangular background is rendered outside it.
+    let atmosphere;
     try {
-      const loading = new THREE.TextureLoader().loadAsync("/assets/brand/prisme/nxt5-prisme-5-512.webp").then((texture) => {
+      const loading = new THREE.TextureLoader().loadAsync("/assets/home-motion/atmosphere.webp").then((texture) => {
         if (disposed) { texture.dispose(); return null; }
-        textures.add(texture);
         texture.colorSpace = THREE.SRGBColorSpace;
-        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        textures.add(texture);
         return texture;
       });
-      prismeFacets = await Promise.race([loading, cancelled]);
+      atmosphere = await Promise.race([loading, cancelled]);
     } catch {
       // Missing optional artwork still leaves the physical sculpture intact.
     }
     if (disposed) return idleController;
-    if (prismeFacets) {
+    if (atmosphere) {
       const coreGeometry = ownGeometry(new THREE.ShapeGeometry(shape));
       coreGeometry.translate(0, 0, -0.24);
       const coreMaterial = ownMaterial(
         new THREE.ShaderMaterial({
-          uniforms: { prismeFacets: { value: prismeFacets } },
+          uniforms: { atmosphere: { value: atmosphere } },
           vertexShader: `
           varying vec2 vGlassPosition;
           void main() {
@@ -267,16 +274,26 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
           }
         `,
           fragmentShader: `
-          uniform sampler2D prismeFacets;
+          uniform sampler2D atmosphere;
           varying vec2 vGlassPosition;
+          float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
           void main() {
-            // Sample the actual chosen facets in their native, square crop.
-            // This coloured inner layer is enclosed by an extruded physical
-            // glass shell: thickness, sides and moving reflections remain 3D.
-            vec2 uv = vec2((vGlassPosition.x * 69.32 + 239.0) / 480.0,
-                           (241.5 + vGlassPosition.y * 69.32) / 480.0);
-            vec3 glass = texture2D(prismeFacets, uv).rgb;
-            gl_FragColor = vec4(glass * 0.8, 1.0);
+            vec2 p = vGlassPosition;
+            vec2 cell = floor(p * 4.7);
+            float fracture = hash(cell);
+            vec2 drift = vec2(sin(p.y * 2.7 + p.x), cos(p.x * 2.4 - p.y)) * 0.032;
+            vec2 uv = vec2(0.48 + p.x * 0.17, 0.31 + p.y * 0.075) + drift;
+            vec3 cloud = texture2D(atmosphere, uv).rgb;
+            vec3 depthTint = mix(vec3(0.022, 0.031, 0.095), vec3(0.06, 0.025, 0.125), smoothstep(-2.0, 2.0, p.x));
+            // Broad pale caustics belong to the interior optical layer. The
+            // physical shell refracts them as the pose changes. Keep the
+            // atmosphere subdued so its clouds cannot camouflage the 5.
+            float paleRibbon = exp(-pow((p.x + p.y * 0.16 + 0.95) / 0.62, 2.0));
+            float lavenderRibbon = exp(-pow((p.x - p.y * 0.26 - 0.25) / 0.31, 2.0));
+            vec3 glass = cloud * vec3(0.35, 0.39, 0.65) * (0.24 + fracture * 0.12) + depthTint;
+            glass += vec3(0.27, 0.44, 0.58) * paleRibbon;
+            glass += vec3(0.23, 0.19, 0.38) * lavenderRibbon;
+            gl_FragColor = vec4(glass, 1.0);
             #include <tonemapping_fragment>
             #include <colorspace_fragment>
           }
@@ -285,40 +302,40 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
         }),
       );
       const core = new THREE.Mesh(coreGeometry, coreMaterial);
-      core.scale.set(0.99, 0.99, 1);
+      core.scale.set(0.965, 0.977, 1);
       sculpture.add(core);
     }
 
     const frontMaterial = ownMaterial(
       new THREE.MeshPhysicalMaterial({
-        color: "#AD90F0",
+        color: "#AE98EE",
         metalness: 0.025,
-        roughness: 0.025,
-        transmission: 0.88,
-        thickness: 0.28,
+        roughness: 0.075,
+        transmission: 0.94,
+        thickness: 0.72,
         ior: 1.47,
-        dispersion: 0.12,
+        dispersion: 0.28,
         attenuationColor: new THREE.Color("#8877DD"),
         attenuationDistance: 3.2,
         clearcoat: 1,
         clearcoatRoughness: 0.065,
         envMapIntensity: 1.35,
         normalMap: facetNormals,
-        normalScale: new THREE.Vector2(0.10, 0.10),
+        normalScale: new THREE.Vector2(0.25, 0.25),
         bumpMap: grainTexture,
         bumpScale: 0.013,
       }),
     );
     const sideMaterial = ownMaterial(
       new THREE.MeshPhysicalMaterial({
-        color: "#5B45D6",
-        metalness: 0.035,
+        color: "#AC9CF0",
+        metalness: 0.12,
         roughness: 0.055,
-        transmission: 0.60,
+        transmission: 0.78,
         thickness: 1.2,
         ior: 1.47,
         dispersion: 0.22,
-        attenuationColor: new THREE.Color("#2B1A9A"),
+        attenuationColor: new THREE.Color("#7F62DA"),
         attenuationDistance: 1.6,
         clearcoat: 1,
         clearcoatRoughness: 0.035,
@@ -326,6 +343,61 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
       }),
     );
     sculpture.add(new THREE.Mesh(geometry, [frontMaterial, sideMaterial]));
+
+    // Sparse crystalline planes are contained within the extrusion. The
+    // facets catch light through the glass, without a wireframe on its face.
+    const facets = [
+      [
+        [-0.98, 1.63],
+        [0.81, 1.7],
+        [0.31, 2.06],
+      ],
+      [
+        [-1.12, 0.02],
+        [-0.75, 0.39],
+        [-0.93, 1.01],
+      ],
+      [
+        [-1.03, -1.65],
+        [0.26, -1.8],
+        [0.44, -2.08],
+      ],
+      [
+        [0.83, -0.65],
+        [1.1, -0.04],
+        [1.21, -1.47],
+      ],
+      [
+        [-0.4, -0.18],
+        [0.83, -0.12],
+        [0.43, 0.33],
+      ],
+    ];
+    const facetMaterial = ownMaterial(
+      new THREE.MeshPhysicalMaterial({
+        color: "#9C88EE",
+        metalness: 0.48,
+        roughness: 0.19,
+        transparent: true,
+        opacity: 0.13,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+    );
+    for (const points of facets) {
+      const positions = points.flatMap(([x, y], index) => [
+        x + y * 0.24,
+        y,
+        -0.09 + index * 0.018,
+      ]);
+      const facetGeometry = ownGeometry(new THREE.BufferGeometry());
+      facetGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(positions, 3),
+      );
+      facetGeometry.computeVertexNormals();
+      sculpture.add(new THREE.Mesh(facetGeometry, facetMaterial));
+    }
 
     // The rim is a physical, thin polished edge. Colour changes along its
     // contour: cyan on the left, pale violet through the centre, pink right.
@@ -352,7 +424,7 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
       new THREE.LineBasicMaterial({
         vertexColors: true,
         transparent: true,
-        opacity: 0.38,
+        opacity: 0.78,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
         toneMapped: false,
@@ -397,8 +469,8 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
       sculpture.add(new THREE.Mesh(glowGeometry, glowMaterial));
     };
     addHighlight(0, 1, "#B8F6FF");
-    addHighlight(1, 2, "#67E8F9");
-    addHighlight(10, 11, "#E879F9");
+    addHighlight(0, 13, "#67E8F9");
+    addHighlight(6, 7, "#E879F9");
 
     const key = new THREE.DirectionalLight("#D6F7FF", 0.85);
     key.position.set(-4, 4.5, 6);
