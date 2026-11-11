@@ -188,10 +188,10 @@
 .nxt5-auth-form { display: grid; gap: 1.25rem; margin-top: 1.75rem; }
 .nxt5-auth-form > label > span:first-child { font-size: var(--nxt5-font-ui); font-weight: 550; letter-spacing: 0; text-transform: none; color: var(--nxt5-text-secondary); }
 .nxt5-auth-form input:not([type="checkbox"]) { min-height: 52px; font-size: var(--nxt5-font-body); }
-.nxt5-auth-preferences > button { padding: .5rem 0; border: 0; background: transparent; }
+.nxt5-auth-preferences > button { padding: 12px; border: 0; background: transparent; }
 .nxt5-auth-preferences > button > span:first-child > span:first-child { font-size: var(--nxt5-font-ui); font-weight: 500; }
 .nxt5-auth-preferences > button > span:first-child > span:last-child { font-size: var(--nxt5-font-small); font-weight: 400; }
-.nxt5-auth-card .nxt5-auth-submit { width: 100%; min-height: 52px; font-weight: 650; }
+.nxt5-entry-page .nxt5-auth-card .nxt5-auth-submit { width: 100%; min-height: 52px; font-weight: 650; }
 .nxt5-auth-consent { display: flex; align-items: flex-start; gap: .8rem; padding-block: .35rem; }
 .nxt5-auth-consent input { width: 18px; height: 18px; margin-top: .25rem; flex-shrink: 0; accent-color: #67e8f9; }
 .nxt5-auth-consent > span { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); font-weight: 400; line-height: 1.8; }
@@ -285,7 +285,7 @@
 .nxt5-registration-confirmation { display: grid; gap: 1.25rem; margin-top: 1.5rem; }
 .nxt5-registration-confirmation > p { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.75; }
 .nxt5-registration-confirmation [tabindex="-1"]:focus { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
-html.nxt5-low-gpu .nxt5-entry-page::before { background: linear-gradient(135deg, #070a14, #211d37 62%, #070a14); }
+html.nxt5-low-gpu .nxt5-entry-page::before { bottom: 0; height: auto; background: linear-gradient(135deg, #070a14, #211d37 62%, #070a14); }
 
 /* Keep the primary public entry action on the same row as the brand. */
 @media (max-width: 767px) {

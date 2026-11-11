@@ -81,6 +81,8 @@ button,
   /* Ink on light cyan accents; primary actions use --nxt5-on-action. */
   --nxt5-on-accent: #020611;
   --nxt5-font-body: 1rem;
+  --nxt5-control-height: 3rem;
+  --nxt5-chrome-header-height: 4.75rem;
   --nxt5-font-ui: .9375rem;
   --nxt5-font-small: .875rem;
   --nxt5-font-micro: .75rem;
@@ -979,9 +981,6 @@ html.nxt5-low-gpu .nxt5-hud-lines::before {
 
 
 
-  .nxt5-cyber-button {
-    min-height: 44px;
-  }
 
 
 

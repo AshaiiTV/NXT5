@@ -20,10 +20,12 @@
   border-radius: var(--nxt5-radius-button);
   font-weight: 650;
   font-size: var(--nxt5-font-ui);
-  line-height: 1.5;
+  line-height: 20px;
+  min-height: var(--nxt5-control-height);
   text-decoration: none;
   transition: background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
+.nxt5-cyber-button.nxt5-control { min-height: var(--nxt5-control-height); }
 .nxt5-cyber-button:disabled { cursor: not-allowed; opacity: .5; }
 .nxt5-button-primary {
   background-image: var(--nxt5-primary-gradient);
@@ -65,10 +67,11 @@
   color: var(--nxt5-text-secondary);
 }
 .nxt5-field-control { min-width: 0; }
-.nxt5-field .nxt5-input-shell { min-height: 48px; font-size: var(--nxt5-font-body); font-weight: 400; }
+.nxt5-field .nxt5-input-shell { min-height: var(--nxt5-control-height); font-size: var(--nxt5-font-body); line-height: 24px; font-weight: 400; }
+.nxt5-field :is(input, select).nxt5-input-shell { padding-block: 11px; }
 .nxt5-field-control:has(> svg) > :is(input, textarea) { padding-left: 2.625rem; }
 .nxt5-field-control:has(> button) > input { padding-right: 3.25rem; }
-.nxt5-field-control select { padding-right: 2.5rem; }
+.nxt5-field-control select { padding-right: 2.5rem; text-overflow: ellipsis; white-space: nowrap; }
 .nxt5-field-control > button { border-radius: var(--nxt5-radius-control); }
 .nxt5-field .nxt5-input-shell[aria-invalid="true"] { border-color: #fda4af; }
 
