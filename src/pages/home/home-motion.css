@@ -126,13 +126,12 @@
   top: 0;
   isolation: isolate;
   overflow: hidden;
-  background: #10172b;
+  background: #0d1234;
 }
 .hm-atmosphere {
   position: absolute;
   inset: -4%;
-  background: url("/assets/home-motion/atmosphere.webp") center center/cover
-    no-repeat;
+  background: radial-gradient(ellipse at 75% 48%, #27205c 0%, #141843 39%, #0c1230 74%, #080e25 100%);
   will-change: transform;
   z-index: 0;
 }
@@ -157,7 +156,7 @@
   z-index: 2;
   will-change: transform, opacity;
   transform-origin: 80% 50%;
-  filter: drop-shadow(0 0 5px #a5b4fc40);
+  filter: drop-shadow(0 0 4px #a5b4fca0);
 }
 .hm-outline {
   display: block;
@@ -194,7 +193,7 @@
   );
   pointer-events: none;
   transform-origin: 50% 70%;
-  opacity: 0.32;
+  opacity: 0.12;
   will-change: transform, opacity;
 }
 .hm-ground-shade {
@@ -592,6 +591,19 @@
     left: 19px;
   }
 }
+@media (max-width: 359px) {
+  .hm-header nav {
+    gap: 8px;
+  }
+  .hm-header nav > a {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .hm-header .hm-demo-link {
+    gap: 5px;
+    padding-inline: 8px;
+  }
+}
 @media (max-height: 680px) and (min-width: 701px) {
   .hm-sticky {
     min-height: 560px;
@@ -644,14 +656,14 @@
   }
   .hm-outline-wrap {
     left: 3%;
-    width: 58%;
-    top: 25%;
+    width: 76%;
+    top: 13%;
   }
   .hm-glass-wrap {
-    width: 46%;
-    right: -1%;
-    top: 7%;
-    height: 49%;
+    width: 88%;
+    right: -5%;
+    top: 11%;
+    height: 65%;
     margin-right: 0;
   }
   .hm-scroll-cue {
@@ -666,6 +678,24 @@
     right: 0%;
     top: 4%;
     height: 77%;
+  }
+}
+@media (max-width: 340px) {
+  .hm-outline-wrap {
+    top: 12%;
+  }
+  .hm-glass-wrap {
+    width: 78%;
+    height: 55%;
+    top: 13%;
+  }
+  /* Wrapped translations grow below the signature, clear of the sculpture. */
+  .hm-intro {
+    top: 59.5%;
+    bottom: auto;
+  }
+  .hm-scroll-cue {
+    display: none;
   }
 }
 .hm-short .hm-journey {
@@ -744,63 +774,5 @@
     overflow: hidden;
     clip-path: inset(50%);
     white-space: nowrap;
-  }
-}
-
-/* The historical sculpture leads the compact, diagonally composed mobile hero. */
-@media (max-width: 700px) and (min-height: 601px), (max-width: 599px) {
-  .hm-sticky,
-  .hm-reduced .hm-sticky,
-  .hm-short .hm-sticky {
-    height: clamp(640px, calc(90vw + 410px), 900px);
-    min-height: 0;
-  }
-  .hm-outline-wrap {
-    left: 6%;
-    top: 90px;
-    width: min(55%, 240px);
-  }
-  .hm-glass-wrap {
-    width: min(90%, 410px);
-    height: auto;
-    aspect-ratio: 729 / 665;
-    right: -1%;
-    top: 170px;
-    transform-origin: 50% 50%;
-  }
-  .hm-intro {
-    top: min(calc(90vw + 130px), 540px);
-    bottom: auto;
-  }
-  .hm-intro-actions { margin-top: 18px; }
-  .hm-signature { margin-bottom: 10px !important; }
-  .hm-scroll-cue { bottom: 22px; left: var(--hm-gutter); }
-  .hm-ground-shade {
-    background: linear-gradient(transparent 38%, #070a1440 52%, #070a14e8 69%, var(--nxt5-bg) 100%);
-  }
-}
-@media (max-width: 360px) {
-  .hm-outline-wrap { top: 86px; }
-  .hm-glass-wrap { top: 150px; }
-}
-@media (max-height: 600px) and (min-width: 600px) {
-  .hm-short .hm-outline-wrap { width: 42%; top: 27%; }
-}
-@media (max-width: 360px) {
-  .hm-scroll-cue { display: none; }
-}
-@media (max-height: 600px) and (max-width: 700px) {
-  .hm-scroll-cue { display: none; }
-}
-@media (max-width: 360px) {
-  .hm-header nav { gap: 8px; }
-  .hm-header nav > a { white-space: nowrap; font-size: 11px; }
-  .hm-header .hm-demo-link { padding-inline: 8px; gap: 5px; }
-}
-@media (orientation: landscape) and (max-height: 500px) {
-  .hm-motion-toggle.nxt5-cyber-button {
-    top: 88px;
-    bottom: auto;
-    right: max(12px, env(safe-area-inset-right));
   }
 }

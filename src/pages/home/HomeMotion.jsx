@@ -1,4 +1,3 @@
-import { brandGlyphPath } from "../../components/brand/brand-geometry.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import React, { useEffect, useRef, useState } from "react";
@@ -13,7 +12,7 @@ import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 function OutlineMark() {
   return (
     <svg
-      viewBox="0 0 1240 460"
+      viewBox="90 348 1080 326"
       fill="none"
       className="hm-outline"
       aria-hidden="true"
@@ -29,11 +28,13 @@ function OutlineMark() {
       </defs>
       <g
         stroke="url(#hm-outline-ink)"
-        strokeWidth="2"
+        strokeWidth="3"
         fill="none"
         strokeLinejoin="miter"
       >
-        {["N", "X", "T"].map((glyph, index) => <path key={glyph} d={brandGlyphPath(glyph, index * 400)} />)}
+        <path d="M534,361L443,362L393,502L303,362L201,363L142,533L100,663L212,663L261,515L351,664L438,664L533,375Z" />
+        <path d="M872,360L760,360L688,432L684,429L640,361L538,361L543,380L605,492L458,651L451,664L572,664L652,577L655,579L705,664L834,663L735,506L866,373Z" />
+        <path d="M1159,359L884,361L825,441L927,442L856,663L967,663L1036,441L1133,440Z" />
       </g>
     </svg>
   );

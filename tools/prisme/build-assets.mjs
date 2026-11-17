@@ -30,17 +30,17 @@ await fs.copyFile(path.join(root,'favicon.svg'),'public/favicon.svg');
 await fs.copyFile(path.join(root,'unified-icon-512.png'),'importer-app/assets/prisme/unified-icon-512.png');
 const five=await loadImage(path.join(root,'nxt5-unified-5-2048.png')),canvas=createCanvas(512,512);canvas.getContext('2d').drawImage(five,0,0,512,512);await fs.writeFile(path.join(root,'nxt5-unified-5-512.webp'),canvas.toBuffer('image/webp',94));
 // Compatible aliases for retained external URLs; active code uses Prisme paths.
-await fs.copyFile(path.join(root,'nxt5-unified-source.png'),'public/assets/brand/nxt5-logo-3d.png');
-await fs.copyFile(path.join(root,'nxt5-unified-640.webp'),'public/assets/brand/nxt5-logo-3d-640.webp');
-await fs.copyFile(path.join(root,'nxt5-unified-320.webp'),'public/assets/brand/nxt5-logo-3d-320.webp');
+await fs.copyFile(path.join(root,'nxt5-neon-source.png'),'public/assets/brand/nxt5-logo-3d.png');
+await fs.copyFile(path.join(root,'nxt5-neon-640.webp'),'public/assets/brand/nxt5-logo-3d-640.webp');
+await fs.copyFile(path.join(root,'nxt5-neon-320.webp'),'public/assets/brand/nxt5-logo-3d-320.webp');
 console.log('Prisme: favicons, PWA, Windows ICO, macOS ICNS, scene and compatibility assets generated.');
 
 for (const size of [192,512]) await fs.copyFile(path.join(root,`unified-icon-${size}.png`),`public/android-chrome-${size}x${size}.png`);
 // The maskable 5 sits within the central 80% safe zone.
 const maskable=createCanvas(512,512),maskCtx=maskable.getContext('2d'); maskCtx.fillStyle='#070a14';maskCtx.fillRect(0,0,512,512);maskCtx.drawImage(await loadImage(await icon(512)),52,52,408,408);await fs.writeFile('public/android-chrome-maskable-512x512.png',maskable.toBuffer('image/png'));
-const mono=createCanvas(640,180),monoCtx=mono.getContext('2d');
-const monoSvg=(await fs.readFile(path.join(root,'nxt5-unified-mono-blanc.svg'),'utf8')).replace('width="1536"','width="640"').replace('height="432"','height="180"');
-monoCtx.drawImage(await loadImage(Buffer.from(monoSvg)),0,0,640,180);await fs.writeFile(path.join(root,'nxt5-unified-mono-640.png'),mono.toBuffer('image/png'));
+const mono=createCanvas(640,240),monoCtx=mono.getContext('2d');
+const monoSvg=await fs.readFile(path.join(root,'nxt5-neon-mono-blanc.svg'),'utf8');
+monoCtx.drawImage(await loadImage(Buffer.from(monoSvg)),0,0,640,240);await fs.writeFile(path.join(root,'nxt5-neon-mono-640.png'),mono.toBuffer('image/png'));
 
 await fs.copyFile('public/android-chrome-maskable-512x512.png',path.join(root,'unified-icon-maskable-512.png'));
 
