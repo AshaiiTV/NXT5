@@ -1,6 +1,6 @@
 # Discord NXT5 - contrôle de l’interface
 
-15 septembre 2026. Référence : [charte graphique 1.23](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md).
+15 septembre 2026. Référence : [charte graphique 1.23](charte-graphique.md).
 
 ## Périmètre vérifié
 

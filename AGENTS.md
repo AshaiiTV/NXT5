@@ -2,7 +2,9 @@
 
 ## Charte graphique
 
-Règle permanente demandée par l’utilisateur le 17 novembre 2026 : avant **chaque tâche NXT5**, consulter et appliquer les parties pertinentes de la [charte graphique unique NXT5](../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md), y compris pour le code ou la documentation. Une tâche sans portée visuelle n’impose pas de modification du design. Pour tout travail visuel, lire ensuite les composants concernés et vérifier le rendu. Ce document du dépôt principal est la source unique pour les couleurs, la typographie, les logos, les surfaces, les états, la densité et le responsive.
+Règle permanente demandée par l’utilisateur le 17 novembre 2026 : avant **chaque tâche NXT5**, consulter et appliquer les parties pertinentes de la [charte graphique unique NXT5](docs/charte-graphique.md), y compris pour le code ou la documentation. Une tâche sans portée visuelle n’impose pas de modification du design. Pour tout travail visuel, lire ensuite les composants concernés et vérifier le rendu. Ce document du dépôt principal est la source unique pour les couleurs, la typographie, les logos, les surfaces, les états, la densité et le responsive.
+
+La même source est versionnée dans [GitHub](https://github.com/AshaiiTV/NXT5/blob/main/docs/charte-graphique.md). Dans l’espace Codex local, l’éditer uniquement à `2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md`, puis publier son évolution. Les worktrees renvoient à cette source locale ou à sa version GitHub ; ne pas créer de charte indépendante ni de PDF. Le retrait d’une ancienne copie locale ne doit jamais supprimer la source canonique publiée.
 
 - Réutiliser en priorité `src/components/ui/Core.jsx`, `src/components/brand/BrandAssets.jsx`, les tokens et classes de `src/index.css`.
 - Appliquer Prisme : nuit, violet d’action à texte blanc, lavande et focus cyan ; magenta réservé aux reflets du logo. Vérifier la cascade réelle : des styles historiques sont neutralisés par `!important`.

@@ -2,7 +2,7 @@
 
 Espace de travail des équipes et coachs League of Legends : analyse des parties, débriefs, préparation des champions et organisation des entraînements. Site public : [nxt5.org](https://nxt5.org).
 
-La [documentation du dépôt](docs/README.md) regroupe les guides d’exploitation et l’historique des travaux.
+La [documentation du dépôt](docs/README.md) regroupe les guides d’exploitation et l’historique des travaux. La [charte graphique unique NXT5](docs/charte-graphique.md) définit l’identité du site et de l’Importer : NXT en contour cyan/lavande, 5 violet facetté, y compris dans les petits logos.
 
 ## Stack
 
@@ -100,7 +100,7 @@ L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. L’[a
 
 ## Application NXT5 Importer
 
-Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.4.0** pour Windows, Mac Intel et Mac Apple Silicon.
+Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.4.5** pour Windows, Mac Intel et Mac Apple Silicon.
 
 1. Lance le `.exe` Windows ou ouvre `NXT5 Importer.app` après extraction du zip Mac adapté à ton processeur.
 2. Colle le numéro de la partie ou un ID complet comme `EUW1_7861632138`. Vérifie la région.

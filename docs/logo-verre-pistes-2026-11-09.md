@@ -1,6 +1,6 @@
 # Pistes de logo dans la direction « 5 en verre » — 9 novembre 2026
 
-L’utilisateur demande plusieurs propositions pour refaire les logos NXT5 avec la nouvelle direction artistique : le 5 en verre violet de l’accueil, du chargement et de la connexion. Ce rapport consigne les cinq pistes présentées. Aucune n’est encore choisie : le site, les favicons et la [charte graphique unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) restent inchangés.
+L’utilisateur demande plusieurs propositions pour refaire les logos NXT5 avec la nouvelle direction artistique : le 5 en verre violet de l’accueil, du chargement et de la connexion. Ce rapport consigne les cinq pistes présentées. Aucune n’est encore choisie : le site, les favicons et la [charte graphique unique](charte-graphique.md) restent inchangés.
 
 **Décision du même jour :** l’utilisateur retient la piste A pour le logo et la piste C pour les icônes. La livraison est décrite dans [le rapport d’intégration](logo-verre-integration-2026-11-09.md).
 

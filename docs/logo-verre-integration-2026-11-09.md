@@ -1,6 +1,6 @@
 # Logo NXT5 : le 5 de la page d’accueil partout — 9 novembre 2026
 
-Après la présentation des [cinq pistes](logo-verre-pistes-2026-11-09.md), l’utilisateur retient d’abord **Monolithe (A)** pour le logo et **Écrin (C)** pour les icônes. En relisant l’aperçu, il demande ensuite que le 5 soit partout **le 5 de la page d’accueil**, avec son rendu Three.js : les 5 vectoriels dessinés pour les pistes en différaient (contour, inclinaison, position de la barre médiane, absence de reflets). Ce rapport consigne la livraison finale. Il ne remplace pas la [charte graphique unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md), absente de ce checkout : les points à y reporter sont listés plus bas.
+Après la présentation des [cinq pistes](logo-verre-pistes-2026-11-09.md), l’utilisateur retient d’abord **Monolithe (A)** pour le logo et **Écrin (C)** pour les icônes. En relisant l’aperçu, il demande ensuite que le 5 soit partout **le 5 de la page d’accueil**, avec son rendu Three.js : les 5 vectoriels dessinés pour les pistes en différaient (contour, inclinaison, position de la barre médiane, absence de reflets). Ce rapport consigne la livraison finale. Il ne remplace pas la [charte graphique unique](charte-graphique.md), absente de ce checkout : les points à y reporter sont listés plus bas.
 
 ## Système retenu
 

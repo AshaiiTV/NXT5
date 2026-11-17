@@ -8,7 +8,7 @@ La connexion ne reprenait pas la sculpture de l’accueil. Cette passe replace l
 - En-têtes partagés : sculpture dans une zone réservée, séparée des textes et des actions. Les en-têtes possédant déjà une identité propre gardent leur composition. Navigation, boutons et onglets reçoivent des arêtes plus nettes et des ombres plus discrètes.
 - Fonctionnalités, soutien et guides : sculptures de tailles adaptées, chapitres éditoriaux et surfaces de lecture. Sur téléphone, Fonctionnalités conserve le 5 dès l’introduction.
 
-La [charte unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) est consolidée en version 1.60 dans son emplacement canonique. Aucune copie ni PDF n’est créé. Les règles métier, les couleurs de résultat, les API, les droits et l’Importer restent inchangés.
+La [charte unique](charte-graphique.md) est consolidée en version 1.60 dans son emplacement canonique. Aucune copie ni PDF n’est créé. Les règles métier, les couleurs de résultat, les API, les droits et l’Importer restent inchangés.
 
 ## Vérification
 

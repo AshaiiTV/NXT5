@@ -10,7 +10,7 @@ Les effets sont réalisés dans `AppLoadingScreen.jsx` et `AppLoadingScreen.css`
 
 Les décorations restent ignorées par les technologies d’assistance et ne capturent pas le pointeur. Le masque alpha reprend exactement le poster existant ; seul son gradient intérieur bouge, sans déplacer la silhouette. Si le masque n’est pas pris en charge, le poster reste visible seul. Sur mobile, un seul voile et une seule caustique sont conservés. Les modes mouvement réduit et performance conservent une scène fixe simplifiée.
 
-La [charte canonique unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) intègre cette évolution en version 1.66 dans le dépôt principal. Aucune copie de charte n’est créée.
+La [charte canonique unique](charte-graphique.md) intègre cette évolution en version 1.66 dans le dépôt principal. Aucune copie de charte n’est créée.
 
 La recherche de plugins a identifié MagicPath pour comparer et affiner des prototypes interactifs. Après sa connexion, son guide `animations` a été consulté pour la fluidité, le coût et le respect du mouvement réduit. Les effets livrés sont natifs et n’en dépendent pas.
 
