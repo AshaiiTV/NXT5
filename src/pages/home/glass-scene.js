@@ -1,3 +1,4 @@
+import { BRAND_CONTOURS, BRAND_SHEAR } from "../../components/brand/brand-geometry.js";
 import { GLASS_QUALITY, GLASS_VIEW, getGlassPose, glassCameraFraming, glassDamping, glassPixelRatio } from "../../components/brand/glass-motion.js";
 
 /**
@@ -5,7 +6,7 @@ import { GLASS_QUALITY, GLASS_VIEW, getGlassPose, glassCameraFraming, glassDampi
  * Everything needed by the scene is local; the studio is baked once into an
  * environment texture. Idle motion runs only while this sculpture is visible.
  */
-export async function createGlassScene({ canvas, onReady, onError, signal } = {}) {
+export async function createGlassScene({ canvas, onReady, onError, signal, glyph = "5" } = {}) {
   const idleController = {
     setProgress() {},
     setPointer() {},
@@ -144,22 +145,8 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
 
     // Angular cuts and the slant are part of the contour, so the silhouette
     // remains recognisable when the camera turns and on narrow screens.
-    const contour = [
-      [-1.55, 2.2],
-      [1.5, 2.2],
-      [1.5, 1.34],
-      [-0.64, 1.34],
-      [-0.64, 0.48],
-      [1.04, 0.48],
-      [1.48, 0.04],
-      [1.48, -1.75],
-      [1.03, -2.2],
-      [-1.55, -2.2],
-      [-1.55, -1.31],
-      [0.56, -1.31],
-      [0.56, -0.43],
-      [-1.55, -0.43],
-    ].map(([x, y]) => new THREE.Vector2(x + y * 0.24, y));
+    const contour = (BRAND_CONTOURS[glyph] || BRAND_CONTOURS[5])
+      .map(([x, y]) => new THREE.Vector2(x + y * BRAND_SHEAR, y));
     const shape = new THREE.Shape(contour);
     const depth = 0.65;
     const geometry = ownGeometry(
@@ -384,7 +371,7 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
         depthWrite: false,
       }),
     );
-    for (const points of facets) {
+    for (const points of glyph === "5" ? facets : []) {
       const positions = points.flatMap(([x, y], index) => [
         x + y * 0.24,
         y,
@@ -469,8 +456,10 @@ export async function createGlassScene({ canvas, onReady, onError, signal } = {}
       sculpture.add(new THREE.Mesh(glowGeometry, glowMaterial));
     };
     addHighlight(0, 1, "#B8F6FF");
-    addHighlight(0, 13, "#67E8F9");
-    addHighlight(6, 7, "#E879F9");
+    if (glyph === "5") {
+      addHighlight(0, 13, "#67E8F9");
+      addHighlight(6, 7, "#E879F9");
+    }
 
     const key = new THREE.DirectionalLight("#D6F7FF", 0.85);
     key.position.set(-4, 4.5, 6);

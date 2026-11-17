@@ -69,7 +69,7 @@ describe("public SEO and real component rendering", () => {
     expect(manifest.description).toBe(PUBLIC_METADATA["/"].description);
     expect(manifest.lang).toBe("fr");
     for (const size of [192, 512]) {
-      const src = `/assets/brand/prisme/icon-${size}.png`;
+      const src = `/assets/brand/prisme/unified-icon-${size}.png`;
       expect(manifest.icons).toContainEqual({ src, sizes: `${size}x${size}`, type: "image/png" });
       const bytes = readFileSync(new URL(`../../public${src}`, import.meta.url));
       expect(bytes.readUInt32BE(16)).toBe(size);

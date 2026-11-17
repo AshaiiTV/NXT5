@@ -18,7 +18,7 @@ export function ResponsiveImage({ src, sources = [], alt, className = "", fetchP
 
 const LOGO = { src: "/assets/brand/prisme/nxt5-neon-source.png", srcSet: "/assets/brand/prisme/nxt5-neon-640.webp 640w, /assets/brand/prisme/nxt5-neon-320.webp 320w", width: "1600", height: "600" };
 const MONO = "/assets/brand/prisme/nxt5-neon-mono-blanc.svg";
-const ICON = { src: "/assets/brand/prisme/icon-512.png", width: "512", height: "512" };
+const ICON = { src: "/assets/brand/prisme/unified-icon-512.png", width: "512", height: "512" };
 
 export function BrandLogo({ compact = false, className = "" }) {
   useLanguage();
