@@ -41,7 +41,9 @@ describe("automatic import panel", () => {
     expect(api.fetch.mock.calls[0][0]).toBe("team-import-link?teamId=team-a");
     expect(text()).toContain("PC de Coach");
     expect(text()).toContain("EUW1_8035280010");
-    expect(text()).toContain("1 à finaliser");
+    expect(text()).toContain("1 partie à finaliser");
+    expect(text()).toContain("Gérer les ordinateurs liés");
+    expect(text()).toContain("Réceptions récentes");
 
     await act(async () => { button("Lier un autre ordinateur").props.onClick(); });
     expect(JSON.parse(api.fetch.mock.calls.find(([, options]) => options?.method)[1].body)).toEqual({ teamId: "team-a", action: "create" });
@@ -65,5 +67,15 @@ describe("automatic import panel", () => {
     expect(button("Lier NXT5 Importer")).toBeUndefined();
     expect(button("Finaliser")).toBeUndefined();
     expect(text()).toContain("Aucune liaison active.");
+    expect(text()).toContain("1 partie en attente du staff");
+    expect(text()).not.toContain("importer-auto-pending");
+  });
+
+  it("shows only two pending games before the overflow disclosure", async () => {
+    api.fetch.mockResolvedValue(listing({ submissions: Array.from({ length: 5 }, (_, index) => ({ id: `pending-${index}`, gameId: `EUW1_${index}`, status: "pending", createdAt: new Date().toISOString() })) }));
+    await mount(<ImporterAutoLink teamId="team-a" canManage />);
+    const pending = renderer.root.findByProps({ className: "importer-auto-pending" });
+    expect(pending.findAllByType("ul")[0].findAllByType("li")).toHaveLength(2);
+    expect(text()).toContain("Voir les 3 autres parties à finaliser");
   });
 });
