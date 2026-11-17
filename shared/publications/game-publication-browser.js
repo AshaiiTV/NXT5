@@ -21,7 +21,7 @@ export async function renderGamePublicationPng(snapshot, { loadAssets = (data) =
   await prepareFonts();
   const { canvas } = await renderGamePublicationCanvas(snapshot, {
     createCanvas(width, height) { const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height; return canvas; },
-    loadLogo: () => pngLoadImage('/assets/brand/prisme/nxt5-neon-mono-640.png'),
+    loadLogo: () => pngLoadImage('/assets/brand/prisme/nxt5-neon-interface-640.png'),
     loadAssets,
   });
   return canvas;
