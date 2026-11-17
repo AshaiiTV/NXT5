@@ -126,13 +126,12 @@
   top: 0;
   isolation: isolate;
   overflow: hidden;
-  background: #10172b;
+  background: #0d1234;
 }
 .hm-atmosphere {
   position: absolute;
   inset: -4%;
-  background: url("/assets/home-motion/atmosphere.webp") center center/cover
-    no-repeat;
+  background: radial-gradient(ellipse at 75% 48%, #27205c 0%, #141843 39%, #0c1230 74%, #080e25 100%);
   will-change: transform;
   z-index: 0;
 }
@@ -157,7 +156,7 @@
   z-index: 2;
   will-change: transform, opacity;
   transform-origin: 80% 50%;
-  filter: drop-shadow(0 0 5px #a5b4fc40);
+  filter: drop-shadow(0 0 4px #a5b4fca0);
 }
 .hm-outline {
   display: block;
@@ -194,7 +193,7 @@
   );
   pointer-events: none;
   transform-origin: 50% 70%;
-  opacity: 0.32;
+  opacity: 0.12;
   will-change: transform, opacity;
 }
 .hm-ground-shade {
@@ -644,14 +643,14 @@
   }
   .hm-outline-wrap {
     left: 3%;
-    width: 58%;
-    top: 25%;
+    width: 76%;
+    top: 13%;
   }
   .hm-glass-wrap {
-    width: 46%;
-    right: -1%;
-    top: 7%;
-    height: 49%;
+    width: 88%;
+    right: -5%;
+    top: 11%;
+    height: 65%;
     margin-right: 0;
   }
   .hm-scroll-cue {
@@ -666,6 +665,16 @@
     right: 0%;
     top: 4%;
     height: 77%;
+  }
+}
+@media (max-width: 340px) {
+  .hm-outline-wrap {
+    top: 12%;
+  }
+  .hm-glass-wrap {
+    width: 78%;
+    height: 55%;
+    top: 13%;
   }
 }
 .hm-short .hm-journey {

@@ -28,7 +28,7 @@ function OutlineMark() {
       </defs>
       <g
         stroke="url(#hm-outline-ink)"
-        strokeWidth="2"
+        strokeWidth="3"
         fill="none"
         strokeLinejoin="miter"
       >
