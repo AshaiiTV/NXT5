@@ -17,7 +17,7 @@ export function ResponsiveImage({ src, sources = [], alt, className = "", fetchP
 }
 
 const LOGO = { src: "/assets/brand/prisme/nxt5-neon-source.png", srcSet: "/assets/brand/prisme/nxt5-neon-640.webp 640w, /assets/brand/prisme/nxt5-neon-320.webp 320w", width: "1600", height: "600" };
-const MONO = "/assets/brand/prisme/nxt5-neon-mono-blanc.svg";
+const COMPACT_LOGO = { src: "/assets/brand/prisme/nxt5-neon-interface-640.png", srcSet: "/assets/brand/prisme/nxt5-neon-interface-320.webp 320w, /assets/brand/prisme/nxt5-neon-interface-640.webp 640w" };
 const ICON = { src: "/assets/brand/prisme/unified-icon-512.png", width: "512", height: "512" };
 
 export function BrandLogo({ compact = false, className = "" }) {
@@ -25,8 +25,8 @@ export function BrandLogo({ compact = false, className = "" }) {
   return (
     <div className={cx("flex items-center gap-3", className)}>
       <ResponsiveImage
-        src={compact ? MONO : LOGO.src}
-        sources={compact ? [] : [{ srcSet: LOGO.srcSet }]}
+        src={compact ? COMPACT_LOGO.src : LOGO.src}
+        sources={[{ srcSet: compact ? COMPACT_LOGO.srcSet : LOGO.srcSet }]}
         sizes={compact ? "112px" : "(max-width: 639px) 220px, 300px"}
         alt="NXT5"
         width={LOGO.width}
@@ -42,9 +42,9 @@ export function BrandLogo({ compact = false, className = "" }) {
   );
 }
 
-export function Nxt5Wordmark({ className = "", sizes, loading = "lazy" }) {
+export function Nxt5Wordmark({ className = "", sizes = "(max-width: 700px) 112px, 180px", loading = "lazy" }) {
   useLanguage();
-  return <ResponsiveImage src={MONO} alt="NXT5" width={LOGO.width} height={LOGO.height} sizes={sizes} loading={loading} decoding="async" className={cx("object-contain", className)} />;
+  return <ResponsiveImage src={COMPACT_LOGO.src} sources={[{ srcSet: COMPACT_LOGO.srcSet }]} alt="NXT5" width={LOGO.width} height={LOGO.height} sizes={sizes} loading={loading} decoding="async" className={cx("object-contain", className)} />;
 }
 
 export function BrandIcon({ className = "h-12 w-12", loading = "lazy", alt = "NXT5" }) {

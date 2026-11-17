@@ -61,4 +61,32 @@ await fs.writeFile('importer-app/assets/prisme/nxt5-neon-mono-blanc.svg', mono);
 const monoCanvas = createCanvas(640, 240);
 monoCanvas.getContext('2d').drawImage(await loadImage(Buffer.from(mono)), 0, 0, 640, 240);
 await fs.writeFile(path.join(root, 'nxt5-neon-mono-640.png'), monoCanvas.toBuffer('image/png'));
+
+// Color stays part of the identity at navigation size. A stronger outline
+// survives downsampling, while the five keeps its original faceted artwork.
+const compactCanvas = createCanvas(1600, 600);
+const compactContext = compactCanvas.getContext('2d');
+compactContext.save();
+compactContext.translate(-65, -155);
+compactContext.scale(.95, .95);
+const compactGradient = compactContext.createLinearGradient(100, 660, 1150, 360);
+compactGradient.addColorStop(0, '#67E8F9');
+compactGradient.addColorStop(.52, '#A5B4FC');
+compactGradient.addColorStop(1, '#C4B5FD');
+compactContext.strokeStyle = compactGradient;
+compactContext.lineWidth = 16;
+compactContext.lineJoin = 'miter';
+for (const d of paths) compactContext.stroke(new Path2D(d));
+compactContext.restore();
+compactContext.drawImage(five, minX, minY, fiveWidth, fiveHeight, 1005, displayY, displayWidth, displayHeight);
+for (const width of [320, 640]) {
+  const small = createCanvas(width, width * 600 / 1600);
+  small.getContext('2d').drawImage(compactCanvas, 0, 0, small.width, small.height);
+  await fs.writeFile(path.join(root, `nxt5-neon-interface-${width}.webp`), small.toBuffer('image/webp', 94));
+  if (width === 640) {
+    const png = small.toBuffer('image/png');
+    await fs.writeFile(path.join(root, 'nxt5-neon-interface-640.png'), png);
+    await fs.writeFile('importer-app/assets/prisme/nxt5-neon-interface-640.png', png);
+  }
+}
 console.log('NXT5 neon signature built from hero outline and existing faceted five.');
