@@ -591,6 +591,19 @@
     left: 19px;
   }
 }
+@media (max-width: 359px) {
+  .hm-header nav {
+    gap: 8px;
+  }
+  .hm-header nav > a {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  .hm-header .hm-demo-link {
+    gap: 5px;
+    padding-inline: 8px;
+  }
+}
 @media (max-height: 680px) and (min-width: 701px) {
   .hm-sticky {
     min-height: 560px;
@@ -675,6 +688,14 @@
     width: 78%;
     height: 55%;
     top: 13%;
+  }
+  /* Wrapped translations grow below the signature, clear of the sculpture. */
+  .hm-intro {
+    top: 59.5%;
+    bottom: auto;
+  }
+  .hm-scroll-cue {
+    display: none;
   }
 }
 .hm-short .hm-journey {
