@@ -22,7 +22,7 @@
 }
 :root {
   color-scheme: dark;
-  /* Prisme: violet actions, cyan focus, opaque reading surfaces. */
+  /* Prisme: cyan/lavender actions, dark labels, opaque reading surfaces. */
   --bg: #070a14;
   --bg-2: #0d1324;
   --surface: #11172a;
@@ -43,9 +43,13 @@
   --glow-violet: rgba(167, 139, 250, 0.22);
   --panel-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   --shadow: 0 18px 50px rgba(3, 6, 18, 0.45);
-  --action: #7c3aed;
-  --action-hover: #6d28d9;
-  --action-gradient: linear-gradient(var(--action),var(--action));
+  --action: #67e8f9;
+  --action-hover: #a5f3fc;
+  --action-active: #22d3ee;
+  --action-text: #020611;
+  --action-gradient: linear-gradient(90deg, #67e8f9 0%, #a5b4fc 52%, #c4b5fd 100%);
+  --action-gradient-hover: linear-gradient(90deg, #a5f3fc 0%, #c7d2fe 52%, #ddd6fe 100%);
+  --action-gradient-active: linear-gradient(90deg, #22d3ee 0%, #818cf8 52%, #a78bfa 100%);
   --radius: 16px;
   --radius-sm: 10px;
   --control-radius: 10px;
@@ -158,11 +162,13 @@ select { appearance: none; background-image: linear-gradient(45deg, transparent 
 }
 .button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.09); border-color: var(--violet); }
 .button:active:not(:disabled) { transform: translateY(1px); }
-.button.primary { width: 100%; min-height: 50px; border: 0; background: var(--action-gradient); color: #fff; font-size: 14.5px; box-shadow: none; }
-.button.primary:hover:not(:disabled) { background: var(--action-hover); box-shadow: none; }
+.button.primary { width: 100%; min-height: 50px; border: 0; background: var(--action-gradient) var(--action); color: var(--action-text); font-size: 14.5px; box-shadow: none; }
+.button.primary:disabled { opacity: 0.75; }
+.button.primary:hover:not(:disabled) { background: var(--action-gradient-hover) var(--action-hover); box-shadow: none; }
+.button.primary:active:not(:disabled) { background: var(--action-gradient-active) var(--action-active); }
 .button.primary svg { stroke-width: 2.2; }
 .button.compact { min-height: 40px; padding: 8px 14px; font-size: 13px; }
-.keyboard-hint { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 11px; font-weight: 600; color: #fff; }
+.keyboard-hint { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); pointer-events: none; font-size: 11px; font-weight: 600; color: var(--action-text); }
 .text-button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 40px; padding: 6px 4px; border: 0; background: transparent; color: var(--cyan); font-size: 12.5px; font-weight: 700; }
 .text-button:hover { color: var(--text); }
 .export-caption { display: flex; align-items: flex-start; gap: 8px; margin-top: 16px; font-size: 11.5px; line-height: 1.6; color: var(--dim); }
@@ -338,7 +344,9 @@ body.is-collecting #collectTab { color: var(--text); }
 }
 @media (forced-colors: active) {
   .card, .nav-item, .button, input, select { border: 1px solid CanvasText; }
-  .button.primary { background: Highlight; color: HighlightText; }
+  .button.primary, .button.primary:hover:not(:disabled), .button.primary:active:not(:disabled) { forced-color-adjust: none; background: Highlight; color: HighlightText; }
+  .button.primary:focus-visible { outline-color: Highlight; }
+  .keyboard-hint { forced-color-adjust: none; color: HighlightText; }
 }
 
 /* The result card already says the export is saved: hide the duplicate success line under it. */

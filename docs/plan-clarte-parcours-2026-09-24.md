@@ -1,6 +1,6 @@
 # Plan de clarté et de prise en main NXT5
 
-Demande autorisée le 24 septembre 2026 : rendre NXT5 plus facile à lire et à utiliser, particulièrement lors d’une première visite. Base : `e18f126` (main, après la correction des premières étapes #66). La [charte unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) reste la référence graphique.
+Demande autorisée le 24 septembre 2026 : rendre NXT5 plus facile à lire et à utiliser, particulièrement lors d’une première visite. Base : `e18f126` (main, après la correction des premières étapes #66). La [charte unique](charte-graphique.md) reste la référence graphique.
 
 **État : implémenté et vérifié localement le 24 septembre 2026.** Le [compte rendu de vérification](verification-clarte-parcours-2026-09-24.md) consigne les tests, les contrôles dans le navigateur et leurs limites. La mesure auprès de nouveaux utilisateurs reste une étape après livraison.
 

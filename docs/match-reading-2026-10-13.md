@@ -20,7 +20,7 @@ Les trois volets natifs de la fiche restent repliés au départ, montent leur co
 - `src/__tests__/match-reading.test.jsx` : contrats de données, filtres, lacunes, zéros et noms.
 - `tools/match-reading-qa.mjs` et `tools/match-reading-qa/` : aperçu local avec le véritable cadre connecté et des données explicitement fictives.
 
-La [charte unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) est actualisée en version 1.67 dans le dépôt principal. Ce compte rendu ne la remplace pas.
+La [charte unique](charte-graphique.md) est actualisée en version 1.67 dans le dépôt principal. Ce compte rendu ne la remplace pas.
 
 ## Vérifications
 

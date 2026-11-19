@@ -260,8 +260,8 @@
   min-height: 56px;
   padding: 16px 25px;
   border-radius: var(--nxt5-radius-button);
-  background: var(--nxt5-action);
-  color: #fff;
+  background: var(--nxt5-action) var(--nxt5-primary-gradient);
+  color: var(--nxt5-on-action);
   font-size: 16px;
   font-weight: 650;
   transition:
@@ -270,10 +270,12 @@
   box-shadow: 0 0 25px #a78bfa14;
 }
 .hm-primary:hover {
+  background: var(--nxt5-action-hover) var(--nxt5-primary-gradient-hover);
   box-shadow: 0 0 30px #a78bfa40;
   transform: translateY(-2px);
 }
 .hm-primary:active {
+  background: var(--nxt5-action-active) var(--nxt5-primary-gradient-active);
   transform: translateY(0);
 }
 .hm-scroll-cue {

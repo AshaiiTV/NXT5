@@ -1,6 +1,6 @@
 # Clarté des autres pages — 24 septembre 2026
 
-Cette passe prolonge la simplification validée dans la PR #73 : français direct, intention visible, action principale identifiable et détails progressifs. Elle conserve l’identité NXT5 et ses composants. La [charte unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) a été actualisée dans son emplacement canonique, sans copie dans ce checkout.
+Cette passe prolonge la simplification validée dans la PR #73 : français direct, intention visible, action principale identifiable et détails progressifs. Elle conserve l’identité NXT5 et ses composants. La [charte unique](charte-graphique.md) a été actualisée dans son emplacement canonique, sans copie dans ce checkout.
 
 ## Périmètre livré
 

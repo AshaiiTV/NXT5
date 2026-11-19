@@ -14,7 +14,7 @@ La migration additive `20260924_discord_group_exports.sql`, enregistrée dans le
 
 La production Netlify applique cette migration après les contrôles et avant la publication du site. Les polices Inter, le logo complet et le module Canvas reprennent la configuration existante. Aucun secret Discord n’est transmis au navigateur.
 
-La [charte unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) est actualisée à son emplacement canonique ; aucune copie locale n’est créée.
+La [charte unique](charte-graphique.md) est actualisée à son emplacement canonique ; aucune copie locale n’est créée.
 
 ## Validation
 

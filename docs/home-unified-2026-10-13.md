@@ -4,7 +4,7 @@ Le cadre de l’équipe contient désormais son introduction et la prochaine sé
 
 Le composant `GlassScene` partage le cycle de vie du moteur du Hero avec la connexion. Sur bureau, le pointeur est suivi dans tout le cadre de l’accueil ; la sculpture revient au repos à la sortie. Le poster original reste immédiat et sert de repli sur mobile, en mouvement réduit, en mode performance ou en cas d’échec WebGL. Le moteur suspend déjà son rendu hors vue et lorsque l’onglet est masqué, puis libère ses ressources au démontage.
 
-La [charte canonique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) est mise à jour en version 1.64 dans le dépôt principal. Aucune copie de charte n’est ajoutée ici.
+La [charte canonique](charte-graphique.md) est mise à jour en version 1.64 dans le dépôt principal. Aucune copie de charte n’est ajoutée ici.
 
 Le bloc latéral du joueur contient les rubriques enregistrées qui lui sont attribuées dans le débrief accessible du dernier groupe créé. Les groupes n’ayant pas de statut « en cours », leur ordre existant (`created_at`, puis `id` décroissants) sert de référence. L’ensemble des identifiants de parties doit correspondre exactement au débrief. Un groupe récent sans débrief ne déclenche aucun repli vers un groupe plus ancien.
 

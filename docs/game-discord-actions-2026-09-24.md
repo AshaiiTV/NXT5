@@ -10,7 +10,7 @@ Chaque clic reçoit un identifiant de demande associé aux travaux réellement c
 
 Vérification de ce parcours : contrôle TypeScript, 2 020 tests et build de production réussis ; audit des dépendances sans vulnérabilité. Les tests couvrent l’envoi immédiat, la reprise après un jeton refusé, les doubles clics, les réponses perdues, les erreurs précises et la corrélation des reçus par équipe. Le navigateur de contrôle local ayant refusé l’URL de test, aucune nouvelle validation visuelle ou livraison Discord réelle n’est revendiquée.
 
-La [charte unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) a été mise à jour en version 1.45 à son emplacement canonique ; aucune copie locale n’est créée.
+La [charte unique](charte-graphique.md) a été mise à jour en version 1.45 à son emplacement canonique ; aucune copie locale n’est créée.
 
 ## Validation
 

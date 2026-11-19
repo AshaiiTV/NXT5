@@ -79,7 +79,7 @@ export async function sendEmailVerificationEmail({ to, token }) {
                       <p style="margin:18px 0 0;color:#dbeafe;font-size:16px;line-height:1.7">Bienvenue sur NXT5. Confirme cette adresse e-mail pour sécuriser ton compte et recevoir les notifications importantes de ton équipe.</p>
 
                       <div style="margin:30px 0 28px">
-                        <a href="${htmlVerifyUrl}" style="display:inline-block;border-radius:2px;background:#7c3aed;color:#ffffff;text-decoration:none;padding:16px 24px;font-size:15px;font-weight:900;box-shadow:none">Confirmer mon adresse</a>
+                        <a href="${htmlVerifyUrl}" style="display:inline-block;border-radius:2px;background-color:#67e8f9;background-image:linear-gradient(90deg,#67e8f9 0%,#a5b4fc 52%,#c4b5fd 100%);color:#020611;text-decoration:none;padding:16px 24px;font-size:15px;font-weight:900;box-shadow:none">Confirmer mon adresse</a>
                       </div>
 
                       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-collapse:separate;border-spacing:0">
@@ -143,7 +143,7 @@ export async function sendPasswordResetEmail({ to, name, resetUrl }) {
                         <p style="margin:18px 0 0;color:#cbd5e1;font-size:16px;line-height:1.65">Salut ${htmlName},</p>
                         <p style="margin:10px 0 0;color:#e2e8f0;font-size:16px;line-height:1.65">On a reçu une demande pour modifier le mot de passe de ton compte NXT5. Utilise le bouton ci-dessous pour choisir un nouveau mot de passe.</p>
                         <div style="margin:28px 0 26px">
-                          <a href="${htmlResetUrl}" style="display:inline-block;border-radius:2px;background:#7c3aed;color:#ffffff;text-decoration:none;padding:15px 22px;font-size:15px;font-weight:900;box-shadow:none">Changer mon mot de passe</a>
+                          <a href="${htmlResetUrl}" style="display:inline-block;border-radius:2px;background-color:#67e8f9;background-image:linear-gradient(90deg,#67e8f9 0%,#a5b4fc 52%,#c4b5fd 100%);color:#020611;text-decoration:none;padding:15px 22px;font-size:15px;font-weight:900;box-shadow:none">Changer mon mot de passe</a>
                         </div>
                         <div style="border:1px solid rgba(148,163,184,.18);border-radius:18px;background:rgba(15,23,42,.56);padding:18px 18px 16px">
                           <p style="margin:0;color:#f8fafc;font-size:14px;line-height:1.6;font-weight:800">Ce lien expire dans 30 minutes.</p>
@@ -195,7 +195,7 @@ export async function sendInactivityReminderEmail({ to, name }) {
                       <h1 style="margin:0;color:#ffffff;font-size:30px;line-height:1.12;font-weight:900">Content de te revoir, ${htmlName}</h1>
                       <p style="margin:18px 0 0;color:#e2e8f0;font-size:16px;line-height:1.65">Cela fait environ trois mois que ton compte n'a pas été actif. Tes équipes et tes données sont toujours disponibles, exactement là où tu les as laissées.</p>
                       <div style="margin:28px 0 26px">
-                        <a href="${htmlWorkspaceUrl}" style="display:inline-block;border-radius:2px;background:#7c3aed;color:#ffffff;text-decoration:none;padding:15px 22px;font-size:15px;font-weight:900;box-shadow:none">Retrouver mon espace</a>
+                        <a href="${htmlWorkspaceUrl}" style="display:inline-block;border-radius:2px;background-color:#67e8f9;background-image:linear-gradient(90deg,#67e8f9 0%,#a5b4fc 52%,#c4b5fd 100%);color:#020611;text-decoration:none;padding:15px 22px;font-size:15px;font-weight:900;box-shadow:none">Retrouver mon espace</a>
                       </div>
                       <div style="border:1px solid rgba(148,163,184,.18);border-radius:18px;background:rgba(15,23,42,.56);padding:17px 18px">
                         <p style="margin:0;color:#cbd5e1;font-size:13px;line-height:1.65">Ce rappel n'inclut aucune donnée d'équipe ou de jeu. Il est envoyé une seule fois par période d'inactivité.</p>

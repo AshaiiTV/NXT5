@@ -1,3 +1,9 @@
+# NXT5 Importer 0.4.6 — Boutons signature
+
+- Les actions principales reprennent le dégradé cyan/lavande et le texte nuit choisis pour NXT5, dans l’export, la liaison et l’activation de la collecte.
+- États de survol et de pression assortis ; libellé, icônes et raccourci clavier restent lisibles pendant le chargement et en contraste forcé.
+- Boutons secondaires, états de collecte et disposition conservés.
+
 # NXT5 Importer 0.4.2 — Prisme
 
 - Nouvelle identité Prisme commune au site : logo NXT5, 5 en verre violet et icônes natives Windows/macOS.
