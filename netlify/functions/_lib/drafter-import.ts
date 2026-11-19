@@ -13,10 +13,11 @@ export type DrafterSnapshot = {
   sourceUrl: string;
   blueName: string;
   redName: string;
-  bluePicks: Five<string>;
-  redPicks: Five<string>;
-  blueBans: Five<string | null>;
-  redBans: Five<string | null>;
+  dataVisibility?: 'link-only';
+  bluePicks: Five<string> | [];
+  redPicks: Five<string> | [];
+  blueBans: Five<string | null> | [];
+  redBans: Five<string | null> | [];
   status: 'completed';
   fearless: boolean;
   ironman: boolean;
@@ -140,6 +141,19 @@ export function parseDrafterHtml(html: string, inputUrl: string): DrafterSnapsho
   }
   const { draft, series } = selectedDraft(publicDraftProps(html), parsed.sourceId, parsed.gameNumber);
   if (draft.done !== true) throw incompleteError();
+  if (draft.patch !== undefined && (typeof draft.patch !== 'string' || !/^\d{1,3}\.\d{1,3}(?:\.\d{1,3})?$/.test(draft.patch))) throw layoutError();
+  const metadata = {
+    source: 'drafter.lol' as const, ...parsed, sourceDraftId: draft.draftId as string, status: 'completed' as const,
+    blueName: teamName(draft.drafterBlue, 'Équipe bleue'), redName: teamName(draft.drafterRed, 'Équipe rouge'),
+    fearless: draft.fearless === true || series?.fearless === true,
+    ironman: draft.ironman === true || series?.ironman === true,
+    firstPick: (draft.firstPick === 'blue' || draft.firstPick === 'red' ? draft.firstPick : null) as Side | null,
+    patch: typeof draft.patch === 'string' ? draft.patch : null,
+    importedAt: new Date().toISOString(),
+  };
+  if (draft.finishedDataHidden === true) {
+    return { ...metadata, dataVisibility: 'link-only', bluePicks: [], redPicks: [], blueBans: [], redBans: [], warnings: [] };
+  }
   const warnings: string[] = [];
   const picks = (side: Side): Five<string> => {
     const values = [1, 2, 3, 4, 5].map(n => sourceChampion(draft[`${side}Pick${n}`]));
@@ -170,16 +184,8 @@ export function parseDrafterHtml(html: string, inputUrl: string): DrafterSnapsho
   const scriptSources = Array.from(html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"[^>]*>/gi), match => match[1]);
   const orderEvidence = drafterOrderEvidence(draft, DRAFTER_ORDER_CLIENT_ASSETS.every(asset => scriptSources.includes(asset)));
   if (!asRecord(draft.roleAssignments)) warnings.push('Les rôles finaux ne sont pas fournis. Les choix conservent leurs emplacements Drafter.');
-  if (draft.patch !== undefined && (typeof draft.patch !== 'string' || !/^\d{1,3}\.\d{1,3}(?:\.\d{1,3})?$/.test(draft.patch))) throw layoutError();
   return {
-    source: 'drafter.lol', ...parsed, sourceDraftId: draft.draftId as string,
-    blueName: teamName(draft.drafterBlue, 'Équipe bleue'), redName: teamName(draft.drafterRed, 'Équipe rouge'),
-    bluePicks, redPicks, blueBans, redBans, status: 'completed',
-    fearless: draft.fearless === true || series?.fearless === true,
-    ironman: draft.ironman === true || series?.ironman === true,
-    firstPick: draft.firstPick === 'blue' || draft.firstPick === 'red' ? draft.firstPick : null,
-    patch: typeof draft.patch === 'string' ? draft.patch : null,
-    importedAt: new Date().toISOString(), warnings, orderEvidence,
+    ...metadata, bluePicks, redPicks, blueBans, redBans, warnings, orderEvidence,
     banStates: { blue: banStates('blue'), red: banStates('red') },
   };
 }

@@ -165,6 +165,21 @@ describe('drafts attached to played matches', () => {
     expect(await linkedDraft({ matchId: otherMatchId })).toMatchObject({ id: draft.id, matchId: otherMatchId });
   });
 
+  it('attaches a verified link and preserves previously imported selections on either save path', async () => {
+    const hidden = { ...snapshot, bluePicks: [], redPicks: [], blueBans: [], redBans: [], dataVisibility: 'link-only' };
+    importDraft.mockResolvedValue(hidden);
+    const { previewToken } = await preview();
+    const link = await linkedDraft({ previewToken });
+    expect(link.snapshot).toEqual(hidden);
+    const read = await (await call('get-match-draft', { matchId })).json();
+    expect(read.draft).toEqual(link);
+    expect((await linkedDraft()).snapshot).toEqual(snapshot);
+    expect((await linkedDraft({ previewToken })).snapshot).toEqual(snapshot);
+    const opponent = await create();
+    const saved = await (await call('save-draft', { opponentId: opponent.id, allySide: 'red', previewToken })).json();
+    expect(saved.draft).toMatchObject({ id: link.id, matchId, snapshot });
+  });
+
   it('preserves matchId when an existing source is reimported through the dossier action', async () => {
     const draft = await linkedDraft();
     const legacyOpponent = await create();

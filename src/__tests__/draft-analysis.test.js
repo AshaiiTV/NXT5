@@ -24,6 +24,20 @@ describe('descriptive draft analysis', () => {
     expect(model.ally).not.toHaveProperty('wins');
   });
 
+  it('counts a link-only game as linked while excluding its hidden slots from champion frequencies', () => {
+    const hidden = row('hidden', { matchId: 'match' }, {
+      dataVisibility: 'link-only', firstPick: null, orderEvidence: undefined,
+      bluePicks: [], redPicks: [], blueBans: [], redBans: [],
+    });
+    const model = buildDraftAnalysis([row(), hidden]);
+    expect(model).toMatchObject({ total: 2, ordered: 1, linked: 1 });
+    for (const camp of [model.ally, model.enemy]) {
+      expect(camp.coverage).toMatchObject({ picks: 1, bans: 1 });
+      expect(camp.picks).toHaveLength(5);
+      expect(camp.bans).toHaveLength(5);
+    }
+  });
+
   it('counts the first global pick only for the camp that opened, and own first choice separately', () => {
     const model = buildDraftAnalysis([row()]);
     expect(model.ally.firstPicks).toEqual([{ champion: 'Aatrox', count: 1, total: 1 }]);

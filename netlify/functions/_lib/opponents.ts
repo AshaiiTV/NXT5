@@ -383,7 +383,11 @@ export async function saveOpponentDraft(teamId: string, userId: string, opponent
         or exists(select 1 from opponent_drafts where team_id = ${teamId} and source_id = ${snapshot.sourceId} and game_number = ${snapshot.gameNumber})
       on conflict(team_id, source_id, game_number) do update set
         opponent_id = excluded.opponent_id, ally_side = excluded.ally_side, source_url = excluded.source_url,
-        snapshot = excluded.snapshot, imported_by = excluded.imported_by, imported_at = now()
+        snapshot = case when excluded.snapshot->>'dataVisibility' = 'link-only'
+          and opponent_drafts.snapshot->>'sourceDraftId' = excluded.snapshot->>'sourceDraftId'
+          and opponent_drafts.snapshot->>'dataVisibility' is distinct from 'link-only'
+          then opponent_drafts.snapshot else excluded.snapshot end,
+        imported_by = excluded.imported_by, imported_at = now()
       returning *
     )
     select exists(select 1 from authorized) as authorized, exists(select 1 from opponent) as opponent_exists,
@@ -431,7 +435,11 @@ export async function saveMatchDraft(teamId: string, userId: string, matchId: st
       from eligible cross join target_match cross join (select count(*) from released) release_done
       on conflict(team_id, source_id, game_number) do update set
         match_id = excluded.match_id, ally_side = excluded.ally_side,
-        source_url = excluded.source_url, snapshot = excluded.snapshot, imported_by = excluded.imported_by, imported_at = now()
+        source_url = excluded.source_url, snapshot = case when excluded.snapshot->>'dataVisibility' = 'link-only'
+          and opponent_drafts.snapshot->>'sourceDraftId' = excluded.snapshot->>'sourceDraftId'
+          and opponent_drafts.snapshot->>'dataVisibility' is distinct from 'link-only'
+          then opponent_drafts.snapshot else excluded.snapshot end,
+        imported_by = excluded.imported_by, imported_at = now()
       returning *
     )
     select validation.*, (select to_jsonb(saved) || jsonb_build_object('match_opponent_id', target_match.opponent_id)

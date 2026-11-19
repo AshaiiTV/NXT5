@@ -23,7 +23,7 @@ La partie, ses participants et son rattachement sont enregistrés dans une même
 
 ### Lier une draft à une partie
 
-Depuis le détail d’une partie, aller à **Draft de la partie**, coller le lien et vérifier l’aperçu. Choisir le côté de notre équipe puis enregistrer. Le serveur conserve le lien source, l’instantané lu et sa date d’import, sans modifier l’équipe adverse de la partie.
+Depuis le détail d’une partie, ouvrir **Drafting → Ajouter une draft**, coller le lien et sélectionner **Vérifier la draft**. Choisir le côté de notre équipe puis enregistrer. Le serveur conserve le lien source, l’instantané lu et sa date d’import, sans modifier l’équipe adverse de la partie.
 
 Une partie peut avoir une draft liée et une draft ne peut être liée qu’à une seule partie. Remplacer ou détacher ce lien conserve la draft précédente dans l’historique des analyses, mais elle ne contribue plus à la fiche adverse. Supprimer une partie conserve aussi son instantané ; il devient simplement non lié. Le rattachement ne modifie pas les participants ou les statistiques de la partie.
 
@@ -55,7 +55,7 @@ La migration `20261012_group_opponents.sql` doit suivre les trois migrations adv
 
 Le serveur lit uniquement la page publique HTTPS de `drafter.lol`, sur un chemin de draft validé. Les redirections sont refusées, le téléchargement est borné et expire après quelques secondes. Aucun cookie, compte Drafter ou jeton API n’est envoyé.
 
-Les drafts terminées sont présentes dans les données React Flight incluses dans le HTML public. L’extracteur décode ces données avec `JSON.parse` ; il n’exécute aucun script distant. Il sélectionne la game demandée et vérifie sa complétude. La liste de champions utilisés en Fearless n’est pas la source des picks : elle peut être incomplète ou différente du résultat de la draft.
+La page publique décrit les parties de la série dans les données React Flight. Depuis novembre 2026, elle peut marquer une partie terminée avec `finishedDataHidden: true`. Dans ce cas, NXT5 permet de rattacher le lien à la game vérifiée et indique que Drafter masque les picks et les bans. Les fréquences utilisent uniquement les choix disponibles. Un nouvel import du même lien conserve les sélections déjà enregistrées pour cette game. L’extracteur décode ces données avec `JSON.parse` ; il n’exécute aucun script distant. Il vérifie l’identité et le statut de la game demandée. Pour un import de champions, il exige également les dix picks. La liste de champions utilisés en Fearless n’est pas la source des picks : elle peut être incomplète ou différente du résultat de la draft.
 
 Cette structure est un détail de la page publique, pas une API contractuelle. Un changement de Drafter peut rendre l’import indisponible ; dans ce cas une erreur explicite remplace l’aperçu, sans inventer de données. Les drafts en cours, disparues ou inaccessibles ne sont pas importées. Source : [page testée](https://drafter.lol/draft/IiYYZGok?game=2).
 

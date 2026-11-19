@@ -120,5 +120,6 @@ function DraftBoardView({ snapshot, allySide }) {
 export default function DraftBoard({ snapshot, allySide }) {
   // Replacing a source (including a refreshed import of the same draft) restores
   // its final board without briefly showing the previous source's replay step.
+  if (snapshot?.dataVisibility === "link-only") return <p className="opponents-help">{t("Drafter masque les picks et les bans de cette partie.")}</p>;
   return <DraftBoardView key={JSON.stringify(snapshot)} snapshot={snapshot} allySide={allySide} />;
 }

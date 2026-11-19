@@ -61,6 +61,17 @@ describe('public hydration data', () => {
       .toEqual(['Aatrox', 'Yunara', 'Lulu', 'Zeri', 'Braum', 'Anivia', 'Kennen', 'DrMundo', 'Locke', 'Maokai']);
   });
 
+  it('keeps the exact game link when Drafter explicitly hides completed selections', () => {
+    const props = copy();
+    Object.assign(props.drafts[1], { finishedDataHidden: true, bluePick1: '', redBan1: '', drafterBlue: '', drafterRed: '' });
+    expect(parseDrafterHtml(html(props), link)).toMatchObject({
+      sourceUrl: link, sourceDraftId: 'ZWXUc3r9', gameNumber: 2, dataVisibility: 'link-only',
+      bluePicks: [], redPicks: [], blueBans: [], redBans: [], blueName: 'Équipe bleue', redName: 'Équipe rouge',
+    });
+    props.drafts[1].done = false;
+    expect(() => parseDrafterHtml(html(props), link)).toThrow(expect.objectContaining({ code: 'DRAFTER_INCOMPLETE' }));
+  });
+
   it('selects the series draft ID even when the object array is reordered', () => {
     const props = copy(); props.drafts.reverse();
     expect(parseDrafterHtml(html(props), 'https://drafter.lol/draft/IiYYZGok?game=1').sourceDraftId).toBe('02CT9UD3');

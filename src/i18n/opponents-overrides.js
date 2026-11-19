@@ -1,6 +1,8 @@
 import { en as scoutingEn, es as scoutingEs } from './opponents-scouting-overrides.js';
 // Opponent dossiers and public Drafter imports, including server feedback.
 const directoryTranslations = {
+  "Tu peux rattacher ce lien. Drafter masque les picks et les bans de cette partie.": ["You can link this draft. Drafter hides the picks and bans for this game.", "Puedes vincular este draft. Drafter oculta las selecciones y los bloqueos de esta partida."],
+  "Drafter masque les picks et les bans de cette partie.": ["Drafter hides the picks and bans for this game.", "Drafter oculta las selecciones y los bloqueos de esta partida."],
   "Ajouter": ["Add", "Añadir"],
   "Non liée": ["Not linked", "Sin vincular"],
   "Ajouter une draft": ["Add a draft", "Añadir un draft"],
