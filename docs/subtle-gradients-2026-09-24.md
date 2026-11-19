@@ -1,6 +1,6 @@
 # Contrôle des accents colorés — 24 septembre 2026
 
-La passe ajoute de légers dégradés cyan, pervenche, violet et fuchsia aux repères de navigation, aux séparateurs d’en-têtes et à quelques accents d’accueil. La [charte canonique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) reste l’unique référence graphique.
+La passe ajoute de légers dégradés cyan, pervenche, violet et fuchsia aux repères de navigation, aux séparateurs d’en-têtes et à quelques accents d’accueil. La [charte canonique](charte-graphique.md) reste l’unique référence graphique.
 
 ## Rendu et interactions
 

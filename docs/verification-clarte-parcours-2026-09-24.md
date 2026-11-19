@@ -37,7 +37,7 @@ Interactions vérifiées dans le navigateur :
 
 ## Charte et limites
 
-La [charte canonique unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) a été actualisée dans son emplacement de référence, avec la section « Clarté et prise en main — évolution du 24 septembre 2026 ». Aucune copie de charte n’est ajoutée à ce checkout. L’identité visuelle et les assets de marque sont conservés.
+La [charte canonique unique](charte-graphique.md) a été actualisée dans son emplacement de référence, avec la section « Clarté et prise en main — évolution du 24 septembre 2026 ». Aucune copie de charte n’est ajoutée à ce checkout. L’identité visuelle et les assets de marque sont conservés.
 
 Cette livraison porte sur l’entrée dans le produit et le parcours jusqu’au premier bilan/débrief. Elle ne réécrit pas les notes déjà enregistrées, le contenu des exports ni tous les outils avancés. Certaines images distantes ont été remplacées par leurs états de repli pendant le contrôle local.
 

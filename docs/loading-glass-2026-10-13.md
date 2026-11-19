@@ -2,7 +2,7 @@
 
 13 octobre 2026. L’utilisateur demande une refonte complète de l’écran de chargement autour du 5 en verre existant, dans la nouvelle direction artistique, et autorise sa publication directe.
 
-Ce document consigne l’implémentation et ses contrôles. La [charte graphique canonique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) reste l’unique référence graphique ; ce rapport n’en est pas une copie.
+Ce document consigne l’implémentation et ses contrôles. La [charte graphique canonique](charte-graphique.md) reste l’unique référence graphique ; ce rapport n’en est pas une copie.
 
 ## Composition et comportement
 

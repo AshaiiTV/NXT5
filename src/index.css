@@ -87,10 +87,14 @@ button,
   --nxt5-font-small: .875rem;
   --nxt5-font-micro: .75rem;
   --nxt5-reading-width: 68ch;
-  --nxt5-action: #7c3aed;
-  --nxt5-action-hover: #6d28d9;
-  --nxt5-on-action: #fff;
-  --nxt5-primary-gradient: linear-gradient(var(--nxt5-action), var(--nxt5-action));
+  --nxt5-action: #67e8f9;
+  --nxt5-action-hover: #a5f3fc;
+  --nxt5-action-active: #22d3ee;
+  --nxt5-on-action: #020611;
+  --nxt5-primary-gradient: linear-gradient(90deg, #67e8f9 0%, #a5b4fc 52%, #c4b5fd 100%);
+  --nxt5-primary-gradient-hover: linear-gradient(90deg, #a5f3fc 0%, #c7d2fe 52%, #ddd6fe 100%);
+  --nxt5-primary-gradient-active: linear-gradient(90deg, #22d3ee 0%, #818cf8 52%, #a78bfa 100%);
+  --nxt5-toggle-active: #7c3aed;
   /* Decorative accents; primary actions and semantic state colors stay distinct. */
   --nxt5-spectrum-stops: #67e8f9, #c4b5fd 65%, #c4b5fd;
   --nxt5-spectrum-gradient: linear-gradient(105deg, var(--nxt5-spectrum-stops));

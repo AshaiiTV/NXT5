@@ -2,7 +2,7 @@
 
 Le Hero possède un horizon, un volume en verre et des facettes qui n’étaient pas assez présents dans les pages de travail. Cette passe reprend cette composition dans les introductions et rend les matières du cadre plus lisibles, tout en gardant des zones opaques pour les données.
 
-La [charte graphique unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) est mise à jour en version 1.62 dans le dépôt principal. Ce compte rendu ne constitue pas une copie de la charte. Il conserve l’évolution du chargement ajoutée séparément le même jour.
+La [charte graphique unique](charte-graphique.md) est mise à jour en version 1.62 dans le dépôt principal. Ce compte rendu ne constitue pas une copie de la charte. Il conserve l’évolution du chargement ajoutée séparément le même jour.
 
 ## Réalisation
 

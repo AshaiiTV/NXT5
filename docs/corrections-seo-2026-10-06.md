@@ -12,7 +12,7 @@ Les défauts techniques et les améliorations des contenus établis par l’[aud
 - Le guide d’import décrit les cinq étapes réelles, les permissions, les quatre problèmes courants et une capture du véritable formulaire avec cinq profils fictifs. Le guide de débrief déroule un exemple complet du fait à la vérification d’une consigne, sans prétendre mesurer un progrès sportif.
 - Les guides affichent leur responsabilité éditoriale et leur révision du jour. Le footer et les liens contextuels facilitent leur découverte ; Réseaux renvoie vers Contact pour éviter la répétition des démarches détaillées.
 
-La [charte unique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) est mise à jour en version 1.53 dans son emplacement canonique, sans copie dans ce dépôt. La palette, les composants partagés et les accès informatifs sont conservés.
+La [charte unique](charte-graphique.md) est mise à jour en version 1.53 dans son emplacement canonique, sans copie dans ce dépôt. La palette, les composants partagés et les accès informatifs sont conservés.
 
 ## Chargement comparé
 

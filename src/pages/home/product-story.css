@@ -1076,20 +1076,20 @@
   gap: 28px;
   min-height: 56px;
   padding: 17px 23px;
-  color: #fff;
-  background: var(--nxt5-action);
+  color: var(--nxt5-on-action);
+  background: var(--nxt5-action) var(--nxt5-primary-gradient);
   border: 1px solid #a5b4fc45;
   border-radius: 2px;
   font-size: 16px;
   line-height: 1.4;
   font-weight: 600;
-  transition: filter 180ms;
+  transition: box-shadow 180ms;
 }
 .ps-primary:hover {
-  filter: brightness(1.12);
+  background: var(--nxt5-action-hover) var(--nxt5-primary-gradient-hover);
 }
 .ps-primary:active {
-  filter: brightness(0.96);
+  background: var(--nxt5-action-active) var(--nxt5-primary-gradient-active);
 }
 .ps-final-track {
   position: absolute;

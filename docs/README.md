@@ -1,6 +1,6 @@
 # Documentation NXT5
 
-Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et sont tenus à jour ; les **rapports datés** (`<sujet>-AAAA-MM-JJ.md`) gardent la trace d’un chantier à la date indiquée et ne sont pas réécrits ensuite. Les règles de la charte graphique sont indiquées dans [`AGENTS.md`](../AGENTS.md).
+Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et sont tenus à jour ; les **rapports datés** (`<sujet>-AAAA-MM-JJ.md`) gardent la trace d’un chantier à la date indiquée et ne sont pas réécrits ensuite. La [charte graphique unique NXT5](charte-graphique.md) est la référence du site et de l’Importer ; [`AGENTS.md`](../AGENTS.md) en impose la consultation pour chaque tâche NXT5.
 
 ## Guides
 

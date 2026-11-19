@@ -24,4 +24,4 @@ Les API de production, Riot et la persistance réelle ne sont pas couverts par c
 
 ## Référence graphique
 
-La [charte canonique](../../../2026-05-05/utilise-github-pour-examiner-mes-pr/NXT5/docs/charte-graphique.md) a été actualisée en version 1.39 dans le dépôt principal de l’espace de travail. Conformément à la consigne de source unique, ce checkout retire son ancienne copie Markdown, son PDF et son générateur de PDF ; `AGENTS.md` et les anciens rapports pointent vers la source canonique. Aucun symbole de marque incomplet n’est réintroduit.
+La [charte canonique](charte-graphique.md) a été actualisée en version 1.39 dans le dépôt principal de l’espace de travail. Conformément à la consigne de source unique, ce checkout retire son ancienne copie Markdown, son PDF et son générateur de PDF ; `AGENTS.md` et les anciens rapports pointent vers la source canonique. Aucun symbole de marque incomplet n’est réintroduit.
