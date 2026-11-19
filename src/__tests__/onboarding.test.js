@@ -15,7 +15,8 @@ describe("a first useful session", () => {
     const result = steps();
     expect(result).toHaveLength(3);
     expect(next(result)).toMatchObject({ id: "matches", path: "/games?import=1", disabled: false });
-    expect(result.slice(1).every(step => step.disabled)).toBe(true);
+    expect(result[1].disabled).toBe(true);
+    expect(result[2]).toMatchObject({ id: "reports", path: "/notes", disabled: false });
   });
   it.each(["captain", "coach", "assistant", "analyst", "manager", "board"])("offers importing to %s in this team", role => {
     expect(next(steps({}, { user: playerUser, currentMember: { team_id: team.id, user_id: playerUser.id, role } })).id).toBe("matches");
@@ -29,7 +30,7 @@ describe("a first useful session", () => {
   it("moves from a single imported match to its summary, then the first debrief", () => {
     const data = { matches: [match("one /?")] };
     expect(next(steps(data))).toMatchObject({ id: "reading", path: "/games?match=one%20%2F%3F" });
-    expect(next(steps(data, { discovered: ["reading"] }))).toMatchObject({ id: "reports", path: "/rapports?match=one%20%2F%3F&compose=1" });
+    expect(next(steps(data, { discovered: ["reading"] }))).toMatchObject({ id: "reports", path: "/notes?match=one%20%2F%3F&compose=1" });
     expect(steps({ ...data, reports: [report("first")] }, { discovered: ["reading"] }).every(step => step.done)).toBe(true);
   });
   it("selects the newest game without sorting source data in place", () => {
@@ -43,7 +44,7 @@ describe("a first useful session", () => {
     expect(result.map(step => step.id)).toEqual(["profile", "planning", "team-review"]);
     expect(result.every(step => !step.done)).toBe(true);
     expect(next(result).path).toBe("/mon-profil?player=profile");
-    expect(result[2].path).toBe("/rapports?report=review");
+    expect(result[2].path).toBe("/notes?report=review");
   });
   it("lets an unlinked player view team work without proposing forbidden setup", () => {
     const result = steps({ matches: [match("one")] }, { user: playerUser });
@@ -77,13 +78,13 @@ describe("personal discovery", () => {
   it("does not complete steps from menus, missing objects or another player's profile", () => {
     expect(visits("/games")).toEqual([]);
     expect(visits("/games", "?match=foreign")).toEqual([]);
-    expect(visits("/rapports", "?report=review&compose=1")).toEqual([]);
+    expect(visits("/notes", "?report=review&compose=1")).toEqual([]);
     expect(visits("/mon-profil", "?player=other")).toEqual([]);
     expect(visits("/planning")).toEqual([]);
   });
   it("recognizes the linked profile and actual team game/report destinations", () => {
     expect(visits("/mon-profil", "?player=profile")).toEqual(["profile"]);
     expect(visits("/games", "?match=game")).toEqual(["reading", "team-review"]);
-    expect(visits("/rapports", "?report=review")).toEqual(["team-review"]);
+    expect(visits("/notes", "?report=review")).toEqual(["team-review"]);
   });
 });

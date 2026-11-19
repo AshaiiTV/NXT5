@@ -291,7 +291,7 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
     const calls = apiFetch.mock.calls.filter(([endpoint]) => endpoint === "opponents-drafts").map(([, options]) => JSON.parse(options.body));
     expect(calls).toEqual([{ action: "get-match-opponent", teamId: "team", matchId: "one" }, { action: "get-match-draft", teamId: "team", matchId: "one" }]);
-    for (const label of ["Drafting", "Face-à-face", "Drafting", "Débrief"]) {
+    for (const label of ["Drafting", "Face-à-face", "Drafting", "Résumé"]) {
       await click(renderer, label);
       expect(renderer.root.findByType(MatchDrafterPanel)).toBe(draft);
       expect(visible(draft)).toBe(label === "Drafting");
@@ -343,14 +343,49 @@ describe("unified Games workspace", () => {
   });
 
 
-  it("opens an existing linked debrief from the first reading without expanding statistics", async () => {
+  it("keeps the whole saved debrief in each linked summary and shows only team writing in Notes", async () => {
     const props = settings();
-    props.data.reports = [{ id: "report-one", team_id: "team", match_ids: ["one"], title: "Décisions" }];
+    props.data.reports = [
+      { id: "report-one", team_id: "team", match_ids: ["one", "two"], title: "Décisions", content: "Ancienne analyse\n[NXT5_REPORT_V3]\nNotes staff\nPréparer le dragon." },
+      { id: "auto", team_id: "team", match_id: "one", source: "auto", content: "Bilan automatique" },
+      { id: "foreign", team_id: "other", match_id: "one", content: "Texte privé" },
+      { id: "fresh", team_id: "team", is_team_note: true, match_id: "one", title: "Vision", content: "Nouvelle consigne" },
+    ];
     const renderer = await mount("/games?match=one", props);
-    expect(button(renderer, "Préparer le débrief")).toBeUndefined();
-    await click(renderer, "Ouvrir le débrief");
-    expect(window.location.pathname).toBe("/rapports");
-    expect(window.location.search).toBe("?report=report-one&match=one");
+    const panel = () => renderer.root.findByType(MatchDataPanel);
+    for (const summary of panel().findAllByType("details").filter((node) => node.props.onToggle && /Décisions|Débrief enregistré/.test(text(node)))) {
+      await act(async () => summary.props.onToggle({ currentTarget: { open: true } }));
+    }
+    expect(text(panel())).toContain("Ancienne analyse");
+    expect(text(panel())).toContain("Préparer le dragon.");
+    expect(text(panel())).toContain("Bilan automatique");
+    expect(text(panel())).not.toContain("Texte privé");
+    expect(text(panel())).not.toContain("Nouvelle consigne");
+    await click(renderer, "Notes");
+    const note = panel().findAllByProps({ className: "match-note" }).find((node) => text(node).includes("Préparer le dragon."));
+    expect(text(panel())).toContain("Nouvelle consigne");
+    expect(text(note)).toContain("Préparer le dragon.");
+    expect(text(note)).not.toContain("Ancienne analyse");
+    expect(button(renderer, "Nouvelle note")).toBeTruthy();
+    expect(window.location.pathname).toBe("/games");
+  });
+
+  it.each(["coach", "player"])("saves a %s's note on the current game and keeps the user in the Notes tab", async (role) => {
+    const props = settings();
+    props.user = { id: "writer" };
+    props.currentMember = { role, user_id: "writer", team_id: "team" };
+    const renderer = await mount("/games?match=one", props);
+    await click(renderer, "Notes");
+    await click(renderer, "Nouvelle note");
+    const form = renderer.root.findByType("dialog").findByType("form");
+    act(() => form.findByType("textarea").props.onChange({ target: { value: "Préparer la rivière." } }));
+    apiFetch.mockResolvedValueOnce({ report: { id: "saved-note" } });
+    await act(async () => form.props.onSubmit({ preventDefault() {} }));
+    const [, request] = apiFetch.mock.calls.find(([endpoint]) => endpoint === "reports-manage");
+    expect(JSON.parse(request.body)).toMatchObject({ kind: "note", action: "create", teamId: "team", matchIds: ["one"], content: "Préparer la rivière." });
+    expect(window.location.search).toBe("?match=one");
+    expect(button(renderer, "Notes").props["aria-selected"]).toBe(true);
+    expect(props.refreshAll).toHaveBeenCalledOnce();
   });
 
   it.each([
@@ -420,7 +455,7 @@ describe("unified Games workspace", () => {
     expect(map().props).toMatchObject({ loading: true, error: "" });
     await act(async () => requests[0].reject(new Error("Détails indisponibles")));
     expect(map().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
-    await click(renderer, "Débrief");
+    await click(renderer, "Résumé");
     expect(map().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
     expect(journal().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
     expect(text(journal())).not.toContain("Aucun moment clé exploitable");
@@ -452,7 +487,7 @@ describe("unified Games workspace", () => {
     expect(statistics.props.match.id).toBe(selectedId);
     expect(statistics.findAllByType(MatchKillMap)).toHaveLength(1);
     expect(text(statistics)).not.toContain("Qui a le plus d’impact ?");
-    expect(button(renderer, "Débrief").props["aria-selected"]).toBe(true);
+    expect(button(renderer, "Résumé").props["aria-selected"]).toBe(true);
     expect(text(statistics)).not.toContain("Vue 5v5");
     await click(renderer, "Face-à-face");
     expect(button(renderer, "Face-à-face").props["aria-selected"]).toBe(true);
@@ -468,7 +503,7 @@ describe("unified Games workspace", () => {
     expect(comparison.findAllByType("dialog")).toHaveLength(0);
     for (const metric of ["gold", "damage", "vision"]) expect(comparison.findAllByProps({ "data-team-metric": metric })).toHaveLength(1);
     const statsText = text(statistics);
-    const reviewIndex = statsText.indexOf("Préparer le débrief");
+    const reviewIndex = statsText.indexOf("Notes");
     expect(reviewIndex).toBeGreaterThanOrEqual(0);
     expect(statsText).not.toContain("Vue 5v5");
     for (const metric of ["K / D / A", "Dégâts aux champions", "Or final", "Score de vision"]) {

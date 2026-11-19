@@ -1,3 +1,4 @@
+import { isTeamNote } from "../../shared/report-notes.js";
 import { canonicalRole } from "../../shared/roles.js";
 
 const rows = (value) => Array.isArray(value) ? value : [];
@@ -151,6 +152,7 @@ export function getHomePlayerDebrief({ data = {}, teamId, player } = {}) {
   if (!group) return { group: null, report: null, sections: [] };
   const matchIds = linkedIds(group);
   const report = matchIds.length ? teamRows(data.reports, teamId)
+    .filter(isTeamNote)
     .filter((row) => String(row.discord_status || "").toLowerCase() !== "draft")
     .filter((row) => {
       const reportIds = linkedIds(row, true);

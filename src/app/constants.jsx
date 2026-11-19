@@ -29,7 +29,7 @@ export const NAV = [
   { id: "planning", label: "Planning", hint: "Organiser les séances", icon: CalendarDays, shortcut: "L", path: "/planning" },
   { id: "scrims", label: "Scrims", hint: "Trouver un adversaire", icon: Handshake, path: "/scrims" },
   { id: "draft", label: "Draft & Pool", hint: "Choisir les champions", icon: Sparkles, shortcut: "D", path: "/draft/pool" },
-  { id: "reports", label: "Débriefs", hint: "Noter les points à travailler", icon: FileText, shortcut: "R", path: "/rapports" },
+  { id: "reports", label: "Notes", hint: "Garder les décisions de l’équipe", icon: FileText, shortcut: "R", path: "/notes" },
   { id: "profile", label: "Mon profil", hint: "Suivre ta progression", icon: Activity, shortcut: "P", path: "/mon-profil" },
   { id: "guide", label: "Guide d’utilisation", hint: "Les étapes et les mots utiles", icon: BookOpen, shortcut: "A", path: "/guide", hidden: true },
   { id: "account-settings", label: "Paramètres", icon: Settings, shortcut: "P", path: "/parametres", hidden: true },

@@ -3,7 +3,7 @@
 .match-recap-header > .games-match-context { flex:1; min-width:0; padding-bottom:0; border-bottom:0; }
 .match-recap-header > button { flex:0 1 auto; }
 .match-recap-tabs { margin-block:24px; }
-.match-recap-tabs.nxt5-tab-nav > div { display:grid; width:100%; grid-template-columns:repeat(3,minmax(0,1fr)); min-width:0; }
+.match-recap-tabs.nxt5-tab-nav > div { display:grid; width:100%; grid-template-columns:repeat(4,minmax(0,1fr)); min-width:0; }
 .match-recap-tabs .nxt5-tab { min-width:0; }
 .match-recap-tabs .nxt5-tab > span > span { white-space:normal; overflow-wrap:anywhere; }
 .match-recap-tab-content { min-width:0; }
@@ -28,4 +28,26 @@
   .match-recap-tabs { margin-block:20px; }
   .match-recap-grid > .nxt5-surface { padding:16px; }
   .match-recap-stat { flex-direction:column; gap:10px; }
+}
+
+.match-summary-analysis, .match-written-summary { display:grid; min-width:0; gap:1rem; margin-block:1rem; }
+.match-summary-analysis > *, .match-written-summary > * { min-width:0; margin-block:0; }
+.match-note-list > article { border-top:1px solid var(--nxt5-border); margin-top:1rem; padding-block:1rem; }
+@container (max-width:650px) {
+  .match-recap .ml-teams { grid-template-columns:minmax(0,1fr); gap:1.25rem; }
+  .match-recap .ml-team + .ml-team { padding:1rem 0 0; border-left:0; border-top:1px solid var(--nxt5-border); }
+  .match-recap .ml-slots { gap:.35rem; }
+  .match-recap .ml-role { white-space:nowrap; gap:.15rem; }
+}
+@container (max-width:430px) {
+  .match-recap-tabs.nxt5-tab-nav > div { grid-auto-flow:row; grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+
+.team-note-editor-actions { display:flex; flex-wrap:wrap; justify-content:flex-end; gap:.5rem; }
+.team-note-editor button[aria-label] { min-width:44px; padding-inline:.65rem; }
+.team-note-editor button[aria-label] svg { width:18px; height:18px; flex-shrink:0; }
+@media (max-width:510px) {
+  .team-note-editor .team-note-editor-actions { display:grid; grid-template-columns:minmax(0,1fr); }
+  .team-note-editor-actions > button { width:100%; }
+  .team-note-editor textarea { min-height:7rem; height:clamp(7rem,20dvh,11rem); }
 }

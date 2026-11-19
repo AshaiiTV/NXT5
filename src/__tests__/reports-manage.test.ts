@@ -25,8 +25,16 @@ beforeEach(() => {
     if (query.startsWith('select id from matches')) return (values[1] as string[]).map((id) => ({ id }));
     if (query.startsWith('select * from reports')) return [{ ...database.report }];
     if (query.startsWith('insert into reports')) {
-      database.report = { id: 'review', team_id: values[0], match_id: values[1], match_ids: JSON.parse(String(values[2])), created_by: values[3], title: values[4], content: values[5] };
+      database.report = { id: 'review', team_id: values[0], match_id: values[1], match_ids: JSON.parse(String(values[2])), created_by: values[3], title: values[4], content: values[5], is_team_note: values[7] };
       return [{ ...database.report }];
+    }
+    if (query.startsWith('update reports set original_debrief')) {
+      if (!database.report.is_team_note && !database.report.original_debrief) database.report.original_debrief = { content: database.report.content, title: database.report.title, match_ids: database.report.match_ids };
+      return [];
+    }
+    if (query.startsWith('update reports set content')) {
+      database.report.content = '';
+      return [];
     }
     if (query.startsWith('update reports')) {
       database.report = { ...database.report, match_id: values[0], match_ids: JSON.parse(String(values[1])), title: values[2], content: values[3] };
@@ -51,6 +59,21 @@ function reportWrites() {
 }
 
 describe('complete review persistence', () => {
+  it('distinguishes new team notes from legacy reviews without rewriting a stored report', async () => {
+    expect((await (await save({ kind: 'note' })).json()).report.is_team_note).toBe(true);
+    expect((await (await save({})).json()).report.is_team_note).toBe(false);
+    expect((await (await save({ kind: 'note', action: 'update' })).json()).report.is_team_note).toBe(false);
+  });
+  it('keeps the saved generated text when editing or removing the human note', async () => {
+    const analysis = 'Verdict historique\n[NXT5_REPORT_V3]\nNotes staff\n';
+    database.report.content = analysis + 'Avant';
+    expect((await save({ kind: 'note', action: 'update', content: 'Après' })).status).toBe(200);
+    expect(database.report.content).toBe('Après');
+    expect(database.report.original_debrief).toMatchObject({ content: analysis + 'Avant' });
+    expect((await save({ kind: 'note', action: 'delete' })).status).toBe(200);
+    expect(database.report.content).toBe('');
+    expect(database.report.original_debrief).toMatchObject({ content: analysis + 'Avant' });
+  });
   it.each(['create', 'update'])('preserves long coaching and exact staff notes on %s', async (action) => {
     const notes = '\n  Notes staff :\n  Conserver l’espace initial, les accents et la fin.\n\n';
     const content = `  ${'Analyse complète de la game.\n'.repeat(600)}[NXT5_REPORT_V2]\n${notes}`;

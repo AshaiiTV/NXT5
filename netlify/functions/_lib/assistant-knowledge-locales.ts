@@ -77,23 +77,18 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     },
     statistics: {
       title: 'Reading a game summary', actionLabel: 'View games',
-      summary: 'Review brings together the team compositions, gold chart, kill map and key moments. How to read this data explains the indicators and missing data.',
+      summary: 'Summary brings together the team compositions, gold chart, kill map and key moments. How to read this data explains the indicators and missing data.',
       keywords: ['statistics', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'gold', 'vision', 'build', 'objective', 'timeline', 'group', 'summary', 'difference', 'minions', 'key moments', 'game review', 'kill map', 'head-to-head', 'drafting', 'how to read this data'],
-      steps: ['In Games, find and open the game you are interested in.', 'In Review, read the result and team compositions, then explore the gold chart, kill map and key moments. Filter the map by team; choose a phase in key moments.', 'Use Head-to-head to compare players and Drafting to view champion choices.', 'Choose Prepare a debrief to save team notes about this game or group.'],
+      steps: ['In Games, find and open the game you are interested in.', 'In Summary, read the result and team compositions, then explore the gold chart, kill map and key moments. Filter the map by team; choose a phase in key moments.', 'Use Head-to-head to compare players and Drafting to view champion choices.', 'Open Notes and choose New note to write about this game.'],
       suggestions: ['How do I read the difference at 20 minutes?', 'How do I create a group of games?', 'How do I go from a summary to a debrief?'],
-      faq: [{ question: 'How do I read the differences at 10 and 20 minutes?', triggers: ['diff10', 'diff20', 'lane difference', 'cs10', 'cs20', 'difference at 20', 'difference at 10'], answer: 'CS 10 and CS 20 show minions and monsters killed at 10 and 20 minutes. In Head-to-head, select a role to see the available checkpoints for both players. Compare these values with gold, deaths and the key moments in Review. Missing data remains displayed as —.' },
+      faq: [{ question: 'How do I read the differences at 10 and 20 minutes?', triggers: ['diff10', 'diff20', 'lane difference', 'cs10', 'cs20', 'difference at 20', 'difference at 10'], answer: 'CS 10 and CS 20 show minions and monsters killed at 10 and 20 minutes. In Head-to-head, select a role to see the available checkpoints for both players. Compare these values with gold, deaths and the key moments in Summary. Missing data remains displayed as —.' },
         { question: 'How do I read the five role matchups?', triggers: ['five matchups', 'role matchups', 'head to head roles', 'side colours'], answer: 'In Head-to-head, open each role for details and compare the two players. Values are shown blue then red; the arrow points to the leading side. A dash marks unavailable data.' }],
     },
     reviews: {
-      title: 'Preparing a debrief', actionLabel: 'Open Debriefs',
-      summary: "A debrief brings together observations and decisions after one or more games. In 10 seconds shows a visual summary of the selected game. Role differences compares final gold, damage to champions and vision score; team notes remain one click away.",
+      title: "Team notes", actionLabel: "Open notes",
+      summary: "Saved debriefs are available in each linked game’s Summary. Coaches and players write observations in Notes.",
       keywords: ["review","report","decision","notes","source game","library","staff","group","create review","edit review","debrief","prepare a debrief","linked games","gear","manage this review","automated analysis","group title"],
-      steps: [
-      "Open a game or group from Games, then choose Prepare a debrief.",
-      "Write what the team should keep, what needs checking and the next action to try, then save. Edit lets you update notes if you have permission.",
-      "Choose a game in the In 10 seconds summary, then use Role differences to compare the five matchups. Missing data stays displayed as —. Open team notes to read the complete observations.",
-      "In the library, the Manage this review gear menu contains Duplicate and, if permitted, Delete. When the linked games exactly match a group of several games, the title uses that group’s name."
-    ],
+      steps: ["Open a game in Games, then use Summary to read its saved debriefs.", "Open Notes, choose New note and write your observations.", "Link any other relevant games.", "Save the note to share it with the team."],
       suggestions: [
       "What should I put in a debrief?",
       "Where do I find Duplicate and Delete for a debrief?",
@@ -109,7 +104,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       "manage this review",
       "debrief gear"
     ],
-    "answer": "In Debriefs, open the debrief in the library, then click the Manage this review gear icon. The menu contains Duplicate and, if you can manage this debrief, Delete. Edit remains available separately to update notes if you have permission."
+    "answer": "In Notes, use Edit or Delete according to your permissions. To copy an observation, paste it into a new note."
   },
   {
     "question": "Why does the debrief use the group’s name?",
@@ -118,7 +113,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       "group title",
       "debrief title"
     ],
-    "answer": "When the games linked to a debrief exactly match a group of several games, its title uses that group’s name. A partial selection does not use the group name. Check the linked games and the relevant group in Games."
+    "answer": "Older group debriefs keep their title. For a new note, choose a title and link the relevant games."
   },
   {
     "question": "Where can I find a debrief’s automated analysis?",
@@ -127,7 +122,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       "find automated analysis",
       "notes before analysis"
     ],
-    "answer": "A debrief with linked games starts with In 10 seconds. Choose the game, then use Role differences: the five matchups compare final gold, damage to champions and vision score against the opponents. Missing data stays displayed as —. Team notes are one click away."
+    "answer": "Open the game’s Summary in Games for saved debriefs and role differences in gold, damage and vision."
   }
 
     ,
@@ -138,7 +133,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     "debrief several games",
     "group games in a debrief"
   ],
-  "answer": "In the debrief editor, select the relevant games, up to 20, add the team notes and save. You can also start from a group in Games with Prepare a debrief. The linked games then let you check the observations."
+  "answer": "In Notes, choose New note, link up to 20 games, then save."
 }
 ],
     },
@@ -420,23 +415,18 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     },
     statistics: {
       title: 'Leer el resumen de una partida', actionLabel: 'Ver las partidas',
-      summary: 'Análisis postpartida reúne las composiciones, la curva de oro, el mapa de eliminaciones y los momentos clave. Cómo interpretar estos datos explica los indicadores y los datos que faltan.',
+      summary: 'Resumen reúne las composiciones, la curva de oro, el mapa de eliminaciones y los momentos clave. Cómo interpretar estos datos explica los indicadores y los datos que faltan.',
       keywords: ['estadísticas', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'oro', 'visión', 'objetos', 'objetivo', 'cronología', 'grupo', 'resumen', 'diferencia', 'súbditos', 'momentos clave', 'análisis de la partida', 'mapa de eliminaciones', 'cara a cara', 'drafting', 'cómo interpretar estos datos'],
-      steps: ['En Partidas, busca y abre la partida que te interesa.', 'En Análisis postpartida, consulta el resultado y las composiciones, y recorre la curva de oro, el mapa de eliminaciones y los momentos clave. Filtra el mapa por equipo y elige una fase en los momentos clave.', 'Usa Cara a cara para comparar jugadores y Drafting para consultar las elecciones de campeones.', 'Elige preparar un informe para guardar las notas del equipo sobre esta partida o grupo.'],
+      steps: ['En Partidas, busca y abre la partida que te interesa.', 'En Resumen, consulta el resultado y las composiciones, y recorre la curva de oro, el mapa de eliminaciones y los momentos clave. Filtra el mapa por equipo y elige una fase en los momentos clave.', 'Usa Cara a cara para comparar jugadores y Drafting para consultar las elecciones de campeones.', 'Abre Notas y elige Nueva nota para escribir sobre esta partida.'],
       suggestions: ['¿Cómo leo la diferencia a los 20 minutos?', '¿Cómo creo un grupo de partidas?', '¿Cómo paso del resumen a una revisión?'],
-      faq: [{ question: '¿Cómo leo las diferencias a los 10 y 20 minutos?', triggers: ['diff10', 'diff20', 'diferencia de calle', 'cs10', 'cs20', 'diferencia a los 20', 'diferencia a los 10'], answer: 'CS 10 y CS 20 indican los súbditos y monstruos eliminados a los 10 y 20 minutos. En Cara a cara, selecciona un rol para consultar los registros disponibles de ambos jugadores. Compara estos valores con el oro, las muertes y los momentos clave de Análisis postpartida. Los datos ausentes se muestran como —.' },
+      faq: [{ question: '¿Cómo leo las diferencias a los 10 y 20 minutos?', triggers: ['diff10', 'diff20', 'diferencia de calle', 'cs10', 'cs20', 'diferencia a los 20', 'diferencia a los 10'], answer: 'CS 10 y CS 20 indican los súbditos y monstruos eliminados a los 10 y 20 minutos. En Cara a cara, selecciona un rol para consultar los registros disponibles de ambos jugadores. Compara estos valores con el oro, las muertes y los momentos clave del Resumen. Los datos ausentes se muestran como —.' },
         { question: '¿Cómo leo los cinco duelos por puesto?', triggers: ['cinco duelos', 'duelos por puesto', 'cara a cara puestos', 'colores de los lados'], answer: 'En Cara a cara, abre los detalles de cada puesto para comparar a los dos jugadores. Los valores se leen primero azul y luego rojo; la flecha señala el lado que va por delante. Un guion indica datos no disponibles.' }],
     },
     reviews: {
-      title: 'Preparar una revisión', actionLabel: 'Abrir Revisiones',
-      summary: "Un análisis postpartida reúne observaciones y decisiones tras una o varias partidas. En 10 segundos muestra el resumen visual de la partida seleccionada. Diferencias por posición compara el oro final, el daño a campeones y la puntuación de visión; las notas del equipo siguen disponibles con un clic.",
+      title: "Notas del equipo", actionLabel: "Abrir notas",
+      summary: "Los análisis guardados se leen en el Resumen de cada partida vinculada. El entrenador y los jugadores escriben sus observaciones en Notas.",
       keywords: ["revisión","review","informe","decisión","notas","partida de origen","biblioteca","cuerpo técnico","grupo","crear revisión","modificar revisión","debrief","partidas vinculadas","análisis postpartida","preparar un análisis postpartida","engranaje","gestionar este análisis postpartida","análisis automático","nombre del grupo"],
-      steps: [
-      "Abre una partida o grupo desde Partidas y elige preparar un informe.",
-      "Escribe lo que el equipo debe conservar, lo que hay que comprobar y la próxima acción, y guarda. Editar permite completar las notas si tienes permiso.",
-      "Elige la partida en En 10 segundos y consulta Diferencias por posición para comparar los cinco duelos. Los datos que faltan se muestran como —. Abre las notas del equipo para leer las observaciones completas.",
-      "En la biblioteca, el engranaje Gestionar este análisis postpartida contiene Duplicar y, si tienes permiso, Eliminar. Si las partidas vinculadas coinciden exactamente con un grupo de varias partidas, el título usa el nombre del grupo."
-    ],
+      steps: ["En Partidas, abre el Resumen para leer los análisis guardados.", "En Notas, elige Nueva nota y escribe tus observaciones.", "Vincula las demás partidas que correspondan.", "Guarda la nota para compartirla con el equipo."],
       suggestions: [
       "¿Qué debo incluir en un análisis postpartida?",
       "¿Dónde encuentro Duplicar y Eliminar un análisis postpartida?",
@@ -452,7 +442,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       "gestionar este análisis postpartida",
       "engranaje del análisis"
     ],
-    "answer": "En Análisis postpartida, abre el análisis en la biblioteca y pulsa el engranaje Gestionar este análisis postpartida. El menú contiene Duplicar y, si puedes gestionar ese análisis, Eliminar. Editar sigue disponible por separado para modificar las notas si tienes permiso."
+    "answer": "En Notas, utiliza Editar o Eliminar según tus permisos. Para copiar una observación, pega el texto en una nota nueva."
   },
   {
     "question": "¿Por qué el análisis postpartida usa el nombre del grupo?",
@@ -461,7 +451,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       "título del grupo",
       "título del análisis postpartida"
     ],
-    "answer": "Cuando las partidas vinculadas al análisis coinciden exactamente con un grupo de varias partidas, el título usa el nombre del grupo. Una selección parcial no utiliza ese nombre. Comprueba las partidas vinculadas y el grupo correspondiente en Partidas."
+    "answer": "Los análisis de grupo anteriores conservan su título. Al crear una nota, elige un título y vincula las partidas correspondientes."
   },
   {
     "question": "¿Dónde encuentro el análisis automático de un análisis postpartida?",
@@ -470,7 +460,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
       "encontrar análisis automático",
       "notas antes del análisis"
     ],
-    "answer": "El análisis con partidas vinculadas empieza por En 10 segundos. Elige la partida y consulta Diferencias por posición: los cinco duelos comparan el oro final, el daño a campeones y la puntuación de visión frente a los rivales. Los datos que faltan se muestran como —. Las notas del equipo están disponibles con un clic."
+    "answer": "En Partidas, abre el Resumen para ver los análisis guardados y las diferencias por posición en oro, daño y visión."
   }
 
     ,
@@ -481,7 +471,7 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     "reunir varias partidas",
     "análisis postpartida varias partidas"
   ],
-  "answer": "En el editor del análisis postpartida, selecciona las partidas correspondientes, máximo 20, añade las notas del equipo y guarda. También puedes empezar desde un grupo en Partidas con preparar un informe. Las partidas vinculadas permiten comprobar las observaciones."
+  "answer": "En Notas, elige Nueva nota, vincula las partidas (máximo 20) y guarda."
 }
 ],
     },

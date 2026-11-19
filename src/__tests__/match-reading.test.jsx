@@ -90,7 +90,7 @@ describe('match detail reading data contracts', () => {
     expect(values[0]).toBe(expectedGold);
     expect(values[1]).toBe('1 – 0');
     expect(text(summary)).toContain(values[0]);
-    for (const label of ['Face-à-face', 'Drafting', 'Débrief']) {
+    for (const label of ['Face-à-face', 'Drafting', 'Résumé']) {
       act(() => renderer.root.findAllByProps({ role: 'tab' }).find(node => text(node) === label).props.onClick());
       expect(renderer.root.findByType(MatchTimelineReview).findByType('article').findByType('details')).toBe(disclosure);
     }
@@ -149,7 +149,7 @@ describe('match detail reading data contracts', () => {
     const publication = recapChart.props.publication;
     const recapLines = byClass(renderer, 'match-gold-chart-line').map(node => ({ tone: node.props['data-tone'], points: node.props.points }));
     const recapLegend = text(byClass(renderer, 'match-gold-chart-legend')[0]);
-    for (const label of ['Face-à-face', 'Drafting', 'Débrief']) {
+    for (const label of ['Face-à-face', 'Drafting', 'Résumé']) {
       act(() => renderer.root.findAllByProps({ role: 'tab' }).find(node => text(node) === label).props.onClick());
       expect(renderer.root.findByType(MatchGoldChart)).toBe(recapChart);
       expect(renderer.root.findByType(MatchTimelineReview)).toBe(journal);
@@ -197,7 +197,7 @@ describe('match detail reading data contracts', () => {
     }
     expect(plot().props['aria-valuetext']).toContain('Atlas');
     expect(plot().props['aria-valuetext']).toContain('Rivals');
-    for (const label of ['Face-à-face', 'Drafting', 'Débrief']) {
+    for (const label of ['Face-à-face', 'Drafting', 'Résumé']) {
       act(() => renderer.root.findAllByProps({ role: 'tab' }).find(node => text(node) === label).props.onClick());
     }
     expect(plot().props['aria-valuenow']).toBe(2);

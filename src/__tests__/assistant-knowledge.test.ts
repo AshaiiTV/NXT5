@@ -101,15 +101,15 @@ describe('assistant knowledge', () => {
   });
 
   it.each([
-    ['fr', 'Où trouver Dupliquer et Supprimer pour un débrief ?', ['engrenage Gérer ce débrief', 'Éditer reste disponible séparément']],
-    ['en', 'Where do I find Duplicate and Delete for a debrief?', ['Manage this review gear icon', 'Edit remains available separately']],
-    ['es', '¿Dónde encuentro Duplicar y Eliminar un análisis postpartida?', ['engranaje Gestionar este análisis postpartida', 'Editar sigue disponible por separado']],
-    ['fr', 'Pourquoi le débrief reprend-il le nom du groupe ?', ['exactement', 'Une sélection partielle']],
-    ['en', 'Why does the debrief use the group’s name?', ['exactly match', 'A partial selection']],
-    ['es', '¿Por qué el análisis postpartida usa el nombre del grupo?', ['coinciden exactamente', 'Una selección parcial']],
-    ['fr', 'Où retrouver l’analyse automatique d’un débrief ?', ['En 10 secondes', 'Choisis la partie', 'Les écarts par poste', 'or final', 'dégâts aux champions', 'score de vision', '—', 'accessibles au clic']],
-    ['en', 'Where can I find a debrief’s automated analysis?', ['In 10 seconds', 'Choose the game', 'Role differences', 'final gold', 'damage to champions', 'vision score', '—', 'one click away']],
-    ['es', '¿Dónde encuentro el análisis automático de un análisis postpartida?', ['En 10 segundos', 'Elige la partida', 'Diferencias por posición', 'oro final', 'daño a campeones', 'puntuación de visión', '—', 'con un clic']],
+    ['fr', 'Où trouver Dupliquer et Supprimer pour un débrief ?', ["Dans Notes", "Modifier ou Supprimer"]],
+    ['en', 'Where do I find Duplicate and Delete for a debrief?', ["In Notes", "Edit or Delete"]],
+    ['es', '¿Dónde encuentro Duplicar y Eliminar un análisis postpartida?', ["En Notas", "Editar o Eliminar"]],
+    ['fr', 'Pourquoi le débrief reprend-il le nom du groupe ?', ["débriefs de groupe", "choisis ton titre"]],
+    ['en', 'Why does the debrief use the group’s name?', ["group debriefs", "choose a title"]],
+    ['es', '¿Por qué el análisis postpartida usa el nombre del grupo?', ["análisis de grupo", "elige un título"]],
+    ['fr', 'Où retrouver l’analyse automatique d’un débrief ?', ["Résumé", "écarts par poste"]],
+    ['en', 'Where can I find a debrief’s automated analysis?', ["Summary", "role differences"]],
+    ['es', '¿Dónde encuentro el análisis automático de un análisis postpartida?', ["Resumen", "diferencias por posición"]],
     ['fr', 'Comment réunir plusieurs parties dans un débrief ?', ['20 au maximum', 'enregistre']],
     ['en', 'How do I combine several games in a debrief?', ['up to 20', 'save']],
     ['es', '¿Cómo reúno varias partidas en un análisis postpartida?', ['máximo 20', 'guarda']],
@@ -120,7 +120,7 @@ describe('assistant knowledge', () => {
     for (const fact of facts) expect(response.answer).toContain(fact);
     expect(response.answer).not.toMatch(/\b(?:vod|v[ií]d[eé]o|replay)\b/i);
     expect(response.sources[0].id).toBe('reviews');
-    expect(response.actions[0].path).toBe('/rapports');
+    expect(response.actions[0].path).toBe('/notes');
   });
 
   it('follows an explicit question about another feature despite the current topic', () => {
@@ -360,7 +360,7 @@ describe('assistant knowledge', () => {
   });
 
   it.each([
-    ['Comment préparer un débrief ?', '/rapports', 'reviews'],
+    ['Comment préparer un débrief ?', '/notes', 'reviews'],
     ['Comment organiser les titulaires et les remplaçants ?', '/equipes', 'teams-and-roster'],
     ['Comment indiquer le niveau de maîtrise d’un champion ?', '/draft/pool', 'champion-pool'],
   ])('recognizes the visible wording: %s', (question, route, expected) => {

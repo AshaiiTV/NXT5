@@ -45,6 +45,7 @@ export const ALLOWED_ASSISTANT_PATHS = [
   '/integration',
   '/statistiques',
   '/rapports',
+  '/notes',
   '/tendances',
   '/draft/pool',
   '/draft/compositions',
@@ -300,13 +301,13 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: "Lire le bilan d’une partie",
     path: '/games',
     actionLabel: "Voir les parties",
-    summary: "Débrief réunit les compositions, la courbe d’or, la carte des éliminations et les moments clés. Comment lire ces données explique les repères et les données manquantes.",
+    summary: "Résumé réunit les compositions, la courbe d’or, la carte des éliminations et les moments clés. Comment lire ces données explique les repères et les données manquantes.",
     keywords: ['statistiques', 'stats', 'kda', 'kp', 'cs10', 'cs20', 'diff10', 'diff20', 'or', 'vision', 'build', 'objectif', 'timeline', 'groupe', "bilan", "chronologie", "écart", "sbires", "moments clés", "débrief de la partie", "carte des éliminations", "face-à-face", "drafting", "comment lire ces données"],
     steps: [
       "Dans Parties, recherche puis ouvre la partie qui t’intéresse.",
-      "Dans Débrief, lis le résultat et les compositions, puis parcours la courbe d’or, la carte des éliminations et les moments clés. Sur la carte, filtre par équipe ; dans les moments clés, choisis une phase.",
+      "Dans Résumé, lis le résultat et les compositions, puis parcours la courbe d’or, la carte des éliminations et les moments clés. Sur la carte, filtre par équipe ; dans les moments clés, choisis une phase.",
       "Utilise Face-à-face pour comparer les joueurs et Drafting pour consulter les choix de champions.",
-      "Choisis Préparer un débrief pour enregistrer les notes de l’équipe sur cette partie ou ce groupe."
+      "Dans Notes, choisis Nouvelle note pour écrire sur cette partie."
     ],
     suggestions: [
       "Comment lire l’écart à 20 minutes ?",
@@ -325,7 +326,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
           "écart à 20",
           "écart à 10"
         ],
-        "answer": "CS 10 et CS 20 indiquent les sbires et monstres éliminés à 10 et 20 minutes. Dans Face-à-face, sélectionne un rôle pour consulter les repères disponibles des deux joueurs. Compare ces valeurs avec l’or, les morts et les moments clés de Débrief. Une donnée absente reste affichée « — »."
+        "answer": "CS 10 et CS 20 indiquent les sbires et monstres éliminés à 10 et 20 minutes. Dans Face-à-face, sélectionne un rôle pour consulter les repères disponibles des deux joueurs. Compare ces valeurs avec l’or, les morts et les moments clés du résumé. Une donnée absente reste affichée « — »."
       },
       {
         question: 'Comment lire les cinq duels par poste ?',
@@ -336,17 +337,12 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
   },
   {
     id: 'reviews',
-    title: "Préparer un débrief",
-    path: '/rapports',
-    actionLabel: "Ouvrir Débriefs",
-    summary: "Un débrief rassemble les observations et décisions après une ou plusieurs parties. En 10 secondes présente le résumé visuel de la partie sélectionnée. La rubrique Les écarts par poste compare l’or final, les dégâts aux champions et le score de vision ; les notes de l’équipe restent accessibles au clic.",
+    title: "Notes de l’équipe",
+    path: '/notes',
+    actionLabel: "Ouvrir les notes",
+    summary: "Les débriefs enregistrés se lisent dans le résumé des parties liées. Le coach et les joueurs écrivent leurs observations dans Notes.",
     keywords: ["review","rapport","décision","notes","game source","bibliothèque","staff","groupe","créer review","modifier review","débrief","debrief","préparer un débrief","parties liées","engrenage","gérer ce débrief","analyse automatique","titre du groupe"],
-    steps: [
-      "Ouvre une partie ou un groupe depuis Parties, puis choisis Préparer un débrief.",
-      "Note ce que l’équipe garde, ce qu’elle doit vérifier et l’action à essayer, puis enregistre. Éditer permet de compléter les notes selon tes droits.",
-      "Choisis la partie dans En 10 secondes, puis consulte Les écarts par poste pour comparer les cinq duels. Une donnée manquante reste affichée « — ». Ouvre les notes de l’équipe pour retrouver les observations complètes.",
-      "Dans la bibliothèque, l’engrenage Gérer ce débrief donne accès à Dupliquer et, selon tes droits, Supprimer. Si les parties liées correspondent exactement à un groupe de plusieurs parties, le titre reprend son nom."
-    ],
+    steps: ["Dans Parties, ouvre le Résumé pour relire les débriefs enregistrés.", "Dans Notes, choisis Nouvelle note et écris tes observations.", "Associe les autres parties concernées si nécessaire.", "Enregistre la note pour la partager avec l’équipe."],
     suggestions: [
       "Que mettre dans un débrief ?",
       "Où trouver Dupliquer et Supprimer pour un débrief ?",
@@ -374,7 +370,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       "gérer ce débrief",
       "engrenage du débrief"
     ],
-    "answer": "Dans Débriefs, ouvre le débrief dans la bibliothèque, puis clique sur l’engrenage Gérer ce débrief. Ce menu contient Dupliquer et, si tu peux gérer ce débrief, Supprimer. Éditer reste disponible séparément pour modifier les notes selon tes droits."
+    "answer": "Dans Notes, utilise Modifier ou Supprimer selon tes droits. Pour reprendre une observation dans une autre note, copie son texte dans Nouvelle note."
   },
   {
     "question": "Pourquoi le débrief reprend-il le nom du groupe ?",
@@ -383,7 +379,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       "titre du groupe",
       "titre du débrief"
     ],
-    "answer": "Lorsque les parties liées au débrief correspondent exactement à un groupe de plusieurs parties, son titre reprend le nom de ce groupe. Une sélection partielle ne reprend pas ce nom. Vérifie les parties liées et le groupe concerné dans Parties."
+    "answer": "Les anciens débriefs de groupe conservent leur titre. Pour une nouvelle note, choisis ton titre et associe les parties concernées."
   },
   {
     "question": "Où retrouver l’analyse automatique d’un débrief ?",
@@ -392,7 +388,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       "retrouver l’analyse automatique",
       "notes avant analyse"
     ],
-    "answer": "Le débrief lié à des parties commence par En 10 secondes. Choisis la partie, puis consulte Les écarts par poste : les cinq duels comparent l’or final, les dégâts aux champions et le score de vision face aux adversaires. Les données manquantes restent affichées « — ». Les notes de l’équipe sont accessibles au clic."
+    "answer": "Dans Parties, ouvre le Résumé de la partie. Tu y retrouves les débriefs enregistrés et les écarts par poste en or, dégâts et vision."
   }
 
     ,
@@ -403,7 +399,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     "débrief plusieurs parties",
     "regrouper des parties dans un débrief"
   ],
-  "answer": "Dans l’éditeur du débrief, sélectionne les parties concernées, 20 au maximum, ajoute les notes de l’équipe puis enregistre. Tu peux aussi partir d’un groupe dans Parties avec Préparer un débrief. Les parties liées permettent ensuite de vérifier les observations."
+  "answer": "Dans Notes, choisis Nouvelle note, associe les parties concernées (20 au maximum) et enregistre."
 }
 ]
   },

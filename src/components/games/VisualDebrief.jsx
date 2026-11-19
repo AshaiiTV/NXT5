@@ -78,7 +78,7 @@ function GamePicker({ matches, selectedId, onSelect }) {
   </div>;
 }
 
-function Objectives({ snapshot }) {
+export function Objectives({ snapshot }) {
   // A recorded zero is useful; a missing objective is never rendered as zero.
   const objectives = OBJECTIVES.filter(({ key }) => ["dragons", "barons", "towers"].includes(key) || Number.isFinite(snapshot.facts[key]?.ally) || Number.isFinite(snapshot.facts[key]?.enemy));
   return <Surface className="vd-objectives" variant="glass">
@@ -142,7 +142,7 @@ function MomentDialog({ moments, momentId, onSelect, onClose, triggerRef }) {
   </ModalDialog>;
 }
 
-function Moments({ match, snapshot }) {
+export function Moments({ match, snapshot }) {
   const data = useMemo(() => buildDebriefMoments(match, snapshot), [match, snapshot]);
   const [momentId, setMomentId] = useState(null);
   const triggerRef = useRef(null);
@@ -155,6 +155,13 @@ function Moments({ match, snapshot }) {
     {(data.partial || data.hasUnattributedEvents) && <p className="vd-data-note">{t("Chronologie incomplète : seuls les faits disponibles sont affichés.")}</p>}
     {momentId && <MomentDialog moments={data.moments} momentId={momentId} onSelect={setMomentId} onClose={() => setMomentId(null)} triggerRef={triggerRef} />}
   </section>;
+}
+
+export function DebriefPlayers({ snapshot, showLineups = false }) {
+  return <ReadingDetails className="vd-players" title={<span className="vd-players-title"><Users aria-hidden="true" />{t("Les joueurs de la partie")}</span>}>
+      {showLineups && <MatchLineups snapshot={snapshot} />}
+      <div className="vd-player-stats">{["ALLY", "ENEMY"].map((teamKey) => <div key={teamKey}><h5>{teamLabel(teamKey)}</h5><div className="vd-player-stat-head"><span>{t("Joueur")}</span><span>{t("Éliminations / morts / assistances")}</span></div>{snapshot.participants.filter((row) => row.teamKey === teamKey).map((row, index) => <div key={`${row.participantId}-${index}`} className="vd-player-stat"><span><RoleIcon role={row.role} className="vd-player-role" /><span>{playerName(row.name)}</span></span><strong>{number(row.kills)} / {number(row.deaths)} / {number(row.assists)}</strong></div>)}</div>)}</div>
+    </ReadingDetails>;
 }
 
 function Session({ matches, team, categories, focus, selectedId, onSelect, onOpenMatch }) {
@@ -179,10 +186,7 @@ function Session({ matches, team, categories, focus, selectedId, onSelect, onOpe
     <StaffFocus focus={focus} />
     <Moments key={actualId} match={match} snapshot={snapshot} />
     <DebriefAnalysis snapshot={snapshot} />
-    <ReadingDetails key={`players-${actualId}`} className="vd-players" title={<span className="vd-players-title"><Users aria-hidden="true" />{t("Les joueurs de la partie")}</span>}>
-      <MatchLineups snapshot={snapshot} />
-      <div className="vd-player-stats">{["ALLY", "ENEMY"].map((teamKey) => <div key={teamKey}><h5>{teamLabel(teamKey)}</h5><div className="vd-player-stat-head"><span>{t("Joueur")}</span><span>{t("Éliminations / morts / assistances")}</span></div>{snapshot.participants.filter((row) => row.teamKey === teamKey).map((row, index) => <div key={`${row.participantId}-${index}`} className="vd-player-stat"><span><RoleIcon role={row.role} className="vd-player-role" /><span>{playerName(row.name)}</span></span><strong>{number(row.kills)} / {number(row.deaths)} / {number(row.assists)}</strong></div>)}</div>)}</div>
-    </ReadingDetails>
+    <DebriefPlayers snapshot={snapshot} showLineups />
   </>;
 }
 
