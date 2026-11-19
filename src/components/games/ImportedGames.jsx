@@ -144,8 +144,8 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
         <div className="ig-selection-actions">
           {selectionActions ?? <>
           <Button type="button" variant="ghost" icon={ArrowRight} onClick={onViewStats}>{t("Voir le bilan")}</Button>
-          <Button type="button" icon={FileText} onClick={selectedReport ? onOpenReview : onCreateReview}>{selectedReport ? t("Ouvrir le débrief") : t("Créer un débrief")}</Button>
-          {selectedReport && <button type="button" className="ig-text-action" onClick={onCreateReview}>{t("Nouveau débrief")}</button>}
+          <Button type="button" icon={FileText} onClick={selectedReport ? onOpenReview : onCreateReview}>{selectedReport ? t("Ouvrir la note") : t("Ajouter une note")}</Button>
+          {selectedReport && <button type="button" className="ig-text-action" onClick={onCreateReview}>{t("Nouvelle note")}</button>}
           </>}
           <button type="button" className="ig-icon-button" disabled={selectionLocked} onClick={() => onSelectMatch("")} aria-label={t("Désélectionner la partie")}><X aria-hidden="true" /></button>
         </div>

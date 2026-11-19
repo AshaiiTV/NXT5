@@ -71,7 +71,7 @@ export async function runReviewBackfill({
 
     // The locks remain held while generation, backups, updates and verification
     // run. Concurrent saved notes cannot be replaced by an earlier snapshot.
-    const reports = (await client.query('select to_jsonb(reports) as report from reports order by id for update')).rows.map(row => row.report);
+    const reports = (await client.query('select to_jsonb(reports) as report from reports order by id for update')).rows.map(row => row.report).filter(report => !report.is_team_note && !report.original_debrief);
     const result = { operationKey: migrationKey, scanned: reports.length, updated: 0, unchanged: 0, skipped: [], alreadyCompleted: false };
     const idsByReport = new Map(reports.map(report => {
       const candidates = getMatchIds(report);

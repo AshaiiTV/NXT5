@@ -20,7 +20,10 @@ import "./match-deep-reading.css";
 import { MatchDrafting as DraftImpactPanel } from "../../components/games/MatchDrafting.jsx";
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
 import { MatchVisualRecap } from "../../components/games/MatchVisualRecap.jsx";
-import VisualDebrief from "../../components/games/VisualDebrief.jsx";
+import DebriefAnalysis from "../../components/games/DebriefAnalysis.jsx";
+import { isTeamNote, reportMatchIds, savedDebrief, staffNotesFromReport } from "../../../shared/report-notes.js";
+import VisualDebrief, { DebriefPlayers, Moments, Objectives } from "../../components/games/VisualDebrief.jsx";
+import NotesWorkspace from "./NotesWorkspace.jsx";
 import { debriefFocus, reviewResults } from "../../utils/debrief-focus.js";
 import "./debrief-workspace.css";
 import { MatchHeadToHead } from "../../components/games/MatchHeadToHead.jsx";
@@ -783,9 +786,9 @@ function MatchTimelineReview({ match, teamName, enemyName, loading = false, erro
     { id: "mid", label: "Milieu de partie", range: "14–24", toneName: "purple" },
     { id: "late", label: "Fin de partie", range: "24+", toneName: "yellow" },
   ].map((phase) => ({ ...phase, events: events.filter((event) => timelinePhaseMeta(event.timestamp).id === phase.id) }));
-  return <section className="games-timeline-content match-timeline-reading" aria-label={t("Moments clés")} aria-busy={loading || undefined}>
+  return <section className="games-timeline-content match-timeline-reading" aria-label={t("Chronologie")} aria-busy={loading || undefined}>
     <header className="match-timeline-header">
-      <div className="match-timeline-heading"><h4>{t("Moments clés")}</h4>{!loading && !error && <span>{t("{0} moments", [events.length])}</span>}</div>
+      <div className="match-timeline-heading"><h4>{t("Chronologie")}</h4>{!loading && !error && <span>{t("{0} moments", [events.length])}</span>}</div>
       {!loading && !error && <div className="match-timeline-source"><span className={`match-timeline-status is-${status.toneName}`} aria-hidden="true" />
         <div><strong>{t(status.label)}</strong><span>{t(status.detail)}</span></div>
       </div>}
@@ -1216,7 +1219,7 @@ function MatchCoachBrief({ match, onReview, hasReview = false }) {
     <div className="games-brief-review">
       <h4>{t("À vérifier en débrief")}</h4>
       <p>{t(plainCoachText(snapshot.correct))}</p>
-      <Button type="button" icon={hasReview ? FileText : Plus} onClick={onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(matchId)}&compose=1`))} disabled={!matchId}>{hasReview ? t("Ouvrir le débrief") : t("Préparer le débrief")}</Button>
+      <Button type="button" icon={hasReview ? FileText : Plus} onClick={onReview || (() => openAppPath(`/notes?match=${encodeURIComponent(matchId)}&compose=1`))} disabled={!matchId}>{hasReview ? t("Ouvrir la note") : t("Ajouter une note")}</Button>
     </div>
   </section>;
 }
@@ -1252,10 +1255,44 @@ function MatchDataPanel(props) {
   return <MatchDataContent key={`${match.team_id || ""}:${match.id || ""}`} {...props} />;
 }
 
-function MatchDataContent({ match, teamName, onReview, hasReview = false, contextControls, draftContent, loading = false, error = "" }) {
+function SavedMatchDebrief({ report, match, complete }) {
+  const [open, setOpen] = useState(false);
+  const ids = reportMatchIds(report);
+  const hasCommands = /^\s*\/(?:TEAM|KDA|DAMAGE|VISION|GOLD|KP)\s/im.test(report.content);
+  const group = useReviewMatchDetails(report.team_id, open && hasCommands && ids.length > 1 ? ids : [], report.updated_at);
+  const rows = hasCommands && (ids.length > 1 ? group.complete : complete)
+    ? reportRows(ids.length > 1 ? group.matches : [match], ids) : null;
+  const date = new Date(report.created_at || "");
+  const description = [
+    Number.isFinite(date.getTime()) && date.toLocaleDateString(getLocale()),
+    report.source === "auto" ? t("Analyse automatique") : report.author_name,
+    ids.length > 1 && t("{0} parties liées", [ids.length]),
+    report.discord_status === "draft" && t("Brouillon · staff uniquement"),
+  ].filter(Boolean).join(" · ");
+  return <ReadingDetails title={report.title || t("Débrief enregistré")} description={description} onToggle={(event) => setOpen(event.currentTarget.open)}>
+    {open && renderReportContent(report.content, rows, true)}
+    {open && group.error && <Button type="button" variant="ghost" onClick={group.retry}>{t("Réessayer")}</Button>}
+  </ReadingDetails>;
+}
+
+function MatchWrittenSummary({ match, reports, complete }) {
+  const singleGameAnalysis = reports.some((report) => reportMatchIds(report).length === 1 && /^\[NXT5_REPORT_V3\]\r?$/m.test(report.content || ""));
+  const [readAnalysis, setReadAnalysis] = useState(false);
+  return <div className="match-written-summary">
+    {reports.some((report) => report.content?.trim()) && <h4 className="games-section-heading">{t("Débriefs enregistrés")}</h4>}
+    {complete && !singleGameAnalysis && match.participants?.length > 0 &&
+      <ReadingDetails title={t("Lecture automatique de la partie")} onToggle={(event) => setReadAnalysis(event.currentTarget.open)}>
+        {readAnalysis && renderReportContent(buildGameReviewContent(match).split(REPORT_REWRITE_MARKER)[0], match.participants)}
+      </ReadingDetails>}
+    {reports.filter((report) => report.content?.trim()).map((report) =>
+      <SavedMatchDebrief key={report.id} report={report} match={match} complete={complete} />)}
+  </div>;
+}
+
+function MatchDataContent({ match, teamName, reports = [], notesContent, onReview, hasReview = false, contextControls, draftContent, loading = false, error = "" }) {
   useLanguage();
   const id = useId();
-  const [tab, setTab] = useState("debrief");
+  const [tab, setTab] = useState("summary");
   const [mapTeamFilter, setMapTeamFilter] = useState("ALL");
   const [opponentName, setOpponentName] = useState(undefined);
   const publication = useMemo(() => buildGamePublicationSnapshot({
@@ -1264,8 +1301,8 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
   }), [match, teamName, opponentName]);
   const { context } = publication;
   const side = context.allySide;
-  const tabs = [{ id: "debrief", label: "Débrief", icon: FileText }, { id: "versus", label: "Face-à-face", icon: Swords }, { id: "draft", label: "Drafting", icon: Clipboard }];
-  const review = onReview || (() => openAppPath(`/rapports?match=${encodeURIComponent(match.id)}&compose=1`));
+  const tabs = [{ id: "summary", label: "Résumé", icon: BarChart3 }, { id: "notes", label: "Notes", icon: FileText }, { id: "versus", label: "Face-à-face", icon: Swords }, { id: "draft", label: "Drafting", icon: Clipboard }];
+  const review = onReview || (() => openAppPath(`/notes?match=${encodeURIComponent(match.id)}&compose=1`));
   return <Surface variant="scene" className="nxt5-match-panel match-recap-page mt-5">
     <div className="match-recap-header">
       <div className="games-match-context">
@@ -1278,15 +1315,24 @@ function MatchDataContent({ match, teamName, onReview, hasReview = false, contex
           <span>{side === "blue" ? t("Notre équipe : côté bleu") : side === "red" ? t("Notre équipe : côté rouge") : t("Côté non renseigné")}</span>
         </div>
       </div>
-      <Button type="button" icon={hasReview ? FileText : Plus} onClick={review} disabled={!match.id}>{hasReview ? t("Ouvrir le débrief") : t("Préparer le débrief")}</Button>
+      {Number.isFinite(publication.facts.kills.ally) && Number.isFinite(publication.facts.kills.enemy) &&
+        <span className="vd-score" aria-label={t("Éliminations : notre équipe {0}, adversaires {1}", [publication.facts.kills.ally, publication.facts.kills.enemy])}><Swords aria-hidden="true" /><b>{publication.facts.kills.ally}</b>–<b>{publication.facts.kills.enemy}</b></span>}
     </div>
     {contextControls && <div className="games-match-links">{typeof contextControls === "function" ? contextControls({ onOpponentResolved: setOpponentName }) : contextControls}</div>}
     <TabNav idPrefix={id} panelId={`${id}-panel`} label={t("Vues de la partie")} items={tabs} activeId={tab} onChange={setTab} className="match-recap-tabs" />
     <div id={`${id}-panel`} role="tabpanel" tabIndex={0} aria-labelledby={`${id}-tab-${tab}`} className="match-recap-tab-content">
-      <div hidden={tab !== "debrief"}>
+      <div hidden={tab !== "summary"}>
+        <MatchWrittenSummary match={match} reports={reports} complete={!loading && !error} />
         <MatchVisualRecap match={match} snapshot={publication} loading={loading} error={error} teamFilter={mapTeamFilter} onTeamFilterChange={setMapTeamFilter} />
+        {!loading && !error && <div className="match-summary-analysis">
+          <Objectives snapshot={publication} />
+          <Moments match={match} snapshot={publication} />
+          <DebriefAnalysis snapshot={publication} />
+          <DebriefPlayers snapshot={publication} />
+        </div>}
         <MatchTimelineReview match={match} teamName={context.teamName} enemyName={(opponentName === undefined ? match.opponent : opponentName) ? context.opponentName : undefined} loading={loading} error={error} />
       </div>
+      {tab === "notes" && (notesContent || <Button type="button" icon={Plus} disabled={!match.id} onClick={review}>{hasReview ? t("Ouvrir la note") : t("Ajouter une note")}</Button>)}
       {tab === "versus" && <>
         <MatchHeadToHead snapshot={publication} match={match} />
         <ObjectiveHud match={match} compact />
@@ -1334,13 +1380,13 @@ function ScrimArchiveSummary({ matches, selectedMatchId = "", onSelectMatch, sho
 
 const GAME_WORKSPACE_TABS = [
   { id: "games", label: "Parties", icon: Swords, path: "/games" },
-  { id: "review", label: "Débriefs", icon: FileText, path: "/rapports" },
+  { id: "review", label: "Notes", icon: FileText, path: "/notes" },
 ];
 
 function GameWorkspace(props) {
   useLanguage();
   return gameWorkspaceSectionFromPath(props.route?.path) === "review"
-    ? <Reports key={props.selectedTeamId} {...props} />
+    ? <NotesWorkspace key={props.selectedTeamId} {...props} />
     : <Statistics key={props.selectedTeamId} {...props} />;
 }
 
@@ -1395,6 +1441,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     return () => controller.abort();
   }, [selectedTeamId, workspaceView, selectedMatchId, selectedArchive?.id, data.bootstrapRevision, updateOpponentCount]);
   const [exportingStats, setExportingStats] = useState(false);
+  const [reviewStatusSaving, setReviewStatusSaving] = useState(false);
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });
   const [savingArchive, setSavingArchive] = useState(false);
   const [archiveWorkspaceTab, setArchiveWorkspaceTab] = useState("select");
@@ -1454,17 +1501,26 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const selectedMatch = selectedMatchDetail
     ? { ...selectedMatchSummary, ...selectedMatchDetail, participants: selectedMatchDetail.participants || selectedMatchSummary?.participants || [] }
     : selectedMatchSummary;
-  const selectedReport = (data.reports || []).find((report) => report.team_id === selectedTeamId && reportMatchIds(report).includes(selectedMatchId));
+  const matchReports = (data.reports || []).filter((report) => report.team_id === selectedTeamId).map(savedDebrief).filter((report) => report && reportMatchIds(report).includes(selectedMatchId));
   const selectedArchiveReport = selectedArchive ? (data.reports || []).find((report) => {
     const ids = reportMatchIds(report);
     const groupIds = archiveMatchIds(selectedArchive);
-    return report.team_id === selectedTeamId && groupIds.length && groupIds.length === ids.length && groupIds.every((id) => ids.includes(id));
+    return report.team_id === selectedTeamId && isTeamNote(report) && groupIds.length && groupIds.length === ids.length && groupIds.every((id) => ids.includes(id));
   }) : null;
   const wins = baseMatches.filter((match) => match.result === "Victoire").length;
   const losses = baseMatches.filter((match) => match.result === "Défaite").length;
-  const openReview = () => openAppPath(selectedReport
-    ? `/rapports?report=${encodeURIComponent(selectedReport.id)}&match=${encodeURIComponent(selectedMatchId)}`
-    : `/rapports?match=${encodeURIComponent(selectedMatchId)}&compose=1`);
+  async function toggleReviewStatus() {
+    if (!selectedMatch || reviewStatusSaving) return;
+    const status = selectedMatch.review_status === "done" ? "todo" : "done";
+    setReviewStatusSaving(true);
+    try {
+      await apiFetch("matches-manage", { method: "POST", body: JSON.stringify({ action: "review-status", teamId: selectedTeamId, matchId: selectedMatch.id, status }) });
+      await refreshAll();
+      pushToast?.({ type: "green", title: status === "done" ? "Partie traitée" : "Partie à revoir", text: matchDisplayName(selectedMatch) });
+    } catch (error) {
+      pushToast?.({ type: "red", title: "Mise à jour impossible", text: error.message });
+    } finally { setReviewStatusSaving(false); }
+  }
   function finishImport(result) {
     const id = result?.match?.id;
     setImportBusy(false);
@@ -1490,20 +1546,13 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     if (savingArchive || archiveForm.matchIds.length > 80) return;
     setSavingArchive(true);
     const creating = !archiveForm.id;
-    let groupSaved = false;
     try {
-      const result = await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: creating ? "create" : "update", teamId: selectedTeamId, archiveId: archiveForm.id, name: archiveForm.name, description: archiveForm.description, matchIds: archiveForm.matchIds }) });
-      groupSaved = true;
-      setArchiveForm((current) => ({ ...current, id: result.archive.id, reportPending: creating || current.reportPending }));
-      if ((creating || archiveForm.reportPending) && archiveForm.matchIds.length <= 20) {
-        const linked = matches.filter((match) => archiveForm.matchIds.includes(match.id));
-        await apiFetch("reports-manage", { method: "POST", body: JSON.stringify({ action: "create", teamId: selectedTeamId, title: archiveForm.name, content: buildArchiveReportContent(archiveForm.name, linked), matchIds: archiveForm.matchIds }) });
-      }
+      await apiFetch("match-archives-manage", { method: "POST", body: JSON.stringify({ action: creating ? "create" : "update", teamId: selectedTeamId, archiveId: archiveForm.id, name: archiveForm.name, description: archiveForm.description, matchIds: archiveForm.matchIds }) });
       pushToast?.({ type: "green", title: creating ? "Groupe créé" : "Groupe mis à jour", text: "Le groupe est prêt dans Parties." });
       resetArchiveForm();
       setArchiveWorkspaceTab("select");
     } catch (err) {
-      pushToast?.({ type: "red", title: groupSaved ? "Groupe créé, débrief non généré" : "Archive impossible", text: groupSaved ? `Groupe créé, débrief non généré : ${err.message}` : err.message });
+      pushToast?.({ type: "red", title: "Archive impossible", text: err.message });
     } finally {
       try { await refreshAll?.(); }
       catch (err) { pushToast?.({ type: "red", title: "Actualisation impossible", text: err.message }); }
@@ -1567,6 +1616,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       <div className="games-detail-toolbar">
         <Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectMatch("")}>{selectedArchive ? t("Retour au groupe") : t("Retour aux parties")}</Button>
         {selectedMatch && <div className="games-detail-actions">
+          {(canManageTeam || selectedMatch.created_by === user?.id) && <Button type="button" variant="ghost" icon={Check} onClick={toggleReviewStatus} disabled={reviewStatusSaving}>{selectedMatch.review_status === "done" ? t("Marquer à revoir") : t("Marquer comme traitée")}</Button>}
           <Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(false)} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError) || exportingStats}>{exportingStats ? t("Export…") : t("Exporter PNG")}</Button>
           {!loadingMatchDetail && !selectedMatchDetailError && <DiscordGameShare teamId={selectedTeamId} matchId={selectedMatch.id} matchName={matchDisplayName(selectedMatch)} matchRevision={selectedMatch.publication_revision ?? data.bootstrapRevision ?? ""} canPublish={canPublishDiscord} />}
           <GameActions key={selectedMatchId} disabled={loadingMatchDetail || Boolean(selectedMatchDetailError)} match={selectedMatch} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onDeleted={() => updateLocation({ match: "", ...(selectedArchive && scopedMatches.length <= 1 ? { archive: "" } : {}) })} onUpdated={retryMatchDetail} />
@@ -1575,7 +1625,9 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {!selectedMatch && <div className="games-detail-title"><h3>{t("Analyse de la partie")}</h3></div>}
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{t("Chargement des statistiques détaillées…")}</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && t(" Les statistiques déjà chargées restent disponibles.")}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>{t("Réessayer")}</Button></Surface>}
-      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} loading={loadingMatchDetail} error={selectedMatchDetailError} onReview={openReview} hasReview={Boolean(selectedReport)} contextControls={({ onOpponentResolved }) => <>
+      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} loading={loadingMatchDetail} error={selectedMatchDetailError} reports={matchReports}
+        notesContent={<NotesWorkspace match={selectedMatch} data={data} selectedTeamId={selectedTeamId} user={user} currentMember={currentMember} refreshAll={refreshAll} pushToast={pushToast} route={route} />}
+        contextControls={({ onOpponentResolved }) => <>
         <MatchOpponentPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={() => refreshAll({ throwOnError: true })} onResolvedName={onOpponentResolved} />
       </>} draftContent={({ active }) => <MatchDrafterPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={refreshAll} presentation="inline" active={active} />} />}
       {!selectedMatch && !loadingMatchDetail && !selectedMatchDetailError && <Surface><EmptyState icon={Search} title={t("Partie introuvable")} text={t("Elle n’est plus disponible dans cette équipe.")} /></Surface>}
@@ -1616,15 +1668,14 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
             <div className="games-group-fields"><TextInput label={t("Nom du groupe")} value={archiveForm.name} onChange={(name) => setArchiveForm((current) => ({ ...current, name }))} placeholder={t("Scrim vs BK — 08/09")} required /><TextInput label={t("Description")} value={archiveForm.description} onChange={(description) => setArchiveForm((current) => ({ ...current, description }))} placeholder={t("Session, objectif du bloc…")} /></div>
             <div className="games-group-heading"><p>{archiveForm.matchIds.length}{t(" partie(s) sélectionnée(s)")}</p><div className="flex flex-wrap gap-2"><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: matches.slice(0, 80).map((match) => match.id) }))} disabled={!matches.length}>{matches.length > 80 ? t("Sélectionner les 80 premières") : t("Tout sélectionner")}</Button><Button type="button" variant="ghost" onClick={() => setArchiveForm((current) => ({ ...current, matchIds: [] }))} disabled={!archiveForm.matchIds.length}>{t("Vider")}</Button></div></div>
             <div className="games-group-picks">{matches.map((match) => <label key={match.id}><input type="checkbox" checked={archiveForm.matchIds.includes(match.id)} disabled={archiveForm.matchIds.length >= 80 && !archiveForm.matchIds.includes(match.id)} onChange={() => toggleArchiveMatch(match.id)} /><span><strong>{matchDisplayName(match)}</strong><span>{match.game_id} · {t(match.result) || t("Résultat inconnu")}</span></span></label>)}</div>
-            <p className="text-sm text-slate-300">{t("80 parties maximum par groupe. Un débrief automatique est généré à la création pour 20 parties maximum.")}</p>
-            {!archiveForm.id && archiveForm.matchIds.length > 20 && <p role="status" className="text-sm text-amber-100">{t("Ce groupe contient plus de 20 parties : il sera créé sans débrief automatique.")}</p>}
+            <p className="text-sm text-slate-300">{t("80 parties maximum par groupe.")}</p>
             {!matches.length && <p>{t("Importe une première partie pour créer un groupe.")}</p>}
             <div className="games-group-form-actions"><Button type="button" variant="ghost" onClick={() => { resetArchiveForm(); setArchiveWorkspaceTab("select"); }}>{t("Annuler")}</Button><Button type="submit" icon={savingArchive ? Loader2 : Check} disabled={!archiveForm.name.trim() || !archiveForm.matchIds.length || savingArchive}>{savingArchive ? t("Enregistrement…") : archiveForm.id ? t("Enregistrer") : t("Créer le groupe")}</Button></div>
           </fieldset>
         </form>}
       </Surface>}
       {selectedArchive && <>
-        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>{t("Tous les groupes")}</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>{t("Exporter le groupe PNG")}</Button>{!selectedMatchId && <DiscordGroupShare teamId={selectedTeamId} archiveId={selectedArchive.id} archiveName={selectedArchive.name} archiveRevision={JSON.stringify([selectedArchive.updated_at, selectedArchive.match_ids, data.bootstrapRevision])} canPublish={canPublishDiscord} />}{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/rapports?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>{t("Ouvrir le débrief")}</Button>}</div></div>
+        <div className="games-detail-toolbar mt-4"><Button type="button" variant="ghost" icon={ArrowLeft} onClick={() => selectArchive("")}>{t("Tous les groupes")}</Button><div className="games-detail-actions"><Button type="button" variant="ghost" icon={Download} onClick={() => downloadStatsPng(true)} disabled={!scopedMatches.length || exportingStats}>{t("Exporter le groupe PNG")}</Button>{!selectedMatchId && <DiscordGroupShare teamId={selectedTeamId} archiveId={selectedArchive.id} archiveName={selectedArchive.name} archiveRevision={JSON.stringify([selectedArchive.updated_at, selectedArchive.match_ids, data.bootstrapRevision])} canPublish={canPublishDiscord} />}{selectedArchiveReport && <Button type="button" variant="ghost" icon={FileText} onClick={() => openAppPath(`/notes?report=${encodeURIComponent(selectedArchiveReport.id)}`)}>{t("Ouvrir la note")}</Button>}</div></div>
         <div className="games-detail-title"><h3>{selectedArchive.name}</h3>{selectedArchive.description && <p>{selectedArchive.description}</p>}</div>
         {!selectedMatchId && <GroupOpponentPanel teamId={selectedTeamId} archive={selectedArchive} user={user} onChanged={() => refreshAll({ throwOnError: true })} onCountChange={updateOpponentCount} />}
         <ScrimArchiveSummary matches={scopedMatches} showGames={false} />
@@ -1646,18 +1697,6 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       </div>
     </div>
   </div>;
-}
-
-function reportMatchIds(report) {
-  if (Array.isArray(report.match_ids)) return report.match_ids;
-  if (typeof report.match_ids === "string") {
-    try {
-      const parsed = JSON.parse(report.match_ids);
-      if (Array.isArray(parsed)) return parsed;
-    } catch {}
-  }
-  if (report.match_id) return [report.match_id];
-  return [];
 }
 
 function reportTitleFromMatchIds(matchIds = [], matches = [], fallback = "Review", archives = []) {
@@ -1726,22 +1765,22 @@ function commandResult(command, rows) {
   return `${label} KP moyen: ${Math.round(Number(avgFloat("kp")) * 100)}%`;
 }
 
-function renderReportContent(content, rows) {
+function renderReportContent(content, rows, preserveHeadings = false) {
   const blockedSections = [/^points?\s+forts?\s*:$/i, /^focus\s*:$/i, /^objectif\s+principal\s*:$/i, /^axes?\s+de\s+travail\s*:$/i];
   const sectionTone = (line) => {
     const value = String(line || "").replace(/^#+\s*/, "").toLowerCase();
-    if (/verdict|cause racine|à corriger|non négociable/.test(value)) return "border-rose-300/25 bg-rose-400/[0.08] text-rose-100";
+    if (/verdict|cause racine|à corriger|à revoir|non négociable/.test(value)) return "border-rose-300/25 bg-rose-400/[0.08] text-rose-100";
     if (/à garder|standard attendu|validation/.test(value)) return "border-emerald-300/20 bg-emerald-400/[0.07] text-emerald-100";
     if (/plan d'exécution|action prochaine|checkpoints? vod|questions? coach/.test(value)) return "border-cyan-300/22 bg-cyan-400/[0.07] text-cyan-100";
     return "border-purple-300/20 bg-purple-400/[0.07] text-purple-100";
   };
-  return <div className="space-y-1.5">{String(content || "").split("\n").filter((line) => !blockedSections.some((pattern) => pattern.test(line))).map((line, index) => {
-    const result = commandResult(line, rows);
+  return <div className="space-y-1.5">{String(content || "").split("\n").filter((line) => preserveHeadings || !blockedSections.some((pattern) => pattern.test(line))).map((line, index) => {
+    const result = rows && commandResult(line, rows);
     const trimmed = String(line || "").trim();
     if (result) return <p key={index} className="min-h-[1.5rem] break-words whitespace-pre-wrap rounded-lg bg-cyan-300/[0.055] px-2.5 py-1 font-mono text-sm font-bold leading-6 text-cyan-50">{result}</p>;
     if (trimmed === REPORT_REWRITE_MARKER || trimmed === "[NXT5_REPORT_V2]") return null;
     if (!trimmed) return <div key={index} className="h-2" />;
-    if (/^#{1,3}\s+/.test(trimmed) || /^(VERDICT COACH|CAUSE RACINE|STANDARD ATTENDU|À GARDER|À CORRIGER|CHECKPOINTS? VOD|PLAN D'EXÉCUTION|VALIDATION|QUESTIONS? COACH|LECTURE PAR JOUEUR|NOTES STAFF(?: CONSERVÉES)?|REPÈRES)$/i.test(trimmed)) {
+    if (/^#{1,3}\s+/.test(trimmed) || /^(VERDICT COACH|CAUSE RACINE|STANDARD ATTENDU|À GARDER|À CORRIGER|À REVOIR|CHECKPOINTS? VOD|PLAN D'EXÉCUTION|VALIDATION|QUESTIONS? COACH|LECTURE PAR JOUEUR|NOTES STAFF(?: CONSERVÉES)?|REPÈRES)$/i.test(trimmed)) {
       return <h4 key={index} className={cx("games-report-heading", sectionTone(trimmed))}>{trimmed.replace(/^#{1,3}\s+/, "")}</h4>;
     }
     if (/^[-•]\s+/.test(trimmed)) return <p key={index} className="relative min-h-[1.5rem] break-words whitespace-pre-wrap pl-5 text-slate-100 before:absolute before:left-1 before:top-[0.65rem] before:h-1.5 before:w-1.5 before:rounded-full before:bg-cyan-300">{trimmed.replace(/^[-•]\s+/, "")}</p>;
@@ -1773,17 +1812,7 @@ function ReportPreview({ content, rows, matches = [], matchIds = [], team, categ
 // V2 was fully editable: preserve its text, including corrections in the coaching block.
 const REPORT_REWRITE_MARKER = "[NXT5_REPORT_V3]";
 
-function stripGeneratedReportContent(content) {
-  const text = String(content || "");
-  const marker = /^\[NXT5_REPORT_V3\]\r?$/m.exec(text);
-  if (!marker) {
-    // Remove only the legacy structural separator, never its editable coaching text.
-    return text.replace(/^\[NXT5_REPORT_V2\]\r?\n(?=Notes (?:précédentes|conservées|staff(?: conservées)?)[ \t]*:?(?:\r?\n|$))/m, "");
-  }
-  // Only the first generated boundary belongs to NXT5. Keep the notes verbatim.
-  return text.slice(marker.index + marker[0].length)
-    .replace(/^\r?\nNotes (?:précédentes|conservées|staff(?: conservées)?)[ \t]*:?(?:\r?\n|$)/i, "");
-}
+const stripGeneratedReportContent = staffNotesFromReport;
 
 function reportRawGameLine(match) {
   const rows = (match.participants || []).filter((row) => row.team_key === "ALLY");

@@ -34,16 +34,16 @@ async function notifyReportCreate({ request, teamId, userId, reportTitle, finger
     const siteUrl = String(process.env.PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/+$/, '');
     const safeTitle = escapeHtml(reportTitle);
     const html = `
-      <p>Une nouvelle review a ete generee pour votre equipe.</p>
-      <p><strong>Review :</strong> ${safeTitle}</p>
+      <p>Une nouvelle note a été ajoutée pour votre équipe.</p>
+      <p><strong>Note :</strong> ${safeTitle}</p>
       <p><strong>Date :</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
-      <p><a href="${escapeHtml(`${siteUrl}/rapports`)}" style="color:#67e8f9;font-weight:800;text-decoration:none">Voir la review sur NXT5</a></p>
+      <p><a href="${escapeHtml(`${siteUrl}/notes`)}" style="color:#67e8f9;font-weight:800;text-decoration:none">Voir la note sur NXT5</a></p>
       <hr style="border:0;border-top:1px solid rgba(148,163,184,.18);margin:22px 0">
       <p style="font-size:12px;color:#888">Pour ne plus recevoir ces emails, rendez-vous dans vos préférences NXT5.</p>
     `;
     await Promise.all(emails.map((email) => sendNotification({
       to: email,
-      subject: `[NXT5] Nouvelle review disponible — ${reportTitle}`,
+      subject: `[NXT5] Nouvelle note disponible — ${reportTitle}`,
       html
     })));
   } catch (failure: any) {
@@ -92,7 +92,11 @@ export default async function handler(request: Request, context: Context): Promi
           where r.id = ${existingReportId} and r.team_id = ${teamId}
             and ((r.created_by = ${user.id} and (to_jsonb(r)->>'discord_status') is distinct from 'draft')
               or t.owner_id = ${user.id} or exists (select 1 from team_members tm where tm.team_id = t.id
-                and tm.user_id = ${user.id} and tm.role in ('captain','coach','assistant','analyst','manager','board')))`
+                and tm.user_id = ${user.id} and tm.role in ('captain','coach','assistant','analyst','manager','board')))`,
+        ...(body.kind === 'note' ? [tx`
+          update reports set original_debrief = jsonb_build_object(
+            'title', title, 'content', content, 'match_id', match_id, 'match_ids', match_ids, 'source', source)
+          where id = ${existingReportId} and team_id = ${teamId} and not is_team_note and original_debrief is null`] : [])
       ] : [])
     ];
 
@@ -104,12 +108,15 @@ export default async function handler(request: Request, context: Context): Promi
       if (String(report.created_by || '') !== String(user.id) && !isCaptain) {
         throw Object.assign(new Error('Seul l’auteur de la review ou le capitaine peut le supprimer.'), { status: 403 });
       }
+      const keepDebrief = body.kind === 'note' && !report.is_team_note;
       await sql.transaction(tx => [
         ...lockedReviewQueries(tx, reportId),
-        tx`delete from reports where id = ${reportId} and team_id = ${teamId}`,
+        keepDebrief
+          ? tx`update reports set content = '', updated_at = now() where id = ${reportId} and team_id = ${teamId}`
+          : tx`delete from reports where id = ${reportId} and team_id = ${teamId}`,
         tx`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
-        values (${user.id}, 'reports.delete', 'reports', ${reportId}, ${JSON.stringify({ teamId, title: report.title })}::jsonb)
+        values (${user.id}, ${keepDebrief ? 'reports.update' : 'reports.delete'}, 'reports', ${reportId}, ${JSON.stringify({ teamId, title: report.title })}::jsonb)
       `]);
       return json({ ok: true });
     }
@@ -133,6 +140,9 @@ export default async function handler(request: Request, context: Context): Promi
         and id = any(${matchIds})
     ` : [];
     const validMatchIds = validMatches.map((match) => match.id);
+    if (body.kind === 'note' && new Set(matchIds).size !== validMatchIds.length) {
+      throw Object.assign(new Error('Une partie liée est indisponible. Recharge l’équipe puis réessaie.'), { status: 409 });
+    }
     const primaryMatchId = validMatchIds[0] || null;
     const lockedMatchesQuery = tx => tx`select 1 / case when count(*) = ${validMatchIds.length} then 1 else 0 end from (
       select id from matches where team_id = ${teamId} and id = any(${validMatchIds}::uuid[]) for key share) linked_matches`;
@@ -167,8 +177,8 @@ export default async function handler(request: Request, context: Context): Promi
     const newReportId = randomUUID();
     const results = await sql.transaction(tx => [
       ...lockedReviewQueries(tx), lockedMatchesQuery(tx),
-      tx`insert into reports (team_id, match_id, match_ids, created_by, title, content, id)
-      values (${teamId}, ${primaryMatchId}, ${JSON.stringify(validMatchIds)}::jsonb, ${user.id}, ${title}, ${content}, ${newReportId})
+      tx`insert into reports (team_id, match_id, match_ids, created_by, title, content, id, is_team_note)
+      values (${teamId}, ${primaryMatchId}, ${JSON.stringify(validMatchIds)}::jsonb, ${user.id}, ${title}, ${content}, ${newReportId}, ${body.kind === 'note'})
       returning *
     `,
       ...reviewAuditQueries(tx, user.id, teamId, newReportId, 'reports.create', title, validMatchIds)

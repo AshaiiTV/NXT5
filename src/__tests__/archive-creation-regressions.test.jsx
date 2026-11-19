@@ -26,25 +26,19 @@ async function mount(count) {
 }
 const submit = () => renderer.root.findByProps({ className: "games-group-form" }).props.onSubmit({ preventDefault() {} });
 describe("B2 group creation", () => {
-  it("keeps the created id and refreshes after a failed debrief, then updates rather than duplicates", async () => {
+  it("creates a group without generating a redundant note", async () => {
     const props = await mount(2);
-    apiFetch.mockResolvedValueOnce({ archive: { id: "created" } }).mockRejectedValueOnce(new Error("Débrief indisponible"));
+    apiFetch.mockResolvedValueOnce({ archive: { id: "created" } });
     await act(async () => submit());
-    expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ text: "Groupe créé, débrief non généré : Débrief indisponible" }));
+    expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "green", title: "Groupe créé" }));
     expect(props.refreshAll).toHaveBeenCalledOnce();
-    expect(button("Enregistrer")).toBeTruthy();
-    apiFetch.mockResolvedValueOnce({ archive: { id: "created" } }).mockResolvedValueOnce({ report: { id: "report" } });
-    await act(async () => submit());
-    expect(apiFetch.mock.calls.filter(([path]) => path === "reports-manage")).toHaveLength(2);
-    expect(props.pushToast).toHaveBeenLastCalledWith(expect.objectContaining({ type: "green" }));
     const writes = apiFetch.mock.calls.filter(([path]) => path === "match-archives-manage").map(([, options]) => JSON.parse(options.body));
-    expect(writes.map(body => body.action)).toEqual(["create", "update"]);
-    expect(writes[1].archiveId).toBe("created");
-    expect(props.refreshAll).toHaveBeenCalledTimes(2);
+    expect(writes.map(body => body.action)).toEqual(["create"]);
+    expect(apiFetch.mock.calls.filter(([path]) => path === "reports-manage")).toHaveLength(0);
   });
-  it.each([21, 81])("warns before creating a group of %s games and caps selection at 80", async count => {
+  it.each([21, 81])("creates a group of %s games without a note and caps selection at 80", async count => {
     await mount(count);
-    expect(JSON.stringify(renderer.toJSON())).toContain("il sera créé sans débrief automatique");
+    expect(JSON.stringify(renderer.toJSON())).not.toContain("débrief automatique");
     const boxes = renderer.root.findAllByProps({ type: "checkbox" });
     expect(boxes.filter(node => node.props.checked)).toHaveLength(Math.min(count, 80));
     if (count > 80) expect(boxes.filter(node => !node.props.checked).every(node => node.props.disabled)).toBe(true);

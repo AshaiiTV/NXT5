@@ -92,9 +92,9 @@ describe("progressive game reading", () => {
     expect(text(renderer.root)).toContain("Notre équipe : côté bleu");
     expect(brief.findAllByType(MatchKillMap)).toHaveLength(1);
     expect(text(brief)).not.toContain("Qui a le plus d’impact ?");
-    expect(renderer.root.findAllByProps({ role: "tab" }).map(text)).toEqual(["Débrief", "Face-à-face", "Drafting"]);
-    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
-    expect(tab(renderer, "Débrief").props.id).toMatch(/-tab-debrief$/);
+    expect(renderer.root.findAllByProps({ role: "tab" }).map(text)).toEqual(["Résumé", "Notes", "Face-à-face", "Drafting"]);
+    expect(tab(renderer, "Résumé").props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Résumé").props.id).toMatch(/-tab-summary$/);
     expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(1);
     expect(renderer.root.findAllByType(MatchGoldChart)).toHaveLength(1);
     expect(text(renderer.root)).not.toContain("EUW1_123");
@@ -132,7 +132,7 @@ describe("progressive game reading", () => {
     expect(text(brief)).not.toContain("Notre équipe − adversaires");
     expect(text(brief)).not.toContain("Écart d’or final");
     expect(text(brief)).not.toContain("+0");
-    expect(action(renderer, "Préparer le débrief")).toBeDefined();
+    expect(tab(renderer, "Notes")).toBeDefined();
   });
 
   it("preserves a measured zero as an available statistic", () => {
@@ -157,14 +157,14 @@ describe("progressive game reading", () => {
     expect(renderer.root.findAllByProps({ className: "games-analysis-disclosure" })).toHaveLength(0);
     for (const value of ["K / D / A", "Informations de la partie", "EUW1_123", "16.19"]) expect(text(panel)).toContain(value);
     for (const stat of ["kda", "cs"]) expect(panel.findAllByProps({ "data-player-stat": stat })).toHaveLength(10);
-    for (const metric of ["gold", "damage", "vision"]) expect(panel.findAllByProps({ "data-metric": metric })).toHaveLength(5);
+    for (const metric of ["gold", "damage", "vision"]) expect(panel.findAllByProps({ "data-metric": metric }).filter(visible)).toHaveLength(5);
     for (const metric of ["cs10", "cs20", "participation", "damage-share", "gold-share", "vision-share", "deaths-share"]) expect(panel.findAllByProps({ "data-metric": metric })).toHaveLength(0);
     expect(panel.findAllByType("dialog")).toHaveLength(0);
     for (const champion of Object.values(draftChampions).flat()) {
       expect(panel.findAllByType("img").filter(visible).filter((image) => image.props.alt === champion)).toHaveLength(1);
     }
     expect(renderer.root.findAllByType(MatchReadingIntro)).toHaveLength(0);
-    selectTab(renderer, "Débrief");
+    selectTab(renderer, "Résumé");
     expect(renderer.root.findByType(MatchTimelineReview).props.teamName).toBe("Équipe Atlas");
     expect(renderer.root.findByType(MatchTimelineReview).findAllByType(MatchKillMap)).toHaveLength(0);
     expect(text(renderer.root.findByType(MatchTimelineReview))).toContain("Chronologie indisponible");
@@ -190,7 +190,7 @@ describe("progressive game reading", () => {
     expect(visible(draft)).toBe(true);
     expect(renderer.root.findAllByType(DraftImpactPanel)).toHaveLength(0);
     act(() => draft.findByType("input").props.onChange({ target: { value: "Picks à revoir" } }));
-    for (const label of ["Face-à-face", "Débrief"]) {
+    for (const label of ["Face-à-face", "Résumé"]) {
       selectTab(renderer, label);
       expect(renderer.root.findByProps({ "aria-label": "Draft liée" })).toBe(draft);
       expect(visible(draft)).toBe(false);
@@ -202,7 +202,7 @@ describe("progressive game reading", () => {
     expect(onMount).toHaveBeenCalledOnce();
     expect(onUnmount).not.toHaveBeenCalled();
     act(() => renderer.update(<MatchDataPanel match={{ ...match, id: "another-game" }} draftContent={draftContent} />));
-    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Résumé").props["aria-selected"]).toBe(true);
     expect(onMount).toHaveBeenCalledTimes(2);
     expect(onUnmount).toHaveBeenCalledOnce();
     const nextDraft = renderer.root.findByProps({ "aria-label": "Draft liée" });
@@ -236,7 +236,7 @@ describe("progressive game reading", () => {
     expect(comparison.findAllByProps({ "data-metric": "gold" })).toHaveLength(5);
     expect(text(comparison)).toContain("Jinx");
     expect(text(comparison)).toContain("Caitlyn");
-    selectTab(renderer, "Débrief");
+    selectTab(renderer, "Résumé");
     expect(renderer.root.findAllByType(MatchLineups)).toHaveLength(1);
     expect(renderer.root.findAllByType(MatchHeadToHead)).toHaveLength(0);
   });
@@ -259,14 +259,14 @@ describe("progressive game reading", () => {
     act(() => renderer.update(<MatchDataPanel match={match} teamName="Équipe Atlas" error="Détails indisponibles" />));
     expect(readMap().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
     expect(journal.props).toMatchObject({ loading: false, error: "Détails indisponibles" });
-    selectTab(renderer, "Débrief");
+    selectTab(renderer, "Résumé");
     expect(visible(map)).toBe(true);
     expect(visible(journal)).toBe(true);
     expect(readMap().props).toMatchObject({ loading: false, error: "Détails indisponibles" });
     act(() => renderer.update(<MatchDataPanel match={{ ...match, id: "other-map-game" }} teamName="Nouvelle équipe" loading />));
     expect(readMap().props.match.id).toBe("other-map-game");
     expect(readMap().props).toMatchObject({ allyName: "Nouvelle équipe", loading: true, error: "" });
-    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Résumé").props["aria-selected"]).toBe(true);
   });
 
   it("preserves the elimination team filter across the other views without remounting the map", () => {
@@ -283,7 +283,7 @@ describe("progressive game reading", () => {
     selectTab(renderer, "Drafting");
     expect(readMap()).toBe(map);
     expect(visible(map)).toBe(false);
-    selectTab(renderer, "Débrief");
+    selectTab(renderer, "Résumé");
     expect(visible(map)).toBe(true);
     expect(readMap().props.teamFilter).toBe("ALLY");
     act(() => readMap().props.onTeamFilterChange("ENEMY"));
@@ -301,10 +301,10 @@ describe("progressive game reading", () => {
     act(() => renderer.update(<MatchDataPanel match={match} loading />));
     expect(readMap().props).toMatchObject({ teamFilter: "ENEMY", loading: true });
     act(() => renderer.update(<MatchDataPanel match={{ ...match, duration: "25:00" }} />));
-    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Résumé").props["aria-selected"]).toBe(true);
     expect(readMap().props).toMatchObject({ teamFilter: "ENEMY", loading: false });
     selectTab(renderer, "Face-à-face");
-    selectTab(renderer, "Débrief");
+    selectTab(renderer, "Résumé");
     expect(readMap().props.teamFilter).toBe("ENEMY");
   });
 
@@ -317,10 +317,10 @@ describe("progressive game reading", () => {
     expect(filters()[2].props["aria-pressed"]).toBe(true);
     expect(journal.findAllByType("article")).toHaveLength(1);
     expect(text(journal.findByType("article"))).toContain("18:00");
-    for (const label of ["Face-à-face", "Drafting", "Débrief"]) {
+    for (const label of ["Face-à-face", "Drafting", "Résumé"]) {
       selectTab(renderer, label);
       expect(renderer.root.findByType(MatchTimelineReview)).toBe(journal);
-      expect(visible(journal)).toBe(label === "Débrief");
+      expect(visible(journal)).toBe(label === "Résumé");
     }
     act(() => renderer.update(<MatchDataPanel match={match} loading />));
     act(() => renderer.update(<MatchDataPanel match={{ ...match, duration: "28:00" }} />));
@@ -341,12 +341,12 @@ describe("progressive game reading", () => {
     expect(filters()[3].props["aria-pressed"]).toBe(true);
     selectTab(renderer, "Drafting");
     act(() => renderer.update(<MatchDataPanel match={{ ...match, ...changed }} />));
-    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Résumé").props["aria-selected"]).toBe(true);
     expect(renderer.root.findByType(MatchKillMap).props.teamFilter).toBe("ALL");
     expect(filters()[0].props["aria-pressed"]).toBe(true);
     expect(renderer.root.findByType(MatchTimelineReview).findAllByType("article")).toHaveLength(3);
     selectTab(renderer, "Face-à-face");
-    selectTab(renderer, "Débrief");
+    selectTab(renderer, "Résumé");
     expect(renderer.root.findByType(MatchKillMap).props.teamFilter).toBe("ALL");
   });
 
@@ -358,7 +358,7 @@ describe("progressive game reading", () => {
     expect(tab(renderer, "Face-à-face").props["aria-selected"]).toBe(true);
     expect(renderer.root.findByType(MatchHeadToHead).findAllByProps({ "data-metric": "gold" })).toHaveLength(5);
     act(() => renderer.update(<MatchDataPanel match={{ ...match, id: "game-2" }} />));
-    expect(tab(renderer, "Débrief").props["aria-selected"]).toBe(true);
+    expect(tab(renderer, "Résumé").props["aria-selected"]).toBe(true);
     selectTab(renderer, "Face-à-face");
     expect(renderer.root.findByType(MatchHeadToHead).props.selectedRole).toBeUndefined();
     expect(renderer.root.findAllByProps({ "aria-label": "Détail du duel MID" })).toHaveLength(0);
@@ -414,9 +414,9 @@ describe("progressive game reading", () => {
   it("links keyboard-operable tabs to their visible panel", () => {
     const renderer = render();
     const preventDefault = vi.fn();
-    act(() => tab(renderer, "Débrief").props.onKeyDown({ key: "ArrowRight", preventDefault }));
+    act(() => tab(renderer, "Résumé").props.onKeyDown({ key: "ArrowRight", preventDefault }));
     expect(preventDefault).toHaveBeenCalledOnce();
-    const active = tab(renderer, "Face-à-face");
+    const active = tab(renderer, "Notes");
     const panel = renderer.root.findAllByProps({ role: "tabpanel" }).find(visible);
     expect(active.props["aria-selected"]).toBe(true);
     expect(active.props.tabIndex).toBe(0);
@@ -427,7 +427,7 @@ describe("progressive game reading", () => {
   it("preserves caller-provided context actions across all tabs", () => {
     const onModify = vi.fn();
     const renderer = render({ contextControls: <><strong>Atlas adversaire</strong><button type="button" onClick={onModify}>Modifier l’adversaire</button></> });
-    for (const label of ["Débrief", "Face-à-face", "Drafting"]) {
+    for (const label of ["Résumé", "Face-à-face", "Drafting"]) {
       selectTab(renderer, label);
       expect(text(renderer.root)).toContain("Atlas adversaire");
       const modify = renderer.root.findAllByType("button").find((node) => text(node) === "Modifier l’adversaire");
@@ -547,12 +547,13 @@ describe("progressive game reading", () => {
 
   it("keeps the game review action available without opening details", () => {
     const renderer = render();
-    const prepare = renderer.root.findAllByType(Button).find((node) => node.props.children === "Préparer le débrief");
+    selectTab(renderer, "Notes");
+    const prepare = renderer.root.findAllByType(Button).find((node) => node.props.children === "Ajouter une note");
     act(() => prepare.props.onClick());
-    expect(openAppPath).toHaveBeenCalledWith("/rapports?match=game%2F1&compose=1");
+    expect(openAppPath).toHaveBeenCalledWith("/notes?match=game%2F1&compose=1");
     const onReview = vi.fn();
     act(() => renderer.update(<MatchDataPanel match={game()} onReview={onReview} hasReview />));
-    const existing = renderer.root.findAllByType(Button).find((node) => node.props.children === "Ouvrir le débrief");
+    const existing = renderer.root.findAllByType(Button).find((node) => node.props.children === "Ouvrir la note");
     act(() => existing.props.onClick());
     expect(onReview).toHaveBeenCalledOnce();
     expect(renderer.root.findAllByType("details").every((node) => node.props.open !== true)).toBe(true);
@@ -560,7 +561,8 @@ describe("progressive game reading", () => {
 
   it("disables the review action when the game has no saved identifier", () => {
     const renderer = render({ match: game("") });
-    const prepare = renderer.root.findAllByType(Button).find((node) => node.props.children === "Préparer le débrief");
+    selectTab(renderer, "Notes");
+    const prepare = renderer.root.findAllByType(Button).find((node) => node.props.children === "Ajouter une note");
     expect(prepare.props.disabled).toBe(true);
     expect(openAppPath).not.toHaveBeenCalled();
   });

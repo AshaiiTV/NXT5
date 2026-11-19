@@ -1,3 +1,4 @@
+import { isTeamNote } from "../../shared/report-notes.js";
 import { getHomePlayerDebrief } from "./home-player-debrief.js";
 import { ROLES } from "../../shared/roles.js";
 import { canManageOnboarding } from "./onboarding.js";
@@ -123,6 +124,7 @@ export function getHomeContext({ data = {}, currentTeam, currentMember, user, no
     return playedAt !== null && playedAt >= nowAt - HOME_RECENT_DAYS * DAY && playedAt <= nowAt;
   });
   const reports = uniqueTeamRows(data.reports, teamId)
+    .filter(isTeamNote)
     .filter((report) => report.discord_status !== "draft" || manager)
     .map((report, index) => ({ report, index, at: timestamp(report.created_at) }))
     .sort((a, b) => (b.at ?? -Infinity) - (a.at ?? -Infinity) || a.index - b.index)

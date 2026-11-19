@@ -9,7 +9,7 @@ export function normalizePath(pathname = "/") {
 
 /** Keep bookmarks and in-flight invitation/auth links on the canonical team URL. */
 export function canonicalAppPath(path) {
-  return path.replace(/^\/equipes\/?(?=[?#]|$)/, "/mon-equipe");
+  return path.replace(/^\/equipes\/?(?=[?#]|$)/, "/mon-equipe").replace(/^\/rapports\/?(?=[?#]|$)/, "/notes");
 }
 
 export function pageFromPath(pathname = window.location.pathname) {
@@ -18,6 +18,7 @@ export function pageFromPath(pathname = window.location.pathname) {
   if (path === "/") return "home";
   if (adminPageFromRoute({ path }) && !NAV.some(item => item.path === path)) return "admin";
   if (path === "/integration" || path === "/statistiques") return "matches";
+  if (path === "/rapports") return "reports";
   if (isTrendDetailPath(path)) return "trends";
   if (path === "/champion-pool" || path === "/compositions-types" || path === "/draft" || path.startsWith("/draft/")) return "draft";
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return "profile";
@@ -63,12 +64,12 @@ export function draftViewLabel(viewId = "pool") {
 
 export function gameWorkspaceSectionFromPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  if (path === "/rapports") return "review";
+  if (path === "/rapports" || path === "/notes") return "review";
   return "games";
 }
 
 export function gameWorkspaceSectionLabel(sectionId = "games") {
-  return sectionId === "review" ? "Débriefs" : "Parties";
+  return sectionId === "review" ? "Notes" : "Parties";
 }
 
 export function authModeFromPath(pathname = window.location.pathname) {
@@ -82,7 +83,7 @@ export function isAdminPath(pathname = window.location.pathname) {
 
 export function isAppPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  if (path === "/equipes") return true;
+  if (path === "/equipes" || path === "/rapports") return true;
   if (adminPageFromRoute({ path }) || path === "/integration" || path === "/statistiques") return true;
   if (isTrendDetailPath(path)) return true;
   if (path === "/profil" || path.startsWith("/profil/") || path === "/mon-profil" || path.startsWith("/mon-profil/")) return true;
