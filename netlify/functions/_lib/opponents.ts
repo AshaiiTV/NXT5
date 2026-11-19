@@ -383,7 +383,10 @@ export async function saveOpponentDraft(teamId: string, userId: string, opponent
         or exists(select 1 from opponent_drafts where team_id = ${teamId} and source_id = ${snapshot.sourceId} and game_number = ${snapshot.gameNumber})
       on conflict(team_id, source_id, game_number) do update set
         opponent_id = excluded.opponent_id, ally_side = excluded.ally_side, source_url = excluded.source_url,
-        snapshot = excluded.snapshot, imported_by = excluded.imported_by, imported_at = now()
+        snapshot = case when excluded.snapshot ? 'selectionSources'
+          and not opponent_drafts.snapshot ? 'selectionSources' and not opponent_drafts.snapshot ? 'dataVisibility'
+          then opponent_drafts.snapshot else excluded.snapshot end,
+        imported_by = excluded.imported_by, imported_at = now()
       returning *
     )
     select exists(select 1 from authorized) as authorized, exists(select 1 from opponent) as opponent_exists,
@@ -409,15 +412,18 @@ export async function saveMatchDraft(teamId: string, userId: string, matchId: st
     ), target_match as (
       select id, opponent_id from matches where team_id = ${teamId} and id = ${matchId} for key share
     ), existing_source as (
-      select id, match_id from opponent_drafts
+      select id, match_id, snapshot from opponent_drafts
       where team_id = ${teamId} and source_id = ${snapshot.sourceId} and game_number = ${snapshot.gameNumber} for update
     ), validation as (
       select exists(select 1 from authorized) as authorized,
         exists(select 1 from target_match) as match_exists,
         exists(select 1 from existing_source where match_id is not null and match_id <> ${matchId}::uuid) as source_linked_elsewhere,
+        exists(select 1 from existing_source e where e.snapshot ? 'selectionSources'
+          and ${Boolean(snapshot.selectionSources)} and e.snapshot->>'importedAt' is distinct from ${snapshot.baseRevision ?? null}::text
+          and e.snapshot <> ${JSON.stringify(snapshot)}::jsonb) as stale_capture,
         (exists(select 1 from existing_source) or (select count(*) from opponent_drafts where team_id = ${teamId}) < ${OPPONENT_LIMITS.drafts}) as draft_capacity
     ), eligible as (
-      select 1 from validation where authorized and match_exists and not source_linked_elsewhere and draft_capacity
+      select 1 from validation where authorized and match_exists and not source_linked_elsewhere and not stale_capture and draft_capacity
     ), released as (
       update opponent_drafts set match_id = null
       where team_id = ${teamId} and match_id = ${matchId}
@@ -431,13 +437,17 @@ export async function saveMatchDraft(teamId: string, userId: string, matchId: st
       from eligible cross join target_match cross join (select count(*) from released) release_done
       on conflict(team_id, source_id, game_number) do update set
         match_id = excluded.match_id, ally_side = excluded.ally_side,
-        source_url = excluded.source_url, snapshot = excluded.snapshot, imported_by = excluded.imported_by, imported_at = now()
+        source_url = excluded.source_url, snapshot = case when excluded.snapshot ? 'selectionSources'
+          and not opponent_drafts.snapshot ? 'selectionSources' and not opponent_drafts.snapshot ? 'dataVisibility'
+          then opponent_drafts.snapshot else excluded.snapshot end,
+        imported_by = excluded.imported_by, imported_at = now()
       returning *
     )
     select validation.*, (select to_jsonb(saved) || jsonb_build_object('match_opponent_id', target_match.opponent_id)
       from saved cross join target_match) as draft from validation
   `);
   if (!result.match_exists) throw failure('Partie introuvable dans cette équipe.', 404, 'DRAFT_MATCH_NOT_FOUND');
+  if (result.stale_capture) throw failure('Les sélections ont été modifiées. Vérifie à nouveau la draft.', 409, 'DRAFT_PREVIEW_STALE');
   if (result.source_linked_elsewhere) {
     throw failure('Cette draft est déjà liée à une autre partie. Détache-la de cette partie avant de la réutiliser.', 409, 'DRAFT_ALREADY_LINKED');
   }

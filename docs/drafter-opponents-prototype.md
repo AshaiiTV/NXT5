@@ -8,7 +8,7 @@ Les deux associations sont indépendantes et facultatives : une **partie → éq
 
 1. Dans **Parties > Équipes**, créer une fiche adversaire avec son nom et, si utile, des notes de préparation. Cet écran présente ses champions et ses parties, sans formulaire Drafter.
 2. Lors de l’import d’une partie, choisir son **Équipe adverse (facultatif)** dans la liste des fiches enregistrées, ou utiliser **Nouvelle équipe**. Le choix peut aussi être modifié depuis le détail de la partie. Pour un scrim entier, ouvrir **Parties > Groupes**, puis choisir son **Équipe adverse du groupe**. Ce choix ne dépend pas de la présence d’une draft.
-3. Dans le bloc distinct **Draft de la partie**, coller si souhaité un lien `https://drafter.lol/draft/…?game=2`, lire l’aperçu des picks/bans et choisir explicitement le côté de notre équipe.
+3. Dans le bloc distinct **Draft de la partie**, coller si souhaité un lien `https://drafter.lol/draft/…?game=2`, vérifier et compléter les picks/bans et choisir explicitement le côté de notre équipe.
 4. Enregistrer le lien Drafter. Cette action ne crée ni ne sélectionne une fiche adverse. Les noms affichés dans Drafter restent les noms de la source, sans devenir automatiquement des équipes NXT5.
 
 Une réimportation de la même série et de la même game dans la même équipe actualise son instantané sans créer un doublon. Les membres peuvent lire les fiches ; seuls le propriétaire et les rôles de staff peuvent créer une fiche ou importer. Les données restent isolées entre équipes NXT5.
@@ -23,7 +23,7 @@ La partie, ses participants et son rattachement sont enregistrés dans une même
 
 ### Lier une draft à une partie
 
-Depuis le détail d’une partie, aller à **Draft de la partie**, coller le lien et vérifier l’aperçu. Choisir le côté de notre équipe puis enregistrer. Le serveur conserve le lien source, l’instantané lu et sa date d’import, sans modifier l’équipe adverse de la partie.
+Depuis le détail d’une partie, ouvrir **Drafting → Ajouter une draft**, coller le lien et sélectionner **Vérifier la draft**. Choisir le côté de notre équipe puis enregistrer. Le serveur conserve le lien source, l’instantané lu et sa date d’import, sans modifier l’équipe adverse de la partie.
 
 Une partie peut avoir une draft liée et une draft ne peut être liée qu’à une seule partie. Remplacer ou détacher ce lien conserve la draft précédente dans l’historique des analyses, mais elle ne contribue plus à la fiche adverse. Supprimer une partie conserve aussi son instantané ; il devient simplement non lié. Le rattachement ne modifie pas les participants ou les statistiques de la partie.
 
@@ -39,7 +39,7 @@ Changer ou retirer l’équipe adverse d’une partie déplace ou retire ses obs
 
 La chronologie numérotée expose les 20 emplacements du format standard, leurs camps et les quatre phases. Elle est **reconstituée à partir des emplacements finaux**, et non d’un journal d’événements : les corrections intermédiaires et leur heure ne sont pas connues. Le premier pick global ne compte que les drafts où le camp analysé ouvre la sélection. Les données n’attribuent pas de rôle joué ni d’efficacité à un choix.
 
-Le format a été vérifié dans les scripts publics Drafter référencés par `shared/draft-order.js`, y compris l’ouverture côté rouge. L’importeur ne marque l’ordre comme disponible que si la page référence ce client vérifié et des paramètres cohérents. Les instantanés plus anciens sans cette preuve demandent un réimport. Un nouveau client non reconnu conserve les picks et bans lisibles, mais laisse la chronologie indisponible jusqu’à vérification du format. Les preuves techniques sont dans `artifacts/drafter-prototype-2026-10-12/order-research/`.
+Les imports historiques affichent une chronologie si leur instantané contient la preuve du format vérifié en octobre 2026. Les captures réalisées à partir du fichier de partie et des observations du staff alimentent les fréquences de l’équipe. L’ordre des picks et des bans y reste inconnu.
 
 ## Groupes et équipes adverses
 
@@ -53,13 +53,11 @@ La migration `20261012_group_opponents.sql` doit suivre les trois migrations adv
 
 ## Lecture sans API payante
 
-Le serveur lit uniquement la page publique HTTPS de `drafter.lol`, sur un chemin de draft validé. Les redirections sont refusées, le téléchargement est borné et expire après quelques secondes. Aucun cookie, compte Drafter ou jeton API n’est envoyé.
+NXT5 valide l’adresse et le numéro de game du lien. Le staff ouvre **Ouvrir sur Drafter** pour vérifier qu’il correspond à la partie. Les [conditions de Drafter, section 4](https://drafter.lol/legal/terms) réservent la lecture automatisée des résultats à leur API officielle. Le parcours gratuit fonctionne à partir du fichier de partie importé par l’équipe et de ses propres observations.
 
-Les drafts terminées sont présentes dans les données React Flight incluses dans le HTML public. L’extracteur décode ces données avec `JSON.parse` ; il n’exécute aucun script distant. Il sélectionne la game demandée et vérifie sa complétude. La liste de champions utilisés en Fearless n’est pas la source des picks : elle peut être incomplète ou différente du résultat de la draft.
+L’aperçu reprend les champions joués par camp et les bans présents dans le fichier. Riot Data Dragon fournit les noms correspondant aux identifiants de champions. Le staff peut corriger chaque liste et compléter les bans d’un scrim directement dans le formulaire. Un tiret indique un ban passé, un point d’interrogation un ban inconnu. Les listes précisent leur origine et alimentent les fréquences de l’équipe selon leur couverture. Le fichier de partie ne fournit pas la chronologie des picks. Les anciens imports Drafter conservent leurs données et leur ordre lorsqu’il a été vérifié.
 
-Cette structure est un détail de la page publique, pas une API contractuelle. Un changement de Drafter peut rendre l’import indisponible ; dans ce cas une erreur explicite remplace l’aperçu, sans inventer de données. Les drafts en cours, disparues ou inaccessibles ne sont pas importées. Source : [page testée](https://drafter.lol/draft/IiYYZGok?game=2).
-
-L’aperçu est signé côté serveur, lié au compte et à l’équipe NXT5, puis expire. L’enregistrement vérifie de nouveau les droits et l’appartenance de la partie. L’association adverse vérifie séparément que la fiche appartient à cette équipe NXT5. Le navigateur ne peut pas remplacer les picks/bans de l’aperçu par un JSON arbitraire.
+Après enregistrement, **Gérer la draft → Modifier les picks et bans** rouvre les sélections. L’aperçu signé expire après quinze minutes et lie les observations du match au compte, à l’équipe et à la partie. Le serveur valide les corrections du staff et revérifie ses droits avant d’enregistrer.
 
 ## Essayer localement
 
@@ -69,7 +67,7 @@ Depuis la racine du dépôt :
 npm run prototype:drafter
 ```
 
-Ouvrir [le prototype local](http://127.0.0.1:5188). Il utilise les vrais écrans Parties et Analyses, le vrai importeur, les gestionnaires serveur et les migrations SQL, avec une identité de démonstration et une base PGlite locale. Deux parties et un groupe de démonstration permettent d’essayer le rattachement et l’héritage lors d’un ajout ; les parties ne contiennent aucun résultat ou participant inventé. Le lien est réellement lu sur Drafter ; les fiches et les instantanés sont conservés dans `.nxt5-drafter-prototype/db`, ignoré par Git. Le serveur écoute uniquement sur `127.0.0.1`, n’utilise aucun fichier `.env` et ne se connecte pas à la base de production. `Ctrl+C` l’arrête. Le port peut être choisi avec `NXT5_PROTOTYPE_PORT`.
+Ouvrir [le prototype local](http://127.0.0.1:5188). Il utilise les vrais écrans Parties et Analyses, le vrai importeur, les gestionnaires serveur et les migrations SQL, avec une identité de démonstration et une base PGlite locale. Deux parties et un groupe de démonstration permettent d’essayer le rattachement et l’héritage lors d’un ajout ; les parties ne contiennent aucun résultat ou participant inventé. La démonstration accepte un lien et les sélections du staff. Elle conserve les fiches et les instantanés dans `.nxt5-drafter-prototype/db`, ignoré par Git. Le serveur écoute uniquement sur `127.0.0.1`, n’utilise aucun fichier `.env` et ne se connecte pas à la base de production. `Ctrl+C` l’arrête. Le port peut être choisi avec `NXT5_PROTOTYPE_PORT`.
 
 Ce mode est un outil de développement local. Il ne doit pas être exposé sur le réseau ni déployé. La route intégrée à l’application normale conserve l’authentification et les permissions NXT5.
 

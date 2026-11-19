@@ -6,7 +6,7 @@ import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { buildDraftIntelligence } from "../../utils/draft-intelligence.js";
 import { DraftBanIntelligence, DraftRotations } from "./DraftIntelligence.jsx";
-import { buildDraftAnalysis, normalizeDraftRows } from "../../utils/draft-analysis.js";
+import { draftMode, buildDraftAnalysis, normalizeDraftRows } from "../../utils/draft-analysis.js";
 import { matchDisplayName } from "../../utils/matches.js";
 import { ChampionPortrait, championDisplayName } from "../../pages/workspace/workspace-shared.jsx";
 import { Badge, Button, EmptyState, SelectInput, SkeletonRows, Surface } from "../ui/Core.jsx";
@@ -49,13 +49,12 @@ function TeamDrafterAnalysis({ teamId, matches, players, championPool }) {
       .catch((error) => { if (!controller.signal.aborted) setState({ loading: false, error: error.message, opponents: [], drafts: [] }); });
     return () => controller.abort();
   }, [teamId, reload]);
-  const draftMode = (draft) => draft.snapshot?.ironman ? "ironman" : draft.snapshot?.fearless ? "fearless" : "standard";
   const normalized = useMemo(() => normalizeDraftRows(state.drafts), [state.drafts]);
   const patches = [...new Set(normalized.drafts.map((draft) => draft.snapshot?.patch).filter(Boolean))].sort();
   const filtered = useMemo(() => normalized.drafts.filter((draft) => (!opponentId || (opponentId === "unassigned" ? !draft.opponentId : draft.opponentId === opponentId))
     && (scope === "all" || (scope === "linked" ? Boolean(draft.matchId) : !draft.matchId))
     && (!side || draft.allySide === side) && (!patch || (patch === "unknown" ? !draft.snapshot?.patch : draft.snapshot?.patch === patch))
-    && (!mode || draftMode(draft) === mode)), [normalized.drafts, opponentId, scope, side, patch, mode]);
+    && (!mode || draftMode(draft.snapshot) === mode)), [normalized.drafts, opponentId, scope, side, patch, mode]);
   const intelligence = useMemo(() => buildDraftIntelligence(filtered, matches, { teamId, players, championPool }), [filtered, matches, teamId, players, championPool]);
   const drafts = intelligence.drafts;
   const model = useMemo(() => buildDraftAnalysis(drafts), [drafts]);
@@ -90,7 +89,7 @@ function TeamDrafterAnalysis({ teamId, matches, players, championPool }) {
       <details className="draft-intelligence-disclosure"><summary>{t("Affiner le périmètre")}</summary><div className="drafter-filters">
         <SelectInput label={t("Drafts incluses")} value={scope} onChange={changeScope}><option value="all">{t("Toutes les drafts")}</option><option value="linked">{t("Liées à une partie")}</option><option value="unlinked">{t("Sans partie liée")}</option></SelectInput>
         <SelectInput label={t("Patch de la draft")} value={patch} onChange={(value) => { setPatch(value); setSelectedId(""); }}><option value="">{t("Tous les patchs")}</option><option value="unknown">{t("Patch non renseigné")}</option>{patches.map((value) => <option key={value} value={value}>{value}</option>)}</SelectInput>
-        <SelectInput label={t("Format de draft")} value={mode} onChange={(value) => { setMode(value); setSelectedId(""); }}><option value="">{t("Tous les formats")}</option><option value="standard">{t("Standard")}</option><option value="fearless">Fearless</option><option value="ironman">Ironman</option></SelectInput>
+        <SelectInput label={t("Format de draft")} value={mode} onChange={(value) => { setMode(value); setSelectedId(""); }}><option value="">{t("Tous les formats")}</option><option value="standard">{t("Standard")}</option><option value="fearless">Fearless</option><option value="ironman">Ironman</option><option value="unknown">{t("Non renseigné")}</option></SelectInput>
       </div></details>
       <details className="draft-intelligence-disclosure drafter-data-details"><summary>{t("Comprendre les données")}</summary>
         <dl className="drafter-coverage"><div><dt>{t("Ordre disponible")}</dt><dd>{model.ordered} / {model.total}</dd></div><div><dt>{t("Liées à une partie")}</dt><dd>{model.linked} / {model.total}</dd></div><div><dt>{t("Bans complets")}</dt><dd>{banStats.coverage.bans} / {model.total}</dd></div><div><dt>{t("Retraits en phase 2")}</dt><dd>{phaseTwoCount}<span>{t("sur {0} drafts exploitables", [banStats.coverage.phase2])}</span></dd></div></dl>

@@ -1,3 +1,4 @@
+import { TeamDraftSelections } from "./TeamDraftSelections.jsx";
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, ExternalLink, FileText, Loader2, Plus, RefreshCw, Search, Shield, Swords, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
@@ -40,6 +41,7 @@ function ChampionList({ champions = [], bans = false, banStates = [] }) {
 }
 
 export function DraftSnapshot({ snapshot, allySide = "" }) {
+  if (snapshot.selectionSources) return <TeamDraftSelections snapshot={snapshot} />;
   return <div className="opponents-draft-camps">
     {["blue", "red"].map((side) => <section className="opponents-camp" data-side={side} key={side}>
       <div className="opponents-camp-heading"><span>{t(side === "blue" ? "Côté bleu" : "Côté rouge")}</span>{allySide && <Badge tone={allySide === side ? "cyan" : "slate"}>{t(allySide === side ? "Notre équipe" : "Adversaire")}</Badge>}</div>
@@ -57,7 +59,7 @@ export function SnapshotContext({ snapshot, importedAt }) {
   return <div className="opponents-snapshot-context">
     <p className="opponents-help">{snapshot.patch ? t("Patch {0}", [snapshot.patch]) : t("Patch non fourni")}{Number.isFinite(date.getTime()) && <> · <time dateTime={date.toISOString()}>{t("Importée le {0}", [new Intl.DateTimeFormat(getLocale(), { dateStyle: "medium", timeStyle: "short" }).format(date)])}</time></>}</p>
     {snapshot.warnings?.length > 0 && <ul className="opponents-warnings">{snapshot.warnings.map((warning, index) => <li key={index}>{t(warning)}</li>)}</ul>}
-    <p className="opponents-help">{t("Les picks suivent l’affichage du drafter : ils ne confirment pas les rôles joués. Les bans manquants restent inconnus.")}</p>
+    {!snapshot.selectionSources && <p className="opponents-help">{t("Les picks suivent l’affichage du drafter : ils ne confirment pas les rôles joués. Les bans manquants restent inconnus.")}</p>}
   </div>;
 }
 

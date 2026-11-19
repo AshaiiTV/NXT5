@@ -37,7 +37,7 @@ export default async function handler(request:Request,context:Context):Promise<R
           where ${role}='ALL' or role=${role} group by champion`,
         tx`select snapshot from (
           select distinct on (source_id,game_number) source_id,game_number,snapshot,imported_at
-          from opponent_drafts where imported_at>=${start} and imported_at<${end}
+          from opponent_drafts where not (snapshot ? 'selectionSources') and imported_at>=${start} and imported_at<${end}
             and (${patch}='' or snapshot->>'patch'=${patch} or snapshot->>'patch' like ${patchPattern})
           order by source_id,game_number,imported_at desc,id desc
         ) unique_drafts order by source_id,game_number`,

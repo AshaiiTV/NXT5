@@ -177,7 +177,7 @@ describe("inline match draft", () => {
   it.each([true, false])("shows an honest empty state and only authorized add controls (canEdit=%s)", async (canEdit) => {
     mockApi({ "get-match-draft": { draft: null, canEdit } });
     await mount({ presentation: "inline" }, false);
-    expect(content()).toContain(canEdit ? "Ajoute un lien Drafter pour retrouver les picks et bans de cette partie." : "Aucune draft liée à cette partie. Le staff peut en ajouter une.");
+    expect(content()).toContain(canEdit ? "Rattache un lien Drafter et complète les picks et bans de la partie." : "Aucune draft liée à cette partie. Le staff peut en ajouter une.");
     expect(renderer.root.findAllByType(DraftBoard)).toHaveLength(0);
     expect(renderer.root.findAllByProps({ role: "dialog" })).toHaveLength(0);
     expect(Boolean(button("Ajouter une draft"))).toBe(canEdit);

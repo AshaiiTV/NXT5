@@ -2,7 +2,7 @@ import type { Context } from '@netlify/functions';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { assertMethod, handleError, json, readJson } from './_lib/http';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
-import { importDrafterDraft } from './_lib/drafter-import';
+import { applyStaffSelections, importDrafterDraft } from './_lib/drafter-import';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import {
   assertOpponentsSchemaReady, createDraftPreviewToken, createOpponent, listOpponents, listOpponentProfiles,
@@ -59,8 +59,8 @@ export default async function handler(request: Request, context: Context): Promi
       }
       await assertSubjectRateLimit('drafter-preview-user', user.id, { limit: 6, windowSeconds: 60 });
       await assertSubjectRateLimit('drafter-preview-team', teamId, { limit: 12, windowSeconds: 60 });
-      const snapshot = await importDrafterDraft(body.url);
-      // Recheck after external IO before disclosing the result to a removed member.
+      const snapshot = await importDrafterDraft(body.url, teamId, body.matchId == null ? null : opponentUuid(body.matchId));
+      // Membership may change while the preview is being prepared.
       await requireOpponentTeam(teamId, user.id, true);
       return json({ snapshot, previewToken: createDraftPreviewToken(snapshot, teamId, user.id) });
     }
@@ -75,8 +75,12 @@ export default async function handler(request: Request, context: Context): Promi
     if (body.allySide !== 'blue' && body.allySide !== 'red') {
       throw Object.assign(new Error('Sélectionne le côté de ton équipe.'), { status: 400, code: 'INVALID_OPPONENT_INPUT' });
     }
-    const snapshot = readDraftPreviewToken(body.previewToken, teamId, user.id);
+    const preview = readDraftPreviewToken(body.previewToken, teamId, user.id);
+    if (preview.recordedMatchId && preview.recordedMatchId !== matchId) {
+      throw Object.assign(new Error('Cet aperçu appartient à une autre partie.'), { status: 409, code: 'DRAFTER_PREVIEW_MISMATCH' });
+    }
     await assertSubjectRateLimit('opponents-write-user', user.id, { limit: 30, windowSeconds: 60 });
+    const snapshot = body.selectionEdits === undefined ? preview : await applyStaffSelections(preview, body.selectionEdits);
     if (matchId) return json({ draft: await saveMatchDraft(teamId, user.id, matchId, body.allySide, snapshot) });
     return json({ draft: await saveOpponentDraft(teamId, user.id, opponentId!, body.allySide, snapshot) });
   } catch (error) {
