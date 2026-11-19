@@ -24,9 +24,9 @@ describe('descriptive draft analysis', () => {
     expect(model.ally).not.toHaveProperty('wins');
   });
 
-  it('counts a link-only game as linked while excluding its hidden slots from champion frequencies', () => {
+  it('counts an attached game but excludes unrecorded selections from champion frequencies', () => {
     const hidden = row('hidden', { matchId: 'match' }, {
-      dataVisibility: 'link-only', firstPick: null, orderEvidence: undefined,
+      selectionSources: {}, firstPick: null, orderEvidence: undefined,
       bluePicks: [], redPicks: [], blueBans: [], redBans: [],
     });
     const model = buildDraftAnalysis([row(), hidden]);

@@ -1,7 +1,7 @@
 import { canonicalChampion } from '../../shared/champions.js';
 import { canonicalRole, ROLES } from '../../shared/roles.js';
 import { draftOrder, draftSlotState } from '../../shared/draft-order.js';
-import { completeDraftSlots, normalizeDraftRows } from './draft-analysis.js';
+import { completeDraftSlots, draftMode, normalizeDraftRows } from './draft-analysis.js';
 
 const OTHER = { blue: 'red', red: 'blue' };
 const SLOTS = [1, 2, 3, 4, 5];
@@ -240,7 +240,7 @@ export function buildDraftIntelligence(rows = [], matches = [], options = {}) {
     else mismatched += 1;
   }
   const patches = [...new Set(drafts.map(row => row.snapshot.patch).filter(Boolean))].sort();
-  const modes = [...new Set(drafts.map(row => row.snapshot.ironman ? 'ironman' : row.snapshot.fearless ? 'fearless' : 'standard'))].sort();
+  const modes = [...new Set(drafts.map(row => draftMode(row.snapshot)))].sort();
   const camps = Object.fromEntries(['enemy', 'ally'].map(camp => [camp, buildCamp(camp, drafts, orders, matched, pools, roleIndex)]));
   return {
     drafts, patches, modes, warnings,

@@ -32,6 +32,11 @@ export function completeDraftSlots(snapshot, side, kind, wantedSlots = slots) {
   const champions = wantedSlots.map(n => values[n - 1]).filter(Boolean).map(canonicalChampion);
   return new Set(champions.map(champion => champion.toLowerCase())).size === champions.length;
 }
+export function draftMode(snapshot) {
+  if (snapshot?.selectionSources) return 'unknown';
+  return snapshot?.ironman ? 'ironman' : snapshot?.fearless ? 'fearless' : 'standard';
+}
+
 function sourceKey(row) {
   const snapshot = row.snapshot;
   if (typeof snapshot.sourceDraftId === 'string' && snapshot.sourceDraftId) return `${snapshot.source}:${snapshot.sourceDraftId}`;

@@ -1,8 +1,19 @@
 import { en as scoutingEn, es as scoutingEs } from './opponents-scouting-overrides.js';
 // Opponent dossiers and public Drafter imports, including server feedback.
 const directoryTranslations = {
-  "Tu peux rattacher ce lien. Drafter masque les picks et les bans de cette partie.": ["You can link this draft. Drafter hides the picks and bans for this game.", "Puedes vincular este draft. Drafter oculta las selecciones y los bloqueos de esta partida."],
-  "Drafter masque les picks et les bans de cette partie.": ["Drafter hides the picks and bans for this game.", "Drafter oculta las selecciones y los bloqueos de esta partida."],
+  "Rattache un lien Drafter et complète les picks et bans de la partie.": ["Link a Drafter URL and complete this game’s picks and bans.", "Vincula el enlace de Drafter y completa las selecciones y los bloqueos de la partida."],
+  "Préparation de l’aperçu…": ["Preparing preview…", "Preparando la vista previa…"],
+  "Modifier les picks et bans": ["Edit picks and bans", "Editar selecciones y bloqueos"],
+  "Les sélections ont été modifiées. Vérifie à nouveau la draft.": ["Selections have changed. Check the draft again.", "Las selecciones han cambiado. Vuelve a comprobar el draft."],
+  "Vérifie que le lien correspond à cette partie. Complète ou corrige les champions. Leur ordre de sélection est inconnu.": ["Check that the link matches this game. Add or correct the champions. Their selection order is unknown.", "Comprueba que el enlace corresponde a esta partida. Completa o corrige los campeones. Se desconoce el orden de selección."],
+  "Sélections de la partie liées par le staff. L’ordre de la draft est inconnu.": ["Game selections linked by staff. The draft order is unknown.", "Selecciones de la partida vinculadas por el staff. Se desconoce el orden del draft."],
+  "Sépare les noms par des virgules. Utilise « ? » pour un ban inconnu et « - » pour un ban passé.": ["Separate names with commas. Use ? for an unknown ban and a dash for a skipped ban.", "Separa los nombres con comas. Usa ? para un bloqueo desconocido y un guion para uno omitido."],
+  "Saisie du staff · ordre non confirmé": ["Staff entry · order unconfirmed", "Introducido por el staff · orden sin confirmar"],
+  "Fichier de partie · ordre inconnu": ["Game file · order unknown", "Archivo de partida · orden desconocido"],
+  "Un nom de champion est inconnu. Vérifie les noms séparés par des virgules.": ["Unknown champion. Check the comma-separated names.", "Campeón desconocido. Comprueba los nombres separados por comas."],
+  "Indique cinq picks par camp et au maximum cinq bans, séparés par des virgules.": ["Enter five picks per side and up to five bans, separated by commas.", "Indica cinco selecciones por lado y hasta cinco bloqueos, separados por comas."],
+  "Un champion apparaît plusieurs fois dans la même liste.": ["A champion appears more than once in the same list.", "Un campeón aparece más de una vez en la misma lista."],
+  "Le catalogue des champions est indisponible. Réessaie pour enregistrer tes modifications.": ["The champion catalogue is unavailable. Try again to save your changes.", "El catálogo de campeones no está disponible. Inténtalo de nuevo para guardar los cambios."],
   "Ajouter": ["Add", "Añadir"],
   "Non liée": ["Not linked", "Sin vincular"],
   "Ajouter une draft": ["Add a draft", "Añadir un draft"],

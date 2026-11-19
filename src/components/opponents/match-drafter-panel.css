@@ -32,3 +32,5 @@
   .match-drafter-inline .draft-board-ban > :is(button,div) { display:grid; grid-template-columns:36px minmax(0,1fr); align-items:center; }
   .match-drafter-inline .draft-board-ban-art { width:36px; aspect-ratio:1; }
 }
+
+.match-drafter-dialog { scroll-padding-top: 5rem; }

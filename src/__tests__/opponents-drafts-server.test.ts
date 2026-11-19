@@ -6,7 +6,7 @@ import { applyMigrations, loadMigrations } from '../../tools/migration-runner.mj
 const { query, authenticate, importDraft } = vi.hoisted(() => ({ query: vi.fn(), authenticate: vi.fn(), importDraft: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/db', () => ({ sql: query }));
 vi.mock('../../netlify/functions/_lib/auth', async importOriginal => ({ ...await importOriginal<any>(), requireAuth: authenticate }));
-vi.mock('../../netlify/functions/_lib/drafter-import', () => ({ importDrafterDraft: importDraft }));
+vi.mock('../../netlify/functions/_lib/drafter-import', async load => ({ ...await load<any>(), importDrafterDraft: importDraft }));
 import handler from '../../netlify/functions/opponents-drafts';
 import manageArchives from '../../netlify/functions/match-archives-manage';
 import { createDraftPreviewToken, GROUP_OPPONENTS_SCHEMA_VERSION, MATCH_DRAFTS_SCHEMA_VERSION, MATCH_OPPONENTS_SCHEMA_VERSION, OPPONENTS_SCHEMA_VERSION, OPPONENT_LIMITS } from '../../netlify/functions/_lib/opponents';
@@ -165,19 +165,26 @@ describe('drafts attached to played matches', () => {
     expect(await linkedDraft({ matchId: otherMatchId })).toMatchObject({ id: draft.id, matchId: otherMatchId });
   });
 
-  it('attaches a verified link and preserves previously imported selections on either save path', async () => {
-    const hidden = { ...snapshot, bluePicks: [], redPicks: [], blueBans: [], redBans: [], dataVisibility: 'link-only' };
-    importDraft.mockResolvedValue(hidden);
+  it('saves match-bound observations, checks the preview scope and preserves an existing Drafter import', async () => {
+    const local = { ...snapshot, recordedMatchId: matchId, sourceDraftId: null, selectionSources: { bluePicks: 'match', redPicks: 'match' } };
+    importDraft.mockResolvedValue(local);
     const { previewToken } = await preview();
+    expect((await linkMatch({ previewToken, matchId: otherMatchId })).status).toBe(409);
     const link = await linkedDraft({ previewToken });
-    expect(link.snapshot).toEqual(hidden);
-    const read = await (await call('get-match-draft', { matchId })).json();
-    expect(read.draft).toEqual(link);
+    expect(link.snapshot).toEqual(local);
+    expect((await (await call('get-match-draft', { matchId })).json()).draft).toEqual(link);
     expect((await linkedDraft()).snapshot).toEqual(snapshot);
     expect((await linkedDraft({ previewToken })).snapshot).toEqual(snapshot);
-    const opponent = await create();
-    const saved = await (await call('save-draft', { opponentId: opponent.id, allySide: 'red', previewToken })).json();
-    expect(saved.draft).toMatchObject({ id: link.id, matchId, snapshot });
+  });
+
+  it('rejects stale staff edits without releasing the previous link and accepts a retried save', async () => {
+    const a = { ...snapshot, recordedMatchId: matchId, selectionSources: { bluePicks: 'staff' }, baseRevision: null };
+    const first = createDraftPreviewToken(a as DrafterSnapshot, teamId, owner);
+    const initial = await linkedDraft({ previewToken: first });
+    expect(await linkedDraft({ previewToken: first })).toEqual(expect.objectContaining({ id: initial.id, snapshot: a }));
+    const stale = createDraftPreviewToken({ ...a, importedAt: '2026-11-19T01:00:00Z' } as DrafterSnapshot, teamId, owner);
+    expect((await linkMatch({ previewToken: stale })).status).toBe(409);
+    expect((await (await call('get-match-draft', { matchId })).json()).draft.snapshot).toEqual(a);
   });
 
   it('preserves matchId when an existing source is reimported through the dossier action', async () => {

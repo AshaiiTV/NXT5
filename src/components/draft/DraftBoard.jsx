@@ -6,6 +6,7 @@ import { assetProxyUrl } from "../../utils/matches.js";
 import { ChampionPortrait } from "../../pages/workspace/workspace-shared.jsx";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
+import { TeamDraftSelections } from "../opponents/TeamDraftSelections.jsx";
 import { Button } from "../ui/Core.jsx";
 import "./draft-board.css";
 
@@ -120,6 +121,6 @@ function DraftBoardView({ snapshot, allySide }) {
 export default function DraftBoard({ snapshot, allySide }) {
   // Replacing a source (including a refreshed import of the same draft) restores
   // its final board without briefly showing the previous source's replay step.
-  if (snapshot?.dataVisibility === "link-only") return <p className="opponents-help">{t("Drafter masque les picks et les bans de cette partie.")}</p>;
+  if (snapshot?.selectionSources) return <TeamDraftSelections snapshot={snapshot} />;
   return <DraftBoardView key={JSON.stringify(snapshot)} snapshot={snapshot} allySide={allySide} />;
 }
