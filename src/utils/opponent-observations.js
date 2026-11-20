@@ -37,7 +37,7 @@ export function buildOpponentObservations(opponentId, opponentMatches = [], draf
   const linkedByGame = new Map();
   for (const draft of drafts) {
     if (!draft?.matchId || draft.opponentId !== opponentId || !OTHER[draft.allySide]
-      || draft.snapshot?.source !== 'drafter.lol' || draft.snapshot.status !== 'completed') continue;
+      || !['drafter.lol', 'nxt5'].includes(draft.snapshot?.source) || draft.snapshot.status !== 'completed') continue;
     const key = gameByMatch.get(String(draft.matchId));
     if (!key) continue;
     const previous = linkedByGame.get(key);

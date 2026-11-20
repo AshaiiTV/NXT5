@@ -15,7 +15,7 @@ export const privatePaths = [...new Set([
   ...NAV.map(item => item.path),
   ...ADMIN_PAGES.map(item => item.path),
   ...DRAFT_DETAIL_IDS.map(id => `/tendances/draft/${id}`),
-  "/integration", "/statistiques", "/profil", "/mon-profil", "/champion-pool", "/compositions-types", "/draft", "/nexus-rising",
+  "/integration", "/statistiques", "/profil", "/mon-profil", "/champion-pool", "/compositions-types", "/draft", "/nexus-rising", "/salle-de-draft",
 ])];
 export const dynamicPaths = ["/profil", "/mon-profil", "/draft"];
 

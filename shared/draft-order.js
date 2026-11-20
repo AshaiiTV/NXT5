@@ -6,13 +6,15 @@ export const DRAFTER_ORDER_CLIENT_ASSETS = [
   '/_next/static/chunks/8175-a98f808947de09c0.js',
 ];
 
-const BLUE_FIRST = [
+export const STANDARD_DRAFT_TURNS = [
   ['ban', 'blue', 1], ['ban', 'red', 1], ['ban', 'blue', 2], ['ban', 'red', 2], ['ban', 'blue', 3], ['ban', 'red', 3],
   ['pick', 'blue', 1], ['pick', 'red', 1], ['pick', 'red', 2], ['pick', 'blue', 2], ['pick', 'blue', 3], ['pick', 'red', 3],
   ['ban', 'red', 4], ['ban', 'blue', 4], ['ban', 'red', 5], ['ban', 'blue', 5],
   ['pick', 'red', 4], ['pick', 'blue', 4], ['pick', 'blue', 5], ['pick', 'red', 5],
 ];
 const OTHER = { blue: 'red', red: 'blue' };
+const mirroredTurns = STANDARD_DRAFT_TURNS.map(([kind, side, slot]) => [kind, OTHER[side], slot]);
+export const draftTurns = firstPick => firstPick === 'red' ? mirroredTurns : STANDARD_DRAFT_TURNS;
 const isSide = value => value === 'blue' || value === 'red';
 const UNAVAILABLE = 'L’ordre n’est pas vérifié pour cet import. Réimporte la draft pour vérifier ses emplacements de sélection.';
 const RECONSTRUCTED = 'Ordre reconstitué depuis les emplacements finaux et le premier camp de sélection de Drafter. Les remplacements de champions et leurs horaires ne sont pas fournis ; les rôles finaux ne déterminent pas cet ordre.';
@@ -45,16 +47,17 @@ export function draftOrder(snapshot) {
   if (evidence?.reason === 'client-unverified' || evidence?.reason === 'unsupported-format') {
     return unknown('Ce format public de Drafter n’a pas encore été vérifié. Les picks et bans restent consultables, sans chronologie.');
   }
-  if (snapshot?.source !== 'drafter.lol' || snapshot.status !== 'completed' || evidence?.version !== 1
-    || evidence.basis !== 'reconstructed-public-slots' || evidence.format !== 'standard-20'
-    || evidence.reason !== 'public-slot-fields-v1' || !isSide(evidence.firstPick) || snapshot.firstPick !== evidence.firstPick) return unknown();
+  const recorded = snapshot?.source === 'nxt5' && evidence?.basis === 'room-turns' && isSide(evidence.firstPick);
+  const reconstructed = snapshot?.source === 'drafter.lol' && evidence?.basis === 'reconstructed-public-slots' && evidence.reason === 'public-slot-fields-v1';
+  if ((!recorded && !reconstructed) || snapshot.status !== 'completed' || evidence?.version !== 1
+    || evidence.format !== 'standard-20' || !isSide(evidence.firstPick) || snapshot.firstPick !== evidence.firstPick) return unknown();
   for (const side of ['blue', 'red']) {
     if (!Array.isArray(snapshot[`${side}Picks`]) || snapshot[`${side}Picks`].length !== 5
       || !Array.isArray(snapshot[`${side}Bans`]) || snapshot[`${side}Bans`].length !== 5
       || [1, 2, 3, 4, 5].some(slot => draftSlotState(snapshot, side, 'pick', slot) !== 'selected')) return unknown();
   }
   if (new Set([...snapshot.bluePicks, ...snapshot.redPicks].map(champion => champion.toLowerCase())).size !== 10) return unknown();
-  const events = BLUE_FIRST.map(([kind, originalSide, slot], index) => {
+  const events = STANDARD_DRAFT_TURNS.map(([kind, originalSide, slot], index) => {
     const side = evidence.firstPick === 'blue' ? originalSide : OTHER[originalSide];
     const champion = snapshot[`${side}${kind === 'pick' ? 'Picks' : 'Bans'}`][slot - 1] || null;
     const prefix = side === 'blue' ? 'B' : 'R';
@@ -62,5 +65,5 @@ export function draftOrder(snapshot) {
       label: kind === 'pick' ? `${prefix}${slot}` : `${prefix}B${slot}`,
       valueStatus: draftSlotState(snapshot, side, kind, slot) };
   });
-  return { status: 'known', basis: 'reconstructed-public-slots', message: RECONSTRUCTED, events };
+  return { status: 'known', basis: evidence.basis, message: recorded ? 'Ordre enregistré dans la salle de draft NXT5.' : RECONSTRUCTED, events };
 }

@@ -112,7 +112,7 @@ function DraftBoardView({ snapshot, allySide }) {
         return <li key={event.order}><button type="button" data-side={event.side} data-revealed={event.order <= step} aria-current={event.order === step ? "step" : undefined} onClick={() => setStep(event.order)} aria-label={t("Étape {0} : {1} · {2}", [event.order, event.label, event.order <= step ? slotValue(slot) : t("À révéler")])}><span>{event.order}</span><b>{event.label}</b></button></li>;
       })}</ol></section>)}</div>
       <p className="draft-board-note">{t("Clique sur un choix ou avance dans les étapes. B et R désignent les camps bleu et rouge ; une rota regroupe les picks consécutifs d’un camp, pas les rôles joués.")}</p>
-      <details className="draft-board-provenance"><summary>{t("Comment cet ordre est-il reconstitué ?")}</summary><p>{t(order.message)}</p></details>
+      <details className="draft-board-provenance"><summary>{t(order.basis === "room-turns" ? "Origine des choix" : "Comment cet ordre est-il reconstitué ?")}</summary><p>{t(order.message)}</p></details>
     </>}
   </section>;
 }

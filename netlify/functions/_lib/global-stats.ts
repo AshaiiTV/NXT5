@@ -19,7 +19,7 @@ export function globalChampionStats(played: any[], drafts: any[], catalog: Map<n
   const add=(map:Map<string,number>,ids:Set<string>)=>ids.forEach(id=>map.set(id,(map.get(id)||0)+1));
   for (const row of drafts) {
     const snapshot=row.snapshot;
-    if (snapshot?.status!=='completed' || snapshot.source!=='drafter.lol') { excludedDrafts++;continue; }
+    if (snapshot?.status!=='completed' || !['drafter.lol','nxt5'].includes(snapshot.source)) { excludedDrafts++;continue; }
     const picks=['blue','red'].map(side=>snapshot[side+'Picks']);
     if (!picks.every(values=>Array.isArray(values) && values.length===5 && values.every(resolve)
       && new Set(values.map((value:string)=>resolve(value)?.id)).size===5)) { excludedDrafts++;continue; }

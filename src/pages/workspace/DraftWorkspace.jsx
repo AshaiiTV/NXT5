@@ -2,7 +2,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import "../../styles/champion-pool.css";
 import "../../styles/compositions.css";
-import { Crown, Sparkles, Download, Search, Users, Trash2, BookOpen, Check, ChevronDown, Loader2, Plus, X, Clipboard, RefreshCw } from "lucide-react";
+import { Swords, Crown, Sparkles, Download, Search, Users, Trash2, BookOpen, Check, ChevronDown, Loader2, Plus, X, Clipboard, RefreshCw } from "lucide-react";
 import { DRAFT_VIEW_ROUTES } from "../../app/constants.jsx";
 import { draftPathFromView, draftViewFromPath, openAppPath } from "../../app/routing.js";
 import { TabNav, Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
@@ -13,6 +13,7 @@ import { cx } from "../../app/helpers.js";
 import { compositionSlots, emptyCompositionSlots, jsonList } from "../../utils/planning.js";
 import { POOL_TIER_LABELS, championKey, championAssetId, championDisplayName, championPoolRowsByTier, exportChampionTierListPng, canStaffManage, isGameplayRole, championPoolStatus, CHAMPION_TIERS, championTierColumnFrame, championTierColumnGlow, ChampionTierMark, championMatchesLane, ALL_CHAMPION_STYLE_TAGS, championPoolStatusLabel, ChampionPortrait, compositionIdentity, championStyleTone, tagLabel, COMP_ROLES, championPoolStatusTone, championStyleTags } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
+import { DraftRoomWorkspace } from "../../components/draft/LiveDraftRoom.jsx";
 import DraftAssistance from "../../components/draft/DraftAssistance.jsx";
 import { playerRosterStatus, rosterStatusMeta } from "../../utils/roster.js";
 
@@ -885,11 +886,11 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
 function DraftWorkspace({ data, setData, selectedTeamId, refreshAll, pushToast, currentMember, user, route, navigate }) {
   useLanguage();
   const view = draftViewFromPath(route?.path);
-  const icons = { pool: Crown, compositions: Sparkles };
+  const icons = { pool: Crown, compositions: Sparkles, salle: Swords };
   return <div>
-    <TabNav idPrefix="draft" panelId="draft-panel" className="nxt5-draft-navigation mb-5" label={t("Espace Draft")} items={DRAFT_VIEW_ROUTES.map((item) => ({ ...item, icon: icons[item.id] }))} activeId={view} onChange={(id) => navigate(draftPathFromView(id))} columns="sm:grid-cols-2" />
+    <TabNav idPrefix="draft" panelId="draft-panel" className="nxt5-draft-navigation mb-5" label={t("Espace Draft")} items={DRAFT_VIEW_ROUTES.map((item) => ({ ...item, icon: icons[item.id] }))} activeId={view} onChange={(id) => navigate(draftPathFromView(id))} columns="sm:grid-cols-3" />
     <div id="draft-panel" role="tabpanel" aria-labelledby={`draft-tab-${view}`} tabIndex={0}>
-    {view === "compositions" ? <Compositions key={selectedTeamId} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} /> : <Champions data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
+    {view === "salle" ? <DraftRoomWorkspace key={selectedTeamId} teamId={selectedTeamId} matches={data.matches} route={route} navigate={navigate} /> : view === "compositions" ? <Compositions key={selectedTeamId} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} /> : <Champions data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
     </div>
   </div>;
 }

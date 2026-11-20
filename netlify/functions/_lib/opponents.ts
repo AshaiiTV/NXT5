@@ -193,12 +193,24 @@ export async function listOpponentProfiles(teamId: string) {
   return { opponents: rows.map(opponentView) };
 }
 
+export async function listDraftPage(teamId: string, cursor?: { time: string; id: string }) {
+  if (cursor && (typeof cursor.time !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(cursor.time)
+    || !Number.isFinite(Date.parse(cursor.time)) || !UUID.test(cursor.id))) throw failure('Position de lecture invalide.');
+  const rows = await sql`select d.*, m.opponent_id as match_opponent_id,
+      to_char(d.imported_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as cursor_time
+    from opponent_drafts d left join matches m on m.team_id=d.team_id and m.id=d.match_id
+    where d.team_id=${teamId} and (${cursor?.time ?? null}::timestamptz is null
+      or (d.imported_at,d.id) < (${cursor?.time ?? null}::timestamptz,${cursor?.id ?? null}::uuid))
+    order by d.imported_at desc,d.id desc limit ${OPPONENT_LIMITS.drafts + 1}`;
+  const page = rows.slice(0, OPPONENT_LIMITS.drafts);
+  const last = page[page.length - 1];
+  return { drafts: page.map(draftView), nextDraftPage: rows.length > page.length ? {time:last.cursor_time, id:last.id} : null };
+}
+
 export async function listOpponents(teamId: string) {
-  const [opponents, drafts, matches, groups] = await Promise.all([
+  const [opponents, draftPage, matches, groups] = await Promise.all([
     sql`select id, name, notes, created_at from team_opponents where team_id = ${teamId} order by name, id limit ${OPPONENT_LIMITS.opponents + 1}`,
-    sql`select d.*, m.opponent_id as match_opponent_id
-      from opponent_drafts d left join matches m on m.team_id = d.team_id and m.id = d.match_id
-      where d.team_id = ${teamId} order by d.imported_at desc, d.id limit ${OPPONENT_LIMITS.drafts + 1}`,
+    listDraftPage(teamId),
     sql`select m.id, m.opponent_id, m.game_id, m.opponent, m.result, m.created_at,
         left(m.raw->>'nxt5Label', 200) as label, m.raw->'info'->>'gameCreation' as game_creation,
         (select jsonb_agg(p.champion order by p.role, p.id) from match_participants p
@@ -210,11 +222,11 @@ export async function listOpponents(teamId: string) {
       order by updated_at desc, id desc limit ${OPPONENT_LIMITS.opponentGroups + 1}`
   ]);
   // Never present incomplete counts as complete opponent trends.
-  if (opponents.length > OPPONENT_LIMITS.opponents || drafts.length > OPPONENT_LIMITS.drafts
+  if (opponents.length > OPPONENT_LIMITS.opponents
     || matches.length > OPPONENT_LIMITS.opponentMatches || groups.length > OPPONENT_LIMITS.opponentGroups) {
     throw failure('La limite de ce prototype est dépassée. Contacte le staff NXT5.', 409, 'OPPONENT_LIMIT_REACHED');
   }
-  return { opponents: opponents.map(opponentView), drafts: drafts.map(draftView), opponentMatches: matches.map(opponentMatchView),
+  return { opponents: opponents.map(opponentView), ...draftPage, opponentMatches: matches.map(opponentMatchView),
     opponentGroups: groups.map(row => ({ id: row.id, name: row.name, opponentId: row.opponent_id,
       matchIds: row.match_ids, updatedAt: new Date(row.updated_at).toISOString() })), limits: OPPONENT_LIMITS };
 }
@@ -379,7 +391,7 @@ export async function saveOpponentDraft(teamId: string, userId: string, opponent
       insert into opponent_drafts(team_id, opponent_id, ally_side, source_id, game_number, source_url, snapshot, imported_by)
       select authorized.id, opponent.id, ${allySide}, ${snapshot.sourceId}, ${snapshot.gameNumber}, ${snapshot.sourceUrl}, ${JSON.stringify(snapshot)}::jsonb, ${userId}
       from authorized cross join opponent
-      where (select count(*) from opponent_drafts where team_id = ${teamId}) < ${OPPONENT_LIMITS.drafts}
+      where (select count(*) from opponent_drafts where team_id = ${teamId} and snapshot->>'source' is distinct from 'nxt5') < ${OPPONENT_LIMITS.drafts}
         or exists(select 1 from opponent_drafts where team_id = ${teamId} and source_id = ${snapshot.sourceId} and game_number = ${snapshot.gameNumber})
       on conflict(team_id, source_id, game_number) do update set
         opponent_id = excluded.opponent_id, ally_side = excluded.ally_side, source_url = excluded.source_url,
@@ -421,7 +433,7 @@ export async function saveMatchDraft(teamId: string, userId: string, matchId: st
         exists(select 1 from existing_source e where e.snapshot ? 'selectionSources'
           and ${Boolean(snapshot.selectionSources)} and e.snapshot->>'importedAt' is distinct from ${snapshot.baseRevision ?? null}::text
           and e.snapshot <> ${JSON.stringify(snapshot)}::jsonb) as stale_capture,
-        (exists(select 1 from existing_source) or (select count(*) from opponent_drafts where team_id = ${teamId}) < ${OPPONENT_LIMITS.drafts}) as draft_capacity
+        (exists(select 1 from existing_source) or (select count(*) from opponent_drafts where team_id = ${teamId} and snapshot->>'source' is distinct from 'nxt5') < ${OPPONENT_LIMITS.drafts}) as draft_capacity
     ), eligible as (
       select 1 from validation where authorized and match_exists and not source_linked_elsewhere and not stale_capture and draft_capacity
     ), released as (

@@ -44,6 +44,7 @@ export const MORE_NAV_IDS = ["trends", "draft", "scrims", "bot-discord"];
 export const DRAFT_VIEW_ROUTES = [
   { id: "pool", label: "Champions des joueurs", path: "pool" },
   { id: "compositions", label: "Compositions", path: "compositions" },
+  { id: "salle", label: "Salle de draft", path: "salle" },
 ];
 
 export const PROFILE_VIEW_ROUTES = [

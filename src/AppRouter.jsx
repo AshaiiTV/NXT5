@@ -22,6 +22,7 @@ import { useAppLoading } from "./components/loading/AppLoadingProvider.jsx";
 // The session, navigation and consent lifecycle stays mounted across both sides
 // of this boundary. No workspace module is requested for a public visitor.
 const PrivateApp = lazy(() => import("./AppContent.jsx"));
+const GuestDraftRoom = lazy(() => import("./components/draft/LiveDraftRoom.jsx").then(m => ({ default: m.GuestDraftRoom })));
 const NexusRisingPage = lazy(() => import("./pages/nexus/NexusRisingPage.jsx"));
 const DemoPage = lazy(() => import("./pages/public/DemoPage.jsx").then((module) => ({ default: module.DemoPage })));
 
@@ -83,7 +84,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const adminPage = adminPageFromRoute(route);
   const DemoComponent = initialDemoPage || DemoPage;
 
-  const rendersPrivateApp = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !PUBLIC_GUIDES[route.path] && !["/nexus-rising", "/fonctionnalites", "/demo", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
+  const rendersPrivateApp = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !PUBLIC_GUIDES[route.path] && !["/salle-de-draft", "/nexus-rising", "/fonctionnalites", "/demo", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
   // Once authorized, the private module (including its download fallback)
   // owns the shared loader. Public routes always release it.
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersPrivateApp ? undefined : null);
@@ -93,6 +94,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (checkingSession && routeIsPrivate) return null;
   if (unknownRoute) return <NotFoundPage navigate={navigate} />;
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
+  if (route.path === "/salle-de-draft") return <Suspense fallback={<p role="status">{t("Chargement…")}</p>}><GuestDraftRoom /></Suspense>;
   if (route.path === "/nexus-rising") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">{t("Chargement de Nexus Rising…")}</div>}><NexusRisingPage key={user?.id || "guest"} user={user} navigate={navigate} /></Suspense>;
   if (route.path === "/fonctionnalites") return <FeaturesPage navigate={navigate} user={user} />;
   if (route.path === "/demo") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">{t("Chargement de la démo…")}</div>}><DemoComponent navigate={navigate} user={user} /></Suspense>;
@@ -218,5 +220,5 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} initialDemoPage={initialDemoPage} /><CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true || isAdminPath(route.path)} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
+  return <><CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true || isAdminPath(route.path)} /><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} initialDemoPage={initialDemoPage} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
 }

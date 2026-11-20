@@ -1,10 +1,47 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import handler, { config } from '../../netlify/functions/asset-proxy';
+import { draftSpotlight, spotlightWidths } from '../../shared/draft-spotlight.js';
+import champions from '../../shared/riot-champion-ids.json';
 
 const url = 'https://ddragon.leagueoflegends.com/cdn/16.18.1/data/fr_FR/runesReforged.json';
 const imageUrl = 'https://raw.communitydragon.org/latest/game/assets/ux/announcements/baron_circle.png';
 const request = (target = url, method = 'GET') => handler(new Request(`https://nxt5.test/.netlify/functions/asset-proxy?url=${encodeURIComponent(target)}`, { method }));
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+describe('champion voices', () => {
+  const voice = (name: string, lang: string, kind: string) => handler(new Request(
+    'https://nxt5.test/.netlify/functions/asset-proxy?' + new URLSearchParams({ voice: name, lang, kind })
+  ));
+
+  it.each([
+    ['MonkeyKing', 'fr', 'ban', 'fr_fr/v1/champion-ban-vo/62.ogg'],
+    ['Leblanc', 'en', 'pick', 'default/v1/champion-choose-vo/7.ogg'],
+    ['Nunu', 'es', 'pick', 'es_es/v1/champion-choose-vo/20.ogg'],
+  ])('serves the localized %s line for %s/%s', async (name, lang, kind, path) => {
+    const fetch = vi.fn().mockResolvedValue(new Response('OggS', { headers: { 'Content-Type': 'audio/ogg' } }));
+    vi.stubGlobal('fetch', fetch);
+    const result = await voice(name, lang, kind);
+    expect(fetch).toHaveBeenCalledWith('https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/' + path,
+      expect.objectContaining({ redirect: 'manual' }));
+    expect(result.headers.get('content-type')).toBe('audio/ogg');
+    expect(await result.text()).toBe('OggS');
+  });
+
+  it('limits voices to the roster, locale, action, upstream type and clip size', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    for (const args of [['Other', 'fr', 'ban'], ['Jinx', 'de', 'pick'], ['Jinx', 'en', 'preview']]) {
+      expect((await voice(args[0], args[1], args[2])).status).toBe(400);
+    }
+    expect(fetch).not.toHaveBeenCalled();
+    fetch.mockResolvedValueOnce(new Response('page', { headers: { 'content-type': 'text/html' } }));
+    expect((await voice('Jinx', 'fr', 'ban')).status).toBe(415);
+    fetch.mockResolvedValueOnce(new Response(new Uint8Array(256 * 1024 + 1), { headers: { 'content-type': 'audio/ogg' } }));
+    expect((await voice('Jinx', 'fr', 'ban')).status).toBe(413);
+    fetch.mockResolvedValueOnce(new Response('OggS', { headers: { 'content-type': 'audio/ogg' } }));
+    expect((await request(imageUrl)).status).toBe(415);
+  });
+});
 
 it('E1: proxies the single rune catalogue with cache, timeout and no redirects', async () => {
   const body = JSON.stringify([{ id: 8200, name: 'Sorcellerie' }]);
@@ -172,5 +209,49 @@ describe('bounded image proxy', () => {
   it('rejects active content', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<svg/>', { headers: { 'Content-Type': 'image/svg+xml' } })));
     expect((await request(imageUrl)).status).toBe(415);
+  });
+});
+
+describe('draft spotlight art', () => {
+  const spotlight = (champion: string, width: number) => handler(new Request(
+    `https://nxt5.test/.netlify/functions/asset-proxy?spotlight=${encodeURIComponent(champion)}&w=${width}`,
+  ));
+
+  it('has a usable face anchor and bounded source widths for every draftable champion', () => {
+    for (const [,champion] of champions) {
+      const art = draftSpotlight(champion);
+      expect(art, String(champion)).toBeTruthy();
+      expect(art.x).toBeGreaterThan(0);
+      expect(art.x).toBeLessThan(1);
+      expect(art.y).toBeGreaterThan(0);
+      expect(art.y).toBeLessThan(1);
+      const widths = spotlightWidths(art);
+      expect(widths).toEqual([...new Set(widths)].sort((a,b) => a-b));
+      expect(widths.at(-1)).toBe(Math.min(3840, art.width));
+    }
+  });
+
+  it('uses Riot’s wider composition when an edge-framed original reaches its native width', () => {
+    const normal = draftSpotlight('Taric', 750);
+    const panoramic = draftSpotlight('Taric', 2200);
+    expect(normal.asset).toContain('universe/');
+    expect(panoramic).toMatchObject({ centered: true, asset: 'centered/Taric_0.jpg', width: 1280, height: 720 });
+    expect(spotlightWidths(panoramic)).toEqual([1280]);
+    expect(draftSpotlight('Qiyana', 2200).width).toBe(4000);
+  });
+
+  it('serves only known originals at their available sizes', async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response('illustration', { headers: { 'content-type': 'image/webp' } }));
+    vi.stubGlobal('fetch', fetch);
+    expect((await spotlight('Syndra', 3840)).status).toBe(400);
+    expect((await spotlight('not-in-the-roster', 768)).status).toBe(400);
+    expect(fetch).not.toHaveBeenCalled();
+    const response = await spotlight('Qiyana', 3840);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/webp');
+    const source = new URL(fetch.mock.calls[0][0]);
+    expect(source.origin).toBe('https://cmsassets.rgpub.io');
+    expect(source.pathname).toMatch(/\/sanity\/images\/dsfx7636\/universe(?:_live)?\/[a-f0-9]+-4000x\d+\.jpg$/);
+    expect(source.searchParams.get('w')).toBe('3840');
   });
 });

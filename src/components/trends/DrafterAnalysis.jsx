@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, ListOrdered, RefreshCw, Shield } from "lucide-react";
-import { apiFetch } from "../../api/client.js";
+import { loadDraftHistory } from "../../api/draft-history.js";
 import { openAppPath } from "../../app/routing.js";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
@@ -44,7 +44,7 @@ function TeamDrafterAnalysis({ teamId, matches, players, championPool }) {
   useEffect(() => {
     const controller = new AbortController();
     setState({ loading: true, error: "", opponents: [], drafts: [] });
-    apiFetch("opponents-drafts", { method: "POST", body: JSON.stringify({ action: "list", teamId }), signal: controller.signal })
+    loadDraftHistory(teamId, controller.signal)
       .then((result) => { if (!controller.signal.aborted) setState({ ...result, loading: false, error: "" }); })
       .catch((error) => { if (!controller.signal.aborted) setState({ loading: false, error: error.message, opponents: [], drafts: [] }); });
     return () => controller.abort();
@@ -64,7 +64,7 @@ function TeamDrafterAnalysis({ teamId, matches, players, championPool }) {
   const selected = drafts.find((draft) => draft.id === selectedId) || drafts[0];
   const matchNames = useMemo(() => new Map(matches.map((match) => [String(match.id), matchDisplayName(match)])), [matches]);
   const opponentNames = useMemo(() => new Map(state.opponents.map((opponent) => [opponent.id, opponent.name])), [state.opponents]);
-  const draftLabel = (draft) => `${opponentNames.get(draft.opponentId) || draft.snapshot[draft.allySide === "blue" ? "redName" : "blueName"]} · ${t("Game {0}", [draft.gameNumber])} · ${draft.sourceId}`;
+  const draftLabel = (draft) => `${opponentNames.get(draft.opponentId) || draft.snapshot[draft.allySide === "blue" ? "redName" : "blueName"]} · ${t("Game {0}", [draft.gameNumber])} · ${draft.snapshot.source === "nxt5" ? "NXT5" : draft.sourceId}`;
   const changeOpponent = (value) => { setOpponentId(value); setSelectedId(""); };
   const changeScope = (value) => { setScope(value); setSelectedId(""); };
   const inspectDraft = (id) => {
