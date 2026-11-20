@@ -203,6 +203,52 @@ describe('receiving games from the desktop app', () => {
     expect(match.category_ids).toEqual([category.id]);
   });
 
+  it('saves the champions and Riot ID profiles in their quest roles on both sides', async () => {
+    const token = await link();
+    const game = customGame({ side: 200 });
+    // Bot and support swap on red. On blue, a mid and jungler swap.
+    const items = [1200, 1201, 1204, 1202, 1203, 1221, 1209, 1206, 2055, 3006];
+    game.info.participants.forEach((p, index) => Object.assign(p, { roleBoundItem: items[index] }));
+    const preview = await fileImportHandler(new Request(`${origin}/.netlify/functions/matches-import-file`, {
+      method: 'POST', body: JSON.stringify({ teamId: team, previewOnly: true, payload: { match: game } }),
+      headers: { Origin: origin, 'Content-Type': 'application/json' },
+    }), context);
+    expect(preview.status).toBe(200);
+    const expected = ['TOP', 'MID', 'JGL', 'ADC', 'SUP', 'TOP', 'JGL', 'MID', 'SUP', 'ADC'];
+    const teams = (await preview.json()).match.teams;
+    expect(teams.flatMap(t => t.participants.map(p => p.questRole))).toEqual(expected);
+    const result = await submit(token, game);
+    expect(result.body.submission.status).toBe('imported');
+    const saved = await rows('select champion, role, player_id from match_participants where match_id = $1', [result.body.matchId]);
+    expect(saved).toHaveLength(10);
+    expected.forEach((role, i) => {
+      expect(saved.find(p => p.champion === `Champion${i}`)).toMatchObject({ role, player_id: i < 5 ? null : roster[i - 5].id });
+    });
+  });
+
+  it('keeps duplicate quests or identities pending and never treats ordinary boots or wards as quests', () => {
+    const players = roster.map(p => ({ id: p.id, riot_id: p.riotId, role: p.role }));
+    const game = customGame({ positions: false });
+    game.info.participants.forEach((p, index) => Object.assign(p, {
+      roleBoundItem: [1220, 1211, 1206, 3006, 2055][index % 5], item0: 2055, item1: 3006,
+    }));
+    const plan = () => resolveAutoAssignments(game, players);
+    expect(plan()).toHaveProperty('enemyLaneAssignments');
+    game.info.mapId = 12;
+    expect(plan()).toMatchObject({ pending: expect.stringContaining('adverse') });
+    game.info.mapId = 11;
+    const enemies = game.info.participants.slice(5);
+    Object.assign(enemies[0], { roleBoundItem: 1206 });
+    expect(plan()).toMatchObject({ pending: expect.stringContaining('adverse') });
+    Object.assign(enemies[0], { roleBoundItem: 0 });
+    Object.assign(enemies[2], { roleBoundItem: 99999 });
+    expect(plan()).toMatchObject({ pending: expect.stringContaining('adverse') });
+    Object.assign(enemies[2], { roleBoundItem: 1201 });
+    expect(plan()).toMatchObject({ enemyLaneAssignments: { TOP: 'participant:6' } });
+    players.push({ ...players[0], id: randomUUID() });
+    expect(plan()).toMatchObject({ pending: expect.stringContaining('même Riot ID') });
+  });
+
   it('skips games that are not the team’s and keeps unresolved games for the staff, who can finalise them with the usual import', async () => {
     const token = await link();
     const foreign = await submit(token, customGame({ allies: ['Someone#EUW', 'Else#EUW', roster[0].riotId] }));

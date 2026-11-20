@@ -197,6 +197,40 @@ describe("enemy role assignment while importing a game", () => {
     expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
   });
 
+  it("prefills swapped quest roles with the corresponding profiles and leaves conflicting quests editable", async () => {
+    const match = preview("anonymous");
+    const players = roles.map((role, i) => {
+      const riotId = `Joueur ${i}#EUW`;
+      Object.assign(match.teams[0].participants[i], { riotId, questRole: ["TOP", "ADC", "MID", "JGL", "SUP"][i] });
+      return { id: `profile-${role}`, team_id: "team", name: `Joueur ${i}`, riot_id: riotId, role };
+    });
+    match.teams[1].participants[0].questRole = "TOP";
+    match.teams[1].participants[2].questRole = "TOP";
+    const { renderer } = await mount({ data: { ...DEFAULT_DATA, teams: [{ id: "team", owner_id: "owner" }], matchCategories: categories, players } });
+    await load(renderer, undefined, match);
+    await chooseSide(renderer, "BLUE");
+    expect(select(renderer, `Champion allié · ${roleLabel("ADC")}`).props.value).toBe(participantValue(2));
+    expect(select(renderer, `Profil NXT5 · ${roleLabel("ADC")}`).props.value).toBe("profile-JGL");
+    expect(select(renderer, `Profil NXT5 · ${roleLabel("JGL")}`).props.value).toBe("profile-ADC");
+    expect(enemySelect(renderer, "RED", 0).props.value).toBe("");
+    expect(enemySelect(renderer, "RED", 2).props.value).toBe("");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+    await change(enemySelect(renderer, "RED", 0), "MID");
+    await change(enemySelect(renderer, "RED", 2), "TOP");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(false);
+  });
+
+  it("leaves the profile open when a quest identifies the role but the Riot ID belongs to a guest", async () => {
+    const match = preview("anonymous");
+    Object.assign(match.teams[0].participants[0], { riotId: "NXT5 TOP#VIS", summonerName: "NXT5 TOP", questRole: "TOP" });
+    const { renderer } = await mount();
+    await load(renderer, undefined, match);
+    await chooseSide(renderer, "BLUE");
+    expect(select(renderer, `Champion allié · ${roleLabel("TOP")}`).props.value).toBe(participantValue(1));
+    expect(select(renderer, `Profil NXT5 · ${roleLabel("TOP")}`).props.value).toBe("");
+    expect(button(renderer, "Confirmer l’import").props.disabled).toBe(true);
+  });
+
   it("does not submit missing allies or duplicated NXT5 profiles", async () => {
     const { renderer } = await mount();
     await load(renderer);

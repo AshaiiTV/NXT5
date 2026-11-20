@@ -57,6 +57,7 @@ test("LCU conversion preserves numeric item/spell stats, ISO dates and derives t
             assists: 6,
             win: "Fail",
             item0Id: 1001,
+            roleBoundItem: 2055,
             damageDealtToTurrets: 123,
           },
           timeline: { lane: "BOTTOM", role: "DUO_SUPPORT" },
@@ -73,6 +74,7 @@ test("LCU conversion preserves numeric item/spell stats, ISO dates and derives t
   assert.equal(match.info.gameCreation, Date.parse("2026-09-06T12:00:00Z"));
   assert.equal(match.info.teams[0].objectives.champion.kills, 4);
   assert.equal(match.info.participants[0].item0, 1001);
+  assert.equal(match.info.participants[0].roleBoundItem, 2055);
   assert.equal(match.info.participants[0].summoner1Id, 4);
   assert.equal(match.info.participants[0].damageDealtToTurrets, 123);
   assert.equal(match.info.participants[0].win, false);
