@@ -1,3 +1,9 @@
+# NXT5 Importer 0.4.7 — Export et collecte simplifiés
+
+- L’export se fait sur un seul formulaire. Une fois le fichier enregistré, tu peux l’ouvrir dans son dossier ou passer sur NXT5.
+- La collecte affiche d’abord ton équipe et son état. Les détails de liaison et l’envoi d’une partie manquée se déplient à la demande.
+- L’historique propose la recherche dès le premier export.
+
 # NXT5 Importer 0.4.6 — Boutons signature
 
 - Les actions principales reprennent le dégradé cyan/lavande et le texte nuit choisis pour NXT5, dans l’export, la liaison et l’activation de la collecte.

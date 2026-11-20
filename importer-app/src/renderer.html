@@ -50,31 +50,13 @@
         <symbol id="i-file" viewBox="0 0 24 24">
           <path d="M14 3H5v18h14V8Zm0 0v5h5M9 13h6m-6 4h6" />
         </symbol>
-        <symbol id="i-info" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 11v6m0-10v1" />
-        </symbol>
         <symbol id="i-search" viewBox="0 0 24 24">
           <circle cx="10.5" cy="10.5" r="6.5" />
           <path d="m16 16 5 5" />
         </symbol>
-        <symbol id="i-shield" viewBox="0 0 24 24">
-          <path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z" />
-          <path d="m8 12 3 3 5-6" />
-        </symbol>
         <symbol id="i-radio" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="2.5" />
           <path d="M7.8 7.8a6 6 0 0 0 0 8.4m8.4-8.4a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2m14.2-14.2a10 10 0 0 1 0 14.2" />
-        </symbol>
-        <symbol id="i-link" viewBox="0 0 24 24">
-          <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1.5 1.5M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1.5-1.5" />
-        </symbol>
-        <symbol id="i-clock" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 7v5l3 2" />
-        </symbol>
-        <symbol id="i-x" viewBox="0 0 24 24">
-          <path d="m6 6 12 12M18 6 6 18" />
         </symbol>
       </defs>
     </svg>
@@ -96,7 +78,7 @@
           </button>
           <button class="nav-item" id="historyTab" data-view="history">
             <svg><use href="#i-history" /></svg><span>Historique</span
-            ><span class="nav-count" id="historyCount">0</span>
+            ><span class="nav-count" id="historyCount" hidden>0</span>
           </button>
           <button class="nav-item" id="settingsTab" data-view="settings">
             <svg><use href="#i-settings" /></svg><span>Paramètres</span>
@@ -113,346 +95,183 @@
           <button class="site-link" data-open-site>
             <svg><use href="#i-external" /></svg><span>Ouvrir NXT5</span>
           </button>
-          <p class="sidebar-version"><span id="railVersion">Chargement…</span></p>
         </div>
       </aside>
       <main class="content">
-        <span id="viewName" class="sr-only">Nouvel export</span>
         <div id="globalNotice" class="notice" role="status" hidden></div>
         <section id="update" class="update-banner" hidden>
-          <div>
-            <strong>La prochaine version t’attend.</strong>
-            <p id="updateText"></p>
-          </div>
-          <button id="updateLink" class="button compact">
-            Télécharger <svg><use href="#i-external" /></svg>
-          </button>
+          <strong id="updateText"></strong>
+          <button id="updateLink" class="button compact">Télécharger <svg><use href="#i-external" /></svg></button>
         </section>
 
         <section id="exportView" class="view" aria-labelledby="exportHeading">
-          <div class="page-heading">
-            <div>
-              <p class="eyebrow">League of Legends</p>
-              <h1 id="exportHeading" tabindex="-1">Exporter une partie</h1>
-              <p>Un identifiant de match, un fichier prêt pour NXT5. Les données viennent de Riot, ou du client LoL s’il est ouvert.</p>
-            </div>
-            <div class="last-export" id="lastExport" hidden>
-              <svg><use href="#i-history" /></svg>
-              <div><span>Dernier export</span><strong id="lastExportId"></strong></div>
-              <button class="text-button" id="viewHistory">Historique <svg><use href="#i-arrow" /></svg></button>
-            </div>
-          </div>
-          <div class="export-layout">
-            <div class="export-column">
-              <section class="card progress-card" id="progressPanel" aria-labelledby="progressHeading" hidden>
-                <div class="section-title">
-                  <h2 id="progressHeading">Préparation de ton export</h2>
-                  <button id="cancelImport" class="text-button">Annuler</button>
-                </div>
-                <ol class="progress-steps" id="progressSteps">
-                  <li data-stage="fetch"><span>1</span>Match</li>
-                  <li data-stage="timeline"><span>2</span>Timeline</li>
-                  <li data-stage="save"><span>3</span>Fichier</li>
-                  <li data-stage="complete"><span>4</span>Terminé</li>
-                </ol>
-                <p id="progressMessage" role="status" aria-live="polite">Vérification de l’identifiant…</p>
-                <p class="field-hint" id="progressTime"></p>
-              </section>
-              <section id="resultPanel" class="card result-card" aria-labelledby="resultHeading" hidden>
-                <div class="result-header">
-                  <span class="success-icon"><svg><use href="#i-check" /></svg></span>
-                  <div>
-                    <p class="eyebrow">Export enregistré</p>
-                    <h2 id="resultHeading" tabindex="-1">Ta game est prête.</h2>
-                  </div>
-                </div>
-                <strong class="match-id" id="resultGameId"></strong>
-                <div class="result-facts" id="resultFacts"></div>
-                <p id="resultWarning" class="warning-text" hidden></p>
-                <p class="file-path" id="resultPath"></p>
-                <div class="result-actions">
-                  <button class="button compact" id="revealFile"><svg><use href="#i-folder" /></svg>Voir le fichier</button
-                  ><button class="text-button" data-open-site>Ouvrir NXT5 <svg><use href="#i-external" /></svg></button>
-                </div>
-                <p class="field-hint">Dans NXT5 : Parties → Importer une partie → Choisir mon fichier.</p>
-              </section>
-              <div id="status" class="notice" role="status" aria-live="polite" hidden></div>
-              <form id="form" class="card export-card" novalidate>
-                <div class="card-overline">
-                  <svg aria-hidden="true"><use href="#i-export" /></svg> Nouvel export
-                  <span class="format-code">.JSON</span>
-                </div>
-                <label for="gameId">Identifiant du match <span class="label-optional">Game ID</span></label>
+          <header class="page-heading">
+            <h1 id="exportHeading" tabindex="-1">Exporter une partie</h1>
+          </header>
+          <form id="form" class="card export-card" novalidate>
+            <div class="match-fields">
+              <div>
+                <label for="gameId">Identifiant de partie</label>
                 <input id="gameId" name="gameId" type="text" placeholder="Ex. EUW1_7861632138" maxlength="300" autocomplete="off" spellcheck="false" required aria-describedby="gameIdHint gameIdError" />
-                <p id="gameIdHint" class="field-hint">Le numéro ou l’ID complet copié depuis l’historique du client LoL.</p>
-                <p id="gameIdError" class="field-error" hidden></p>
-                <div class="region-row">
-                  <div>
-                    <label for="platform">Serveur de jeu</label
-                    ><select id="platform" name="platform">
-                      <option value="EUW1">Europe Ouest · EUW</option>
-                      <option value="EUN1">Europe Nord & Est · EUNE</option>
-                      <option value="NA1">Amérique du Nord · NA</option>
-                      <option value="KR">Corée · KR</option>
-                      <option value="BR1">Brésil · BR</option>
-                      <option value="LA1">Amérique latine Nord · LAN</option>
-                      <option value="LA2">Amérique latine Sud · LAS</option>
-                      <option value="OC1">Océanie · OCE</option>
-                      <option value="TR1">Turquie · TR</option>
-                      <option value="RU">Russie · RU</option>
-                      <option value="JP1">Japon · JP</option>
-                      <option value="SG2">Singapour · SG</option>
-                      <option value="TW2">Taïwan · TW</option>
-                      <option value="VN2">Vietnam · VN</option>
-                      <option value="PH2">Philippines · PH</option>
-                      <option value="TH2">Thaïlande · TH</option>
-                      <option value="ME1">Moyen-Orient · ME</option>
-                    </select>
-                  </div>
-                  <p>La région est reconnue automatiquement pour un ID complet.</p>
-                </div>
-                <div class="form-actions">
-                  <button id="submit" class="button primary" type="submit">
-                    <span>Exporter la game</span><svg><use href="#i-arrow" /></svg></button
-                  ><span class="keyboard-hint" id="exportShortcut">Ctrl ↵</span>
-                </div>
-                <p class="export-caption"><svg><use href="#i-shield" /></svg> Aucune clé Riot. Ton fichier reste sur cet appareil.</p>
-              </form>
+              </div>
+              <div>
+                <label for="platform">Serveur</label>
+                <select id="platform" name="platform">
+                  <option value="EUW1">Europe Ouest · EUW</option>
+                  <option value="EUN1">Europe Nord & Est · EUNE</option>
+                  <option value="NA1">Amérique du Nord · NA</option>
+                  <option value="KR">Corée · KR</option>
+                  <option value="BR1">Brésil · BR</option>
+                  <option value="LA1">Amérique latine Nord · LAN</option>
+                  <option value="LA2">Amérique latine Sud · LAS</option>
+                  <option value="OC1">Océanie · OCE</option>
+                  <option value="TR1">Turquie · TR</option>
+                  <option value="RU">Russie · RU</option>
+                  <option value="JP1">Japon · JP</option>
+                  <option value="SG2">Singapour · SG</option>
+                  <option value="TW2">Taïwan · TW</option>
+                  <option value="VN2">Vietnam · VN</option>
+                  <option value="PH2">Philippines · PH</option>
+                  <option value="TH2">Thaïlande · TH</option>
+                  <option value="ME1">Moyen-Orient · ME</option>
+                </select>
+              </div>
             </div>
-            <aside class="export-aside">
-              <section class="card steps-card" aria-label="Les étapes de l’export">
-                <h2>Comment ça marche</h2>
-                <ol class="workflow-strip">
-                  <li><span class="step-number">1</span><p><strong>Copie l’identifiant</strong><small>Depuis l’historique de ta game dans le client LoL.</small></p></li>
-                  <li><span class="step-number">2</span><p><strong>Exporte le match</strong><small>Un fichier .json avec toutes les données disponibles.</small></p></li>
-                  <li><span class="step-number">3</span><p><strong>Importe-le sur NXT5</strong><small>Parties → Importer une partie → Choisir mon fichier.</small></p></li>
-                </ol>
-                <div class="capabilities"><span>Statistiques</span><span>Builds</span><span>Vision & timeline*</span></div>
-                <p class="capability-note">* Selon les données disponibles.</p>
-              </section>
-              <section class="card auto-card" aria-label="Collecte automatique">
-                <div class="auto-card-art" aria-hidden="true"><img src="../assets/prisme/nxt5-unified-5-512.webp" alt="" width="640" height="640" /></div>
-                <h2>Plus rien à copier ?</h2>
-                <p>Lie l’Importer à ton équipe&nbsp;: chaque custom part seule à la fin de la partie.</p>
-                <button class="button compact" data-view="collect">Activer la collecte automatique <svg><use href="#i-arrow" /></svg></button>
-              </section>
-              <details class="help-card" id="clientHelp">
-                <summary><svg><use href="#i-info" /></svg>Besoin d’un coup de main ?<span class="help-plus">+</span></summary>
-                <p>Copie l’identifiant depuis l’historique du client LoL. Pour un numéro sans préfixe, choisis le serveur de la partie.</p>
-                <p>Le client n’est pas détecté ? Ouvre League of Legends ou indique son dossier d’installation.</p>
-                <button class="text-button" id="openClientSettings">Configurer le client <svg><use href="#i-arrow" /></svg></button>
+            <p id="gameIdHint" class="field-hint">Copie l’identifiant depuis l’historique du client LoL.</p>
+            <p id="gameIdError" class="field-error" hidden></p>
+            <div class="form-actions">
+              <button id="submit" class="button primary" type="submit"><svg><use href="#i-export" /></svg>Exporter le fichier JSON</button>
+            </div>
+          </form>
+          <section class="card progress-card" id="progressPanel" aria-labelledby="progressHeading" hidden>
+            <h2 id="progressHeading">Export en cours</h2>
+            <p id="progressMessage" role="status">Vérification de l’identifiant…</p>
+            <button id="cancelImport" class="text-button">Annuler</button>
+          </section>
+          <section id="resultPanel" class="card result-card" aria-labelledby="resultHeading" hidden>
+            <div class="result-header">
+              <svg aria-hidden="true"><use href="#i-check" /></svg>
+              <h2 id="resultHeading" tabindex="-1">Fichier enregistré</h2>
+            </div>
+            <strong class="match-id" id="resultGameId"></strong>
+            <p class="field-hint" id="resultFacts"></p>
+            <p id="resultWarning" class="warning-text" hidden></p>
+            <p class="file-path" id="resultPath"></p>
+            <p class="import-route">Dans NXT5, ouvre Parties → Importer une partie → Choisir mon fichier.</p>
+            <div class="result-actions">
+              <button class="button primary" data-open-site>Ouvrir NXT5 <svg><use href="#i-external" /></svg></button>
+              <button class="button compact" id="revealFile"><svg><use href="#i-folder" /></svg>Voir le fichier</button>
+            </div>
+          </section>
+          <button class="text-button next-export" id="newExport" hidden>Exporter une autre partie <svg><use href="#i-arrow" /></svg></button>
+          <div id="status" class="notice" role="status" hidden></div>
+        </section>
+
+        <section id="collectView" class="view" aria-labelledby="collectHeading" hidden>
+          <header class="page-heading">
+            <h1 id="collectHeading" tabindex="-1">Collecte automatique</h1>
+          </header>
+          <div class="panel-stack">
+            <section class="card settings-card" id="collectRunCard" hidden>
+              <h2 id="collectTeam"></h2>
+              <p id="collectPhase" role="status"></p>
+              <p class="field-hint" id="collectRunHint">Active la collecte avant la fin de la partie. Garde l’Importer et le client LoL ouverts pour envoyer tes customs à cette équipe.</p>
+              <div class="settings-actions">
+                <button id="collectToggle" class="button primary" type="button">Activer la collecte</button>
+              </div>
+              <details class="disclosure">
+                <summary>Envoyer une partie manquée</summary>
+                <form id="collectManualForm">
+                  <label for="collectManualId">Identifiant de partie</label>
+                  <div class="collect-manual-row">
+                    <input id="collectManualId" type="text" autocomplete="off" spellcheck="false" placeholder="EUW1_8035280010" maxlength="40" required />
+                    <button id="collectManualSend" class="button compact" type="submit">Envoyer</button>
+                  </div>
+                </form>
               </details>
-            </aside>
+            </section>
+            <div id="collectRunStatus" class="notice" role="status" hidden></div>
+            <section class="card settings-card" id="collectLinkCard">
+              <form id="collectLinkForm">
+                <h2>Lier cet ordinateur à ton équipe</h2>
+                <p class="section-hint">Dans NXT5, ouvre Parties → Import automatique pour générer un code valable 15 minutes.</p>
+                <label for="collectCode">Code de liaison</label>
+                <input id="collectCode" type="text" autocomplete="off" spellcheck="false" placeholder="ABCD-1234-EF56-7890-AB12-CD34" maxlength="40" required />
+                <label for="collectLabel">Nom de l’ordinateur visible par le staff</label>
+                <input id="collectLabel" type="text" autocomplete="off" maxlength="80" />
+                <div class="settings-actions">
+                  <button id="collectConnect" class="button primary" type="submit">Lier cet ordinateur</button>
+                </div>
+              </form>
+              <details id="collectLinked" class="disclosure" hidden>
+                <summary>Liaison de l’ordinateur</summary>
+                <dl class="collect-facts">
+                  <div><dt>Ordinateur</dt><dd id="collectDevice"></dd></div>
+                  <div><dt>Effectif reconnu</dt><dd id="collectRoster"></dd></div>
+                  <div><dt>Valable jusqu’au</dt><dd id="collectExpires"></dd></div>
+                </dl>
+                <div class="settings-actions">
+                  <button id="collectVerify" class="button compact" type="button">Vérifier la liaison</button>
+                  <button id="collectForget" class="text-button" type="button">Délier cet ordinateur</button>
+                </div>
+              </details>
+              <p id="collectInvalid" class="warning-text" hidden></p>
+              <div id="collectLinkStatus" class="notice" role="status" hidden></div>
+            </section>
+            <section class="card settings-card" id="collectGamesCard" hidden>
+              <h2>Parties collectées</h2>
+              <div id="collectGames" class="collect-games"></div>
+            </section>
           </div>
         </section>
 
         <section id="historyView" class="view" aria-labelledby="historyHeading" hidden>
-          <div class="page-heading">
-            <div>
-              <p class="eyebrow">Ta bibliothèque</p>
-              <h1 id="historyHeading" tabindex="-1">Exports récents</h1>
-              <p>Retrouve un fichier ou relance un export.</p>
-            </div>
-          </div>
+          <header class="page-heading">
+            <h1 id="historyHeading" tabindex="-1">Historique des exports</h1>
+          </header>
           <div class="card history-card">
-            <div class="history-toolbar">
-              <h2>Sur cet appareil <span id="historyTotal" class="count-label">0</span></h2>
+            <div class="history-toolbar" id="historyToolbar" hidden>
+              <span>Jusqu’à 30 exports sur cet appareil</span>
               <div class="search-field">
-                <svg><use href="#i-search" /></svg
-                ><input type="search" id="historySearch" placeholder="Rechercher un Game ID" aria-label="Rechercher dans les exports" />
+                <svg aria-hidden="true"><use href="#i-search" /></svg>
+                <input type="search" id="historySearch" placeholder="Rechercher un identifiant" aria-label="Rechercher dans les exports" />
               </div>
             </div>
             <div id="historyList"></div>
             <div class="empty-state" id="historyEmpty">
-              <span class="empty-icon"><svg><use href="#i-folder" /></svg></span>
-              <h3>Aucune game exportée pour le moment</h3>
-              <p>Tes prochains fichiers apparaîtront ici après leur enregistrement.</p>
-              <button class="button compact" id="firstExport">Exporter ma première game <svg><use href="#i-arrow" /></svg></button>
+              <h2>Aucun export sur cet appareil</h2>
+              <button class="text-button" id="firstExport">Exporter une partie <svg><use href="#i-arrow" /></svg></button>
             </div>
-            <p class="history-footnote">Les 30 derniers exports sont conservés ici. Les fichiers restent à l’emplacement que tu as choisi.</p>
           </div>
         </section>
 
-<section
-          id="collectView"
-          class="view"
-          aria-labelledby="collectHeading"
-          hidden
-        >
-          <div class="page-heading">
-            <div>
-              <p class="eyebrow">Sans manipulation</p>
-              <h1 id="collectHeading" tabindex="-1">Collecte automatique</h1>
-              <p>
-                Lie l’Importer à ton équipe NXT5 une seule fois. Ensuite, chaque
-                custom jouée avec l’Importer et le client ouverts est envoyée à
-                NXT5 à la fin de la partie.
-              </p>
-            </div>
-          </div>
-          <div class="grid-two">
-            <section class="card settings-card" id="collectLinkCard">
-              <div class="settings-title">
-                <span class="icon-tile"><svg><use href="#i-link" /></svg></span>
-                <div>
-                  <h2>Liaison avec ton équipe</h2>
-                  <p id="collectLinkSummary">Aucune équipe liée pour le moment.</p>
-                </div>
-              </div>
-              <form id="collectLinkForm" class="collect-form" novalidate>
-                <label for="collectCode">Code généré dans NXT5 (Parties → Import automatique)</label>
-                <input id="collectCode" type="text" autocomplete="off" spellcheck="false" placeholder="ABCD-1234-EF56-7890-AB12-CD34" maxlength="40" />
-                <label for="collectLabel">Nom de cet ordinateur (visible par le staff)</label>
-                <input id="collectLabel" type="text" autocomplete="off" maxlength="80" />
-                <div class="settings-actions">
-                  <button id="collectConnect" class="button primary compact" type="submit">
-                    Lier cet ordinateur <svg><use href="#i-check" /></svg>
-                  </button>
-                </div>
-                <p class="field-hint">Le code n’est valable qu’une fois, pendant 15 minutes. La liaison reste valable 90 jours et peut être révoquée depuis NXT5.</p>
-              </form>
-              <div id="collectLinked" class="collect-linked" hidden>
-                <dl class="collect-facts">
-                  <div><dt>Équipe</dt><dd id="collectTeam">—</dd></div>
-                  <div><dt>Effectif reconnu</dt><dd id="collectRoster">—</dd></div>
-                  <div><dt>Liaison valable jusqu’au</dt><dd id="collectExpires">—</dd></div>
-                </dl>
-                <div class="settings-actions">
-                  <button id="collectVerify" class="button compact" type="button">
-                    Vérifier la liaison <svg><use href="#i-refresh" /></svg></button
-                  ><button id="collectForget" class="text-button" type="button">Oublier la liaison sur cet ordinateur</button>
-                </div>
-              </div>
-              <div id="collectLinkStatus" class="notice" role="status" hidden></div>
-            </section>
-            <section class="card settings-card collect-run-card" id="collectRunCard" hidden>
-              <div class="settings-title">
-                <span class="icon-tile icon-tile-live"><svg><use href="#i-radio" /></svg></span>
-                <div>
-                  <h2>Collecte</h2>
-                  <p id="collectPhase">Collecte arrêtée.</p>
-                </div>
-              </div>
-              <div class="collect-run">
-                <button id="collectToggle" class="button primary" type="button">
-                  Activer la collecte <svg><use href="#i-arrow" /></svg>
-                </button>
-                <p class="field-hint" id="collectRunHint">
-                  Active la collecte avant la fin de la partie, puis laisse NXT5 Importer et le client League of Legends ouverts. Seules les customs observées après l’activation sont envoyées.
-                </p>
-              </div>
-              <form id="collectManualForm" class="collect-manual" novalidate>
-                <label for="collectManualId">Envoyer une partie manquée (Game ID)</label>
-                <div class="collect-manual-row">
-                  <input id="collectManualId" type="text" autocomplete="off" spellcheck="false" placeholder="EUW1_8035280010" maxlength="40" />
-                  <button id="collectManualSend" class="button compact" type="submit">Envoyer</button>
-                </div>
-              </form>
-              <div id="collectRunStatus" class="notice" role="status" hidden></div>
-            </section>
-            <section class="card settings-card span-two" id="collectGamesCard" hidden>
-              <div class="settings-title">
-                <span class="icon-tile"><svg><use href="#i-history" /></svg></span>
-                <div>
-                  <h2>Parties envoyées</h2>
-                  <p>Le staff retrouve ces parties dans NXT5, onglet Parties.</p>
-                </div>
-              </div>
-              <div id="collectGames" class="collect-games"></div>
-            </section>
-            <section class="privacy-note">
-              <svg><use href="#i-shield" /></svg>
-              <div>
-                <h3>Ce qui est envoyé</h3>
-                <p>
-                  Uniquement les données de la partie lues dans le client
-                  League of Legends, comme pour un export manuel. Aucun mot de
-                  passe Riot, aucune lecture du jeu. Une partie non reconnue par
-                  NXT5 reste visible dans Parties pour être finalisée.
-                </p>
-              </div>
-            </section>
-          </div>
-        </section>
-        <section
-          id="settingsView"
-          class="view"
-          aria-labelledby="settingsHeading"
-          hidden
-        >
-          <div class="page-heading">
-            <div>
-              <p class="eyebrow">Ton espace local</p>
-              <h1 id="settingsHeading" tabindex="-1">Paramètres</h1>
-              <p>Garde ton application et ta connexion au client à jour.</p>
-            </div>
-          </div>
-          <div class="grid-two">
+        <section id="settingsView" class="view" aria-labelledby="settingsHeading" hidden>
+          <header class="page-heading">
+            <h1 id="settingsHeading" tabindex="-1">Paramètres</h1>
+          </header>
+          <div class="panel-stack">
             <section class="card settings-card">
-              <div class="settings-title">
-                <span class="icon-tile"
-                  ><svg><use href="#i-folder" /></svg
-                ></span>
-                <div>
-                  <h2>Client League of Legends</h2>
-                  <p>Détection automatique des installations habituelles.</p>
-                </div>
-              </div>
-              <label for="leaguePath">Emplacement personnalisé</label
-              ><output id="leaguePath">Détection automatique</output>
+              <h2>Client League of Legends</h2>
+              <label for="leaguePath">Dossier d’installation</label>
+              <output id="leaguePath">Détection automatique</output>
               <div class="settings-actions">
-                <button id="chooseLeaguePath" class="button compact">
-                  Choisir le dossier
-                  <svg><use href="#i-folder" /></svg></button
-                ><button id="resetLeaguePath" class="text-button" hidden>
-                  Rétablir la détection automatique
-                </button>
+                <button id="chooseLeaguePath" class="button compact"><svg><use href="#i-folder" /></svg>Choisir le dossier</button>
+                <button id="resetLeaguePath" class="text-button" hidden>Rétablir la détection automatique</button>
               </div>
-              <p class="field-hint">
-                Si League est installé ailleurs, sélectionne son dossier ou son
-                fichier « lockfile ».
-              </p>
             </section>
             <section class="card settings-card">
-              <div class="settings-title">
-                <span class="icon-tile"
-                  ><svg><use href="#i-refresh" /></svg
-                ></span>
-                <div>
-                  <h2>Version & mises à jour</h2>
-                  <p>Le téléchargement correspond à ton système.</p>
-                </div>
-              </div>
-              <div class="update-settings-row">
-                <div>
-                  <strong id="latestVersion"
-                    >Vérification des mises à jour…</strong
-                  >
-                  <p id="systemInfo" class="field-hint"></p>
-                  <span class="version-pill" id="currentVersion">…</span>
-                </div>
-                <button id="manualUpdateButton" class="button compact">
-                  Vérifier les mises à jour
-                </button>
+              <h2>Mises à jour</h2>
+              <p class="section-hint"><span id="currentVersion"></span> · <span id="systemInfo"></span></p>
+              <p id="latestVersion" role="status">Recherche d’une mise à jour…</p>
+              <div class="settings-actions">
+                <button id="manualUpdateButton" class="button compact">Vérifier les mises à jour</button>
               </div>
               <p id="updateStatus" class="field-hint" role="status"></p>
-            </section>
-            <section class="privacy-note">
-              <svg><use href="#i-shield" /></svg>
-              <div>
-                <h3>Des données sous ton contrôle</h3>
-                <p>
-                  Les préférences et l’historique des exports sont enregistrés
-                  sur cet appareil. La récupération d’un match peut contacter
-                  NXT5 et les services Riot. L’envoi du fichier à ton équipe
-                  se fait ensuite dans NXT5.
-                </p>
-              </div>
             </section>
           </div>
           <div id="settingsStatus" class="notice" role="status" hidden></div>
         </section>
-              </main>
+      </main>
     </div>
     <script src="./renderer.js"></script>
   </body>

@@ -34,7 +34,6 @@ let checkingUpdate = false;
 let checkingClient = false;
 let resultHistoryId = "";
 let updateDownloadUrl = "";
-let progressTimer;
 let unsubscribeProgress;
 let unsubscribeCollector;
 const dateFormat = new Intl.DateTimeFormat("fr-FR", {
@@ -58,25 +57,21 @@ function notice(selector, type, message) {
   box.textContent = message || "";
 }
 function showView(view, focus = false) {
-  const names = {
-    export: "Nouvel export",
-    history: "Exports récents",
-    collect: "Collecte automatique",
-    settings: "Paramètres",
-  };
-  if (!names[view]) return;
+  const views = ["export", "collect", "history", "settings"];
+  if (!views.includes(view)) return;
   activeView = view;
   window.scrollTo({ top: 0, behavior: "instant" });
-  for (const name of Object.keys(names)) {
+  for (const name of views) {
     $(`#${name}View`).hidden = name !== view;
     const button = $(`#${name}Tab`);
     button.classList.toggle("active", name === view);
     if (name === view) button.setAttribute("aria-current", "page");
     else button.removeAttribute("aria-current");
   }
-  $("#viewName").textContent = names[view];
   if (view === "history") renderHistory();
   if (view === "collect") void refreshCollector();
+  if (view === "export" && !$("#resultPanel").hidden && $("#globalNotice").classList.contains("success"))
+    notice("#globalNotice", "", "");
   if (focus) $(`#${view}Heading`).focus({ preventScroll: true });
 }
 let collectorState = null;
@@ -95,24 +90,29 @@ function renderCollector(snapshot) {
   $("#collectLinked").hidden = !linked;
   $("#collectRunCard").hidden = !linked;
   $("#collectGamesCard").hidden = !snapshot.games.length;
-  $("#collectLinkSummary").textContent = linked
-    ? `${snapshot.link.teamName}${snapshot.link.teamTag ? ` · ${snapshot.link.teamTag}` : ""}${snapshot.link.label ? ` · ${snapshot.link.label}` : ""}`
-    : "Aucune équipe liée pour le moment.";
+  const invalid = snapshot.link?.invalidReason || "";
+  $("#collectInvalid").hidden = !invalid;
+  $("#collectInvalid").textContent = invalid;
+  $("#collectRunHint").hidden = snapshot.active || Boolean(invalid);
+  if (!linked) {
+    $("#collectLinked").open = false;
+    $("#collectManualForm").closest("details").open = false;
+  }
   if (linked) {
     $("#collectTeam").textContent = `${snapshot.link.teamName}${snapshot.link.teamTag ? ` (${snapshot.link.teamTag})` : ""}`;
-    $("#collectRoster").textContent = `${snapshot.link.roster?.length || 0} joueur(s) avec Riot ID`;
+    $("#collectDevice").textContent = snapshot.link.label || appState.deviceName || "—";
+    const players = snapshot.link.roster?.length || 0;
+    $("#collectRoster").textContent = `${players} joueur${players > 1 ? "s" : ""} avec Riot ID`;
     const expires = new Date(snapshot.link.expiresAt);
     $("#collectExpires").textContent = Number.isFinite(expires.getTime()) ? longDate.format(expires) : "—";
-    if (snapshot.link.invalidReason) notice("#collectLinkStatus", "error", snapshot.link.invalidReason);
-    else notice("#collectLinkStatus", "success", "");
   }
   const toggle = $("#collectToggle");
   toggle.replaceChildren(document.createTextNode(snapshot.active ? "Arrêter la collecte" : "Activer la collecte"), icon(snapshot.active ? "check" : "arrow"));
   toggle.classList.toggle("primary", !snapshot.active);
   toggle.disabled = collectorBusy || Boolean(snapshot.link?.invalidReason);
   const phases = { idle: "Collecte arrêtée.", starting: "Démarrage…", "no-client": snapshot.clientMessage, watching: snapshot.clientMessage || "En attente d’une custom.", "in-game": `Partie en cours (${snapshot.currentGame}). Elle sera envoyée à la fin.`, capturing: `${snapshot.clientMessage} ${snapshot.currentGame}`.trim() };
-  $("#collectPhase").textContent = phases[snapshot.phase] || snapshot.clientMessage || "Collecte arrêtée.";
-  document.body.classList.toggle("is-collecting", snapshot.active);
+  const phase = phases[snapshot.phase] || snapshot.clientMessage || "Collecte arrêtée.";
+  if ($("#collectPhase").textContent !== phase) $("#collectPhase").textContent = phase;
   const count = $("#collectCount");
   count.hidden = !snapshot.pending;
   count.textContent = String(snapshot.pending);
@@ -149,7 +149,7 @@ async function refreshCollector() {
   try { renderCollector(await api.collector.state()); } catch (error) { notice("#collectLinkStatus", "error", cleanError(error)); }
 }
 async function collectorAction(run, target, success = "") {
-  if (!api?.collector || collectorBusy) return;
+  if (!api?.collector || collectorBusy) return false;
   collectorBusy = true;
   $("#collectToggle").disabled = true;
   $("#collectConnect").disabled = true;
@@ -157,10 +157,12 @@ async function collectorAction(run, target, success = "") {
   try {
     const snapshot = await run();
     if (snapshot) renderCollector(snapshot);
-    if (success) notice(target, "success", success);
+    if (success && !snapshot?.link?.invalidReason) notice(target, "success", success);
     else notice(target, "success", "");
+    return true;
   } catch (error) {
     notice(target, "error", cleanError(error));
+    return false;
   } finally {
     collectorBusy = false;
     $("#collectConnect").disabled = false;
@@ -201,23 +203,17 @@ async function refreshAppState({ initial = false } = {}) {
   if (initial && appState.warning)
     notice("#globalNotice", "warning", appState.warning);
   appState.history = Array.isArray(appState.history) ? appState.history : [];
-  $("#railVersion").textContent = `v${appState.version}`;
   $("#currentVersion").textContent = `v${appState.version}`;
   const mac = appState.platform === "darwin" || appState.platform === "mac";
   $("#systemInfo").textContent =
     `${mac ? "macOS" : appState.platform === "win32" || appState.platform === "windows" ? "Windows" : appState.platform} · ${appState.arch === "arm64" ? (mac ? "Apple Silicon" : "ARM64") : "Intel / x64"}`;
-  $("#exportShortcut").textContent = mac ? "⌘ ↵" : "Ctrl ↵";
   if (initial && regions.has(appState.settings?.platform))
     regionInput.value = appState.settings.platform;
   updatePath();
   renderHistory();
   $("#historyCount").textContent = String(appState.history.length);
-  $("#historyTotal").textContent = String(appState.history.length);
-  const last = appState.history[0];
-  $("#lastExport").hidden = !last;
-  if (last)
-    $("#lastExportId").textContent =
-      `${last.gameId} · ${date(last.exportedAt)}`;
+  $("#historyCount").hidden = !appState.history.length;
+  $("#historyToolbar").hidden = !appState.history.length;
 }
 function renderHistory() {
   const query = $("#historySearch").value.trim().toUpperCase();
@@ -227,12 +223,9 @@ function renderHistory() {
   const list = $("#historyList");
   list.replaceChildren();
   $("#historyEmpty").hidden = items.length > 0;
-  $("#historyEmpty h3").textContent = query
+  $("#historyEmpty h2").textContent = query
     ? "Aucun export ne correspond"
-    : "Aucune game exportée pour le moment";
-  $("#historyEmpty p").textContent = query
-    ? "Essaie avec une autre partie de l’identifiant."
-    : "Tes prochains fichiers apparaîtront ici après leur enregistrement.";
+    : "Aucun export sur cet appareil";
   $("#firstExport").hidden = Boolean(query);
   for (const item of items) {
     const row = document.createElement("article");
@@ -257,11 +250,8 @@ function renderHistory() {
     retry.setAttribute("aria-label", `Réexporter ${item.gameId}`);
     retry.addEventListener("click", () => {
       if (generating) return;
-      gameInput.value = item.gameId;
-      syncInputRegion();
-      clearInputError();
       showView("export");
-      gameInput.focus();
+      startNewExport(item.gameId);
     });
     const reveal = document.createElement("button");
     reveal.type = "button";
@@ -330,8 +320,7 @@ async function checkForUpdate({ manual = false } = {}) {
     $("#latestVersion").textContent = info.updateAvailable
       ? `Version ${info.latestVersion} disponible`
       : "Ton application est à jour";
-    $("#updateText").textContent =
-      `Version ${info.latestVersion} · installée : ${appState.version || info.currentVersion}`;
+    $("#updateText").textContent = `Mise à jour disponible · v${info.latestVersion}`;
     if (manual)
       $("#updateStatus").textContent =
         "Vérification terminée à " +
@@ -363,6 +352,18 @@ function clearInputError() {
   $("#gameIdError").hidden = true;
   $("#gameIdError").textContent = "";
 }
+function startNewExport(gameId = "") {
+  if (generating) return;
+  $("#resultPanel").hidden = true;
+  $("#newExport").hidden = true;
+  form.hidden = false;
+  gameInput.value = gameId;
+  if (regions.has(appState.settings?.platform)) regionInput.value = appState.settings.platform;
+  syncInputRegion();
+  clearInputError();
+  notice("#status", "", "");
+  gameInput.focus();
+}
 function syncInputRegion() {
   const full = gameInput.value
     .trim()
@@ -384,8 +385,8 @@ function validateInput() {
     gameInput.setAttribute("aria-invalid", "true");
     $("#gameIdError").hidden = false;
     $("#gameIdError").textContent = !input
-      ? "Ajoute l’identifiant de la game à exporter."
-      : "Utilise un numéro de game ou un ID complet, comme EUW1_7861632138.";
+      ? "Saisis l’identifiant de la partie."
+      : "Saisis un numéro de partie ou un identifiant complet, par exemple EUW1_7861632138.";
     gameInput.focus();
     return false;
   }
@@ -395,14 +396,10 @@ function validateInput() {
 }
 function setGenerating(value) {
   generating = value;
-  document.body.classList.toggle("is-generating", value);
   form.setAttribute("aria-busy", String(value));
   submit.disabled = value;
   gameInput.disabled = value;
   regionInput.disabled = value;
-  $("#submit span").textContent = value
-    ? "Export en cours…"
-    : "Exporter la game";
   $("#cancelImport").disabled = false;
   $("#cancelImport").textContent = "Annuler";
   $("#chooseLeaguePath").disabled = value;
@@ -411,22 +408,13 @@ function setGenerating(value) {
 }
 function renderProgress(progress) {
   if (!generating) return;
-  const stages = ["fetch", "timeline", "save", "complete"];
-  const index = stages.indexOf(progress.stage);
-  for (const step of $("#progressSteps").children) {
-    const stepIndex = stages.indexOf(step.dataset.stage);
-    step.classList.toggle("active", stepIndex === Math.max(0, index));
-    step.classList.toggle("done", stepIndex < index);
-    if (stepIndex === Math.max(0, index))
-      step.setAttribute("aria-current", "step");
-    else step.removeAttribute("aria-current");
-  }
   $("#progressMessage").textContent =
     progress.message || "Préparation du fichier…";
   if (progress.stage === "save" || progress.stage === "complete")
     $("#cancelImport").disabled = true;
 }
 function renderResult(result) {
+  $("#newExport").hidden = false;
   $("#resultPanel").hidden = false;
   $("#resultGameId").textContent = result.gameId;
   $("#resultPath").textContent = result.filePath;
@@ -437,13 +425,7 @@ function renderResult(result) {
     summary.timelineAvailable ? "Timeline incluse" : "Sans timeline",
     sourceLabel(summary.source),
   ].filter(Boolean);
-  $("#resultFacts").replaceChildren(
-    ...facts.map((value) => {
-      const span = document.createElement("span");
-      span.textContent = value;
-      return span;
-    }),
-  );
+  $("#resultFacts").textContent = facts.join(" · ");
   const warnings = Array.isArray(result.warnings) ? result.warnings : [];
   $("#resultWarning").hidden = !warnings.length;
   $("#resultWarning").textContent = warnings.join(" ");
@@ -451,12 +433,13 @@ function renderResult(result) {
 }
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (generating || !api?.generateImport || !validateInput()) return;
+  if (form.hidden || generating || !api?.generateImport || !validateInput()) return;
   const payload = {
     gameId: gameInput.value.trim(),
     platform: regionInput.value,
   };
   setGenerating(true);
+  form.hidden = true;
   notice("#status", "", "");
   notice("#globalNotice", "", "");
   $("#resultPanel").hidden = true;
@@ -468,13 +451,6 @@ form.addEventListener("submit", async (event) => {
     stage: "validate",
     message: "Vérification de l’identifiant…",
   });
-  const start = Date.now();
-  $("#progressTime").textContent =
-    "Tu pourras choisir l’emplacement du fichier à la fin.";
-  progressTimer = setInterval(() => {
-    $("#progressTime").textContent =
-      `${Math.round((Date.now() - start) / 1000)} s écoulées · La disponibilité des données dépend de Riot et du client LoL.`;
-  }, 1000);
   try {
     const result = await api.generateImport(payload);
     if (result.canceled)
@@ -494,9 +470,9 @@ form.addEventListener("submit", async (event) => {
         );
       }
       renderResult(result);
-      if (!$("#status").textContent)
+      if (activeView !== "export" && !$("#status").textContent)
         notice(
-          "#status",
+          "#globalNotice",
           "success",
           `Export ${result.gameId} enregistré. Tu peux l’ajouter dans NXT5.`,
         );
@@ -504,9 +480,9 @@ form.addEventListener("submit", async (event) => {
   } catch (error) {
     notice("#status", "error", cleanError(error));
   } finally {
-    clearInterval(progressTimer);
     $("#progressPanel").hidden = true;
     setGenerating(false);
+    form.hidden = !$("#resultPanel").hidden;
     if (activeView === "export") {
       const resultPanel = $("#resultPanel");
       const feedback = resultPanel.hidden ? $("#status") : resultPanel;
@@ -595,13 +571,10 @@ $("#brandHome").addEventListener("click", (event) => {
   event.preventDefault();
   showView("export", true);
 });
-$("#viewHistory").addEventListener("click", () => showView("history", true));
-$("#openClientSettings").addEventListener("click", () =>
-  showView("settings", true),
-);
+$("#newExport").addEventListener("click", () => startNewExport());
 $("#firstExport").addEventListener("click", () => {
-  showView("export");
-  gameInput.focus();
+  showView("export", true);
+  startNewExport();
 });
 $("#historySearch").addEventListener("input", renderHistory);
 $("#refreshClient").addEventListener("click", checkClient);
@@ -618,7 +591,12 @@ $("#collectLinkForm").addEventListener("submit", (event) => {
   event.preventDefault();
   const code = $("#collectCode").value.trim();
   const label = $("#collectLabel").value.trim() || appState.deviceName || "";
-  collectorAction(() => api.collector.connect({ code, label }), "#collectLinkStatus", "Équipe liée. Active la collecte avant ta prochaine custom.").then(() => { $("#collectCode").value = ""; });
+  collectorAction(() => api.collector.connect({ code, label }), "#collectLinkStatus").then((linked) => {
+    if (linked) {
+      $("#collectCode").value = "";
+      if (activeView === "collect") $("#collectToggle").focus();
+    }
+  });
 });
 $("#collectVerify").addEventListener("click", () => collectorAction(() => api.collector.verify(), "#collectLinkStatus", "Liaison vérifiée."));
 $("#collectForget").addEventListener("click", () => {
@@ -629,8 +607,13 @@ $("#collectToggle").addEventListener("click", () => collectorAction(() => (colle
 $("#collectManualForm").addEventListener("submit", (event) => {
   event.preventDefault();
   const gameId = $("#collectManualId").value.trim();
-  if (!gameId) return;
-  collectorAction(() => api.collector.submit(gameId), "#collectRunStatus", "Partie envoyée à NXT5.").then(() => { $("#collectManualId").value = ""; });
+  if (!gameId) {
+    $("#collectManualId").focus();
+    return;
+  }
+  collectorAction(() => api.collector.submit(gameId), "#collectRunStatus").then((sent) => {
+    if (sent) $("#collectManualId").value = "";
+  });
 });
 document.addEventListener("keydown", (event) => {
   if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey)
@@ -641,7 +624,8 @@ document.addEventListener("keydown", (event) => {
   }
   if (event.key === "Enter" && activeView === "export") {
     event.preventDefault();
-    form.requestSubmit();
+    if (!$("#resultPanel").hidden) startNewExport();
+    else if (!form.hidden) form.requestSubmit();
   }
 });
 async function initialize() {
@@ -680,7 +664,6 @@ async function initialize() {
   void checkForUpdate();
 }
 window.addEventListener("pagehide", () => {
-  clearInterval(progressTimer);
   unsubscribeProgress?.();
   unsubscribeCollector?.();
 });
