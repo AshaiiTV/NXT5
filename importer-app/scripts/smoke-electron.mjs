@@ -229,7 +229,7 @@ async function runSmoke() {
     let page = await application.firstWindow();
     trackPageErrors(page);
     await page.waitForLoadState('domcontentloaded');
-    await expect(page.locator('#railVersion')).toHaveText(`v${packageInfo.version}`);
+    await expect(page.locator('#currentVersion')).toHaveText(`v${packageInfo.version}`);
     await expect(page.locator('#clientIndicator')).toHaveAttribute('data-state', 'connected');
     await expect(page.locator('#manualUpdateButton')).toBeEnabled();
     const modifier = process.platform === 'darwin' ? 'Meta' : 'Control';
@@ -240,6 +240,7 @@ async function runSmoke() {
     const lastSavePath = () => application.evaluate(() => globalThis.__NXT5_SMOKE.saveDialogOptions.at(-1)?.defaultPath);
     const clickExport = async (value = gameId) => {
       await page.locator('#exportTab').click();
+      if (await page.locator('#newExport').isVisible()) await page.locator('#newExport').click();
       await page.locator('#gameId').fill(value);
       await page.locator('#submit').click();
     };
@@ -297,11 +298,13 @@ async function runSmoke() {
       await expect(page.locator('.history-row')).toHaveCount(1);
       await page.screenshot({ path: path.join(runDir, 'fixture-history-desktop.png') });
       await page.locator('#historySearch').fill('999999');
-      await expect(page.locator('#historyEmpty h3')).toHaveText('Aucun export ne correspond');
+      await expect(page.locator('#historyEmpty h2')).toHaveText('Aucun export ne correspond');
       await page.locator('#historySearch').fill('');
       await page.getByRole('button', { name: `Afficher le fichier ${gameId}` }).click();
       assert.ok((await application.evaluate(() => globalThis.__NXT5_SMOKE.external)).some((url) => url.startsWith('file:')));
       await page.keyboard.press(`${modifier}+3`);
+      await expect(page.locator('#collectView')).toBeVisible();
+      await page.keyboard.press(`${modifier}+4`);
       await expect(page.locator('#settingsView')).toBeVisible();
       await expect(page.locator('#settingsHeading')).toBeFocused();
     });
@@ -427,6 +430,7 @@ async function runSmoke() {
       for (const scenario of ['success', 'no-timeline', 'local-success']) assertImportMatch((await readExport(scenario)).match);
     });
     await test('history and selected region persist across renderer reload', async () => {
+      await page.locator('#newExport').click();
       await page.locator('#platform').selectOption('NA1');
       await expect.poll(() => page.evaluate(async () => (await window.nxt5.getAppState()).settings.platform)).toBe('NA1');
       const count = await page.locator('#historyCount').textContent();
