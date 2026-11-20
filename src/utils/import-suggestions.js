@@ -1,5 +1,4 @@
-const completeRiotId = value => typeof value === "string" && /^[^#\r\n]{1,100}#[^#\s]{1,16}$/.test(value.trim())
-  ? value.trim().toLowerCase() : "";
+import { completeRiotId } from "../../shared/riot-id.js";
 
 /** A suggestion needs five exact identities; names and partial rosters are not evidence. */
 export function suggestImportSide(preview, roster) {

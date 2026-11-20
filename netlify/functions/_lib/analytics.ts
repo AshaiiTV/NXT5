@@ -1,6 +1,7 @@
 import { csFromTimelineFrames } from '../../../shared/timeline-milestones.js';
 import { canonicalChampion } from '../../../shared/champions.js';
 import { ROLE_SORT_ORDER } from '../../../shared/roles.js';
+import { participantRiotId } from '../../../shared/riot-id.js';
 import { logFailure } from './safe-log';
 import { assertSchemaReady } from './migrations';
 import type { NeonQueryFunctionInTransaction } from '@neondatabase/serverless';
@@ -47,12 +48,6 @@ function teamIdFromSide(side) {
   if (value === 'BLUE' || value === 'BLUE SIDE' || value === '100') return 100;
   if (value === 'RED' || value === 'RED SIDE' || value === '200') return 200;
   return null;
-}
-
-function participantRiotId(p) {
-  const gameName = p.riotIdGameName || p.summonerName || '';
-  const tag = p.riotIdTagline || '';
-  return tag ? `${gameName}#${tag}` : gameName;
 }
 
 function participantNumber(p, ...keys) {

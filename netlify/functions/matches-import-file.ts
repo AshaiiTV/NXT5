@@ -10,6 +10,8 @@ import { assertImportRequestActive, fetchRequestedRiotMatch } from './_lib/match
 import { assertRateLimit } from './_lib/rate-limit';
 import { notifyMatchImport } from './_lib/match-notifications';
 import { settleTeamImport } from './_lib/team-import';
+import { questRole } from './_lib/role-quest';
+import { participantRiotId } from '../../shared/riot-id.js';
 
 function unwrapImportPayload(body) {
   const payload = body?.payload || body?.file || body;
@@ -102,7 +104,8 @@ export default async function handler(request: Request, context: Context): Promi
               champion: participant.championName,
               championId: participant.championId,
               summonerName: participant.summonerName,
-              riotId: participant.riotIdTagline ? `${participant.riotIdGameName || participant.summonerName}#${participant.riotIdTagline}` : participant.summonerName,
+              riotId: participantRiotId(participant),
+              questRole: questRole(participant, match.info.mapId),
               teamPosition: participant.teamPosition || participant.individualPosition || participant.lane || ''
             }))
           }))

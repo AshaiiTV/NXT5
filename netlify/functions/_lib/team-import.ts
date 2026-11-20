@@ -5,6 +5,9 @@ import { TEAM_STAFF_ROLES } from "./teams";
 import { assertImportMatch } from "./import-validation";
 import { persistAnalyzedMatch } from "./analytics";
 import { seedDefaultMatchCategories } from "./match-categories";
+import { questRole } from "./role-quest";
+import { canonicalRole, ROLES } from "../../../shared/roles.js";
+import { findImportProfile, participantRiotId } from "../../../shared/riot-id.js";
 
 export const TEAM_IMPORT_MAX_BODY = 5 * 1024 * 1024;
 export const TEAM_IMPORT_LINK_DAYS = 90;
@@ -13,9 +16,6 @@ const MAX_ACTIVE_LINKS = 5;
 const MAX_SUBMISSIONS_PER_LINK = 500;
 /** Roster members that must play on one side for a game to belong to the team. */
 export const AUTO_IMPORT_MIN_ROSTER = 4;
-const ROLES = ["TOP", "JGL", "MID", "ADC", "SUP"] as const;
-const PLAYING_ROLES = ["TOP", "JGL", "MID", "ADC", "SUP"];
-const POSITIONS: Record<string, string> = { TOP: "TOP", JUNGLE: "JGL", JGL: "JGL", MIDDLE: "MID", MID: "MID", BOTTOM: "ADC", BOT: "ADC", ADC: "ADC", UTILITY: "SUP", SUPPORT: "SUP", SUP: "SUP" };
 const SMITE = 11;
 
 export function importError(message: string, status = 400, code = "TEAM_IMPORT_INVALID"): never {
@@ -28,14 +28,6 @@ function uuid(value: unknown, label = "Identifiant"): string {
   const id = String(value || "").trim().toLowerCase();
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)) importError(`${label} invalide.`);
   return id;
-}
-export function normalizeRiotId(value: unknown) {
-  return String(value || "").toLowerCase().replace(/\s+/g, "").replace("#", "-");
-}
-function participantRiotId(p: any) {
-  const name = p?.riotIdGameName || p?.summonerName || "";
-  const tag = p?.riotIdTagline || p?.riotIdTagLine || "";
-  return tag ? `${name}#${tag}` : name;
 }
 
 /** Any member reads; the owner and staff roles create and revoke links. */
@@ -176,7 +168,7 @@ export async function teamImportSession(token: string) {
 
 function positionOf(participant: any): string | null {
   for (const key of ["teamPosition", "individualPosition", "lane"]) {
-    const role = POSITIONS[String(participant?.[key] || "").toUpperCase()];
+    const role = canonicalRole(participant?.[key]);
     if (role) return role;
   }
   return null;
@@ -185,9 +177,21 @@ function hasSmite(participant: any) {
   return [participant?.summoner1Id, participant?.summoner2Id, participant?.spell1Id, participant?.spell2Id].map(Number).includes(SMITE);
 }
 /** Five distinct roles for one side, or null when Riot's positions do not settle them. */
-function resolveSideRoles(participants: any[], preferred: (participant: any) => string | null) {
-  const roles = new Map<number, string | null>(participants.map((p) => [Number(p.participantId), preferred(p) || positionOf(p)]));
-  for (const p of participants) if (!roles.get(Number(p.participantId)) && hasSmite(p)) roles.set(Number(p.participantId), "JGL");
+function resolveSideRoles(participants: any[], mapId: unknown, rosterRole: (p: any) => string | null) {
+  const roles = new Map<number, string | null>();
+  const questRoles = new Set<string>();
+  for (const p of participants) {
+    const role = questRole(p, mapId);
+    if (role && questRoles.has(role)) return null;
+    if (role) questRoles.add(role);
+    roles.set(Number(p.participantId), role);
+  }
+  for (const p of participants) {
+    const id = Number(p.participantId);
+    if (roles.get(id)) continue;
+    const candidates = [positionOf(p), hasSmite(p) ? "JGL" : null, rosterRole(p)];
+    roles.set(id, candidates.find(role => role && !questRoles.has(role)) || null);
+  }
   const taken = [...roles.values()].filter(Boolean);
   if (new Set(taken).size !== taken.length) return null;
   const missing = participants.filter((p) => !roles.get(Number(p.participantId)));
@@ -199,19 +203,21 @@ function resolveSideRoles(participants: any[], preferred: (participant: any) => 
 
 /** Side, roles and profiles the manual import form would ask for, or the reason it cannot be settled. */
 export function resolveAutoAssignments(match: any, roster: any[]) {
-  const byRiot = new Map(roster.map((player) => [normalizeRiotId(player.riot_id), player]));
+  const gameIds = match.info.participants.map(participantRiotId);
+  const profiles = new Map(match.info.participants.map(p => [p.participantId, findImportProfile(participantRiotId(p), roster, gameIds)]));
+  const allyPlayer = (p: any): any => profiles.get(p.participantId);
   const sides = { 100: [] as any[], 200: [] as any[] };
   for (const p of match.info.participants) sides[p.teamId as 100 | 200]?.push(p);
-  const matched = (participants: any[]) => participants.filter((p) => byRiot.has(normalizeRiotId(participantRiotId(p))));
+  const matched = (participants: any[]) => participants.filter(p => allyPlayer(p) !== undefined);
   const blue = matched(sides[100]).length, red = matched(sides[200]).length;
   if (Math.max(blue, red) < AUTO_IMPORT_MIN_ROSTER) return { skipped: `Partie hors équipe : ${Math.max(blue, red)} joueur(s) de l’effectif reconnu(s), ${AUTO_IMPORT_MIN_ROSTER} requis.` };
   if (blue === red) return { skipped: "Les deux équipes contiennent autant de joueurs de l’effectif." };
   const allyTeamId = blue > red ? 100 : 200;
   const allies = sides[allyTeamId], enemies = sides[allyTeamId === 100 ? 200 : 100];
-  const allyPlayer = (p: any) => byRiot.get(normalizeRiotId(participantRiotId(p)));
-  const allyRoles = resolveSideRoles(allies, (p) => positionOf(p) || (PLAYING_ROLES.includes(String(allyPlayer(p)?.role)) ? String(allyPlayer(p).role) : null));
+  if (allies.some(p => allyPlayer(p) === null)) return { pending: "Plusieurs profils correspondent au même Riot ID : vérifie les associations de l’effectif." };
+  const allyRoles = resolveSideRoles(allies, match.info.mapId, (p) => canonicalRole(allyPlayer(p)?.role));
   if (!allyRoles) return { pending: "Les postes de ton équipe n’ont pas pu être reconnus automatiquement." };
-  const enemyRoles = resolveSideRoles(enemies, () => null);
+  const enemyRoles = resolveSideRoles(enemies, match.info.mapId, () => null);
   if (!enemyRoles) return { pending: "Les postes de l’équipe adverse n’ont pas pu être reconnus automatiquement." };
   const unknownAlly = allies.find((p) => !allyPlayer(p));
   if (unknownAlly) return { pending: `${participantRiotId(unknownAlly)} n’est pas dans l’effectif : associe ce joueur à un profil.` };

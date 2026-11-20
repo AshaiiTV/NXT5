@@ -37,6 +37,7 @@ export type RiotParticipant = {
   summonerName?: string;
   riotIdGameName?: string;
   riotIdTagline?: string;
+  roleBoundItem?: number | string;
   teamPosition?: string;
   individualPosition?: string;
   lane?: string;
