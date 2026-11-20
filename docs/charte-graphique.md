@@ -439,6 +439,8 @@ L’onglet « Débriefs » de l’espace équipe devient « Notes ». Son rôle 
 
 **Précision du 19 novembre 2026.** Dans chaque fiche de partie, la première vue se nomme « Résumé ». Elle donne accès au texte intégral de chaque débrief enregistré lié à cette partie, y compris les débriefs de groupe. Elle réunit le score, les compositions, l’économie, les objectifs, les moments clés, la chronologie et la lecture par poste et par joueur. Placer « Notes » à côté de « Résumé ». Le coach et les joueurs y lisent et rédigent les notes de la partie, avec possibilité de lier d’autres parties. Une nouvelle note reste dans Notes. La bibliothèque d’équipe rassemble aussi les notes sans partie liée. Lorsqu’une observation historique est modifiée, dissociée ou supprimée dans Notes, le résumé conserve le titre, le texte intégral et les parties liées du débrief d’origine.
 
+**Précision du 20 novembre 2026.** L’accès « Notes » se fait depuis l’onglet de la fiche de partie ou la bibliothèque d’équipe à l’adresse `/notes`. Le menu latéral, y compris sa version réduite et son tiroir mobile, ne présente plus d’entrée « Notes ».
+
 ### Clarté et prise en main — évolution du 24 septembre 2026
 
 Demande explicite : simplifier la lecture et l’utilisation, particulièrement pour une personne qui découvre NXT5. Cette évolution conserve l’identité du 23 septembre et fait évoluer la hiérarchie, les textes et les parcours. Elle prime sur les anciennes formulations ou dispositions contraires ci-dessous. Réalisation dans `worktrees/NXT5-clarte-parcours-20260924`, base `e18f126` ; plan et compte rendu dans les documents de ce checkout.
