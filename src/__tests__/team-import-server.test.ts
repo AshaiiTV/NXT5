@@ -249,6 +249,19 @@ describe('receiving games from the desktop app', () => {
     expect(plan()).toMatchObject({ pending: expect.stringContaining('même Riot ID') });
   });
 
+  it('recognises roster spacing variants from LCU only when the full ID is unambiguous', () => {
+    const players = roster.map(p => ({ id: p.id, riot_id: p.riotId.replace('#', ' #'), role: p.role }));
+    players[2].riot_id = 'Ally2#EUW';
+    const game = customGame();
+    const plan = () => resolveAutoAssignments(game, players);
+    expect(plan()).toMatchObject({ playerAssignments: { TOP: players[0].id, MID: players[2].id } });
+    players.push({ ...players[2], id: randomUUID(), riot_id: 'Al ly2#EUW' });
+    expect(plan()).toHaveProperty('pending');
+    players.pop();
+    Object.assign(game.info.participants[9], { riotIdGameName: 'Al ly2' });
+    expect(plan()).toHaveProperty('pending');
+  });
+
   it('skips games that are not the team’s and keeps unresolved games for the staff, who can finalise them with the usual import', async () => {
     const token = await link();
     const foreign = await submit(token, customGame({ allies: ['Someone#EUW', 'Else#EUW', roster[0].riotId] }));

@@ -13,6 +13,7 @@ Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible
 
 ## Données et limites
 
+- Le profil est recherché avec le Riot ID complet, tag compris. Une différence d’espacement dans le nom est acceptée si elle correspond à un seul profil et un seul participant. Deux candidats possibles nécessitent une vérification du staff.
 - La quête correspond au poste choisi en sélection des champions. Une permutation de lanes en cours de jeu peut être corrigée dans NXT5. Les bottes et les balises de contrôle permettent de reconnaître ADC et support uniquement dans l’emplacement de quête. L’aperçu de finalisation reprend les mêmes quêtes et laisse les postes modifiables. [Règles Riot](https://www.leagueoflegends.com/fr-fr/news/game-updates/patch-26-1-notes/) · [Objets Riot du patch 16.23.1](https://ddragon.leagueoflegends.com/cdn/16.23.1/data/fr_FR/item.json)
 
 - Tables `team_import_links` et `team_import_submissions` (migration `team-import-links-20261105-v1`). Les lignes suivent l’équipe. Le code et le jeton sont stockés hachés ; le jeton n’est jamais relu.

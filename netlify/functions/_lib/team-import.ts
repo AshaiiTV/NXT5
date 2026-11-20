@@ -7,7 +7,7 @@ import { persistAnalyzedMatch } from "./analytics";
 import { seedDefaultMatchCategories } from "./match-categories";
 import { questRole } from "./role-quest";
 import { canonicalRole, ROLES } from "../../../shared/roles.js";
-import { completeRiotId, participantRiotId } from "../../../shared/riot-id.js";
+import { findImportProfile, participantRiotId } from "../../../shared/riot-id.js";
 
 export const TEAM_IMPORT_MAX_BODY = 5 * 1024 * 1024;
 export const TEAM_IMPORT_LINK_DAYS = 90;
@@ -203,20 +203,17 @@ function resolveSideRoles(participants: any[], mapId: unknown, rosterRole: (p: a
 
 /** Side, roles and profiles the manual import form would ask for, or the reason it cannot be settled. */
 export function resolveAutoAssignments(match: any, roster: any[]) {
-  const byRiot = new Map<string, any>();
-  for (const player of roster) {
-    const key = completeRiotId(player.riot_id);
-    if (key) byRiot.set(key, byRiot.has(key) ? null : player);
-  }
+  const gameIds = match.info.participants.map(participantRiotId);
+  const profiles = new Map(match.info.participants.map(p => [p.participantId, findImportProfile(participantRiotId(p), roster, gameIds)]));
+  const allyPlayer = (p: any): any => profiles.get(p.participantId);
   const sides = { 100: [] as any[], 200: [] as any[] };
   for (const p of match.info.participants) sides[p.teamId as 100 | 200]?.push(p);
-  const matched = (participants: any[]) => participants.filter((p) => byRiot.has(completeRiotId(participantRiotId(p))));
+  const matched = (participants: any[]) => participants.filter(p => allyPlayer(p) !== undefined);
   const blue = matched(sides[100]).length, red = matched(sides[200]).length;
   if (Math.max(blue, red) < AUTO_IMPORT_MIN_ROSTER) return { skipped: `Partie hors équipe : ${Math.max(blue, red)} joueur(s) de l’effectif reconnu(s), ${AUTO_IMPORT_MIN_ROSTER} requis.` };
   if (blue === red) return { skipped: "Les deux équipes contiennent autant de joueurs de l’effectif." };
   const allyTeamId = blue > red ? 100 : 200;
   const allies = sides[allyTeamId], enemies = sides[allyTeamId === 100 ? 200 : 100];
-  const allyPlayer = (p: any) => byRiot.get(completeRiotId(participantRiotId(p)));
   if (allies.some(p => allyPlayer(p) === null)) return { pending: "Plusieurs profils correspondent au même Riot ID : vérifie les associations de l’effectif." };
   const allyRoles = resolveSideRoles(allies, match.info.mapId, (p) => canonicalRole(allyPlayer(p)?.role));
   if (!allyRoles) return { pending: "Les postes de ton équipe n’ont pas pu être reconnus automatiquement." };

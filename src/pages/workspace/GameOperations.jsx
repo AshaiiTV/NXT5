@@ -10,7 +10,7 @@ import { cx, errorToast, tone, formatUploadSize } from "../../app/helpers.js";
 import { matchCategoryIds, matchDisplayName } from "../../utils/matches.js";
 import { importedGameSide } from "../../utils/imported-games.js";
 import { suggestImportSide, suggestedImportLabel } from "../../utils/import-suggestions.js";
-import { completeRiotId } from "../../../shared/riot-id.js";
+import { findImportProfile } from "../../../shared/riot-id.js";
 import { normalizeRole } from "../../../shared/roles.js";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { championDisplayName, ChampionPortrait, COMP_ROLES, canStaffManage, isGameplayRole, normalizeProfileKey, matchCategoryTone, championMatchesLane } from "./workspace-shared.jsx";
@@ -687,7 +687,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
     if (riotId.includes("#")) values.push(riotId.split("#")[0]);
     return [...new Set(values.map(normalizeProfileKey).filter(Boolean))];
   }
-  function rosterIdentityLookup() {
+  function rosterIdentityLookup(preview) {
     const lookup = new Map();
     gameplayRoster.forEach((player) => {
       [player.riot_id, player.name].forEach((value) => {
@@ -698,14 +698,12 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
       const riotNameKey = normalizeProfileKey(riotName);
       if (riotNameKey && !lookup.has(riotNameKey)) lookup.set(riotNameKey, player);
     });
-    return lookup;
+    return { names: lookup, gameIds: (preview?.teams || []).flatMap(team => team.participants.map(p => p.riotId)) };
   }
   function matchedRosterPlayer(participant, lookup) {
-    const key = completeRiotId(participant.riotId);
-    const exact = key ? gameplayRoster.filter(player => completeRiotId(player.riot_id) === key) : [];
-    if (exact.length === 1) return exact[0];
-    if (participant.questRole || exact.length > 1) return null;
-    return preportIdentityKeys(participant).map((key) => lookup.get(key)).find(Boolean) || null;
+    const profile = findImportProfile(participant.riotId, gameplayRoster, lookup.gameIds);
+    if (profile !== undefined || participant.questRole) return profile || null;
+    return preportIdentityKeys(participant).map((key) => lookup.names.get(key)).find(Boolean) || null;
   }
   function previewRoleScore(participant, role, index, matchedPlayer) {
     const riotRole = previewRiotRole(participant);
@@ -723,7 +721,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   function roleParticipantMapForSide(side, preview = importPreview) {
     const team = (preview?.teams || []).find((item) => item.side === side);
     const participants = [...(team?.participants || [])].sort((a, b) => Number(a.participantId || 0) - Number(b.participantId || 0));
-    const lookup = rosterIdentityLookup();
+    const lookup = rosterIdentityLookup(preview);
     const byRole = new Map();
     // Keep conflicting quests open for the staff, including in the fallback pass.
     const questRoles = new Set(participants.map(p => p.questRole).filter(role => COMP_ROLES.includes(role)));
