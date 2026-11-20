@@ -1,5 +1,6 @@
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, ExternalLink, FileText, Loader2, Plus, RefreshCw, Search, Shield, Swords, X } from "lucide-react";
+import { loadDraftHistory } from "../../api/draft-history.js";
 import { apiFetch } from "../../api/client.js";
 import { t } from "../../i18n/translate.js";
 import { getLocale } from "../../i18n/locale.js";
@@ -21,6 +22,7 @@ function sourceHref(snapshot) {
 }
 
 export function SourceLink({ snapshot }) {
+  if (snapshot?.source === "nxt5" && /^[0-9a-f-]{36}$/.test(snapshot.sourceDraftId)) return <a className="opponents-source" href={`/draft/salle?room=${snapshot.sourceDraftId}`}>{t("Revoir la salle")}<ExternalLink size={16} aria-hidden="true" /></a>;
   const href = sourceHref(snapshot);
   return href ? <a className="opponents-source" href={href} target="_blank" rel="noopener noreferrer">{t("Ouvrir sur Drafter")}<ExternalLink size={16} aria-hidden="true" /></a> : null;
 }
@@ -230,7 +232,7 @@ function TeamOpponents({ teamId, opponentId = "", refreshRevision = 0, onCountCh
       readRequest.current = controller;
       if (!hasCollection.current) setLoadState("loading");
       setLoadError("");
-      apiFetch("opponents-drafts", { method: "POST", body: JSON.stringify({ action: "list", teamId }), signal: controller.signal })
+      loadDraftHistory(teamId, controller.signal)
         .then((result) => { if (!disposed && !controller.signal.aborted) {
           hasCollection.current = true;
           setCollection({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], ...result });

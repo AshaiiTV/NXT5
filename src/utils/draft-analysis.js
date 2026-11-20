@@ -54,7 +54,7 @@ export function normalizeDraftRows(rows = []) {
   const unique = new Map();
   let invalid = false;
   for (const row of Array.isArray(rows) ? rows : []) {
-    if (!row || !['blue', 'red'].includes(row.allySide) || row.snapshot?.source !== 'drafter.lol' || row.snapshot.status !== 'completed') { invalid = true; continue; }
+    if (!row || !['blue', 'red'].includes(row.allySide) || !['drafter.lol', 'nxt5'].includes(row.snapshot?.source) || row.snapshot.status !== 'completed') { invalid = true; continue; }
     const key = sourceKey(row);
     if (!key) { invalid = true; continue; }
     const previous = unique.get(key);

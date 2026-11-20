@@ -5,7 +5,7 @@ import { assertSubjectRateLimit } from './_lib/rate-limit';
 import { applyStaffSelections, importDrafterDraft } from './_lib/drafter-import';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 import {
-  assertOpponentsSchemaReady, createDraftPreviewToken, createOpponent, listOpponents, listOpponentProfiles,
+  assertOpponentsSchemaReady, createDraftPreviewToken, createOpponent, listOpponents, listDraftPage, listOpponentProfiles,
   getMatchDraft, getMatchOpponent, getGroupOpponent, groupOpponentError, opponentInput, opponentUuid, readDraftPreviewToken, requireOpponentTeam, saveMatchDraft,
   saveOpponentDraft, setMatchOpponent, setGroupOpponent, unlinkMatchDraft
 } from './_lib/opponents';
@@ -26,6 +26,7 @@ export default async function handler(request: Request, context: Context): Promi
     const teamId = opponentUuid(body.teamId);
     const canEdit = await requireOpponentTeam(teamId, user.id, !['list', 'list-opponents', 'get-match-draft', 'get-match-opponent', 'get-group-opponent'].includes(action));
     await assertOpponentsSchemaReady();
+    if (action === 'list' && body.after) return json(await listDraftPage(teamId, body.after));
     if (action === 'list') return json({ ...await listOpponents(teamId), canEdit });
     if (action === 'list-opponents') return json({ ...await listOpponentProfiles(teamId), canEdit });
     if (action === 'get-match-draft') return json({ ...await getMatchDraft(teamId, opponentUuid(body.matchId)), canEdit });
