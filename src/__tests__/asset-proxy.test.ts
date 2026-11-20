@@ -8,6 +8,41 @@ const imageUrl = 'https://raw.communitydragon.org/latest/game/assets/ux/announce
 const request = (target = url, method = 'GET') => handler(new Request(`https://nxt5.test/.netlify/functions/asset-proxy?url=${encodeURIComponent(target)}`, { method }));
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
+describe('champion voices', () => {
+  const voice = (name: string, lang: string, kind: string) => handler(new Request(
+    'https://nxt5.test/.netlify/functions/asset-proxy?' + new URLSearchParams({ voice: name, lang, kind })
+  ));
+
+  it.each([
+    ['MonkeyKing', 'fr', 'ban', 'fr_fr/v1/champion-ban-vo/62.ogg'],
+    ['Leblanc', 'en', 'pick', 'default/v1/champion-choose-vo/7.ogg'],
+    ['Nunu', 'es', 'pick', 'es_es/v1/champion-choose-vo/20.ogg'],
+  ])('serves the localized %s line for %s/%s', async (name, lang, kind, path) => {
+    const fetch = vi.fn().mockResolvedValue(new Response('OggS', { headers: { 'Content-Type': 'audio/ogg' } }));
+    vi.stubGlobal('fetch', fetch);
+    const result = await voice(name, lang, kind);
+    expect(fetch).toHaveBeenCalledWith('https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/' + path,
+      expect.objectContaining({ redirect: 'manual' }));
+    expect(result.headers.get('content-type')).toBe('audio/ogg');
+    expect(await result.text()).toBe('OggS');
+  });
+
+  it('limits voices to the roster, locale, action, upstream type and clip size', async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal('fetch', fetch);
+    for (const args of [['Other', 'fr', 'ban'], ['Jinx', 'de', 'pick'], ['Jinx', 'en', 'preview']]) {
+      expect((await voice(args[0], args[1], args[2])).status).toBe(400);
+    }
+    expect(fetch).not.toHaveBeenCalled();
+    fetch.mockResolvedValueOnce(new Response('page', { headers: { 'content-type': 'text/html' } }));
+    expect((await voice('Jinx', 'fr', 'ban')).status).toBe(415);
+    fetch.mockResolvedValueOnce(new Response(new Uint8Array(256 * 1024 + 1), { headers: { 'content-type': 'audio/ogg' } }));
+    expect((await voice('Jinx', 'fr', 'ban')).status).toBe(413);
+    fetch.mockResolvedValueOnce(new Response('OggS', { headers: { 'content-type': 'audio/ogg' } }));
+    expect((await request(imageUrl)).status).toBe(415);
+  });
+});
+
 it('E1: proxies the single rune catalogue with cache, timeout and no redirects', async () => {
   const body = JSON.stringify([{ id: 8200, name: 'Sorcellerie' }]);
   const fetch = vi.fn().mockResolvedValue(new Response(body, { headers: { 'content-type': 'application/json; charset=utf-8' } }));

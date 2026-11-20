@@ -7,11 +7,15 @@
 .live-heading,.live-actions,.live-series,.live-confirm,.live-link { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
 .live-heading { justify-content: space-between; }
 .live-actions { gap: 4px 8px; }
+.live-room-controls { display:inline-flex; align-items:center; gap:inherit; }
+.live-room-controls:empty { display:none; }
 .live-back,.live-finish a,.live-history a,.live-series button { color: #9fe8f4; }
 .live-back,.live-tool { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; font-size: .82rem; }
 .live-tool { padding: 3px 9px; border-radius: 6px; color: #c6d3e5; }
 .live-tool:hover { background: #202d43; color: #fff; }
 .live-tool svg { width: 16px; height: 16px; }
+.live-actions .live-voice-toggle { min-width:44px; min-height:44px; justify-content:center; }
+.live-voice-toggle[aria-pressed=true] { color:var(--cyan,#67e8f9); }
 .live-room :is(a,button,input,select,summary):focus-visible { outline: 2px solid #80dff1; outline-offset: 2px; }
 .live-room p,.live-history small { color: var(--muted); }
 .live-room [role=alert] { color: #fecaca; }

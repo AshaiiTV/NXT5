@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Check, Copy, Eye, Maximize2, Minimize2, Swords } from "lucide-react";
+import { ArrowLeft, Check, Copy, Eye, Maximize2, Minimize2, Swords, Volume2, VolumeX } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { Button, SelectInput, Surface, TextInput } from "../ui/Core.jsx";
 import { matchDisplayName } from "../../utils/matches.js";
 import { camp, DraftArena } from "./DraftArena.jsx";
+import { useDraftVoices } from "./useDraftVoices.js";
 import "./live-draft-room.css";
 
 export const roomRequest = (body, signal) => apiFetch("draft-rooms", { method: "POST", body: JSON.stringify(body), signal });
@@ -55,6 +56,7 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
   const [room,setRoom] = useState(null), [loadError,setLoadError] = useState(""), [actionError,setActionError] = useState("");
   const [pending,setPending] = useState(false), [recent,setRecent] = useState(-1), [full,setFull] = useState(false);
   const inFlight = useRef(false), latest = useRef(null), frame = useRef(null), mounted = useRef(true);
+  const { active: voicesActive, toggleButton, toggle: toggleVoices, playConfirmed } = useDraftVoices(!pinned);
   const request = useCallback((action, fields = {}, signal) => roomRequest({ action, roomId, ...(invite === undefined ? {teamId} : {invite}),
     ...(pinned ? {gameNumber:pinned} : {}), ...fields }, signal), [roomId,teamId,invite,pinned]);
   const accept = useCallback(next => {
@@ -70,7 +72,8 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
     if (prev?.gameNumber !== next.gameNumber) setRecent(-1);
     else if (prev.moves.length < next.moves.length) setRecent(next.moves.length-1);
     latest.current = next; setRoom(next);
-  }, []);
+    playConfirmed(prev, next);
+  }, [playConfirmed]);
   const finished = room?.moves.length === 20 && (Boolean(pinned) || room.gameNumber === room.seriesLength);
   useEffect(() => {
     mounted.current = true;
@@ -114,7 +117,14 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
     <div className="live-heading"><div>{onBack && <button type="button" className="live-back" onClick={onBack}><ArrowLeft size={16} />{t("Toutes les salles")}</button>}
       <Heading>{t("Salle de draft")}</Heading></div><div className="live-actions">
       {room?.invite && <><RoomInvitation room={room} /><RoomInvitation room={room} spectator /></>}
-      {typeof document !== "undefined" && document.fullscreenEnabled && <button type="button" className="live-tool" onClick={fullscreen} aria-label={full ? t("Quitter le plein écran") : t("Plein écran")} title={full ? t("Quitter le plein écran") : t("Plein écran")}>{full ? <Minimize2 /> : <Maximize2 />}</button>}
+      <div className="live-room-controls">
+        {room && !pinned && <button type="button" className="live-tool live-voice-toggle" ref={toggleButton}
+          aria-label={t("Voix des champions")} aria-pressed={voicesActive} onClick={toggleVoices}
+          title={voicesActive ? t("Couper les voix des champions") : t("Activer les voix des champions")}>
+          {voicesActive ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
+        </button>}
+        {typeof document !== "undefined" && document.fullscreenEnabled && <button type="button" className="live-tool" onClick={fullscreen} aria-label={full ? t("Quitter le plein écran") : t("Plein écran")} title={full ? t("Quitter le plein écran") : t("Plein écran")}>{full ? <Minimize2 /> : <Maximize2 />}</button>}
+      </div>
     </div></div>
     {loadError && <p role="alert">{t(loadError)}</p>}
     {!room && !loadError && <p role="status">{t("Chargement…")}</p>}

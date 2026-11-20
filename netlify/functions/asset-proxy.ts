@@ -1,4 +1,5 @@
 import { draftSpotlight, spotlightWidths } from '../../shared/draft-spotlight.js';
+import championIds from '../../shared/riot-champion-ids.json';
 import type { Config } from '@netlify/functions';
 
 const ALLOWED_HOSTS = new Set([
@@ -15,6 +16,9 @@ const ALLOWED_CONTENT_TYPES = new Set([
 ]);
 
 const MAX_ASSET_BYTES = 2 * 1024 * 1024;
+const VOICE_IDS = new Map(championIds.map(([id, name]) => [String(name), Number(id)]));
+const VOICE_LOCALES = new Map([['fr', 'fr_fr'], ['en', 'default'], ['es', 'es_es']]);
+const VOICE_TYPES = new Set(['audio/ogg']);
 const ASSET_TIMEOUT_MS = 10_000;
 const GITHUB_IMAGE_PATH_RE = /\.(png|jpe?g|webp)$/i;
 const RUNE_CATALOG_PATH_RE = /^\/cdn\/[1-9]\d?\.[1-9]\d?\.[1-9]\/data\/(?:fr_FR|en_US|es_ES)\/runesReforged\.json$/;
@@ -114,19 +118,19 @@ function runeCatalog(target: URL): Promise<Response> {
   });
 }
 
-function image(target: URL): Promise<Response> {
+function binaryAsset(target: URL, types: Set<string>, maxBytes: number): Promise<Response> {
   // Following a redirect would bypass the destination allowlist.
-  return fetchUpstream(target, { accept: 'image/webp,image/png,image/jpeg', redirect: 'manual', timeoutMs: ASSET_TIMEOUT_MS }, async (upstream) => {
+  return fetchUpstream(target, { accept: [...types].join(','), redirect: 'manual', timeoutMs: ASSET_TIMEOUT_MS }, async (upstream) => {
     if (!upstream.ok) {
       await upstream.body?.cancel();
       return unavailable(upstream);
     }
     const contentType = contentTypeOf(upstream);
-    if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
+    if (!types.has(contentType)) {
       await upstream.body?.cancel();
       return response(415, 'Unsupported asset type');
     }
-    const bytes = await readBounded(upstream, MAX_ASSET_BYTES);
+    const bytes = await readBounded(upstream, maxBytes);
     if (!bytes) return response(413, 'Asset too large');
     if (!bytes.byteLength) return response(502, 'Asset unavailable');
     return response(200, bytes, { 'Content-Type': contentType });
@@ -136,13 +140,22 @@ function image(target: URL): Promise<Response> {
 export default async function handler(request: Request): Promise<Response> {
   if (request.method !== 'GET') return response(405, 'Method not allowed', { Allow: 'GET' });
   const params = new URL(request.url).searchParams;
+  if (params.has('voice')) {
+    const id = VOICE_IDS.get(params.get('voice') || '');
+    const locale = VOICE_LOCALES.get(params.get('lang') || '');
+    const kind = params.get('kind');
+    if (!id || !locale || (kind !== 'pick' && kind !== 'ban')) return response(400, 'Invalid champion voice');
+    const directory = kind === 'pick' ? 'champion-choose-vo' : 'champion-ban-vo';
+    const source = new URL(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${locale}/v1/${directory}/${id}.ogg`);
+    return binaryAsset(source, VOICE_TYPES, 256 * 1024);
+  }
   if (params.has('spotlight')) {
     const art = draftSpotlight(params.get('spotlight'));
     const width = Number(params.get('w'));
     if (!art || !spotlightWidths(art).includes(width)) return response(400, 'Invalid spotlight');
     const source = new URL('https://cmsassets.rgpub.io/sanity/images/dsfx7636/' + art.asset);
     source.search = new URLSearchParams({ w: String(width), fm: 'webp', q: '89' }).toString();
-    return image(source);
+    return binaryAsset(source, ALLOWED_CONTENT_TYPES, MAX_ASSET_BYTES);
   }
   let target: URL;
   try {
@@ -164,7 +177,7 @@ export default async function handler(request: Request): Promise<Response> {
   if (target.hostname === 'raw.githubusercontent.com' && !GITHUB_IMAGE_PATH_RE.test(target.pathname)) {
     return response(400, 'GitHub asset path not allowed');
   }
-  return image(target);
+  return binaryAsset(target, ALLOWED_CONTENT_TYPES, MAX_ASSET_BYTES);
 }
 
 export const config: Config = { method: 'GET' };
