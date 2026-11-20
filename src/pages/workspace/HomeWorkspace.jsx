@@ -17,7 +17,6 @@ import "./home-workspace.css";
 
 const matchPath = match => `/games?match=${encodeURIComponent(match.id)}`;
 const reportPath = report => `/notes?report=${encodeURIComponent(report.id)}`;
-const reviewPath = match => `/notes?match=${encodeURIComponent(match.id)}&compose=1`;
 const countLabel = (count, singular, plural = `${singular}s`) => `${count} ${t(count > 1 ? plural : singular)}`;
 
 function dateLabel(timestamp, options = {}) {
@@ -94,7 +93,7 @@ function HomePlayerDebrief({ context, navigate, historyComplete }) {
 }
 
 function homeFocus(context, now, historyComplete) {
-  const { matches, latestMatch, latestMatchAt, recentMatches, unreviewedRecentMatches, nextEvent, canImport, canReview, linkedPlayer } = context;
+  const { matches, latestMatch, latestMatchAt, recentMatches, unreviewedRecentMatches, nextEvent, canImport, linkedPlayer } = context;
   if (!matches.length) return {
     kind: "start", title: "Prépare les premières parties de ton équipe.", subtitle: "Retrouve les parties, les notes et le planning de ton équipe.",
     label: "Pour commencer", heading: canImport ? "Ajoute votre première partie" : "Prends tes repères dans l’équipe",
@@ -117,12 +116,11 @@ function homeFocus(context, now, historyComplete) {
   };
   const pending = unreviewedRecentMatches[0];
   if (pending) return {
-    kind: "review", title: canReview ? "Note ce qu’il faut retenir." : "Retrouve les dernières parties de ton équipe.",
+    kind: "review", title: "Retrouve les dernières parties de ton équipe.",
     subtitle: `${countLabel(unreviewedRecentMatches.length, "partie récente", "parties récentes")} à revoir.`,
-    label: canReview ? "Prochaine note" : "Votre dernière activité", heading: matchDisplayName(pending, "Partie de l’équipe"),
-    text: canReview ? "Reprends cette partie, note un point à garder et une action à travailler ensemble." : "Ouvre le résumé pour retrouver le résultat et les points à discuter avec l’équipe.",
-    href: canReview ? reviewPath(pending) : matchPath(pending), action: canReview ? "Ajouter une note" : "Voir la partie", icon: canReview ? FileText : Swords,
-    secondary: canReview ? { href: matchPath(pending), label: "Voir la partie" } : null,
+    label: "Résumé", heading: matchDisplayName(pending, "Partie de l’équipe"),
+    text: "Ouvre le résumé pour retrouver le résultat et les points à discuter avec l’équipe.",
+    href: matchPath(pending), action: "Voir la partie", icon: Swords,
   };
   if (recentMatches.length) {
     const recent = recentMatches[0];

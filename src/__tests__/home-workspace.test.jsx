@@ -147,12 +147,23 @@ describe("adaptive team home", () => {
     expect(focus).toHaveBeenCalledOnce();
   });
 
-  it("opens the review composer for the recent game using its encoded identifier", async () => {
-    const props = fixture({ matches: [match({ id: "match / équipe" })] });
+  it.each([true, false])("opens the featured match from the home card (manager: %s)", async (manager) => {
+    const props = fixture({
+      manager,
+      matches: [
+        match({ id: "newer", game_date: "2026-10-07T08:00:00Z", raw: { nxt5Label: "Scrim Solaris" } }),
+        match({ id: "match / équipe" }),
+      ],
+      reports: [{ id: "report", team_id: "team", match_ids: ["newer"] }],
+    });
     const renderer = await render(props);
     expect(homeState(renderer)).toBe("review");
-    const action = links(renderer).find((link) => text(link) === "Ajouter une note");
-    const destination = "/notes?match=match%20%2F%20%C3%A9quipe&compose=1";
+    const card = renderer.root.findByProps({ "aria-labelledby": "nxt5-home-focus-title" });
+    expect(text(card.findByType("h3"))).toBe("Scrim Equinox");
+    const [action] = card.findAllByType("a");
+    expect(card.findAllByType("a")).toHaveLength(1);
+    expect(text(action)).toBe("Voir la partie");
+    const destination = "/games?match=match%20%2F%20%C3%A9quipe";
     expect(action.props.href).toBe(destination);
     follow(action);
     expect(props.navigate).toHaveBeenCalledWith(destination);
