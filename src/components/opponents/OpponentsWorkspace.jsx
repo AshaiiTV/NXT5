@@ -1,4 +1,3 @@
-import { TeamDraftSelections } from "./TeamDraftSelections.jsx";
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, ExternalLink, FileText, Loader2, Plus, RefreshCw, Search, Shield, Swords, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
@@ -26,22 +25,21 @@ export function SourceLink({ snapshot }) {
   return href ? <a className="opponents-source" href={href} target="_blank" rel="noopener noreferrer">{t("Ouvrir sur Drafter")}<ExternalLink size={16} aria-hidden="true" /></a> : null;
 }
 
-function ChampionList({ champions = [], bans = false, banStates = [] }) {
+function ChampionList({ champions = [], bans = false, banStates = [], showPositions = true }) {
   return <ol className={bans ? "opponents-champions opponents-bans" : "opponents-champions"}>
     {Array.from({ length: 5 }, (_, index) => {
       const champion = champions[index];
       const skipped = bans && champion === null && banStates[index] === "skipped";
-      return <li key={index} className={bans && index === 3 ? "opponents-ban-phase" : undefined}>
+      return <li key={index} className={bans && showPositions && index === 3 ? "opponents-ban-phase" : undefined}>
         {champion ? <span aria-hidden="true" className="opponents-portrait"><ChampionPortrait champion={champion} /></span> : <span className="opponents-portrait opponents-unknown" aria-hidden="true">{skipped ? "—" : "?"}</span>}
         <span>{champion ? championDisplayName(champion) : t(skipped ? "Ban non utilisé" : "Non renseigné")}</span>
-        {bans && <small>{t("Ban {0}", [index + 1])}</small>}
+        {bans && showPositions && <small>{t("Ban {0}", [index + 1])}</small>}
       </li>;
     })}
   </ol>;
 }
 
 export function DraftSnapshot({ snapshot, allySide = "" }) {
-  if (snapshot.selectionSources) return <TeamDraftSelections snapshot={snapshot} />;
   return <div className="opponents-draft-camps">
     {["blue", "red"].map((side) => <section className="opponents-camp" data-side={side} key={side}>
       <div className="opponents-camp-heading"><span>{t(side === "blue" ? "Côté bleu" : "Côté rouge")}</span>{allySide && <Badge tone={allySide === side ? "cyan" : "slate"}>{t(allySide === side ? "Notre équipe" : "Adversaire")}</Badge>}</div>
@@ -49,7 +47,9 @@ export function DraftSnapshot({ snapshot, allySide = "" }) {
       <h5>{t("Picks affichés")}</h5>
       <ChampionList champions={snapshot[`${side}Picks`]} />
       <h5>{t("Bans")}</h5>
-      <ChampionList champions={snapshot[`${side}Bans`]} bans banStates={snapshot.banStates?.[side]} />
+      {snapshot.selectionSources && !snapshot[`${side}Bans`]?.some(Boolean) && !snapshot.banStates?.[side]?.includes("skipped")
+        ? <p className="opponents-help">{t("Bans indisponibles pour ce camp.")}</p>
+        : <ChampionList champions={snapshot[`${side}Bans`]} bans banStates={snapshot.banStates?.[side]} showPositions={!snapshot.selectionSources} />}
     </section>)}
   </div>;
 }

@@ -268,8 +268,8 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     keywords: ['lien drafter', 'import drafter', 'importer drafter', 'drafter.lol', 'vérifier la draft', 'rattacher la draft', 'draft de la partie', 'remplacer la draft', 'détacher la draft', 'draft détachée de sa partie'],
     steps: [
       'Dans Parties, ouvre la partie puis Drafting → Ajouter une draft.',
-      'Colle le lien public Drafter.lol de la bonne game, puis clique sur Vérifier la draft.',
-      'Vérifie le numéro de game et les champions repris du fichier de partie. Complète les bans absents puis choisis le Côté de notre équipe.',
+      'Colle le lien public Drafter.lol de la bonne game. L’aperçu s’ouvre automatiquement.',
+      'Choisis le Côté de notre équipe. Les picks et bans disponibles sont déjà renseignés.',
       'Clique sur Rattacher la draft pour enregistrer. Utilise Analyser cette draft pour consulter Drafts & bans dans Analyses ; la fiche adversaire reste facultative.'
     ],
     suggestions: ['Comment importer un lien Drafter dans une partie ?', 'Que devient une draft remplacée ou détachée ?', 'Pourquoi mon lien Drafter ne fonctionne pas ?'],
@@ -277,7 +277,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       {
         question: 'Comment importer un lien Drafter dans une partie ?',
         triggers: ['importer un lien drafter', 'importer drafter', 'rattacher la draft', 'vérifier la draft'],
-        answer: 'Avec les droits du staff, ouvre la partie dans Parties puis Draft de la partie (facultatif). Colle le lien public Drafter.lol et clique sur Vérifier la draft. Contrôle la game, vérifie les champions joués et complète les bans manquants. Choisis le Côté de notre équipe puis Rattacher la draft. L’aperçu seul ne sauvegarde rien. Aucune fiche adversaire n’est requise.'
+        answer: 'Avec les droits du staff, ouvre la partie dans Parties puis Draft de la partie (facultatif). Colle le lien public Drafter.lol pour charger automatiquement les picks et bans disponibles. Choisis le Côté de notre équipe puis Rattacher la draft. L’aperçu seul ne sauvegarde rien. Aucune fiche adversaire n’est requise.'
       },
       {
         question: 'Faut-il une équipe adverse pour importer une draft ?',
@@ -292,7 +292,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       {
         question: 'Pourquoi mon lien Drafter ne fonctionne pas ?',
         triggers: ['lien drafter ne fonctionne pas', 'lien drafter invalide', 'drafter inaccessible', 'erreur drafter'],
-        answer: 'Vérifie que le lien mène à une draft publique sur Drafter.lol et à la bonne game, puis utilise Vérifier la draft. NXT5 valide le format du lien. Le parcours gratuit reprend les champions du fichier de partie. Le staff peut compléter les bans faits sur Drafter en saisissant leurs noms séparés par des virgules. Après un aperçu valide, choisis le côté de ton équipe et enregistre. NXT5 ne complète pas les picks ou bans manquants par supposition.'
+        answer: 'Vérifie que le lien mène à une draft publique sur Drafter.lol et à la bonne game. NXT5 utilise les données déjà enregistrées et recherche les bans manquants auprès de Riot si la partie est accessible. Les bans faits uniquement sur Drafter peuvent rester inconnus. Après un aperçu valide, choisis le côté de ton équipe et enregistre. NXT5 ne complète pas les picks ou bans manquants par supposition.'
       }
     ]
   },

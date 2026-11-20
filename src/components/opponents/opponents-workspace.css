@@ -99,7 +99,3 @@
   .opponents-champions li { font-size: .75rem; }
   .opponents-bans .opponents-ban-phase { padding-left: 2px; }
 }
-
-.team-draft-selections .opponents-camp > div + div { margin-top: 12px; }
-.team-draft-selections .opponents-camp small { display: block; margin-top: 4px; }
-.team-draft-selections .opponents-camp p { overflow-wrap: anywhere; }
