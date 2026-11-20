@@ -1,6 +1,8 @@
 import { en as scoutingEn, es as scoutingEs } from './opponents-scouting-overrides.js';
 // Opponent dossiers and public Drafter imports, including server feedback.
 const directoryTranslations = {
+  "Colle le lien Drafter puis choisis le côté de ton équipe.": ["Paste the Drafter link, then choose your team’s side.", "Pega el enlace de Drafter y elige el lado de tu equipo."],
+  "Bans indisponibles pour ce camp.": ["Bans unavailable for this side.", "Bloqueos no disponibles para este lado."],
   "Rattache un lien Drafter et complète les picks et bans de la partie.": ["Link a Drafter URL and complete this game’s picks and bans.", "Vincula el enlace de Drafter y completa las selecciones y los bloqueos de la partida."],
   "Préparation de l’aperçu…": ["Preparing preview…", "Preparando la vista previa…"],
   "Modifier les picks et bans": ["Edit picks and bans", "Editar selecciones y bloqueos"],

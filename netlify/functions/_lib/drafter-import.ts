@@ -1,6 +1,8 @@
+import { publicDrafterLink } from '../../../shared/drafter-link.js';
 import { canonicalChampion, championNameKey } from '../../../shared/champions.js';
 import { sql } from './db';
-import { getChampionDataMap } from './riot';
+import championIds from '../../../shared/riot-champion-ids.json';
+import { fetchRiotMatch, isRiotConfigured, getChampionDataMap } from './riot';
 
 type Five<T> = [T, T, T, T, T];
 type Side = 'blue' | 'red';
@@ -36,21 +38,30 @@ export type DrafterSnapshot = {
 
 const selections: Selection[] = ['bluePicks', 'redPicks', 'blueBans', 'redBans'];
 const sides: Side[] = ['blue', 'red'];
+// Riot Data Dragon 16.23.1. New champions are resolved through the live catalogue.
+const championById = new Map<number, string>(championIds.map(([key, id]) => [Number(key), String(id)]));
+function banId(ban: any): number | null {
+  const raw = typeof ban === 'object' ? ban?.championId : ban;
+  if (typeof raw !== 'number' && !(typeof raw === 'string' && /^-?\d+$/.test(raw))) return null;
+  const id = Number(raw);
+  return Number.isSafeInteger(id) && (id > 0 || id === -1) ? id : null;
+}
+function matchBans(teams: any, sideId: number): (number | null)[] {
+  if (!Array.isArray(teams)) return [];
+  const rows = teams.filter(team => Number(team?.teamId) === sideId);
+  if (rows.length !== 1 || !Array.isArray(rows[0].bans) || rows[0].bans.length > 5) return [];
+  return rows[0].bans.map(banId);
+}
+function knownCount(ids: (number | null)[]) { return ids.filter(id => id !== null).length; }
+
 function failure(message: string, code = 'INVALID_DRAFT_SELECTIONS', status = 400) {
   return Object.assign(new Error(message), { code, status, publicMessage: message });
 }
 
-export function parseDrafterUrl(input: string): { sourceId: string; gameNumber: number; sourceUrl: string } {
-  const invalid = () => failure('Utilise un lien public https://drafter.lol/draft/… avec un numéro de partie de 1 à 5.', 'DRAFTER_INVALID_URL');
-  if (typeof input !== 'string' || input.length > 2048 || /[\\\u0000-\u001f\u007f]/.test(input)) throw invalid();
-  let url: URL;
-  try { url = new URL(input.trim()); } catch { throw invalid(); }
-  if (url.protocol !== 'https:' || url.hostname !== 'drafter.lol' || url.port || url.username || url.password) throw invalid();
-  const path = /^\/draft\/([A-Za-z0-9_-]{6,64})$/.exec(url.pathname);
-  const games = url.searchParams.getAll('game');
-  if (!path || games.length > 1 || (games.length === 1 && !/^[1-5]$/.test(games[0]))) throw invalid();
-  const gameNumber = games.length ? Number(games[0]) : 1;
-  return { sourceId: path[1], gameNumber, sourceUrl: `https://drafter.lol/draft/${path[1]}?game=${gameNumber}` };
+export function parseDrafterUrl(input: string) {
+  const link = publicDrafterLink(input);
+  if (!link) throw failure('Utilise un lien public https://drafter.lol/draft/… avec un numéro de partie de 1 à 5.', 'DRAFTER_INVALID_URL');
+  return link;
 }
 
 /** The link identifies the coach's chosen series/game. We never request a Drafter page. */
@@ -61,7 +72,7 @@ export async function importDrafterDraft(inputUrl: string, teamId: string, match
   const saved = existing?.snapshot;
   if (saved && !saved.selectionSources && saved.bluePicks?.length === 5 && saved.redPicks?.length === 5) return saved;
   if (!matchId) throw failure('Ouvre une partie pour ajouter son lien Drafter.');
-  const [match] = await sql`select patch, raw->'info'->'teams' as teams from matches where team_id = ${teamId} and id = ${matchId}`;
+  const [match] = await sql`select patch, game_id, raw->'info'->'teams' as teams from matches where team_id = ${teamId} and id = ${matchId}`;
   if (!match) throw failure('Partie introuvable dans cette équipe.', 'DRAFT_MATCH_NOT_FOUND', 404);
   const players = await sql`select p.champion, p.raw->>'teamId' as side_id from match_participants p
     join matches m on m.id = p.match_id where m.team_id = ${teamId} and m.id = ${matchId} order by p.champion`;
@@ -71,9 +82,20 @@ export async function importDrafterDraft(inputUrl: string, teamId: string, match
     firstPick: null, patch: match.patch || null, importedAt: new Date().toISOString(), warnings: [],
     bluePicks: [], redPicks: [], blueBans: [], redBans: [],
   };
-  const teams = Array.isArray(match.teams) ? match.teams : [];
-  const hasBanIds = teams.some(team => Array.isArray(team?.bans) && team.bans.some(ban => Number.isInteger(ban?.championId) && ban.championId > 0));
-  const catalog = hasBanIds ? await getChampionDataMap({ signal: AbortSignal.timeout(6000) }).catch(() => null) : null;
+  const bansBySide = { blue: matchBans(match.teams, 100), red: matchBans(match.teams, 200) };
+  const missingMatchBans = sides.some(side => knownCount(bansBySide[side]) < 5 && saved?.selectionSources?.[`${side}Bans`] !== 'staff');
+  if (missingMatchBans && /^[A-Z0-9]+_\d+$/.test(match.game_id) && isRiotConfigured()) {
+    const riot = await fetchRiotMatch(match.game_id, { signal: AbortSignal.timeout(5000) }).catch(() => null);
+    if (riot && riot.metadata?.matchId === match.game_id) {
+      for (const side of sides) {
+        const fromRiot = matchBans(riot.info?.teams, side === 'blue' ? 100 : 200);
+        const local = bansBySide[side];
+        if (knownCount(fromRiot) > knownCount(local) && local.every((id, i) => id === null || fromRiot[i] === id)) bansBySide[side] = fromRiot;
+      }
+    }
+  }
+  const needsCatalog = sides.some(side => bansBySide[side].some(id => id !== null && id > 0 && !championById.has(id)));
+  const catalog = needsCatalog ? await getChampionDataMap({ signal: AbortSignal.timeout(6000) }).catch(() => null) : null;
   for (const side of sides) {
     const id = side === 'blue' ? 100 : 200;
     const picks = players.filter(p => Number(p.side_id) === id).map(p => canonicalChampion(p.champion));
@@ -81,11 +103,10 @@ export async function importDrafterDraft(inputUrl: string, teamId: string, match
       snapshot[`${side}Picks`] = picks as Five<string>;
       snapshot.selectionSources![`${side}Picks`] = 'match';
     }
-    const rows = teams.filter(team => team?.teamId === id);
-    const bans = rows.length === 1 ? rows[0].bans : null;
-    if (!Array.isArray(bans) || bans.length < 1 || bans.length > 5) continue;
-    const values = bans.map(ban => catalog?.get(ban?.championId)?.id ?? null);
-    const states = bans.map((ban, index) => values[index] ? 'selected' : ban?.championId === -1 ? 'skipped' : 'unknown');
+    const bans = bansBySide[side];
+    if (!bans.length) continue;
+    const values = bans.map(id => id === null ? null : championById.get(id) ?? catalog?.get(id)?.id ?? null);
+    const states = bans.map((id, index) => values[index] ? 'selected' : id === -1 ? 'skipped' : 'unknown');
     while (values.length < 5) { values.push(null); states.push('unknown'); }
     if (states.every(state => state === 'unknown')) continue;
     snapshot[`${side}Bans`] = values as Five<string | null>;
@@ -96,7 +117,12 @@ export async function importDrafterDraft(inputUrl: string, teamId: string, match
   // Staff observations belong to this draft. Match-derived values belong to the played match.
   for (const field of selections) {
     const storedSource = saved?.selectionSources?.[field];
-    const preserveBans = storedSource === 'match' && saved.recordedMatchId === matchId && field.endsWith('Bans') && hasBanIds && !catalog;
+    const side = field === 'blueBans' ? 'blue' : 'red';
+    const currentStates = snapshot.banStates?.[side] || unknownBans();
+    const savedStates = saved?.banStates?.[side];
+    const preserveBans = storedSource === 'match' && saved.recordedMatchId === matchId && field.endsWith('Bans') &&
+      Array.isArray(savedStates) && savedStates.some((state, i) => currentStates[i] === 'unknown' && state !== 'unknown') &&
+      currentStates.every((state, i) => state === 'unknown' || (state === savedStates[i] && snapshot[field][i] === saved[field][i]));
     if (storedSource !== 'staff' && !preserveBans) continue;
     Object.assign(snapshot, { [field]: saved[field] });
     snapshot.selectionSources![field] = storedSource;

@@ -177,7 +177,7 @@ describe("inline match draft", () => {
   it.each([true, false])("shows an honest empty state and only authorized add controls (canEdit=%s)", async (canEdit) => {
     mockApi({ "get-match-draft": { draft: null, canEdit } });
     await mount({ presentation: "inline" }, false);
-    expect(content()).toContain(canEdit ? "Rattache un lien Drafter et complète les picks et bans de la partie." : "Aucune draft liée à cette partie. Le staff peut en ajouter une.");
+    expect(content()).toContain(canEdit ? "Colle le lien Drafter puis choisis le côté de ton équipe." : "Aucune draft liée à cette partie. Le staff peut en ajouter une.");
     expect(renderer.root.findAllByType(DraftBoard)).toHaveLength(0);
     expect(renderer.root.findAllByProps({ role: "dialog" })).toHaveLength(0);
     expect(Boolean(button("Ajouter une draft"))).toBe(canEdit);
@@ -185,7 +185,7 @@ describe("inline match draft", () => {
     if (canEdit) {
       await click("Ajouter une draft");
       expect(renderer.root.findAllByType("form")).toHaveLength(1);
-      expect(button("Vérifier la draft").props.disabled).toBe(true);
+      expect(button("Vérifier la draft")).toBeUndefined();
       expect(calls("save-match-draft")).toHaveLength(0);
     }
   });
@@ -301,6 +301,20 @@ describe("match Drafter association", () => {
     expect(apiFetch).not.toHaveBeenCalled();
   });
 
+  it("prepares the preview on paste and leaves only the side to select", async () => {
+    mockApi();
+    await mount();
+    vi.useFakeTimers();
+    try {
+      change("Lien Drafter.lol", snapshot.sourceUrl);
+      await act(async () => { await vi.advanceTimersByTimeAsync(450); });
+      expect(calls("preview")).toHaveLength(1);
+      expect(button("Vérifier la draft")).toBeUndefined();
+      expect(renderer.root.findAllByType("select")).toHaveLength(1);
+      expect(button("Rattacher la draft").props.disabled).toBe(true);
+    } finally { vi.useRealTimers(); }
+  });
+
   it("requires our explicit side and sends a verified token without assigning any opponent", async () => {
     const onChanged = vi.fn();
     mockApi();
@@ -369,7 +383,7 @@ describe("match Drafter association", () => {
     await click("Confirmer le détachement");
     expect(calls("unlink-match-draft")).toEqual([{ action: "unlink-match-draft", teamId: "team-1", matchId: "match-1" }]);
     expect(content()).toContain("Lien retiré. La draft reste dans l’historique des analyses.");
-    expect(button("Vérifier la draft")).toBeDefined();
+    expect(field("Lien Drafter.lol").props.value).toBe("");
   });
 
   it("clears a verified preview and rejects stale responses when the URL changes", async () => {
@@ -431,6 +445,6 @@ describe("match Drafter association", () => {
     expect(button("Vérifier la draft")).toBeUndefined();
     await click("Réessayer");
     await openDraft();
-    expect(button("Vérifier la draft")).toBeDefined();
+    expect(field("Lien Drafter.lol").props.value).toBe("");
   });
 });

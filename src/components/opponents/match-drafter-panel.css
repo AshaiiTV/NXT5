@@ -34,3 +34,13 @@
 }
 
 .match-drafter-dialog { scroll-padding-top: 5rem; }
+
+.match-drafter-content .opponents-save { grid-template-columns: minmax(0,1fr) auto; align-items: end; margin: 8px 0 20px; }
+.match-drafter-content .opponents-save > button { grid-column: auto; }
+@container (max-width: 560px) {
+  .match-drafter-content .opponents-save { grid-template-columns: minmax(0,1fr); gap: 10px; }
+}
+
+.match-drafter-dialog .game-operation-dialog-inner { padding: 0; }
+.match-drafter-dialog .game-operation-dialog-header { align-items: center; margin: 0; padding: 12px clamp(16px, 3vw, 24px); background: var(--nxt5-surface); }
+.match-drafter-dialog .game-operation-dialog-content { padding: 16px clamp(16px, 3vw, 24px) 24px; }

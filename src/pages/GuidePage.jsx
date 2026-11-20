@@ -33,7 +33,7 @@ export const GUIDE_SECTIONS = [
     path: "/games", action: "Choisir une partie",
     steps: [
       "Ouvrir la partie et retrouver Draft de la partie (facultatif). Coller le lien Drafter de la bonne game, par exemple avec ?game=2.",
-      "Cliquer sur Vérifier la draft, puis relire le numéro de game, les noms, les picks et les bans dans l’aperçu.",
+      "L’aperçu s’ouvre automatiquement avec les picks et bans disponibles.",
       "Choisir explicitement le côté bleu ou rouge de notre équipe, puis cliquer sur Rattacher la draft. Les noms de Drafter ne créent pas de fiches adversaires.",
       "Utiliser Analyser cette draft pour ouvrir Drafts & bans et consulter ses choix et leur ordre lorsqu’il est disponible.",
       "Remplacer ou détacher la draft selon tes droits. L’ancienne draft reste dans l’historique des analyses et l’équipe adverse de la partie ne change pas.",

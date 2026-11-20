@@ -8,7 +8,7 @@ Les deux associations sont indépendantes et facultatives : une **partie → éq
 
 1. Dans **Parties > Équipes**, créer une fiche adversaire avec son nom et, si utile, des notes de préparation. Cet écran présente ses champions et ses parties, sans formulaire Drafter.
 2. Lors de l’import d’une partie, choisir son **Équipe adverse (facultatif)** dans la liste des fiches enregistrées, ou utiliser **Nouvelle équipe**. Le choix peut aussi être modifié depuis le détail de la partie. Pour un scrim entier, ouvrir **Parties > Groupes**, puis choisir son **Équipe adverse du groupe**. Ce choix ne dépend pas de la présence d’une draft.
-3. Dans le bloc distinct **Draft de la partie**, coller si souhaité un lien `https://drafter.lol/draft/…?game=2`, vérifier et compléter les picks/bans et choisir explicitement le côté de notre équipe.
+3. Dans le bloc distinct **Draft de la partie**, coller si souhaité un lien `https://drafter.lol/draft/…?game=2`, laisser charger les picks et bans disponibles et choisir le côté de notre équipe.
 4. Enregistrer le lien Drafter. Cette action ne crée ni ne sélectionne une fiche adverse. Les noms affichés dans Drafter restent les noms de la source, sans devenir automatiquement des équipes NXT5.
 
 Une réimportation de la même série et de la même game dans la même équipe actualise son instantané sans créer un doublon. Les membres peuvent lire les fiches ; seuls le propriétaire et les rôles de staff peuvent créer une fiche ou importer. Les données restent isolées entre équipes NXT5.
@@ -23,7 +23,7 @@ La partie, ses participants et son rattachement sont enregistrés dans une même
 
 ### Lier une draft à une partie
 
-Depuis le détail d’une partie, ouvrir **Drafting → Ajouter une draft**, coller le lien et sélectionner **Vérifier la draft**. Choisir le côté de notre équipe puis enregistrer. Le serveur conserve le lien source, l’instantané lu et sa date d’import, sans modifier l’équipe adverse de la partie.
+Depuis le détail d’une partie, ouvrir **Drafting → Ajouter une draft**, coller le lien. L’aperçu s’ouvre automatiquement. Choisir le côté de notre équipe puis enregistrer. Le serveur conserve le lien source, l’instantané lu et sa date d’import, sans modifier l’équipe adverse de la partie.
 
 Une partie peut avoir une draft liée et une draft ne peut être liée qu’à une seule partie. Remplacer ou détacher ce lien conserve la draft précédente dans l’historique des analyses, mais elle ne contribue plus à la fiche adverse. Supprimer une partie conserve aussi son instantané ; il devient simplement non lié. Le rattachement ne modifie pas les participants ou les statistiques de la partie.
 
@@ -53,11 +53,9 @@ La migration `20261012_group_opponents.sql` doit suivre les trois migrations adv
 
 ## Lecture sans API payante
 
-NXT5 valide l’adresse et le numéro de game du lien. Le staff ouvre **Ouvrir sur Drafter** pour vérifier qu’il correspond à la partie. Les [conditions de Drafter, section 4](https://drafter.lol/legal/terms) réservent la lecture automatisée des résultats à leur API officielle. Le parcours gratuit fonctionne à partir du fichier de partie importé par l’équipe et de ses propres observations.
+Le staff colle le lien de la game, choisit son côté et enregistre. NXT5 réutilise les anciennes drafts et les observations déjà enregistrées. Pour un nouveau lien, les champions proviennent des participants et les bans du fichier de partie. Si une liste est incomplète et que Riot est configuré, NXT5 interroge Match-V5 avec l’identifiant Riot de cette partie. Une partie inaccessible reste rattachable avec les informations disponibles. Les bans présents uniquement sur Drafter restent inconnus. [Conditions de Drafter, section 4](https://drafter.lol/legal/terms).
 
-L’aperçu reprend les champions joués par camp et les bans présents dans le fichier. Riot Data Dragon fournit les noms correspondant aux identifiants de champions. Le staff peut corriger chaque liste et compléter les bans d’un scrim directement dans le formulaire. Un tiret indique un ban passé, un point d’interrogation un ban inconnu. Les listes précisent leur origine et alimentent les fréquences de l’équipe selon leur couverture. Le fichier de partie ne fournit pas la chronologie des picks. Les anciens imports Drafter conservent leurs données et leur ordre lorsqu’il a été vérifié.
-
-Après enregistrement, **Gérer la draft → Modifier les picks et bans** rouvre les sélections. L’aperçu signé expire après quinze minutes et lie les observations du match au compte, à l’équipe et à la partie. Le serveur valide les corrections du staff et revérifie ses droits avant d’enregistrer.
+L’aperçu signé expire après quinze minutes et lie les observations du match au compte, à l’équipe et à la partie. Le serveur revérifie les droits avant l’enregistrement.
 
 ## Essayer localement
 
