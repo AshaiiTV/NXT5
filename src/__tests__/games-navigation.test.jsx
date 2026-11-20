@@ -60,18 +60,17 @@ describe("unified Games navigation", () => {
     const visible = NAV.filter((item) => [...PRIMARY_NAV_IDS, ...MORE_NAV_IDS].includes(item.id));
     expect(visible.filter((item) => item.label === "Parties")).toHaveLength(1);
     expect(visible.some((item) => item.id === "stats")).toBe(false);
-    expect(visible.some((item) => item.id === "reports")).toBe(true);
+    expect(visible.some((item) => item.id === "reports")).toBe(false);
     expect(visible.some((item) => item.id === "trends")).toBe(true);
   });
 
-  it("selects Notes and opens Parties without a guide button in the sidebar", () => {
+  it("omits Notes from the sidebar even on its direct route and still opens Parties", () => {
     const setActive = vi.fn();
     const setOpen = vi.fn();
     let renderer;
     act(() => { renderer = TestRenderer.create(<Sidebar active="reports" setActive={setActive} open={false} setOpen={setOpen} collapsed={false} setCollapsed={vi.fn()} roleLabel={(value) => value} />); });
-    const selected = renderer.root.findAllByType("a").filter((link) => link.props["aria-current"] === "page");
-    expect(selected).toHaveLength(1);
-    expect(selected[0].props["aria-label"]).toBe("Notes");
+    expect(renderer.root.findAllByProps({ "aria-label": "Notes" })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ href: "/notes" })).toHaveLength(0);
     const parties = renderer.root.findByProps({ "aria-label": "Parties" });
     expect(parties.props.title).toBe("Parties · Importer et revoir une partie");
     expect(parties.props.href).toBe("/games");

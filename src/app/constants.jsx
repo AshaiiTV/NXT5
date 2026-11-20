@@ -39,7 +39,7 @@ export const NAV = [
 ];
 
 export const PRIMARY_NAV_IDS = ["home", "teams", "matches", "planning", "profile"];
-export const MORE_NAV_IDS = ["reports", "trends", "draft", "scrims", "bot-discord"];
+export const MORE_NAV_IDS = ["trends", "draft", "scrims", "bot-discord"];
 
 export const DRAFT_VIEW_ROUTES = [
   { id: "pool", label: "Champions des joueurs", path: "pool" },
