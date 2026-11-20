@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Ban, Check, ChevronDown, Clock3, Crosshair, EyeOff, LockKeyhole, Search, Swords } from "lucide-react";
 import { t } from "../../i18n/translate.js";
-import { ChampionPortrait, championMatchesLane, championSplashUrl } from "../../pages/workspace/workspace-shared.jsx";
+import { ChampionPortrait, championMatchesLane } from "../../pages/workspace/workspace-shared.jsx";
 import { Button, TextInput } from "../ui/Core.jsx";
 import { championDisplayName, championNameKey } from "../../../shared/champions.js";
+import { assetProxyUrl } from "../../utils/matches.js";
+import { draftSpotlight, spotlightWidths } from "../../../shared/draft-spotlight.js";
 import { draftTurns } from "../../../shared/draft-order.js";
 import { ROLES } from "../../../shared/roles.js";
 import championIds from "../../../shared/riot-champion-ids.json";
@@ -37,22 +39,88 @@ function TeamBoard({ side, room, turns, recent, choice }) {
   </section>;
 }
 
+// Keep the face on the centre line, including when the original ends on one
+// side of the frame. The image edge fades into the stage at those sizes.
+function frameArtwork(art, frame) {
+  const scale = Math.min(1, Math.max(frame.width / art.width, frame.height / (art.height * art.visibleHeight)));
+  const width = Math.round(art.width * scale), height = Math.round(art.height * scale);
+  const left = Math.round(frame.width / 2 - art.x * width);
+  const top = Math.round(Math.min(0, Math.max(frame.height - height, frame.height * .46 - art.y * height)));
+  const feather = Math.round(Math.min(frame.width * .15, width * .17));
+  return { width, height, left, top,
+    "--soft-top": Math.max(0,Math.min(feather, art.y * height * .5, top + feather)) + "px",
+    "--soft-bottom": Math.max(0,Math.min(feather,frame.height-top-height+feather)) + "px",
+    "--soft-left": Math.max(0,Math.min(feather,left+feather)) + "px",
+    "--soft-right": Math.max(0,Math.min(feather,frame.width-left-width+feather)) + "px" };
+}
+
+// Fill the periphery with the same light and colours as the illustration.
+// Only this small backdrop is softened. The foreground keeps its native detail.
+function paintArtBackdrop(canvas, image, art, frame) {
+  if (!canvas || !image?.naturalWidth || !frame?.width || !art) return;
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  canvas.width = 96;
+  canvas.height = Math.max(1, Math.round(96 * frame.height / frame.width));
+  const scale = Math.max(canvas.width / image.naturalWidth, canvas.height / image.naturalHeight);
+  const width = image.naturalWidth * scale, height = image.naturalHeight * scale;
+  const x = Math.max(canvas.width-width, Math.min(0, canvas.width/2-art.x*width));
+  const y = Math.max(canvas.height-height, Math.min(0, canvas.height*.46-art.y*height));
+  context.drawImage(image, x, y, width, height);
+}
+
 function Spotlight({ room, choice, recent, turns }) {
   const step = room.moves.length, previous = step - 1, preview = choice !== undefined;
   const id = preview ? choice : room.moves[previous];
   const source = preview ? turns[step] : turns[previous];
-  const [broken,setBroken] = useState("");
+  const [broken,setBroken] = useState(""), [frame,setFrame] = useState(null);
+  const stage = useRef(null), ambience = useRef(null), artwork = useRef(null);
+  useLayoutEffect(() => {
+    const node = stage.current;
+    const measure = () => {
+      const width = node.clientWidth, height = node.clientHeight;
+      setFrame(last => last?.width === width && last?.height === height ? last : {width,height});
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", measure);
+      return () => window.removeEventListener("resize", measure);
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
   const label = preview ? t("Présélection privée") : source?.[0] === "ban" ? t("Dernier ban") : t("Dernier pick");
   const Icon = preview ? Crosshair : source?.[0] === "ban" ? Ban : LockKeyhole;
   const name = id ? championDisplayName(id) : id === null ? t("Ban non utilisé") : t("Faille de l’invocateur");
-  const art = id && broken !== id ? championSplashUrl(id) : "";
+  const art = id && broken !== id ? draftSpotlight(id,frame?.width) : null;
+  const layout = art && frame?.width && frame.height ? frameArtwork(art,frame) : null;
+  const url = w => art.centered
+    ? assetProxyUrl("https://ddragon.leagueoflegends.com/cdn/img/champion/" + art.asset)
+    : "/.netlify/functions/asset-proxy?spotlight=" + encodeURIComponent(id) + "&w=" + w;
+  const revision = (preview ? "p" : "l") + step + id + (art?.asset || "");
+  const widths = art ? spotlightWidths(art) : [];
+  useLayoutEffect(() => {
+    if (artwork.current?.complete) paintArtBackdrop(ambience.current, artwork.current, art, frame);
+  }, [id, frame, revision]);
+  function reveal(event) {
+    paintArtBackdrop(ambience.current, event.currentTarget, art, frame);
+    event.currentTarget.dataset.ready = "true";
+  }
   return <div className="live-spotlight" data-side={source?.[1]} data-state={preview ? "preview" : "locked"}>
-    <div key={(preview ? "p" : "l") + step + id} className="live-spotlight-frame" data-enter={preview || recent === previous && previous >= 0}>
-      {id ? <>
-        <div aria-hidden="true" className="live-splash live-fallback"><ChampionPortrait champion={id} /></div>
-        {art && <img className="live-splash live-art" src={art} alt="" onError={() => setBroken(id)} onLoad={e => { e.currentTarget.dataset.ready = "true"; }} />}
-      </> : <div className="live-map" />}
-      <div className="live-art-caption"><span><Icon size={14} aria-hidden="true" />{source ? label : t("Draft de tournoi")}</span><strong>{name}</strong></div>
+    <div className="live-spotlight-frame" data-enter={preview || recent === previous && previous >= 0}>
+      <div ref={stage} className="live-art-window">
+        {id ? <>
+          <canvas key={id} className="live-art-ambience" ref={ambience} width={8} height={4} aria-hidden="true" />
+          <div aria-hidden="true" className="live-fallback"><ChampionPortrait champion={id} /></div>
+          {layout && <div key={revision} className="live-art-placement" style={layout}>
+            <img ref={artwork} className="live-art" alt="" src={url(widths[0])}
+              srcSet={widths.map(w => url(w) + " " + w + "w").join(", ")} sizes={layout.width + "px"}
+              onError={() => setBroken(id)} onLoad={reveal} />
+          </div>}
+        </> : <div className="live-map" />}
+      </div>
+      <div key={revision} className="live-art-caption"><span><Icon size={14} aria-hidden="true" />{source ? label : t("Draft de tournoi")}</span><strong>{name}</strong></div>
     </div>
   </div>;
 }

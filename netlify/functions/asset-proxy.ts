@@ -1,3 +1,4 @@
+import { draftSpotlight, spotlightWidths } from '../../shared/draft-spotlight.js';
 import type { Config } from '@netlify/functions';
 
 const ALLOWED_HOSTS = new Set([
@@ -134,9 +135,18 @@ function image(target: URL): Promise<Response> {
 
 export default async function handler(request: Request): Promise<Response> {
   if (request.method !== 'GET') return response(405, 'Method not allowed', { Allow: 'GET' });
+  const params = new URL(request.url).searchParams;
+  if (params.has('spotlight')) {
+    const art = draftSpotlight(params.get('spotlight'));
+    const width = Number(params.get('w'));
+    if (!art || !spotlightWidths(art).includes(width)) return response(400, 'Invalid spotlight');
+    const source = new URL('https://cmsassets.rgpub.io/sanity/images/dsfx7636/' + art.asset);
+    source.search = new URLSearchParams({ w: String(width), fm: 'webp', q: '89' }).toString();
+    return image(source);
+  }
   let target: URL;
   try {
-    target = new URL(new URL(request.url).searchParams.get('url') || '');
+    target = new URL(params.get('url') || '');
   } catch {
     return response(400, 'Invalid asset request');
   }

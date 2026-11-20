@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import handler, { config } from '../../netlify/functions/asset-proxy';
+import { draftSpotlight, spotlightWidths } from '../../shared/draft-spotlight.js';
+import champions from '../../shared/riot-champion-ids.json';
 
 const url = 'https://ddragon.leagueoflegends.com/cdn/16.18.1/data/fr_FR/runesReforged.json';
 const imageUrl = 'https://raw.communitydragon.org/latest/game/assets/ux/announcements/baron_circle.png';
@@ -172,5 +174,49 @@ describe('bounded image proxy', () => {
   it('rejects active content', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<svg/>', { headers: { 'Content-Type': 'image/svg+xml' } })));
     expect((await request(imageUrl)).status).toBe(415);
+  });
+});
+
+describe('draft spotlight art', () => {
+  const spotlight = (champion: string, width: number) => handler(new Request(
+    `https://nxt5.test/.netlify/functions/asset-proxy?spotlight=${encodeURIComponent(champion)}&w=${width}`,
+  ));
+
+  it('has a usable face anchor and bounded source widths for every draftable champion', () => {
+    for (const [,champion] of champions) {
+      const art = draftSpotlight(champion);
+      expect(art, String(champion)).toBeTruthy();
+      expect(art.x).toBeGreaterThan(0);
+      expect(art.x).toBeLessThan(1);
+      expect(art.y).toBeGreaterThan(0);
+      expect(art.y).toBeLessThan(1);
+      const widths = spotlightWidths(art);
+      expect(widths).toEqual([...new Set(widths)].sort((a,b) => a-b));
+      expect(widths.at(-1)).toBe(Math.min(3840, art.width));
+    }
+  });
+
+  it('uses Riot’s wider composition when an edge-framed original reaches its native width', () => {
+    const normal = draftSpotlight('Taric', 750);
+    const panoramic = draftSpotlight('Taric', 2200);
+    expect(normal.asset).toContain('universe/');
+    expect(panoramic).toMatchObject({ centered: true, asset: 'centered/Taric_0.jpg', width: 1280, height: 720 });
+    expect(spotlightWidths(panoramic)).toEqual([1280]);
+    expect(draftSpotlight('Qiyana', 2200).width).toBe(4000);
+  });
+
+  it('serves only known originals at their available sizes', async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response('illustration', { headers: { 'content-type': 'image/webp' } }));
+    vi.stubGlobal('fetch', fetch);
+    expect((await spotlight('Syndra', 3840)).status).toBe(400);
+    expect((await spotlight('not-in-the-roster', 768)).status).toBe(400);
+    expect(fetch).not.toHaveBeenCalled();
+    const response = await spotlight('Qiyana', 3840);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/webp');
+    const source = new URL(fetch.mock.calls[0][0]);
+    expect(source.origin).toBe('https://cmsassets.rgpub.io');
+    expect(source.pathname).toMatch(/\/sanity\/images\/dsfx7636\/universe(?:_live)?\/[a-f0-9]+-4000x\d+\.jpg$/);
+    expect(source.searchParams.get('w')).toBe('3840');
   });
 });

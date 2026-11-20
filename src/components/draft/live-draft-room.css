@@ -72,14 +72,18 @@
 .roster-pick .live-slot-name { font-weight:650; font-size:.78rem; overflow-wrap:anywhere; line-height:1.15; }
 .live-center { grid-area:pool; min-width:0; display:grid; gap:10px; }
 .live-spotlight,.live-spotlight-frame { overflow:hidden; position:relative; border-radius:8px; background:#121c2e; }
-.live-spotlight { border:1px solid #34425a; }
-.live-spotlight-frame { height:clamp(104px,11vw,170px); isolation:isolate; }
-.live-splash,.live-map { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 18%; z-index:-2; }
-.live-map { background:linear-gradient(135deg,#163b4a55,#141f3000),url('/assets/maps/summoners-rift.png') center 46% / cover; opacity:.72; }
-.live-fallback img { width:100%; height:100%; object-fit:cover; object-position:50% 30%; }
-.live-spotlight-frame::before { position:absolute; content:""; inset:0; z-index:-1; background:linear-gradient(90deg,#070d19ef 0%,#080e1cb0 34%,#09102120 76%),linear-gradient(0deg,#060c1760,transparent 60%); }
-.live-art-caption { position:absolute; left:clamp(12px,2vw,24px); right:12px; bottom:14px; display:grid; gap:3px; }
-.live-art-caption strong { color:#f8faff; font-size:clamp(1.3rem,2.3vw,2rem); line-height:1.08; font-weight:760; letter-spacing:-.035em; overflow-wrap:anywhere; text-shadow:0 2px 8px #060b15; }
+.live-spotlight { container-type:inline-size; border:1px solid #34425a; }
+.live-art-window { position:relative; overflow:hidden; height:clamp(118px,35cqw,470px); isolation:isolate; background:radial-gradient(ellipse at 55% 60%,#26314a,#101929 65%,#0b1220); }
+.live-art-ambience { position:absolute; inset:0; width:100%; height:100%; z-index:-4; opacity:.44; filter:blur(clamp(20px,4cqw,72px)) saturate(.72); transform:scale(1.12); }
+.live-art-placement { position:absolute; z-index:-2; overflow:hidden; mask-image:linear-gradient(to right,transparent,#000 var(--soft-left),#000 calc(100% - var(--soft-right)),transparent),linear-gradient(to bottom,transparent,#000 var(--soft-top),#000 calc(100% - var(--soft-bottom)),transparent); mask-composite:intersect; }
+.live-art { display:block; width:100%; height:100%; }
+.live-map { position:absolute; inset:0; z-index:-2; background:linear-gradient(135deg,#163b4a55,#141f3000),url('/assets/maps/summoners-rift.png') center 46% / cover; opacity:.72; }
+.live-fallback { position:absolute; top:46%; left:50%; transform:translate(-50%,-50%); z-index:-3; width:min(96px,22cqw); aspect-ratio:1; overflow:hidden; border-radius:8px; }
+.live-fallback img { height:100%; width:100%; object-fit:contain; }
+.live-spotlight-frame:has(.live-art[data-ready=true]) .live-fallback { visibility:hidden; }
+.live-art-window::before { position:absolute; content:""; inset:0; z-index:-1; background:linear-gradient(35deg,#060c19ed 0%,#080e1bb8 15%,transparent 45%),linear-gradient(0deg,#050a165c,transparent 38%); }
+.live-art-caption { position:absolute; left:clamp(12px,3cqw,36px); right:12px; bottom:clamp(10px,2.5cqw,24px); display:grid; gap:3px; pointer-events:none; }
+.live-art-caption strong { color:#f8faff; font-size:clamp(1.3rem,4.5cqw,3rem); line-height:1.08; font-weight:760; letter-spacing:-.035em; overflow-wrap:anywhere; text-shadow:0 2px 8px #060b15; }
 .live-spotlight[data-state=preview] { border:1px dashed var(--camp); }
 .live-picker { min-width:0; display:grid; gap:8px; }
 .live-lanes { display:flex; gap:4px; flex-wrap:wrap; }
@@ -112,7 +116,7 @@
   html:not(.nxt5-low-gpu) .roster-ban li[data-reveal=true] .live-slot-ban { animation:live-stamp .3s ease-out both; }
 }
 @keyframes live-caption { from { transform:translateY(5px); } to { transform:none; } }
-@keyframes live-reveal { from { opacity:.58; transform:scale(1.055); } to { opacity:1; transform:scale(1); } }
+@keyframes live-reveal { from { opacity:.58; transform:scale(1.018); } to { opacity:1; transform:scale(1); } }
 @keyframes live-lock { from { opacity:.65; transform:translateX(-105%); } to { opacity:0; transform:translateX(105%); } }
 @keyframes live-stamp { from { opacity:.2; transform:scale(1.6); } to { opacity:1; transform:scale(1); } }
 @container live-room (max-width:760px) {
@@ -132,11 +136,15 @@
   .live-arena[data-complete=true] .roster-pick li { display:flex; align-items:center; height:32px; }
   .live-arena[data-complete=true] .roster-pick .live-slot { width:30px; }
   .live-arena[data-complete=true] .roster-pick .live-slot-name { position:static; clip-path:none; width:auto; height:auto; }
-  .live-spotlight-frame { height:100px; }
+  .live-art-window { height:clamp(118px,37cqw,220px); }
   .live-lanes button { min-height:40px; }
 }
 @container live-room (max-width:480px) {
   .live-create-fields,.live-modes { grid-template-columns:1fr; }
+  .live-art-caption { position:static; display:flex; flex-direction:row-reverse; justify-content:space-between; align-items:center; gap:7px; padding:6px 10px; min-height:34px; background:#101827; }
+  .live-art-caption strong { font-size:1rem; }
+  .live-art-caption > span { font-size:.67rem; letter-spacing:0; }
+  .live-art-window::before { background:linear-gradient(0deg,#050a1638,transparent 25%); }
   .live-heading { gap:4px; }
   .live-actions { gap:2px; }
   .live-tool { padding-inline:5px; min-height:42px; font-size:.74rem; }
@@ -152,7 +160,6 @@
 @container live-room (max-width:360px) {
   .live-roster { grid-template-columns:1fr; gap:1px; }
   .live-roster li { height:21px; }
-  .live-spotlight-frame { height:84px; }
   .live-lanes { gap:1px; }
   .live-lanes button { padding-inline:6px; }
 }

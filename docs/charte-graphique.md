@@ -497,6 +497,8 @@ Extension explicite du même jour : l’ouverture d’une draft doit présenter 
 
 `src/components/draft/DraftBoard.jsx` et `draft-board.css` portent ce tableau partagé. `shared/draft-order.js` reste la source de l’ordre vérifié ; le tableau ne reconstruit pas une séquence à partir des rôles finaux.
 
+**Salle de draft en direct (20 novembre 2026).** Centrer le grand visuel de présélection, de pick et de ban sur la tête du champion. Pour un duo, garder les deux visages lisibles. Sur téléphone, placer la légende sous l’image. Sur écran 4K, adapter la définition à la place disponible et préserver la netteté native du premier plan.
+
 ### Équipes adverses — clarification du 12 octobre 2026
 
 Demande explicite : rendre compréhensible la page des équipes adverses. Réalisation dans `worktrees/NXT5-draft-ban-intelligence-20261012`. Le parcours de **Parties > Équipes** devient un annuaire, puis une fiche qui utilise toute la largeur disponible. Il remplace l’ancienne disposition annuaire étroit et longue fiche côte à côte, sans changer l’identité NXT5 ni les règles de rattachement.
