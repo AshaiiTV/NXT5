@@ -8,7 +8,7 @@ Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible
 2. Dans NXT5 Importer, onglet Collecte automatique, le code est collé une fois. L’application reçoit un jeton valable 90 jours, le nom de l’équipe, son tag et les Riot ID de l’effectif actif, puis affiche la liaison dans Parties avec le nom de l’ordinateur.
 3. À la fin de chaque custom observée avec l’Importer ouvert, l’application envoie la partie (données Riot converties depuis le client local, avec la chronologie quand elle existe) et une clé de répétition. Un envoi répété de la même partie ne crée rien de plus.
 4. Le serveur reconnaît l’équipe par les Riot ID de l’effectif : au moins quatre joueurs sur un même côté. Il déduit le côté, les postes (positions Riot, sinon rôle du profil, sinon Smite pour la jungle et le dernier poste libre) et les cinq profils, puis enregistre la partie comme un import manuel, avec le tag choisi ou le tag par défaut de l’équipe. Les notifications et publications habituelles suivent.
-5. Une partie non reconnue (joueur hors effectif, postes ambigus, aucun tag) reste dans « Parties reçues » avec son motif et le bouton Finaliser, qui ouvre le formulaire d’import habituel pré-rempli. Une partie sans lien avec l’équipe est ignorée et listée comme telle.
+5. La liste « Parties à finaliser » contient uniquement les parties de l’équipe dont l’import demande une intervention (joueur hors effectif, postes ambigus, aucun tag). Le motif indique ce qu’il faut vérifier. « Finaliser » ouvre le formulaire prérempli. La partie quitte la liste dès que le staff confirme l’import ou choisit « Ignorer ».
 6. Le staff révoque une liaison d’un clic ; les envois suivants sont refusés. Cinq liaisons actives au plus par équipe.
 
 ## Données et limites

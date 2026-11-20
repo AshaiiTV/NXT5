@@ -78,17 +78,20 @@ export function submissionView(row: any) {
 
 export async function listTeamImport(userId: string, teamIdValue: unknown) {
   const membership = await teamImportMembership(userId, teamIdValue);
-  const [links, pending, recent] = await Promise.all([
+  const [links, pending] = await Promise.all([
     sql`select * from team_import_links where team_id = ${membership.teamId} and created_at > now() - interval '120 days' order by created_at desc limit 20`,
-    // Every game still waiting for the staff stays reachable, whatever arrived since.
-    sql`select id, link_id, game_id, status, reason, match_id, created_at, updated_at from team_import_submissions where team_id = ${membership.teamId} and status = 'pending' order by created_at desc limit 100`,
-    sql`select id, link_id, game_id, status, reason, match_id, created_at, updated_at from team_import_submissions where team_id = ${membership.teamId} and status <> 'pending' order by created_at desc limit 40`,
+    // A manual import can succeed even if settling its submission was interrupted.
+    sql`select id, link_id, game_id, status, reason, match_id, created_at, updated_at
+        from team_import_submissions s
+        where s.team_id = ${membership.teamId} and s.status = 'pending'
+          and not exists (select 1 from matches m where m.team_id = s.team_id and m.game_id = s.game_id)
+        order by s.created_at desc limit 100`,
   ]);
   return {
     canManage: membership.canManage,
     minRoster: AUTO_IMPORT_MIN_ROSTER,
     links: links.map(linkView).filter((link) => link.status !== "unused"),
-    submissions: [...pending, ...recent].map(submissionView),
+    submissions: pending.map(submissionView),
   };
 }
 

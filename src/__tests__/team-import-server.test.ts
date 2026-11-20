@@ -217,7 +217,7 @@ describe('receiving games from the desktop app', () => {
     expect(storedRow.payload.timeline.info.frames).toHaveLength(1);
     expect(pending.body.submission.reason).toContain('adverse');
     const listing = await staff(users.coach);
-    expect(listing.body.submissions.map((row: any) => row.status)).toEqual(['pending', 'skipped']);
+    expect(listing.body.submissions).toEqual([expect.objectContaining({ id: pending.body.submission.id, status: 'pending' })]);
     expect((await staff(users.player, { action: 'pending', submissionId: pending.body.submission.id })).status).toBe(403);
     const stored = await staff(users.coach, { action: 'pending', submissionId: pending.body.submission.id });
     expect(stored.status).toBe(200);
@@ -231,8 +231,12 @@ describe('receiving games from the desktop app', () => {
       playerAssignments: Object.fromEntries(roster.map((player) => [player.role, player.id])),
     }) }), context);
     expect(manual.status).toBe(200);
-    expect((await staff(users.coach)).body.submissions.find((row: any) => row.id === pending.body.submission.id)).toMatchObject({ status: 'imported' });
+    expect(await rows('select status from team_import_submissions where id = $1', [pending.body.submission.id])).toEqual([{ status: 'imported' }]);
+    expect((await staff(users.coach)).body.submissions).toEqual([]);
     expect((await staff(users.coach, { action: 'dismiss', submissionId: pending.body.submission.id })).status).toBe(404);
+    // An interrupted post-import update must not put a saved game back in the queue.
+    await rows("update team_import_submissions set status = 'pending', match_id = null where id = $1", [pending.body.submission.id]);
+    expect((await staff(users.coach)).body.submissions).toEqual([]);
   });
 
   it('refuses an import whose link was revoked right before the persistence transaction', async () => {
@@ -269,8 +273,9 @@ describe('receiving games from the desktop app', () => {
     const pending = await submit(token, unresolved);
     for (let index = 0; index < 45; index++) expect((await submit(token, customGame({ allies: ['Someone#EUW'] }))).body.submission.status).toBe('skipped');
     const listing = await staff(users.coach);
-    expect(listing.body.submissions[0]).toMatchObject({ id: pending.body.submission.id, status: 'pending' });
-    expect(listing.body.submissions.filter((row: any) => row.status === 'skipped')).toHaveLength(40);
+    expect(listing.body.submissions).toEqual([expect.objectContaining({ id: pending.body.submission.id, status: 'pending' })]);
+    expect((await staff(users.coach, { action: 'dismiss', submissionId: pending.body.submission.id })).status).toBe(200);
+    expect((await staff(users.coach)).body.submissions).toEqual([]);
   }, 60_000);
 
   it('resolves jungle from Smite and the last free role without positions', () => {

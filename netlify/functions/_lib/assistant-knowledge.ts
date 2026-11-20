@@ -164,7 +164,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       {
         question: 'Comment importer mes parties automatiquement ?',
         triggers: ['import automatique', 'importer automatiquement', 'lier l’importer', 'code de liaison', 'collecte automatique', 'partie reçue', 'à finaliser'],
-        answer: "Dans Parties → Import automatique, le staff génère un code et le colle dans l’onglet Collecte automatique de NXT5 Importer (valable 15 minutes, une seule fois). Ensuite, chaque custom jouée avec l’Importer ouvert arrive seule, avec le côté, les postes et les joueurs reconnus grâce aux Riot ID de l’effectif. Une partie non reconnue apparaît dans Parties reçues avec le bouton Finaliser, qui ouvre le formulaire d’import habituel. La liaison expire après 90 jours et se révoque d’un clic."
+        answer: "Dans Parties → Import automatique, le staff génère un code et le colle dans l’onglet Collecte automatique de NXT5 Importer (valable 15 minutes, une seule fois). Laisse l’Importer ouvert pendant les customs. Les parties reconnues rejoignent la bibliothèque. Celles qui demandent une intervention apparaissent dans Parties à finaliser. Finaliser ouvre le formulaire d’import habituel. Une fois importée ou ignorée, la partie quitte cette liste. La liaison expire après 90 jours et se révoque d’un clic."
       },
       {
         question: 'Où trouver la collecte automatique dans NXT5 Importer 0.4.1 ?',
