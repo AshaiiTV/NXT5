@@ -107,7 +107,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .nav-item.active { border-color: var(--border-strong); background: #211a3c; color: var(--violet); box-shadow: var(--panel-highlight); }
 .nav-item.active svg { color: var(--cyan); }
 .nav-count { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 6px; margin-left: auto; font-size: 11px; font-weight: 700; line-height: 1; border-radius: 999px; background: rgba(103, 232, 249, 0.14); color: var(--cyan); font-variant-numeric: tabular-nums; }
-.sidebar-footer { margin-top: auto; display: grid; gap: 8px; }
+.sidebar-footer { margin-top: auto; display: grid; grid-template-columns: minmax(0, 1fr); min-width: 0; gap: 8px; }
 .client-indicator { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 6px 6px 6px 12px; border: 1px solid var(--border); border-radius: var(--control-radius); background: var(--surface); color: var(--muted); font-size: 12.5px; }
 .client-indicator > span:nth-child(2) { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .status-dot { width: 8px; height: 8px; flex-shrink: 0; border-radius: 50%; background: var(--dim); }
@@ -217,6 +217,7 @@ output { overflow-wrap: anywhere; }
 @media (max-width: 1000px) {
   :root { --sidebar: 210px; }
   .sidebar { padding-inline: 12px; }
+  .nav-item { gap: 8px; padding-inline: 8px; }
   .brand-wordmark { width: 144px; }
 }
 @media (max-width: 720px) {
