@@ -48,6 +48,7 @@ export async function loadMigrations() {
     ['team-import-links-20261105-v1', '../database/migrations/20261105_team_import_links.sql'],
     ['team-notes-20261119-v1', '../database/migrations/20261119_team_notes.sql'],
     ['draft-rooms-20261120-v1', '../database/migrations/20261120_draft_rooms.sql'],
+    ['draft-room-series-20261120-v1', '../database/migrations/20261120_draft_room_series.sql'],
   ];
   return Promise.all(definitions.map(async ([key, file]) => {
     const source = await readFile(new URL(file, import.meta.url), 'utf8');

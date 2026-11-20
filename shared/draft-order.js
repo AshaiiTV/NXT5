@@ -13,6 +13,8 @@ export const STANDARD_DRAFT_TURNS = [
   ['pick', 'red', 4], ['pick', 'blue', 4], ['pick', 'blue', 5], ['pick', 'red', 5],
 ];
 const OTHER = { blue: 'red', red: 'blue' };
+const mirroredTurns = STANDARD_DRAFT_TURNS.map(([kind, side, slot]) => [kind, OTHER[side], slot]);
+export const draftTurns = firstPick => firstPick === 'red' ? mirroredTurns : STANDARD_DRAFT_TURNS;
 const isSide = value => value === 'blue' || value === 'red';
 const UNAVAILABLE = 'L’ordre n’est pas vérifié pour cet import. Réimporte la draft pour vérifier ses emplacements de sélection.';
 const RECONSTRUCTED = 'Ordre reconstitué depuis les emplacements finaux et le premier camp de sélection de Drafter. Les remplacements de champions et leurs horaires ne sont pas fournis ; les rôles finaux ne déterminent pas cet ordre.';
@@ -45,7 +47,7 @@ export function draftOrder(snapshot) {
   if (evidence?.reason === 'client-unverified' || evidence?.reason === 'unsupported-format') {
     return unknown('Ce format public de Drafter n’a pas encore été vérifié. Les picks et bans restent consultables, sans chronologie.');
   }
-  const recorded = snapshot?.source === 'nxt5' && evidence?.basis === 'room-turns' && evidence.firstPick === 'blue';
+  const recorded = snapshot?.source === 'nxt5' && evidence?.basis === 'room-turns' && isSide(evidence.firstPick);
   const reconstructed = snapshot?.source === 'drafter.lol' && evidence?.basis === 'reconstructed-public-slots' && evidence.reason === 'public-slot-fields-v1';
   if ((!recorded && !reconstructed) || snapshot.status !== 'completed' || evidence?.version !== 1
     || evidence.format !== 'standard-20' || !isSide(evidence.firstPick) || snapshot.firstPick !== evidence.firstPick) return unknown();

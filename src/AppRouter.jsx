@@ -220,5 +220,5 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  return <><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} initialDemoPage={initialDemoPage} /><CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true || isAdminPath(route.path)} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
+  return <><CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true || isAdminPath(route.path)} /><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} initialDemoPage={initialDemoPage} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
 }

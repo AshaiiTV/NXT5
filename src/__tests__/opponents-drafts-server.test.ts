@@ -9,7 +9,7 @@ vi.mock('../../netlify/functions/_lib/auth', async importOriginal => ({ ...await
 vi.mock('../../netlify/functions/_lib/drafter-import', async load => ({ ...await load<any>(), importDrafterDraft: importDraft }));
 import handler from '../../netlify/functions/opponents-drafts';
 import rooms from '../../netlify/functions/draft-rooms';
-import { STANDARD_DRAFT_TURNS, draftOrder } from '../../shared/draft-order.js';
+import { STANDARD_DRAFT_TURNS, draftTurns, draftOrder } from '../../shared/draft-order.js';
 import { buildDraftAnalysis } from '../utils/draft-analysis.js';
 import champions from '../../shared/riot-champion-ids.json';
 import manageArchives from '../../netlify/functions/match-archives-manage';
@@ -796,6 +796,66 @@ describe('native draft rooms', () => {
     const second = await (await call('list',{after:first.nextDraftPage})).json();
     expect(second.nextDraftPage).toBeNull();
     expect(new Set([...first.drafts,...second.drafts].map(d => d.id)).size).toBe(201);
+  });
+  it('starts a timed game when the invited captain is ready and preserves the deadline on retries', async () => {
+    const {room} = await (await roomCall({action:'create',teamId,creationKey:crypto.randomUUID(),side:'blue',turnSeconds:30})).json();
+    const host = {teamId,roomId:room.id}, guest = {invite:room.invite,roomId:room.id};
+    const move = {action:'move',...host,step:0,champion:'Ahri'};
+    expect((await roomCall(move)).status).toBe(409);
+    expect((await roomCall({action:'start',...host})).status).toBe(404);
+    expect((await roomCall({action:'start',roomId:room.id,invite:room.spectatorInvite})).status).toBe(404);
+    const start = async () => (await (await roomCall({action:'start',...guest})).json()).room;
+    const started = await start();
+    expect(started).toMatchObject({turnSeconds:30,canStart:false});
+    expect(started.turnStartedAt).toBeTruthy();
+    expect((await start()).turnStartedAt).toEqual(started.turnStartedAt);
+    const saved = (await (await roomCall(move)).json()).room;
+    expect(saved.moves).toEqual(['Ahri']);
+    expect((await (await roomCall(move)).json()).room.turnStartedAt).toEqual(saved.turnStartedAt);
+  });
+  it('keeps one invitation across a Fearless series, with independent sides, turn order and analyses', async () => {
+    const create = {action:'create',teamId,creationKey:crypto.randomUUID(),side:'blue',opponent:'Orion',seriesLength:2,mode:'fearless',firstPick:'red'};
+    const {room} = await (await roomCall(create)).json();
+    const host = {teamId,roomId:room.id}, guest = {invite:room.invite,roomId:room.id};
+    const watch = {invite:room.spectatorInvite,roomId:room.id};
+    const read = async (fields) => (await (await roomCall({action:'read',...fields})).json()).room;
+    const spectator = await read(watch);
+    expect(spectator.side).toBeNull();
+    expect(spectator).not.toHaveProperty('invite');
+    expect(spectator).not.toHaveProperty('matchId');
+    expect((await roomCall({action:'move',...watch,gameNumber:1,step:0,champion:'Ahri'})).status).toBe(404);
+    const next = {action:'next',...host,gameNumber:1,firstPick:'blue',side:'red'};
+    expect((await roomCall(next)).status).toBe(409);
+    expect((await roomCall({action:'move',...guest,step:0,champion:'Vi'})).status).toBe(409);
+    for (const gameNumber of [1,2]) {
+      const firstPick = gameNumber === 1 ? 'red' : 'blue';
+      const turns = draftTurns(firstPick);
+      for (const [step,[,side]] of turns.entries()) {
+        const actor = side === firstPick ? guest : host;
+        const response = await roomCall({action:'move',...actor,gameNumber,step,champion:champions[(gameNumber-1)*20+step][1]});
+        expect(response.status).toBe(200);
+      }
+      if (gameNumber === 1) {
+        const [a,b] = await Promise.all([roomCall(next),roomCall(next)]);
+        const game2 = (await a.json()).room;
+        expect((await b.json()).room.gameId).toBe(game2.gameId);
+        expect(game2).toMatchObject({id:room.id,gameNumber:2,invite:room.invite,side:'red',blueName:'Orion'});
+        expect(game2.blocked).toEqual(champions.slice(0,20).filter((_,index)=>turns[index][0]==='pick').map(c=>c[1]));
+        expect((await roomCall({action:'move',...guest,gameNumber:2,step:0,champion:game2.blocked[0]})).status).toBe(409);
+        expect((await read({...watch,gameNumber:1})).moves).toHaveLength(20);
+      }
+    }
+    expect((await roomCall({...next,gameNumber:2})).status).toBe(409);
+    const {rooms:recent} = await (await roomCall({action:'list',teamId})).json();
+    expect(recent).toHaveLength(1);
+    expect(recent[0]).toMatchObject({id:room.id,game_number:2});
+    const {drafts} = await (await call('list')).json();
+    expect(buildDraftAnalysis(drafts)).toMatchObject({total:2,ordered:2});
+    for (const draft of drafts) {
+      const first = draft.gameNumber === 1 ? 'red' : 'blue';
+      expect(draft.snapshot).toMatchObject({seriesId:room.id,firstPick:first,fearless:true,gameNumber:draft.gameNumber});
+      expect(draftOrder(draft.snapshot).events[0].side).toBe(first);
+    }
   });
   it('plays a guest/host draft, retries safely, publishes the recorded turns once and links the match', async () => {
     const createBody = {action:'create', teamId, creationKey:crypto.randomUUID(), side:'red', opponent:'Foxes'};
