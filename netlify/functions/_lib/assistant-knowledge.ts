@@ -149,7 +149,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     summary: "Parties réunit les parties importées et leurs bilans. Importer une partie ouvre le choix du fichier. Les corrections restent accessibles depuis les options de chaque partie.",
     keywords: ['import', 'importer', 'json', 'game id', 'games', 'partie', 'side', 'lane', 'profil', 'créer les profils', 'catégorie', 'scrim', 'upload', 'historique', 'import automatique', 'liaison', 'code de liaison', 'collecte automatique'],
     steps: [
-      "Pour ne plus rien faire à la main : dans Parties → Import automatique, lie NXT5 Importer à l’équipe avec un code, puis laisse l’Importer ouvert pendant les customs. Les parties reconnues arrivent seules ; les autres restent à finaliser.",
+      "Pour ne plus rien faire à la main : dans Parties → Liaison, lie NXT5 Importer à l’équipe avec un code, puis laisse l’Importer ouvert pendant les customs. Les parties reconnues arrivent seules ; les autres restent à finaliser.",
       "Prépare le fichier .json avec NXT5 Importer. L’aide Pas encore de fichier ? explique comment l’obtenir.",
       "Dans Parties, choisis Importer une partie, puis Choisir mon fichier.",
       "Choisis le côté de ton équipe, vérifie les postes des deux équipes et associe cinq profils différents. Crée les profils manquants depuis l’import si nécessaire.",
@@ -164,7 +164,7 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       {
         question: 'Comment importer mes parties automatiquement ?',
         triggers: ['import automatique', 'importer automatiquement', 'lier l’importer', 'code de liaison', 'collecte automatique', 'partie reçue', 'à finaliser'],
-        answer: "Dans Parties → Import automatique, le staff génère un code et le colle dans l’onglet Collecte automatique de NXT5 Importer (valable 15 minutes, une seule fois). Laisse l’Importer ouvert pendant les customs. Les parties reconnues rejoignent la bibliothèque. Celles qui demandent une intervention apparaissent dans Parties à finaliser. Finaliser ouvre le formulaire d’import habituel. Une fois importée ou ignorée, la partie quitte cette liste. La liaison expire après 90 jours et se révoque d’un clic."
+        answer: "Dans Parties → Liaison, le staff génère un code et le colle dans l’onglet Collecte automatique de NXT5 Importer (valable 15 minutes, une seule fois). Laisse l’Importer ouvert pendant les customs. Les parties reconnues rejoignent la bibliothèque. Celles qui demandent une intervention apparaissent dans Parties à finaliser. Finaliser ouvre le formulaire d’import habituel. Une fois importée ou ignorée, la partie quitte cette liste. La liaison expire après 90 jours et se révoque d’un clic."
       },
       {
         question: 'Où trouver la collecte automatique dans NXT5 Importer 0.4.1 ?',

@@ -1,10 +1,10 @@
 # Import automatique des parties
 
-Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible dans Parties → Import automatique, et de l’onglet « Collecte automatique » de NXT5 Importer 0.4.0. Préparation locale au 5 novembre 2026 ; le pilote sur une vraie custom (ci-dessous) reste à effectuer avant de considérer la fonctionnalité comme en service.
+Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible dans Parties → Liaison, et de l’onglet « Collecte automatique » de NXT5 Importer 0.4.0. Préparation locale au 5 novembre 2026 ; le pilote sur une vraie custom (ci-dessous) reste à effectuer avant de considérer la fonctionnalité comme en service.
 
 ## Parcours
 
-1. Dans Parties, le staff (propriétaire, capitaine, coach, assistant, analyste, manager, board) clique sur « Lier NXT5 Importer », choisit éventuellement le tag à appliquer aux parties reçues, et obtient un code à usage unique valable 15 minutes.
+1. Dans Parties, le staff (propriétaire, capitaine, coach, assistant, analyste, manager, board) ouvre « Liaison », choisit éventuellement le tag à appliquer aux parties reçues, puis clique sur « Lier NXT5 Importer » pour obtenir un code à usage unique valable 15 minutes.
 2. Dans NXT5 Importer, onglet Collecte automatique, le code est collé une fois. L’application reçoit un jeton valable 90 jours, le nom de l’équipe, son tag et les Riot ID de l’effectif actif, puis affiche la liaison dans Parties avec le nom de l’ordinateur.
 3. À la fin de chaque custom observée avec l’Importer ouvert, l’application envoie la partie (données Riot converties depuis le client local, avec la chronologie quand elle existe) et une clé de répétition. Un envoi répété de la même partie ne crée rien de plus.
 4. Le serveur reconnaît l’équipe par les Riot ID de l’effectif : au moins quatre joueurs sur un même côté. Il déduit le côté, les postes (positions Riot, sinon rôle du profil, sinon Smite pour la jungle et le dernier poste libre) et les cinq profils, puis enregistre la partie comme un import manuel, avec le tag choisi ou le tag par défaut de l’équipe. Les notifications et publications habituelles suivent.

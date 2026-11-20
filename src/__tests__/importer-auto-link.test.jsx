@@ -4,6 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({ fetch: vi.fn() }));
 vi.mock("../api/client.js", () => ({ apiFetch: api.fetch, API_BASE: "/.netlify/functions" }));
+vi.mock("../components/ui/ModalDialog.jsx", () => ({
+  ModalDialog: ({ children, onClose }) => <dialog open onCancel={onClose}>{children}</dialog>,
+}));
 
 import { Button } from "../components/ui/Core.jsx";
 import { ImporterAutoLink } from "../components/importer/ImporterAutoLink.jsx";
@@ -13,6 +16,8 @@ afterEach(() => { if (renderer) act(() => renderer.unmount()); renderer = null; 
 async function mount(component) { await act(async () => { renderer = TestRenderer.create(component); }); await act(async () => {}); }
 const text = () => JSON.stringify(renderer.toJSON());
 const button = (label) => renderer.root.findAllByType(Button).find((node) => node.props.children === label);
+const openSettings = () => act(async () => { button("Liaison").props.onClick(); });
+const closeSettings = () => act(async () => { renderer.root.findByType("dialog").props.onCancel(); });
 const listing = (overrides = {}) => ({
   canManage: true, minRoster: 4,
   links: [{ id: "link-1", label: "PC de Coach", status: "connected", connectedAt: new Date().toISOString(), lastSeenAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 80 * 86400_000).toISOString() }],
@@ -41,19 +46,23 @@ describe("automatic import panel", () => {
     const pushToast = vi.fn();
     await mount(<ImporterAutoLink teamId="team-a" categories={[{ id: "c1", name: "Scrim" }, { id: "c2", name: "Tournoi" }]} canManage pushToast={pushToast} onFinalize={onFinalize} />);
     expect(api.fetch.mock.calls[0][0]).toBe("team-import-link?teamId=team-a");
-    expect(text()).toContain("PC de Coach");
+    expect(text()).not.toContain("PC de Coach");
     expect(text()).toContain("Parties à finaliser");
     expect(text()).toContain("EUW1_8035280011");
     for (const id of ["EUW1_8035280010", "EUW1_8035280012", "EUW1_8035280013"]) expect(text()).not.toContain(id);
 
+    await openSettings();
+    expect(text()).toContain("PC de Coach");
     await act(async () => { button("Lier un autre ordinateur").props.onClick(); });
     expect(JSON.parse(api.fetch.mock.calls.find(([, options]) => options?.method)[1].body)).toEqual({ teamId: "team-a", action: "create" });
     expect(text()).toContain("ABCD-1234-EF56-7890-AB12-CD34");
 
+    await closeSettings();
     await act(async () => { button("Finaliser").props.onClick(); });
     expect(onFinalize).toHaveBeenCalledWith(payload, expect.objectContaining({ id: "sub-2" }));
     expect(text()).toContain("EUW1_8035280011");
 
+    await openSettings();
     await act(async () => { button("Révoquer").props.onClick(); });
     const revoke = api.fetch.mock.calls.filter(([, options]) => options?.method).at(-1);
     expect(JSON.parse(revoke[1].body)).toEqual({ teamId: "team-a", action: "revoke", linkId: "link-1" });
@@ -72,10 +81,33 @@ describe("automatic import panel", () => {
     } else {
       await act(async () => { renderer.update(<ImporterAutoLink teamId="team-a" canManage refreshKey={1} />); });
     }
-    expect(text()).toContain("Aucune partie à finaliser.");
+    expect(text()).not.toContain("Import automatique");
+    expect(text()).not.toContain("Aucune partie à finaliser.");
     expect(text()).not.toContain("EUW1_");
     expect(text()).not.toContain("Parties à finaliser");
+    expect(renderer.root.findAllByType("button")).toHaveLength(1);
+    await openSettings();
     expect(button("Lier un autre ordinateur")).toBeDefined();
+  });
+
+  it("opens the first computer setup from a single button when the team has no games or links", async () => {
+    api.fetch.mockResolvedValue(listing({ links: [], submissions: [] }));
+    await mount(<ImporterAutoLink teamId="team-a" canManage />);
+    expect(renderer.root.findAllByType("button")).toHaveLength(1);
+    expect(text()).not.toContain("Import automatique");
+    await openSettings();
+    expect(button("Lier NXT5 Importer")).toBeDefined();
+    await closeSettings();
+    expect(renderer.root.findAllByType("button")).toHaveLength(1);
+  });
+
+  it("keeps a linked computer viewable by players without write controls", async () => {
+    api.fetch.mockResolvedValue(listing({ submissions: [] }));
+    await mount(<ImporterAutoLink teamId="team-a" />);
+    await openSettings();
+    expect(text()).toContain("PC de Coach");
+    expect(button("Révoquer")).toBeUndefined();
+    expect(button("Lier un autre ordinateur")).toBeUndefined();
   });
 
   it("keeps players read-only and reports a loading failure with a retry", async () => {

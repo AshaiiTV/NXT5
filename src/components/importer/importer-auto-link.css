@@ -1,9 +1,11 @@
 .importer-auto-link { padding: 20px; }
 .importer-auto-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
 .importer-auto-head > svg { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; color: var(--nxt5-accent); }
-.importer-auto-head > div { flex: 1 1 160px; min-width: 0; }
+.importer-auto-launcher { padding-inline: 10px; }
+.importer-auto-dialog-footer { display: flex; margin-top: 12px; }
+.importer-auto-code-row > code { max-width: 100%; overflow-wrap: anywhere; }
 .importer-auto-head h3 { font-size: 18px; font-weight: 700; line-height: 1.4; }
-.importer-auto-head p, .importer-auto-hint { margin-top: 4px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.6; }
+.importer-auto-hint { margin-top: 4px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.6; }
 .importer-auto-refresh { margin-left: auto; }
 @media (max-width: 480px) {
   .importer-auto-refresh { min-width: 44px; padding-inline: 10px; }

@@ -1451,6 +1451,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const normalizedArchiveSearch = normalizeArchiveSearch(deferredArchiveSearch.trim());
   const searchedArchives = normalizedArchiveSearch ? archives.filter((archive) => normalizeArchiveSearch([archive.name, archive.description, archive.created_by_name, archive.opponent_name].filter(Boolean).join(" ")).includes(normalizedArchiveSearch)) : archives;
   const importTriggerRef = useRef(null);
+  const [importerActionContainer, setImporterActionContainer] = useState(null);
   const statsRef = useRef(null);
   const listRef = useRef(null);
   const previousSelection = useRef("");
@@ -1605,12 +1606,15 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
 
   return <div className="nxt5-data-dense nxt5-stats-page nxt5-games-page min-w-0">
     <PageHeader eyebrow={selectedTeamName} title={t("Parties")} subtitle={selectedMatchId ? t("Résultat, pistes de travail et détails.") : workspaceView === "teams" ? t("Équipes adverses, champions et parties.") : t("Ouvre une partie pour préparer la suite.")}>
-      {!selectedMatchId && !selectedArchiveId && <div ref={importTriggerRef}>{renderImportAction()}</div>}
+      {!selectedMatchId && !selectedArchiveId && <>
+        <div ref={importTriggerRef}>{renderImportAction()}</div>
+        {!importOpen && workspaceView !== "teams" && <span ref={setImporterActionContainer} className="empty:hidden" />}
+      </>}
     </PageHeader>
     {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog className="game-import-dialog" title={t("Importer une partie")} onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy} dirty={importDirty} returnFocusRef={importTriggerRef}>
       <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} onDirtyChange={setImportDirty} receivedImport={receivedImport} onReceivedImportConsumed={() => setReceivedImport(null)} />
     </GameOperationDialog>}
-    {!selectedMatchId && !selectedArchiveId && !importOpen && workspaceView !== "teams" && <ImporterAutoLink teamId={selectedTeamId} categories={matchCategories} canManage={canImport} pushToast={pushToast} refreshKey={data.matches?.length} onFinalize={async (payload, submission) => { setReceivedImport({ payload, submission }); setImportOpen(true); }} />}
+    {!selectedMatchId && !selectedArchiveId && !importOpen && workspaceView !== "teams" && <ImporterAutoLink teamId={selectedTeamId} actionContainer={importerActionContainer} categories={matchCategories} canManage={canImport} pushToast={pushToast} refreshKey={data.matches?.length} onFinalize={async (payload, submission) => { setReceivedImport({ payload, submission }); setImportOpen(true); }} />}
 
     {selectedMatchId && <div ref={statsRef} id="selected-game-stats" tabIndex={-1} className="games-detail" aria-label={t("Analyse de la partie")}>
       <div className="games-detail-toolbar">
