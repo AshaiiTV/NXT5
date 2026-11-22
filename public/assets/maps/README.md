@@ -1,5 +1,7 @@
 # League of Legends minimap
 
+The desktop draft room uses the Summoner’s Rift landscape illustration from Riot’s [How to Play guide](https://www.leagueoflegends.com/fr-fr/how-to-play/). The 1920-pixel WebP is served locally as `summoners-rift-landscape.webp`. [Original illustration](https://cmsassets.rgpub.io/sanity/images/dsfx7636/news/ffe8f50201af51a0956875d2aeeb9e662eb0b228-3840x2160.png)
+
 `summoners-rift.png` is the unmodified Summoner's Rift (`mapId: 11`) minimap from Riot Games Data Dragon 16.21.1, downloaded on 2026-10-23. It is served locally, without a third-party image request.
 
 - Source: https://ddragon.leagueoflegends.com/cdn/16.21.1/img/map/map11.png

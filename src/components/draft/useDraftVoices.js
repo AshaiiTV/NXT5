@@ -9,16 +9,17 @@ function wasMuted() {
   catch { return false; }
 }
 
-// A poll can reveal consecutive locks together. Play their lines in turn on
-// one channel, and discard unfinished work when the listener leaves or mutes.
 function createVoicePlayer(onActive) {
   let context, gain, source, muted = wasMuted();
-  let batch = new AbortController();
+  let preview = null;
   let queue = Promise.resolve();
+  const pending = new Set();
 
   function stop() {
-    batch.abort();
-    batch = new AbortController();
+    preview?.controller.abort();
+    preview = null;
+    for (const line of pending) line.controller.abort();
+    pending.clear();
     queue = Promise.resolve();
     source?.stop();
     source = null;
@@ -29,7 +30,7 @@ function createVoicePlayer(onActive) {
     const Audio = window.AudioContext || window.webkitAudioContext;
     if (!Audio) return;
     if (!context) {
-      context = new Audio();
+      context = new Audio({ latencyHint: "interactive" });
       gain = context.createGain();
       gain.gain.value = 0.5;
       gain.connect(context.destination);
@@ -46,16 +47,45 @@ function createVoicePlayer(onActive) {
     else unlock();
   }
 
+  function voiceUrl(champion, kind) {
+    return "/.netlify/functions/asset-proxy?" + new URLSearchParams({ voice: champion, kind, lang: getLanguage() });
+  }
+
+  function load(url) {
+    const controller = new AbortController();
+    const buffer = fetch(url, { signal: controller.signal }).then(async response => {
+      if (!response.ok) return null;
+      const bytes = await response.arrayBuffer();
+      return controller.signal.aborted ? null : context.decodeAudioData(bytes);
+    }).catch(() => null);
+    return { url, controller, buffer };
+  }
+
+  function prepare(champion, kind) {
+    // The first tap in a guest room may also be the gesture that enables audio.
+    unlock();
+    if (muted || !context) return;
+    const url = champion && voiceUrl(champion, kind);
+    if (preview?.url === url) return;
+    preview?.controller.abort();
+    preview = url ? load(url) : null;
+    const candidate = preview;
+    candidate?.buffer.then(buffer => {
+      if (!buffer && preview === candidate) preview = null;
+    });
+  }
+
   function enqueue(champion, kind) {
-    if (muted || context?.state !== "running") return;
-    const params = new URLSearchParams({ voice: champion, kind, lang: getLanguage() });
-    const { signal } = batch;
+    if (muted || !context) return;
+    const url = voiceUrl(champion, kind);
+    if (preview?.url !== url) preview?.controller.abort();
+    const line = preview?.url === url ? preview : load(url);
+    preview = null;
+    pending.add(line);
+    // Fetch and decode immediately. Only the voices themselves share a queue.
     queue = queue.then(async () => {
-      if (signal.aborted) return;
-      const response = await fetch("/.netlify/functions/asset-proxy?" + params, { signal });
-      if (!response.ok) return;
-      const buffer = await context.decodeAudioData(await response.arrayBuffer());
-      if (signal.aborted || context.state !== "running") return;
+      const buffer = await line.buffer;
+      if (!buffer || line.controller.signal.aborted || context.state !== "running") return;
       const clip = context.createBufferSource();
       clip.buffer = buffer;
       clip.connect(gain);
@@ -66,7 +96,8 @@ function createVoicePlayer(onActive) {
       });
       clip.disconnect();
       if (source === clip) source = null;
-    }).catch(() => { /* A missing clip must not interrupt the next turn. */ });
+    }).catch(() => { /* Audio errors must not block later locks. */ })
+      .finally(() => pending.delete(line));
   }
 
   function close() {
@@ -76,7 +107,7 @@ function createVoicePlayer(onActive) {
       void context.close().catch(() => {});
     }
   }
-  return { unlock, toggle, enqueue, stop, close };
+  return { unlock, toggle, prepare, enqueue, stop, close };
 }
 
 export function useDraftVoices(live) {
@@ -114,5 +145,6 @@ export function useDraftVoices(live) {
     }
   }, []);
 
-  return { active, toggleButton, toggle: () => player.current?.toggle(), playConfirmed };
+  return { active, toggleButton, toggle: () => player.current?.toggle(), playConfirmed,
+    prepareVoice: (champion, kind) => player.current?.prepare(champion, kind) };
 }
