@@ -147,7 +147,12 @@ export default async function handler(request: Request): Promise<Response> {
     if (!id || !locale || (kind !== 'pick' && kind !== 'ban')) return response(400, 'Invalid champion voice');
     const directory = kind === 'pick' ? 'champion-choose-vo' : 'champion-ban-vo';
     const source = new URL(`https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/${locale}/v1/${directory}/${id}.ogg`);
-    return binaryAsset(source, VOICE_TYPES, 256 * 1024);
+    const clip = await binaryAsset(source, VOICE_TYPES, 256 * 1024);
+    if (clip.ok) {
+      clip.headers.set('Netlify-CDN-Cache-Control', 'public, durable, max-age=86400, stale-while-revalidate=604800');
+      clip.headers.set('Netlify-Vary', 'query');
+    }
+    return clip;
   }
   if (params.has('spotlight')) {
     const art = draftSpotlight(params.get('spotlight'));

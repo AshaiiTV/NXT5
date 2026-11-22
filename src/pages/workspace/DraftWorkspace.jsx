@@ -890,7 +890,7 @@ function DraftWorkspace({ data, setData, selectedTeamId, refreshAll, pushToast, 
   return <div>
     <TabNav idPrefix="draft" panelId="draft-panel" className="nxt5-draft-navigation mb-5" label={t("Espace Draft")} items={DRAFT_VIEW_ROUTES.map((item) => ({ ...item, icon: icons[item.id] }))} activeId={view} onChange={(id) => navigate(draftPathFromView(id))} columns="sm:grid-cols-3" />
     <div id="draft-panel" role="tabpanel" aria-labelledby={`draft-tab-${view}`} tabIndex={0}>
-    {view === "salle" ? <DraftRoomWorkspace key={selectedTeamId} teamId={selectedTeamId} matches={data.matches} route={route} navigate={navigate} /> : view === "compositions" ? <Compositions key={selectedTeamId} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} /> : <Champions data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
+    {view === "salle" ? <DraftRoomWorkspace key={selectedTeamId} teamId={selectedTeamId} teamName={data.teams?.find(team => team.id === selectedTeamId)?.name} matches={data.matches} route={route} navigate={navigate} /> : view === "compositions" ? <Compositions key={selectedTeamId} data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} /> : <Champions data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
     </div>
   </div>;
 }

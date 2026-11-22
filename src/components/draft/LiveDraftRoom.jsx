@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Check, Copy, Eye, Maximize2, Minimize2, Swords, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Check, Clock3, Copy, Eye, Flag, Layers3, Maximize2, Minimize2, Swords, Volume2, VolumeX } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { Button, SelectInput, Surface, TextInput } from "../ui/Core.jsx";
 import { matchDisplayName } from "../../utils/matches.js";
+import { Nxt5Wordmark } from "../brand/BrandAssets.jsx";
 import { camp, DraftArena } from "./DraftArena.jsx";
 import { useDraftVoices } from "./useDraftVoices.js";
 import "./live-draft-room.css";
@@ -56,7 +57,7 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
   const [room,setRoom] = useState(null), [loadError,setLoadError] = useState(""), [actionError,setActionError] = useState("");
   const [pending,setPending] = useState(false), [recent,setRecent] = useState(-1), [full,setFull] = useState(false);
   const inFlight = useRef(false), latest = useRef(null), frame = useRef(null), mounted = useRef(true);
-  const { active: voicesActive, toggleButton, toggle: toggleVoices, playConfirmed } = useDraftVoices(!pinned);
+  const { active: voicesActive, toggleButton, toggle: toggleVoices, playConfirmed, prepareVoice } = useDraftVoices(!pinned);
   const request = useCallback((action, fields = {}, signal) => roomRequest({ action, roomId, ...(invite === undefined ? {teamId} : {invite}),
     ...(pinned ? {gameNumber:pinned} : {}), ...fields }, signal), [roomId,teamId,invite,pinned]);
   const accept = useCallback(next => {
@@ -114,32 +115,34 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
   }
   const Heading = invite === undefined ? "h2" : "h1";
   return <div ref={frame} className="live-room live-session">
-    <div className="live-heading"><div>{onBack && <button type="button" className="live-back" onClick={onBack}><ArrowLeft size={16} />{t("Toutes les salles")}</button>}
-      <Heading>{t("Salle de draft")}</Heading></div><div className="live-actions">
-      {room?.invite && <><RoomInvitation room={room} /><RoomInvitation room={room} spectator /></>}
-      <div className="live-room-controls">
-        {room && !pinned && <button type="button" className="live-tool live-voice-toggle" ref={toggleButton}
-          aria-label={t("Voix des champions")} aria-pressed={voicesActive} onClick={toggleVoices}
-          title={voicesActive ? t("Couper les voix des champions") : t("Activer les voix des champions")}>
-          {voicesActive ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
-        </button>}
-        {typeof document !== "undefined" && document.fullscreenEnabled && <button type="button" className="live-tool" onClick={fullscreen} aria-label={full ? t("Quitter le plein écran") : t("Plein écran")} title={full ? t("Quitter le plein écran") : t("Plein écran")}>{full ? <Minimize2 /> : <Maximize2 />}</button>}
-      </div>
-    </div></div>
-    {loadError && <p role="alert">{t(loadError)}</p>}
-    {!room && !loadError && <p role="status">{t("Chargement…")}</p>}
-    {room && <>
-      <div className="live-series"><span>{room.mode === "fearless" ? t("Fearless") : t("Standard")}</span>
+    <div className="live-session-top">
+      <div className="live-heading"><div className="live-session-name">{invite !== undefined && <Nxt5Wordmark className="live-wordmark" sizes="72px" loading="eager" />}{onBack && <button type="button" className="live-back" onClick={onBack}><ArrowLeft size={16} />{t("Toutes les salles")}</button>}
+        <Heading>{t("Salle de draft")}</Heading></div><div className="live-actions">
+        {room?.invite && <><RoomInvitation room={room} /><RoomInvitation room={room} spectator /></>}
+        <div className="live-room-controls">
+          {room && !pinned && <button type="button" className="live-tool live-voice-toggle" ref={toggleButton}
+            aria-label={t("Voix des champions")} aria-pressed={voicesActive} onClick={toggleVoices}
+            title={voicesActive ? t("Couper les voix des champions") : t("Activer les voix des champions")}>
+            {voicesActive ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
+          </button>}
+          {typeof document !== "undefined" && document.fullscreenEnabled && <button type="button" className="live-tool" onClick={fullscreen} aria-label={full ? t("Quitter le plein écran") : t("Plein écran")} title={full ? t("Quitter le plein écran") : t("Plein écran")}>{full ? <Minimize2 /> : <Maximize2 />}</button>}
+        </div>
+      </div></div>
+      {room && <div className="live-series"><span>{room.mode === "fearless" ? t("Fearless") : t("Standard")}</span>
         <strong>{gameLabel(room.gameNumber,room.seriesLength)}</strong>
         {room.side ? <span>{camp(room.side)}</span> : <span><Eye size={14}/>{t("Spectateur")}</span>}
         {room.latestGame > 1 && <select aria-label={t("Partie de la série")} value={pinned || ""} onChange={e => onPin(Number(e.target.value) || null)}>
           <option value="">{t("En direct")}</option>{Array.from({length:room.latestGame},(_,i) => <option key={i} value={i+1}>{gameLabel(i+1,room.seriesLength)}</option>)}</select>}
         {pinned && <button type="button" onClick={() => onPin(null)}>{t("Revenir au direct")}</button>}
-      </div>
+      </div>}
+    </div>
+    {loadError && <p role="alert">{t(loadError)}</p>}
+    {!room && !loadError && <p role="status">{t("Chargement…")}</p>}
+    {room && <React.Fragment key={room.gameId}>
       {actionError && <p role="alert">{t(actionError)}</p>}
-      <DraftArena key={room.gameId} room={room} recent={recent} pending={pending} onStart={() => mutate("start",{})} onMove={champion => mutate("move",{step:room.moves.length,champion})} />
-      {room.moves.length === 20 && <RoomFinish key={room.gameId} {...{room,teamId,matches,pending,mutate}} live={!pinned} />}
-    </>}
+      <DraftArena room={room} recent={recent} pending={pending} onPrepareVoice={prepareVoice} onStart={() => mutate("start",{})} onMove={champion => mutate("move",{step:room.moves.length,champion})} />
+      {room.moves.length === 20 && <RoomFinish {...{room,teamId,matches,pending,mutate}} live={!pinned} />}
+    </React.Fragment>}
   </div>;
 }
 
@@ -156,7 +159,18 @@ export function GuestDraftRoom() {
 }
 
 
-export function DraftRoomWorkspace({ teamId, matches, route, navigate }) {
+function DraftSetting({label, name, options, value, onChange}) {
+  return <fieldset className="live-setting">
+    <legend>{label}</legend>
+    <div className="live-segments">{options.map(option =>
+      <label key={option.value} data-side={option.side} data-selected={value === option.value}>
+        <input type="radio" name={name} checked={value === option.value} value={option.value} onChange={() => onChange(option.value)} />
+        {option.side && <i aria-hidden="true" />}{option.label}
+      </label>)}</div>
+  </fieldset>;
+}
+
+export function DraftRoomWorkspace({ teamId, teamName, matches, route, navigate }) {
   useLanguage();
   const id = new URLSearchParams(route.search).get("room");
   const [rooms,setRooms] = useState([]), [editable,setEditable] = useState(null), [error,setError] = useState("");
@@ -187,25 +201,44 @@ export function DraftRoomWorkspace({ teamId, matches, route, navigate }) {
   }
   if (!teamId) return <Surface><p>{t("Sélectionne une équipe.")}</p></Surface>;
   if (id) return <Surface><LiveDraftRoom key={id+route.search} roomId={id} initialGame={Number(new URLSearchParams(route.search).get("game"))} teamId={teamId} matches={matches} onBack={() => navigate("/draft/salle")} /></Surface>;
-  return <Surface><div className="live-room"><h2>{t("Salle de draft")}</h2>
+  const sides = ["blue","red"].map(value => ({value,side:value,label:value === "blue" ? t("Bleu") : t("Rouge")}));
+  const ally = teamName || t("Notre équipe"), opponent = name.trim() || t("Adversaire");
+  const format = mode === "standard" ? t("Standard") : t("Fearless");
+  return <Surface className="live-lobby-surface"><div className="live-room live-lobby">
     {error && <p role="alert">{t(error)} <button type="button" onClick={() => setReload(n => n+1)}>{t("Réessayer")}</button></p>}
-    {editable === null && !error && <p role="status">{t("Chargement…")}</p>}
-    {editable && <form onSubmit={create} className="live-create"><div className="live-create-cover"><Swords aria-hidden="true" /><p>{t("Choisis ton côté et invite le capitaine adverse.")}</p></div>
-      <div className="live-create-fields">
+    <div className="live-match-sheet" data-editable={Boolean(editable)}>
+      <header className="live-poster">
+        <h2>{t("Salle de draft")}</h2>
+        {editable && <div className="live-poster-match">
+          <div className="live-matchup">{["blue","red"].map(c => <div key={c} data-side={c}>
+            <span>{camp(c)}{firstPick === c && <small><Flag size={12} aria-hidden="true"/>{t("Premier choix")}</small>}</span>
+            <strong data-placeholder={side !== c && !name.trim()}>{side === c ? ally : opponent}</strong>
+          </div>)}</div>
+          <div className="live-match-rules"><span><Layers3/>{seriesLength === "1" ? t("1 partie") : t("{0} parties",[seriesLength])}</span>
+            <span><Swords/>{format}</span><span><Clock3/>{turnSeconds === "0" ? t("Libre") : turnSeconds + " s"}</span></div>
+        </div>}
+      </header>
+      {editable === null && !error && <p role="status">{t("Chargement…")}</p>}
+      {editable && <form onSubmit={create} className="live-create">
+        <div className="live-create-intro"><h3>{t("Configuration")}</h3><p>{t("Choisis ton côté et invite le capitaine adverse.")}</p></div>
         <TextInput label={t("Adversaire (facultatif)")} value={name} onChange={setName} maxLength={80} />
-        <SideSelect label={t("Notre côté")} value={side} onChange={setSide} />
-        <SelectInput label={t("Nombre de parties")} value={seriesLength} onChange={setSeriesLength}>{[1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}</SelectInput>
-        <SideSelect label={t("Premier choix")} value={firstPick} onChange={setFirstPick} />
-      </div>
-      <div className="live-clock-setting"><SelectInput label={t("Temps de réflexion par tour")} value={turnSeconds} onChange={setTurnSeconds}>
-        <option value="0">{t("Libre")}</option><option value="30">30 s</option><option value="60">60 s</option></SelectInput>
-        {turnSeconds !== "0" && <p>{t("Le chrono démarre quand l’adversaire est prêt. Chaque capitaine confirme son choix, même en prolongation.")}</p>}</div>
-      <fieldset className="live-modes"><legend>{t("Format de draft")}</legend>{["standard","fearless"].map(value => <label key={value} data-selected={mode === value}>
-        <input type="radio" name="draft-mode" checked={mode === value} onChange={() => setMode(value)} /><span><strong>{value === "standard" ? t("Standard") : t("Fearless")}</strong>
-        <small>{value === "standard" ? t("Tous les champions reviennent à chaque partie.") : t("Un champion joué est bloqué pour les deux camps jusqu’à la fin de la série.")}</small></span></label>)}</fieldset>
-      <Button type="submit" disabled={busy} icon={Swords}>{t("Créer la salle")}</Button></form>}
-    {rooms.length > 0 && <section><h3>{t("Salles récentes")}</h3><ul className="live-history">{rooms.map(r => <li key={r.id}>
-      <a href={`/draft/salle?room=${r.id}`}><span>{r.blue_name} · {r.red_name}</span><small>{r.series_length > 1 && gameLabel(r.game_number,r.series_length) + " · "}{r.step === 20 ? t("Draft terminée") : t("{0} choix sur 20", [r.step])}</small></a></li>)}</ul></section>}
+        <div className="live-setting-pair">
+          <DraftSetting label={t("Notre côté")} name="side" value={side} onChange={setSide} options={sides} />
+          <DraftSetting label={t("Premier choix")} name="first" value={firstPick} onChange={setFirstPick} options={sides} />
+        </div>
+        <div className="live-setting-pair">
+          <DraftSetting label={t("Nombre de parties")} name="games" value={seriesLength} onChange={setSeriesLength} options={["1","2","3","4","5"].map(value => ({value,label:value}))} />
+          <DraftSetting label={t("Temps de réflexion par tour")} name="timer" value={turnSeconds} onChange={setTurnSeconds} options={["0","30","60"].map(value => ({value,label:value === "0" ? t("Libre") : value + " s"}))} />
+        </div>
+        {turnSeconds !== "0" && <p className="live-setting-help">{t("Le chrono démarre quand l’adversaire est prêt. Chaque capitaine confirme son choix, même en prolongation.")}</p>}
+        <div><DraftSetting label={t("Format de draft")} name="draft-mode" value={mode} onChange={setMode} options={[{value:"standard",label:t("Standard")},{value:"fearless",label:t("Fearless")}]} />
+          <p className="live-setting-help">{mode === "standard" ? t("Tous les champions reviennent à chaque partie.") : t("Un champion joué est bloqué pour les deux camps jusqu’à la fin de la série.")}</p>
+        </div>
+        <Button type="submit" disabled={busy} icon={Swords}>{t("Créer la salle")}</Button>
+      </form>}
+    </div>
+    {rooms.length > 0 && <section className="live-history-section"><h3>{t("Salles récentes")}</h3><ul className="live-history">{rooms.map(r => <li key={r.id}>
+      <a href={`/draft/salle?room=${r.id}`}><span>{r.blue_name} · {r.red_name}</span><small>{r.series_length > 1 && gameLabel(r.game_number,r.series_length) + " · "}{r.step === 20 ? t("Draft terminée") : t("{0} choix sur 20", [r.step])}</small><ArrowUpRight size={16} aria-hidden="true"/></a></li>)}</ul></section>}
     {editable === false && !rooms.length && <p>{t("Aucune salle de draft pour cette équipe.")}</p>}
   </div></Surface>;
 }

@@ -24,6 +24,8 @@ describe('champion voices', () => {
     expect(fetch).toHaveBeenCalledWith('https://raw.communitydragon.org/latest/plugins/rcp-be-lol-game-data/global/' + path,
       expect.objectContaining({ redirect: 'manual' }));
     expect(result.headers.get('content-type')).toBe('audio/ogg');
+    expect(result.headers.get('netlify-cdn-cache-control')).toContain('durable');
+    expect(result.headers.get('netlify-vary')).toBe('query');
     expect(await result.text()).toBe('OggS');
   });
 
@@ -35,7 +37,10 @@ describe('champion voices', () => {
     }
     expect(fetch).not.toHaveBeenCalled();
     fetch.mockResolvedValueOnce(new Response('page', { headers: { 'content-type': 'text/html' } }));
-    expect((await voice('Jinx', 'fr', 'ban')).status).toBe(415);
+    const invalid = await voice('Jinx', 'fr', 'ban');
+    expect(invalid.status).toBe(415);
+    expect(invalid.headers.get('cache-control')).toBe('no-store');
+    expect(invalid.headers.has('netlify-cdn-cache-control')).toBe(false);
     fetch.mockResolvedValueOnce(new Response(new Uint8Array(256 * 1024 + 1), { headers: { 'content-type': 'audio/ogg' } }));
     expect((await voice('Jinx', 'fr', 'ban')).status).toBe(413);
     fetch.mockResolvedValueOnce(new Response('OggS', { headers: { 'content-type': 'audio/ogg' } }));
@@ -237,6 +242,8 @@ describe('draft spotlight art', () => {
     expect(normal.asset).toContain('universe/');
     expect(panoramic).toMatchObject({ centered: true, asset: 'centered/Taric_0.jpg', width: 1280, height: 720 });
     expect(spotlightWidths(panoramic)).toEqual([1280]);
+    expect(draftSpotlight('Nami', 1018, true).asset).toBe('centered/Nami_0.jpg');
+    expect(draftSpotlight('Nami', 1018).centered).toBeUndefined();
     expect(draftSpotlight('Qiyana', 2200).width).toBe(4000);
   });
 

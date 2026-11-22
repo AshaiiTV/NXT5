@@ -4,11 +4,11 @@
 // height for duos and the face centre in Riot’s 1280 × 720 recomposition.
 import catalogue from './draft-spotlights.json' with { type: 'json' };
 
-export function draftSpotlight(champion, frameWidth = 0) {
+export function draftSpotlight(champion, frameWidth = 0, preferCentered = false) {
   if (!Object.hasOwn(catalogue, champion)) return null;
   const [asset, x, y, visible = 38, centered] = catalogue[champion];
   const [, width, height] = /-(\d+)x(\d+)\./.exec(asset);
-  if (centered && frameWidth >= Number(width)) {
+  if (centered && (preferCentered || frameWidth >= Number(width))) {
     return { asset: 'centered/' + champion + '_0.jpg', centered: true, width: 1280, height: 720,
       visibleHeight: visible/100, x: centered[0]/100, y: centered[1]/100 };
   }

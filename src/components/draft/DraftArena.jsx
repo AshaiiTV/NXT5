@@ -1,7 +1,9 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Ban, Check, ChevronDown, Clock3, Crosshair, EyeOff, LockKeyhole, Search, Swords } from "lucide-react";
+import { Ban, Check, ChevronDown, Clock3, Crosshair, EyeOff, History, LockKeyhole, Search, Swords, X } from "lucide-react";
+import { RoleIcon } from "../brand/BrandAssets.jsx";
 import { t } from "../../i18n/translate.js";
 import { ChampionPortrait, championMatchesLane } from "../../pages/workspace/workspace-shared.jsx";
+import { ModalDialog } from "../ui/ModalDialog.jsx";
 import { Button, TextInput } from "../ui/Core.jsx";
 import { championDisplayName, championNameKey } from "../../../shared/champions.js";
 import { assetProxyUrl } from "../../utils/matches.js";
@@ -12,7 +14,11 @@ import championIds from "../../../shared/riot-champion-ids.json";
 
 export const camp = side => side === "blue" ? t("Côté bleu") : t("Côté rouge");
 const catalogue = championIds.map(([,name]) => name).sort((a,b) => championDisplayName(a).localeCompare(championDisplayName(b)));
-const phaseEnds = [6,12,16,20];
+
+function spotlightUrl(id, art, width) {
+  return art.centered ? assetProxyUrl("https://ddragon.leagueoflegends.com/cdn/img/champion/" + art.asset)
+    : "/.netlify/functions/asset-proxy?spotlight=" + encodeURIComponent(id) + "&w=" + width;
+}
 
 function TeamBoard({ side, room, turns, recent, choice }) {
   const [expanded,setExpanded] = useState(false);
@@ -26,10 +32,14 @@ function TeamBoard({ side, room, turns, recent, choice }) {
         if (type !== kind || team !== side) return null;
         const current = i === room.moves.length, preview = current && choice !== undefined;
         const id = preview ? choice : room.moves[i];
+        const art = id && kind === "pick" && draftSpotlight(id);
         const name = id ? championDisplayName(id) : id === null ? t("Ban non utilisé") : t("À venir");
         return <li key={i} data-current={current} data-preview={preview} data-filled={Boolean(id)} data-reveal={i === recent}
           aria-current={current ? "step" : undefined} title={name}>
-          <span className="live-slot" aria-hidden="true">{id ? <ChampionPortrait champion={id} /> : id === null ? "—" : slot}</span>
+          <span className="live-slot" data-art={Boolean(art)} aria-hidden="true" style={art ? {
+            "--pick-art": 'url("' + spotlightUrl(id,art,Math.min(768,art.width)) + '")',
+            "--art-ratio": art.height / art.width, "--face-x": art.x, "--face-y": art.y
+          } : undefined}>{id ? <ChampionPortrait champion={id} /> : id === null ? "—" : slot}</span>
           <span className="live-slot-name">{name}</span>
           {preview && <EyeOff size={13} className="live-private-mark" aria-hidden="true" />}
           {kind === "ban" && id && !preview && <Ban size={12} aria-hidden="true" className="live-slot-ban" />}
@@ -93,11 +103,10 @@ function Spotlight({ room, choice, recent, turns }) {
   const label = preview ? t("Présélection privée") : source?.[0] === "ban" ? t("Dernier ban") : t("Dernier pick");
   const Icon = preview ? Crosshair : source?.[0] === "ban" ? Ban : LockKeyhole;
   const name = id ? championDisplayName(id) : id === null ? t("Ban non utilisé") : t("Faille de l’invocateur");
-  const art = id && broken !== id ? draftSpotlight(id,frame?.width) : null;
+  const finalPortrait = !turns[step] && frame?.width >= 560;
+  const art = id && broken !== id ? draftSpotlight(id,frame?.width,finalPortrait) : null;
   const layout = art && frame?.width && frame.height ? frameArtwork(art,frame) : null;
-  const url = w => art.centered
-    ? assetProxyUrl("https://ddragon.leagueoflegends.com/cdn/img/champion/" + art.asset)
-    : "/.netlify/functions/asset-proxy?spotlight=" + encodeURIComponent(id) + "&w=" + w;
+  const url = w => spotlightUrl(id,art,w);
   const revision = (preview ? "p" : "l") + step + id + (art?.asset || "");
   const widths = art ? spotlightWidths(art) : [];
   useLayoutEffect(() => {
@@ -136,51 +145,86 @@ function TurnClock({room}) {
     return () => clearInterval(timer);
   },[remainingAtSync]);
   const value = Math.abs(seconds);
-  return <div className="live-clock" role="timer" aria-live="off" aria-label={t("Temps de réflexion par tour")} data-urgent={seconds <= 10}>
-    <Clock3 size={15} aria-hidden="true" />{seconds < 0 && "+"}{Math.floor(value/60)}:{String(value%60).padStart(2,"0")}
+  return <div className="live-clock" role="timer" aria-live="off" aria-label={t("Temps de réflexion par tour")} data-urgent={seconds <= 10} style={{"--time-left": Math.max(0,Math.min(1,seconds / room.turnSeconds))}}>
+    <Clock3 size={15} aria-hidden="true" /><span>{seconds < 0 && "+"}{Math.floor(value/60)}:{String(value%60).padStart(2,"0")}</span>
   </div>;
 }
 
-export function DraftArena({room, pending, recent, onMove, onStart}) {
+function TurnHistory({room, turns}) {
+  const [open,setOpen] = useState(false);
+  const trigger = useRef(null);
+  const count = room.moves.length;
+  const title = t("Historique des choix");
+  const progress = t("{0} choix sur 20",[count]);
+  return <>
+    <button ref={trigger} type="button" className="live-progress" aria-haspopup="dialog"
+      aria-label={title + " · " + progress} title={title} onClick={() => setOpen(true)}>
+      <History size={16} aria-hidden="true"/><strong>{progress}</strong>
+    </button>
+    {open && <ModalDialog className="live-turn-history" aria-label={title} returnFocusRef={trigger} onClose={() => setOpen(false)}>
+      <header><div><h2>{title}</h2><p>{t("Partie {0} sur {1}",[room.gameNumber,room.seriesLength])} · {progress}</p></div>
+        <button className="live-tool" type="button" aria-label={t("Fermer")} onClick={() => setOpen(false)}><X aria-hidden="true"/></button>
+      </header>
+      {count ? <ol reversed tabIndex={0} aria-label={t("Du plus récent au plus ancien")}>{room.moves.map((champion, index) => {
+        const [kind, side, slot] = turns[index];
+        return <li key={index} data-side={side}>
+          <span className="live-log-number">{index+1}</span>
+          <span className="live-log-portrait" aria-hidden="true">{champion ? <ChampionPortrait champion={champion}/> : <Ban size={17}/>}</span>
+          <div><strong>{champion ? championDisplayName(champion) : t("Ban non utilisé")}</strong>
+            <span>{t(kind === "ban" ? "Ban {0}" : "Pick {0}",[slot])} · {camp(side)}</span></div>
+          <span className="live-log-team">{room[side+"Name"]}</span>
+        </li>;
+      }).reverse()}</ol> : <p className="live-log-empty">{t("Aucun choix confirmé pour le moment.")}</p>}
+    </ModalDialog>}
+  </>;
+}
+
+export function DraftArena({room, pending, recent, onMove, onStart, onPrepareVoice}) {
   const turns = draftTurns(room.firstPick), step = room.moves.length, turn = turns[step];
   const waiting = room.turnSeconds > 0 && !room.turnStartedAt;
   const mine = Boolean(turn && turn[1] === room.side && !waiting);
   const [selection,setSelection] = useState(null), [query,setQuery] = useState(""), [lane,setLane] = useState("ALL");
   const choice = mine && selection?.step === step ? selection.champion : undefined;
-  const setChoice = champion => setSelection({champion, step});
+  function setChoice(champion) {
+    setSelection({champion, step});
+    onPrepareVoice(champion, turn[0]);
+  }
   const options = catalogue.filter(id => !room.moves.includes(id) && !room.blocked.includes(id) && championMatchesLane(id,lane)
     && championNameKey(championDisplayName(id)).includes(championNameKey(query)));
-  const phase = phaseEnds.findIndex(end => step < end);
   const PhaseIcon = !turn ? Check : turn[0] === "ban" ? Ban : Swords;
   return <>
-    <div className="live-turn" data-side={turn?.[1]}>
-      <PhaseIcon aria-hidden="true" /><div role="status"><h3>{!turn ? t("Draft terminée") : t(turn[0] === "ban" ? "Ban {0} · {1}" : "Pick {0} · {1}", [turn[2],room[turn[1]+"Name"]])}</h3>
-      <p>{!turn ? t("Les picks et bans sont enregistrés.") : waiting ? (room.canStart ? t("Confirme que ton équipe est prête.") : t("En attente du capitaine adverse.")) : mine ? t("À toi de jouer") : t("Au tour de {0}", [room[turn[1]+"Name"]])}</p></div>
-      {waiting && room.canStart && <Button disabled={pending} icon={Check} onClick={onStart}>{t("Prêt à drafter")}</Button>}
-      {turn && room.turnSeconds > 0 && !waiting && <TurnClock key={step} room={room}/>}
-      <div className="live-progress"><strong>{step} / 20</strong><div aria-hidden="true">{phaseEnds.map((end,i) => <i key={end} data-done={step >= end} data-active={phase === i} />)}</div></div>
-    </div>
     <div className="live-arena" data-complete={!turn}>
+      <div className="live-turn" data-side={turn?.[1]}>
+        <div className="live-phase"><PhaseIcon aria-hidden="true" /><div role="status"><h3>{!turn ? t("Draft terminée") : t(turn[0] === "ban" ? "Ban {0}" : "Pick {0}", [turn[2]])}</h3>
+        <p>{!turn ? t("Les picks et bans sont enregistrés.") : waiting ? (room.canStart ? t("Confirme que ton équipe est prête.") : t("En attente du capitaine adverse.")) : mine ? t("À toi de jouer") : t("Au tour de {0}", [room[turn[1]+"Name"]])}</p></div></div>
+        {waiting && room.canStart && <Button disabled={pending} icon={Check} onClick={onStart}>{t("Prêt à drafter")}</Button>}
+        {turn && room.turnSeconds > 0 && !waiting && <TurnClock key={step} room={room}/>}
+        <TurnHistory room={room} turns={turns} />
+      </div>
       {["blue","red"].map(side => <TeamBoard key={side} {...{side,room,turns,recent,choice}} />)}
       <div className="live-center">
         <Spotlight {...{room,choice,recent,turns}} />
-        {turn && <div className="live-picker" data-side={turn[1]}>
-          <TextInput icon={Search} label={t("Rechercher un champion")} value={query} onChange={setQuery} maxLength={64} />
-          <div className="live-lanes" role="group" aria-label={t("Filtrer par rôle")}>{["ALL",...ROLES].map(role => <button type="button" key={role}
-            aria-pressed={lane === role} onClick={() => setLane(role)}>{role === "ALL" ? t("Tous") : role}</button>)}</div>
-          <div className="live-catalogue" role="group" aria-label={t("Champions disponibles")}>
-            {options.map(id => <button key={id} type="button" disabled={!mine || pending} aria-pressed={choice === id}
-              title={championDisplayName(id)} aria-label={championDisplayName(id)} onClick={() => setChoice(id)}><span aria-hidden="true" data-initials={championDisplayName(id).slice(0,2)}><ChampionPortrait champion={id} /></span><b>{championDisplayName(id)}</b></button>)}
-            {!options.length && <p>{t("Aucun champion trouvé.")}</p>}
-          </div>
-          {mine && <div className="live-confirm">
-            {turn[0] === "ban" && <Button variant="ghost" type="button" aria-pressed={choice === null} disabled={pending} onClick={() => setChoice(null)}>{t("Passer ce ban")}</Button>}
-            <Button type="button" icon={turn[0] === "ban" ? Ban : LockKeyhole} disabled={pending || choice === undefined} onClick={() => {
-              onMove(choice); setQuery("");
-            }}>{choice === null ? t("Confirmer le ban passé") : choice ? t(turn[0] === "ban" ? "Bannir {0}" : "Verrouiller {0}", [championDisplayName(choice)]) : t(turn[0] === "ban" ? "Confirmer le ban" : "Confirmer le pick")}</Button>
-          </div>}
-        </div>}
       </div>
+      {turn && <section className="live-picker" data-side={turn[1]} aria-label={t("Champions disponibles")}>
+        <div className="live-pool-heading"><h3>{t("Champions disponibles")}</h3><span>{options.length}</span></div>
+        <TextInput icon={Search} label={t("Rechercher un champion")} placeholder={t("Rechercher un champion")} value={query} onChange={setQuery} maxLength={64} />
+        <div className="live-lanes" role="group" aria-label={t("Filtrer par rôle")}>{["ALL",...ROLES].map(role => <button type="button" key={role}
+          aria-pressed={lane === role} onClick={() => setLane(role)}>{role !== "ALL" && <span aria-hidden="true"><RoleIcon role={role} className="live-lane-icon" /></span>}{role === "ALL" ? t("Tous") : role}</button>)}</div>
+        <div className="live-catalogue" role="group" aria-label={t("Champions disponibles")}>
+          {options.map(id => <button key={id} type="button" disabled={!mine || pending} aria-pressed={choice === id}
+            title={championDisplayName(id)} aria-label={championDisplayName(id)} onClick={() => setChoice(id)}><span aria-hidden="true" data-initials={championDisplayName(id).slice(0,2)}><ChampionPortrait champion={id} /></span><b>{championDisplayName(id)}</b>{choice === id && <Check size={15} className="live-chosen-mark" aria-hidden="true"/>}</button>)}
+          {!options.length && <p>{t("Aucun champion trouvé.")}</p>}
+        </div>
+      </section>}
+      {mine && <div className="live-confirm">
+        {turn[0] === "ban" && <Button variant="ghost" type="button" aria-pressed={choice === null} disabled={pending} onClick={() => setChoice(null)}>{t("Passer ce ban")}</Button>}
+        <Button type="button" aria-label={choice ? t(turn[0] === "ban" ? "Bannir {0}" : "Verrouiller {0}", [championDisplayName(choice)]) : undefined} icon={turn[0] === "ban" ? Ban : LockKeyhole} disabled={pending || choice === undefined} onClick={() => {
+          onMove(choice); setQuery("");
+        }}>{choice === null ? t("Confirmer le ban passé") : choice ? <>
+            <span className="live-confirm-short">{t(turn[0] === "ban" ? "Bannir" : "Verrouiller")}</span>
+            <span className="live-confirm-named">{t(turn[0] === "ban" ? "Bannir {0}" : "Verrouiller {0}",[championDisplayName(choice)])}</span>
+          </> : t(turn[0] === "ban" ? "Confirmer le ban" : "Confirmer le pick")}</Button>
+      </div>}
     </div>
     {room.blocked.length > 0 && <details className="live-lockouts"><summary>{t("Champions bloqués en Fearless ({0})",[room.blocked.length])}</summary><ul>{room.blocked.map(id => <li key={id}><ChampionPortrait champion={id} />{championDisplayName(id)}</li>)}</ul></details>}
   </>;

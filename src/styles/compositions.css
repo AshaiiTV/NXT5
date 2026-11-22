@@ -1,6 +1,22 @@
 .nxt5-draft-navigation > div { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); min-width: 0; width: 100%; }
 .nxt5-draft-navigation .nxt5-tab { min-width: 0; }
 .nxt5-draft-navigation .whitespace-nowrap { white-space: normal; }
+.nxt5-draft-navigation:has(#draft-tab-salle[aria-selected=true]) {
+  border:0; border-bottom:1px solid var(--nxt5-border); border-radius:0; background:transparent; box-shadow:none; padding:0;
+}
+.nxt5-draft-navigation:has(#draft-tab-salle[aria-selected=true]) > div {
+  display:grid; grid-auto-flow:row; grid-template-columns:repeat(3,minmax(0,1fr)); width:100%; gap:2px;
+}
+.nxt5-draft-navigation #draft-tab-salle[aria-selected=true] { background:transparent; border:0; box-shadow:inset 0 -2px #e3e9f8; color:#f4f6ff; }
+@media (max-width:640px) {
+  .nxt5-draft-navigation:has(#draft-tab-salle[aria-selected=true]) .nxt5-tab {
+    flex-direction:column; gap:4px; padding:6px 2px; text-align:center; line-height:1.1;
+  }
+  .nxt5-draft-navigation:has(#draft-tab-salle[aria-selected=true]) .whitespace-nowrap {
+    font-size:clamp(.67rem,3vw,.82rem); overflow-wrap:anywhere; text-wrap:balance;
+  }
+}
+
 
 /* Open sections inside the shared composition Surface; drop targets retain their frame. */
 .nxt5-compositions-page {
