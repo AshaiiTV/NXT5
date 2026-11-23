@@ -117,6 +117,24 @@ it.each([true, false])("B3 preserves edits after sending and resumes clean synch
   expect(JSON.parse(apiFetch.mock.calls.find(([path]) => path === "player-coaching-notes-manage")[1].body).content).toBe("A");
 });
 
+it("keeps an unsaved coaching note per player when switching profile", async () => {
+  const data = { teams: [{ id: "team", owner_id: "u" }], players: [{ id: "p", team_id: "team", user_id: "u", name: "Joueur", role: "TOP" }, { id: "q", team_id: "team", name: "Second", role: "MID" }], profileCoachingNotes: [{ team_id: "team", player_id: "q", content: "Note de Second" }] };
+  const props = { data, selectedTeamId: "team", user, currentMember: { role: "coach" }, refreshAll: vi.fn() };
+  const show = (search) => <PlayerUltimateProfile {...props} route={{ path: "/mon-profil/coaching", search }} />;
+  await render(show("?player=p"));
+  const area = () => renderer.root.findByType("textarea");
+  act(() => area().props.onChange({ target: { value: "Brouillon pour Joueur" } }));
+  await act(async () => renderer.update(show("?player=q")));
+  expect(area().props.value).toBe("Note de Second");
+  act(() => area().props.onChange({ target: { value: "Note de Second, complétée" } }));
+  await act(async () => renderer.update(show("?player=p")));
+  expect(area().props.value).toBe("Brouillon pour Joueur");
+  expect(text()).toContain("Modifications non enregistrées");
+  await act(async () => renderer.update(show("?player=q")));
+  expect(area().props.value).toBe("Note de Second, complétée");
+  expect(apiFetch).not.toHaveBeenCalledWith("player-coaching-notes-manage", expect.anything());
+});
+
 it("B10 moves live clickable toasts into the last open dialog and back on close", async () => {
   let closeFirst, closeLast;
   const removeToast = vi.fn();

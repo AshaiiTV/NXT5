@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarClock, Check, Clock3, Handshake, Loader2, Megaphone, RefreshCw, Search, Send, Swords, Trash2, Trophy, Users, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { errorToast } from "../../app/helpers.js";
@@ -38,36 +38,45 @@ function slotParts(value) {
   if (Number.isNaN(date.getTime())) return { day: "", time: "" };
   return { day: date.toLocaleDateString(getLocale(), { weekday: "long", day: "numeric", month: "long" }), time: date.toLocaleTimeString(getLocale(), { hour: "2-digit", minute: "2-digit" }) };
 }
+function localInputValue(date) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 function defaultStart() {
   const date = new Date();
   date.setDate(date.getDate() + 1);
   date.setHours(21, 0, 0, 0);
-  const pad = (n) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return localInputValue(date);
 }
 
-export function ScrimOfferForm({ onSubmit, busy }) {
+export function ScrimOfferForm({ onSubmit, busy, pending = busy }) {
   useLanguage();
   const [startsAt, setStartsAt] = useState(defaultStart);
   const [format, setFormat] = useState("3");
   const [levelMin, setLevelMin] = useState("emerald");
   const [levelMax, setLevelMax] = useState("diamond");
   const [note, setNote] = useState("");
+  const [dateError, setDateError] = useState("");
   const invalidRange = SCRIM_TIERS.indexOf(levelMin) > SCRIM_TIERS.indexOf(levelMax);
   return <form className="scrim-form" onSubmit={(event) => {
     event.preventDefault();
     if (invalidRange || busy) return;
     const starts = new Date(startsAt);
+    if (Number.isNaN(starts.getTime()) || starts.getTime() <= Date.now()) {
+      setDateError(t("Choisis une date et une heure à venir."));
+      return;
+    }
+    setDateError("");
     onSubmit({ startsAt: starts.toISOString(), format, levelMin, levelMax, note: note.trim() }).then((ok) => { if (ok) setNote(""); });
   }}>
-    <TextInput label="Date et heure" type="datetime-local" value={startsAt} onChange={setStartsAt} required icon={CalendarClock} />
+    <TextInput label="Date et heure" type="datetime-local" value={startsAt} onChange={(value) => { setStartsAt(value); setDateError(""); }} min={localInputValue(new Date())} required icon={CalendarClock} aria-invalid={dateError ? true : undefined} />
     <SelectInput label="Nombre de games" value={format} onChange={setFormat}>{SCRIM_FORMATS.map((value) => <option key={value} value={value}>{formatLabel(value)}</option>)}</SelectInput>
     <SelectInput label="Niveau minimum" value={levelMin} onChange={setLevelMin}>{SCRIM_TIERS.map((tier) => <option key={tier} value={tier}>{tierLabel(tier)}</option>)}</SelectInput>
     <SelectInput label="Niveau maximum" value={levelMax} onChange={setLevelMax}>{SCRIM_TIERS.map((tier) => <option key={tier} value={tier}>{tierLabel(tier)}</option>)}</SelectInput>
     <div className="scrim-form-note"><TextAreaInput label="Précisions (facultatif)" value={note} onChange={setNote} rows={2} maxLength={500} placeholder={t("Draft classique, Discord vocal de ton côté, contact du coach…")} /></div>
     <div className="scrim-form-actions">
-      {invalidRange ? <p role="alert" className="scrim-form-error">{t("Le niveau minimum dépasse le niveau maximum.")}</p> : <p>{t("Les autres équipes NXT5 verront le nom de ton équipe, le créneau et le niveau. Le reste du planning reste privé.")}</p>}
-      <Button type="submit" icon={busy ? Loader2 : Megaphone} disabled={busy || invalidRange}>{t("Publier la proposition")}</Button>
+      {invalidRange ? <p role="alert" className="scrim-form-error">{t("Le niveau minimum dépasse le niveau maximum.")}</p> : dateError ? <p role="alert" className="scrim-form-error">{dateError}</p> : <p>{t("Les autres équipes NXT5 verront le nom de ton équipe, le créneau et le niveau. Le reste du planning reste privé.")}</p>}
+      <Button type="submit" icon={pending ? Loader2 : Megaphone} disabled={busy || invalidRange}>{t("Publier la proposition")}</Button>
     </div>
   </form>;
 }
@@ -112,21 +121,32 @@ export function ScrimFinder({ data, selectedTeamId, currentMember, user, pushToa
   const [reply, setReply] = useState("");
   const team = (data?.teams || []).find((item) => item.id === selectedTeamId) || null;
 
-  const load = useCallback(async (signal) => {
-    if (!selectedTeamId) return;
+  // Every load (initial, manual or after an action) cancels the previous one, and a load started
+  // for a team that is no longer selected is ignored, so a late answer never overwrites another team.
+  const loadController = useRef(null);
+  const currentTeamId = useRef(selectedTeamId);
+  currentTeamId.current = selectedTeamId;
+  const load = useCallback(async () => {
+    if (!selectedTeamId || currentTeamId.current !== selectedTeamId) return;
+    loadController.current?.abort();
+    const controller = new AbortController();
+    loadController.current = controller;
+    const { signal } = controller;
     setState((current) => ({ ...current, loading: true, error: "" }));
     try {
       const result = await apiFetch(`scrims-manage?teamId=${encodeURIComponent(selectedTeamId)}`, { signal });
-      if (!signal?.aborted) setState({ loading: false, error: "", result, teamId: selectedTeamId });
+      if (!signal.aborted) setState({ loading: false, error: "", result, teamId: selectedTeamId });
     } catch (err) {
-      if (!signal?.aborted) setState({ loading: false, error: err?.message || t("Chargement impossible. Réessaie."), result: null, teamId: selectedTeamId });
+      // Keep the last listing of this team visible under the error instead of an empty state.
+      if (!signal.aborted) setState((current) => ({ loading: false, error: err?.message || t("Chargement impossible. Réessaie."), result: current.teamId === selectedTeamId ? current.result : null, teamId: selectedTeamId }));
+    } finally {
+      if (loadController.current === controller) loadController.current = null;
     }
   }, [selectedTeamId]);
 
   useEffect(() => {
-    const controller = new AbortController();
-    load(controller.signal);
-    return () => controller.abort();
+    load();
+    return () => loadController.current?.abort();
   }, [load]);
 
   const result = state.teamId === selectedTeamId ? state.result : null;
@@ -162,6 +182,7 @@ export function ScrimFinder({ data, selectedTeamId, currentMember, user, pushToa
 
   const findPanel = <div id="scrim-panel" role="tabpanel" aria-labelledby="scrim-tab-find" className="scrim-section">
     {state.loading && !result ? <div role="status" aria-label={t("Chargement des scrims")}><SkeletonRows count={3} /></div>
+      : !result ? null
       : !open.length ? <Surface className="scrim-card"><EmptyState icon={Handshake} title={t("Aucune proposition ouverte pour le moment")} text={t("Publie la tienne : les équipes qui cherchent un adversaire la verront ici.")} action={canManage ? <Button icon={Megaphone} onClick={() => setTab("mine")}>{t("Proposer un scrim")}</Button> : null} /></Surface>
       : <div className="scrim-list">{open.map((offer) => <OfferCard key={offer.id} offer={offer}>
         {offer.myRequest?.status === "pending" ? <div className="scrim-actions">
@@ -180,7 +201,7 @@ export function ScrimFinder({ data, selectedTeamId, currentMember, user, pushToa
   const minePanel = <div id="scrim-panel" role="tabpanel" aria-labelledby="scrim-tab-mine" className="scrim-section">
     {canManage ? <Surface className="scrim-card" glow>
       <div className="scrim-section-head"><Megaphone aria-hidden="true" /><div><h3>{t("Proposer un scrim")}</h3><p>{t("Au nom de {0}. Les équipes intéressées répondent ici, puis tu confirmes l’une d’elles.", [team?.name || t("ton équipe")])}</p></div></div>
-      <ScrimOfferForm busy={busy === "create"} onSubmit={(body) => act("create", { action: "create", ...body }, [t("Proposition publiée"), t("Les autres équipes NXT5 peuvent maintenant répondre.")])} />
+      <ScrimOfferForm busy={Boolean(busy)} pending={busy === "create"} onSubmit={(body) => act("create", { action: "create", ...body }, [t("Proposition publiée"), t("Les autres équipes NXT5 peuvent maintenant répondre.")])} />
     </Surface> : result && <Surface className="scrim-card"><p className="scrim-hint">{t("Seul le staff de l’équipe publie et confirme les scrims. Tu peux consulter les propositions et prévenir ton capitaine.")}</p></Surface>}
 
     {matched.length > 0 && <section aria-label={t("Scrims confirmés")} className="scrim-section">

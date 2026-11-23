@@ -119,3 +119,20 @@ it('T5-05 renders historical malformed slots with a populated champion pool', ()
   expect(selectRole('TOP').props.value).toBe('');
   vi.unstubAllGlobals();
 });
+
+it("resets the editor when the composition being edited is deleted", async () => {
+  vi.stubGlobal("window", { scrollTo: vi.fn(), confirm: () => true });
+  apiFetch.mockResolvedValue({ ok: true });
+  const composition = { id: "comp-1", team_id: "team", created_by: "user", title: "Protéger Jinx", slots: {} };
+  render(<Compositions data={{ players, championPool: rows, compositions: [composition] }} selectedTeamId="team" currentMember={{ role: "player" }} user={{ id: "user" }} refreshAll={vi.fn(async () => {})} pushToast={vi.fn()} />);
+  const buttonNamed = (label) => renderer.root.findAllByType(Button).find((node) => node.props.children === label);
+  act(() => buttonNamed("Modifier").props.onClick());
+  expect(renderer.root.findAllByType(TextInput).find((node) => node.props.label === "Nom de la composition").props.value).toBe("Protéger Jinx");
+  await act(async () => renderer.root.findByProps({ "aria-label": "Supprimer la composition" }).props.onClick());
+  expect(JSON.parse(apiFetch.mock.calls.at(-1)[1].body)).toMatchObject({ action: "delete", compositionId: "comp-1" });
+  expect(renderer.root.findAllByType(TextInput).find((node) => node.props.label === "Nom de la composition").props.value).toBe("");
+  act(() => renderer.root.findAllByType(TextInput).find((node) => node.props.label === "Nom de la composition").props.onChange("Nouvelle"));
+  await act(async () => renderer.root.findAllByType("form").find((form) => form.props.onSubmit).props.onSubmit({ preventDefault() {} }));
+  expect(JSON.parse(apiFetch.mock.calls.at(-1)[1].body)).toMatchObject({ action: "create", compositionId: null, title: "Nouvelle" });
+  vi.unstubAllGlobals();
+});

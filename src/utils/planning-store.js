@@ -137,14 +137,16 @@ export function createPlanningStore({ save, onSaved, onError, delayMs = 650 }) {
         return row && playerIds.has(String(row.player_id)) ? upsertAvailability(merged, row) : merged;
       }, rows);
     },
-    async flush() {
+    async flush({ teamId } = {}) {
       // Drain edits queued behind an in-flight request, too. Errors remain retryable.
+      // With a teamId, only that team's entries are drained and can report a failure.
+      const scoped = () => [...entries.entries()].filter(([key]) => !teamId || key.startsWith(`${teamId}|`)).map(([, entry]) => entry);
       let pending;
       do {
-        pending = [...entries.values()].filter(entry => entry.pending());
+        pending = scoped().filter(entry => entry.pending());
         await Promise.all(pending.map(entry => entry.flush()));
-        if ([...entries.values()].some(entry => entry.getSnapshot().status === "error")) return false;
-      } while ([...entries.values()].some(entry => entry.pending()));
+        if (scoped().some(entry => entry.getSnapshot().status === "error")) return false;
+      } while (scoped().some(entry => entry.pending()));
       return true;
     },
     async prepareLogout() {
