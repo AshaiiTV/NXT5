@@ -1,7 +1,6 @@
 import GlassScene from "../../components/brand/GlassScene.jsx";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
-import { getLocale } from "../../i18n/locale.js";
 import React, { useState } from "react";
 import {
   ArrowRight,
@@ -19,6 +18,7 @@ import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { DemoMatchSummary } from "../../pages/public/DemoMatchSummary.jsx";
 import { Badge } from "../../components/ui/Core.jsx";
 import { DEMO_MATCHES } from "../../pages/public/demo-data.js";
+import { formatGoldDifference, formatMatchTime, goldAtTime, GoldTimelineChart } from "./GoldTimelineChart.jsx";
 
 function StoryLink({ href, navigate, children, ...props }) {
   function follow(event) {
@@ -180,28 +180,13 @@ const SESSIONS = [
 ];
 
 const DEMO_MATCH = DEMO_MATCHES[2];
-// Illustrative timeline, independent of the final totals in the match fixture.
-const GOLD_TIMELINE = [
-  [0, 0], [120, 200], [225, -200], [345, 450], [450, 250],
-  [560, 650], [720, 250], [840, -400], [945, 100], [1065, -100],
-  [1170, 700], [1260, 1300], [1380, 1000], [1500, 2200],
-  [1605, 1700], [1710, 2800], [1845, 2600], [2025, 4000],
-];
+// Illustrative timeline shared with the public demo (demo-data.js).
+const GOLD_TIMELINE = DEMO_MATCH.goldTimeline;
 const MATCH_SECONDS = DEMO_MATCH.duration_seconds;
-const graphX = (seconds) => 24 + (seconds / MATCH_SECONDS) * 602;
-const graphY = (gold) => 159 - gold * 0.029;
-const GOLD_PATH = GOLD_TIMELINE.map(([seconds, gold], index) =>
-  `${index === 0 ? "M" : "L"}${graphX(seconds)} ${graphY(gold)}`,
-).join(" ");
-const formatTime = (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-const formatGold = (gold) => `${gold > 0 ? "+" : gold < 0 ? "−" : ""}${Math.abs(gold).toLocaleString(getLocale())}`;
-function goldAtTime(seconds) {
-  const endIndex = GOLD_TIMELINE.findIndex(([time]) => time >= seconds);
-  if (endIndex <= 0) return GOLD_TIMELINE[endIndex === 0 ? 0 : GOLD_TIMELINE.length - 1][1];
-  const [startTime, startGold] = GOLD_TIMELINE[endIndex - 1];
-  const [endTime, endGold] = GOLD_TIMELINE[endIndex];
-  return startGold + ((seconds - startTime) / (endTime - startTime)) * (endGold - startGold);
-}
+// Fixed scale of the original homepage curve; product-story.css mirrors its marker positions.
+const GOLD_SCALE = { zero: 159, perGold: 0.029 };
+const formatTime = formatMatchTime;
+const formatGold = formatGoldDifference;
 const ALLIES = DEMO_MATCH.participants.filter((player) => player.team_key === "ALLY");
 const allyKills = ALLIES.reduce((sum, player) => sum + player.kills, 0);
 const allyDeaths = ALLIES.reduce((sum, player) => sum + player.deaths, 0);
@@ -228,7 +213,7 @@ function SceneSignature({ children }) {
 function AnalysisScene() {
   useLanguage();
   const [seconds, setSeconds] = useState(MOMENTS[1].seconds);
-  const gold = goldAtTime(seconds);
+  const gold = goldAtTime(GOLD_TIMELINE, seconds);
   const displayedGold = Math.round(gold / 10) * 10;
   const time = formatTime(seconds);
   const objective = OBJECTIVES.find((item) => item.seconds === seconds);
@@ -267,69 +252,9 @@ function AnalysisScene() {
           <time>{time}</time>
         </span>
       </div>
-      <div className="ps-chart">
-        <div className="ps-chart-heading"><span className="ps-chart-label">{t("Écart d’or au fil de la partie")}</span><span className="ps-chart-hint">{t("Déplace le curseur")}</span></div>
-        <div className="ps-chart-plot">
-        <svg
-          viewBox="0 0 650 228"
-          preserveAspectRatio="none"
-          role="img"
-          aria-label={t("Courbe illustrative : un début disputé, puis un avantage de 4 000 or en fin de partie.")}
-        >
-          <defs>
-            <linearGradient id="ps-graph-line" x1="0" y1="0" x2="1" y2="0">
-              <stop stopColor="#67e8f9" />
-              <stop offset=".55" stopColor="#a5b4fc" />
-              <stop offset="1" stopColor="#e879f9" />
-            </linearGradient>
-            <linearGradient id="ps-graph-fill" x1="0" y1="0" x2="0" y2="1">
-              <stop stopColor="#a78bfa" stopOpacity=".22" />
-              <stop offset="1" stopColor="#a78bfa" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <path
-            className="ps-grid-line"
-            d="M24 44H625M24 98H625M24 152H625M24 206H625"
-          />
-          <path
-            d={`${GOLD_PATH}V206H24Z`}
-            fill="url(#ps-graph-fill)"
-          />
-          <path
-            className="ps-gold-line"
-            d={GOLD_PATH}
-          />
-          <g
-            className="ps-chart-cursor"
-            transform={`translate(${graphX(seconds)}, 0)`}
-          >
-            <path d="M0 26V206" />
-            <circle cy={graphY(gold)} r="12" className="ps-point-halo" />
-            <circle cy={graphY(gold)} r="4.5" className="ps-point" />
-          </g>
-        </svg>
-        <input className="ps-chart-slider" type="range" min="0" max={MATCH_SECONDS} step="15"
-          value={seconds} onChange={(event) => setSeconds(Number(event.target.value))}
-          aria-label={t("Moment de la partie")} aria-controls="ps-selected-stats ps-moment-note"
-          aria-valuetext={`${t("{0}, {1} or par rapport à l’adversaire", [time, formatGold(displayedGold)])}${objective ? `, ${t(objective.name)}` : ""}`}
-        />
-        {OBJECTIVES.map((item) => (
-          <div className="ps-chart-objective" key={item.id} data-objective={item.id}>
-            <button type="button" aria-label={t("{0} à {1}", [t(item.name), item.time])}
-              aria-pressed={seconds === item.seconds}
-              aria-controls="ps-selected-stats ps-moment-note"
-              title={`${t(item.name)} · ${item.time}`}
-              onClick={() => setSeconds(item.seconds)}>
-              <img src={`/assets/objectives/${item.id}.png`} width="28" height="28" alt="" />
-              <span aria-hidden="true">{t(item.label)}</span>
-            </button>
-          </div>
-        ))}
-        </div>
-        <div className="ps-chart-axis" aria-hidden="true">
-          {[0, 600, 1200, MATCH_SECONDS].map((tick) => <span key={tick} data-time={tick}>{tick === 0 ? "0 min" : tick === MATCH_SECONDS ? formatTime(tick) : tick / 60}</span>)}
-        </div>
-      </div>
+      <GoldTimelineChart timeline={GOLD_TIMELINE} durationSeconds={MATCH_SECONDS} objectives={OBJECTIVES}
+        seconds={seconds} onSecondsChange={setSeconds} scale={GOLD_SCALE} controls="ps-selected-stats ps-moment-note"
+        ariaLabel={t("Courbe illustrative : un début disputé, puis un avantage de 4 000 or en fin de partie.")} />
       <div
         className="ps-moments"
         role="group"

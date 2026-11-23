@@ -9,7 +9,9 @@ const outputDir = resolve(process.argv[2] || "dist");
 const template = await readFile(resolve(outputDir, "index.html"), "utf8");
 const server = await createServer({ mode: "production", server: { middlewareMode: true, hmr: false }, appType: "custom" });
 try {
-  const { publicPaths, privatePaths, dynamicPaths, render } = await server.ssrLoadModule("/src/seo/render.jsx");
+  const { publicPaths, privatePaths: appPaths, dynamicPaths, demoShellPaths, render } = await server.ssrLoadModule("/src/seo/render.jsx");
+  // Demo steps share the SPA shell rules (200 rewrite + noindex header) of private routes.
+  const privatePaths = [...appPaths, ...demoShellPaths];
   for (const path of [...publicPaths, "/404"]) {
     const body = render(path);
     if (!body.includes("<h1")) throw new Error(`No visible h1 in prerendered page ${path}`);

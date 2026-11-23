@@ -1,6 +1,7 @@
 import { getSocialLinks } from "../app/social-links.js";
 import { getLanguage, getLocale } from "../i18n/locale.js";
 import { t } from "../i18n/translate.js";
+import { parseDemoPath } from "../app/demo-routes.js";
 
 export const SITE_ORIGIN = "https://nxt5.org";
 export const SOCIAL_IMAGE = "/og-nxt5.png";
@@ -86,6 +87,26 @@ const PRIVATE_TITLES = {
   "/404": "Page introuvable — NXT5",
 };
 
+// Demo steps (/demo/analyses, /demo/partie/:id[/debrief]) have their own title and
+// canonical URL, but stay out of the sitemap and of indexing: only /demo is indexed.
+function demoStepMetadata(path) {
+  if (path === "/demo") return null;
+  const { section, match, known } = parseDemoPath(path);
+  if (!known) return null;
+  if (section === "analyses") return {
+    title: ["Analyses de la démonstration — NXT5"],
+    description: ["Compare l’écart d’or, la vision et les morts des trois parties fictives de la démonstration NXT5."],
+  };
+  if (section === "debrief") return {
+    title: ["Débrief du {0} — Démonstration NXT5", [match.title]],
+    description: ["Exemple de débrief fictif : le fait observé, la question à vérifier et l’action pour la prochaine séance d’entraînement."],
+  };
+  return {
+    title: ["{0} — Démonstration NXT5", [match.title]],
+    description: ["Analyse d’une partie fictive : courbe de l’écart d’or avec le Dragon et le Nashor, statistiques et joueurs de l’équipe."],
+  };
+}
+
 export function normalizeSeoPath(path = "/") {
   return (path.split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/");
 }
@@ -95,15 +116,16 @@ export function getMetadata(path = "/", { noindex = false, title, socialLinks = 
   const translate = (value) => t(value, undefined, language);
   const locale = getLocale(language);
   const entry = PUBLIC_METADATA[path];
+  const demoStep = entry ? null : demoStepMetadata(path);
   const metadata = {
     path,
-    title: translate(entry?.title || PRIVATE_TITLES[path] || title || "Espace équipe — NXT5"),
-    description: translate(entry?.description || (path === "/404" ? "Cette page NXT5 est introuvable. Reviens à l’accueil pour découvrir les outils d’analyse et de préparation League of Legends." : "Connecte-toi à NXT5 pour retrouver ton équipe, tes parties et tes outils de préparation League of Legends.")),
+    title: demoStep ? t(demoStep.title[0], demoStep.title[1], language) : translate(entry?.title || PRIVATE_TITLES[path] || title || "Espace équipe — NXT5"),
+    description: demoStep ? translate(demoStep.description[0]) : translate(entry?.description || (path === "/404" ? "Cette page NXT5 est introuvable. Reviens à l’accueil pour découvrir les outils d’analyse et de préparation League of Legends." : "Connecte-toi à NXT5 pour retrouver ton équipe, tes parties et tes outils de préparation League of Legends.")),
     language,
     locale,
     imageAlt: translate("NXT5 — Analyse de parties et préparation d’équipe League of Legends"),
     robots: noindex || !entry ? "noindex, follow" : "index, follow, max-image-preview:large",
-    canonical: entry ? `${SITE_ORIGIN}${path}` : null,
+    canonical: entry || demoStep ? `${SITE_ORIGIN}${path}` : null,
     image: `${SITE_ORIGIN}${SOCIAL_IMAGE}`,
     structuredData: null,
   };
