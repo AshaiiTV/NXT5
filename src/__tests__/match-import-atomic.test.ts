@@ -147,6 +147,8 @@ beforeAll(async () => {
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260906_runtime_schema.sql', import.meta.url), 'utf8'));
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260928_team_activation_milestones.sql', import.meta.url), 'utf8'));
   await database.pg.exec(readFileSync(new URL('../../database/migrations/20260929_report_source.sql', import.meta.url), 'utf8'));
+  // The bootstrap report feed reads this column from 20260922_discord_bot_workflows.sql.
+  await database.pg.exec("alter table reports add column if not exists discord_status text not null default 'published'");
   for (const file of ['20261012_opponents_drafts.sql', '20261012_match_drafts.sql', '20261012_match_opponents.sql', '20261012_group_opponents.sql']) {
     await database.pg.exec(readFileSync(new URL(`../../database/migrations/${file}`, import.meta.url), 'utf8'));
   }

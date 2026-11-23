@@ -396,6 +396,67 @@ describe("unified Games workspace", () => {
     expect(props.refreshAll).toHaveBeenCalledOnce();
   });
 
+  describe("contents left out of the bootstrap", () => {
+    const omitted = (overrides = {}) => ({ id: "old-note", team_id: "team", is_team_note: true, match_ids: ["one"], title: "Ancienne note",
+      created_by: "owner", content: null, content_omitted: true, updated_at: `2026-01-01T00:00:0${cleanups.length}Z`, ...overrides });
+    function withReportGet(handler) {
+      const original = apiFetch.getMockImplementation();
+      apiFetch.mockImplementation((endpoint, options) => endpoint === "reports-manage" && JSON.parse(options.body).action === "get"
+        ? handler(JSON.parse(options.body)) : original(endpoint, options));
+    }
+    const gets = () => apiFetch.mock.calls.filter(([endpoint, options]) => endpoint === "reports-manage" && JSON.parse(options.body).action === "get");
+
+    it("loads and renders an omitted debrief of the selected game", async () => {
+      const props = settings();
+      const row = omitted({ id: "old-debrief", is_team_note: false, title: "Débrief long", source: "manual" });
+      props.data.reports = [row];
+      withReportGet(async () => ({ report: { ...row, content: "Texte chargé à la demande", content_omitted: false } }));
+      const renderer = await mount("/games?match=one", props);
+      const panel = () => renderer.root.findByType(MatchDataPanel);
+      expect(gets().map(([, options]) => JSON.parse(options.body))).toContainEqual({ action: "get", teamId: "team", reportId: "old-debrief" });
+      const summary = panel().findAllByType("details").find((node) => node.props.onToggle && text(node).includes("Débrief long"));
+      expect(summary).toBeTruthy();
+      await act(async () => summary.props.onToggle({ currentTarget: { open: true } }));
+      expect(text(panel())).toContain("Texte chargé à la demande");
+    });
+
+    it("fetches the full note before opening the editor and saves that content", async () => {
+      const props = settings();
+      const row = omitted();
+      props.data.reports = [row];
+      const pending = defer();
+      withReportGet(() => pending.promise);
+      const renderer = await mount("/games?match=one", props);
+      await click(renderer, "Notes");
+      expect(text(renderer.root.findByType(MatchDataPanel))).toContain("Chargement de la note…");
+      const edit = button(renderer, "Modifier");
+      expect(edit).toBeTruthy();
+      await act(async () => { edit.props.onClick(); });
+      expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+      expect(button(renderer, "Chargement…")?.props.disabled).toBe(true);
+      await act(async () => pending.resolve({ report: { ...row, content: "Version complète de la note", content_omitted: false } }));
+      const form = renderer.root.findByType("dialog").findByType("form");
+      expect(form.findByType("textarea").props.value).toBe("Version complète de la note");
+      apiFetch.mockResolvedValueOnce({ report: { id: "old-note" } });
+      await act(async () => form.props.onSubmit({ preventDefault() {} }));
+      const save = apiFetch.mock.calls.map(([endpoint, options]) => endpoint === "reports-manage" && JSON.parse(options.body)).find((body) => body && body.action === "update");
+      expect(save).toMatchObject({ reportId: "old-note", content: "Version complète de la note" });
+    });
+
+    it("never opens an empty editor when the note cannot be loaded", async () => {
+      const props = settings();
+      props.data.reports = [omitted({ id: "broken-note" })];
+      withReportGet(async () => { throw new Error("Réseau indisponible"); });
+      const renderer = await mount("/games?match=one", props);
+      await click(renderer, "Notes");
+      expect(text(renderer.root.findByType(MatchDataPanel))).toContain("La note n’a pas pu être chargée.");
+      await click(renderer, "Modifier");
+      expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+      expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "red", text: "Réseau indisponible" }));
+      expect(apiFetch.mock.calls.some(([endpoint, options]) => endpoint === "reports-manage" && JSON.parse(options.body).action === "update")).toBe(false);
+    });
+  });
+
   it.each([
     ["team owner without membership", "owner", null, true],
     ["coach of the selected team", "staff", { team_id: "team", user_id: "staff", role: "coach" }, true],

@@ -3,6 +3,7 @@ import { t } from "../../i18n/translate.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Clipboard, Loader2, Plus, Shield, Trophy, UserPlus, Users, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
+import { resizeImageToDataUrl } from "../../utils/image-resize.js";
 import { RIOT_SYNC_CLIENT_TIMEOUT_MS } from "../../../shared/riot-sync-policy.js";
 import { openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, ReadingDetails, SelectInput, Surface, TextAreaInput, TextInput } from "../../components/ui/Core.jsx";
@@ -400,19 +401,23 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     }
   }
 
-  function loadTeamAvatar(file) {
+  async function loadTeamAvatar(file) {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       pushToast({ type: "red", title: "Avatar invalide", text: "Choisis une image depuis ton PC." });
       return;
     }
-    if (file.size > 900000) {
-      pushToast({ type: "yellow", title: "Image trop lourde", text: "Choisis une image de moins de 900 Ko." });
+    if (file.size > 15_000_000) {
+      pushToast({ type: "yellow", title: "Image trop lourde", text: "Choisis une image de moins de 15 Mo." });
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setTeamEdit((current) => ({ ...current, avatarDataUrl: String(reader.result || "") }));
-    reader.readAsDataURL(file);
+    try {
+      // Logos are reduced in the browser: each one travels with every team listing.
+      const avatarDataUrl = await resizeImageToDataUrl(file);
+      setTeamEdit((current) => ({ ...current, avatarDataUrl }));
+    } catch {
+      pushToast({ type: "red", title: "Avatar invalide", text: "Cette image n’a pas pu être lue. Essaie un PNG, un JPEG ou un WebP." });
+    }
   }
 
   async function updateTeam(event) {

@@ -33,4 +33,12 @@ describe("team notes", () => {
     expect(isTeamNote({ source: "auto", content: prefix + "Commentaire" })).toBe(true);
     expect(noteBody({ is_team_note: true, content: prefix })).toBe(prefix);
   });
+
+  it("classifies a note whose content was left out of the bootstrap without crashing", () => {
+    expect(isTeamNote({ content: null, content_omitted: true, is_team_note: true })).toBe(true);
+    expect(isTeamNote({ content: null, content_omitted: true, original_debrief: { title: "Avant" } })).toBe(true);
+    expect(isTeamNote({ content: "", content_omitted: true, original_debrief: { title: "Avant" } })).toBe(false);
+    expect(isTeamNote({ content: null, content_omitted: true, source: "auto" })).toBe(false);
+    expect(noteBody({ content: null, content_omitted: true })).toBe("");
+  });
 });

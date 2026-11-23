@@ -125,6 +125,8 @@ beforeAll(async () => {
   await state.pg.exec(readFileSync(new URL('../../database/migrations/20260906_runtime_schema.sql', import.meta.url), 'utf8'));
   await state.pg.exec(readFileSync(new URL('../../database/migrations/20260928_team_activation_milestones.sql', import.meta.url), 'utf8'));
   await state.pg.exec(readFileSync(new URL('../../database/migrations/20260914_audience.sql', import.meta.url), 'utf8'));
+  // The bootstrap report feed reads this column from 20260922_discord_bot_workflows.sql.
+  await state.pg.exec("alter table reports add column if not exists discord_status text not null default 'published'");
   await state.pg.exec('create table app_schema_migrations(migration_key text primary key)');
   await state.pg.query("insert into app_schema_migrations(migration_key) values ('audience-20260914-v1') on conflict do nothing");
 }, 20_000);

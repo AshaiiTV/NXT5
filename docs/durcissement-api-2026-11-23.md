@@ -25,5 +25,20 @@ Branche `claude/api-hardening-20261123`, issue de `origin/main`. Huit correction
 
 ## Suite à donner
 
-- `bootstrap.ts` charge toujours toutes les reviews de l’équipe, contenu compris, sans limite ni pagination. Le volume de cette réponse reste à borner : c’est une décision produit, laissée hors de ce travail.
-- La liste des scrims envoie encore un avatar par équipe distincte. Elle peut en contenir jusqu’à 100. Une limite de taille des avatars ou un endpoint d’image dédié supprimerait ce risque résiduel.
+- ~~`bootstrap.ts` charge toujours toutes les reviews de l’équipe, contenu compris, sans limite ni pagination.~~ Fait : voir « Volume des notes dans le bootstrap » ci-dessous.
+- ~~La liste des scrims envoie encore un avatar par équipe distincte. Elle peut en contenir jusqu’à 100. Une limite de taille des avatars ou un endpoint d’image dédié supprimerait ce risque résiduel.~~ Fait pour les nouveaux logos (voir « Poids des logos d’équipe »).
+
+## Volume des notes dans le bootstrap (fait)
+
+Chaque note peut contenir 256 000 caractères. Assez de longues notes faisaient dépasser à la réponse du bootstrap la limite d’environ 6 Mo de Netlify, et l’espace de l’équipe ne se chargeait plus. Aucune donnée n’est perdue et le cas courant ne change pas.
+
+- **Serveur** (`_lib/report-feed.ts`, utilisé par `bootstrap.ts`) : même règle de visibilité (brouillons réservés au staff), tri par date de création décroissante, 1 000 notes au plus. Le contenu (et la copie figée `original_debrief.content`) n’est renvoyé que tant que leur taille cumulée, calculée en SQL avec `octet_length` et une somme fenêtrée, reste sous 2 000 000 octets. Au-delà, `content` vaut `null` et `content_omitted` vaut `true` : ces contenus ne sortent donc pas non plus de la base. Un contenu vide est toujours renvoyé, pour qu’une note supprimée reste reconnaissable.
+- **Lecture à la demande** (`reports-manage.ts`, action `get`) : `{ action: "get", teamId, reportId }` renvoie la note complète. L’appartenance à l’équipe et la visibilité des brouillons sont vérifiées comme dans le bootstrap ; les identifiants doivent être des UUID (400 sinon). Cette lecture n’est pas soumise à la limite de débit des écritures.
+- **Client** (`src/api/report-content.js`) : `loadFullReport` / `loadReportContent` et le hook `useFullReports` chargent les contenus omis, avec un cache mémoire par identifiant et `updated_at`. Les Notes ne chargent que les notes affichées ; « Modifier » attend le contenu complet et n’ouvre jamais un éditeur vide (message d’erreur sinon). La page d’une partie charge les débriefs omis de cette partie. L’accueil tolère un contenu absent.
+- **Limite connue** : sans son contenu, une ancienne review V3 modifiée à la main est classée comme note par ses seules métadonnées ; si elle ne contient aucune note du staff, elle affiche le message prévu pour ce cas. La recherche des Notes ne porte pas sur les contenus omis.
+
+## Poids des logos d'équipe (fait)
+
+- Le navigateur réduit l'image choisie à 512 px sur son plus grand côté et la réencode en WebP (repli PNG puis JPEG) avant l'envoi : quelques dizaines de Ko au lieu de ~1,2 Mo. On peut désormais choisir une image jusqu'à 15 Mo.
+- `teams-update` refuse en 413 `AVATAR_TOO_LARGE` toute nouvelle image de plus de 400 000 caractères, et ne tronque plus jamais une image (avant : coupure silencieuse à 1 500 000 caractères, image corrompue).
+- Un logo plus lourd enregistré avant ce plafond reste accepté s'il est renvoyé inchangé (renommage de l'équipe). Ces anciens logos restent lourds tant que l'équipe ne les remplace pas.
