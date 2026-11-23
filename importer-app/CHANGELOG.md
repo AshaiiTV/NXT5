@@ -1,3 +1,9 @@
+# NXT5 Importer 0.4.8 — Signature soudée
+
+- Nouveau logo commun au site : NXT et le 5 ne forment plus qu’un seul tracé lumineux, et le verre du 5 naît dans la barre du T.
+- Icônes de l’application Windows et macOS redessinées avec le 5 de cette signature.
+- Parcours d’export et de collecte, historique, paramètres et raccourcis inchangés.
+
 # NXT5 Importer 0.4.7 — Export et collecte simplifiés
 
 - L’export se fait sur un seul formulaire. Une fois le fichier enregistré, tu peux l’ouvrir dans son dossier ou passer sur NXT5.

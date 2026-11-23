@@ -4,13 +4,14 @@ La charte unique est liée dans `../../AGENTS.md` ; ne pas en créer une copie.
 
 Depuis la racine du checkout, avec Node 24 et les dépendances installées :
 
-- `node tools/prisme/build-neon-signature.mjs` reconstruit la signature lumineuse et sa variante couleur compacte 2.7, ainsi que la copie PNG de l’Importer. Les monochromes restent des archives et ne sont plus utilisés dans le produit.
+- `node tools/prisme/build-soude-signature.mjs` reconstruit la signature soudée 2.9 : masters SVG, rendus PNG et WebP, variante d’interface, favicon vectoriel et copie PNG de l’Importer. Sa géométrie vient de `soude-geometry.mjs`, lui-même dérivé par `derive-soude-geometry.py` (Python et shapely, hors build) si le dessin évolue.
+- `node tools/prisme/build-neon-signature.mjs` reconstruit la signature lumineuse 2.7, désormais historique. Ses fichiers restent servis pour les emails déjà envoyés ; ne plus les brancher sur le produit.
 - `node tools/prisme/build-assets.mjs` reconstruit les icônes web, ICO Windows, ICNS macOS et alias compatibles depuis les masters Prisme suivis par Git.
 - `node tools/generate-social-card.mjs` reconstruit le visuel Open Graph.
 - `node tools/prisme/render-sample.mjs /chemin/specimen.png` rend un spécimen fictif des primitives PNG de production.
 - Avec Vite, `/tools/prisme/qa.html` présente les composants de production sur données fictives ; `?loading` présente le chargement 3/8. Cette entrée de recette n’est pas incluse au build du site.
 
-Les petits logos des exports, du spécimen, des emails, de l’Importer et du visuel Open Graph utilisent `nxt5-neon-interface-640.png` : contour cyan/lavande renforcé et même 5 violet facetté. La navigation web utilise ses déclinaisons WebP 320/640. Ne pas réintroduire le blanc plein rejeté par l’utilisateur. Le ratio 8:3 reste identique aux grands emplacements. Après une évolution des tracés, reconstruire les signatures avant les alias et le visuel Open Graph.
+Les petits logos des exports, du spécimen, des emails, de l’Importer et du visuel Open Graph utilisent `nxt5-soude-interface-640.png` : contour cyan/lavande renforcé et 5 en verre clair. La navigation web utilise ses déclinaisons WebP 320/640. Ne pas réintroduire le blanc plein rejeté par l’utilisateur. Le gabarit 8:3 reste identique aux grands emplacements. Les icônes et favicons utilisent `soude-icon-*`. Comme `/assets/` est mis en cache un an, une signature modifiée reçoit de nouveaux noms de fichiers. Après une évolution des tracés, reconstruire la signature, puis les icônes et alias, puis le visuel Open Graph.
 
 Les captures, échanges Claude et logs de la signature 2.6 sont dans `2026-11-17/nxt5-neon-identity/` à la racine de l’espace Codex ; la correction 2.7 des petits logos est dans son sous-dossier `color-compact/`. Le master transparent mesure 1 600 × 600 ; le site utilise les WebP adaptés et les exports le PNG couleur. La recette historique 2.2 reste dans `2026-11-10/nxt5-prisme-integration/`.
 

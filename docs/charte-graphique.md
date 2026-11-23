@@ -1,6 +1,8 @@
 # NXT5 — Charte graphique Prisme
 
-**Version 2.8 · 20 novembre 2026 · Source unique du site NXT5 et de son identité Importer.** Après comparaison des boutons bleus puis des dégradés, l’utilisateur choisit la proposition **2 — cyan, pervenche et lavande du NXT** et demande son application au site, à l’Importer et à cette charte. Les actions principales adoptent `linear-gradient(90deg, #67E8F9 0%, #A5B4FC 52%, #C4B5FD 100%)`, avec texte et icônes nuit `#020611`. Cette décision remplace le CTA violet à texte blanc des versions 2.1 à 2.7. Les autres rôles de boutons, les signatures officielles des fournisseurs, le logo et la composition mobile approuvée conservent leurs règles. Le choix est validé ; les contrôles et références de livraison sont documentés en section 11.
+**Version 2.9 · 23 novembre 2026 · Source unique du site NXT5 et de son identité Importer.** Le 23 novembre, l’utilisateur compare trois contours pour NXT et retient la **Ligature** (« Ligature j’aime bien »). Il juge ensuite le 5 « trop détaché, hors du reste », compare cinq façons de le relier au mot, préfère la piste **Soudé** (« je préfère Soudé ») et répond « Vasy » à la page qui en présente les deux réglages. La signature statique devient un seul tracé : NXT en ligature, un contour lumineux unique qui fait le tour de NXT5, le 5 posé sur la ligne de pied des lettres à 1,3 fois leur hauteur, et un verre violet qui naît dans la barre du T. Les réglages appliqués sont ceux conseillés sur cette page, jonction **Barre** et **verre profond** en grand ; l’utilisateur n’en a pas désigné d’autres. Cette décision remplace, pour la signature statique, les favicons et les icônes, les fichiers `nxt5-neon-*` et `unified-icon-*` de la version 2.7. Le 5 en vraie 3D de la scène d’accueil, ses animations, son contour NXT et la composition mobile approuvée ne changent pas ; le dégradé 2.8 des actions principales non plus. Les règles sont en section 4, les contrôles et l’état de livraison en section 11.
+
+**Historique 2.8 · 20 novembre 2026 — dégradé des actions principales.** Après comparaison des boutons bleus puis des dégradés, l’utilisateur choisit la proposition **2 — cyan, pervenche et lavande du NXT** et demande son application au site, à l’Importer et à cette charte. Les actions principales adoptent `linear-gradient(90deg, #67E8F9 0%, #A5B4FC 52%, #C4B5FD 100%)`, avec texte et icônes nuit `#020611`. Cette décision remplace le CTA violet à texte blanc des versions 2.1 à 2.7. Les autres rôles de boutons, les signatures officielles des fournisseurs, le logo et la composition mobile approuvée conservent leurs règles. Le choix est validé ; les contrôles et références de livraison sont documentés en section 11.
 
 **Évolution demandée le 17 novembre 2026 — signature lumineuse.** L’utilisateur choisit l’image transmise ce jour : NXT en contour électrique cyan/lavande, 5 violet facetté et fond bleu nuit. Cette décision remplace, pour la signature, la règle 2.5 qui imposait quatre lettres pleines. Elle confirme le refus du NXT sculpté plein du 11 novembre. La grande scène d’accueil conserve le 5 historique en vraie 3D et ses animations ; son contour NXT, sa lumière et son fond s’accordent à cette nouvelle référence. Après une première capture mobile, l’utilisateur précise que **la disposition** ne lui convient pas : sur mobile, placer NXT en haut à gauche, le 5 agrandi en dessous à droite, puis l’introduction et son action sans chevauchement ; à 320 px, préserver la séparation du titre et du 5. Les logos sur pages publiques, exports et Importer suivent la nouvelle signature, avec une déclinaison couleur au contour renforcé pour les petits emplacements, selon la correction 2.7. Le verre détaillé ne se répète pas derrière les données. L’intégration de référence est conservée dans `worktrees/NXT5-neon-logo-20261117` ; son état publié est précisé ci-dessous. La référence utilisateur et les preuves de travail sont dans `2026-11-17/nxt5-neon-identity/`.
 
@@ -47,7 +49,7 @@ Les preuves, limites, rendus et échanges restent archivés dans `2026-11-11/nxt
 
 **La coupe.** Le logo possède une poussée vers l’avant, des diagonales franches et des terminaisons biseautées. Reprendre cette géométrie dans les illustrations et les détails d’arête, sans incliner les paragraphes, champs ou tableaux. Ne pas appliquer un `skew()` global aux composants.
 
-**La matière.** Le 5 est en verre violet dense et facetté. Ses grandes faces restent lisibles ; les facettes intérieures sont moins contrastées que son contour. Une lumière froide arrive du haut et de la gauche, un reflet magenta discret termine le bord droit. NXT est un tracé lumineux fin, du cyan vers la lavande, sur fond nuit. Le contraste entre contour et volume est la signature 2.6. Ne pas remplacer les facettes du 5 par un verre lisse, chromé, liquide ou arrondi.
+**La matière.** Le 5 est en verre violet dense et facetté. Ses grandes faces restent lisibles ; les facettes intérieures sont moins contrastées que son contour. Une lumière froide arrive du haut et de la gauche, un reflet magenta discret termine le bord droit. NXT est un tracé lumineux fin, du cyan vers la lavande, sur fond nuit. Le contraste entre contour et volume est la signature depuis 2.6. Depuis 2.9, dans la signature statique, ce contour fait le tour du mot entier et le verre du 5 naît dans la barre du T : le 5 est la fin du mot, pas un objet posé à côté. Ne pas remplacer les facettes du 5 par un verre lisse, chromé, liquide ou arrondi.
 
 **La hiérarchie.** La marque s’exprime par une grande silhouette et des espaces réservés. Les informations s’organisent par alignement, taille et rythme. Le verre attire l’œil vers l’entrée ; il s’efface derrière les décisions et les données.
 
@@ -114,7 +116,37 @@ Objectifs de conception : au moins 4,5:1 pour le texte courant, 3:1 pour les gra
 
 ## 4. Système de logo et assets
 
-### Signature active 2.7 — couleur aussi en petit
+### Signature active 2.9 — NXT5 soudé
+
+Le 23 novembre, l’utilisateur relève que le 5 de la signature 2.7 paraît détaché du mot. Trois écarts l’expliquent : le 5 mesurait 1,65 fois la hauteur des lettres, il descendait sous leur ligne de pied, et il opposait une masse peinte à un trait vectoriel fin. La signature soudée les réduit sans changer le principe choisi le 17 novembre : NXT reste un contour lumineux, le 5 reste violet et facetté.
+
+Construction, à ne pas redessiner à la main :
+
+- **Ligature.** N, X et T sont resserrés puis fusionnés en une seule silhouette. Deux contre-formes triangulaires subsistent, entre N et X puis entre X et T. Aucun trait interne ne sépare les lettres.
+- **Le 5.** Il mesure 1,3 fois la hauteur de capitale et repose sur la ligne de pied de NXT. Il reste le plus grand signe du mot.
+- **Jonction « Barre ».** Le T tient au 5 par sa barre seule. Sous la barre, une encoche franche sépare le fût du T du pied du 5 : le T garde sa forme entière.
+- **Un seul contour.** Le tracé lumineux fait le tour de NXT5 sans s’interrompre. Il n’y a pas de trait entre le T et le 5.
+- **Le verre.** Il naît dans le bout de la barre du T par un fondu court, puis remplit le 5. Le fût du T reste en contour. Trois plans de facettes et un biseau intérieur suffisent ; pas de texture peinte.
+
+| Fichier dans `public/assets/brand/prisme/` | Usage et statut |
+| --- | --- |
+| `nxt5-soude.svg` | **Master vectoriel** de la grande signature, 1 600 × 600 : trait fin cyan, blanc, lavande puis magenta, lueur, verre profond. |
+| `nxt5-soude-source.png`, `nxt5-soude-{320,640,1280}.webp` | Rendus de ce master pour les scènes, présentations et partages. |
+| `nxt5-soude-interface.svg` | Master des petits formats : même dessin, trait renforcé cyan, pervenche, lavande, verre clair pour rester lisible sur fond nuit. |
+| `nxt5-soude-interface-{320,640}.webp`, `nxt5-soude-interface-640.png` | Navigation, en-têtes, emails, exports PNG, publications et Importer. |
+| `nxt5-soude-clair.svg` | Déclinaison pour fond clair, trait sombre. À contrôler sur le support réel avant tout usage ; aucun écran du site ne l’emploie. |
+| `nxt5-soude-mono-blanc.svg`, `nxt5-soude-mono-nuit.svg` | Une couleur : contour du mot et 5 plein. Réservés à un usage réellement contraint et explicitement demandé, jamais aux headers, à l’Importer, aux emails ou aux exports. |
+| `favicon.svg`, `soude-icon-{16…1024}.png`, `soude-icon-maskable-512.png` | Signe compact : le 5 de la signature, seul, sur tuile nuit `#070A14`, dégradé clair vers violet. Son arête lumineuse n’apparaît qu’à partir de 48 px. |
+
+La géométrie est dans `tools/prisme/soude-geometry.mjs`, dérivée des contours NXT de l’accueil et du tracé du 5 par `tools/prisme/derive-soude-geometry.py`. `tools/prisme/build-soude-signature.mjs` écrit les masters SVG et leurs rendus ; `tools/prisme/build-assets.mjs` produit ensuite les icônes, les favicons, l’ICO et l’ICNS de l’Importer. Le gabarit 8:3 des anciens fichiers est conservé pour que les emplacements du site, des emails et de l’Importer gardent leurs dimensions : le mot occupe toute la largeur utile, avec des marges transparentes au-dessus et en dessous. À gabarit égal, les lettres NXT sont plus hautes d’environ 23 % que dans la signature 2.7.
+
+Les fichiers servis sous `/assets/` sont mis en cache sans revalidation pendant un an. Une signature modifiée reçoit donc **de nouveaux noms**, jamais un remplacement sous l’ancien nom. Les fichiers `nxt5-neon-*` et `unified-icon-*` restent dans le dépôt : des emails déjà envoyés et des liens externes les chargent encore.
+
+Pistes écartées le 23 novembre, à ne pas reproposer sans demande : le N devant le X, dont le X à moitié caché se lisait comme un K ; la jonction « Bloc », où le fût du T se fond dans le 5 et le mot tend vers « NX5 » ; « Une ligne », où le 5 prend la hauteur des lettres et cesse de dominer ; « Coulée », où le verre traverse tout le mot ; et les lettres simplement détachées ou le X au premier plan, que l’utilisateur n’a pas retenus.
+
+La scène d’accueil garde son contour NXT d’origine, lettres bord à bord, et son 5 en vraie 3D. L’accorder à la ligature serait une évolution distincte, à demander.
+
+### Signature 2.7 — couleur aussi en petit, historique publié
 
 La référence de décision est l’[image fournie le 17 novembre](assets/reference-neon-20261117.png), conservée aussi avec les preuves dans `2026-11-17/nxt5-neon-identity/reference.png`. Sa composition bureau montre NXT en contour lumineux cyan/lavande, un 5 violet facetté dominant et un fond bleu nuit. Le mot NXT doit rester reconnaissable et le chiffre doit rester un **5**, jamais un S. Le grand hero conserve ses vrais mouvements 3D et ses réponses au défilement et au pointeur ; l’image jointe ne remplace pas le moteur. Sur mobile, composer NXT en haut à gauche et le 5 en dessous à droite, sans recouvrir le T, le texte ou l’action. Les rendus corrigés à 320 et 390 px ont reçu le retour utilisateur « C’est largement mieux ».
 
@@ -179,7 +211,7 @@ Le script `tools/prisme/build-unified-brand.mjs` compile les rendus contrôlés 
 
 Mesurer `H` sur la hauteur visible des lettres, sans les marges du fichier. Conserver au moins `H/4` de vide tout autour de la signature, et `H/5` autour du signe compact. Le ratio du dessin est verrouillé ; aucune largeur ou hauteur ne se règle indépendamment. L’inclinaison appartient au dessin : ne pas lui ajouter une transformation CSS.
 
-Pour les petites signatures, utiliser la variante couleur `nxt5-neon-interface-*` : contour NXT cyan/lavande renforcé à la génération, sans arrêt blanc dominant ni halo ajouté, et même 5 violet facetté historique. Vérifier la lecture aux tailles réelles de 80 à 200 px, sur les fonds des composants. Ne pas remplacer le 5 par un aplat blanc pour gagner du contraste. Les petits emplacements gardent leurs dimensions et leur disposition ; l’adaptation se fait dans l’asset. Les monochromes restent réservés à un usage réellement contraint à une couleur et explicitement demandé, jamais imposés par défaut au site, à l’Importer, aux emails ou aux exports. Les favicons et icônes compactes 5 déjà approuvés restent inchangés. Une déclinaison sur fond clair reste à contrôler avant usage.
+Pour les petites signatures, utiliser la variante couleur `nxt5-soude-interface-*` : contour cyan/lavande renforcé à la génération, sans arrêt blanc dominant ni halo ajouté, et 5 en verre clair de la signature 2.9. Vérifier la lecture aux tailles réelles de 80 à 200 px, sur les fonds des composants. Ne pas remplacer le 5 par un aplat blanc pour gagner du contraste. Les petits emplacements gardent leurs dimensions et leur disposition ; l’adaptation se fait dans l’asset. Les monochromes restent réservés à un usage réellement contraint à une couleur et explicitement demandé, jamais imposés par défaut au site, à l’Importer, aux emails ou aux exports. Les favicons et icônes compactes utilisent `soude-icon-*`, le 5 de la signature 2.9. La déclinaison sur fond clair `nxt5-soude-clair.svg` reste à contrôler sur le support réel avant usage.
 
 Utiliser `object-fit: contain`, dimensions explicites, PNG alpha comme master raster et WebP/AVIF adaptés aux clients visés. Produire une version vectorielle réellement reconstruite pour le monochrome ; ne pas appeler « SVG » un fichier contenant seulement un PNG embarqué. Charger rapidement le logo visible à l’arrivée, sans lazy loading au-dessus de la ligne de flottaison. Alt du lien de marque : « NXT5 — Accueil » ; un doublon décoratif a un alt vide.
 
@@ -312,6 +344,23 @@ Les emails utilisent une structure compatible, des couleurs opaques, un logo PNG
 
 ## 11. Recette, livraison et état réel
 
+### Décision 2.9 — signature soudée, 23 novembre 2026
+
+**Décision.** Trois pages de comparaison sont présentées à l’utilisateur le 23 novembre : retouches de la signature 2.7 (contour, 5 des petites tailles, favicon), cinq façons de relier le 5 à la Ligature, puis la piste Soudé avec ses deux réglages. Ses réponses sont consignées en tête de ce document. Il n’a pas désigné de réglage : la jonction Barre et le verre profond sont ceux que la page conseillait, et restent modifiables sur demande.
+
+**Réalisation.** Branche `claude/brave-dijkstra-oo0jhl`, à partir de `9e91b40`. Nouveaux masters SVG et rendus `nxt5-soude-*`, favicon vectoriel et icônes `soude-icon-*`, ICO et ICNS de l’Importer. Tous les consommateurs de la signature et des icônes sont rebranchés : composants de marque, scène statique, exports PNG, carte joueur, tendances, publications navigateur et serveur, email, manifest, visuel Open Graph, Importer. Les versions de template des publications passent à `nxt5-game-png-7` et `nxt5-discord-group-4`, pour que les prochains rendus ne reprennent pas un PNG portant l’ancien logo ; l’historique n’est ni renvoyé ni effacé. L’Importer passe en 0.4.8. Aucun parcours, calcul, droit ou donnée n’est modifié.
+
+**Contrôles locaux.**
+
+- `npm run verify` : 4 029 messages traduits en anglais et en espagnol, typage, 244 fichiers et 4 646 tests, build, prérendu SEO de 13 pages. Les tests des publications, du manifest et des artefacts SEO sont relancés après le changement des versions de template : 181 tests réussis.
+- `npm run test:layout` : 20 contrôles navigateur réussis. Audit des dépendances réussi. 54 tests Importer réussis.
+- Le rendu des masters par le moteur du dépôt est comparé à celui de Chromium : mêmes contours, même fondu, même lueur.
+- Composants réels sur données fictives : logo, signature compacte de 88 à 180 px, barre latérale, symbole replié, avatar d’équipe par défaut de 32 à 62 px, favicons 16 et 32 px, icône Apple et icône masquable, scène statique. Aucune image cassée ni erreur JavaScript.
+- Pages Accueil, Fonctionnalités et Connexion à 1 280, 390 et 320 px : aucun débordement horizontal, signature chargée dans l’en-tête et le pied de page. La scène d’accueil et sa disposition mobile sont inchangées.
+- Importer : barre latérale rendue à 1 180 × 800 et 820 × 620 depuis `renderer.html`, sans pont Electron ni collecte.
+
+**Limites.** Ces contrôles sont locaux. À la rédaction, la branche n’est ni fusionnée ni déployée, et l’Importer 0.4.8 n’est pas publié : sa construction Windows et Mac se fait dans le workflow officiel après fusion. L’email n’a pas été envoyé ni ouvert dans un client de messagerie ; seul son chemin d’image et ses dimensions 176 × 66 sont vérifiés. La déclinaison sur fond clair n’est employée nulle part. Le statut de publication se vérifiera dans le déploiement Netlify du commit fusionné et dans la release `nxt5-match-exporter-latest`.
+
 ### Décision 2.8 — dégradé des actions principales, 20 novembre 2026
 
 Le 19 novembre, des prototypes locaux présentent d’abord trois boutons bleus, puis quatre dégradés. La proposition 2 reprend les trois arrêts du logo compact : cyan, pervenche et lavande. Les rendus à 1 000, 390 et 320 px, ainsi que la planche des états, sont examinés par Codex et Claude dans la session `2cf6e3ec-628e-4fa2-8163-4f43f9f68d2a`. Leurs verdicts concluent que ces quatre options sont présentables pour un choix ; ils ne constituent pas ce choix. Les lectures des quatre PNG et leurs empreintes sont consignées dans `2026-11-19/nxt5-buttons-blue/gradient-review-record.json`, avec les contrôles navigateur et de contraste. Ce compte rendu précède la décision de l’utilisateur et conserve donc son statut de proposition en attente de choix.
@@ -406,9 +455,9 @@ L’accueil de production est inspecté à 390 et 1 440 px, ainsi que la connexi
 
 ## 12. Entretien, provenance et sources
 
-Historique : la version 2.1 a remplacé la couche graphique de la version 1.69 et finalisé la livraison initiée en 2.0. La présente version 2.8 remplace la palette des actions principales par le dégradé choisi le 20 novembre et conserve les décisions de signature 2.7 ainsi que les décisions de parcours ci-dessous. Une ancienne prescription esthétique dans l’annexe n’est pas une seconde charte.
+Historique : la version 2.1 a remplacé la couche graphique de la version 1.69 et finalisé la livraison initiée en 2.0. La version 2.8 a remplacé la palette des actions principales par le dégradé choisi le 20 novembre. La présente version 2.9 remplace la signature statique 2.7 par la signature soudée du 23 novembre et conserve le dégradé 2.8, la scène d’accueil ainsi que les décisions de parcours ci-dessous. Une ancienne prescription esthétique dans l’annexe n’est pas une seconde charte.
 
-Référence active : [image du 17 novembre 2026](assets/reference-neon-20261117.png). Référence historique 2.1 : `public/assets/brand/prisme/reference-selectionnee.png` (archive locale non publiée). Exploration et preuves de 2.1 : dossier de travail `2026-11-10/nxt5-logo-glass/` à la racine de l’espace Codex, avec prompts, rendus, empreintes et échanges Claude. Le générateur utilisé pour les explorations est l’outil intégré image_gen. La finition locale autorisée conserve la texture de la référence et reconstruit les contours alpha ; les scripts et les tracés sont conservés. Inter et Chakra Petch sont fournies localement dans la présentation avec leurs licences OFL. Les propositions ne constituent pas une recherche juridique d’antériorité.
+Référence active de la signature statique : les masters `public/assets/brand/prisme/nxt5-soude.svg` et `nxt5-soude-interface.svg`. L’[image du 17 novembre 2026](assets/reference-neon-20261117.png) reste la référence de la scène d’accueil et du principe contour contre volume. Référence historique 2.1 : `public/assets/brand/prisme/reference-selectionnee.png` (archive locale non publiée). Exploration et preuves de 2.1 : dossier de travail `2026-11-10/nxt5-logo-glass/` à la racine de l’espace Codex, avec prompts, rendus, empreintes et échanges Claude. Le générateur utilisé pour les explorations est l’outil intégré image_gen. La finition locale autorisée conserve la texture de la référence et reconstruit les contours alpha ; les scripts et les tracés sont conservés. Inter et Chakra Petch sont fournies localement dans la présentation avec leurs licences OFL. Les propositions ne constituent pas une recherche juridique d’antériorité.
 
 Référence active des boutons 2.8 : proposition 2 de `2026-11-19/nxt5-buttons-blue/gradients.html`, revue enregistrée dans `gradient-review-record.json` du même dossier et choisie par l’utilisateur le 20 novembre. Ces chemins désignent des preuves locales, pas une deuxième charte. Les valeurs de référence à réutiliser sont maintenues en section 3 de ce document ; conserver les règles d’états de la section 7 et vérifier les consommateurs lors de chaque évolution.
 
