@@ -11,6 +11,7 @@ import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js"
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput, ReadingDetails } from "../../components/ui/Core.jsx";
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, Link2, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft, Settings } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
+import { loadFullReport, reportContentOmitted, useFullReports } from "../../api/report-content.js";
 import { trackAudienceEvent } from "../../app/audience-client.js";
 import { ImporterLinkDisclosure, ImporterLinkSettings, ImporterQueue, useImporterAutoLink } from "../../components/importer/ImporterAutoLink.jsx";
 import { ImportGameFlow, GameActions, GameCategoryManager, GameOperationDialog, matchImportTitle, matchCategoriesForMatch, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor } from "./GameOperations.jsx";
@@ -1258,7 +1259,7 @@ function MatchDataPanel(props) {
 function SavedMatchDebrief({ report, match, complete }) {
   const [open, setOpen] = useState(false);
   const ids = reportMatchIds(report);
-  const hasCommands = /^\s*\/(?:TEAM|KDA|DAMAGE|VISION|GOLD|KP)\s/im.test(report.content);
+  const hasCommands = /^\s*\/(?:TEAM|KDA|DAMAGE|VISION|GOLD|KP)\s/im.test(report.content || "");
   const group = useReviewMatchDetails(report.team_id, open && hasCommands && ids.length > 1 ? ids : [], report.updated_at);
   const rows = hasCommands && (ids.length > 1 ? group.complete : complete)
     ? reportRows(ids.length > 1 ? group.matches : [match], ids) : null;
@@ -1275,11 +1276,13 @@ function SavedMatchDebrief({ report, match, complete }) {
   </ReadingDetails>;
 }
 
-function MatchWrittenSummary({ match, reports, complete }) {
+function MatchWrittenSummary({ match, reports, complete, reportsLoading = false, reportsError = "", onRetryReports }) {
   const singleGameAnalysis = reports.some((report) => reportMatchIds(report).length === 1 && /^\[NXT5_REPORT_V3\]\r?$/m.test(report.content || ""));
   const [readAnalysis, setReadAnalysis] = useState(false);
   return <div className="match-written-summary">
-    {reports.some((report) => report.content?.trim()) && <h4 className="games-section-heading">{t("Débriefs enregistrés")}</h4>}
+    {(reportsLoading || reportsError || reports.some((report) => report.content?.trim())) && <h4 className="games-section-heading">{t("Débriefs enregistrés")}</h4>}
+    {reportsLoading && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{t("Chargement des débriefs…")}</p>}
+    {reportsError && <p role="alert">{t("Un débrief n’a pas pu être chargé.")} <Button type="button" variant="ghost" icon={RefreshCw} onClick={onRetryReports}>{t("Réessayer")}</Button></p>}
     {complete && !singleGameAnalysis && match.participants?.length > 0 &&
       <ReadingDetails title={t("Lecture automatique de la partie")} onToggle={(event) => setReadAnalysis(event.currentTarget.open)}>
         {readAnalysis && renderReportContent(buildGameReviewContent(match).split(REPORT_REWRITE_MARKER)[0], match.participants)}
@@ -1289,7 +1292,7 @@ function MatchWrittenSummary({ match, reports, complete }) {
   </div>;
 }
 
-function MatchDataContent({ match, teamName, reports = [], notesContent, onReview, hasReview = false, contextControls, draftContent, loading = false, error = "" }) {
+function MatchDataContent({ match, teamName, reports = [], reportsLoading = false, reportsError = "", onRetryReports, notesContent, onReview, hasReview = false, contextControls, draftContent, loading = false, error = "" }) {
   useLanguage();
   const id = useId();
   const [tab, setTab] = useState("summary");
@@ -1322,7 +1325,7 @@ function MatchDataContent({ match, teamName, reports = [], notesContent, onRevie
     <TabNav idPrefix={id} panelId={`${id}-panel`} label={t("Vues de la partie")} items={tabs} activeId={tab} onChange={setTab} className="match-recap-tabs" />
     <div id={`${id}-panel`} role="tabpanel" tabIndex={0} aria-labelledby={`${id}-tab-${tab}`} className="match-recap-tab-content">
       <div hidden={tab !== "summary"}>
-        <MatchWrittenSummary match={match} reports={reports} complete={!loading && !error} />
+        <MatchWrittenSummary match={match} reports={reports} complete={!loading && !error} reportsLoading={reportsLoading} reportsError={reportsError} onRetryReports={onRetryReports} />
         <MatchVisualRecap match={match} snapshot={publication} loading={loading} error={error} teamFilter={mapTeamFilter} onTeamFilterChange={setMapTeamFilter} />
         {!loading && !error && <div className="match-summary-analysis">
           <Objectives snapshot={publication} />
@@ -1505,7 +1508,13 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const selectedMatch = selectedMatchDetail
     ? { ...selectedMatchSummary, ...selectedMatchDetail, participants: selectedMatchDetail.participants || selectedMatchSummary?.participants || [] }
     : selectedMatchSummary;
-  const matchReports = (data.reports || []).filter((report) => report.team_id === selectedTeamId).map(savedDebrief).filter((report) => report && reportMatchIds(report).includes(selectedMatchId));
+  const rawMatchReports = (data.reports || []).filter((report) => {
+    const saved = report.team_id === selectedTeamId && savedDebrief(report);
+    return saved && reportMatchIds(saved).includes(selectedMatchId);
+  });
+  // Debriefs whose content the bootstrap left out are fetched for this match only.
+  const matchReportContents = useFullReports(selectedTeamId, rawMatchReports);
+  const matchReports = matchReportContents.reports.map(savedDebrief);
   const selectedArchiveReport = selectedArchive ? (data.reports || []).find((report) => {
     const ids = reportMatchIds(report);
     const groupIds = archiveMatchIds(selectedArchive);
@@ -1636,7 +1645,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
       {!selectedMatch && <div className="games-detail-title"><h3>{t("Analyse de la partie")}</h3></div>}
       {loadingMatchDetail && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{t("Chargement des statistiques détaillées…")}</p>}
       {!loadingMatchDetail && selectedMatchDetailError && <Surface className="mt-4"><p role="alert">{selectedMatchDetailError}{selectedMatch && t(" Les statistiques déjà chargées restent disponibles.")}</p><Button type="button" variant="ghost" className="mt-3" icon={RefreshCw} onClick={retryMatchDetail}>{t("Réessayer")}</Button></Surface>}
-      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} loading={loadingMatchDetail} error={selectedMatchDetailError} reports={matchReports}
+      {selectedMatch && <MatchDataPanel match={selectedMatch} teamName={selectedTeamName} loading={loadingMatchDetail} error={selectedMatchDetailError} reports={matchReports} reportsLoading={matchReportContents.loading} reportsError={matchReportContents.error} onRetryReports={matchReportContents.retry}
         notesContent={<NotesWorkspace match={selectedMatch} data={data} selectedTeamId={selectedTeamId} user={user} currentMember={currentMember} refreshAll={refreshAll} pushToast={pushToast} route={route} />}
         contextControls={({ onOpponentResolved }) => <>
         <MatchOpponentPanel teamId={selectedTeamId} match={selectedMatch} user={user} onChanged={() => refreshAll({ throwOnError: true })} onResolvedName={onOpponentResolved} />
@@ -2023,7 +2032,9 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
   }
   const selectedArchive = archives.find((archive) => archive.id === selectedArchiveId);
   const scopedReports = selectedArchive ? reports.filter((report) => reportMatchIds(report).some((id) => archiveMatchIds(selectedArchive).includes(id))) : reports;
-  const selected = scopedReports.find((report) => report.id === selectedReportId) || scopedReports[0] || null;
+  const selectedRow = scopedReports.find((report) => report.id === selectedReportId) || scopedReports[0] || null;
+  const selectedFull = useFullReports(selectedTeamId, selectedRow ? [selectedRow] : []);
+  const selected = selectedFull.reports[0] || null;
   useEffect(() => {
     if (!selected) setLibraryOpen(true);
   }, [selected?.id]);
@@ -2120,17 +2131,28 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
     setForm((current) => ({ ...current, content: `${current.content}${current.content.endsWith("\n") || !current.content ? "" : "\n"}${command}` }));
   }
 
-  function editReport(report) {
-    const original = { id: report.id, title: reportDisplayName(report, matches, "Débrief", archives), content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) };
-    if (!replaceDraft(original, original)) return;
-    setComposerOpen(true);
-    setLexiconOpen(false);
+  // An omitted content is fetched first: a draft never starts from an empty body.
+  function withFullReport(row, apply) {
+    if (!reportContentOmitted(row)) return apply(row);
+    loadFullReport(selectedTeamId, row).then((report) => { if (!reportContentOmitted(report)) apply(report); },
+      (error) => pushToast?.({ type: "red", title: "Débrief indisponible", text: error.message }));
   }
 
-  function duplicateReport(report) {
-    if (!replaceDraft({ id: null, title: `${reportDisplayName(report, matches, "Débrief", archives)} copie`, content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) })) return;
-    setComposerOpen(true);
-    setLexiconOpen(false);
+  function editReport(row) {
+    withFullReport(row, (report) => {
+      const original = { id: report.id, title: reportDisplayName(report, matches, "Débrief", archives), content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) };
+      if (!replaceDraft(original, original)) return;
+      setComposerOpen(true);
+      setLexiconOpen(false);
+    });
+  }
+
+  function duplicateReport(row) {
+    withFullReport(row, (report) => {
+      if (!replaceDraft({ id: null, title: `${reportDisplayName(report, matches, "Débrief", archives)} copie`, content: stripGeneratedReportContent(report.content), matchIds: reportMatchIds(report) })) return;
+      setComposerOpen(true);
+      setLexiconOpen(false);
+    });
   }
 
   function resetReportForm() {
@@ -2282,7 +2304,7 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
             </div>
             </Surface>
             <div className="mt-5">
-              <ReportPreview key={selected.id} content={selectedContent} rows={selectedRows} matches={!composerOpen && reviewDetails.complete ? reviewDetails.matches : []} matchIds={reportMatchIds(selected)} team={reviewTeam} categories={data.matchCategories || []} loading={composerOpen || reviewDetails.loading} error={composerOpen ? "" : reviewDetails.error} onRetry={reviewDetails.retry} initialMatchId={urlMatchId} onOpenMatch={(id) => openAppPath(`/games?match=${encodeURIComponent(id)}`)} />
+              <ReportPreview key={selected.id} content={selectedContent} rows={selectedRows} matches={!composerOpen && reviewDetails.complete ? reviewDetails.matches : []} matchIds={reportMatchIds(selected)} team={reviewTeam} categories={data.matchCategories || []} loading={composerOpen || reviewDetails.loading || selectedFull.loading} error={composerOpen ? "" : reviewDetails.error || selectedFull.error} onRetry={selectedFull.error ? selectedFull.retry : reviewDetails.retry} initialMatchId={urlMatchId} onOpenMatch={(id) => openAppPath(`/games?match=${encodeURIComponent(id)}`)} />
             </div>
           </> : <EmptyState icon={FileText} title={t("Aucun débrief sélectionné")} text={t("Choisis un débrief dans la bibliothèque ou prépare-en un nouveau.")} />}
         </section>

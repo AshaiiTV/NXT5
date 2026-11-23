@@ -5,6 +5,7 @@ import { apiFetch } from "../api/client.js";
 import { useTeamCreation } from "../hooks/useTeamCreation.js";
 import { Teams as TeamsView } from "../pages/workspace/Teams.jsx";
 import { AccountSettings } from "../pages/workspace/AccountSettings.jsx";
+import { TeamManagementPanel } from "../pages/workspace/TeamManagementPanel.jsx";
 import { Button, TextInput } from "../components/ui/Core.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -94,6 +95,42 @@ describe("joining and creating another team", () => {
     expect(renderer.root.findByProps({ role: "alert" }).children).toContain("Code expiré");
     expect(renderer.root.findByProps({ label: "Code d’invitation" }).props.value).toBe("OLD-CODE");
     expect(renderer.root.findAllByType(Button).find(node => node.props.type === "submit").props.disabled).toBe(false);
+  });
+});
+
+describe("invitation link copy", () => {
+  it("refreshes after a created code even when the clipboard is refused, and shows the link to copy", async () => {
+    const writeText = vi.fn().mockRejectedValue(Object.assign(new Error("Not allowed"), { name: "NotAllowedError" }));
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const props = teamProps();
+    const renderer = await render(<Teams {...props} managementOnly />);
+    apiFetch.mockResolvedValueOnce({ code: "NXT5-NEW" });
+    await act(async () => renderer.root.findByType(TeamManagementPanel).props.onCopyInvite());
+    expect(apiFetch).toHaveBeenCalledWith("teams-invite-code", expect.objectContaining({ method: "POST" }));
+    expect(props.refreshAll).toHaveBeenCalledOnce();
+    expect(writeText).toHaveBeenCalledWith("https://nxt5.test/mon-equipe?invite=NXT5-NEW");
+    expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "yellow", title: "Lien d’invitation créé" }));
+    expect(props.pushToast).not.toHaveBeenCalledWith(expect.objectContaining({ type: "red" }));
+    expect(renderer.root.findByType(TeamManagementPanel).props.manualInviteLink).toBe("https://nxt5.test/mon-equipe?invite=NXT5-NEW");
+    expect(renderer.root.findByProps({ label: "Lien d’invitation à copier" }).props.value).toBe("https://nxt5.test/mon-equipe?invite=NXT5-NEW");
+
+    writeText.mockResolvedValueOnce(undefined);
+    apiFetch.mockResolvedValueOnce({ code: "NXT5-NEXT" });
+    await act(async () => renderer.root.findByType(TeamManagementPanel).props.onCopyInvite());
+    expect(props.pushToast).toHaveBeenLastCalledWith(expect.objectContaining({ type: "green", title: "Lien d’invitation copié" }));
+    expect(renderer.root.findByType(TeamManagementPanel).props.manualInviteLink).toBe("");
+  });
+
+  it("reports a refused code without touching the clipboard", async () => {
+    const writeText = vi.fn();
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const props = teamProps();
+    const renderer = await render(<Teams {...props} managementOnly />);
+    apiFetch.mockRejectedValueOnce(new Error("Droits insuffisants"));
+    await act(async () => renderer.root.findByType(TeamManagementPanel).props.onCopyInvite());
+    expect(writeText).not.toHaveBeenCalled();
+    expect(props.refreshAll).not.toHaveBeenCalled();
+    expect(props.pushToast).toHaveBeenCalledWith(expect.objectContaining({ type: "red", title: "Code impossible" }));
   });
 });
 

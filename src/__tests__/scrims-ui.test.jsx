@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const api = vi.hoisted(() => ({ fetch: vi.fn() }));
 vi.mock("../api/client.js", () => ({ apiFetch: api.fetch, API_BASE: "/.netlify/functions" }));
 
-import { Button, SelectInput, TabNav, TextAreaInput } from "../components/ui/Core.jsx";
+import { Button, SelectInput, TabNav, TextAreaInput, TextInput } from "../components/ui/Core.jsx";
 import ScrimFinder, { ScrimOfferForm, levelRange } from "../pages/workspace/ScrimFinder.jsx";
 
 let renderer;
@@ -26,6 +26,15 @@ const listing = (overrides = {}) => ({
 
 describe("scrim finder page", () => {
   beforeEach(() => { api.fetch.mockReset(); });
+
+  it("renders each team avatar from the deduplicated teamAvatars map", async () => {
+    const avatar = "data:image/png;base64,QUJD";
+    const team = { id: "team-b", name: "Beta", tag: "BTA", avatar_zoom: 1, avatar_x: 50, avatar_y: 50 };
+    const base = listing();
+    api.fetch.mockResolvedValue({ ...base, teamAvatars: { "team-b": avatar }, offers: [{ ...base.offers[0], team }, { ...base.offers[0], id: "offer-b2", team }] });
+    await mount(<ScrimFinder data={data} selectedTeamId="team-a" currentMember={{ role: "captain" }} user={{ id: "u1" }} pushToast={vi.fn()} />);
+    expect(renderer.root.findAll((node) => node.type === "img" && node.props.src === avatar)).toHaveLength(2);
+  });
 
   it("loads the team listing and lets the staff answer, confirm and publish", async () => {
     api.fetch.mockImplementation(async (path, options) => options?.method === "POST" ? { ok: true } : listing());
@@ -84,6 +93,54 @@ describe("scrim finder page", () => {
     act(() => renderer.root.findByType(TabNav).props.onChange("mine"));
     expect(text()).toContain("Scrims confirmés");
     expect(text()).toContain("La séance est dans vos deux plannings.");
+  });
+
+  it("keeps the previous listing under a refresh error instead of an empty state", async () => {
+    api.fetch.mockResolvedValueOnce(listing());
+    await mount(<ScrimFinder data={data} selectedTeamId="team-a" currentMember={{ role: "captain" }} user={{ id: "u1" }} pushToast={vi.fn()} />);
+    expect(text()).toContain("Beta");
+    api.fetch.mockRejectedValueOnce(new Error("Impossible de joindre NXT5 pour le moment."));
+    await act(async () => { button("Actualiser").props.onClick(); });
+    expect(text()).toContain("Impossible de joindre NXT5 pour le moment.");
+    expect(text()).toContain("Beta");
+    expect(text()).not.toContain("Aucune proposition ouverte pour le moment");
+  });
+
+  it("shows no empty state when the first load fails", async () => {
+    api.fetch.mockRejectedValueOnce(new Error("Impossible de joindre NXT5 pour le moment."));
+    await mount(<ScrimFinder data={data} selectedTeamId="team-a" currentMember={{ role: "captain" }} user={{ id: "u1" }} pushToast={vi.fn()} />);
+    expect(text()).toContain("Impossible de joindre NXT5 pour le moment.");
+    expect(text()).not.toContain("Aucune proposition ouverte pour le moment");
+  });
+
+  it("ignores a late listing of the previously selected team", async () => {
+    const two = { teams: [{ id: "team-a", name: "Alpha" }, { id: "team-b", name: "Beta" }] };
+    const pending = [];
+    api.fetch.mockImplementation((path, options) => new Promise((resolve) => pending.push({ path, signal: options?.signal, resolve })));
+    await mount(<ScrimFinder data={two} selectedTeamId="team-a" currentMember={{ role: "captain" }} user={{ id: "u1" }} pushToast={vi.fn()} />);
+    await act(async () => { button("Actualiser").props.onClick(); });
+    expect(pending.map((call) => call.path)).toEqual(["scrims-manage?teamId=team-a", "scrims-manage?teamId=team-a"]);
+    expect(pending[0].signal.aborted).toBe(true);
+    await act(async () => { renderer.update(<ScrimFinder data={two} selectedTeamId="team-b" currentMember={{ role: "captain" }} user={{ id: "u1" }} pushToast={vi.fn()} />); });
+    expect(pending[1].signal.aborted).toBe(true);
+    expect(pending.at(-1).path).toBe("scrims-manage?teamId=team-b");
+    await act(async () => { pending.at(-1).resolve(listing({ offers: [{ ...listing().offers[0], id: "offer-x", teamName: "Gamma" }] })); });
+    await act(async () => { pending[1].resolve(listing({ offers: [{ ...listing().offers[0], id: "offer-y", teamName: "Delta" }] })); });
+    expect(text()).toContain("Gamma");
+    expect(text()).not.toContain("Delta");
+  });
+
+  it("disables publishing while another action runs and refuses a past date", async () => {
+    const onSubmit = vi.fn(async () => true);
+    await mount(<ScrimOfferForm onSubmit={onSubmit} busy />);
+    expect(renderer.root.findAllByType(Button).find((node) => node.props.type === "submit").props.disabled).toBe(true);
+    act(() => renderer.update(<ScrimOfferForm onSubmit={onSubmit} busy={false} />));
+    const date = () => renderer.root.findAllByType(TextInput).find((node) => node.props.label === "Date et heure");
+    expect(date().props.min).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+    act(() => date().props.onChange("2020-01-01T21:00"));
+    act(() => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
+    expect(onSubmit).not.toHaveBeenCalled();
+    expect(text()).toContain("Choisis une date et une heure à venir.");
   });
 
   it("refuses an inverted level range before sending", async () => {

@@ -198,3 +198,43 @@ it.each(["assistant", "coach"])("R-F8 shows the shared staff line read-only to a
   expect(cells.every(node => node.props["aria-label"].includes("Encadrement"))).toBe(true);
   expect(save).not.toHaveBeenCalled();
 });
+
+it("closes the session menu when keyboard focus leaves it and returns focus to the cell", () => {
+  const app = mountPlanning();
+  act(() => app.eventMode().props.onClick());
+  act(() => app.cell().props.onClick(app.event()));
+  const menu = renderer.root.findByProps({ "aria-label": "Type de séance" });
+  act(() => listeners.get("keydown")({ key: "Tab" }));
+  act(() => menu.props.onBlur({ relatedTarget: { id: "behind" } }));
+  expect(renderer.root.findAllByProps({ "aria-label": "Type de séance" })).toHaveLength(0);
+  expect(app.trigger.focus).toHaveBeenCalledOnce();
+  act(() => app.cell().props.onClick(app.event()));
+  expect(renderer.root.findAllByProps({ "aria-label": "Type de séance" })).toHaveLength(1);
+  act(() => listeners.get("scroll")({ target: {} }));
+  expect(renderer.root.findAllByProps({ "aria-label": "Type de séance" })).toHaveLength(0);
+});
+
+it("scopes a flush to one team and tells the user when the refresh is held by unsaved edits", async () => {
+  const save = vi.fn(async (body) => {
+    if (body.teamId === "other") throw new Error("Hors ligne");
+    return { id: "row", team_id: body.teamId, player_id: body.playerId, week_start: body.weekStart, slots: body.slots, notes: body.notes, updated_at: "2026-09-08T12:00:01Z" };
+  });
+  const scoped = createPlanningStore({ save });
+  scoped.forContext({ teamId: "other", playerId: "p", weekStart: "2026-09-07" }).setNotes("A");
+  scoped.forContext({ teamId: "team", playerId: "p", weekStart: "2026-09-07" }).setNotes("B");
+  expect(await scoped.flush()).toBe(false);
+  expect(await scoped.flush({ teamId: "team" })).toBe(true);
+  expect(await scoped.flush({ teamId: "other" })).toBe(false);
+  scoped.pause();
+
+  const refreshAll = vi.fn(async () => {});
+  store = { forContext: () => null, flush: vi.fn(async () => false), pause: vi.fn() };
+  act(() => {
+    renderer = TestRenderer.create(<Planning data={{ players: [{ id: "player", team_id: "team", user_id: "user", name: "Joueur", role: "TOP", roster_status: "MAIN" }], availability: [] }} selectedTeamId="team" user={{ id: "user" }} currentMember={{ role: "owner" }} planningStore={store} refreshAll={refreshAll} />);
+  });
+  const refresh = renderer.root.findAll((node) => node.props?.onClick && node.props.icon && node.props.children === "Actualiser les précisions")[0];
+  await act(async () => { await refresh.props.onClick(); });
+  expect(store.flush).toHaveBeenCalledWith({ teamId: "team" });
+  expect(refreshAll).not.toHaveBeenCalled();
+  expect(JSON.stringify(renderer.toJSON())).toContain("Certaines modifications du planning n’ont pas pu être enregistrées.");
+});

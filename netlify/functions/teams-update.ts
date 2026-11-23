@@ -10,6 +10,12 @@ function cleanNumber(value, fallback = 0) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+// The app reduces logos to 512 px before upload (a few dozen KB). Each logo is
+// sent with every team listing, so new images are capped well below the old limit.
+const AVATAR_MAX_CHARS = 400_000;
+const LEGACY_AVATAR_MAX_CHARS = 1_500_000;
+const avatarTooLarge = () => Object.assign(new Error('Image trop lourde. Choisis une image plus légère.'), { status: 413, code: 'AVATAR_TOO_LARGE' });
+
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
@@ -20,7 +26,10 @@ export default async function handler(request: Request, context: Context): Promi
     const teamId = cleanText(body.teamId, 80);
     const name = cleanText(body.name, 80);
     const tag = cleanText(body.tag, 12).toUpperCase();
-    const avatarDataUrl = cleanText(body.avatarDataUrl, 1_500_000) || null;
+    const rawAvatar = typeof body.avatarDataUrl === 'string' ? body.avatarDataUrl.trim() : '';
+    // Never truncate an image (it would be stored corrupted): refuse it instead.
+    if (rawAvatar.length > LEGACY_AVATAR_MAX_CHARS) throw avatarTooLarge();
+    const avatarDataUrl = rawAvatar || null;
     const avatarZoom = Math.min(2.5, Math.max(1, cleanNumber(body.avatarZoom, 1)));
     const avatarX = Math.min(100, Math.max(0, cleanNumber(body.avatarX, 50)));
     const avatarY = Math.min(100, Math.max(0, cleanNumber(body.avatarY, 50)));
@@ -28,6 +37,12 @@ export default async function handler(request: Request, context: Context): Promi
     if (!teamId || !name || !tag) throw Object.assign(new Error('Nom, tag et team requis.'), { status: 400 });
     if (avatarDataUrl && !/^data:image\/(?:png|jpeg|webp);base64,[a-z0-9+/=]+$/i.test(avatarDataUrl)) {
       throw Object.assign(new Error('Avatar invalide.'), { status: 400 });
+    }
+    // New images must be the reduced version the app produces. A larger logo saved
+    // before this limit stays accepted when it is sent back unchanged (renaming).
+    if (avatarDataUrl && avatarDataUrl.length > AVATAR_MAX_CHARS) {
+      const unchanged = await sql`select 1 from teams where id = ${teamId} and avatar_data_url = ${avatarDataUrl} limit 1`;
+      if (!unchanged.length) throw avatarTooLarge();
     }
 
     const results = await sql.transaction(tx => [
@@ -58,6 +73,10 @@ export default async function handler(request: Request, context: Context): Promi
 
     return json({ team: safeTeam(rows[0]) });
   } catch (err) {
+    // unique(owner_id, name): the owner already has another team with this name.
+    if (err?.code === '23505') {
+      return handleError(Object.assign(new Error('Cette team existe déjà sur ton compte.'), { status: 409, code: 'TEAM_NAME_TAKEN' }));
+    }
     return handleError(err);
   }
 }

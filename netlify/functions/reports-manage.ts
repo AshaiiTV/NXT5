@@ -8,9 +8,11 @@ import { sendNotification } from './_lib/email';
 import { ensureAuditLogsSchema, ensureReportsSchema } from './_lib/schema';
 import { assertSubjectRateLimit } from './_lib/rate-limit';
 import { cleanText, escapeHtml } from './_lib/text';
+import { REPORT_STAFF_ROLES } from './_lib/report-feed';
 
 const MAX_REPORT_CONTENT_LENGTH = 256000;
 const MAX_REPORT_MATCHES = 20;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function reviewAuditQueries(tx, userId: string, teamId: string, reportId: string, action: string, title: string, matchIds: string[]) {
   // Part of the same transaction as the review itself: an audit failure must
@@ -69,6 +71,9 @@ export default async function handler(request: Request, context: Context): Promi
     const matchIds = Array.isArray(body.matchIds) ? body.matchIds.map((id) => cleanText(id, 80)).filter(Boolean) : [];
 
     if (!teamId) throw Object.assign(new Error('Team requise.'), { status: 400 });
+    if (action === 'get' && (!UUID.test(teamId) || !UUID.test(reportId))) {
+      throw Object.assign(new Error('Identifiant invalide.'), { status: 400 });
+    }
 
     const membership = await sql`
       select teams.owner_id, team_members.role
@@ -100,6 +105,21 @@ export default async function handler(request: Request, context: Context): Promi
       ] : [])
     ];
 
+    if (action === 'get') {
+      // Full content of a report the bootstrap left out (content_omitted).
+      // Reading is not rate limited like writes; drafts stay staff-only.
+      const rows = await sql`
+        select reports.*, users.name as author_name
+        from reports left join users on users.id = reports.created_by
+        where reports.id = ${reportId} and reports.team_id = ${teamId}
+        limit 1
+      `;
+      const report = rows[0];
+      const canReadDrafts = isCaptain || REPORT_STAFF_ROLES.includes(String(member.role || '').toLowerCase());
+      if (!report || (report.discord_status === 'draft' && !canReadDrafts)) throw Object.assign(new Error('Review introuvable.'), { status: 404 });
+      return json({ report: { ...report, content_omitted: false } });
+    }
+
     if (action === 'delete') {
       if (!reportId) throw Object.assign(new Error('Review requisee.'), { status: 400 });
       const existing = await sql`select * from reports where id = ${reportId} and team_id = ${teamId} limit 1`;
@@ -121,6 +141,8 @@ export default async function handler(request: Request, context: Context): Promi
       return json({ ok: true });
     }
 
+    // Each save can carry 256 000 characters and rewrites the review row.
+    await assertSubjectRateLimit('reports-manage-write', user.id, { limit: 30, windowSeconds: 600 });
     if (!title || !content.trim()) throw Object.assign(new Error('Titre et contenu requis.'), { status: 400 });
     if (content.length > MAX_REPORT_CONTENT_LENGTH) {
       throw Object.assign(new Error('La review dépasse la limite de 256 000 caractères. Réduis son contenu avant de l’enregistrer.'), {

@@ -1,6 +1,7 @@
 import React, { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, FileText, Plus, Search, Trash2, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
+import { loadFullReport, reportContentOmitted, useFullReports } from "../../api/report-content.js";
 import { openAppPath } from "../../app/routing.js";
 import { Button, EmptyState, PageHeader, Surface } from "../../components/ui/Core.jsx";
 import { ModalDialog } from "../../components/ui/ModalDialog.jsx";
@@ -35,6 +36,7 @@ function NotesWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMe
   const [baseline, setBaseline] = useState(() => reviewDrafts.readBaseline(user?.id, selectedTeamId));
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [openingNoteId, setOpeningNoteId] = useState("");
   const detailRef = useRef(null);
   const dirty = reviewDraftChanged(form, baseline);
   const resumesHere = dirty && (!match || form.matchIds.includes(String(match.id)));
@@ -65,8 +67,13 @@ function NotesWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMe
   }).sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0));
 
   const requestedLegacy = requestedNoteId && (data.reports || []).find((item) => item.team_id === selectedTeamId && String(item.id) === requestedNoteId && !isTeamNote(item));
-  const legacyReport = requestedLegacy && savedDebrief(requestedLegacy);
-  const selected = legacyReport ? null : visible.find((note) => String(note.id) === String(selectedId)) || visible.find((note) => requestedMatchId && reportMatchIds(note).includes(requestedMatchId)) || visible[0];
+  const selectedRow = requestedLegacy ? null : visible.find((note) => String(note.id) === String(selectedId)) || visible.find((note) => requestedMatchId && reportMatchIds(note).includes(requestedMatchId)) || visible[0];
+  // Contents left out of the bootstrap are fetched only for the notes on screen.
+  const shown = useFullReports(selectedTeamId, match ? visible : [selectedRow || requestedLegacy].filter(Boolean));
+  const fullNotes = new Map(shown.reports.map((note) => [String(note.id), note]));
+  const fullNote = (note) => fullNotes.get(String(note.id)) || note;
+  const legacyReport = requestedLegacy && savedDebrief(fullNote(requestedLegacy));
+  const selected = selectedRow && fullNote(selectedRow);
   function begin(next, nextBaseline = emptyReviewDraft()) {
     if (dirty && !window.confirm(t("Remplacer le brouillon actuel ?"))) return;
     setForm(next);
@@ -88,8 +95,21 @@ function NotesWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMe
     openAppPath(`/notes?report=${encodeURIComponent(id)}`);
     if (window.matchMedia?.("(max-width: 1279px)").matches) requestAnimationFrame(() => detailRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }));
   }
-  function editNote(note) {
-    const draft = { id: note.id, title: note.title || "", content: noteBody(note), matchIds: reportMatchIds(note) };
+  async function editNote(note) {
+    if (openingNoteId) return;
+    let full = note;
+    if (reportContentOmitted(note)) {
+      // Never open (and later save) an omitted note with an empty body.
+      setOpeningNoteId(String(note.id));
+      try {
+        full = await loadFullReport(selectedTeamId, note);
+      } catch (error) {
+        pushToast?.({ type: "red", title: "Note indisponible", text: error.message });
+        return;
+      } finally { setOpeningNoteId(""); }
+      if (reportContentOmitted(full)) return;
+    }
+    const draft = { id: full.id, title: full.title || "", content: noteBody(full), matchIds: reportMatchIds(full) };
     begin(draft, draft);
   }
 
@@ -125,7 +145,15 @@ function NotesWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMe
     } finally { setSaving(false); }
   }
 
-  function noteArticle(note) {
+  function noteBodyText(note) {
+    if (!reportContentOmitted(note)) return null;
+    return shown.error
+      ? <p role="alert" className="mt-4 text-sm text-amber-100">{t("La note n’a pas pu être chargée.")} <button type="button" className="min-h-11 font-semibold underline" onClick={shown.retry}>{t("Réessayer")}</button></p>
+      : <p role="status" className="mt-4 text-sm text-slate-300">{t("Chargement de la note…")}</p>;
+  }
+
+  function noteArticle(row) {
+    const note = fullNote(row);
     const body = noteBody(note);
     const ids = reportMatchIds(note);
     return <article key={note.id} className="match-note">
@@ -133,11 +161,11 @@ function NotesWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMe
         <div className="min-w-0"><h3 className="break-words text-lg font-bold">{note.title}</h3>
           <p className="mt-1 text-sm text-slate-300">{[note.author_name, noteDate(note), !note.is_team_note && t("Issue d’un débrief"), note.discord_status === "draft" && t("Brouillon · staff uniquement")].filter(Boolean).join(" · ")}</p></div>
         {canEdit(note) && <div className="flex gap-2">
-          <Button type="button" variant="ghost" onClick={() => editNote(note)} disabled={saving}>{t("Modifier")}</Button>
+          <Button type="button" variant="ghost" onClick={() => editNote(note)} disabled={saving || Boolean(openingNoteId)}>{openingNoteId === String(note.id) ? t("Chargement…") : t("Modifier")}</Button>
           <Button type="button" variant="ghost" icon={Trash2} aria-label={t("Supprimer la note")} onClick={() => deleteNote(note)} disabled={saving} />
         </div>}
       </header>
-      <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7">{body.trim() ? body : t("Cet ancien débrief ne contient pas de note rédigée par l’équipe.")}</p>
+      {noteBodyText(note) || <p className="mt-4 whitespace-pre-wrap break-words text-sm leading-7">{body.trim() ? body : t("Cet ancien débrief ne contient pas de note rédigée par l’équipe.")}</p>}
       {ids.some((id) => id !== String(match?.id)) && <div className="mt-4 flex flex-wrap gap-2" aria-label={t("Parties liées")}>{ids.filter((id) => id !== String(match?.id)).map((id) =>
         <a key={id} href={`/games?match=${encodeURIComponent(id)}`} onClick={(event) => { if (event.button || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); openAppPath(`/games?match=${encodeURIComponent(id)}`); }} className="inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-cyan-100 underline"><ArrowRight aria-hidden="true" className="h-4 w-4" />{matchesById.has(id) ? t("Voir la partie : {0}", [matchDisplayName(matchesById.get(id))]) : t("Partie {0}", [id])}</a>)}</div>}
     </article>;
@@ -172,7 +200,7 @@ function NotesWorkspace({ data, selectedTeamId, refreshAll, pushToast, currentMe
       {(selected || legacyReport) && <div ref={detailRef} className="min-w-0 scroll-mt-4"><Surface variant="reading" className="min-w-0 p-5 sm:p-6">
         {selected ? noteArticle(selected) : <><h2 className="text-lg font-semibold">{legacyReport.title}</h2>
           {reportMatchIds(legacyReport).map((id) => <Button key={id} type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/games?match=${encodeURIComponent(id)}`)}>{matchesById.has(id) ? t("Voir la partie : {0}", [matchDisplayName(matchesById.get(id))]) : t("Voir la partie")}</Button>)}
-          {!reportMatchIds(legacyReport).length && <p className="mt-4 whitespace-pre-wrap break-words">{legacyReport.content}</p>}</>}
+          {!reportMatchIds(legacyReport).length && (noteBodyText(legacyReport) || <p className="mt-4 whitespace-pre-wrap break-words">{legacyReport.content}</p>)}</>}
       </Surface></div>}
     </div>}
     {editing && <ModalDialog aria-labelledby="note-editor-title" className="team-note-editor w-[min(44rem,calc(100vw-1rem))] max-h-[calc(100dvh-1rem)] overflow-y-auto rounded-2xl border border-cyan-200/25 bg-[var(--nxt5-surface)] p-5 text-white sm:p-6" busy={saving} handleHistory onClose={() => setEditing(false)}>

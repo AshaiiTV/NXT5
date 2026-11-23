@@ -18,7 +18,7 @@ const TABS = [
   { id: "settings", label: "Équipe", icon: Shield },
 ];
 
-export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, onRevokeInvites, canManageRoster, canEditIdentity, canInvite, canManageMembers, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer, routeSearch = "", children }) {
+export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveTeam, onCopyInvite, manualInviteLink = "", onRevokeInvites, canManageRoster, canEditIdentity, canInvite, canManageMembers, canDeleteTeam, members, roster, inviteCodes = [], saving, onRoleChange, onLink, onRemoveMember, onDeletePlayer, onDeleteTeam, playerForm, setPlayerForm, onCreatePlayer, editingPlayer, playerEditForm, setPlayerEditForm, onUpdatePlayer, onClosePlayerEdit, onEditPlayer, routeSearch = "", children }) {
   useLanguage();
   const [activeTab, setActiveTab] = useState("roster");
   const rosterRequested = new URLSearchParams(routeSearch).get("section") === "roster";
@@ -166,6 +166,10 @@ export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveT
           </div>
           <Button type="button" icon={saving ? Loader2 : UserPlus} onClick={onCopyInvite} disabled={saving || !canInvite}>{t("Créer et copier un lien")}</Button>
         </div>
+        {manualInviteLink ? <div className="mt-3" role="status">
+          <TextInput label="Lien d’invitation à copier" value={manualInviteLink} onChange={() => {}} readOnly onFocus={(event) => event.target.select?.()} />
+          <p className="mt-1 text-xs font-semibold text-slate-300">{t("La copie automatique a été bloquée par le navigateur. Sélectionne le lien et copie-le manuellement.")}</p>
+        </div> : null}
         <div className="team-invitation-list">
           {activeCodes.length ? activeCodes.map((code) => {
             const remaining = Math.max(0, Math.ceil((new Date(code.expires_at).getTime() - nowTick) / 1000));
@@ -211,7 +215,7 @@ export function TeamManagementPanel({ team, edit, setEdit, onAvatarFile, onSaveT
         </div>
         <details className="team-image-options">
           <summary className="team-disclosure-label">{t("Image de l’équipe")}</summary>
-          <label className="team-image-upload"><Upload className="h-4 w-4" />{t(" Choisir une image")}<input type="file" accept="image/*" className="sr-only" onChange={(event) => onAvatarFile(event.target.files?.[0])} disabled={!canEditIdentity || saving} /></label>
+          <label className="team-image-upload"><Upload className="h-4 w-4" />{t(" Choisir une image")}<input type="file" accept="image/*" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; onAvatarFile(file); }} disabled={!canEditIdentity || saving} /></label>
           <div className="mt-4 grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
             <label className="block"><span className="nxt5-field-label">{t("Zoom")}</span><input type="range" min="1" max="2.5" step="0.05" value={edit.avatarZoom} onChange={(event) => setEdit({ ...edit, avatarZoom: event.target.value })} disabled={!canEditIdentity || saving} className="w-full" /></label>
             <label className="block"><span className="nxt5-field-label">{t("Horizontal")}</span><input type="range" min="0" max="100" value={edit.avatarX} onChange={(event) => setEdit({ ...edit, avatarX: event.target.value })} disabled={!canEditIdentity || saving} className="w-full" /></label>

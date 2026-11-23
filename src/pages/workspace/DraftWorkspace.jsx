@@ -787,6 +787,8 @@ function Compositions({ data, selectedTeamId, refreshAll, pushToast, currentMemb
     setSaving(true);
     try {
       await apiFetch("composition-types-manage", { method: "POST", body: JSON.stringify({ action: "delete", teamId: selectedTeamId, compositionId }) });
+      // The edited composition no longer exists: the next save must create, not update it.
+      setForm((current) => current.id === compositionId ? { id: null, title: "", notes: "", tags: [], slots: emptyCompositionSlots(players) } : current);
       await refreshAll();
       pushToast({ type: "green", title: "Composition supprimée", text: "La liste est à jour." });
     } catch (err) {

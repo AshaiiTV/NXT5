@@ -115,6 +115,25 @@ describe('publishing scrim offers', () => {
   });
 });
 
+describe('scrim listing payload', () => {
+  it('sends each team avatar once, however many rows reference the team', async () => {
+    const avatar = `data:image/png;base64,${'A'.repeat(50_000)}`;
+    await rows('update teams set avatar_data_url = $1 where id = $2', [avatar, teams.host]);
+    for (let index = 0; index < 5; index++) expect((await call(users.hostOwner, offerBody({ startsAt: inHours(24 + index) }))).status).toBe(201);
+    const offerId = (await call(users.hostOwner)).body.mine[0].id;
+    expect((await call(users.guestOwner, { action: 'respond', offerId }, teams.guest)).status).toBe(201);
+    const guest = await call(users.guestOwner, undefined, teams.guest);
+    expect(guest.body.offers).toHaveLength(5);
+    expect(guest.body.teamAvatars).toEqual({ [teams.host]: avatar });
+    expect(guest.body.offers[0].team).toMatchObject({ id: teams.host, name: 'Host Team' });
+    expect(guest.body.offers[0].team).not.toHaveProperty('avatar_data_url');
+    expect(JSON.stringify(guest.body).split(avatar)).toHaveLength(2);
+    const host = await call(users.hostOwner);
+    expect(JSON.stringify(host.body).split(avatar)).toHaveLength(2);
+    expect(host.body.mine[0].requests[0].team).toMatchObject({ id: teams.guest });
+  });
+});
+
 describe('answering and confirming a scrim', () => {
   async function publishAndAnswer() {
     const offer = (await call(users.hostOwner, offerBody())).body.offer;

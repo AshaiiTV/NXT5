@@ -89,8 +89,10 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
   const [eventMenu, setEventMenu] = useState(null);
   const [editingEvents, setEditingEvents] = useState(false);
   const [refreshingNotes, setRefreshingNotes] = useState(false);
+  const [notesRefreshMessage, setNotesRefreshMessage] = useState("");
   const eventMenuRef = useRef(null);
   const eventTriggerRef = useRef(null);
+  const eventMenuPointer = useRef(false);
 
   const selectedPlayer = linkedPlayer?.teamOnly ? null : linkedPlayer || null;
   const selectedIsStaff = selectedPlayer ? isStaffRole(selectedPlayer.role) : false;
@@ -113,9 +115,14 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
   async function refreshTeamNotes() {
     if (!refreshAll || refreshingNotes) return;
     setRefreshingNotes(true);
+    setNotesRefreshMessage("");
     try {
-      // Confirm pending edits before loading the team's latest saved notes.
-      if (await planningStore.flush()) await refreshAll();
+      // Confirm this team's pending edits before loading its latest saved notes. A failed save keeps
+      // the draft for a retry and is now reported instead of silently skipping the refresh.
+      if (await planningStore.flush({ teamId: selectedTeamId })) await refreshAll();
+      else setNotesRefreshMessage(t("Certaines modifications du planning n’ont pas pu être enregistrées. Elles restent affichées ici ; réessaie dans un instant."));
+    } catch {
+      setNotesRefreshMessage(t("Actualisation impossible. Vérifie ta connexion et réessaie."));
     } finally {
       setRefreshingNotes(false);
     }
@@ -127,24 +134,52 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
   }, [selectedTeamId, eventStorePlayer?.id, selectedWeek.start]);
 
   useEffect(() => {
+    setNotesRefreshMessage("");
+  }, [selectedTeamId]);
+
+  useEffect(() => {
     if (!eventMenu) return undefined;
-    eventMenuRef.current?.querySelector("button")?.focus();
+    eventMenuRef.current?.querySelector("button")?.focus({ preventScroll: true });
     function closeMenu() {
       setEventMenu(null);
     }
+    eventMenuPointer.current = false;
+    function markPointer() {
+      eventMenuPointer.current = true;
+    }
     function closeOnEscape(event) {
+      eventMenuPointer.current = false;
       if (event.key === "Escape") {
         setEventMenu(null);
         eventTriggerRef.current?.focus();
       }
     }
+    // The fixed overlay is anchored to its cell: a scroll would detach it, so it closes.
+    function closeOnScroll(event) {
+      if (eventMenuRef.current?.contains?.(event?.target)) return;
+      setEventMenu(null);
+      eventTriggerRef.current?.focus?.({ preventScroll: true });
+    }
     window.addEventListener("click", closeMenu);
     window.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("scroll", closeOnScroll, true);
+    window.addEventListener("pointerdown", markPointer, true);
     return () => {
+      window.removeEventListener("pointerdown", markPointer, true);
       window.removeEventListener("click", closeMenu);
       window.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("scroll", closeOnScroll, true);
     };
   }, [eventMenu]);
+
+  // Tab out of the menu closes it instead of leaving it open over the focused content.
+  function closeMenuOnFocusOut(event) {
+    const next = event.relatedTarget;
+    if (next && eventMenuRef.current?.contains?.(next)) return;
+    setEventMenu(null);
+    // A pointer moving focus elsewhere keeps its target; a keyboard exit goes back to the cell.
+    if (!eventMenuPointer.current) eventTriggerRef.current?.focus?.();
+  }
 
   function toggleSlot(day, time) {
     if (!canEditSelected) return;
@@ -356,7 +391,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
         </div>
       </PageHeader>
       <DiscordPlanningEvents events={data.botEvents} teamId={selectedTeamId} />
-      {eventMenu && <div ref={eventMenuRef} role="group" aria-label={t("Type de séance")} onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()} className="nxt5-planning-menu fixed z-[80] w-[228px] border border-cyan-200/22 p-2 text-white" style={{ left: eventMenu.x, top: eventMenu.y }}>
+      {eventMenu && <div ref={eventMenuRef} role="group" aria-label={t("Type de séance")} onBlur={closeMenuOnFocusOut} onClick={(event) => event.stopPropagation()} onContextMenu={(event) => event.preventDefault()} className="nxt5-planning-menu fixed z-[80] w-[228px] border border-cyan-200/22 p-2 text-white" style={{ left: eventMenu.x, top: eventMenu.y }}>
         <div className="px-2 pb-2 pt-1">
           <p className="text-sm font-semibold text-cyan-100">{t("Ajouter une séance")}</p>
           <p className="mt-1 truncate text-xs font-bold text-slate-300">{eventMenuDay?.[1] || eventMenu.day} · {eventMenu.time}</p>
@@ -390,6 +425,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
                 </div>
                 {refreshAll && <Button type="button" variant="ghost" icon={RefreshCw} onClick={refreshTeamNotes} disabled={refreshingNotes}>{refreshingNotes ? t("Actualisation…") : t("Actualiser les précisions")}</Button>}
               </div>
+              {notesRefreshMessage ? <p role="status" className="mt-2 text-sm font-semibold text-amber-100">{notesRefreshMessage}</p> : null}
               <div className={cx("nxt5-planning-notes-content", canEditSelected && "nxt5-planning-notes-editable")}>
                 {teamNotes.length ? <ul className="nxt5-planning-notes-list">
                   {teamNotes.map(({ player, text, sharedStaff }) => <li key={player.id}>

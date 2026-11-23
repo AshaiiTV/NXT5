@@ -242,7 +242,9 @@ function TrendsPage({ data, selectedTeamId }) {
     setTrendSourceModal(null);
     setProfileContractsOpen(false);
   }, [selectedTeamId]);
-  useEffect(() => { setTrendSourceModal(null); setProfileContractsOpen(false); setExportState(""); }, [matches, draftDetail]);
+  // Background refreshes rebuild the array: only a different selection of games resets dialogs and export status.
+  const matchesSignature = matches.map((match) => String(match.id ?? "")).join("|");
+  useEffect(() => { setTrendSourceModal(null); setProfileContractsOpen(false); setExportState(""); }, [matchesSignature, draftDetail]);
   useEffect(() => {
     const returningFrom = previousDetail.current;
     previousDetail.current = draftDetail;

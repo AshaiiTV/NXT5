@@ -348,11 +348,25 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
   const coachingSync = useRef({ key: "", content: "" });
   const coachingSent = useRef(null);
   const coachingKey = `${selectedTeamId}|${selectedPlayer?.id || ""}`;
+  // Unsaved notes are kept per team/player so switching profile never discards them silently.
+  const coachingDrafts = useRef(new Map());
+  const coachingLive = useRef("");
+  coachingLive.current = coachingContent;
   useEffect(() => {
     const previous = coachingSync.current;
     const content = coachingNote?.content || "";
     const sent = coachingSent.current;
-    setCoachingContent((draft) => previous.key !== coachingKey || draft === (sent?.key === coachingKey ? sent.content : previous.content) ? content : draft);
+    if (previous.key !== coachingKey) {
+      const draft = coachingLive.current;
+      const settled = sent?.key === previous.key ? sent.content : previous.content;
+      if (previous.key && draft !== previous.content && draft !== settled) coachingDrafts.current.set(previous.key, draft);
+      else coachingDrafts.current.delete(previous.key);
+      const stored = coachingDrafts.current.get(coachingKey);
+      coachingDrafts.current.delete(coachingKey);
+      setCoachingContent(stored ?? content);
+    } else {
+      setCoachingContent((draft) => draft === (sent?.key === coachingKey ? sent.content : previous.content) ? content : draft);
+    }
     coachingSync.current = { key: coachingKey, content };
     coachingSent.current = null;
   }, [coachingKey, coachingNote?.content]);

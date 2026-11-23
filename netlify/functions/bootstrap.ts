@@ -8,6 +8,7 @@ import { json, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { seedDefaultMatchCategories } from './_lib/match-categories';
 import { opponentUuid } from './_lib/opponents';
+import { loadTeamReports } from './_lib/report-feed';
 
 function buildDashboard(matches, improvements) {
   const recent = matches.slice(0, 10);
@@ -113,12 +114,7 @@ async function loadTeamData(selectedTeamId: string, userId: string, requestedArc
     sql`select composition_types.*, users.name as created_by_name
         from composition_types left join users on users.id = composition_types.created_by
         where composition_types.team_id = ${selectedTeamId} order by composition_types.created_at desc limit 50`,
-    sql`select reports.*, users.name as author_name from reports left join users on users.id = reports.created_by
-        where reports.team_id = ${selectedTeamId}
-          and (coalesce(to_jsonb(reports)->>'discord_status','published') <> 'draft'
-            or exists(select 1 from teams t left join team_members tm on tm.team_id=t.id and tm.user_id=${userId}
-              where t.id=reports.team_id and (t.owner_id=${userId} or tm.role in ('owner','captain','coach','assistant','analyst','manager','board'))))
-        order by reports.created_at desc`,
+    loadTeamReports(selectedTeamId, userId),
     loadMatchArchives(teamIds, requestedArchiveId),
     sql`select * from match_categories where team_id = ${selectedTeamId} order by is_default desc, name asc`,
     loadInviteCodes(teamIds, userId), loadAvailability(teamIds), loadProfileCoachingNotes(teamIds),

@@ -48,6 +48,10 @@ import deletePlayer from '../../netlify/functions/players-delete';
 import coachingNote from '../../netlify/functions/player-coaching-notes-manage';
 import availability from '../../netlify/functions/player-availability-manage';
 import playerGoals from '../../netlify/functions/player-goals-manage';
+import createPlayer from '../../netlify/functions/players-create';
+import updatePlayer from '../../netlify/functions/players-update';
+import memberRole from '../../netlify/functions/team-member-role';
+import matchDetails from '../../netlify/functions/match-details';
 
 const owner = '00000000-0000-4000-8000-000000000001';
 const staff = '00000000-0000-4000-8000-000000000002';
@@ -329,5 +333,98 @@ describe.each(['delete', 'archive'])('goal %s', action => {
     await state.pg.query('update player_goals set team_id=$1 where id=$2', [otherTeamId, goalId]);
     expect((await manageGoal(action)).status).toBe(404);
     expect(await rows('select * from audit_logs')).toHaveLength(0);
+  });
+});
+
+describe('player profile inputs follow the roster import rules', () => {
+  const create = (body: any) => createPlayer(request({ teamId, role: 'MID', ...body }), context);
+  const update = (body: any) => updatePlayer(request({ teamId, playerId, name: 'Player', riotId: 'Player#EUW', ...body }), context);
+
+  it.each([
+    ['a name above 80 characters', { name: 'N'.repeat(81), riotId: 'Valid#EUW' }],
+    ['a Riot ID without tag', { name: 'Valid', riotId: 'NoTag' }],
+    ['a Riot ID above 128 characters', { name: 'Valid', riotId: `${'a'.repeat(120)}#${'b'.repeat(10)}` }],
+    ['a control character', { name: 'Va\u0000lid', riotId: 'Valid#EUW' }],
+    ['an http OP.GG link', { name: 'Valid', riotId: 'Valid#EUW', opggUrl: 'http://op.gg/x' }],
+    ['a script OP.GG link', { name: 'Valid', riotId: 'Valid#EUW', opggUrl: 'javascript:alert(1)' }],
+    ['an OP.GG link above 500 characters', { name: 'Valid', riotId: 'Valid#EUW', opggUrl: `https://op.gg/${'x'.repeat(500)}` }],
+  ])('refuses %s on create and update without writing', async (_label, body) => {
+    const before = await snapshot();
+    const created = await create(body);
+    expect(created.status).toBe(400);
+    expect(await created.json()).toMatchObject({ code: 'PLAYER_INVALID' });
+    expect((await update(body)).status).toBe(400);
+    expect(await snapshot()).toEqual(before);
+  });
+
+  it('accepts valid profiles, an empty OP.GG link and keeps a legacy Riot ID unchanged', async () => {
+    expect((await create({ name: 'Valid', riotId: 'Valid Name#EUW', opggUrl: 'https://op.gg/lol/summoners/euw/Valid-EUW' })).status).toBe(200);
+    expect((await create({ name: 'Coach', role: 'COACH', opggUrl: 'not a url' })).status).toBe(200);
+    await state.pg.query("update players set riot_id = 'Legacy without tag' where id = $1", [playerId]);
+    expect((await update({ name: 'Renamed', riotId: 'Legacy without tag', opggUrl: '' })).status).toBe(200);
+    expect(await rows('select name, riot_id, opgg_url from players where id = $1', [playerId])).toEqual([{ name: 'Renamed', riot_id: 'Legacy without tag', opgg_url: null }]);
+  });
+});
+
+describe('malformed identifiers and dates are client errors', () => {
+  it.each([
+    ['player update', () => updatePlayer(request({ teamId, playerId: 'not-a-uuid', name: 'Player', riotId: 'Player#EUW' }), context)],
+    ['player deletion', () => removePlayer('not-a-uuid')],
+    ['coaching note', () => updateNote('not-a-uuid')],
+    ['goal', () => manageGoal('archive', 'not-a-uuid')],
+    ['team id', () => removePlayer(playerId, 'not-a-uuid')],
+    ['member role', () => memberRole(request({ teamId, userId: 'not-a-uuid', role: 'coach' }), context)],
+    ['match details', () => matchDetails(request({ teamId, matchId: 'not-a-uuid' }), context)],
+  ])('answers 400 without the database message for a malformed %s id', async (_label, call) => {
+    const response = await call();
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body).toMatchObject({ code: 'INVALID_INPUT', error: 'Identifiant ou date invalide.' });
+    expect(JSON.stringify(body)).not.toContain('not-a-uuid');
+  });
+
+  it.each(['2026-02-31', '2026-13-05', '2026-00-10'])('refuses the impossible week %s before querying', async weekStart => {
+    const before = await snapshot();
+    const response = await availability(request({ teamId, playerId, weekStart, slots: { MON: ['19:00'] } }), context);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ error: 'Semaine invalide.' });
+    expect(await snapshot()).toEqual(before);
+  });
+});
+
+describe('team logo size', () => {
+  const logo = (chars: number) => `data:image/webp;base64,${'A'.repeat(chars)}`;
+  const saveLogo = (avatarDataUrl: string) => updateTeam(request({ teamId, name: 'Logo team', tag: 'LOGO', avatarDataUrl }), context);
+  const storedLogo = async () => (await state.pg.query('select avatar_data_url from teams where id = $1', [teamId])).rows[0].avatar_data_url;
+
+  it('accepts a reduced logo', async () => {
+    const small = logo(60_000);
+    expect((await saveLogo(small)).status).toBe(200);
+    expect(await storedLogo()).toBe(small);
+  });
+
+  it('refuses a new logo above the cap instead of storing it', async () => {
+    const before = await storedLogo();
+    const response = await saveLogo(logo(500_000));
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ code: 'AVATAR_TOO_LARGE' });
+    expect(await storedLogo()).toBe(before);
+  });
+
+  it('keeps accepting a larger logo saved before the cap when it is sent back unchanged', async () => {
+    const legacy = logo(900_000);
+    await state.pg.query('update teams set avatar_data_url = $1 where id = $2', [legacy, teamId]);
+    expect((await saveLogo(legacy)).status).toBe(200);
+    expect(await storedLogo()).toBe(legacy);
+  });
+
+  it('never truncates an oversized image', async () => {
+    const before = await storedLogo();
+    const response = await updateTeam(new Request('https://nxt5.test/.netlify/functions/team-mutation', {
+      method: 'POST', headers: { Origin: 'https://nxt5.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teamId, name: 'Logo team', tag: 'LOGO', avatarDataUrl: logo(1_600_000) })
+    }), context);
+    expect(response.status).toBe(413);
+    expect(await storedLogo()).toBe(before);
   });
 });

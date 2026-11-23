@@ -20,6 +20,10 @@ export function reportMatchIds(report) {
 }
 
 export function isTeamNote(report) {
+  // The bootstrap may leave out an older content (content_omitted, content null;
+  // an empty content is always sent). It is classified from its metadata; a
+  // legacy V3 review is kept visible and its text is loaded when opened.
+  if (report.content_omitted && report.content == null) return Boolean(report.original_debrief || report.is_team_note || report.source !== "auto");
   if (report.original_debrief) return Boolean(report.content?.trim());
   if (report.is_team_note) return true;
   if (/^\[NXT5_REPORT_V3\]\r?$/m.test(report.content || "")) return Boolean(staffNotesFromReport(report.content).trim());

@@ -101,8 +101,17 @@ export function assertMethod(request: Request, method: string): void {
   assertTrustedMutation(request);
 }
 
+// PostgreSQL rejects malformed client values (uuid, date, timestamp) with these
+// codes. Endpoints that use an invalid cast as a deliberate guard catch it
+// before calling handleError; anything left here is a bad request, not a crash.
+const INVALID_INPUT_SQLSTATES = new Set(['22P02', '22007', '22008']);
+
 export function handleError(err: any): Response {
-  const failure = err && typeof err === 'object' ? err : {};
+  let failure = err && typeof err === 'object' ? err : {};
+  if (!Number.isInteger(failure.status) && INVALID_INPUT_SQLSTATES.has(failure.code)) {
+    // Never echo the database message: it can quote the rejected value or query.
+    failure = { status: 400, code: 'INVALID_INPUT', message: 'Identifiant ou date invalide.' };
+  }
   const status = Number.isInteger(failure.status) && failure.status >= 400 && failure.status <= 599 ? failure.status : 500;
   const code = typeof failure.code === 'string' && /^[A-Z0-9_]{1,80}$/.test(failure.code) ? failure.code : null;
   // Errors from database and HTTP clients can contain queries, parameters,
