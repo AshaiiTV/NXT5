@@ -10,6 +10,13 @@ const VALID_TIMES = new Set(['10:00', '11:00', '12:00', '13:00', '14:00', '15:00
 const VALID_EVENT_TYPES = new Set(['scrim', 'match', 'review', 'custom']);
 const WEEK_START_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** The regex alone accepts 2026-02-31 or 2026-13-01, which PostgreSQL rejects. */
+function isRealDate(value: string): boolean {
+  if (!WEEK_START_RE.test(value)) return false;
+  const time = Date.parse(`${value}T00:00:00Z`);
+  return Number.isFinite(time) && new Date(time).toISOString().slice(0, 10) === value;
+}
+
 function cleanEvents(value) {
   const input: Record<string, any> = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, any> : {};
   const output: Record<string, { label: string; type: string }> = {};
@@ -51,7 +58,7 @@ export default async function handler(request: Request, context: Context): Promi
     const notes = String(body.notes || '').trim().slice(0, 500) || null;
 
     if (!teamId || !playerId) throw Object.assign(new Error('Team et profil requis.'), { status: 400 });
-    if (!WEEK_START_RE.test(weekStart)) throw Object.assign(new Error('Semaine invalide.'), { status: 400 });
+    if (!isRealDate(weekStart)) throw Object.assign(new Error('Semaine invalide.'), { status: 400 });
 
     const playerRows = await sql`
       select players.*

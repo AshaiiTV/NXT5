@@ -2,7 +2,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
-import { ensurePlayerRosterSchema, isPlayerRosterStatus, normalizePlayerRosterStatus, type PlayerRosterStatus } from './_lib/player-roster';
+import { ensurePlayerRosterSchema, isPlayerRosterStatus, normalizePlayerRosterStatus, validatePlayerName, validatePlayerOpggUrl, validatePlayerRiotId, type PlayerRosterStatus } from './_lib/player-roster';
 
 const STAFF_ROLES = new Set(['COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD']);
 const LANE_ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP']);
@@ -24,6 +24,7 @@ export default async function handler(request: Request, context: Context): Promi
 
     if (!teamId || !playerId || !name) throw Object.assign(new Error('Team, profil et nom requis.'), { status: 400 });
     if (rosterStatusProvided && !isPlayerRosterStatus(requestedRosterStatus)) throw Object.assign(new Error('Statut d’effectif invalide.'), { status: 400 });
+    validatePlayerName(name);
 
     const allowed = await sql`
       select teams.id
@@ -38,7 +39,7 @@ export default async function handler(request: Request, context: Context): Promi
     await ensurePlayerRosterSchema();
 
     const existing = await sql`
-      select id, role, roster_status
+      select id, role, roster_status, riot_id
       from players
       where id = ${playerId}
         and team_id = ${teamId}
@@ -60,6 +61,10 @@ export default async function handler(request: Request, context: Context): Promi
     } else if (!riotId) {
       throw Object.assign(new Error('Riot ID requis pour un joueur.'), { status: 400 });
     }
+
+    // Legacy profiles may predate the Riot ID format: only a changed ID is checked.
+    if (riotId !== (existing[0].riot_id || null)) validatePlayerRiotId(riotId);
+    validatePlayerOpggUrl(opggUrl);
 
     const promotingToMain = rosterStatus === 'MAIN' && LANE_ROLES.has(playerRole);
     const results = await sql.transaction(tx => [

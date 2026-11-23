@@ -5,7 +5,7 @@ import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { persistAnalyzedMatch } from './_lib/analytics';
 import { wakeDiscordPublications } from './_lib/discord-wake';
-import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
+import { assertMatchSourceMutationEnvironment, matchSourceMutationsAllowed } from './_lib/match-source-environment';
 import { assertImportRequestActive, fetchRequestedRiotMatch } from './_lib/match-import-request';
 import { assertRateLimit } from './_lib/rate-limit';
 import { notifyMatchImport } from './_lib/match-notifications';
@@ -54,11 +54,18 @@ export default async function handler(request: Request, context: Context): Promi
   try {
     assertMethod(request, 'POST');
     assertImportRequestActive(request.signal);
-    const body = await readJson(request, 5 * 1024 * 1024);
-    if (!body.previewOnly) assertMatchSourceMutationEnvironment(context);
+    // Where games may be written, throttle and authenticate before reading the
+    // body (like teams-join). On an isolated preview only read-only previews are
+    // accepted: the body is checked first so a write is refused before any DB access.
+    let body: any = null;
+    if (!matchSourceMutationsAllowed(context)) {
+      body = await readJson(request, 5 * 1024 * 1024);
+      if (!body.previewOnly) assertMatchSourceMutationEnvironment(context);
+    }
     assertSessionSecret();
     await assertRateLimit(request, 'match-import-file', { limit: 20, windowSeconds: 60 });
     const user = await requireAuth(request, context);
+    body ??= await readJson(request, 5 * 1024 * 1024);
     const teamId = String(body.teamId || '').trim();
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
 
@@ -128,7 +135,7 @@ export default async function handler(request: Request, context: Context): Promi
       `);
 
     if (savedMatch.inserted) {
-      const notificationTask = runOptionalImportTask('notification email', () => notifyMatchImport({ siteUrl: process.env.PUBLIC_SITE_URL || new URL(request.url).origin, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || resolvedGameId }));
+      const notificationTask = runOptionalImportTask('notification email', () => notifyMatchImport({ siteUrl: process.env.PUBLIC_SITE_URL || new URL(request.url).origin, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || resolvedGameId, actorKey: user.id }));
       if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(notificationTask);
       else await notificationTask;
     }

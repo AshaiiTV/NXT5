@@ -58,6 +58,10 @@ export default async function handler(request: Request, context: Context): Promi
 
     return json({ team: safeTeam(rows[0]) });
   } catch (err) {
+    // unique(owner_id, name): the owner already has another team with this name.
+    if (err?.code === '23505') {
+      return handleError(Object.assign(new Error('Cette team existe déjà sur ton compte.'), { status: 409, code: 'TEAM_NAME_TAKEN' }));
+    }
     return handleError(err);
   }
 }

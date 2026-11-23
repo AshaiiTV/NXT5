@@ -81,6 +81,17 @@ export function ScrimOfferForm({ onSubmit, busy, pending = busy }) {
   </form>;
 }
 
+// The API sends each team avatar once in `teamAvatars`; rows only carry the team id and framing.
+function withTeamAvatars(result) {
+  const avatars = result?.teamAvatars || {};
+  const hydrate = (row) => ({
+    ...row,
+    ...(row?.team ? { team: { ...row.team, avatar_data_url: avatars[row.team.id] || null } } : {}),
+    ...(Array.isArray(row?.requests) ? { requests: row.requests.map(hydrate) } : {}),
+  });
+  return result ? { ...result, offers: (result.offers || []).map(hydrate), mine: (result.mine || []).map(hydrate), requests: (result.requests || []).map(hydrate), matched: (result.matched || []).map(hydrate) } : result;
+}
+
 function TeamIdentity({ team, name, tag, size = "h-14 w-14" }) {
   useLanguage();
   return <div className="scrim-team">
@@ -135,7 +146,7 @@ export function ScrimFinder({ data, selectedTeamId, currentMember, user, pushToa
     setState((current) => ({ ...current, loading: true, error: "" }));
     try {
       const result = await apiFetch(`scrims-manage?teamId=${encodeURIComponent(selectedTeamId)}`, { signal });
-      if (!signal.aborted) setState({ loading: false, error: "", result, teamId: selectedTeamId });
+      if (!signal.aborted) setState({ loading: false, error: "", result: withTeamAvatars(result), teamId: selectedTeamId });
     } catch (err) {
       // Keep the last listing of this team visible under the error instead of an empty state.
       if (!signal.aborted) setState((current) => ({ loading: false, error: err?.message || t("Chargement impossible. Réessaie."), result: current.teamId === selectedTeamId ? current.result : null, teamId: selectedTeamId }));
