@@ -148,6 +148,8 @@
 .team-roster-list[data-roster="main"] .team-roster-champion-count { min-width: 20px; padding: 1px 4px; font-size: 11px; }
 .team-roster-pool-empty { display: flex; align-items: center; min-height: 44px; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); line-height: 1.5; }
 .team-roster-record { display: flex; flex-wrap: wrap; gap: 4px 14px; padding-top: 10px; border-top: 1px solid var(--nxt5-border); color: var(--nxt5-muted); font-size: var(--nxt5-font-micro); line-height: 1.5; }
+.team-roster-record[data-placeholder] { visibility: hidden; }
+.team-roster-list[data-roster="main"] .team-roster-champion-pool > :is(.team-roster-champions,.team-roster-pool-empty) { min-height: 52px; }
 .team-roster-record strong { color: var(--nxt5-text); font-size: var(--nxt5-font-small); font-weight: 650; font-variant-numeric: tabular-nums; }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .team-roster-list[data-roster="main"] .team-roster-row:hover { transform: translateY(-3px); border-color: rgba(165,243,252,.65); box-shadow: inset 1px 1px 0 rgba(226,232,255,.2),0 16px 32px rgba(2,6,17,.32),0 0 24px rgba(139,92,246,.12); }
@@ -168,6 +170,7 @@
 @container team-roster (min-width: 1280px) {
   .team-roster-list[data-roster="main"] { grid-template-columns: repeat(5,minmax(0,1fr)); }
   .team-roster-list[data-roster="main"] .team-roster-champion { width: 46px; height: 46px; }
+  .team-roster-list[data-roster="main"] .team-roster-champion-pool > :is(.team-roster-champions,.team-roster-pool-empty) { min-height: 46px; }
 }
 @container team-roster (max-width: 599px) {
   .team-roster-list[data-roster="main"] .team-roster-row { grid-template-columns: 56px minmax(0,1fr) 18px; padding: 18px; gap: 18px 12px; }

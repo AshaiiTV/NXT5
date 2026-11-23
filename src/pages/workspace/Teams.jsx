@@ -649,6 +649,11 @@ function RosterRecord({ stats }) {
   </span>;
 }
 
+/** Keeps loading, empty and loaded cards at the same height. */
+function RosterRecordPlaceholder() {
+  return <span className="team-roster-record" data-placeholder aria-hidden="true"><span><strong>0</strong></span></span>;
+}
+
 function ImportedChampionBadges({ player, matches = [], labelled = false }) {
   useLanguage();
   const stats = playerImportedChampionStats(player, matches);
@@ -657,7 +662,7 @@ function ImportedChampionBadges({ player, matches = [], labelled = false }) {
     <span className="team-roster-pool-label">{t("Champions les plus joués")}</span>
     {items.length ? <span className="team-roster-champions">{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}</span>
       : <span className="team-roster-pool-empty">{t("Aucune partie associée.")}</span>}
-    <RosterRecord stats={stats} />
+    {items.length ? <RosterRecord stats={stats} /> : <RosterRecordPlaceholder />}
   </span>;
   if (!items.length) return null;
   return <span className="team-roster-champions"><span className="sr-only">{t("Champions les plus joués : ")}</span>{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}</span>;
@@ -690,7 +695,7 @@ function PremiumRosterTable({ roster, matches = [], currentUserId = "", canManag
             <span className="team-roster-role"><span aria-hidden="true"><RoleIcon role={player.role} className="h-5 w-5" /></span><span>{t(roleLabel(player.role))}</span></span>
             <span className="team-roster-identity"><span className="team-roster-name"><span className="sr-only">{t("Voir le profil de ")}</span>{player.name}{isMe && <span className="team-roster-me">{t("Toi")}</span>}</span><span className="team-roster-riot">{player.riot_id || t("Riot ID à renseigner")}</span></span>
             {!historyComplete && title === "Titulaires"
-              ? <span className="team-roster-champion-pool"><span className="team-roster-pool-label">{t("Champions les plus joués")}</span><span className="team-roster-pool-empty">{t(historyError ? "Indisponible" : "Chargement…")}</span></span>
+              ? <span className="team-roster-champion-pool"><span className="team-roster-pool-label">{t("Champions les plus joués")}</span><span className="team-roster-pool-empty">{t(historyError ? "Indisponible" : "Chargement…")}</span><RosterRecordPlaceholder /></span>
               : historyComplete && <ImportedChampionBadges player={player} matches={matches} labelled={title === "Titulaires"} />}
             <ArrowRight aria-hidden="true" className="team-roster-arrow" />
           </a>
