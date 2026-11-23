@@ -27,7 +27,7 @@ Formats visuels : vertical 1 080 × 1 920 pour les Shorts, paysage 1 600 × 900 
 
 ## Résultats mesurés
 
-Sources : flux RSS public de la chaîne (15 entrées les plus récentes) et pages publiques des onglets. Les pages vidéo sont bloquées par un contrôle anti-robot depuis l’environnement cloud : durées exactes, commentaires, sous-titres et durée de visionnage n’ont pas été relevés. Les vues d’une vidéo publiée depuis moins de 48 heures ne sont pas comparables.
+Sources : flux RSS public de la chaîne (15 entrées les plus récentes) et pages publiques des onglets ; depuis le 23 novembre 2026, API TubeAlfred (profil, métadonnées des vidéos, sous-titres et commentaires), en lecture seule. La durée de visionnage, le taux de rétention et les sources de trafic restent réservés à YouTube Studio. Les vues d’une vidéo publiée depuis moins de 48 heures ne sont pas comparables.
 
 ### 20 octobre 2026
 
@@ -37,7 +37,7 @@ Sources : flux RSS public de la chaîne (15 entrées les plus récentes) et page
 
 ### 23 novembre 2026
 
-- 16 vidéos : 3 longues, 13 Shorts. Le teaser du 7 octobre n’apparaît plus dans le flux RSS, limité aux 15 entrées les plus récentes. Le nombre d’abonnés n’a pas été lu.
+- 16 vidéos : 3 longues, 13 Shorts. Le teaser du 7 octobre n’apparaît plus dans le flux RSS, limité aux 15 entrées les plus récentes. Profil TubeAlfred : 40 abonnés et 8 539 vues cumulées.
 - Shorts du 9 au 16 octobre, relus : 13 à 105 vues, médiane 58.
 - Shorts du 21 octobre au 22 novembre : 40 à 764 vues, médiane environ 148.
 - Deux Shorts dépassent 700 vues : « En replay, tu vois plus que le joueur » (`8HiVgyaEd44`, 764 vues, 1er novembre) et « Encore une vague ou retour à la base ? » (`UAcfJasXDus`, 702 vues, 5 novembre).
@@ -46,12 +46,36 @@ Sources : flux RSS public de la chaîne (15 entrées les plus récentes) et page
 - Rythme : quotidien du 9 au 16 octobre, pauses de 11 et 13 jours, puis un Short tous les deux jours à 18 h UTC depuis le 18 novembre.
 - Posts : 5 posts, le plus récent datant d’environ un mois.
 
+### Sous-titres et commentaires des Shorts, 23 novembre 2026
+
+Source : API TubeAlfred, 13 Shorts. Les sous-titres décrivent ce qui est dit ; le texte affiché à l’écran et les images n’ont pas été analysés.
+
+- **Commentaires** : 0 sur chacun des 13 Shorts. Aucun avis du public n’est disponible.
+- **Voix off** : aucun des 7 Shorts du 9 au 16 octobre n’a de narration (musique seule ; les sous-titres automatiques anglais de `2PDfRUveF5c` captent des fragments sonores, pas une narration). 5 des 6 Shorts du 21 octobre au 22 novembre sont narrés ; `ypICdNLg-m0` ne l’est pas.
+- **Vues selon la narration** : médiane 58 sans voix (13 à 105 vues), environ 148 sur la seconde période (40 à 764 vues). Les deux Shorts au-delà de 700 vues sont narrés.
+- **Premières phrases** :
+
+| Short | Vues | Première phrase |
+| --- | ---: | --- |
+| En replay, tu vois plus que le joueur (`8HiVgyaEd44`) | 764 | « Sur le replay, ce gank paraît évident. » |
+| Encore une vague ou retour à la base ? (`UAcfJasXDus`) | 702 | « Encore une vague ou retour à la base ? Regarde la situation. » |
+| 67 % de victoires : le chiffre qui manque (`EkzDxPzRE9g`) | 154 | « Dans cette démo, deux victoires sur trois, 67 %. » |
+| Son E vient de partir ! (`ucnfMV37wMU`) | 141 | « Son E vient de partir ! » |
+| +20 en vision : votre objectif était-il préparé ? (`R0TtURHxs2c`) | 40, après 1 jour | « +20 en score de vision. Votre objectif était-il bien préparé ? » |
+
+- **Message** : chaque narration rappelle que le chiffre donne une piste et que le contexte décide. NXT5 n’est nommé oralement que dans `ucnfMV37wMU` ; les autres n’ont pas d’appel à l’action oral.
+- **Ton** : `R0TtURHxs2c` vouvoie (« Votre objectif »), contrairement au tutoiement de la charte et des autres Shorts.
+- **J’aime** : 4 sur chacun des 7 Shorts d’octobre, valeur identique qui suggère des proches ou l’équipe, sans vérification possible ; 0 ou 1 sur les Shorts des 18, 20 et 22 novembre.
+
 ## Hypothèses à tester
 
 | Hypothèse | Ce qui la suggère | Test proposé |
 | --- | --- | --- |
 | Un titre qui pose une décision de jeu attire plus qu’un titre qui présente une fonctionnalité. | Les deux Shorts au-delà de 700 vues posent une décision ; ceux d’octobre présentent surtout un outil. Deux exemples seulement. | Publier une série de titres « décision » pendant un mois et comparer leur médiane à 148 vues. |
-| Un chiffre contre-intuitif en accroche aide un Short. | En octobre, « 1 kill… 16 assistances » et « 7 kills… défaite » arrivent en tête. | Ouvrir plusieurs Shorts sur une statistique trompeuse (vision, or, objectifs) et comparer à la médiane de la période. |
+| Un chiffre contre-intuitif en accroche aide un Short. | En octobre, « 1 kill… 16 assistances » et « 7 kills… défaite » arrivent en tête. En novembre, les Shorts narrés qui ouvrent sur une statistique (67 %, +20 en vision) restent entre 40 et 154 vues. | Ouvrir plusieurs Shorts sur une statistique trompeuse (vision, or, objectifs) et comparer à la médiane de la période. |
+| Une voix off aide un Short. | Médiane 148 vues pour la période narrée contre 58 sans voix ; les deux Shorts au-delà de 700 vues sont narrés. Le sujet, la date et la diffusion diffèrent aussi. | Publier la même idée en deux versions, narrée et musicale, à quelques jours d’intervalle. |
+| Ouvrir sur une scène de jeu à juger attire plus qu’ouvrir sur un chiffre. | Les deux meilleurs Shorts commencent par une situation (« ce gank paraît évident », « encore une vague ou retour ? »). Deux exemples seulement. | Ouvrir plusieurs Shorts narrés par « tu vois X, que fais-tu ? » et comparer à ceux qui ouvrent sur une statistique. |
+| Une question explicite en fin de Short déclenche des commentaires. | Aucun commentaire sur les 13 Shorts, dont aucun ne pose de question au spectateur à la fin. | Terminer par une question à réponse courte (« Toi, tu restais ou tu rentrais ? ») et épingler une réponse. |
 | Un rythme régulier vaut mieux que des rafales suivies de pauses. | Rythme irrégulier observé ; aucune comparaison isolée. | Tenir un Short tous les deux jours pendant un mois. |
 | Relier les Shorts au tutoriel d’import soutient l’usage réel du service. | Le tutoriel reste à 41 vues ; l’analyse de ses propres parties exige un import préalable. | Ajouter le lien du tutoriel aux Shorts les plus vus et suivre les imports mesurés sur le site. |
 
@@ -63,6 +87,7 @@ Les comptages de vues ne démontrent aucune cause : le moment de publication, la
 - **Posts** : reprendre au moins un post par semaine, par exemple pour prolonger le Short le plus vu.
 - **Teaser** : mesurer ses clics UTM sur le site séparément de la croissance organique.
 - **Mots-clés de la chaîne** : vides au 20 octobre.
+- **Ton** : revenir au tutoiement dans les narrations, comme le prévoit la charte.
 
 ## Avant chaque publication
 
@@ -70,7 +95,8 @@ Les comptages de vues ne démontrent aucune cause : le moment de publication, la
 2. Vérifier que l’accroche du titre correspond à ce que la vidéo montre réellement.
 3. Signaler les données fictives, créditer la musique et les illustrations, mentionner la non-affiliation à Riot Games.
 4. Vérifier le cadrage vertical sur téléphone : texte hors des zones couvertes par l’interface de YouTube.
-5. Après 7 jours, relever vues et j’aime, puis consigner les résultats et les conclusions dans ce guide.
+5. Relire la narration : tutoiement, première phrase qui pose la situation, question finale éventuelle.
+6. Après 7 jours, relever vues, j’aime et commentaires, puis consigner les résultats et les conclusions dans ce guide.
 
 ## Instagram
 
