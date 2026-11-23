@@ -1,9 +1,36 @@
 import { json, readJson, handleError } from './_lib/http';
 import { fetchRiotMatch, fetchRiotMatchTimeline } from './_lib/riot';
-import { assertRateLimit } from './_lib/rate-limit';
+import { assertRateLimit, assertSubjectRateLimit } from './_lib/rate-limit';
 
 const EUROPE_PLATFORMS = ['EUW1', 'EUN1', 'TR1', 'RU'];
 const EXPORT_LIMIT = { limit: 12, windowSeconds: 60 };
+// NXT5 Importer calls this route without a session, so each upstream Riot lookup
+// is charged to the caller's IP and to a platform-wide hourly budget: a single
+// request with fallback can no longer cost several Riot calls for free.
+const LOOKUP_LIMIT = { limit: 16, windowSeconds: 60 };
+const DEFAULT_HOURLY_LOOKUPS = 1500;
+
+function envValue(name: string): string {
+  return (globalThis as any).Netlify?.env?.get?.(name) || process.env[name] || '';
+}
+
+function hourlyLookupLimit(): number {
+  const value = Number.parseInt(envValue('RIOT_EXPORT_HOURLY_LIMIT'), 10);
+  return Number.isInteger(value) && value > 0 ? value : DEFAULT_HOURLY_LOOKUPS;
+}
+
+async function chargeRiotLookup(request: Request): Promise<void> {
+  await assertRateLimit(request, 'riot-match-export-lookup', LOOKUP_LIMIT);
+  try {
+    await assertSubjectRateLimit('riot-match-export-global', 'riot-api', { limit: hourlyLookupLimit(), windowSeconds: 3600 });
+  } catch (err: any) {
+    if (err?.status === 429) {
+      err.code = 'NXT5_EXPORT_BUSY';
+      err.message = 'Export Riot temporairement saturé. Réessaie plus tard ou importe le JSON depuis NXT5 Importer.';
+    }
+    throw err;
+  }
+}
 
 function normalizePlatform(value) {
   const platform = String(value || 'EUW1').trim().toUpperCase();
@@ -31,9 +58,10 @@ function candidateGameIds({ gameId, rawNumericId, wasNumericOnly }) {
   return [...new Set(platforms.map((platform) => `${platform}_${rawNumericId}`))];
 }
 
-async function fetchFirstAvailableMatch(input) {
+async function fetchFirstAvailableMatch(request: Request, input) {
   const attempts: string[] = [];
   for (const candidate of candidateGameIds(input)) {
+    await chargeRiotLookup(request);
     try {
       const match = await fetchRiotMatch(candidate);
       let timeline = null;
@@ -60,16 +88,16 @@ async function fetchFirstAvailableMatch(input) {
 }
 
 function optionalExportToken() {
-  return (globalThis as any).Netlify?.env?.get?.('RIOT_EXPORT_TOKEN') || process.env.RIOT_EXPORT_TOKEN || '';
+  return envValue('RIOT_EXPORT_TOKEN');
 }
 
 function assertExportToken(request: Request, body: Record<string, any>) {
   const expected = optionalExportToken();
   if (!expected) return;
-  const url = new URL(request.url);
-  const provided = request.headers.get('x-nxt5-export-token') || url.searchParams.get('token') || body.token || '';
+  // Header or JSON body only: a token in the query string would end up in access logs.
+  const provided = request.headers.get('x-nxt5-export-token') || body.token || '';
   if (provided !== expected) {
-    throw Object.assign(new Error('Export Riot non autorisÃ©.'), { status: 401 });
+    throw Object.assign(new Error('Export Riot non autorisé.'), { status: 401 });
   }
 }
 
@@ -85,7 +113,7 @@ export default async function handler(request: Request): Promise<Response> {
     await assertRateLimit(request, 'riot-match-export', EXPORT_LIMIT);
     const shouldFallback = url.searchParams.get('fallback') === '1' || body.fallback === true;
     const input = readGameId(url.searchParams.get('gameId') || body.gameId, url.searchParams.get('platform') || body.platform, shouldFallback);
-    const { gameId, match, timeline } = await fetchFirstAvailableMatch(input);
+    const { gameId, match, timeline } = await fetchFirstAvailableMatch(request, input);
 
     return json({
       source: 'nxt5-riot-match-export',
