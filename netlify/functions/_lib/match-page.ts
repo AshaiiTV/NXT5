@@ -29,13 +29,16 @@ export async function loadMatchPage(teamId: string, { limit, offset }: MatchPage
           order by created_at desc, id desc
           limit ${limit} offset ${offset}
         )
-        -- Clear the large raw value in the typed row BEFORE converting it to
-        -- JSON. Removing its key after to_jsonb(matches) would still copy the
-        -- entire timeline into an intermediate JSON value for every match.
-        -- populate_record preserves all other columns, including future ones.
-        select to_jsonb(jsonb_populate_record(matches, '{"raw":null}'::jsonb)) - 'raw' as summary,
+        -- A whole-row value cannot keep TOAST pointers: building it detoasts
+        -- raw once. The lateral row (OFFSET 0 keeps it from being inlined)
+        -- builds that value once per match, and every raw path below reads
+        -- (d.m).raw from it instead of detoasting matches.raw again (1–3 MB).
+        -- raw is cleared in the typed row BEFORE converting it to JSON, so the
+        -- timeline is never copied; populate_record keeps all other columns,
+        -- including future ones.
+        select to_jsonb(jsonb_populate_record(d.m, '{"raw":null}'::jsonb)) - 'raw' as summary,
           jsonb_strip_nulls(jsonb_build_object(
-            'nxt5Label', matches.raw -> 'nxt5Label',
+            'nxt5Label', (d.m).raw -> 'nxt5Label',
             'nxt5', jsonb_build_object(
               'objectiveEvents', (
                 select coalesce(jsonb_agg(jsonb_strip_nulls(jsonb_build_object(
@@ -44,30 +47,31 @@ export async function loadMatchPage(teamId: string, { limit, offset }: MatchPage
                   'monsterType', event -> 'monsterType', 'monsterSubType', event -> 'monsterSubType'
                 ))), '[]'::jsonb)
                 from jsonb_array_elements(case
-                  when jsonb_typeof(matches.raw #> '{nxt5,timelineEvents}') = 'array'
-                    then jsonb_path_query_array(matches.raw #> '{nxt5,timelineEvents}', '$[*] ? (@.type == "ELITE_MONSTER_KILL")')
-                  else jsonb_path_query_array(coalesce(matches.raw #> '{timeline,info,frames}',
-                    matches.raw #> '{metadata,timeline,info,frames}', matches.raw #> '{timeline,frames}', '[]'::jsonb),
+                  when jsonb_typeof((d.m).raw #> '{nxt5,timelineEvents}') = 'array'
+                    then jsonb_path_query_array((d.m).raw #> '{nxt5,timelineEvents}', '$[*] ? (@.type == "ELITE_MONSTER_KILL")')
+                  else jsonb_path_query_array(coalesce((d.m).raw #> '{timeline,info,frames}',
+                    (d.m).raw #> '{metadata,timeline,info,frames}', (d.m).raw #> '{timeline,frames}', '[]'::jsonb),
                     '$[*].events[*] ? (@.type == "ELITE_MONSTER_KILL")')
                 end) event
               ),
               'timelineSummary', jsonb_strip_nulls(jsonb_build_object(
-              'available', coalesce(matches.raw #> '{nxt5,timelineSummary,available}',
-                to_jsonb(jsonb_path_exists(matches.raw, '$.timeline.info.frames[0]')
-                  or jsonb_path_exists(matches.raw, '$.metadata.timeline.info.frames[0]')
-                  or jsonb_path_exists(matches.raw, '$.timeline.frames[0]'))),
-              'frameCount', matches.raw #> '{nxt5,timelineSummary,frameCount}',
-              'csMilestones', matches.raw #> '{nxt5,timelineSummary,csMilestones}',
-              'wardCount', matches.raw #> '{nxt5,timelineSummary,wardCount}'
+              'available', coalesce((d.m).raw #> '{nxt5,timelineSummary,available}',
+                to_jsonb(jsonb_path_exists((d.m).raw, '$.timeline.info.frames[0]')
+                  or jsonb_path_exists((d.m).raw, '$.metadata.timeline.info.frames[0]')
+                  or jsonb_path_exists((d.m).raw, '$.timeline.frames[0]'))),
+              'frameCount', (d.m).raw #> '{nxt5,timelineSummary,frameCount}',
+              'csMilestones', (d.m).raw #> '{nxt5,timelineSummary,csMilestones}',
+              'wardCount', (d.m).raw #> '{nxt5,timelineSummary,wardCount}'
             ))),
             'info', jsonb_build_object(
-              'gameCreation', matches.raw #> '{info,gameCreation}',
-              'gameDuration', matches.duration_seconds,
-              'teams', matches.raw #> '{info,teams}'
+              'gameCreation', (d.m).raw #> '{info,gameCreation}',
+              'gameDuration', (d.m).duration_seconds,
+              'teams', (d.m).raw #> '{info,teams}'
             )
           )) as raw,
           users.name as created_by_name, users.account_name as created_by_account
         from match_page matches
+        cross join lateral (select matches as m offset 0) d
         left join users on users.id = matches.created_by
         order by matches.created_at desc, matches.id desc`
   ]);
@@ -86,37 +90,39 @@ export async function loadMatchPage(teamId: string, { limit, offset }: MatchPage
   const matchIds = matches.map(match => match.id);
   const participantSummaries = matchIds.length ? await sql`
       select
-        to_jsonb(jsonb_populate_record(match_participants, '{"raw":null}'::jsonb)) - 'raw' as summary,
+        to_jsonb(jsonb_populate_record(d.p, '{"raw":null}'::jsonb)) - 'raw' as summary,
         jsonb_strip_nulls(jsonb_build_object(
-          'participantId', coalesce(match_participants.raw -> 'participantId', match_participants.raw #> '{participant,participantId}'),
-          'teamId', coalesce(match_participants.raw -> 'teamId', match_participants.raw #> '{participant,teamId}'),
-          'championId', coalesce(match_participants.raw -> 'championId', match_participants.raw #> '{participant,championId}'),
-          'teamPosition', coalesce(match_participants.raw -> 'teamPosition', match_participants.raw #> '{participant,teamPosition}'),
-          'individualPosition', coalesce(match_participants.raw -> 'individualPosition', match_participants.raw #> '{participant,individualPosition}'),
-          'lane', coalesce(match_participants.raw -> 'lane', match_participants.raw #> '{participant,lane}'),
-          'summoner1Id', coalesce(match_participants.raw -> 'summoner1Id', match_participants.raw #> '{participant,summoner1Id}'),
-          'summoner2Id', coalesce(match_participants.raw -> 'summoner2Id', match_participants.raw #> '{participant,summoner2Id}'),
-          'item0', coalesce(match_participants.raw -> 'item0', match_participants.raw #> '{participant,item0}'),
-          'item1', coalesce(match_participants.raw -> 'item1', match_participants.raw #> '{participant,item1}'),
-          'item2', coalesce(match_participants.raw -> 'item2', match_participants.raw #> '{participant,item2}'),
-          'item3', coalesce(match_participants.raw -> 'item3', match_participants.raw #> '{participant,item3}'),
-          'item4', coalesce(match_participants.raw -> 'item4', match_participants.raw #> '{participant,item4}'),
-          'item5', coalesce(match_participants.raw -> 'item5', match_participants.raw #> '{participant,item5}'),
-          'item6', coalesce(match_participants.raw -> 'item6', match_participants.raw #> '{participant,item6}'),
-          'physicalDamageDealtToChampions', coalesce(match_participants.raw -> 'physicalDamageDealtToChampions', match_participants.raw #> '{participant,physicalDamageDealtToChampions}'),
-          'magicDamageDealtToChampions', coalesce(match_participants.raw -> 'magicDamageDealtToChampions', match_participants.raw #> '{participant,magicDamageDealtToChampions}'),
-          'trueDamageDealtToChampions', coalesce(match_participants.raw -> 'trueDamageDealtToChampions', match_participants.raw #> '{participant,trueDamageDealtToChampions}'),
-          'totalMinionsKilled', coalesce(match_participants.raw -> 'totalMinionsKilled', match_participants.raw #> '{participant,totalMinionsKilled}'),
-          'neutralMinionsKilled', coalesce(match_participants.raw -> 'neutralMinionsKilled', match_participants.raw #> '{participant,neutralMinionsKilled}'),
-          'timePlayed', coalesce(match_participants.raw -> 'timePlayed', match_participants.raw #> '{participant,timePlayed}'),
+          'participantId', coalesce((d.p).raw -> 'participantId', (d.p).raw #> '{participant,participantId}'),
+          'teamId', coalesce((d.p).raw -> 'teamId', (d.p).raw #> '{participant,teamId}'),
+          'championId', coalesce((d.p).raw -> 'championId', (d.p).raw #> '{participant,championId}'),
+          'teamPosition', coalesce((d.p).raw -> 'teamPosition', (d.p).raw #> '{participant,teamPosition}'),
+          'individualPosition', coalesce((d.p).raw -> 'individualPosition', (d.p).raw #> '{participant,individualPosition}'),
+          'lane', coalesce((d.p).raw -> 'lane', (d.p).raw #> '{participant,lane}'),
+          'summoner1Id', coalesce((d.p).raw -> 'summoner1Id', (d.p).raw #> '{participant,summoner1Id}'),
+          'summoner2Id', coalesce((d.p).raw -> 'summoner2Id', (d.p).raw #> '{participant,summoner2Id}'),
+          'item0', coalesce((d.p).raw -> 'item0', (d.p).raw #> '{participant,item0}'),
+          'item1', coalesce((d.p).raw -> 'item1', (d.p).raw #> '{participant,item1}'),
+          'item2', coalesce((d.p).raw -> 'item2', (d.p).raw #> '{participant,item2}'),
+          'item3', coalesce((d.p).raw -> 'item3', (d.p).raw #> '{participant,item3}'),
+          'item4', coalesce((d.p).raw -> 'item4', (d.p).raw #> '{participant,item4}'),
+          'item5', coalesce((d.p).raw -> 'item5', (d.p).raw #> '{participant,item5}'),
+          'item6', coalesce((d.p).raw -> 'item6', (d.p).raw #> '{participant,item6}'),
+          'physicalDamageDealtToChampions', coalesce((d.p).raw -> 'physicalDamageDealtToChampions', (d.p).raw #> '{participant,physicalDamageDealtToChampions}'),
+          'magicDamageDealtToChampions', coalesce((d.p).raw -> 'magicDamageDealtToChampions', (d.p).raw #> '{participant,magicDamageDealtToChampions}'),
+          'trueDamageDealtToChampions', coalesce((d.p).raw -> 'trueDamageDealtToChampions', (d.p).raw #> '{participant,trueDamageDealtToChampions}'),
+          'totalMinionsKilled', coalesce((d.p).raw -> 'totalMinionsKilled', (d.p).raw #> '{participant,totalMinionsKilled}'),
+          'neutralMinionsKilled', coalesce((d.p).raw -> 'neutralMinionsKilled', (d.p).raw #> '{participant,neutralMinionsKilled}'),
+          'timePlayed', coalesce((d.p).raw -> 'timePlayed', (d.p).raw #> '{participant,timePlayed}'),
           'challenges', jsonb_strip_nulls(jsonb_build_object(
-            'laneMinionsFirst10Minutes', coalesce(match_participants.raw #> '{challenges,laneMinionsFirst10Minutes}', match_participants.raw #> '{participant,challenges,laneMinionsFirst10Minutes}')
+            'laneMinionsFirst10Minutes', coalesce((d.p).raw #> '{challenges,laneMinionsFirst10Minutes}', (d.p).raw #> '{participant,challenges,laneMinionsFirst10Minutes}')
           )),
           'timeline', jsonb_strip_nulls(jsonb_build_object(
-            'creepsPerMinDeltas', coalesce(match_participants.raw #> '{timeline,creepsPerMinDeltas}', match_participants.raw #> '{participant,timeline,creepsPerMinDeltas}')
+            'creepsPerMinDeltas', coalesce((d.p).raw #> '{timeline,creepsPerMinDeltas}', (d.p).raw #> '{participant,timeline,creepsPerMinDeltas}')
           ))
         )) as raw
       from match_participants
+      -- Same single detoast as above for the participant's raw JSON.
+      cross join lateral (select match_participants as p offset 0) d
       where match_id = any(${matchIds})
       order by team_key asc, role asc
     ` : [];

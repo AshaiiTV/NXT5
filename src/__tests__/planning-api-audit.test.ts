@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const state = vi.hoisted(() => ({ pg: null as any, auth: vi.fn() }));
+const state = vi.hoisted(() => ({ pg: null as any, auth: vi.fn(), rateLimit: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/db', async () => {
   const { neon, neonConfig } = await import('@neondatabase/serverless');
   // The audited endpoint now commits its authorization check, write and audit
@@ -32,6 +32,8 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
 // Authentication is supplied per account. Authorization, validation and all SQL
 // execute in the real handler against the production PostgreSQL schema.
 vi.mock('../../netlify/functions/_lib/auth', () => ({ requireAuth: state.auth, assertSessionSecret: () => {} }));
+// The per-user write budget has its own tests; here it only has to be consulted.
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertSubjectRateLimit: state.rateLimit }));
 
 import availability from '../../netlify/functions/player-availability-manage';
 
@@ -56,8 +58,12 @@ beforeAll(async () => {
 }, 30_000);
 
 beforeEach(async () => {
+  // Saved weeks must stay within one year of the server date.
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-10-07T12:00:00Z') });
   vi.spyOn(console, 'error').mockImplementation(() => {});
   state.auth.mockReset();
+  state.rateLimit.mockReset();
+  state.rateLimit.mockResolvedValue(undefined);
   await state.pg.exec('truncate users cascade');
   for (const userId of [owner, outsider, ...roster.map(player => player.userId)]) {
     await rows("insert into users(id,account_name,name,password_hash) values($1,$2,$2,'unused')", [userId, `audit-${userId}`]);
@@ -69,7 +75,7 @@ beforeEach(async () => {
       [player.playerId, team, player.userId, player.role, `${player.role}#EUW`, player.role]);
   }
 });
-afterEach(() => { vi.restoreAllMocks(); });
+afterEach(() => { vi.restoreAllMocks(); vi.useRealTimers(); });
 afterAll(async () => { await state.pg?.close(); });
 
 describe('planning API for all five gameplay roles', () => {
@@ -111,6 +117,21 @@ describe('planning API for all five gameplay roles', () => {
     await rows('delete from team_members where team_id=$1 and user_id=$2', [team, player.userId]);
     expect((await availability(post(player.playerId), context)).status).toBe(403);
     expect(await rows('select * from player_availability')).toEqual([]);
+  });
+
+  it('charges each save to the author and refuses weeks that are not a nearby Monday', async () => {
+    const player = roster[0];
+    state.auth.mockResolvedValue({ id: player.userId });
+    expect((await availability(post(player.playerId), context)).status).toBe(200);
+    expect(state.rateLimit).toHaveBeenCalledWith('player-availability-write', player.userId, { limit: 240, windowSeconds: 600 });
+    for (const weekStart of ['2026-10-06', '2025-09-29', '2027-10-11']) {
+      const response = await availability(post(player.playerId, { weekStart }), context);
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({ error: 'Semaine invalide.' });
+    }
+    state.rateLimit.mockRejectedValueOnce(Object.assign(new Error('Trop de tentatives. Réessaie dans quelques instants.'), { status: 429 }));
+    expect((await availability(post(player.playerId, { notes: 'Refusé' }), context)).status).toBe(429);
+    expect(await rows('select notes from player_availability')).toEqual([{ notes: 'Disponible' }]);
   });
 
   it('keeps all five players separate when they save the same weekly slot', async () => {

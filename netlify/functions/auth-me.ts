@@ -1,8 +1,6 @@
 import type { Context } from "@netlify/functions";
 import { json, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, ensureEmailVerificationColumns, readSessionCookie, requireAuth, safeUser } from './_lib/auth';
-import { sql } from './_lib/db';
-import { ensureUserNotificationColumns } from './_lib/team-member-emails';
 import { isPlatformAdmin } from './_lib/platform-admin';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
@@ -15,18 +13,12 @@ export default async function handler(request: Request, context: Context): Promi
     if (!readSessionCookie(context)) return json({ user: null });
     assertSessionSecret();
     await ensureEmailVerificationColumns();
+    // requireAuth already reads the notification preferences and the
+    // inactivity notice (refreshed by its activity update): no second query.
     const user = await requireAuth(request, context, { allowUnverifiedEmail: true });
-    await ensureUserNotificationColumns(sql);
-    const rows = await sql`
-      select notif_match, notif_report, notif_inactivity, inactivity_notice_pending
-      from users
-      where id = ${user.id}
-      limit 1
-    `;
     return json({
       user: safeUser({
         ...user,
-        ...(rows[0] || {}),
         is_platform_admin: isPlatformAdmin(user)
       })
     });

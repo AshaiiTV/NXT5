@@ -18,7 +18,12 @@ export async function ensureMatchCategoriesSchema({ migrateLegacy = true }: { mi
 export async function seedDefaultMatchCategories(teamIds: string[], userId: string | null = null): Promise<void> {
   const ids = Array.isArray(teamIds) ? [...new Set(teamIds.filter(Boolean))] : [];
   if (!ids.length) return;
-  for (const teamId of ids) {
+  // Bootstrap calls this on every load. A plain read settles the usual case
+  // (the default already exists) without locking the team row; only a team
+  // still missing its default takes the lock and inserts it below.
+  const seeded = await sql`select distinct team_id from match_categories where team_id = any(${ids}::uuid[]) and is_default`;
+  const present = new Set(seeded.map((row: any) => String(row.team_id)));
+  for (const teamId of ids.filter(id => !present.has(id))) {
     for (const category of DEFAULT_MATCH_CATEGORIES) {
       await sql.transaction(tx => [
         // Use the same lock as category edits: a renamed default already fills

@@ -4,17 +4,27 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
+import { assertSubjectRateLimit } from './_lib/rate-limit';
 
 const VALID_DAYS = new Set(['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN']);
 const VALID_TIMES = new Set(['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00', '00:00']);
 const VALID_EVENT_TYPES = new Set(['scrim', 'match', 'review', 'custom']);
 const WEEK_START_RE = /^\d{4}-\d{2}-\d{2}$/;
 
+const WEEK_RANGE_MS = 366 * 86_400_000;
+
 /** The regex alone accepts 2026-02-31 or 2026-13-01, which PostgreSQL rejects. */
 function isRealDate(value: string): boolean {
   if (!WEEK_START_RE.test(value)) return false;
   const time = Date.parse(`${value}T00:00:00Z`);
   return Number.isFinite(time) && new Date(time).toISOString().slice(0, 10) === value;
+}
+
+/** Planning sends the local Monday (mondayOfWeek); keep weeks within one year. */
+export function isPlanningWeekStart(value: string, now = Date.now()): boolean {
+  if (!isRealDate(value)) return false;
+  const time = Date.parse(`${value}T00:00:00Z`);
+  return new Date(time).getUTCDay() === 1 && Math.abs(time - now) <= WEEK_RANGE_MS;
 }
 
 function cleanEvents(value) {
@@ -58,7 +68,10 @@ export default async function handler(request: Request, context: Context): Promi
     const notes = String(body.notes || '').trim().slice(0, 500) || null;
 
     if (!teamId || !playerId) throw Object.assign(new Error('Team et profil requis.'), { status: 400 });
-    if (!isRealDate(weekStart)) throw Object.assign(new Error('Semaine invalide.'), { status: 400 });
+    if (!isPlanningWeekStart(weekStart)) throw Object.assign(new Error('Semaine invalide.'), { status: 400 });
+    // Autosave sends at most one request per profile and week after 650 ms of
+    // inactivity: 240 saves in 10 minutes leaves room for intensive editing.
+    await assertSubjectRateLimit('player-availability-write', user.id, { limit: 240, windowSeconds: 600 });
 
     const playerRows = await sql`
       select players.*

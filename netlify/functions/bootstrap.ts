@@ -35,6 +35,10 @@ async function loadAvailability(teamIds) {
       select player_availability.*
       from player_availability
       where player_availability.team_id = any(${teamIds})
+        -- Planning edits the current and next week; the home page reads upcoming
+        -- events. Older or far-future weeks stay stored but are not shipped.
+        and player_availability.week_start >= (date_trunc('week', current_date) - interval '8 weeks')::date
+        and player_availability.week_start <= (date_trunc('week', current_date) + interval '12 weeks')::date
       order by player_availability.updated_at desc
     `;
   } catch (err) {
@@ -135,11 +139,18 @@ export default async function handler(request: Request, context: Context): Promi
     const pageOptions = matchPageOptions(url);
     const requestedTeamId = String(url.searchParams.get('teamId') || '').trim();
     const requestedArchiveId = url.searchParams.get('archive') ? opponentUuid(url.searchParams.get('archive')) : null;
+    // Indexed membership lookups instead of an OR over a join followed by a
+    // DISTINCT, which compared every column (avatars included) of each row.
+    // Only the columns returned by safeTeam are read; the team switcher shows
+    // every team's avatar, so avatar_data_url stays in the payload.
     const teams = await sql`
-      select distinct teams.*
+      select teams.id, teams.owner_id, teams.name, teams.tag, teams.region, teams.avatar_data_url,
+             teams.avatar_zoom, teams.avatar_x, teams.avatar_y, teams.created_at, teams.updated_at
       from teams
-      left join team_members on team_members.team_id = teams.id
-      where teams.owner_id = ${user.id} or team_members.user_id = ${user.id}
+      where teams.id in (
+        select team_members.team_id from team_members where team_members.user_id = ${user.id}
+        union select owned.id from teams owned where owned.owner_id = ${user.id}
+      )
       order by teams.created_at asc
     `;
     const selectedTeam = requestedTeamId ? teams.find(team => team.id === requestedTeamId) : teams[0];

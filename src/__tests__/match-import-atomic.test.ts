@@ -39,8 +39,11 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
     try {
       // Inject concurrent changes immediately before a mutation, whether the
       // endpoint uses an atomic batch or the former standalone write.
-      if (body.queries || /update matches\s+set review_status|(?:insert into|update|delete from) match_archives/.test(body.query || '')) {
-        const categorySeed = body.queries?.some((statement: any) => /insert into match_categories/.test(statement.query) && /where not exists/.test(statement.query));
+      // Category seeding first reads existing defaults without a lock: inject
+      // there too, so a rename racing the whole initialization is still covered.
+      const seedCheck = /select distinct team_id from match_categories/.test(body.query || '');
+      if (body.queries || seedCheck || /update matches\s+set review_status|(?:insert into|update|delete from) match_archives/.test(body.query || '')) {
+        const categorySeed = seedCheck || body.queries?.some((statement: any) => /insert into match_categories/.test(statement.query) && /where not exists/.test(statement.query));
         const hook = categorySeed ? 'beforeCategorySeed' : 'beforeBatch';
         const beforeBatch = database[hook];
         database[hook] = null;
@@ -923,6 +926,21 @@ describe('default match category initialization against PostgreSQL', () => {
     await seedDefaultMatchCategories([teamId], userId);
     expect(await query('select name,is_default from match_categories where team_id=$1', [teamId])).toEqual([{ name: 'Scrim', is_default: true }]);
     expect(await query('select * from match_categories where team_id=$1', [otherTeamId])).toEqual(foreignBefore);
+  });
+
+  it('reads an existing default without locking the team or writing', async () => {
+    await query('update match_categories set is_default=true where id=$1', [categoryId]);
+    database.statements = [];
+    await seedDefaultMatchCategories([teamId, teamId], userId);
+    expect(database.statements).toHaveLength(1);
+    expect(database.statements[0]).not.toMatch(/for update|insert/i);
+    database.statements = [];
+    await seedDefaultMatchCategories([teamId, otherTeamId], userId);
+    // Only the team still missing its default takes the lock and inserts it.
+    expect(database.statements.filter(statement => /for update/i.test(statement))).toHaveLength(1);
+    expect(await query('select team_id,name from match_categories where is_default order by team_id')).toEqual([
+      { team_id: teamId, name: 'Scrim' }, { team_id: otherTeamId, name: 'Scrim' },
+    ]);
   });
 
   it('preserves an existing custom Scrim instead of promoting or recoloring it', async () => {
@@ -2064,4 +2082,41 @@ it('T3-G1 serialises two requested main creations and returns an explicit main-r
   } finally {
     await database.pg.exec('drop trigger reject_main_for_test on players; drop function reject_main_for_test()');
   }
+});
+
+describe('bootstrap team list and planning window against PostgreSQL', () => {
+  const query = async (statement: string, params: unknown[] = []) => (await database.pg.query(statement, params)).rows;
+  const load = async () => (await bootstrap(new Request(`https://nxt5.example/.netlify/functions/bootstrap?teamId=${teamId}&limit=1`), {} as any)).json();
+
+  it('lists owned and joined teams once each, with every avatar, and nothing else', async () => {
+    const memberTeam = '00000000-0000-4000-8000-0000000000a1';
+    const foreignTeam = '00000000-0000-4000-8000-0000000000a2';
+    const otherOwner = '00000000-0000-4000-8000-0000000000a3';
+    await query("insert into users(id,account_name,name,password_hash) values($1,'other-owner','Other owner','unused')", [otherOwner]);
+    await query(`insert into teams(id,owner_id,name,tag,avatar_data_url,created_at) values
+      ($1,$3,'Joined','JOIN','data:image/png;base64,am9pbmVk','2020-01-01'),($2,$3,'Foreign','FRGN','data:image/png;base64,Zm9yZWlnbg==','2020-01-02')`,
+    [memberTeam, foreignTeam, otherOwner]);
+    await query("update teams set avatar_data_url='data:image/png;base64,b3du' where id=$1", [otherTeamId]);
+    // Owner and member of the same team: still listed once.
+    await query("insert into team_members(team_id,user_id,role) values($1,$3,'player'),($2,$3,'captain')", [memberTeam, teamId, userId]);
+    const body = await load();
+    expect(body.teams.map((team: any) => team.id)).toEqual((await query(
+      'select id from teams where id = any($1::uuid[]) order by created_at asc', [[memberTeam, teamId, otherTeamId]])).map((row: any) => row.id));
+    expect(body.teams[0]).toEqual(expect.objectContaining({ id: memberTeam, name: 'Joined', tag: 'JOIN', avatar_data_url: 'data:image/png;base64,am9pbmVk' }));
+    expect(body.teams.find((team: any) => team.id === otherTeamId).avatar_data_url).toBe('data:image/png;base64,b3du');
+    expect(Object.keys(body.teams[0]).sort()).toEqual(['avatar_data_url', 'avatar_x', 'avatar_y', 'avatar_zoom', 'created_at', 'id', 'name', 'owner_id', 'region', 'tag', 'updated_at']);
+  });
+
+  it('ships availability from eight weeks back to twelve weeks ahead only', async () => {
+    const weeks = [-9, -8, 0, 1, 12, 13];
+    for (const offset of weeks) {
+      await query(`insert into player_availability(team_id,player_id,week_start,slots)
+        values($1,$2,(date_trunc('week', current_date) + make_interval(weeks => $3))::date,'{}'::jsonb)`, [teamId, roster[0].id, offset]);
+    }
+    const expected = (await query(`select id from player_availability
+      where (week_start - date_trunc('week', current_date)::date) / 7 between -8 and 12 order by id`)).map((row: any) => row.id);
+    expect(expected).toHaveLength(4);
+    const body = await load();
+    expect(body.availability.map((row: any) => row.id).sort()).toEqual(expected);
+  });
 });

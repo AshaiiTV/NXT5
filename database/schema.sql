@@ -366,13 +366,17 @@ create index if not exists idx_teams_owner on teams(owner_id);
 create index if not exists idx_team_members_user on team_members(user_id);
 create index if not exists idx_team_members_team on team_members(team_id);
 create index if not exists idx_players_team on players(team_id);
-create index if not exists idx_matches_team on matches(team_id, created_at desc);
+create index if not exists idx_matches_team_recent on matches(team_id, created_at desc, id desc);
+drop index if exists idx_matches_team;
+create index if not exists idx_matches_created_at on matches(created_at);
 create index if not exists idx_matches_team_review_status on matches(team_id, review_status, created_at desc);
 create unique index if not exists idx_match_categories_team_name on match_categories(team_id, lower(name));
 create index if not exists idx_match_categories_team on match_categories(team_id, created_at asc);
 create index if not exists idx_matches_category on matches(category_id);
 create index if not exists idx_participants_match on match_participants(match_id);
+create index if not exists idx_participants_player on match_participants(player_id) where player_id is not null;
 create index if not exists idx_match_raw_archives_team on match_raw_archives(team_id, created_at desc);
+create index if not exists idx_match_raw_archives_match on match_raw_archives(match_id);
 create index if not exists idx_match_archives_team on match_archives(team_id, created_at desc);
 alter table champion_pool add column if not exists role text;
 alter table champion_pool add column if not exists status text not null default 'work';
@@ -382,6 +386,7 @@ alter table champion_pool add column if not exists source text not null default 
 create index if not exists idx_champion_pool_team on champion_pool(team_id);
 create index if not exists idx_improvements_team on improvements(team_id, rank asc);
 create index if not exists idx_reports_team on reports(team_id, created_at desc);
+create index if not exists idx_reports_match on reports(match_id) where match_id is not null;
 create index if not exists idx_rate_limits_ip_endpoint on rate_limits(ip, endpoint, created_at);
 alter table reports add column if not exists match_ids jsonb not null default '[]'::jsonb;
 alter table reports add column if not exists created_by uuid references users(id) on delete set null;
@@ -389,6 +394,26 @@ alter table matches add column if not exists created_by uuid references users(id
 alter table matches add column if not exists category_id uuid references match_categories(id) on delete set null;
 alter table matches add column if not exists category_ids jsonb not null default '[]'::jsonb;
 update matches set category_ids = jsonb_build_array(category_id) where category_id is not null and (category_ids is null or category_ids = '[]'::jsonb);
+
+-- Played date from raw (20261123_query_performance.sql): Discord reads filter
+-- and sort by coalesce(nxt5_match_started_at(raw), created_at) through this index.
+create or replace function nxt5_match_started_at(source jsonb) returns timestamptz
+language plpgsql immutable as $fn$
+declare
+  info jsonb := source -> 'info';
+  value text;
+  key text;
+begin
+  foreach key in array array['gameStartTimestamp', 'gameCreation'] loop
+    value := info ->> key;
+    if value ~ '^[0-9]{9,13}$' then
+      return to_timestamp(value::double precision / case when value::numeric < 100000000000 then 1 else 1000 end);
+    end if;
+  end loop;
+  return null;
+end $fn$;
+create index if not exists idx_matches_team_played
+  on matches(team_id, (coalesce(nxt5_match_started_at(raw), created_at)) desc, id desc);
 alter table reports add column if not exists updated_at timestamptz not null default now();
 alter table users add column if not exists updated_at timestamptz not null default now();
 alter table users add column if not exists notif_match boolean default true;

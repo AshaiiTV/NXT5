@@ -8,7 +8,7 @@ vi.mock('../../netlify/functions/_lib/riot-sync', async importOriginal => ({
 }));
 vi.mock('../../netlify/functions/_lib/db', () => { const sql = async (parts: TemplateStringsArray, ...values: any[]) => {
   const sql = parts.join('?'); state.queries.push({ sql, values });
-  if (sql.includes('select distinct teams')) return [{ id: 'team', region: 'EUW' }];
+  if (sql.includes('select teams.id, teams.name, teams.region')) return [{ id: 'team', region: 'EUW' }];
   if (sql.includes('select * from players')) return [{ id: 'p', role: 'MID', riot_id: 'One#EUW' }, { id: 'next', role: 'TOP', riot_id: 'Two#EUW' }];
   return [];
 };
