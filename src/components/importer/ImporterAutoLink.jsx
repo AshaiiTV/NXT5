@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Check, Clock3, Copy, Link2, Loader2, Plug, RefreshCw, ShieldOff, Trash2, Wand2, X } from "lucide-react";
+import { Check, Clock3, Copy, Link2, Loader2, Monitor, Plug, RefreshCw, ShieldOff, Trash2, Wand2, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { errorToast } from "../../app/helpers.js";
-import { Badge, Button, SelectInput, Surface } from "../ui/Core.jsx";
+import { Badge, Button, ReadingDetails, SelectInput, Surface } from "../ui/Core.jsx";
 import { getLocale } from "../../i18n/locale.js";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
@@ -100,6 +100,21 @@ export function ImporterQueue({ importer, canManage, onFinalize }) {
     </Surface>}
     <LoadError importer={importer} />
   </>;
+}
+
+export function ImporterLinkDisclosure({ importer, ...settings }) {
+  useLanguage();
+  const connected = importer.links.filter((link) => link.status === "connected").length;
+  let status = t("Aucun ordinateur lié");
+  if (importer.error) status = t("Chargement impossible. Réessaie.");
+  else if (!importer.result) status = t("Chargement…");
+  else if (connected === 1) status = t("1 ordinateur lié");
+  else if (connected > 1) status = t("{0} ordinateurs liés", [connected]);
+  else if (importer.links.length) status = t("Code en attente dans l’Importer");
+
+  return <ReadingDetails className="importer-link-settings" title={<><Monitor aria-hidden="true" />{t("Liaison avec l’Importer")}</>} description={status}>
+    <ImporterLinkSettings importer={importer} {...settings} />
+  </ReadingDetails>;
 }
 
 export function ImporterLinkSettings({ importer, categories = [], canManage }) {

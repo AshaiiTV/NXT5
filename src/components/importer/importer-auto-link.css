@@ -1,7 +1,9 @@
 .importer-auto-link { padding: 20px; }
 .importer-auto-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; }
 .importer-auto-head > svg { width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px; color: var(--nxt5-accent); }
-.importer-link-settings { grid-column: 1 / -1; margin-top: 16px; }
+.importer-link-settings { margin-top: 14px; }
+.importer-link-settings > summary > span { position: relative; padding-left: 40px; }
+.importer-link-settings > summary strong > svg { position: absolute; top: 50%; left: 4px; width: 22px; height: 22px; transform: translateY(-50%); color: var(--nxt5-accent); }
 .importer-auto-dialog-footer { display: flex; margin-top: 12px; }
 .importer-auto-code-row > code { max-width: 100%; overflow-wrap: anywhere; }
 .importer-auto-head h3 { font-size: 18px; font-weight: 700; line-height: 1.4; }
@@ -28,3 +30,10 @@
 .importer-auto-received h4 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; font-size: var(--nxt5-font-body); font-weight: 700; }
 .importer-auto-received h4 > svg { width: 16px; height: 16px; color: var(--nxt5-accent); }
 .importer-auto-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+@media (max-width: 560px) {
+  .importer-auto-links > li { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; gap: 8px 10px; }
+  .importer-auto-links > li > div { grid-column: 2 / -1; }
+  .importer-auto-links > li > .nxt5-badge { grid-column: 2; justify-self: start; }
+  .importer-auto-links > li > button { grid-column: 3; justify-self: end; }
+}

@@ -333,7 +333,9 @@ describe("unified Games workspace", () => {
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(1);
     expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
     const dialog = renderer.root.findByType("dialog");
-    expect(dialog.findAllByType("summary").map(text)).toContain("Liaison avec l’Importer");
+    const linkSummary = dialog.findAllByType("summary").find((node) => text(node).includes("Liaison avec l’Importer"));
+    expect(linkSummary).toBeDefined();
+    expect(text(linkSummary)).toContain("Aucun ordinateur lié");
     expect(text(dialog)).toContain("Lier NXT5 Importer");
   });
 
