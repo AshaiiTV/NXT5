@@ -12,7 +12,7 @@ import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput, Read
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, Link2, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft, Settings } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { trackAudienceEvent } from "../../app/audience-client.js";
-import { ImporterLinkSettings, ImporterQueue, useImporterAutoLink } from "../../components/importer/ImporterAutoLink.jsx";
+import { ImporterLinkDisclosure, ImporterLinkSettings, ImporterQueue, useImporterAutoLink } from "../../components/importer/ImporterAutoLink.jsx";
 import { ImportGameFlow, GameActions, GameCategoryManager, GameOperationDialog, matchImportTitle, matchCategoriesForMatch, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor } from "./GameOperations.jsx";
 import "./games-workspace.css";
 import "./match-timeline-reading.css";
@@ -1454,6 +1454,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const showImportActions = !selectedMatchId && !selectedArchiveId && workspaceView !== "teams";
   const importer = useImporterAutoLink({ teamId: showImportActions || importOpen ? selectedTeamId : null, busy: importBusy, pushToast, refreshKey: data.matches?.length, dialogOpen: importOpen });
   const readOnlyLinks = Boolean(selectedTeam && !canImport);
+  const importIntro = canImport && !importDirty;
   const statsRef = useRef(null);
   const listRef = useRef(null);
   const previousSelection = useRef("");
@@ -1611,12 +1612,13 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         {readOnlyLinks && importer.links.length > 0 ? <Button type="button" variant="ghost" icon={Link2} aria-haspopup="dialog" aria-label={t("Liaison avec l’Importer")} onClick={() => updateLocation({ import: "1" })}>{t("Liaison")}</Button> : renderImportAction()}
       </div>}
     </PageHeader>
-    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog className={readOnlyLinks ? "" : "game-import-dialog"} compact={readOnlyLinks} title={readOnlyLinks ? t("Liaison avec l’Importer") : t("Importer une partie")} onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy || Boolean(importer.working)} dirty={importDirty} returnFocusRef={importTriggerRef}>
+    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog className={readOnlyLinks ? "" : importIntro ? "game-import-dialog game-import-intro" : "game-import-dialog"} compact={readOnlyLinks}
+      description={importIntro ? t("Choisis le fichier .json de NXT5 Importer, puis vérifie équipes et joueurs.") : undefined} title={readOnlyLinks ? t("Liaison avec l’Importer") : t("Importer une partie")} onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy || Boolean(importer.working)} dirty={importDirty} returnFocusRef={importTriggerRef}>
       {readOnlyLinks ? <>
         {!importer.links.length && !importer.error && !importer.loading && <p className="importer-auto-hint">{t("Aucune liaison active. Le staff de l’équipe peut lier NXT5 Importer depuis cette page.")}</p>}
         <ImporterLinkSettings importer={importer} canManage={false} />
       </> : <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} onDirtyChange={setImportDirty} receivedImport={receivedImport} onReceivedImportConsumed={() => setReceivedImport(null)}>
-        <ReadingDetails className="importer-link-settings" title={t("Liaison avec l’Importer")}><ImporterLinkSettings importer={importer} canManage={canImport} categories={matchCategories} /></ReadingDetails>
+        <ImporterLinkDisclosure importer={importer} canManage={canImport} categories={matchCategories} />
       </ImportGameFlow>}
     </GameOperationDialog>}
     {showImportActions && selectedTeamId && !importOpen && <ImporterQueue importer={importer} canManage={canImport} onFinalize={(payload, submission) => { setReceivedImport({ payload, submission }); updateLocation({ import: "1" }); }} />}

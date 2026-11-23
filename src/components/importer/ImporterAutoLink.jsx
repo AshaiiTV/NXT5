@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Check, Clock3, Copy, Link2, Loader2, Plug, RefreshCw, ShieldOff, Trash2, Wand2, X } from "lucide-react";
+import { Check, Clock3, Copy, Link2, Loader2, Monitor, Plug, RefreshCw, ShieldOff, Trash2, Wand2, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { errorToast } from "../../app/helpers.js";
-import { Badge, Button, SelectInput, Surface } from "../ui/Core.jsx";
+import { Badge, Button, ReadingDetails, SelectInput, Surface } from "../ui/Core.jsx";
 import { getLocale } from "../../i18n/locale.js";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
@@ -102,11 +102,27 @@ export function ImporterQueue({ importer, canManage, onFinalize }) {
   </>;
 }
 
+export function ImporterLinkDisclosure({ importer, ...settings }) {
+  useLanguage();
+  const connected = importer.links.filter((link) => link.status === "connected").length;
+  let status = t("Aucun ordinateur lié");
+  if (importer.error) status = t("Chargement impossible. Réessaie.");
+  else if (!importer.result) status = t("Chargement…");
+  else if (connected === 1) status = t("1 ordinateur lié");
+  else if (connected > 1) status = t("{0} ordinateurs liés", [connected]);
+  else if (importer.links.length) status = t("Code en attente dans l’Importer");
+
+  return <ReadingDetails className="importer-link-settings" title={<><Monitor aria-hidden="true" />{t("Liaison avec l’Importer")}</>} description={status}>
+    <ImporterLinkSettings importer={importer} {...settings} />
+  </ReadingDetails>;
+}
+
 export function ImporterLinkSettings({ importer, categories = [], canManage }) {
   useLanguage();
   const { result, links, code, setCode, working, disabled, act } = importer;
   const [categoryId, setCategoryId] = useState("");
   const [copied, setCopied] = useState(false);
+  const showCreate = canManage && result && !code;
   async function createCode() {
     const response = await act("create", { action: "create", ...(categoryId ? { categoryId } : {}) });
     if (response) { setCode(response); setCopied(false); }
@@ -117,14 +133,16 @@ export function ImporterLinkSettings({ importer, categories = [], canManage }) {
   return <>
     <LoadError importer={importer} />
     {canManage && result && !links.length && <p className="importer-auto-hint">{t("Lie NXT5 Importer pour importer les parties personnalisées de ton équipe.")}</p>}
-    {canManage && (code ? <div className="importer-auto-code" role="status">
+    {canManage && code && <div className="importer-auto-code" role="status">
       <p className="importer-auto-code-label">{t("Colle ce code dans l’onglet Collecte automatique de NXT5 Importer. Il n’est valable qu’une fois, pendant 15 minutes.")}</p>
       <div className="importer-auto-code-row"><code translate="no">{code.code}</code><Button variant="ghost" icon={copied ? Check : Copy} onClick={copyCode}>{copied ? t("Copié") : t("Copier")}</Button><Button variant="ghost" icon={X} onClick={() => setCode(null)}>{t("Fermer")}</Button></div>
       <p className="importer-auto-hint">{t("Expire le {0}.", [formatDate(code.expiresAt)])}</p>
-    </div> : result && <div className="importer-auto-create">
+    </div>}
+    {showCreate && <div className="importer-auto-create">
       {categories.length > 1 && <SelectInput label="Tag des parties reçues" value={categoryId} onChange={setCategoryId}><option value="">{t("Tag par défaut de l’équipe")}</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>}
       <Button variant="ghost" icon={working === "create" ? Loader2 : Link2} disabled={disabled} onClick={createCode}>{links.length ? t("Lier un autre ordinateur") : t("Lier NXT5 Importer")}</Button>
-    </div>)}
+      <RefreshButton importer={importer} />
+    </div>}
 
     {links.length > 0 && <ul className="importer-auto-links" aria-label={t("Liaisons de l’Importer")}>{links.map((link) => <li key={link.id}>
       <Plug aria-hidden="true" />
@@ -132,6 +150,6 @@ export function ImporterLinkSettings({ importer, categories = [], canManage }) {
       <Badge tone={LINK_TONES[link.status] || "slate"}>{t(LINK_LABELS[link.status] || link.status)}</Badge>
       {canManage && <Button variant="ghost" icon={working === link.id ? Loader2 : ShieldOff} disabled={disabled} onClick={() => act(link.id, { action: "revoke", linkId: link.id }, [t("Liaison révoquée"), t("Cet ordinateur ne peut plus envoyer de parties.")])}>{t("Révoquer")}</Button>}
     </li>)}</ul>}
-    {!importer.error && <div className="importer-auto-dialog-footer"><RefreshButton importer={importer} /></div>}
+    {!showCreate && !importer.error && <div className="importer-auto-dialog-footer"><RefreshButton importer={importer} /></div>}
   </>;
 }
