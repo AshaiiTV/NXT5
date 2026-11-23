@@ -35,3 +35,11 @@ marque sur une page dense ; pas de magenta fonctionnel ; textes sur fond opaque 
   staff du roster et les comptes membres ayant un accès staff (coach, assistant, analyste, manager, board) sans
   profil, triés par rôle. Un compte lié à un profil joueur n'y figure pas.
 - `tools/verify-roster-layout.mjs` vérifie désormais le focus clavier sur la première carte.
+
+## Finitions du 23 novembre 2026
+
+- Les **4 cases de champions occupent toute la largeur** de l'encart (cases carrées fluides). Les cases sans
+  champion restent visibles en pointillés ; pendant le chargement, elles pulsent et le statut s'affiche par-dessus,
+  ce qui garde la même hauteur de carte.
+- **Logo de l'équipe sans cadre** dans l'en-tête : 112 px (72 px sur mobile), coins arrondis et ombre portée,
+  avec un en-tête plus aéré (32 px d'espacement).
