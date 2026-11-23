@@ -91,3 +91,12 @@ describe('safe error reporting', () => {
     expect(console.error).toHaveBeenCalledExactlyOnceWith('[http] Request failed.', { status: 500, code: 'UNEXPECTED_ERROR' });
   });
 });
+
+describe('site-wide CDN headers', () => {
+  it('applies HSTS to subdomains without opting into the preload list', async () => {
+    const { readFileSync } = await import('node:fs');
+    const toml = readFileSync(new URL('../../netlify.toml', import.meta.url), 'utf8');
+    const hsts = toml.match(/^\s*Strict-Transport-Security = "([^"]*)"/m)?.[1];
+    expect(hsts?.split(/;\s*/)).toEqual(['max-age=31536000', 'includeSubDomains']);
+  });
+});

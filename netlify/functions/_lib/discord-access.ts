@@ -49,8 +49,12 @@ export function discordResponseError(error: any): Response {
   const status = upstream && sourceStatus === 401 ? 503 : sourceStatus;
   const message = status >= 500 && !upstream && !String(error?.code || '').startsWith('DISCORD_')
     ? 'La publication Discord est temporairement indisponible.' : error.message || 'Opération Discord impossible.';
-  logFailure('[discord]', { code: error?.code, status }, { code: 'DISCORD_FAILED' });
-  return json({ error: message, code: error?.code || 'DISCORD_FAILED', ...(error?.retryAfter ? { retryAfter: error.retryAfter } : {}) },
+  // requireAuth rejects a missing, expired or revoked NXT5 session with an
+  // uncoded 401. That is an authentication state, not a Discord failure.
+  // Discord's own 401 (upstream) is already mapped to 503 above.
+  const code = error?.code || (!upstream && sourceStatus === 401 ? 'AUTH_REQUIRED' : 'DISCORD_FAILED');
+  logFailure('[discord]', { code: error?.code, status }, { code });
+  return json({ error: message, code, ...(error?.retryAfter ? { retryAfter: error.retryAfter } : {}) },
     status, error?.retryAfter ? { 'Retry-After': String(Math.ceil(error.retryAfter)) } : {});
 }
 export function assertDiscordMethod(request: Request, allowed: string[]) {

@@ -162,6 +162,31 @@ describe('verified email is required by the real business API guard', () => {
     expect((await status.json()).hasPassword).toBe(false);
   });
 
+  it('answers an anonymous session probe with user null, without any database query or cookie', async () => {
+    cookie = null as any;
+    const response = await authMe(request('auth-me'), context);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ user: null });
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(response.headers.get('vary')).toContain('Cookie');
+    expect(state.queries).toEqual([]);
+    expect(context.cookies.set).not.toHaveBeenCalled();
+    // Only GET is accepted, with or without a session.
+    const post = await authMe(request('auth-me', {}), context);
+    expect(post.status).toBe(405);
+    expect(state.queries).toEqual([]);
+  });
+
+  it.each(['unknown', 'expired', 'revoked'])('keeps 401 and clears the cookie for a present but %s session', async (kind) => {
+    if (kind === 'unknown') cookie = 'forged-or-deleted-session-token';
+    else await state.pg.exec(kind === 'revoked' ? 'update sessions set revoked_at = now()' : "update sessions set expires_at = now() - interval '1 second'");
+    const response = await authMe(request('auth-me'), context);
+    expect(response.status).toBe(401);
+    expect(await response.json()).not.toHaveProperty('user');
+    expect(context.cookies.set).toHaveBeenCalledWith(expect.objectContaining({ name: 'rb_session', value: '', maxAge: 0 }));
+    expect(cookie).toBe('');
+  });
+
   it.each(['expired', 'revoked'])('never lets verification exceptions accept a %s session', async (kind) => {
     await state.pg.exec(kind === 'revoked' ? 'update sessions set revoked_at = now()' : "update sessions set expires_at = now() - interval '1 second'");
     await expect(requireAuth(request('auth-me'), context, { allowUnverifiedEmail: true })).rejects.toMatchObject({ status: 401 });

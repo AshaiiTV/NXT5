@@ -149,8 +149,15 @@ export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, 
     setError("");
     try {
       const result = await apiFetch("auth-me");
+      // No session cookie left (cleared or expired client-side): auth-me now
+      // answers { user: null } instead of 401. Keep the previous behaviour of
+      // reporting a lost session here rather than silently signing out.
+      if (!result?.user) {
+        setError("Session invalide ou expirée.");
+        return;
+      }
       onUserUpdate?.(result.user);
-      if (result.user?.email_verified) {
+      if (result.user.email_verified) {
         pushToast?.({ type: "green", title: "Email vérifié", text: "Ton profil est validé." });
       } else {
         setError("Ton email n'est pas encore vérifié. Clique sur le lien reçu par mail, puis réessaie.");
