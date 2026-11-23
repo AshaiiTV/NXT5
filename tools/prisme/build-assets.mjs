@@ -31,18 +31,11 @@ for(const [from,to] of [[16,'favicon-16x16.png'],[32,'favicon-32x32.png'],[180,'
 await fs.copyFile(path.join(root,'favicon.svg'),'public/favicon.svg');
 await fs.copyFile(path.join(root,'soude-icon-512.png'),'importer-app/assets/prisme/soude-icon-512.png');
 const five=await loadImage(path.join(root,'nxt5-unified-5-2048.png')),canvas=createCanvas(512,512);canvas.getContext('2d').drawImage(five,0,0,512,512);await fs.writeFile(path.join(root,'nxt5-unified-5-512.webp'),canvas.toBuffer('image/webp',94));
-// Compatible aliases for retained external URLs; active code uses Prisme paths.
-await fs.copyFile(path.join(root,'nxt5-soude-source.png'),'public/assets/brand/nxt5-logo-3d.png');
-await fs.copyFile(path.join(root,'nxt5-soude-640.webp'),'public/assets/brand/nxt5-logo-3d-640.webp');
-await fs.copyFile(path.join(root,'nxt5-soude-320.webp'),'public/assets/brand/nxt5-logo-3d-320.webp');
-console.log('Prisme: favicons, PWA, Windows ICO, macOS ICNS, scene and compatibility assets generated.');
+console.log('Prisme: favicons, PWA, Windows ICO, macOS ICNS and the 3D five sign generated.');
 
 for (const size of [192,512]) await fs.copyFile(path.join(root,`soude-icon-${size}.png`),`public/android-chrome-${size}x${size}.png`);
 // The maskable 5 sits within the central 80% safe zone.
 const maskable=createCanvas(512,512),maskCtx=maskable.getContext('2d'); maskCtx.fillStyle='#070a14';maskCtx.fillRect(0,0,512,512);maskCtx.drawImage(await loadImage(await icon(512)),52,52,408,408);await fs.writeFile('public/android-chrome-maskable-512x512.png',maskable.toBuffer('image/png'));
-const mono=createCanvas(640,240),monoCtx=mono.getContext('2d');
-const monoSvg=await fs.readFile(path.join(root,'nxt5-neon-mono-blanc.svg'),'utf8');
-monoCtx.drawImage(await loadImage(Buffer.from(monoSvg)),0,0,640,240);await fs.writeFile(path.join(root,'nxt5-neon-mono-640.png'),mono.toBuffer('image/png'));
 
 await fs.copyFile('public/android-chrome-maskable-512x512.png',path.join(root,'soude-icon-maskable-512.png'));
 

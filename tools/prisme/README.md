@@ -1,28 +1,27 @@
 # Outils Prisme
 
-La charte unique est liée dans `../../AGENTS.md` ; ne pas en créer une copie.
+La charte unique est liée dans `../../AGENTS.md` ; ne pas en créer une copie. Sa section 4 décrit la signature et ses fichiers.
 
-Depuis la racine du checkout, avec Node 24 et les dépendances installées :
+Depuis la racine du checkout, avec les dépendances installées, dans cet ordre :
 
-- `node tools/prisme/build-soude-signature.mjs` reconstruit la signature soudée 2.9 : masters SVG, rendus PNG et WebP, variante d’interface, favicon vectoriel et copie PNG de l’Importer. Sa géométrie vient de `soude-geometry.mjs`, lui-même dérivé par `derive-soude-geometry.py` (Python et shapely, hors build) si le dessin évolue.
-- `node tools/prisme/build-neon-signature.mjs` reconstruit la signature lumineuse 2.7, désormais historique. Ses fichiers restent servis pour les emails déjà envoyés ; ne plus les brancher sur le produit.
-- `node tools/prisme/build-assets.mjs` reconstruit les icônes web, ICO Windows, ICNS macOS et alias compatibles depuis les masters Prisme suivis par Git.
-- `node tools/generate-social-card.mjs` reconstruit le visuel Open Graph.
+1. `node tools/prisme/build-soude-signature.mjs` reconstruit la signature soudée : masters SVG, rendus PNG et WebP, variante d’interface, déclinaisons fond clair et monochromes, favicon vectoriel et copie PNG de l’Importer.
+2. `node tools/prisme/build-assets.mjs` reconstruit les icônes web, les favicons, l’ICO Windows et l’ICNS macOS de l’Importer à partir du favicon vectoriel, ainsi que le rendu WebP du 5 en verre.
+3. `node tools/generate-social-card.mjs` reconstruit le visuel Open Graph.
+
+Autres outils :
+
 - `node tools/prisme/render-sample.mjs /chemin/specimen.png` rend un spécimen fictif des primitives PNG de production.
-- Avec Vite, `/tools/prisme/qa.html` présente les composants de production sur données fictives ; `?loading` présente le chargement 3/8. Cette entrée de recette n’est pas incluse au build du site.
+- Avec Vite, `/tools/prisme/qa.html` présente les composants de production sur données fictives ; `?loading` présente le chargement 3/8. `/tools/prisme/glass.html` rend la sculpture 3D isolée. Ces entrées de recette ne sont pas incluses au build du site.
 
-Les petits logos des exports, du spécimen, des emails, de l’Importer et du visuel Open Graph utilisent `nxt5-soude-interface-640.png` : contour cyan/lavande renforcé et 5 dans le verre de la sculpture 3D, identique à toutes les tailles. La navigation web utilise ses déclinaisons WebP 320/640. Ne pas réintroduire le blanc plein rejeté par l’utilisateur. Le gabarit 8:3 reste identique aux grands emplacements. Les icônes et favicons utilisent `soude-icon-*`. Comme `/assets/` est mis en cache un an, une signature modifiée reçoit de nouveaux noms de fichiers. Après une évolution des tracés, reconstruire la signature, puis les icônes et alias, puis le visuel Open Graph.
+## Géométrie de la signature
 
-Les captures, échanges Claude et logs de la signature 2.6 sont dans `2026-11-17/nxt5-neon-identity/` à la racine de l’espace Codex ; la correction 2.7 des petits logos est dans son sous-dossier `color-compact/`. Le master transparent mesure 1 600 × 600 ; le site utilise les WebP adaptés et les exports le PNG couleur. La recette historique 2.2 reste dans `2026-11-10/nxt5-prisme-integration/`.
+`soude-geometry.mjs` contient les tracés de la signature dans le gabarit 1 600 × 600. Ce fichier est généré : ne pas le modifier à la main. Si le dessin évolue, ajuster les constantes de `derive-soude-geometry.py` puis le relancer avec Python et shapely (`pip install shapely`). Ce script ne fait pas partie du build.
 
-### Signature unifiée 2.5 — historique, 11 novembre 2026
+`src/components/brand/brand-geometry.js` reste la source du 5 en vraie 3D de la scène d’accueil.
 
-`src/components/brand/brand-geometry.js` définit le dessin 2.5 : NXT s’accordait au 5 historique sans le redessiner. Ce moteur reste la source du signe 5 et des icônes. Pour recréer les masters historiques, rendre `/tools/prisme/glass.html?glyph=N` (puis X, T, 5) à 729 × 665, DPR3 et mouvement réduit, en PNG transparent `glyph-N.png` etc. Inspecter les quatre rendus, puis exécuter :
+## Règles à ne pas oublier
 
-```
-node tools/prisme/build-unified-brand.mjs /chemin/vers/rendus
-node tools/prisme/build-assets.mjs
-node tools/generate-social-card.mjs
-```
-
-Les consommateurs 2.6 conservent `nxt5-unified-5-*` et `unified-icon-*` pour le signe 5 et les icônes ; les signatures complètes utilisent `nxt5-neon-*`. Le master historique 7 680 × 2 160 assemble quatre rendus ; l’échelle exacte est rapportée par le compilateur. Les alias historiques restent compatibles et sont reconstruits depuis la signature active par `build-assets.mjs`. La recette 2.5 et les revues Claude se trouvent dans `2026-11-11/nxt5-unified-mobile/` à la racine de l’espace Codex. La charte reste uniquement au chemin indiqué dans AGENTS.md.
+- Le verre du 5 est relevé sur le poster de la sculpture 3D et reste identique à toutes les tailles. Ne pas l’éclaircir pour les petits formats : c’est le contour, et l’arête du favicon sous 48 px, qui portent la lisibilité.
+- Les petits logos des exports, des emails, de l’Importer et du visuel Open Graph utilisent `nxt5-soude-interface-640.png`. Ne pas réintroduire un logo blanc plein.
+- `/assets/` est mis en cache un an. Une signature modifiée reçoit de nouveaux noms de fichiers, et les adresses de l’ancienne s’ajoutent à `RETIRED_BRAND_ASSETS` dans `tools/seo-build.mjs` avant la suppression de ses fichiers.
+- Les rendus ne se retouchent pas à la main : corriger le générateur, puis tout reconstruire dans l’ordre ci-dessus.

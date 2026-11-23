@@ -31,9 +31,9 @@ const STROKE = {
   clair: [['0', '#0E7490'], ['.5', '#4F46E5'], ['1', '#7E22CE']],
 };
 // Un seul verre, à toutes les tailles : les couleurs du 5 en vraie 3D de la scène d'accueil,
-// relevées sur son poster (public/assets/home-motion/glass-poster@2x.webp). Pervenche à gauche,
+// relevées sur son poster (public/assets/brand/prisme/classic-poster@2x.webp). Pervenche à gauche,
 // indigo profond au centre, reflet violet, et les arêtes cyan, lavande et rose du moteur 3D.
-const GLASS = [['0', '#6E7DD0'], ['.22', '#555BBF'], ['.46', '#3844A9'], ['.66', '#2B2A8C'], ['.84', '#201777'], ['1', '#252581']];
+const GLASS = [['0', '#6B7AD1'], ['.22', '#4E56C1'], ['.46', '#383DA4'], ['.66', '#2A2389'], ['.84', '#191676'], ['1', '#231D82']];
 const GLASS_EDGE = [['0', '#B9F4FF'], ['.5', '#EEE8FF'], ['1', '#F6D8FF']];
 
 /**
@@ -59,7 +59,7 @@ ${large ? '<filter id="lueur" x="-10%" y="-30%" width="120%" height="160%"><feGa
 <g clip-path="url(#silhouette)" mask="url(#fondu)">
 <rect ${area} fill="url(#verre)"/>
 <polygon points="${facet([[0, 0], [.73, 0], [0, .79]])}" fill="#8FA2E8" opacity=".3"/>
-<polygon points="${facet([[.15, 1], [1, .2], [1, .41], [.34, 1]])}" fill="#5147B3" opacity=".5"/>
+<polygon points="${facet([[.15, 1], [1, .2], [1, .41], [.34, 1]])}" fill="#4F43B6" opacity=".5"/>
 <polygon points="${facet([[1, .52], [1, 1], [.5, 1]])}" fill="#161164" opacity=".5"/>
 <path d="${SOUDE_FIVE_INNER}" fill="none" stroke="url(#biseau)" stroke-opacity="${large ? '.34' : '.42'}" stroke-width="${large ? 5 : 6}"/>
 </g>
