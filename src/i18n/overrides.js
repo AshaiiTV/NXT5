@@ -635,5 +635,18 @@ copy.push(
 
 copy.push(["{0} résultats connus sur {1} · Le plus joué.", "{0} known results from {1} · Most played.", "{0} resultados conocidos de {1} · El más jugado."]);
 
+// Public demo URLs and gold curve.
+copy.push(
+  ["Débrief du {0}", "Review of {0}", "Análisis de {0}"],
+  ["{0} pris par {1}", "{0} taken by {1}", "{0} conseguido por {1}"],
+  ["Courbe fictive de l’écart d’or, de 0 à {0} or en fin de partie.", "Fictional gold difference curve, from 0 to {0} gold at the end of the game.", "Curva ficticia de la diferencia de oro, de 0 a {0} de oro al final de la partida."],
+  ["Analyses de la démonstration — NXT5", "Demo analysis — NXT5", "Análisis de la demostración — NXT5"],
+  ["Compare l’écart d’or, la vision et les morts des trois parties fictives de la démonstration NXT5.", "Compare the gold difference, vision and deaths of the three fictional games in the NXT5 demo.", "Compara la diferencia de oro, la visión y las muertes de las tres partidas ficticias de la demostración de NXT5."],
+  ["Débrief du {0} — Démonstration NXT5", "Review of {0} — NXT5 demo", "Análisis de {0} — Demostración de NXT5"],
+  ["Exemple de débrief fictif : le fait observé, la question à vérifier et l’action pour la prochaine séance d’entraînement.", "Fictional review example: the observed fact, the question to check and the action for the next practice session.", "Ejemplo de análisis ficticio: el hecho observado, la pregunta que verificar y la acción para la próxima sesión de entrenamiento."],
+  ["{0} — Démonstration NXT5", "{0} — NXT5 demo", "{0} — Demostración de NXT5"],
+  ["Analyse d’une partie fictive : courbe de l’écart d’or avec le Dragon et le Nashor, statistiques et joueurs de l’équipe.", "Analysis of a fictional game: gold difference curve with the Dragon and Baron Nashor, team statistics and players.", "Análisis de una partida ficticia: curva de la diferencia de oro con el Dragón y el Barón Nashor, estadísticas y jugadores del equipo."],
+);
+
 export const en = Object.fromEntries(copy.map(([source, english]) => [source, english]));
 export const es = Object.fromEntries(copy.map(([source, , spanish]) => [source, spanish]));

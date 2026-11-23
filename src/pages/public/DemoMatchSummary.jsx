@@ -1,18 +1,41 @@
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import { getLocale } from "../../i18n/locale.js";
-import React from "react";
+import React, { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { Badge, Button, ReadingDetails, Surface } from "../../components/ui/Core.jsx";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { buildTrendSeries } from "../../utils/trends.js";
 import { matchDisplayName } from "../../utils/matches.js";
 import { DEMO_MATCHES, DEMO_TEAM } from "./demo-data.js";
+import { formatGoldDifference, formatMatchTime, goldAtTime, GoldTimelineChart } from "../home/GoldTimelineChart.jsx";
 import "./public-demo.css";
 
 const number = (value) => value === null ? "—" : value.toLocaleString(getLocale());
 
-export function DemoMatchSummary({ match = DEMO_MATCHES[2], compact = false, onOpenReview }) {
+// Fictional per-game curve with its Dragon and Baron Nashor markers.
+function DemoGoldTimeline({ match }) {
+  useLanguage();
+  const duration = match.duration_seconds;
+  const [seconds, setSeconds] = useState(duration);
+  const gold = Math.round(goldAtTime(match.goldTimeline, seconds) / 10) * 10;
+  const objective = match.objectives.find((item) => item.seconds === seconds);
+  const final = match.goldTimeline[match.goldTimeline.length - 1][1];
+  return <div className="demo-gold-timeline">
+    <div className="ps-match-facts" id="demo-selected-gold" aria-live="polite">
+      <div>
+        <strong>{formatGoldDifference(gold)} <span>{t("or")}</span></strong>
+        <span>{objective ? t("{0} pris par {1}", [t(objective.name), objective.takenBy]) : t(seconds === duration ? "Écart final avec l’adversaire" : "Écart avec l’adversaire à cet instant")}</span>
+      </div>
+      <span className="ps-duration"><time>{formatMatchTime(seconds)}</time></span>
+    </div>
+    <GoldTimelineChart timeline={match.goldTimeline} durationSeconds={duration} objectives={match.objectives} seconds={seconds}
+      onSecondsChange={setSeconds} idPrefix="demo" controls="demo-selected-gold" zeroLine
+      ariaLabel={t("Courbe fictive de l’écart d’or, de 0 à {0} or en fin de partie.", [formatGoldDifference(final)])} />
+  </div>;
+}
+
+export function DemoMatchSummary({ match = DEMO_MATCHES[2], compact = false, onOpenReview, timeline = false, detailsOpen = false }) {
   useLanguage();
   const gold = buildTrendSeries([match], "gold").points[0].value;
   const vision = buildTrendSeries([match], "vision").points[0].value;
@@ -25,10 +48,11 @@ export function DemoMatchSummary({ match = DEMO_MATCHES[2], compact = false, onO
     <dl className="demo-match-metrics demo-match-primary">
       <div><dt>{t("Écart d’or final")}</dt><dd>{signed(gold)} <span>{t("or")}</span></dd></div>
     </dl>
+    {timeline && match.goldTimeline && <DemoGoldTimeline key={match.id} match={match} />}
     <p className="demo-data-note">{t("Notre équipe − adversaires. Un écart final ne suffit pas à expliquer le résultat.")}</p>
     <div className="demo-coach-question"><p>{t("La question du débrief")}</p><strong>{t(match.demoReview.question)}</strong></div>
     {onOpenReview && <div className="demo-review-action"><Button type="button" icon={ArrowRight} onClick={onOpenReview}>{t("Lire le débrief")}</Button></div>}
-    <ReadingDetails key={match.id} title={compact ? t("Autre indicateur") : t("Statistiques et joueurs")} description={compact ? t("Écart de vision") : t("Vision, morts et résultats des cinq joueurs")} className="demo-match-details">
+    <ReadingDetails key={match.id} title={compact ? t("Autre indicateur") : t("Statistiques et joueurs")} description={compact ? t("Écart de vision") : t("Vision, morts et résultats des cinq joueurs")} className="demo-match-details" open={detailsOpen || undefined}>
       <dl className="demo-match-metrics">
         <div><dt>{t("Écart de vision")}</dt><dd>{signed(vision)} <span>{t("points")}</span></dd></div>
         {!compact && <div><dt>{t("Morts de l’équipe")}</dt><dd>{number(deaths)}</dd></div>}

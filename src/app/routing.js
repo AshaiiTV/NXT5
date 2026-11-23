@@ -1,6 +1,7 @@
 import { AUTH_PATHS, AUTH_ROUTES, DRAFT_VIEW_ROUTES, NAV, PROFILE_VIEW_ROUTES, PUBLIC_ROUTES } from "./constants.jsx";
 import { adminPageFromRoute } from "./admin-navigation.js";
 import { isTrendDetailPath } from "./trends-navigation.js";
+import { isDemoPath } from "./demo-routes.js";
 
 export function normalizePath(pathname = "/") {
   if (!pathname || pathname === "/") return "/";
@@ -94,7 +95,7 @@ export function isAppPath(pathname = window.location.pathname) {
 
 export function isKnownPath(pathname = window.location.pathname) {
   const path = normalizePath(pathname);
-  return path === "/salle-de-draft" || path === "/nexus-rising" || PUBLIC_ROUTES.includes(path) || AUTH_PATHS.includes(path) || isAppPath(path);
+  return path === "/salle-de-draft" || path === "/nexus-rising" || PUBLIC_ROUTES.includes(path) || isDemoPath(path) || AUTH_PATHS.includes(path) || isAppPath(path);
 }
 
 export function isSafeInternalPath(path = "") {

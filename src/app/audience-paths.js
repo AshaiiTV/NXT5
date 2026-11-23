@@ -9,9 +9,13 @@ const PATHS = new Set([
   '/profil/historique', '/profil/coaching',
 ]);
 
+const DEMO_STEP = /^\/demo\/(?:analyses|partie(?:\/DEMO_\d{1,2}(?:\/debrief)?)?)$/;
+
 export function canonicalAudiencePath(value) {
   if (typeof value !== 'string' || value.length > 2048 || !value.startsWith('/') || value.startsWith('//')) return null;
   const path = value.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/';
+  // Demo steps and game ids are counted as the /demo page: no value per game.
+  if (DEMO_STEP.test(path)) return '/demo';
   return PATHS.has(path) ? path : null;
 }
 

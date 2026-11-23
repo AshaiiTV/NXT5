@@ -29,7 +29,8 @@
 .ps-team-scene[data-selected-role="MID"] { --ps-selected-color: #c4b5fd; }
 .ps-team-scene[data-selected-role="ADC"] { --ps-selected-color: #d8b4fe; }
 .ps-team-scene[data-selected-role="SUP"] { --ps-selected-color: #c4b5fd; }
-/* Positions match the fixed, illustrative 33:45 timeline in ProductStory. */
+/* Prerendered fallback for the fixed 33:45 homepage timeline; GoldTimelineChart
+   applies the same positions through the CSSOM once mounted. */
 .ps-chart-objective[data-objective="dragon"] { left: 58.5754985755%; top: 58.2894736842%; }
 .ps-chart-objective[data-objective="baron"] { left: 81.9008547009%; top: 34.1228070175%; }
 .ps-chart-axis > [data-time="0"] { left: 3.6923076923%; }
@@ -360,7 +361,8 @@
   overflow: visible;
   margin-top: 0;
 }
-.ps-story input.ps-chart-slider {
+.ps-story input.ps-chart-slider,
+.demo-gold-timeline input.ps-chart-slider {
   appearance: none;
   -webkit-appearance: none;
   position: absolute;
@@ -403,7 +405,8 @@
   background: transparent;
   border: 0;
 }
-.ps-story input.ps-chart-slider:focus-visible {
+.ps-story input.ps-chart-slider:focus-visible,
+.demo-gold-timeline input.ps-chart-slider:focus-visible {
   outline: 2px solid var(--ps-cyan);
   outline-offset: 3px;
 }

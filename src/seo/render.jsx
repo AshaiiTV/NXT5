@@ -17,7 +17,11 @@ export const privatePaths = [...new Set([
   ...DRAFT_DETAIL_IDS.map(id => `/tendances/draft/${id}`),
   "/integration", "/statistiques", "/profil", "/mon-profil", "/champion-pool", "/compositions-types", "/draft", "/nexus-rising", "/salle-de-draft",
 ])];
-export const dynamicPaths = ["/profil", "/mon-profil", "/draft"];
+export const dynamicPaths = ["/profil", "/mon-profil", "/draft", "/demo/partie"];
+// Public demo steps (/demo/analyses, /demo/partie/:id[/debrief]) load the SPA shell
+// with a noindex header and stay out of the sitemap; only /demo itself is prerendered.
+// /demo/partie/* is covered by dynamicPaths. Unknown game ids redirect to /demo in the app.
+export const demoShellPaths = ["/demo/analyses", "/demo/partie"];
 
 export function render(path) {
   if (!publicPaths.includes(path) && path !== "/404") throw new Error(`Public prerender missing for ${path}`);

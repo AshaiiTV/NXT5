@@ -15,6 +15,7 @@ import { PublicGuidePage, PUBLIC_GUIDES } from "./pages/public/PublicGuides.jsx"
 import SocialPage from "./pages/public/SocialPage.jsx";
 import { SupportPage } from "./pages/public/SupportPage.jsx";
 import { applyDocumentMetadata } from "./seo/metadata.js";
+import { isDemoPath } from "./app/demo-routes.js";
 import { Loader2, ArrowRight } from "lucide-react";
 import { AmbientBackground } from "./components/layout/AppChrome.jsx";
 import { useAppLoading } from "./components/loading/AppLoadingProvider.jsx";
@@ -84,7 +85,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const adminPage = adminPageFromRoute(route);
   const DemoComponent = initialDemoPage || DemoPage;
 
-  const rendersPrivateApp = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !PUBLIC_GUIDES[route.path] && !["/salle-de-draft", "/nexus-rising", "/fonctionnalites", "/demo", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
+  const rendersPrivateApp = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !PUBLIC_GUIDES[route.path] && !isDemoPath(route.path) && !["/salle-de-draft", "/nexus-rising", "/fonctionnalites", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
   // Once authorized, the private module (including its download fallback)
   // owns the shared loader. Public routes always release it.
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersPrivateApp ? undefined : null);
@@ -97,7 +98,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (route.path === "/salle-de-draft") return <Suspense fallback={<p role="status">{t("Chargement…")}</p>}><GuestDraftRoom /></Suspense>;
   if (route.path === "/nexus-rising") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">{t("Chargement de Nexus Rising…")}</div>}><NexusRisingPage key={user?.id || "guest"} user={user} navigate={navigate} /></Suspense>;
   if (route.path === "/fonctionnalites") return <FeaturesPage navigate={navigate} user={user} />;
-  if (route.path === "/demo") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">{t("Chargement de la démo…")}</div>}><DemoComponent navigate={navigate} user={user} /></Suspense>;
+  if (isDemoPath(route.path)) return <Suspense fallback={<div role="status" className="p-6 text-slate-200">{t("Chargement de la démo…")}</div>}><DemoComponent navigate={navigate} user={user} path={route.path} /></Suspense>;
   if (PUBLIC_GUIDES[route.path]) return <PublicGuidePage path={route.path} navigate={navigate} user={user} />;
   if (adminPage) return <PrivateRoute user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
   if (route.path === "/reseaux") return <SocialPage navigate={navigate} user={user} />;
