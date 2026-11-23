@@ -654,16 +654,28 @@ function RosterRecordPlaceholder() {
   return <span className="team-roster-record" data-placeholder aria-hidden="true"><span><strong>0</strong></span></span>;
 }
 
+const POOL_SLOTS = 4;
+
+/** Four square slots fill the pool width in every state, so loading, empty and loaded cards keep one height. */
+function ChampionPool({ items = [], status = "", stats = null }) {
+  useLanguage();
+  const empty = Array.from({ length: Math.max(0, POOL_SLOTS - items.length) }, (_, index) => index);
+  return <span className="team-roster-champion-pool">
+    <span className="team-roster-pool-label">{t("Champions les plus joués")}</span>
+    <span className="team-roster-champions" data-state={status ? "pending" : undefined}>
+      {status && <span className="team-roster-pool-status">{status}</span>}
+      {items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}
+      {empty.map((index) => <span key={"slot-" + index} className="team-roster-champion" data-slot aria-hidden="true" />)}
+    </span>
+    {stats?.length ? <RosterRecord stats={stats} /> : <RosterRecordPlaceholder />}
+  </span>;
+}
+
 function ImportedChampionBadges({ player, matches = [], labelled = false }) {
   useLanguage();
   const stats = playerImportedChampionStats(player, matches);
-  const items = stats.slice(0, labelled ? 4 : 3);
-  if (labelled) return <span className="team-roster-champion-pool">
-    <span className="team-roster-pool-label">{t("Champions les plus joués")}</span>
-    {items.length ? <span className="team-roster-champions">{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}</span>
-      : <span className="team-roster-pool-empty">{t("Aucune partie associée.")}</span>}
-    {items.length ? <RosterRecord stats={stats} /> : <RosterRecordPlaceholder />}
-  </span>;
+  const items = stats.slice(0, labelled ? POOL_SLOTS : 3);
+  if (labelled) return <ChampionPool items={items} stats={stats} status={items.length ? "" : t("Aucune partie associée.")} />;
   if (!items.length) return null;
   return <span className="team-roster-champions"><span className="sr-only">{t("Champions les plus joués : ")}</span>{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}</span>;
 }
@@ -712,7 +724,7 @@ function PremiumRosterTable({ roster, members = [], matches = [], currentUserId 
             <span className="team-roster-role"><span aria-hidden="true"><RoleIcon role={player.role} className="h-5 w-5" /></span><span>{t(roleLabel(player.role))}</span></span>
             <span className="team-roster-identity"><span className="team-roster-name"><span className="sr-only">{t("Voir le profil de ")}</span>{player.name}{isMe && <span className="team-roster-me">{t("Toi")}</span>}</span><span className="team-roster-riot">{player.riot_id || t("Riot ID à renseigner")}</span></span>
             {!historyComplete && title === "Titulaires"
-              ? <span className="team-roster-champion-pool"><span className="team-roster-pool-label">{t("Champions les plus joués")}</span><span className="team-roster-pool-empty">{t(historyError ? "Indisponible" : "Chargement…")}</span><RosterRecordPlaceholder /></span>
+              ? <ChampionPool status={t(historyError ? "Indisponible" : "Chargement…")} />
               : historyComplete && <ImportedChampionBadges player={player} matches={matches} labelled={title === "Titulaires"} />}
             <ArrowRight aria-hidden="true" className="team-roster-arrow" />
           </a>

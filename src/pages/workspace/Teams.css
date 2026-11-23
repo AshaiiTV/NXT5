@@ -98,7 +98,10 @@
 .team-identity-header { align-items: center; margin-bottom: 24px; padding: 24px; border: 1px solid var(--nxt5-glass-border); border-radius: var(--nxt5-radius-panel); background: radial-gradient(ellipse at 0% 0%,rgba(103,232,249,.13),transparent 45%), radial-gradient(ellipse at 100% 100%,rgba(196,181,253,.13),transparent 50%), var(--nxt5-glass-background); box-shadow: var(--nxt5-glass-shadow); }
 .team-identity-header > .nxt5-page-header { margin-bottom: 0; padding: 0; border: 0; background: none; box-shadow: none; }
 .team-identity-header > .nxt5-page-header::before, .team-identity-header > .nxt5-page-header::after { display: none; }
-.team-identity-avatar { border-color: rgba(196,181,253,.52); background: linear-gradient(135deg,rgba(196,181,253,.18),rgba(139,92,246,.25) 55%,rgba(17,24,39,.8)); box-shadow: inset 1px 1px 0 var(--nxt5-glass-highlight), 0 6px 28px rgba(139,92,246,.19); }
+/* The team logo stands on its own: no frame, more room around the identity. */
+.team-identity-header { gap: 32px; padding: 32px 36px; }
+.team-identity-avatar { flex: 0 0 auto; width: auto; height: auto; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.team-identity-avatar .team-identity-image { width: 112px; height: 112px; border: 0; border-radius: 22px; background: none; box-shadow: 0 14px 36px rgba(2,6,17,.5), 0 0 40px rgba(139,92,246,.14); }
 .team-roster-role > :first-child { border-color: var(--nxt5-glass-border); background: linear-gradient(140deg,rgba(103,232,249,.09),rgba(139,92,246,.22)); box-shadow: inset 0 1px 0 var(--nxt5-glass-highlight); }
 .team-roster-champion { border-color: rgba(196,181,253,.5); box-shadow: 0 3px 14px rgba(139,92,246,.16); }
 .team-roster-row:hover { background: linear-gradient(100deg,rgba(103,232,249,.05),rgba(139,92,246,.1),transparent); }
@@ -142,13 +145,22 @@
 .team-roster-list[data-roster="main"] .team-roster-champion { width: 52px; height: 52px; border-radius: 10px; }
 .team-roster-list[data-roster="main"] .team-roster-champion:first-child { border-color: rgba(103,232,249,.7); box-shadow: 0 0 0 1px rgba(103,232,249,.18),0 4px 16px rgba(103,232,249,.14); }
 .team-roster-list[data-roster="main"] .team-roster-champion-count { min-width: 20px; padding: 1px 4px; font-size: 11px; }
-.team-roster-pool-empty { display: flex; align-items: center; min-height: 44px; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); line-height: 1.5; }
 .team-roster-record { display: flex; flex-wrap: wrap; gap: 4px 14px; padding-top: 10px; border-top: 1px solid var(--nxt5-border); color: var(--nxt5-muted); font-size: var(--nxt5-font-micro); line-height: 1.5; }
 .team-roster-record[data-placeholder] { visibility: hidden; }
 /* Four champions share the pool width: tiles shrink in narrow columns instead of overflowing. */
-.team-roster-list[data-roster="main"] .team-roster-champion-pool > .team-roster-champions { display: grid; grid-template-columns: repeat(4,minmax(0,52px)); align-items: center; gap: 8px; }
+.team-roster-list[data-roster="main"] .team-roster-champion-pool > .team-roster-champions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
 .team-roster-list[data-roster="main"] .team-roster-champion-pool .team-roster-champion { width: 100%; height: auto; aspect-ratio: 1; }
-.team-roster-list[data-roster="main"] .team-roster-champion-pool > :is(.team-roster-champions,.team-roster-pool-empty) { min-height: 52px; }
+.team-roster-list[data-roster="main"] .team-roster-champion-pool .team-roster-champion-art { position: absolute; inset: 0; }
+.team-roster-list[data-roster="main"] .team-roster-champion-pool .team-roster-champion-art img { width: 100%; height: 100%; max-width: none; }
+.team-roster-list[data-roster="main"] .team-roster-champion-pool .team-roster-champion-count { z-index: 1; }
+.team-roster-list[data-roster="main"] .team-roster-champion-pool > .team-roster-champions { position: relative; }
+.team-roster-pool-status { position: absolute; z-index: 1; inset: 50% auto auto 50%; transform: translate(-50%,-50%); max-width: calc(100% - 16px); padding: 4px 12px; border: 1px solid var(--nxt5-border); border-radius: 999px; background: var(--nxt5-field); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-micro); line-height: 1.4; text-align: center; }
+.team-roster-list[data-roster="main"] .team-roster-champion[data-slot] { border: 1px dashed rgba(102,119,155,.45); background: rgba(26,35,64,.45); box-shadow: none; }
+.team-roster-champions[data-state="pending"] .team-roster-champion[data-slot] { animation: team-roster-slot 1.6s ease-in-out infinite; }
+@keyframes team-roster-slot { 50% { background: rgba(26,35,64,.85); } }
+@media (prefers-reduced-motion: reduce) { .team-roster-champions[data-state="pending"] .team-roster-champion[data-slot] { animation: none; } }
+.team-roster-list[data-roster="main"] .team-roster-champion { border-radius: 12px; }
+.team-roster-list[data-roster="main"] .team-roster-champion-count { min-width: 24px; padding: 2px 6px; border-top-left-radius: 8px; font-size: 12px; }
 .team-roster-record strong { color: var(--nxt5-text); font-size: var(--nxt5-font-small); font-weight: 650; font-variant-numeric: tabular-nums; }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
   .team-roster-list[data-roster="main"] .team-roster-row:hover { transform: translateY(-3px); border-color: rgba(165,243,252,.65); box-shadow: inset 1px 1px 0 rgba(226,232,255,.2),0 16px 32px rgba(2,6,17,.32),0 0 24px rgba(139,92,246,.12); }
@@ -263,9 +275,8 @@
   .team-profile-form { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 @container teams-page (max-width: 520px) {
-  .team-identity-header { align-items: flex-start; gap: 12px; padding: 16px; }
-  .team-identity-avatar { flex-basis: 52px; width: 52px; height: 52px; padding: 6px; border-radius: var(--nxt5-radius-control); }
-  .team-identity-image { width: 38px; height: 38px; }
+  .team-identity-header { align-items: center; gap: 16px; padding: 20px; }
+  .team-identity-avatar .team-identity-image { width: 72px; height: 72px; border-radius: 16px; }
   .team-roster-empty { flex-wrap: wrap; gap: 12px; align-items: flex-start; }
   .team-roster-empty > a { width: 100%; }
   .team-profile-form, .team-profile-edit-fields { grid-template-columns: minmax(0,1fr); }
