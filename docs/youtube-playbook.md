@@ -1,6 +1,6 @@
 # Guide YouTube NXT5
 
-Guide des publications de la chaîne [@NXT5-ORG](https://www.youtube.com/@NXT5-ORG) (identifiant `UC_C-OnOepIO05qfqlcUrMRA`, liée depuis le site par [`src/app/social-links.js`](../src/app/social-links.js)). [`AGENTS.md`](../AGENTS.md) en impose la lecture avant de préparer un sujet, un script, un titre, une miniature, une description ou une analyse des résultats.
+Guide des publications de la chaîne [@NXT5-ORG](https://www.youtube.com/@NXT5-ORG) (identifiant `UC_C-OnOepIO05qfqlcUrMRA`, liée depuis le site par [`src/app/social-links.js`](../src/app/social-links.js)). [`AGENTS.md`](../AGENTS.md) en impose la lecture avant de préparer un sujet, un script, un titre, une miniature, une description ou une analyse des résultats. La dernière section consigne les résultats Instagram, utiles pour comparer les formats courts.
 
 Ce guide distingue trois niveaux de preuve :
 
@@ -75,7 +75,7 @@ Source : API TubeAlfred, 13 Shorts. Les sous-titres décrivent ce qui est dit ; 
 | Un chiffre contre-intuitif en accroche aide un Short. | En octobre, « 1 kill… 16 assistances » et « 7 kills… défaite » arrivent en tête. En novembre, les Shorts narrés qui ouvrent sur une statistique (67 %, +20 en vision) restent entre 40 et 154 vues. | Ouvrir plusieurs Shorts sur une statistique trompeuse (vision, or, objectifs) et comparer à la médiane de la période. |
 | Une voix off aide un Short. | Médiane 148 vues pour la période narrée contre 58 sans voix ; les deux Shorts au-delà de 700 vues sont narrés. Le sujet, la date et la diffusion diffèrent aussi. | Publier la même idée en deux versions, narrée et musicale, à quelques jours d’intervalle. |
 | Ouvrir sur une scène de jeu à juger attire plus qu’ouvrir sur un chiffre. | Les deux meilleurs Shorts commencent par une situation (« ce gank paraît évident », « encore une vague ou retour ? »). Deux exemples seulement. | Ouvrir plusieurs Shorts narrés par « tu vois X, que fais-tu ? » et comparer à ceux qui ouvrent sur une statistique. |
-| Une question explicite en fin de Short déclenche des commentaires. | Aucun commentaire sur les 13 Shorts, dont aucun ne pose de question au spectateur à la fin. | Terminer par une question à réponse courte (« Toi, tu restais ou tu rentrais ? ») et épingler une réponse. |
+| Une question explicite en fin de Short déclenche des commentaires. | Aucun commentaire sur les 13 Shorts, dont aucun ne pose de question au spectateur à la fin. Sur Instagram, trois Reels terminés par une question ouverte n’en ont reçu aucun. | Terminer par un choix fermé (« Toi, tu restais ou tu rentrais ? ») plutôt qu’une question ouverte, et épingler une première réponse. |
 | Un rythme régulier vaut mieux que des rafales suivies de pauses. | Rythme irrégulier observé ; aucune comparaison isolée. | Tenir un Short tous les deux jours pendant un mois. |
 | Relier les Shorts au tutoriel d’import soutient l’usage réel du service. | Le tutoriel reste à 41 vues ; l’analyse de ses propres parties exige un import préalable. | Ajouter le lien du tutoriel aux Shorts les plus vus et suivre les imports mesurés sur le site. |
 
@@ -100,4 +100,40 @@ Les comptages de vues ne démontrent aucune cause : le moment de publication, la
 
 ## Instagram
 
-Le compte [@nxt5org](https://www.instagram.com/nxt5org/) est lié depuis le site. Le 23 novembre 2026, sa page publique a répondu « 429 Too Many Requests » à une lecture sans connexion : aucune donnée n’a été relevée. Une analyse exige un export des statistiques du compte professionnel ou des captures fournies par l’utilisateur.
+Compte [@nxt5org](https://www.instagram.com/nxt5org/), lié depuis le site. Le 23 novembre 2026, sa page publique a répondu « 429 Too Many Requests » à une lecture sans connexion ; les résultats ci-dessous viennent de Metricool, où le compte est relié à la marque NXT5 avec la chaîne YouTube.
+
+### Relevé Metricool, 23 novembre 2026
+
+Source : statistiques organiques Metricool du 11 octobre au 23 novembre 2026, sans promotion payante relevée. Les images des Reels n’ont pas été analysées ; les constats portent sur les chiffres et les légendes.
+
+- **Volume** : 10 Reels et 7 carrousels ; aucune story. Dernier Reel le 18 novembre, dernier carrousel le 3 novembre.
+- **Abonnés** : de 5 le 11 octobre à 40 le 20 octobre, puis 38 à 39 jusqu’au 21 novembre. Le nombre de comptes suivis varie fortement (42 le 18 octobre, 6 le lendemain, environ 25 ensuite), sans explication établie.
+- **Reels** :
+
+| Date | Reel | Vues | Comptes touchés | J’aime | Regardé plus de 3 s | Visionnage moyen |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 21 oct. | « Le hook touche. Tu fonces ? » (Thresh) | 190 | 140 | 6 | 68 % | 8,5 s |
+| 1er nov. | En replay, tu vois plus que le joueur | 163 | 129 | 4 | 36 % | 7,5 s |
+| 18 nov. | 67 % = deux victoires sur trois | 157 | 118 | 3 | 51 % | 7,1 s |
+| 18 oct. | Une habitude à garder | 152 | 125 | 6 | 9 % | 2,0 s |
+| 5 nov. | Encore une vague ou retour ? | 147 | 130 | 3 | 42 % | 5,8 s |
+| 13 oct. | Tes scrims sont terminés (republié) | 113 | 92 | 5 | 14 % | 2,7 s |
+| 13 oct. | Après une défaite, une seule chose (republié) | 60 | 46 | 5 | 22 % | 3,8 s |
+| 15 oct. | Un call : quoi, où, quand | 53 | 37 | 5 | 21 % | 2,2 s |
+| 12 oct. | Après une défaite, une seule chose | 51 | 37 | 4 | 30 % | 6,7 s |
+| 11 oct. | Tes scrims sont terminés | 40 | 24 | 3 | 10 % | 24,5 s, valeur atypique à vérifier |
+
+- **Rétention** : les Reels qui ouvrent sur une scène de jeu (Thresh, replay, vague, 67 %) gardent 36 à 68 % des spectateurs au-delà de 3 secondes, contre 9 à 30 % pour les Reels de méthode et de présentation d’octobre. Les quatre Reels de novembre utilisent une voix de synthèse, mentionnée dans leur légende ; la légende du Reel Thresh ne le précise pas.
+- **Plafond** : 150 à 190 vues par Reel au mieux, environ quatre fois le nombre d’abonnés.
+- **Republication** : les Reels des 11 et 12 octobre ont été republiés le 13 octobre avec la même légende, pour des résultats proches de l’original.
+- **Carrousels** (fiches de méthode, du 11 octobre au 3 novembre) : 42 à 64 vues, 16 à 23 comptes touchés, 3 à 6 j’aime, au plus 1 enregistrement, aucun partage, 2 abonnés gagnés au total. Tous invitent à les enregistrer.
+- **Interactions** : 0 commentaire sur les 17 publications, y compris les trois Reels terminés par une question ouverte (« Et vous, qu’allez-vous conserver… ? », « quel call voulez-vous préciser ? »). Seul partage notable : 8 pour le Reel du 12 octobre.
+- **Ton** : plusieurs Reels et carrousels vouvoient (« Appuyez-vous… », « Et vous… »), contrairement au tutoiement de la charte.
+- **Horaires** : estimation Metricool pour la semaine du 24 novembre, en semaine vers 10 h (vendredi en tête), second pic vers 18 h, week-end plus faible. Les Reels d’octobre partaient vers 8 h, ceux de novembre vers 18 h. Ce sont des estimations de l’outil, pas une mesure de l’audience du compte.
+
+### Pistes Instagram
+
+- Concentrer la production sur des Reels qui ouvrent sur une scène de jeu à juger, sur le modèle du Reel Thresh, et réduire les carrousels de méthode.
+- Reprendre la publication, à l’arrêt depuis le 18 novembre, puis comparer les créneaux de 10 h et de 18 h.
+- Terminer par un choix fermé plutôt qu’une question ouverte, et répondre ou épingler un premier commentaire.
+- Revenir au tutoiement dans les légendes et les narrations.
