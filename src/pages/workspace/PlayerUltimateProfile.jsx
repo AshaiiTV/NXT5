@@ -4,7 +4,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { matchSideLabel } from "../../utils/statistics.js";
 import React, { useEffect, useRef, useState } from "react";
 import { DiscordProgressionGoals } from "../../components/discord/DiscordWorkflows.jsx";
-import { Activity, AlertTriangle, Check, Clipboard, Crown, Download, FileText, Flame, Gauge, Loader2, Shield, Swords, Target, Trophy, ArrowRight, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, RefreshCw, Search, ShieldCheck, BookOpen, BarChart3 } from "lucide-react";
+import { Activity, AlertTriangle, CalendarDays, Check, Clock3, Minus, X, Clipboard, Crown, Download, FileText, Flame, Gauge, Loader2, Shield, Swords, Target, Trophy, ArrowRight, ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, ChevronRight, RefreshCw, Search, ShieldCheck, BookOpen, BarChart3 } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { profilePathFromView, profileViewFromPath, openAppPath } from "../../app/routing.js";
 import { Badge, Button, EmptyState, PageHeader, SelectInput, Surface, TabNav } from "../../components/ui/Core.jsx";
@@ -21,6 +21,7 @@ import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, p
 
 import { ProfileNavigation, PROFILE_SECTIONS } from "./ProfileNavigation.jsx";
 import "./profile-page.css";
+import "./profile-history.css";
 import "./profile-champions.css";
 import { ChampionSectionTabs, MatchupNotebook } from "../../components/profile/MatchupNotebook.jsx";
 import { ParticipantRunes } from "../../components/profile/ParticipantRunes.jsx";
@@ -967,6 +968,62 @@ function profileHistoryDateLabel(row) {
   return time ? new Intl.DateTimeFormat(getLocale(), { day: "2-digit", month: "2-digit", year: "2-digit" }).format(new Date(time)) : "";
 }
 
+function ProfileHistoryMatch({ row, navigate }) {
+  const { match } = row;
+  const enemy = opponentRoleRow(match, row.role, row.raw?.participantId || row.participantId);
+  const result = match?.result;
+  const outcome = result === "Victoire" ? "win" : result === "Défaite" ? "loss" : "unknown";
+  const ResultIcon = { win: Check, loss: X, unknown: Minus }[outcome];
+  const name = matchDisplayName(match, t("Partie"));
+  const path = match?.id ? `/games?match=${encodeURIComponent(match.id)}` : "";
+  const kp = row.kill_participation ?? row.kp;
+  const cs10 = csAtMinute(row, 10);
+  const cs20 = csAtMinute(row, 20);
+  const stats = [
+    [t("Dégâts"), row.damage == null ? "—" : formatPoints(row.damage)],
+    [t("Or"), row.gold == null ? "—" : formatPoints(row.gold)],
+    [t("Vision"), row.vision ?? "—"],
+    [t("Participation aux kills"), kp == null || kp === "" ? "—" : `${Math.round(parsePercent(kp))} %`],
+    [t("Farm à 10 min"), cs10 == null ? "—" : `${cs10} CS`],
+    [t("Farm à 20 min"), cs20 == null ? "—" : `${cs20} CS`],
+    [t("Farm final"), row.cs == null ? "—" : `${row.cs} CS`],
+    [t("Côté"), matchSideLabel(match)],
+    [t("Patch"), match?.patch || "—"],
+  ];
+
+  return <article className="profile-history-row" data-outcome={outcome}>
+    <details className="profile-history-details">
+      <summary className="profile-history-line">
+        <span className="profile-history-identity">
+          <span className="profile-history-portraits" aria-hidden="true">
+            <ChampionPortrait row={row} champion={row.champion} className="profile-history-portrait" />
+            {enemy?.champion && <ChampionPortrait row={enemy} champion={enemy.champion} className="profile-history-opponent" />}
+          </span>
+          <span className="profile-history-names">
+            <span className="profile-history-duel"><strong>{championDisplayName(row.champion) || t("Champion inconnu")}</strong> {enemy?.champion && <span>{t("contre")} {championDisplayName(enemy.champion)}</span>}</span>
+            <span className="profile-history-match-name">{name}</span>
+          </span>
+        </span>
+        <span className="profile-history-result">
+          <span className="profile-history-outcome"><ResultIcon size={15} aria-hidden="true" />{outcome === "unknown" ? t("Inconnu") : t(result)}</span>
+          <span className="profile-history-duration"><Clock3 size={13} aria-hidden="true" /><span className="sr-only">{t("Durée")} </span>{match?.duration || "—"}</span>
+        </span>
+        <span className="profile-history-score">
+          {[[t("Kills"), row.kills], [t("Morts"), row.deaths], [t("Assists"), row.assists]].map(([label, value]) =>
+            <span key={label}><strong>{value ?? "—"}</strong><small>{label}</small><abbr title={label} aria-hidden="true">{label[0]}</abbr></span>)}
+        </span>
+        <span className="profile-history-toggle" title={t("Statistiques de la partie")}><span>{t("Détails")}</span><ChevronDown size={16} aria-hidden="true" /></span>
+      </summary>
+      <dl>{stats.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+    </details>
+    {path && <a href={path} className="profile-history-open" aria-label={t("Ouvrir {0}", [name])} title={t("Ouvrir la partie")} onClick={(event) => {
+      if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+      event.preventDefault();
+      (navigate || openAppPath)(path);
+    }}><ArrowRight size={19} aria-hidden="true" /></a>}
+  </article>;
+}
+
 function ProfileHistoryView({ rows = [], selectedCategoryId, navigate }) {
   useLanguage();
   const [championFilter, setChampionFilter] = useState("");
@@ -978,22 +1035,46 @@ function ProfileHistoryView({ rows = [], selectedCategoryId, navigate }) {
   const pages = Math.max(1, Math.ceil(filteredRows.length / 10));
   const currentPage = Math.min(page, pages);
   const visibleRows = filteredRows.slice((currentPage - 1) * 10, currentPage * 10);
+  const dayFormat = new Intl.DateTimeFormat(getLocale(), { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const days = new Map();
+  for (const row of visibleRows) {
+    const time = profileHistorySortKey(row);
+    const day = time ? dayFormat.format(time) : t("Date inconnue");
+    if (!days.has(day)) days.set(day, []);
+    days.get(day).push(row);
+  }
+  const filtered = Boolean(championFilter || resultFilter !== "all");
+  const count = filteredRows.length;
   return <Surface className="profile-history">
-    <div className="profile-section-heading"><div><h3>{t("Historique des parties")}</h3><p>{t("Les plus récentes en premier. Ouvre une partie pour revoir le détail et la chronologie.")}</p></div></div>
-    <div className="profile-history-filters profile-filters"><SelectInput label={t("Champion")} value={championFilter} onChange={(value) => { setChampionFilter(value); setPage(1); }}><option value="">{t("Tous les champions")}</option>{championOptions.map((champion) => <option key={champion} value={champion}>{championDisplayName(champion)}</option>)}</SelectInput><SelectInput label={t("Résultat")} value={resultFilter} onChange={(value) => { setResultFilter(value); setPage(1); }}><option value="all">{t("Tous les résultats")}</option><option value="win">{t("Victoires")}</option><option value="loss">{t("Défaites")}</option></SelectInput></div>
-    <div className="profile-scope"><p role="status"><strong>{filteredRows.length}{t(" parties trouvées")}</strong>{t(" sur ")}{rows.length}</p>{(championFilter || resultFilter !== "all") && <button type="button" className="profile-text-action" onClick={() => { setChampionFilter(""); setResultFilter("all"); setPage(1); }}>{t("Réinitialiser les filtres")}</button>}</div>
-    <div className="profile-history-list">{visibleRows.length ? visibleRows.map((row, index) => {
-      const cs10 = csAtMinute(row, 10);
-      const cs20 = csAtMinute(row, 20);
-      const enemy = opponentRoleRow(row.match, row.role, row.raw?.participantId || row.participantId);
-      const knownResult = ["Victoire", "Défaite"].includes(row.match?.result);
-      const kp = row.kill_participation ?? row.kp;
-      return <article key={`${row.match?.id || index}-${row.champion}`} className="profile-history-row">
-        <div className="profile-history-main"><div className="profile-history-identity"><ChampionPortrait row={row} champion={row.champion} alt="" className="h-12 w-12 rounded-lg object-cover" /><div><h4>{championDisplayName(row.champion)}{enemy?.champion && <span>{t(" contre ")}{championDisplayName(enemy.champion)}</span>}</h4><p>{matchDisplayName(row.match)}</p><small>{t(profileHistoryDateLabel(row)) || t("Date inconnue")} · {row.match?.duration || t("Durée inconnue")}</small></div></div><div className="profile-history-result"><span className={knownResult ? row.match.result === "Victoire" ? "profile-win" : "profile-loss" : ""}>{knownResult ? t(row.match.result) : t("Résultat inconnu")}</span><strong>{row.kills ?? "—"} / {row.deaths ?? "—"} / {row.assists ?? "—"}</strong><small>{t("Kills / morts / assists")}</small></div><Button type="button" variant="ghost" disabled={!row.match?.id} onClick={() => (navigate || openAppPath)(`/games?match=${encodeURIComponent(row.match.id)}`)} aria-label={t("Ouvrir {0}", [matchDisplayName(row.match)])}>{t("Ouvrir la partie ")}<ArrowRight aria-hidden="true" className="h-4 w-4" /></Button></div>
-        <details className="profile-history-details"><summary>{t("Statistiques de la partie")}</summary><dl>{[["Dégâts", row.damage == null ? "—" : formatPoints(row.damage)], ["Or", row.gold == null ? "—" : formatPoints(row.gold)], ["Vision", row.vision ?? "—"], ["Participation aux kills", kp == null || kp === "" ? "—" : `${Math.round(parsePercent(kp))} %`], ["Farm à 10 min", cs10 === null ? "—" : `${cs10} CS`], ["Farm à 20 min", cs20 === null ? "—" : `${cs20} CS`], ["Farm final", row.cs == null ? "—" : `${row.cs} CS`], ["Côté", matchSideLabel(row.match)], ["Patch", row.match?.patch || "—"]].map(([label, value]) => <div key={label}><dt>{t(label)}</dt><dd>{value}</dd></div>)}</dl></details>
-      </article>;
-    }) : <EmptyState icon={FileText} title={t("Aucune partie")} text={rows.length ? t("Aucune partie ne correspond aux filtres. Essaie un autre champion ou résultat.") : selectedCategoryId ? t("Aucune partie de ce contexte n’est reliée au joueur.") : t("Aucune partie importée n’est reliée au joueur.")} />}</div>
-    {pages > 1 && <nav className="profile-pagination" aria-label={t("Pages de l’historique")}><Button type="button" variant="ghost" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>{t("Précédente")}</Button><span>{t("Page ")}{currentPage}{t(" sur ")}{pages}</span><Button type="button" variant="ghost" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>{t("Suivante")}</Button></nav>}
+    <header className="profile-history-header">
+      <div>
+        <h3>{t("Historique des parties")}</h3>
+        <p role="status">{filtered
+          ? t(count === 1 ? "{0} partie sur {1}" : "{0} parties sur {1}", [count, rows.length])
+          : t(count === 1 ? "{0} partie" : "{0} parties", [count])}</p>
+      </div>
+      <div className="profile-history-filters profile-filters">
+        <SelectInput label={t("Champion")} value={championFilter} onChange={(value) => { setChampionFilter(value); setPage(1); }}>
+          <option value="">{t("Tous")}</option>
+          {championOptions.map((champion) => <option key={champion} value={champion}>{championDisplayName(champion)}</option>)}
+        </SelectInput>
+        <SelectInput label={t("Résultat")} value={resultFilter} onChange={(value) => { setResultFilter(value); setPage(1); }}>
+          <option value="all">{t("Tous")}</option>
+          <option value="win">{t("Victoires")}</option>
+          <option value="loss">{t("Défaites")}</option>
+        </SelectInput>
+        {filtered && <button type="button" className="profile-text-action" onClick={() => { setChampionFilter(""); setResultFilter("all"); setPage(1); }}>{t("Réinitialiser les filtres")}</button>}
+      </div>
+    </header>
+    {count ? Array.from(days, ([day, games]) => <section key={`${currentPage}-${day}`} className="profile-history-day">
+      <h4><CalendarDays size={16} aria-hidden="true" /><span>{day}</span></h4>
+      {games.map((row, index) => <ProfileHistoryMatch key={`${row.match?.id || row.match?.game_id || index}-${row.champion}`} row={row} navigate={navigate} />)}
+    </section>) : <EmptyState icon={FileText} title={t("Aucune partie")} text={rows.length ? t("Aucune partie ne correspond aux filtres. Essaie un autre champion ou résultat.") : selectedCategoryId ? t("Aucune partie de ce contexte n’est reliée au joueur.") : t("Aucune partie importée n’est reliée au joueur.")} />}
+    {pages > 1 && <nav className="profile-pagination" aria-label={t("Pages de l’historique")}>
+      <Button type="button" variant="ghost" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)}>{t("Précédente")}</Button>
+      <span>{t("Page {0} sur {1}", [currentPage, pages])}</span>
+      <Button type="button" variant="ghost" disabled={currentPage === pages} onClick={() => setPage(currentPage + 1)}>{t("Suivante")}</Button>
+    </nav>}
   </Surface>;
 }
 
