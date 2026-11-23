@@ -39,7 +39,7 @@ body:has(.nxt5-cookie-feedback) { padding-bottom: 9rem; }
   .nxt5-cookie-icon { width: 36px; height: 36px; }
   .nxt5-cookie-actions { gap: 8px; }
   .nxt5-cookie-actions > button { flex-basis: 100%; }
-  .nxt5-cookie-banner { padding: 14px; }
+  .nxt5-cookie-banner { padding: 12px; }
   .nxt5-cookie-banner .nxt5-cookie-heading { margin-bottom: 8px; }
   /* Compact on phones so the banner leaves the page's main call to action visible;
      refuse and accept keep the same size and weight. */
@@ -47,7 +47,21 @@ body:has(.nxt5-cookie-feedback) { padding-bottom: 9rem; }
   .nxt5-cookie-banner .nxt5-cookie-heading h2 { font-size: 17px; }
   .nxt5-cookie-banner > p { font-size: var(--nxt5-font-small); line-height: 1.5; margin: 6px 0; }
   .nxt5-cookie-banner .nxt5-cookie-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
-  .nxt5-cookie-banner .nxt5-cookie-actions > button { min-height: 44px; padding-inline: 4px; font-size: var(--nxt5-font-small); white-space: nowrap; }
+  .nxt5-cookie-banner .nxt5-cookie-actions > button { min-height: 44px; padding-inline: 6px; font-size: var(--nxt5-font-small); }
+  /* The three buttons stay on one row from 390 px. Below 21rem of banner content
+     « Tout accepter » and « Personnaliser » no longer fit with an inner margin:
+     refuse and accept stay side by side at the same size and Personnaliser takes
+     the second row. Labels wrap rather than overflow their button. */
+  @supports (container-type: inline-size) { .nxt5-cookie-banner { container-type: inline-size; } }
+  @container (max-width: 21rem) {
+    .nxt5-cookie-banner .nxt5-cookie-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .nxt5-cookie-banner .nxt5-cookie-actions > button:last-child { grid-column: 1 / -1; }
+  }
+  /* « Rechazar todo » is longer: switch earlier so refuse never wraps while accept does. */
+  @container (max-width: 22.5rem) {
+    :lang(es) .nxt5-cookie-banner .nxt5-cookie-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    :lang(es) .nxt5-cookie-banner .nxt5-cookie-actions > button:last-child { grid-column: 1 / -1; }
+  }
   /* The policy link joins the main sentence; necessary cookies and retention stay in Personnaliser and on /cookies. */
   .nxt5-cookie-banner > .nxt5-cookie-detail:not([role]) { display: none; }
   .nxt5-cookie-inline-link { display: inline; }
