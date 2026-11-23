@@ -307,7 +307,7 @@ Les emails utilisent une structure compatible, des couleurs opaques, un logo PNG
 
 ### État au 23 novembre 2026
 
-**Réalisé.** La signature soudée et le verre du 5 en 3D sont appliqués au site, aux emails, aux exports PNG, aux publications, au visuel de partage, aux favicons, aux icônes et à NXT5 Importer 0.4.8. Le contour NXT de la scène d’accueil reprend la ligature. Les anciens logos, leurs générateurs et l’ancienne image de référence sont supprimés du dépôt ; neuf anciennes adresses servent désormais la signature actuelle.
+**Réalisé.** La signature soudée et le verre du 5 en 3D sont appliqués au site, aux emails, aux exports PNG, aux publications, au visuel de partage, aux favicons, aux icônes et à NXT5 Importer 0.4.8. Le contour NXT de la scène d’accueil reprend la ligature. Les anciens logos, leurs générateurs et l’ancienne image de référence sont supprimés du dépôt ; les adresses des anciens logos servent désormais la signature actuelle.
 
 **Contrôles locaux.**
 
@@ -316,9 +316,9 @@ Les emails utilisent une structure compatible, des couleurs opaques, un logo PNG
 - Couleur moyenne du 5 mesurée dans les fichiers : `#4741a7` pour la grande signature, `#5652b0` pour l’interface, `#5859b0` pour l’icône, et `#3a389e` sur le poster de la sculpture. La teinte va de 239 à 244 degrés pour 241 sur la sculpture ; l’écart de clarté restant vient du contour et de l’arête, comptés dans la mesure.
 - Composants réels sur données fictives : logo, signature de 88 à 180 px, barre latérale, symbole replié, avatar d’équipe par défaut de 32 à 62 px, favicons 16 et 32 px, icônes Apple et masquable. Aucune image cassée ni erreur JavaScript.
 - Scène d’accueil à 1 440, 1 280, 768, 390 et 320 px, et en paysage 844 × 390 : aucun débordement horizontal, disposition mobile conservée, titre et action sans chevauchement.
-- Les redirections des anciennes adresses figurent dans le fichier `_redirects` généré par le build.
+- Les redirections des anciennes adresses figurent dans le fichier `_redirects` généré par le build. Sur l’aperçu Netlify de la pull request 292, les anciennes adresses des logos d’email, des icônes et des alias renvoient bien la signature actuelle.
 
-**Limites.** Ces contrôles sont locaux. La branche `claude/brave-dijkstra-oo0jhl` n’est ni fusionnée ni déployée, et l’Importer 0.4.8 n’est pas publié. Les redirections n’ont pas été éprouvées sur Netlify. L’email n’a pas été envoyé ni ouvert dans une messagerie. La déclinaison sur fond clair n’est employée nulle part. Les rapports datés de `docs/` gardent leur rédaction d’origine et peuvent citer des fichiers supprimés depuis.
+**Limites.** Ces contrôles sont locaux. La branche `claude/brave-dijkstra-oo0jhl` n’est ni fusionnée ni déployée, et l’Importer 0.4.8 n’est pas publié. L’email n’a pas été envoyé ni ouvert dans une messagerie. La déclinaison sur fond clair n’est employée nulle part. Les rapports datés de `docs/` gardent leur rédaction d’origine et peuvent citer des fichiers supprimés depuis.
 
 ## 12. Entretien et sources
 

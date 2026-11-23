@@ -35,12 +35,20 @@ const shellFor = path => ROUTE_SHELLS[path] || APP_SHELL;
 // liens externes pointent encore vers ces adresses : elles servent désormais la signature actuelle.
 const BRAND = "/assets/brand/prisme";
 export const RETIRED_BRAND_ASSETS = [
+  // Logos des emails envoyés depuis novembre 2026.
   ...["nxt5-neon-interface-640.png", "nxt5-neon-mono-640.png", "nxt5-prisme-mono-640.png", "nxt5-unified-mono-640.png"]
     .map(file => [`${BRAND}/${file}`, `${BRAND}/nxt5-soude-interface-640.png`]),
-  ...[192, 512].map(size => [`${BRAND}/unified-icon-${size}.png`, `${BRAND}/soude-icon-${size}.png`]),
+  // Signature précédente, encore demandée par un onglet resté ouvert pendant un déploiement.
+  [`${BRAND}/nxt5-neon-source.png`, `${BRAND}/nxt5-soude-source.png`],
+  ...[320, 640, 1280].map(width => [`${BRAND}/nxt5-neon-${width}.webp`, `${BRAND}/nxt5-soude-${width}.webp`]),
+  ...[320, 640].map(width => [`${BRAND}/nxt5-neon-interface-${width}.webp`, `${BRAND}/nxt5-soude-interface-${width}.webp`]),
+  // Icônes d'applications installées et alias cités par des liens externes.
+  ...[16, 32, 48, 64, 128, 180, 192, 256, 512, 1024].map(size => [`${BRAND}/unified-icon-${size}.png`, `${BRAND}/soude-icon-${size}.png`]),
   [`${BRAND}/unified-icon-maskable-512.png`, `${BRAND}/soude-icon-maskable-512.png`],
   ["/assets/brand/nxt5-icone-3d-512.png", `${BRAND}/soude-icon-512.png`],
+  ["/assets/brand/nxt5-icone-3d-256.webp", `${BRAND}/soude-icon-256.png`],
   ["/assets/brand/nxt5-logo-3d.png", `${BRAND}/nxt5-soude-source.png`],
+  ...[320, 640].map(width => [`/assets/brand/nxt5-logo-3d-${width}.webp`, `${BRAND}/nxt5-soude-${width}.webp`]),
 ];
 
 export function redirectRules(privatePaths, dynamicPaths) {
