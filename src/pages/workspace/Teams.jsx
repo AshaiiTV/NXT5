@@ -594,7 +594,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
 
       {selectedTeam && !showSetup && <div>
         <Surface glow className="team-roster-surface">
-          <PremiumRosterTable key={selectedTeam.id} roster={roster} matches={data.matches || []} currentUserId={user?.id} canManage={canManageRoster} historyComplete={historyComplete} historyError={historyError} />
+          <PremiumRosterTable key={selectedTeam.id} roster={roster} members={teamMembers} matches={data.matches || []} currentUserId={user?.id} canManage={canManageRoster} historyComplete={historyComplete} historyError={historyError} />
         </Surface>
       </div>}
     </div>
@@ -657,7 +657,7 @@ function RosterRecordPlaceholder() {
 function ImportedChampionBadges({ player, matches = [], labelled = false }) {
   useLanguage();
   const stats = playerImportedChampionStats(player, matches);
-  const items = stats.slice(0, 3);
+  const items = stats.slice(0, labelled ? 4 : 3);
   if (labelled) return <span className="team-roster-champion-pool">
     <span className="team-roster-pool-label">{t("Champions les plus joués")}</span>
     {items.length ? <span className="team-roster-champions">{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}</span>
@@ -668,14 +668,31 @@ function ImportedChampionBadges({ player, matches = [], labelled = false }) {
   return <span className="team-roster-champions"><span className="sr-only">{t("Champions les plus joués : ")}</span>{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}</span>;
 }
 
-function PremiumRosterTable({ roster, matches = [], currentUserId = "", canManage = false, historyComplete = true, historyError = "" }) {
+const STAFF_DISPLAY_ORDER = ["COACH", "ASSISTANT", "ANALYST", "MANAGER", "BOARD"];
+
+/** Staff profiles plus accounts holding a staff access without a profile, so the whole staff is listed. */
+function teamStaff(roster = [], members = []) {
+  const profiles = roster.filter((item) => isStaffRole(item.role)).map((item) => ({ ...item, role: String(item.role).toUpperCase() }));
+  const linked = new Set(roster.map((item) => String(item.user_id || "")).filter(Boolean));
+  const accounts = members.filter((member) => isStaffRole(member.role) && member.user_id && !linked.has(String(member.user_id)))
+    .map((member) => ({ id: `member-${member.user_id}`, user_id: member.user_id, role: String(member.role).toUpperCase(), name: member.name || member.account_name || t("Compte NXT5") }));
+  return [...profiles, ...accounts].sort((a, b) => STAFF_DISPLAY_ORDER.indexOf(a.role) - STAFF_DISPLAY_ORDER.indexOf(b.role) || String(a.name || "").localeCompare(String(b.name || "")));
+}
+
+function staffInitials(name = "") {
+  const words = String(name).trim().split(/\s+/).filter(Boolean);
+  const letters = words.length > 1 ? words[0][0] + words[words.length - 1][0] : String(name).trim().slice(0, 2);
+  return letters.toUpperCase() || "?";
+}
+
+function PremiumRosterTable({ roster, members = [], matches = [], currentUserId = "", canManage = false, historyComplete = true, historyError = "" }) {
   useLanguage();
   const sortRoster = (items) => [...items].sort((a, b) => rosterRoleIndex(a.role) - rosterRoleIndex(b.role) || String(a.name || "").localeCompare(String(b.name || "")));
   const players = roster.filter((item) => !isStaffRole(item.role));
   const mainRoster = sortRoster(players.filter((item) => playerRosterStatus(item) === "MAIN"));
   const subRoster = sortRoster(players.filter((item) => playerRosterStatus(item) === "SUB"));
   const inactiveRoster = sortRoster(players.filter((item) => playerRosterStatus(item) === "INACTIVE"));
-  const staffRoster = roster.filter((item) => isStaffRole(item.role));
+  const staffRoster = teamStaff(roster, members);
   const hasActivePlayers = mainRoster.length + subRoster.length > 0;
   const addPlayer = canManage && <LinkButton href="/gestion-equipe?section=roster" navigate={openAppPath} variant="ghost" icon={Plus}>{t("Ajouter un joueur")}</LinkButton>;
 
@@ -712,16 +729,25 @@ function PremiumRosterTable({ roster, matches = [], currentUserId = "", canManag
       {addPlayer}
     </div>}
     {mainRoster.length > 0 && <section className="team-roster-section" aria-label={t("Titulaires")}>
-      <div className="team-roster-heading"><h3>{t("Titulaires ")}<span>{mainRoster.length}</span></h3>{addPlayer}</div>
+      <div className="team-roster-heading"><h3>{t("Titulaires ")}<span>{mainRoster.length}</span></h3></div>
       {renderPlayers(mainRoster, "Titulaires")}
     </section>}
     {subRoster.length > 0 && <section className="team-roster-section" aria-label={t("Remplaçants")}>
-      <div className="team-roster-heading"><h3>{t("Remplaçants ")}<span>{subRoster.length}</span></h3>{!mainRoster.length && addPlayer}</div>
+      <div className="team-roster-heading"><h3>{t("Remplaçants ")}<span>{subRoster.length}</span></h3></div>
       {renderPlayers(subRoster, "Remplaçants")}
     </section>}
     {staffRoster.length > 0 && <section className="team-roster-section" aria-label={t("Encadrement")}>
       <div className="team-roster-heading"><h3>{t("Encadrement ")}<span>{staffRoster.length}</span></h3></div>
-      <ul className="team-roster-staff">{staffRoster.map((member) => <li key={member.id}><span>{member.name}</span><span>{t(roleLabel(member.role))}</span></li>)}</ul>
+      <ul className="team-staff-list">{staffRoster.map((member) => {
+        const isMe = Boolean(currentUserId && member.user_id && String(member.user_id) === String(currentUserId));
+        return <li key={member.id} className="team-staff-card" data-role={member.role.toLowerCase()} data-me={isMe || undefined}>
+          <span className="team-staff-avatar" aria-hidden="true">{staffInitials(member.name)}</span>
+          <span className="team-staff-identity">
+            <span className="team-staff-name">{member.name}{isMe && <span className="team-roster-me">{t("Toi")}</span>}</span>
+            <span className="team-staff-role"><RoleIcon role={member.role} className="h-4 w-4" /><span>{t(roleLabel(member.role))}</span></span>
+          </span>
+        </li>;
+      })}</ul>
     </section>}
     {inactiveRoster.length > 0 && <details className="team-roster-options">
       <summary>{t("Hors effectif actif ")}<span>{inactiveRoster.length}</span></summary>

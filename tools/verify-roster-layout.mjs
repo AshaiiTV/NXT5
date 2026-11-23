@@ -67,15 +67,14 @@ try {
         const pageErrors = [];
         page.on('pageerror', error => pageErrors.push(error.message));
         await page.goto(server.resolvedUrls.local[0] + '__roster-layout.html?' + order + '&' + state, { waitUntil: 'domcontentloaded' });
-        await page.locator('.team-roster-heading a').waitFor();
+        await page.locator('.team-roster-heading').first().waitFor();
         await page.evaluate(() => document.fonts.ready);
         const geometry = await page.evaluate(() => {
           const panel = document.querySelector('.team-roster-surface');
           const rect = el => { const r = el.getBoundingClientRect(); return {left:r.left, top:r.top, right:r.right, bottom:r.bottom, width:r.width, height:r.height}; };
           const heading = document.querySelector('.team-roster-heading');
-          const action = heading.querySelector('a');
           return {
-            panel: rect(panel), title: rect(heading.querySelector('h3')), action: rect(action),
+            panel: rect(panel), title: rect(heading.querySelector('h3')),
             inset: parseFloat(getComputedStyle(panel).paddingLeft),
             cards: [...document.querySelectorAll('.team-roster-list > li')].map(rect),
             headings: [...document.querySelectorAll('.team-roster-heading')].map(rect),
@@ -90,18 +89,16 @@ try {
         assert.deepEqual(pageErrors, [], label + ': JavaScript errors');
         assert.equal(geometry.overflow, false, label + ': horizontal overflow');
         assert(geometry.arrowOffsets.every(offset => offset < 1), label + ': profile arrows centered with role');
-        for (const r of [geometry.title, geometry.action, ...geometry.cards, ...geometry.headings]) {
+        for (const r of [geometry.title, ...geometry.cards, ...geometry.headings]) {
           assert(r.left >= geometry.panel.left + geometry.inset, label + ': left inset');
           assert(r.right <= geometry.panel.right - geometry.inset + 1, label + ': right inset');
           assert(r.top >= geometry.panel.top + geometry.inset, label + ': top inset');
           assert(r.bottom <= geometry.panel.bottom - geometry.inset + 1, label + ': bottom inset');
         }
-        const {title, action} = geometry;
-        assert(title.right <= action.left || title.bottom <= action.top, label + ': title/action overlap');
-        assert(action.height >= 44, label + ': touch target');
+        assert(geometry.cards.every(card => card.height >= 44), label + ': touch target');
         await page.screenshot({ path: path.join(output, label.replaceAll(/[^a-z0-9-]/gi, '-') + '.png'), fullPage: true });
         await page.keyboard.press('Tab');
-        assert(await page.locator('.team-roster-heading a').evaluate(el => el === document.activeElement && getComputedStyle(el).outlineStyle !== 'none'), label + ': keyboard focus');
+        assert(await page.locator('.team-roster-row').first().evaluate(el => el === document.activeElement && getComputedStyle(el).outlineStyle !== 'none'), label + ': keyboard focus');
         results.push({ width, order, state, ...geometry });
         await page.close();
       }

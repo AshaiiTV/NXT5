@@ -189,7 +189,7 @@ describe("readable team roster", () => {
     expect(markedLinks()).toHaveLength(0);
   });
 
-  it("shows the three most played imported champions with counts, keeping the identity when artwork fails", async () => {
+  it("shows the four most played imported champions with counts, keeping the identity when artwork fails", async () => {
     const settings = props();
     settings.data.players = [player];
     settings.data.matches = ["Ornn", "Ornn", "Gnar", "Camille", "Zac"].map((champion, index) => ({
@@ -202,8 +202,8 @@ describe("readable team roster", () => {
     const { renderer } = await render(settings);
     const [link] = profileLinks(renderer.root);
     const portraits = link.findAll((node) => node.props.role === "img");
-    expect(portraits.map((node) => node.props["aria-label"])).toEqual(["Ornn · 2 parties", "Camille · 1 partie", "Gnar · 1 partie"]);
-    expect(portraits.map((node) => node.findByProps({ className: "team-roster-champion-count" }).children)).toEqual([["2"], ["1"], ["1"]]);
+    expect(portraits.map((node) => node.props["aria-label"])).toEqual(["Ornn · 2 parties", "Camille · 1 partie", "Gnar · 1 partie", "Zac · 1 partie"]);
+    expect(portraits.map((node) => node.findByProps({ className: "team-roster-champion-count" }).children)).toEqual([["2"], ["1"], ["1"], ["1"]]);
     const artwork = portraits[0].findByType("img");
     expect(decodeURIComponent(artwork.props.src)).toContain("/img/champion/Ornn.png");
     await act(async () => artwork.props.onError());
@@ -260,6 +260,20 @@ describe("first roster setup", () => {
     expect(window.dispatchEvent).toHaveBeenCalled();
   });
 
+  it("lists every staff member, including staff accounts without a roster profile", async () => {
+    const settings = props();
+    settings.data.players = [player, { id: "staff-profile", team_id: team.id, name: "ah diekop", role: "MANAGER", user_id: "u-manager" }];
+    settings.data.teamMembers = [
+      { team_id: team.id, user_id: "u-manager", role: "manager", name: "ah diekop" },
+      { team_id: team.id, user_id: "u-coach", role: "coach", name: "Coach Kaz" },
+      { team_id: team.id, user_id: "u-analyst", role: "analyst", account_name: "Data Lina" },
+      { team_id: team.id, user_id: "u-player", role: "player", name: "Joueur" },
+    ];
+    const { renderer } = await render(settings);
+    const names = renderer.root.findAll((node) => node.props.className === "team-staff-name").map((node) => node.children.find((child) => typeof child === "string"));
+    expect(names).toEqual(["Coach Kaz", "Data Lina", "ah diekop"]);
+  });
+
   it("preserves the team copy action and roster entry for a populated roster", async () => {
     const settings = props();
     settings.data.players = [player];
@@ -267,7 +281,9 @@ describe("first roster setup", () => {
     expect(content(renderer)).toContain("Copier le multi OP.GG");
     expect(content(renderer)).not.toContain("Copier OP.GG titulaires");
     expect(content(renderer)).not.toContain("Copier OP.GG remplaçants");
-    expect(renderer.root.findAllByType("a").some((item) => item.props.href === "/gestion-equipe?section=roster")).toBe(true);
+    // Adding players lives in team management; the roster headings no longer repeat it.
+    expect(renderer.root.findAllByType("a").some((item) => item.props.href === "/gestion-equipe")).toBe(true);
+    expect(renderer.root.findAllByType("a").some((item) => item.props.href === "/gestion-equipe?section=roster")).toBe(false);
   });
 
   it.each(["member", "player"])("explains staff responsibility to a %s without offering an unavailable action", async (role) => {
