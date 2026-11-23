@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowUpRight, Check, Clock3, Copy, Eye, Flag, Layers3, Maximize2, Minimize2, Swords, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, Check, Clock3, Copy, Eye, Flag, Layers3, Link2, Maximize2, Minimize2, PencilLine, Swords, Trash2, Volume2, VolumeX } from "lucide-react";
+import { getLocale } from "../../i18n/locale.js";
+import { ChampionPortrait } from "../../pages/workspace/workspace-shared.jsx";
 import { apiFetch } from "../../api/client.js";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
@@ -8,7 +10,10 @@ import { matchDisplayName } from "../../utils/matches.js";
 import { Nxt5Wordmark } from "../brand/BrandAssets.jsx";
 import { camp, DraftArena } from "./DraftArena.jsx";
 import { useDraftVoices } from "./useDraftVoices.js";
+import { draftTurns } from "../../../shared/draft-order.js";
+import { championDisplayName } from "../../../shared/champions.js";
 import "./live-draft-room.css";
+
 
 export const roomRequest = (body, signal) => apiFetch("draft-rooms", { method: "POST", body: JSON.stringify(body), signal });
 const isRoomId = id => /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(id || "");
@@ -36,9 +41,10 @@ function RoomInvitation({ room, spectator = false }) {
     {fallback && <input className="live-share-url" aria-label={label} value={link.href} readOnly onFocus={e => e.target.select()} />}</div>;
 }
 
-function RoomFinish({room,teamId,matches,pending,mutate,live}) {
+function RoomFinish({room,teamId,matches,pending,mutate,live,onCorrect,editButton}) {
   const [matchId,setMatchId] = useState(""), [side,setSide] = useState(room.side || "blue"), [firstPick,setFirstPick] = useState("blue");
   return <div className="live-finish">
+    {room.invite && <div><Button ref={editButton} type="button" variant="ghost" icon={PencilLine} disabled={pending} onClick={onCorrect}>{t("Corriger la draft")}</Button></div>}
     {live && room.gameNumber < room.seriesLength && (room.invite ? <div className="live-next"><h3>{gameLabel(room.gameNumber+1,room.seriesLength)}</h3>
       <div className="live-create-fields"><SideSelect label={t("Notre côté")} value={side} onChange={setSide} />
       <SideSelect label={t("Premier choix")} value={firstPick} onChange={setFirstPick} /></div>
@@ -56,6 +62,7 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
   useLanguage();
   const [room,setRoom] = useState(null), [loadError,setLoadError] = useState(""), [actionError,setActionError] = useState("");
   const [pending,setPending] = useState(false), [recent,setRecent] = useState(-1), [full,setFull] = useState(false);
+  const [correction,setCorrection] = useState(null), editButton = useRef(null);
   const inFlight = useRef(false), latest = useRef(null), frame = useRef(null), mounted = useRef(true);
   const { active: voicesActive, toggleButton, toggle: toggleVoices, playConfirmed, prepareVoice } = useDraftVoices(!pinned);
   const request = useCallback((action, fields = {}, signal) => roomRequest({ action, roomId, ...(invite === undefined ? {teamId} : {invite}),
@@ -67,7 +74,8 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
     if (prev && (prev.gameNumber > next.gameNumber || prev.gameNumber === next.gameNumber &&
       (prev.moves.length > next.moves.length || prev.matchId && !next.matchId && prev.moves.length === next.moves.length))) return;
     // Polling spectators shouldn't repaint the champion catalogue between turns.
-    if (prev && prev.gameId === next.gameId && prev.moves.length === next.moves.length && prev.latestGame === next.latestGame
+    // A correction keeps the move count but changes its content, so compare the board itself.
+    if (prev && prev.gameId === next.gameId && JSON.stringify(prev.moves) === JSON.stringify(next.moves) && prev.latestGame === next.latestGame
       && prev.side === next.side && prev.invite === next.invite && prev.matchId === next.matchId && prev.turnStartedAt === next.turnStartedAt
       && (!next.turnSeconds || Math.abs(next.serverTime-prev.serverTime) < 30000)) return;
     if (prev?.gameNumber !== next.gameNumber) setRecent(-1);
@@ -76,6 +84,9 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
     playConfirmed(prev, next);
   }, [playConfirmed]);
   const finished = room?.moves.length === 20 && (Boolean(pinned) || room.gameNumber === room.seriesLength);
+  const correcting = Boolean(correction);
+  // A correction belongs to the game it was opened on; drop it if the session moves to another game.
+  useEffect(() => { if (correction && room?.gameId !== correction.gameId) setCorrection(null); }, [room?.gameId, correction]);
   useEffect(() => {
     mounted.current = true;
     const change = () => setFull(document.fullscreenElement === frame.current);
@@ -83,7 +94,7 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
     return () => { mounted.current = false; document.removeEventListener("fullscreenchange",change); };
   },[]);
   useEffect(() => {
-    if (finished) return;
+    if (finished || correcting) return;
     let active = true, timer;
     const controller = new AbortController();
     async function poll() {
@@ -99,15 +110,20 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
     }
     void poll();
     return () => { active = false; clearTimeout(timer); controller.abort(); };
-  }, [request, accept, finished]);
+  }, [request, accept, finished, correcting]);
   async function mutate(action, fields) {
-    if (inFlight.current || !room) return;
+    if (inFlight.current || !room) return false;
     inFlight.current = true; setPending(true); setActionError("");
-    try { const result = await request(action, {gameNumber:room.gameNumber, ...fields}); accept(result.room); setLoadError(""); }
+    try { const result = await request(action, {gameNumber:room.gameNumber, ...fields}); accept(result.room); setLoadError(""); return true; }
     catch (err) {
       setActionError(err.message);
       try { accept((await request("read")).room); } catch { /* Polling retries. */ }
+      return false;
     } finally { inFlight.current = false; setPending(false); }
+  }
+  function closeCorrection() {
+    setCorrection(null);
+    globalThis.requestAnimationFrame?.(() => editButton.current?.focus());
   }
   async function fullscreen() {
     try { if (document.fullscreenElement) await document.exitFullscreen(); else await frame.current.requestFullscreen(); }
@@ -140,8 +156,12 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
     {!room && !loadError && <p role="status">{t("Chargement…")}</p>}
     {room && <React.Fragment key={room.gameId}>
       {actionError && <p role="alert">{t(actionError)}</p>}
-      <DraftArena room={room} recent={recent} pending={pending} onPrepareVoice={prepareVoice} onStart={() => mutate("start",{})} onMove={champion => mutate("move",{step:room.moves.length,champion})} />
-      {room.moves.length === 20 && <RoomFinish {...{room,teamId,matches,pending,mutate}} live={!pinned} />}
+      <DraftArena room={room} recent={recent} pending={pending} onPrepareVoice={prepareVoice} onStart={() => mutate("start",{})} onMove={champion => mutate("move",{step:room.moves.length,champion})}
+        edit={correction && {...correction, onSelect: selected => setCorrection(c => ({...c, selected})),
+          onChoose: champion => setCorrection(c => ({...c, moves: c.moves.map((id,i) => i === c.selected ? champion : id)})),
+          onCancel: closeCorrection, onSave: async () => { if (await mutate("correct",{moves:correction.moves,expected:correction.base})) closeCorrection(); }}} />
+      {room.moves.length === 20 && !correction && <RoomFinish {...{room,teamId,matches,pending,mutate,editButton}} live={!pinned}
+        onCorrect={() => { setActionError(""); setCorrection({gameId:room.gameId, base:[...room.moves], moves:[...room.moves], selected:0}); }} />}
     </React.Fragment>}
   </div>;
 }
@@ -170,14 +190,57 @@ function DraftSetting({label, name, options, value, onChange}) {
   </fieldset>;
 }
 
+function roomPicks(r) {
+  const moves = Array.isArray(r.moves) ? r.moves : [], picks = {blue:[],red:[]};
+  draftTurns(r.first_pick || "blue").forEach(([kind,side],i) => { if (kind === "pick") picks[side].push(moves[i]); });
+  return picks;
+}
+function roomDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString(getLocale(), {day:"numeric", month:"short"});
+}
+
+export function RecentRoom({ room: r, editable, deleting, onDelete, navigate }) {
+  const label = `${r.blue_name} · ${r.red_name}`, picks = roomPicks(r), href = `/draft/salle?room=${r.id}`;
+  const state = r.step === 20 ? "done" : r.step > 0 ? "live" : "idle";
+  const status = state === "done" ? (r.game_number < r.series_length ? t("Partie terminée") : t("Draft terminée")) : state === "live" ? t("En cours") : t("À démarrer");
+  const names = side => picks[side].filter(Boolean).map(championDisplayName).join(", ") || t("aucun pick");
+  const follow = event => {
+    if (!navigate || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault(); navigate(href);
+  };
+  return <li className="live-room-row" data-state={state}>
+    <a className="live-row-open" href={href} onClick={follow} aria-label={t("Ouvrir la salle {0}",[label])}>
+      <span className="live-row-teams">{["blue","red"].map(side => <span key={side} className="live-row-team" data-side={side}>
+        <i aria-hidden="true" /><b>{side === "blue" ? r.blue_name : r.red_name}</b>{r.ally_side === side && <small>{t("Nous")}</small>}</span>)}</span>
+    </a>
+    <div className="live-row-picks" role="img" aria-label={t("Picks : {0} — {1} ; {2} — {3}",[r.blue_name,names("blue"),r.red_name,names("red")])}>
+      {["blue","red"].map(side => <span key={side} data-side={side}>{picks[side].map((c,i) =>
+        <span key={i} className="live-row-pick" data-empty={!c || undefined}>{c && <ChampionPortrait champion={c} alt="" />}</span>)}</span>)}
+    </div>
+    <div className="live-row-meta">
+      <span className="live-row-status" data-state={state}>{state === "done" ? <Check aria-hidden="true" /> : <span aria-hidden="true" className="live-row-dot" />}{status}</span>
+      <span className="live-row-progress" role="progressbar" aria-label={t("Avancement de la partie")} aria-valuemin={0} aria-valuemax={20} aria-valuenow={r.step}
+        aria-valuetext={t("{0} choix sur 20",[r.step])}><span style={{width:`${r.step*5}%`}} /></span>
+      <small>{[r.series_length > 1 ? gameLabel(r.game_number,r.series_length) : t("1 partie"), r.mode === "fearless" ? t("Fearless") : t("Standard"), roomDate(r.created_at)].filter(Boolean).join(" · ")}</small>
+      {r.linked > 0 && <small className="live-row-linked"><Link2 aria-hidden="true" />{r.linked > 1 ? t("{0} parties liées",[r.linked]) : t("1 partie liée")}</small>}
+    </div>
+    <div className="live-row-actions">
+      <ArrowUpRight aria-hidden="true" className="live-row-arrow" />
+      {editable && <button type="button" className="live-tool live-delete" disabled={Boolean(deleting)} aria-busy={deleting === r.id}
+        aria-label={t("Supprimer la salle {0}",[label])} title={t("Supprimer la salle")} onClick={() => onDelete(r)}><Trash2 aria-hidden="true" /></button>}
+    </div>
+  </li>;
+}
+
 export function DraftRoomWorkspace({ teamId, teamName, matches, route, navigate }) {
   useLanguage();
   const id = new URLSearchParams(route.search).get("room");
   const [rooms,setRooms] = useState([]), [editable,setEditable] = useState(null), [error,setError] = useState("");
   const [name,setName] = useState(""), [side,setSide] = useState("blue"), [busy,setBusy] = useState(false), [reload,setReload] = useState(0);
   const [seriesLength,setSeriesLength] = useState("1"), [mode,setMode] = useState("standard"), [firstPick,setFirstPick] = useState("blue");
-  const [turnSeconds,setTurnSeconds] = useState("0");
-  const creation = useRef(null);
+  const [turnSeconds,setTurnSeconds] = useState("0"), [deleting,setDeleting] = useState(null), [notice,setNotice] = useState("");
+  const creation = useRef(null), listHeading = useRef(null), noticeRef = useRef(null);
   useEffect(() => {
     if (!teamId || id) return;
     const controller = new AbortController();
@@ -198,6 +261,20 @@ export function DraftRoomWorkspace({ teamId, teamName, matches, route, navigate 
       const {room} = await roomRequest({action:"create", teamId, side, opponent:name, seriesLength:Number(seriesLength), mode, firstPick, turnSeconds:Number(turnSeconds), creationKey:creation.current.key});
       creation.current = null; open(room.id);
     } catch (err) { setError(err.message); } finally { setBusy(false); }
+  }
+  async function remove(r) {
+    if (deleting) return;
+    const label = `${r.blue_name} · ${r.red_name}`;
+    const games = r.game_number > 1 ? t("Les {0} parties de la série seront supprimées.",[r.game_number]) : "";
+    const linked = r.linked > 0 ? t("{0} partie(s) jouée(s) ne seront plus associées à cette draft.",[r.linked]) : "";
+    if (!window.confirm([t("Supprimer la salle « {0} » ?",[label]), games, linked, t("Ses picks et bans disparaîtront aussi des analyses. Cette action est définitive.")].filter(Boolean).join("\n\n"))) return;
+    setDeleting(r.id); setError(""); setNotice("");
+    try {
+      await roomRequest({action:"delete", teamId, roomId:r.id});
+      setRooms(list => list.filter(x => x.id !== r.id));
+      setNotice(t("Salle « {0} » supprimée.",[label]));
+      globalThis.requestAnimationFrame?.(() => (listHeading.current || noticeRef.current)?.focus());
+    } catch (err) { setError(err.message); } finally { setDeleting(null); }
   }
   if (!teamId) return <Surface><p>{t("Sélectionne une équipe.")}</p></Surface>;
   if (id) return <Surface><LiveDraftRoom key={id+route.search} roomId={id} initialGame={Number(new URLSearchParams(route.search).get("game"))} teamId={teamId} matches={matches} onBack={() => navigate("/draft/salle")} /></Surface>;
@@ -237,8 +314,12 @@ export function DraftRoomWorkspace({ teamId, teamName, matches, route, navigate 
         <Button type="submit" disabled={busy} icon={Swords}>{t("Créer la salle")}</Button>
       </form>}
     </div>
-    {rooms.length > 0 && <section className="live-history-section"><h3>{t("Salles récentes")}</h3><ul className="live-history">{rooms.map(r => <li key={r.id}>
-      <a href={`/draft/salle?room=${r.id}`}><span>{r.blue_name} · {r.red_name}</span><small>{r.series_length > 1 && gameLabel(r.game_number,r.series_length) + " · "}{r.step === 20 ? t("Draft terminée") : t("{0} choix sur 20", [r.step])}</small><ArrowUpRight size={16} aria-hidden="true"/></a></li>)}</ul></section>}
+    {notice && <p ref={noticeRef} tabIndex={-1} role="status" className="live-history-notice">{notice}</p>}
+    {rooms.length > 0 && <section className="live-history-section" aria-labelledby="live-history-title">
+      <header className="live-history-head"><h3 id="live-history-title" ref={listHeading} tabIndex={-1}>{t("Salles récentes")}</h3>
+        <span>{rooms.length > 1 ? t("{0} salles",[rooms.length]) : t("1 salle")}</span></header>
+      <ul className="live-history">{rooms.map(r => <RecentRoom key={r.id} room={r} editable={editable} deleting={deleting} onDelete={remove} navigate={navigate} />)}</ul>
+    </section>}
     {editable === false && !rooms.length && <p>{t("Aucune salle de draft pour cette équipe.")}</p>}
   </div></Surface>;
 }

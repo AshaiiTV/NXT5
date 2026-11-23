@@ -67,7 +67,7 @@ export default async function handler(request: Request, context: Context) {
     assertMethod(request, 'POST');
     const body = await readJson(request, 4096);
     const { action } = body;
-    if (!['list','create','read','move','link','next','start'].includes(action)) throw fail('Action inconnue.');
+    if (!['list','create','read','move','link','next','start','delete','correct'].includes(action)) throw fail('Action inconnue.');
     const guest = body.invite !== undefined;
     let teamId: string | null = null, userId: string | null = null, canEdit = false, role = '';
     if (guest) {
@@ -81,7 +81,9 @@ export default async function handler(request: Request, context: Context) {
     }
     if (action === 'list') {
       const rooms = await sql`select r.id, g.blue_name, g.red_name, g.game_number, r.series_length, g.ally_side,
-        jsonb_array_length(g.moves) as step, r.created_at from draft_rooms r
+        jsonb_array_length(g.moves) as step, r.created_at, g.draft_mode as mode, g.first_pick, g.moves,
+        (select count(*) from opponent_drafts d join draft_rooms x on x.id=d.id
+          where d.team_id=r.team_id and d.match_id is not null and (x.id=r.id or x.series_root=r.id))::int as linked from draft_rooms r
         cross join lateral (select * from draft_rooms x where x.id=r.id or x.series_root=r.id order by game_number desc limit 1) g
         where r.team_id=${teamId} and r.series_root is null order by r.created_at desc, r.id desc limit 40`;
       return json({ rooms, canEdit });
@@ -104,6 +106,20 @@ export default async function handler(request: Request, context: Context) {
     }
 
     const id = opponentUuid(body.roomId);
+    if (action === 'delete') {
+      // Published drafts share the room id but have no foreign key to it: remove both so analyses forget the series.
+      const [deleted] = await sql`with series as (
+        select r.id from draft_rooms r join teams t on t.id=r.team_id
+        where (r.id=${id} and r.series_root is null or r.series_root=${id}) and r.team_id=${teamId}::uuid
+          and (t.owner_id=${userId}::uuid or exists(select 1 from team_members m where m.team_id=t.id and m.user_id=${userId}::uuid and m.role=any(${TEAM_STAFF_ROLES})))
+      ), drafts as (
+        delete from opponent_drafts d using series s where d.id=s.id and d.team_id=${teamId}::uuid returning d.id
+      ), removed as (
+        delete from draft_rooms r using series s where r.id=s.id returning r.id
+      ) select (select count(*) from removed)::int as games, (select count(*) from drafts)::int as drafts`;
+      if (!deleted?.games) throw missing();
+      return json({ deleted: { id, games: deleted.games, drafts: deleted.drafts } });
+    }
     const series = await sql`select r.*, d.match_id from draft_rooms r left join opponent_drafts d on d.id=r.id and d.team_id=r.team_id
       where (r.id=${id} and r.series_root is null or r.series_root=${id}) and (${guest} or r.team_id=${teamId}::uuid) order by r.game_number`;
     if (!series.length) throw missing();
@@ -144,6 +160,38 @@ export default async function handler(request: Request, context: Context) {
         returning d.id`;
       if (!rows.length) throw fail('Cette salle ne peut pas être associée à cette partie.', 409);
       return result({ ...room, match_id: matchId });
+    }
+    if (action === 'correct') {
+      // Staff can fix a finished game after the fact; the expected board guards against overwriting a concurrent correction.
+      const { moves, expected } = body;
+      const turns = draftTurns(room.first_pick);
+      if (room.moves.length !== turns.length || !Array.isArray(expected) || JSON.stringify(expected) !== JSON.stringify(room.moves)) throw changed();
+      if (!Array.isArray(moves) || moves.length !== turns.length) throw fail('La correction doit contenir les 20 choix.');
+      moves.forEach((champion, index) => {
+        if (!(champion === null && turns[index][0] === 'ban') && !champions.has(champion)) throw fail('Champion invalide.');
+      });
+      const chosen = moves.filter(Boolean);
+      if (new Set(chosen).size !== chosen.length) throw fail('Un champion ne peut apparaître qu’une fois par partie.');
+      const picks = moves.filter((champion, index) => champion && turns[index][0] === 'pick');
+      const later = room.draft_mode === 'fearless' ? series.filter(game => game.game_number > room.game_number).flatMap(game => {
+        const order = draftTurns(game.first_pick);
+        return game.moves.filter((champion, index) => champion && order[index][0] === 'pick');
+      }) : [];
+      const taken = new Set([...lockedChampions(room, series), ...later]);
+      const clash = picks.find(champion => taken.has(champion));
+      if (clash) throw fail(`${clash} est déjà joué dans une autre partie de la série Fearless.`, 409);
+      if (JSON.stringify(moves) === JSON.stringify(room.moves)) return result(room);
+      const snapshot = snapshotFor(room, moves);
+      const [saved] = await sql`with corrected as (
+        update draft_rooms r set moves=${JSON.stringify(moves)}::jsonb from teams t
+        where r.id=${room.id} and r.team_id=${teamId}::uuid and t.id=r.team_id and r.moves=${JSON.stringify(room.moves)}::jsonb
+          and (t.owner_id=${userId}::uuid or exists(select 1 from team_members m where m.team_id=t.id and m.user_id=${userId}::uuid and m.role=any(${TEAM_STAFF_ROLES})))
+        returning r.*
+      ), published as (
+        update opponent_drafts d set snapshot=${JSON.stringify(snapshot)}::jsonb from corrected c where d.id=c.id and d.team_id=c.team_id returning d.id
+      ) select c.*, (select count(*) from published)::int as published from corrected c`;
+      if (!saved) throw changed();
+      return result({ ...saved, match_id: room.match_id });
     }
 
     if (room.turn_seconds && !room.turn_started_at) throw changed();

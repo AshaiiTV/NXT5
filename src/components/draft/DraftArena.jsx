@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Ban, Check, ChevronDown, Clock3, Crosshair, EyeOff, History, LockKeyhole, Search, Swords, X } from "lucide-react";
+import { Ban, Check, ChevronDown, Clock3, Crosshair, EyeOff, History, LockKeyhole, PencilLine, RotateCcw, Search, Swords, X } from "lucide-react";
 import { RoleIcon } from "../brand/BrandAssets.jsx";
 import { t } from "../../i18n/translate.js";
 import { ChampionPortrait, championMatchesLane } from "../../pages/workspace/workspace-shared.jsx";
@@ -20,22 +20,22 @@ function spotlightUrl(id, art, width) {
     : "/.netlify/functions/asset-proxy?spotlight=" + encodeURIComponent(id) + "&w=" + width;
 }
 
-function TeamBoard({ side, room, turns, recent, choice }) {
+function TeamBoard({ side, room, turns, recent, choice, step, edit }) {
   const [expanded,setExpanded] = useState(false);
-  const name = room[side + "Name"];
-  return <section className="live-team" data-expanded={expanded} data-side={side} data-active={turns[room.moves.length]?.[1] === side} aria-label={camp(side)}>
+  const name = room[side + "Name"], moves = edit ? edit.moves : room.moves;
+  return <section className="live-team" data-expanded={expanded} data-side={side} data-active={turns[step]?.[1] === side} aria-label={camp(side)}>
     <header className="live-team-heading"><span>{camp(side)}</span><h3 title={name}>{name}</h3>
       <button type="button" className="live-team-toggle" aria-label={t("Composition de {0}",[name])} aria-expanded={expanded} onClick={() => setExpanded(!expanded)}><ChevronDown size={14} aria-hidden="true"/></button></header>
     {["ban","pick"].map(kind => <div className={"live-roster roster-" + kind} key={kind}>
       <h4>{kind === "ban" ? t("Bans") : t("Picks")}</h4>
       <ol>{turns.map(([type,team,slot], i) => {
         if (type !== kind || team !== side) return null;
-        const current = i === room.moves.length, preview = current && choice !== undefined;
-        const id = preview ? choice : room.moves[i];
+        const current = i === step, preview = !edit && current && choice !== undefined;
+        const id = preview ? choice : moves[i];
         const art = id && kind === "pick" && draftSpotlight(id);
         const name = id ? championDisplayName(id) : id === null ? t("Ban non utilisé") : t("À venir");
-        return <li key={i} data-current={current} data-preview={preview} data-filled={Boolean(id)} data-reveal={i === recent}
-          aria-current={current ? "step" : undefined} title={name}>
+        const changed = Boolean(edit) && id !== room.moves[i];
+        const content = <>
           <span className="live-slot" data-art={Boolean(art)} aria-hidden="true" style={art ? {
             "--pick-art": 'url("' + spotlightUrl(id,art,Math.min(768,art.width)) + '")',
             "--art-ratio": art.height / art.width, "--face-x": art.x, "--face-y": art.y
@@ -43,6 +43,12 @@ function TeamBoard({ side, room, turns, recent, choice }) {
           <span className="live-slot-name">{name}</span>
           {preview && <EyeOff size={13} className="live-private-mark" aria-hidden="true" />}
           {kind === "ban" && id && !preview && <Ban size={12} aria-hidden="true" className="live-slot-ban" />}
+        </>;
+        return <li key={i} data-current={current} data-preview={preview} data-filled={Boolean(id)} data-reveal={!edit && i === recent} data-changed={changed || undefined}
+          aria-current={current ? "step" : undefined} title={name}>
+          {content}
+          {edit && <button type="button" className="live-slot-edit" aria-pressed={current} onClick={() => edit.onSelect(i)}
+            aria-label={t("Corriger {0} · {1} : {2}",[t(kind === "ban" ? "Ban {0}" : "Pick {0}",[slot]), room[side + "Name"], name])} />}
         </li>;
       })}</ol>
     </div>)}
@@ -79,7 +85,7 @@ function paintArtBackdrop(canvas, image, art, frame) {
   context.drawImage(image, x, y, width, height);
 }
 
-function Spotlight({ room, choice, recent, turns }) {
+function Spotlight({ room, choice, recent, turns, editing = false }) {
   const step = room.moves.length, previous = step - 1, preview = choice !== undefined;
   const id = preview ? choice : room.moves[previous];
   const source = preview ? turns[step] : turns[previous];
@@ -100,8 +106,8 @@ function Spotlight({ room, choice, recent, turns }) {
     observer.observe(node);
     return () => observer.disconnect();
   }, []);
-  const label = preview ? t("Présélection privée") : source?.[0] === "ban" ? t("Dernier ban") : t("Dernier pick");
-  const Icon = preview ? Crosshair : source?.[0] === "ban" ? Ban : LockKeyhole;
+  const label = editing ? t("Emplacement en correction") : preview ? t("Présélection privée") : source?.[0] === "ban" ? t("Dernier ban") : t("Dernier pick");
+  const Icon = editing ? PencilLine : preview ? Crosshair : source?.[0] === "ban" ? Ban : LockKeyhole;
   const name = id ? championDisplayName(id) : id === null ? t("Ban non utilisé") : t("Faille de l’invocateur");
   const finalPortrait = !turns[step] && frame?.width >= 560;
   const art = id && broken !== id ? draftSpotlight(id,frame?.width,finalPortrait) : null;
@@ -179,31 +185,38 @@ function TurnHistory({room, turns}) {
   </>;
 }
 
-export function DraftArena({room, pending, recent, onMove, onStart, onPrepareVoice}) {
-  const turns = draftTurns(room.firstPick), step = room.moves.length, turn = turns[step];
-  const waiting = room.turnSeconds > 0 && !room.turnStartedAt;
-  const mine = Boolean(turn && turn[1] === room.side && !waiting);
+export function DraftArena({room, pending, recent, onMove, onStart, onPrepareVoice, edit}) {
+  const turns = draftTurns(room.firstPick), editing = Boolean(edit);
+  const step = editing ? edit.selected : room.moves.length, turn = turns[step];
+  const waiting = !editing && room.turnSeconds > 0 && !room.turnStartedAt;
+  const mine = editing || Boolean(turn && turn[1] === room.side && !waiting);
   const [selection,setSelection] = useState(null), [query,setQuery] = useState(""), [lane,setLane] = useState("ALL");
-  const choice = mine && selection?.step === step ? selection.champion : undefined;
+  const choice = editing ? edit.moves[step] : mine && selection?.step === step ? selection.champion : undefined;
   function setChoice(champion) {
+    if (editing) { edit.onChoose(champion); return; }
     setSelection({champion, step});
     onPrepareVoice(champion, turn[0]);
   }
-  const options = catalogue.filter(id => !room.moves.includes(id) && !room.blocked.includes(id) && championMatchesLane(id,lane)
+  const used = editing ? edit.moves.filter((id,i) => id && i !== step) : room.moves;
+  const options = catalogue.filter(id => !used.includes(id) && !room.blocked.includes(id) && championMatchesLane(id,lane)
     && championNameKey(championDisplayName(id)).includes(championNameKey(query)));
-  const PhaseIcon = !turn ? Check : turn[0] === "ban" ? Ban : Swords;
+  const PhaseIcon = editing ? PencilLine : !turn ? Check : turn[0] === "ban" ? Ban : Swords;
+  const changes = editing ? edit.moves.filter((id,i) => id !== room.moves[i]).length : 0;
+  const spotRoom = editing ? {...room, moves: edit.moves.slice(0,step)} : room;
+  const phase = turn && t(turn[0] === "ban" ? "Ban {0}" : "Pick {0}", [turn[2]]);
   return <>
-    <div className="live-arena" data-complete={!turn}>
+    <div className="live-arena" data-complete={!turn} data-editing={editing || undefined}>
       <div className="live-turn" data-side={turn?.[1]}>
-        <div className="live-phase"><PhaseIcon aria-hidden="true" /><div role="status"><h3>{!turn ? t("Draft terminée") : t(turn[0] === "ban" ? "Ban {0}" : "Pick {0}", [turn[2]])}</h3>
-        <p>{!turn ? t("Les picks et bans sont enregistrés.") : waiting ? (room.canStart ? t("Confirme que ton équipe est prête.") : t("En attente du capitaine adverse.")) : mine ? t("À toi de jouer") : t("Au tour de {0}", [room[turn[1]+"Name"]])}</p></div></div>
+        <div className="live-phase"><PhaseIcon aria-hidden="true" /><div role="status"><h3>{editing ? t("Correction · {0} · {1}",[phase, room[turn[1]+"Name"]]) : !turn ? t("Draft terminée") : phase}</h3>
+        <p>{editing ? (changes ? t("{0} emplacement(s) modifié(s). Choisis un emplacement, puis un champion.",[changes]) : t("Choisis un emplacement, puis un champion."))
+          : !turn ? t("Les picks et bans sont enregistrés.") : waiting ? (room.canStart ? t("Confirme que ton équipe est prête.") : t("En attente du capitaine adverse.")) : mine ? t("À toi de jouer") : t("Au tour de {0}", [room[turn[1]+"Name"]])}</p></div></div>
         {waiting && room.canStart && <Button disabled={pending} icon={Check} onClick={onStart}>{t("Prêt à drafter")}</Button>}
-        {turn && room.turnSeconds > 0 && !waiting && <TurnClock key={step} room={room}/>}
-        <TurnHistory room={room} turns={turns} />
+        {!editing && turn && room.turnSeconds > 0 && !waiting && <TurnClock key={step} room={room}/>}
+        {!editing && <TurnHistory room={room} turns={turns} />}
       </div>
-      {["blue","red"].map(side => <TeamBoard key={side} {...{side,room,turns,recent,choice}} />)}
+      {["blue","red"].map(side => <TeamBoard key={side} {...{side,room,turns,recent,choice,step,edit}} />)}
       <div className="live-center">
-        <Spotlight {...{room,choice,recent,turns}} />
+        <Spotlight {...{room:spotRoom,choice,recent,turns,editing}} />
       </div>
       {turn && <section className="live-picker" data-side={turn[1]} aria-label={t("Champions disponibles")}>
         <div className="live-pool-heading"><h3>{t("Champions disponibles")}</h3><span>{options.length}</span></div>
@@ -216,7 +229,12 @@ export function DraftArena({room, pending, recent, onMove, onStart, onPrepareVoi
           {!options.length && <p>{t("Aucun champion trouvé.")}</p>}
         </div>
       </section>}
-      {mine && <div className="live-confirm">
+      {editing ? <div className="live-confirm live-correction-actions">
+        {turn[0] === "ban" && <Button variant="ghost" type="button" aria-pressed={choice === null} disabled={pending} onClick={() => setChoice(null)}>{t("Ban non utilisé")}</Button>}
+        {choice !== room.moves[step] && <Button variant="ghost" type="button" icon={RotateCcw} disabled={pending} aria-label={t("Rétablir cet emplacement")} onClick={() => setChoice(room.moves[step])}>{t("Rétablir")}</Button>}
+        <Button variant="ghost" type="button" disabled={pending} onClick={edit.onCancel}>{t("Annuler")}</Button>
+        <Button type="button" icon={Check} disabled={pending || !changes} onClick={edit.onSave}>{changes ? t("Enregistrer {0} correction(s)",[changes]) : t("Enregistrer la correction")}</Button>
+      </div> : mine && <div className="live-confirm">
         {turn[0] === "ban" && <Button variant="ghost" type="button" aria-pressed={choice === null} disabled={pending} onClick={() => setChoice(null)}>{t("Passer ce ban")}</Button>}
         <Button type="button" aria-label={choice ? t(turn[0] === "ban" ? "Bannir {0}" : "Verrouiller {0}", [championDisplayName(choice)]) : undefined} icon={turn[0] === "ban" ? Ban : LockKeyhole} disabled={pending || choice === undefined} onClick={() => {
           onMove(choice); setQuery("");
