@@ -348,7 +348,7 @@ export default function HomeMotion({ navigate }) {
               className="hm-glass-wrap"
               aria-hidden="true"
             >
-              <GlassScene className="hm-glass-scene" motionEnabled={!reduced} />
+              <GlassScene className="hm-glass-scene" motionEnabled={!reduced} priority />
             </div>
             <div className="hm-clouds-front" aria-hidden="true" />
             <div className="hm-ground-shade" aria-hidden="true" />

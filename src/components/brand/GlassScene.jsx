@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { subscribeGlassPointer } from "./glass-pointer.js";
+import { afterLoadAndIdle, engineConstrained, subscribeEngineConstraints } from "./glass-engine-gate.js";
 import "./glass-scene.css";
 
 let engineModule;
@@ -8,8 +9,15 @@ const loadEngine = () => engineModule ??= import("../../pages/home/glass-scene.j
   throw error;
 });
 
-/** One sculpture and motion system for every NXT5 scene, at every viewport size. */
-export default function GlassScene({ className = "", posterClassName = "", canvasClassName = "", motionEnabled = true }) {
+// Start a scene shortly before it scrolls into view so its first frame is ready on arrival.
+const NEAR_VIEWPORT = "200px 0px";
+
+/**
+ * One sculpture and motion system for every NXT5 scene, at every viewport size.
+ * The poster is painted first (LCP); three.js only loads after `load` and idle time,
+ * near the viewport, and never with reduced motion, data saving, a slow network or little memory.
+ */
+export default function GlassScene({ className = "", posterClassName = "", canvasClassName = "", motionEnabled = true, priority = false }) {
   const sceneRef = useRef(null);
   const canvasRef = useRef(null);
   const [ready, setReady] = useState(false);
@@ -61,6 +69,8 @@ export default function GlassScene({ className = "", posterClassName = "", canva
         return;
       }
       if (attempt) return;
+      // Constrained devices keep the poster alone; a running scene is not torn down.
+      if (engineConstrained()) return;
 
       // Complete cancellation before letting another setup own this canvas.
       const request = { abort: new AbortController() };
@@ -77,9 +87,11 @@ export default function GlassScene({ className = "", posterClassName = "", canva
         controller = null;
       };
 
-      loadEngine()
-        .then(async ({ createGlassScene }) => {
-          if (!isCurrent()) return;
+      afterLoadAndIdle(request.abort.signal)
+        .then(() => (isCurrent() ? loadEngine() : null))
+        .then(async engine => {
+          if (!engine || !isCurrent()) return;
+          const { createGlassScene } = engine;
           const scene = await createGlassScene({
             canvas,
             signal: request.abort.signal,
@@ -109,10 +121,11 @@ export default function GlassScene({ className = "", posterClassName = "", canva
     });
     const preferences = new MutationObserver(update);
     preferences.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    const unsubscribeConstraints = subscribeEngineConstraints(update);
     const intersection = typeof IntersectionObserver === "undefined" ? null : new IntersectionObserver(([entry]) => {
       visible = entry.isIntersecting;
       update();
-    });
+    }, { rootMargin: NEAR_VIEWPORT });
     intersection?.observe(element);
     reduced.addEventListener("change", update);
     window.addEventListener("storage", update);
@@ -123,6 +136,7 @@ export default function GlassScene({ className = "", posterClassName = "", canva
       disposed = true;
       currentRequest?.abort.abort();
       unsubscribePointer();
+      unsubscribeConstraints();
       preferences.disconnect();
       intersection?.disconnect();
       reduced.removeEventListener("change", update);
@@ -137,7 +151,8 @@ export default function GlassScene({ className = "", posterClassName = "", canva
       <img className={`nxt5-glass-poster ${posterClassName}`} src="/assets/brand/prisme/classic-poster.webp"
         srcSet="/assets/brand/prisme/classic-poster.webp 729w, /assets/brand/prisme/classic-poster@2x.webp 1458w, /assets/brand/prisme/classic-poster@3x.webp 2187w"
         sizes="(max-width: 760px) 90vw, (max-width: 1600px) 50vw, 900px"
-        width="729" height="665" alt="" decoding="async" draggable="false" />
+        width="729" height="665" alt="" decoding="async" draggable="false"
+        fetchPriority={priority ? "high" : undefined} loading={priority ? "eager" : undefined} />
       <canvas ref={canvasRef} className={`nxt5-glass-canvas ${canvasClassName}`} width="729" height="665" />
     </div>
   );

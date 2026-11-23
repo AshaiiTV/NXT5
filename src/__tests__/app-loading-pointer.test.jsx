@@ -41,10 +41,12 @@ beforeEach(() => {
   browser = {
     ...eventTarget(), innerWidth: 1440, innerHeight: 900,
     localStorage: { getItem: vi.fn(() => "full") },
+    // The engine waits for page load and idle time; both are immediate here.
+    requestIdleCallback: callback => { callback(); return 1; },
     matchMedia: vi.fn(query => ({ ...eventTarget(), matches: !query.includes("prefers-reduced-motion") })),
   };
   documentTarget = {
-    ...eventTarget(), hidden: false, visibilityState: "visible",
+    ...eventTarget(), hidden: false, visibilityState: "visible", readyState: "complete",
     documentElement: { classList: { contains: () => false } },
   };
   vi.stubGlobal("window", browser);
