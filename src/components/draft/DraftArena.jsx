@@ -188,7 +188,8 @@ function TurnHistory({room, turns}) {
 export function DraftArena({room, pending, recent, onMove, onStart, onPrepareVoice, edit}) {
   const turns = draftTurns(room.firstPick), editing = Boolean(edit);
   const step = editing ? edit.selected : room.moves.length, turn = turns[step];
-  const waiting = !editing && room.turnSeconds > 0 && !room.turnStartedAt;
+  // Both captains confirm "Prêt" before the first ban; older responses without `started` keep the timed-room rule.
+  const waiting = !editing && (room.started === undefined ? room.turnSeconds > 0 && !room.turnStartedAt : !room.started);
   const mine = editing || Boolean(turn && turn[1] === room.side && !waiting);
   const [selection,setSelection] = useState(null), [query,setQuery] = useState(""), [lane,setLane] = useState("ALL");
   const choice = editing ? edit.moves[step] : mine && selection?.step === step ? selection.champion : undefined;
@@ -207,10 +208,13 @@ export function DraftArena({room, pending, recent, onMove, onStart, onPrepareVoi
   return <>
     <div className="live-arena" data-complete={!turn} data-editing={editing || undefined}>
       <div className="live-turn" data-side={turn?.[1]}>
-        <div className="live-phase"><PhaseIcon aria-hidden="true" /><div role="status"><h3>{editing ? t("Correction · {0} · {1}",[phase, room[turn[1]+"Name"]]) : !turn ? t("Draft terminée") : phase}</h3>
+        <div className="live-phase"><PhaseIcon aria-hidden="true" /><div role="status"><h3>{editing ? t("Correction · {0} · {1}",[phase, room[turn[1]+"Name"]]) : !turn ? t("Draft terminée") : waiting ? t("Avant la draft") : phase}</h3>
         <p>{editing ? (changes ? t("{0} emplacement(s) modifié(s). Choisis un emplacement, puis un champion.",[changes]) : t("Choisis un emplacement, puis un champion."))
-          : !turn ? t("Les picks et bans sont enregistrés.") : waiting ? (room.canStart ? t("Confirme que ton équipe est prête.") : t("En attente du capitaine adverse.")) : mine ? t("À toi de jouer") : t("Au tour de {0}", [room[turn[1]+"Name"]])}</p></div></div>
-        {waiting && room.canStart && <Button disabled={pending} icon={Check} onClick={onStart}>{t("Prêt à drafter")}</Button>}
+          : !turn ? t("Les picks et bans sont enregistrés.") : waiting ? (room.canReady ? t("Confirme que ton équipe est prête.") : room.side ? t("En attente de {0}.",[room[(room.side === "blue" ? "red" : "blue")+"Name"]]) : t("En attente des deux capitaines."))
+          : mine ? t("À toi de jouer") : t("Au tour de {0}", [room[turn[1]+"Name"]])}</p></div></div>
+        {waiting && room.ready && <ul className="live-ready" aria-label={t("Capitaines prêts")}>{["blue","red"].map(side => <li key={side} data-side={side} data-ready={room.ready[side]}>
+          {room.ready[side] ? <Check aria-hidden="true" /> : <Clock3 aria-hidden="true" />}<span>{room[side+"Name"]}</span><b>{room.ready[side] ? t("Prêt") : t("En attente")}</b></li>)}</ul>}
+        {waiting && room.canReady && <Button disabled={pending} icon={Check} onClick={onStart}>{t("Prêt à drafter")}</Button>}
         {!editing && turn && room.turnSeconds > 0 && !waiting && <TurnClock key={step} room={room}/>}
         {!editing && <TurnHistory room={room} turns={turns} />}
       </div>

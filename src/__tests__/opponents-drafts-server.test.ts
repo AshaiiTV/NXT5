@@ -788,6 +788,9 @@ describe('opponent draft server', () => {
 
 describe('native draft rooms', () => {
   const roomCall = (body: any) => rooms(request(body), context);
+  const ready = async (host: any, guest: any, gameNumber?: number) => {
+    for (const actor of [host, guest]) expect((await roomCall({action:'ready',...actor,...(gameNumber ? {gameNumber} : {})})).status).toBe(200);
+  };
   it('includes native rooms beyond the imported draft quota without dropping or repeating the boundary', async () => {
     await db.query(`insert into opponent_drafts(team_id,ally_side,source_id,game_number,source_url,snapshot)
       select $1,'blue','room_'||g,1,'/draft/salle','{"source":"nxt5"}'::jsonb from generate_series(1,201) g`, [teamId]);
@@ -802,11 +805,13 @@ describe('native draft rooms', () => {
     const host = {teamId,roomId:room.id}, guest = {invite:room.invite,roomId:room.id};
     const move = {action:'move',...host,step:0,champion:'Ahri'};
     expect((await roomCall(move)).status).toBe(409);
-    expect((await roomCall({action:'start',...host})).status).toBe(404);
     expect((await roomCall({action:'start',roomId:room.id,invite:room.spectatorInvite})).status).toBe(404);
+    const hostReady = (await (await roomCall({action:'ready',...host})).json()).room;
+    expect(hostReady).toMatchObject({started:false,canReady:false,ready:{blue:true,red:false},turnStartedAt:null});
+    expect((await roomCall(move)).status).toBe(409);
     const start = async () => (await (await roomCall({action:'start',...guest})).json()).room;
     const started = await start();
-    expect(started).toMatchObject({turnSeconds:30,canStart:false});
+    expect(started).toMatchObject({turnSeconds:30,canReady:false,started:true,ready:{blue:true,red:true}});
     expect(started.turnStartedAt).toBeTruthy();
     expect((await start()).turnStartedAt).toEqual(started.turnStartedAt);
     const saved = (await (await roomCall(move)).json()).room;
@@ -828,6 +833,7 @@ describe('native draft rooms', () => {
     expect((await roomCall(next)).status).toBe(409);
     expect((await roomCall({action:'move',...guest,step:0,champion:'Vi'})).status).toBe(409);
     for (const gameNumber of [1,2]) {
+      await ready(host, guest, gameNumber);
       const firstPick = gameNumber === 1 ? 'red' : 'blue';
       const turns = draftTurns(firstPick);
       for (const [step,[,side]] of turns.entries()) {
@@ -871,6 +877,8 @@ describe('native draft rooms', () => {
     expect((await roomCall({action:'move',...host,step:0,champion:'Ahri'})).status).toBe(403);
     expect((await roomCall({action:'move',...guest,step:0,champion:'invalid'})).status).toBe(400);
     expect((await roomCall({action:'link',...guest,matchId})).status).toBe(404);
+    expect((await roomCall({action:'move',...guest,step:0,champion:'Ahri'})).status).toBe(409); // nobody is ready yet
+    await ready(host, guest);
     const played = STANDARD_DRAFT_TURNS.map((_,i) => i === 2 ? null : champions[i][1]);
     for (const [step,[kind,side]] of STANDARD_DRAFT_TURNS.entries()) {
       const actor = side === 'blue' ? guest : host;
@@ -908,6 +916,7 @@ describe('native draft rooms', () => {
     const {room} = await (await roomCall(create)).json();
     const host = {teamId,roomId:room.id}, guest = {invite:room.invite,roomId:room.id};
     const play = async (gameNumber, offset) => {
+      await ready(host, guest, gameNumber);
       for (const [step,[,side]] of STANDARD_DRAFT_TURNS.entries())
         expect((await roomCall({action:'move',...(side === 'blue' ? host : guest),gameNumber,step,champion:champions[offset+step][1]})).status).toBe(200);
     };
@@ -945,6 +954,7 @@ describe('native draft rooms', () => {
     const create = {action:'create',teamId,creationKey:crypto.randomUUID(),side:'blue',opponent:'Test',seriesLength:2};
     const {room} = await (await roomCall(create)).json();
     const host = {teamId,roomId:room.id}, guest = {invite:room.invite,roomId:room.id};
+    await ready(host, guest, 1);
     for (const [step,[,side]] of STANDARD_DRAFT_TURNS.entries())
       expect((await roomCall({action:'move',...(side === 'blue' ? host : guest),gameNumber:1,step,champion:champions[step][1]})).status).toBe(200);
     expect((await roomCall({action:'link',...host,gameNumber:1,matchId})).status).toBe(200);

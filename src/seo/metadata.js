@@ -85,6 +85,13 @@ const PRIVATE_TITLES = {
   "/verify-email": "Vérification e-mail — NXT5",
   "/verified": "E-mail vérifié — NXT5",
   "/404": "Page introuvable — NXT5",
+  "/salle-de-draft": "Salle de draft — NXT5",
+};
+
+// Invitation links are opened by people without an account (opposing captain,
+// spectators): their link preview must not read like a sign-in page.
+const PRIVATE_DESCRIPTIONS = {
+  "/salle-de-draft": "Rejoins la salle de draft NXT5 en direct, comme capitaine adverse ou spectateur. Aucun compte n’est nécessaire.",
 };
 
 // Demo steps (/demo/analyses, /demo/partie/:id[/debrief]) have their own title and
@@ -127,7 +134,7 @@ export function getMetadata(path = "/", { noindex = false, title, socialLinks = 
   const metadata = {
     path,
     title: demoStep ? t(demoStep.title[0], demoStep.title[1], language) : translate(entry?.title || PRIVATE_TITLES[path] || title || "Espace équipe — NXT5"),
-    description: demoStep ? translate(demoStep.description[0]) : translate(entry?.description || (path === "/404" ? "Cette page NXT5 est introuvable. Reviens à l’accueil pour découvrir les outils d’analyse et de préparation League of Legends." : "Connecte-toi à NXT5 pour retrouver ton équipe, tes parties et tes outils de préparation League of Legends.")),
+    description: demoStep ? translate(demoStep.description[0]) : translate(entry?.description || PRIVATE_DESCRIPTIONS[path] || (path === "/404" ? "Cette page NXT5 est introuvable. Reviens à l’accueil pour découvrir les outils d’analyse et de préparation League of Legends." : "Connecte-toi à NXT5 pour retrouver ton équipe, tes parties et tes outils de préparation League of Legends.")),
     language,
     locale,
     imageAlt: translate("NXT5 — Analyse de parties et préparation d’équipe League of Legends"),

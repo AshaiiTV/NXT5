@@ -171,11 +171,21 @@ describe("public SEO and real component rendering", () => {
     expect(rules).toContain("/connexion /app-shell.html 200");
     expect(rules).toContain("/inscription /creer-un-compte 301!");
     const shells = Object.fromEntries(shellFiles());
-    expect(shells).toEqual({ "app-shell.html": "/connexion", "app-shell-register.html": "/creer-un-compte" });
+    expect(shells).toEqual({ "app-shell.html": "/connexion", "app-shell-register.html": "/creer-un-compte", "app-shell-draft-room.html": "/salle-de-draft" });
     const html = withMetadata("<head><!--seo:start--><!--seo:end--></head>", shells["app-shell-register.html"], { noindex: false, socialLinks: [] });
     expect(html).toContain("<title>Créer un compte — NXT5</title>");
     expect(html).not.toContain("Connexion — NXT5");
     expect(robotsHeaders({ noindex: false }, privatePaths, dynamicPaths)).toContain("/app-shell-register.html\n  X-Robots-Tag: noindex, follow\n");
+  });
+
+  it("previews draft room invitations without asking guests to sign in", () => {
+    const rules = redirectRules(privatePaths, dynamicPaths).split("\n");
+    for (const path of ["/salle-de-draft", "/salle-de-draft/"]) expect(rules).toContain(`${path} /app-shell-draft-room.html 200`);
+    const html = withMetadata("<head><!--seo:start--><!--seo:end--></head>", "/salle-de-draft", { noindex: false, socialLinks: [] });
+    expect(html).toContain("<title>Salle de draft — NXT5</title>");
+    expect(html).toContain("Aucun compte n’est nécessaire.");
+    expect(html).not.toMatch(/Connexion|Connecte-toi/);
+    expect(robotsHeaders({ noindex: false }, privatePaths, dynamicPaths)).toContain("/app-shell-draft-room.html\n  X-Robots-Tag: noindex, follow\n");
   });
 
   it("serves the guest-capable Nexus portal directly through the app shell", () => {

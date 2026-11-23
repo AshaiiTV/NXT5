@@ -534,3 +534,14 @@ body:has(.live-guest):has(.nxt5-cookie-banner) .nxt5-cookie-settings { display:n
   .live-arena[data-editing] .roster-ban li { min-height:44px; }
   .live-arena[data-editing] .roster-pick li { min-height:44px; }
 }
+
+/* Avant la draft : chaque capitaine confirme « Prêt » ; l'état des deux camps reste lisible sans la couleur. */
+.live-ready { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 0 auto; padding:0; list-style:none; }
+.live-ready li { display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:4px 10px; border-radius:999px; border:1px solid #303b58; background:#0d1324; font-size:.78rem; color:#b8c3dc; }
+.live-ready li > span { max-width:16ch; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#f4f6ff; font-weight:600; }
+.live-ready li[data-side=blue] { border-left:3px solid #3b82f6; }
+.live-ready li[data-side=red] { border-left:3px solid #ef4444; }
+.live-ready li[data-ready=true] b { color:#6ee7b7; }
+.live-ready li svg { width:14px; height:14px; flex:none; }
+.live-ready li[data-ready=true] svg { color:#6ee7b7; }
+@container live-room (max-width:819px) { .live-turn:has(.live-ready) { flex-wrap:wrap; } .live-ready { margin-left:0; width:100%; } }

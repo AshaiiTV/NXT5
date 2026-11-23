@@ -32,7 +32,10 @@ function view(room, n) {
     canStart: false, latestGame: room.games.length, mode: room.mode, firstPick: game.firstPick,
     blocked: room.mode === 'fearless' ? room.games.slice(0, n - 1).flatMap(picks) : [],
     blueName: game.swap ? room.red : room.blue, redName: game.swap ? room.blue : room.red, moves: game.moves, side: game.side,
-    invite, spectatorInvite: 'watch.' + invite, matchId: room.linked[n - 1] ? '44444444-4444-4444-8444-444444444444' : null };
+    invite, spectatorInvite: 'watch.' + invite, matchId: room.linked[n - 1] ? '44444444-4444-4444-8444-444444444444' : null,
+    started: game.moves.length > 0 || Boolean(game.hostReady && game.guestReady),
+    ready: { [game.side]: Boolean(game.hostReady), [game.side === 'blue' ? 'red' : 'blue']: Boolean(game.guestReady) },
+    canReady: game.moves.length === 0 && !game.hostReady };
 }
 async function readBody(req) {
   const chunks = []; for await (const chunk of req) chunks.push(chunk);
@@ -75,6 +78,8 @@ const server = await createServer({
       if (!room) { json(res, { error: 'Salle introuvable ou invitation invalide.' }, 404); return; }
       const n = body.gameNumber || room.games.length;
       if (body.action === 'read') { json(res, { room: view(room, n) }); return; }
+      if (body.action === 'ready') { const game = room.games[n - 1]; game.hostReady = true; json(res, { room: view(room, n) }); return; }
+      if (body.action === '__guest_ready') { room.games[n - 1].guestReady = true; json(res, { room: view(room, n) }); return; }
       if (body.action === 'delete') { rooms = rooms.filter(r => r !== room); json(res, { deleted: { id: room.id, games: room.games.length, drafts: room.games.length } }); return; }
       if (body.action === 'correct') {
         const game = room.games[n - 1];

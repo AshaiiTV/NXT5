@@ -15,6 +15,8 @@ const validSide = side => side === 'red' || side === 'blue';
 const fail = (message: string, status = 400) => Object.assign(new Error(message), { status });
 const missing = () => fail('Salle introuvable ou invitation invalide.', 404);
 const changed = () => fail('Le plateau a changé. Vérifie le tour en cours.', 409);
+// A game starts once both captains said "Prêt". Games that already have moves predate this rule and keep playing.
+const started = room => room.moves.length > 0 || Boolean(room.host_ready_at && room.guest_ready_at);
 
 function invitation(id: string, spectator = false) {
   assertSessionSecret();
@@ -40,7 +42,8 @@ function view(room, series, side: string | null, host: boolean) {
   const id = room.series_root || room.id;
   return { id, gameId: room.id, gameNumber: room.game_number, seriesLength: room.series_length,
     turnSeconds: room.turn_seconds, turnStartedAt: room.turn_started_at, serverTime: Date.now(),
-    canStart: !host && side !== null && room.turn_seconds > 0 && !room.turn_started_at,
+    started: started(room), ready: { [room.ally_side]: Boolean(room.host_ready_at), [other(room.ally_side)]: Boolean(room.guest_ready_at) },
+    canReady: side !== null && !started(room) && !(host ? room.host_ready_at : room.guest_ready_at),
     latestGame: series[series.length - 1].game_number, mode: room.draft_mode, firstPick: room.first_pick,
     blocked: lockedChampions(room, series), blueName: room.blue_name, redName: room.red_name, moves: room.moves, side,
     ...(host ? { invite: invitation(id), spectatorInvite: invitation(id,true), matchId: room.match_id ?? null } : {}) };
@@ -67,12 +70,12 @@ export default async function handler(request: Request, context: Context) {
     assertMethod(request, 'POST');
     const body = await readJson(request, 4096);
     const { action } = body;
-    if (!['list','create','read','move','link','next','start','delete','correct'].includes(action)) throw fail('Action inconnue.');
+    if (!['list','create','read','move','link','next','start','ready','delete','correct'].includes(action)) throw fail('Action inconnue.');
     const guest = body.invite !== undefined;
     let teamId: string | null = null, userId: string | null = null, canEdit = false, role = '';
     if (guest) {
       role = guestRole(opponentUuid(body.roomId), body.invite);
-      if (action !== 'read' && !(['move','start'].includes(action) && role === 'captain')) throw missing();
+      if (action !== 'read' && !(['move','start','ready'].includes(action) && role === 'captain')) throw missing();
     } else {
       const user = await requireAuth(request, context);
       userId = user.id;
@@ -132,11 +135,21 @@ export default async function handler(request: Request, context: Context) {
       return json({ room: view(data, games, side, canEdit) });
     };
     if (action === 'read') return result(room);
-    if (action === 'start') {
-      if (role !== 'captain' || !room.turn_seconds) throw missing();
-      if (room.turn_started_at) return result(room);
-      const [started] = await sql`update draft_rooms set turn_started_at=coalesce(turn_started_at,now()) where id=${room.id} returning *`;
-      return result(started);
+    if (action === 'ready' || action === 'start') {
+      // 'start' is the former guest-only action, kept for pages still open on the previous version.
+      if (guest ? role !== 'captain' : !canEdit) throw missing();
+      if (started(room)) return result(room);
+      const host = !guest;
+      const [saved] = await sql`update draft_rooms r set
+          host_ready_at = case when ${host}::boolean then coalesce(r.host_ready_at, now()) else r.host_ready_at end,
+          guest_ready_at = case when ${host}::boolean then r.guest_ready_at else coalesce(r.guest_ready_at, now()) end,
+          turn_started_at = case when r.turn_seconds > 0 and (${host}::boolean or r.host_ready_at is not null) and (not ${host}::boolean or r.guest_ready_at is not null)
+            then coalesce(r.turn_started_at, now()) else r.turn_started_at end
+        where r.id=${room.id} and (${guest} or exists(select 1 from teams t where t.id=r.team_id and t.id=${teamId}::uuid and (t.owner_id=${userId}::uuid or exists(
+          select 1 from team_members m where m.team_id=t.id and m.user_id=${userId}::uuid and m.role=any(${TEAM_STAFF_ROLES})))))
+        returning r.*`;
+      if (!saved) throw missing();
+      return result({ ...saved, match_id: room.match_id });
     }
     if (action === 'next') {
       if (room.moves.length !== 20 || room.game_number >= room.series_length || !validSide(body.side) || !validSide(body.firstPick)) throw changed();
@@ -194,13 +207,13 @@ export default async function handler(request: Request, context: Context) {
       return result({ ...saved, match_id: room.match_id });
     }
 
-    if (room.turn_seconds && !room.turn_started_at) throw changed();
     const { step, champion } = body;
     const turns = draftTurns(room.first_pick);
     if (!Number.isInteger(step) || step < 0 || step >= turns.length) throw fail('Tour invalide.');
     const [kind, activeSide] = turns[step];
     if (activeSide !== (guest ? other(room.ally_side) : room.ally_side)) throw fail('C’est au camp adverse de jouer.', 403);
     if (!(champion === null && kind === 'ban') && !champions.has(champion)) throw fail('Champion invalide.');
+    if (!started(room)) throw fail('Les deux capitaines doivent être prêts avant le premier choix.', 409);
     if (step < room.moves.length && room.moves[step] === champion) return result(room);
     if (step !== room.moves.length || (champion !== null && (room.moves.includes(champion) || lockedChampions(room,series).includes(champion)))) throw changed();
     const moves = [...room.moves, champion];

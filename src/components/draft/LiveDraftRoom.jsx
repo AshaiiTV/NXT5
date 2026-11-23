@@ -77,6 +77,7 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
     // A correction keeps the move count but changes its content, so compare the board itself.
     if (prev && prev.gameId === next.gameId && JSON.stringify(prev.moves) === JSON.stringify(next.moves) && prev.latestGame === next.latestGame
       && prev.side === next.side && prev.invite === next.invite && prev.matchId === next.matchId && prev.turnStartedAt === next.turnStartedAt
+      && prev.started === next.started && prev.canReady === next.canReady && JSON.stringify(prev.ready) === JSON.stringify(next.ready)
       && (!next.turnSeconds || Math.abs(next.serverTime-prev.serverTime) < 30000)) return;
     if (prev?.gameNumber !== next.gameNumber) setRecent(-1);
     else if (prev.moves.length < next.moves.length) setRecent(next.moves.length-1);
@@ -156,7 +157,7 @@ function RoomSession({ roomId, teamId, invite, matches = [], pinned, onPin, onBa
     {!room && !loadError && <p role="status">{t("Chargement…")}</p>}
     {room && <React.Fragment key={room.gameId}>
       {actionError && <p role="alert">{t(actionError)}</p>}
-      <DraftArena room={room} recent={recent} pending={pending} onPrepareVoice={prepareVoice} onStart={() => mutate("start",{})} onMove={champion => mutate("move",{step:room.moves.length,champion})}
+      <DraftArena room={room} recent={recent} pending={pending} onPrepareVoice={prepareVoice} onStart={() => mutate("ready",{})} onMove={champion => mutate("move",{step:room.moves.length,champion})}
         edit={correction && {...correction, onSelect: selected => setCorrection(c => ({...c, selected})),
           onChoose: champion => setCorrection(c => ({...c, moves: c.moves.map((id,i) => i === c.selected ? champion : id)})),
           onCancel: closeCorrection, onSave: async () => { if (await mutate("correct",{moves:correction.moves,expected:correction.base})) closeCorrection(); }}} />
