@@ -160,3 +160,7 @@ Le Planning des séances reste disponible à `/planning`. Seul le calendrier pri
 L’administrateur de plateforme dispose de **Administration → Fréquentation du site** (`/admin/frequentation`) : périodes 7/30/90 jours, comparaison, acquisition, campagnes, pages, engagement, conversions, appareils, pays, carte horaire et export CSV. La collecte interne reste désactivée sans consentement, et « Gérer mes cookies » dans le pied de page permet de modifier ou retirer son choix. Le bandeau et le bouton flottant disparaissent une fois le choix enregistré. Les données sont pseudonymisées et distinctes des comptes et des équipes.
 
 Avant la mise en ligne, appliquer la migration `audience-20260914-v1` via le flux habituel `npm run db:migrate`, puis déployer le front et les fonctions ensemble. Aucun nouveau secret ni service tiers n’est requis. Voir [le contrat, les durées et les consignes d’exploitation](docs/audience-api.md). Les chiffres démarrent avec les premières visites consenties ; les visites antérieures ne sont pas reconstituées.
+
+## Licence
+
+Code consultable publiquement, tous droits réservés. Aucune réutilisation, copie ou redistribution n’est autorisée sans accord écrit préalable. Voir [LICENSE](LICENSE).
