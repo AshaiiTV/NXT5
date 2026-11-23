@@ -64,17 +64,29 @@ afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(
 describe('Discord signatures and environment isolation', () => {
   it('authenticates exact raw HMAC bodies and rejects modified, expired and future proofs', () => {
     const body = '{ "job": "123" }';
-    const headers = signDiscordInternalRequest(body);
+    const headers = signDiscordInternalRequest(body, '/internal');
     const req = new Request('https://nxt5.example/internal', { method: 'POST', headers, body });
     expect(verifyDiscordInternalRequest(req, body)).toBe(true);
     expect(verifyDiscordInternalRequest(req, JSON.stringify(JSON.parse(body)))).toBe(false);
     for (const delta of [-121, 121]) {
       const timestamp = String(Math.floor(CLOCK / 1000) + delta);
-      const signature = createHmac('sha256', SECRET).update(timestamp + '.' + body).digest('hex');
+      const signature = createHmac('sha256', SECRET).update('/internal.' + timestamp + '.' + body).digest('hex');
       expect(verifyDiscordInternalRequest(new Request(req.url, { headers: { 'x-nxt5-discord-timestamp': timestamp, 'x-nxt5-discord-signature': signature } }), body)).toBe(false);
     }
     expect(verifyDiscordInternalRequest(new Request(req.url, { headers: { ...headers, 'x-nxt5-discord-signature': '00' } }), body)).toBe(false);
     expect(verifyDiscordInternalRequest(new Request(req.url), body)).toBe(false);
+  });
+  it('binds internal HMAC signatures to the target function path', () => {
+    const body = '{"operation":"maintenance"}';
+    const headers = signDiscordInternalRequest(body, new URL('https://nxt5.example/.netlify/functions/discord-maintenance-background'));
+    const to = (path: string) => new Request('https://nxt5.example' + path, { method: 'POST', headers, body });
+    expect(verifyDiscordInternalRequest(to('/.netlify/functions/discord-maintenance-background'), body)).toBe(true);
+    expect(verifyDiscordInternalRequest(to('/.netlify/functions/discord-setup'), body)).toBe(false);
+    expect(verifyDiscordInternalRequest(to('/.netlify/functions/discord-publish-background'), body)).toBe(false);
+    const timestamp = headers['x-nxt5-discord-timestamp'];
+    const legacy = createHmac('sha256', SECRET).update(timestamp + '.' + body).digest('hex');
+    expect(verifyDiscordInternalRequest(new Request(to('/.netlify/functions/discord-maintenance-background').url, { method: 'POST', body,
+      headers: { 'x-nxt5-discord-timestamp': timestamp, 'x-nxt5-discord-signature': legacy } }), body)).toBe(false);
   });
   it('verifies real Ed25519 signatures over timestamp + raw body, never parsed JSON', () => {
     const keys = generateKeyPairSync('ed25519');
@@ -99,7 +111,7 @@ describe('Discord signatures and environment isolation', () => {
     expect(config.configured).toBe(false);
     expect([config.botToken, config.workerSecret, config.publicKey]).toEqual(['', '', '']);
     expect(isDiscordEnabled()).toBe(false);
-    expect(() => signDiscordInternalRequest('{}')).toThrow('SECRET_MISSING');
+    expect(() => signDiscordInternalRequest('{}', '/internal')).toThrow('SECRET_MISSING');
     await expect(discordRequest(`/channels/${CHANNEL}/messages/${MESSAGE}`, { method: 'DELETE' })).rejects.toMatchObject({ code: 'DISCORD_NOT_CONFIGURED' });
     await expect(getDiscordGuild(GUILD)).rejects.toMatchObject({ code: 'DISCORD_NOT_CONFIGURED' });
     expect(fetchMock).not.toHaveBeenCalled();

@@ -29,8 +29,22 @@ async function reportFor(ctx:BotContext,id:any){
   const report=rows[0];if(!report||(!ctx.canStaff&&report.discord_status!=='published'))throw discordError('Review introuvable ou non accessible.',404);
   return report;
 }
-async function audit(ctx:BotContext,command:string,id:string,metadata:any={}){
-  await sql.query("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,$2,'discord_workflow',$3,$4::jsonb)",[ctx.userId,'discord.'+command.replace(/ /g,'.'),id,JSON.stringify({teamId:ctx.teamId,...metadata})]);
+const auditQuery=(ctx:BotContext,command:string,id:string,metadata:any={})=>
+  sql.query("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,$2,'discord_workflow',$3,$4::jsonb)",[ctx.userId,'discord.'+command.replace(/ /g,'.'),id,JSON.stringify({teamId:ctx.teamId,...metadata})]);
+async function audit(ctx:BotContext,command:string,id:string,metadata:any={}){await auditQuery(ctx,command,id,metadata);}
+const VIEW_CHANNEL=1n<<10n,SEND_MESSAGES=1n<<11n;
+export function memberCanUseChannel(permissions:unknown){
+  if(typeof permissions!=='string'||!/^\d{1,20}$/.test(permissions))return false;
+  const value=BigInt(permissions);return (value&VIEW_CHANNEL)===VIEW_CHANNEL&&(value&SEND_MESSAGES)===SEND_MESSAGES;
+}
+async function writeSettings(ctx:BotContext,queries:any[]){
+  // Same locks and current-rights check as « reglages canal »: a captain
+  // removed while the command ran must not change the team's automations.
+  try{await sql.transaction([...discordTeamWriteQueries(ctx.teamId,ctx.userId),...queries]);}
+  catch(error:any){
+    if(error?.code==='22012')throw discordError('Tes accès ont changé. Relance la commande.',409,'DISCORD_CONFIG_CHANGED');
+    throw error;
+  }
 }
 async function saveSetting(ctx:BotContext,column:string,value:any){
   const allowed=['timezone','channels','reminders_enabled','reminder_minutes','weekly_enabled','weekly_day','weekly_hour'];
@@ -211,6 +225,11 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
   }
   if(command==='reglages canal'){
     const kind=asText(options.type,20),channel=asText(options.canal,20);if(!['games','planning','reviews','bilans'].includes(kind)||!isDiscordId(channel))throw discordError('Type de publication ou salon invalide.');
+    // The bot's own rights are not enough: a captain must not route team data
+    // to a salon they cannot read themselves. Discord computes the invoking
+    // member's permissions in the resolved channel; parseDiscordCommand keeps
+    // them with the pending confirmation.
+    if(!memberCanUseChannel(options._canalPermissions))throw discordError('Tu dois pouvoir voir ce salon et y écrire pour le choisir comme destination.',403,'DISCORD_MEMBER_CHANNEL_FORBIDDEN');
     const live=await getDiscordGuild(ctx.guildId),chosen=live.channels.find(c=>c.id===channel&&c.canSend);if(!chosen)throw discordError('Ce salon est indisponible ou le bot ne peut pas y envoyer.');
     if(!confirmed)return botConfirmation(ctx,command,options,`Utiliser <#${channel}> pour les ${kind} de ${botText(ctx.teamName)} ? Vérifie que les personnes ayant accès à ce salon sont autorisées à lire ces publications. Les données partagées y seront visibles.`);
     const channelWrites:any[]=[];
@@ -257,10 +276,12 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     if(typeof options.actif!=='boolean')throw discordError('Indique si les rappels doivent être actifs.');
     const settings=await botSettings(ctx.teamId),delay=integer(options.delai??settings.reminder_minutes,0,10080,'Délai');
     if(options.actif&&!settings.channels?.planning)throw discordError('Configure le salon planning avant d’activer les rappels.');
-    await sql.query(`insert into discord_bot_settings(team_id,reminders_enabled,reminder_minutes) values($1,$2,$3) on conflict(team_id)
-      do update set reminders_enabled=excluded.reminders_enabled,reminder_minutes=excluded.reminder_minutes,updated_at=now()`,[ctx.teamId,options.actif,delay]);
-    if(!options.actif)await sql.query("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and kind='reminder' and state='queued'",[ctx.teamId]);
-    await audit(ctx,command,ctx.teamId,{active:options.actif,delay});return botMessage('Rappels configurés',options.actif?`${delay} min avant chaque événement, dans <#${settings.channels.planning}>. Précision de la planification : environ 5 minutes.`:'Rappels désactivés.');
+    await writeSettings(ctx,[
+      sql.query(`insert into discord_bot_settings(team_id,reminders_enabled,reminder_minutes) values($1,$2,$3) on conflict(team_id)
+        do update set reminders_enabled=excluded.reminders_enabled,reminder_minutes=excluded.reminder_minutes,updated_at=now()`,[ctx.teamId,options.actif,delay]),
+      ...(!options.actif?[sql.query("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and kind='reminder' and state='queued'",[ctx.teamId])]:[]),
+      auditQuery(ctx,command,ctx.teamId,{active:options.actif,delay}),
+    ]);return botMessage('Rappels configurés',options.actif?`${delay} min avant chaque événement, dans <#${settings.channels.planning}>. Précision de la planification : environ 5 minutes.`:'Rappels désactivés.');
   }
   if(command==='reglages bilan'){
     if(typeof options.actif!=='boolean')throw discordError('Indique si le bilan doit être actif.');
@@ -268,10 +289,12 @@ export async function executeDiscordAction(ctx:BotContext,rawCommand:string,opti
     const day=options.jour===undefined?Number(settings.weekly_day):days.indexOf(asText(options.jour).toLowerCase());if(day<0)throw discordError('Jour invalide.');
     const hour=asText(options.heure||settings.weekly_hour);if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(hour))throw discordError('Utilise une heure HH:MM.');
     if(options.actif&&!settings.channels?.bilans)throw discordError('Configure le salon bilans avant d’activer cette publication.');
-    await sql.query(`insert into discord_bot_settings(team_id,weekly_enabled,weekly_day,weekly_hour) values($1,$2,$3,$4) on conflict(team_id)
-      do update set weekly_enabled=excluded.weekly_enabled,weekly_day=excluded.weekly_day,weekly_hour=excluded.weekly_hour,updated_at=now()`,[ctx.teamId,options.actif,day,hour]);
-    if(!options.actif)await sql.query("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and kind='weekly' and state='queued'",[ctx.teamId]);
-    await audit(ctx,command,ctx.teamId,{active:options.actif,day,hour});return botMessage('Bilan hebdomadaire configuré',options.actif?`Prochain bilan : ${stamp(nextWeeklyRun(settings.timezone,day,hour))} (${settings.timezone}).\nToutes catégories, 7 jours précédents. Sans game, un message le précisera.`:'Bilan automatique désactivé.');
+    await writeSettings(ctx,[
+      sql.query(`insert into discord_bot_settings(team_id,weekly_enabled,weekly_day,weekly_hour) values($1,$2,$3,$4) on conflict(team_id)
+        do update set weekly_enabled=excluded.weekly_enabled,weekly_day=excluded.weekly_day,weekly_hour=excluded.weekly_hour,updated_at=now()`,[ctx.teamId,options.actif,day,hour]),
+      ...(!options.actif?[sql.query("update discord_bot_outbox set state='cancelled',updated_at=now() where team_id=$1 and kind='weekly' and state='queued'",[ctx.teamId])]:[]),
+      auditQuery(ctx,command,ctx.teamId,{active:options.actif,day,hour}),
+    ]);return botMessage('Bilan hebdomadaire configuré',options.actif?`Prochain bilan : ${stamp(nextWeeklyRun(settings.timezone,day,hour))} (${settings.timezone}).\nToutes catégories, 7 jours précédents. Sans game, un message le précisera.`:'Bilan automatique désactivé.');
   }
   if(command==='diffusion test'){
     const settings=await botSettings(ctx.teamId),rows=await sql.query('select id,channel_id from discord_routes where team_id=$1 and guild_id=$2 and enabled order by created_at limit 10',[ctx.teamId,ctx.guildId]);

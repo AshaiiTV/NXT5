@@ -69,6 +69,15 @@ function period(value: unknown, defaultDays = 7): Period {
   const to = new Date();
   return { to, from: new Date(to.getTime() - days * DAY), days, label: `${days} derniers jours` };
 }
+/** Discord rejects the whole select menu when one label is empty or over 100 characters. */
+export function selectLabel(value: unknown, fallback = 'Sans titre') {
+  const clean = (input: unknown) => String(input ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim();
+  const text = clean(value) || fallback;
+  // Never cut a surrogate pair in half; 100 UTF-16 units is also within Discord's character bound.
+  let result = '';
+  for (const char of text) { if (result.length + char.length > 100) break; result += char; }
+  return result.trim() || fallback;
+}
 function periodLabel(p: Period) { return `${p.label} · ${timestamp(p.from, 'd')} → ${timestamp(p.to, 'd')}`; }
 
 // The same preference as trendMatchTimestamp: date played first, import date as a fallback.
@@ -222,7 +231,7 @@ async function games(ctx: BotContext, command: string, options: Row) {
     const result = message(ctx, 'Choisis un groupe de games', groups.length ? 'Sélectionne la session dans les groupes récents, ou utilise son nom exact dans l’option groupe.' : 'Aucun groupe enregistré. Choisis semaine ou mois dans /nxt bilan.',
       groups.slice(0, 8).map(g => ({ name: text(g.name, 100), value: `ID : \`${g.id}\`` })), '/games');
     if (groups.length) result.components.unshift({ type: 1, components: [{ type: 3, custom_id: `nxt:read:groupe:${ctx.teamId}`, placeholder: 'Choisir un groupe',
-      options: groups.map(g => ({ label: String(g.name).slice(0, 100), value: g.id })) }] } as any);
+      options: groups.map(g => ({ label: selectLabel(g.name), value: g.id })) }] } as any);
     return result;
   }
   const selected = options.groupe && (!options.periode || options.periode === 'session') ? null : period(options.periode);
@@ -232,7 +241,7 @@ async function games(ctx: BotContext, command: string, options: Row) {
     const result = message(ctx, 'Games de l’équipe', `${range}${scope}\n${rows.length} game(s) trouvée(s)${rows.length > 10 ? ' · 10 plus récentes ci-dessous ; toutes sur NXT5.' : '.'}${dateCoverage(rows)}`,
       rows.slice(0, 10).map((m, i) => ({ name: `Game ${i + 1}`, value: matchLine(ctx, m) })), '/games');
     if (rows.length) result.components.unshift({ type: 1, components: [{ type: 3, custom_id: `nxt:read:game:${ctx.teamId}`,
-      placeholder: 'Ouvrir une game', options: rows.slice(0, 10).map(m => ({ label: String(m.opponent || m.game_id).slice(0, 85), description: String(m.result || 'Résultat inconnu'), value: m.id })) }] } as any);
+      placeholder: 'Ouvrir une game', options: rows.slice(0, 10).map(m => ({ label: selectLabel(String(m.opponent ?? '').trim() || m.game_id), description: selectLabel(m.result, 'Résultat inconnu'), value: m.id })) }] } as any);
     return result;
   }
   const summary = aggregate(ctx, rows);
@@ -478,7 +487,7 @@ async function reviews(ctx: BotContext, command: string, options: Row) {
     const result = message(ctx, 'Reviews accessibles', `${periodLabel(selected)}${target ? ' · ' + text(target.name, 70) : ''}\n${rows.length ? `${Math.min(rows.length, 30)} review(s)${rows.length > 30 ? ' ou plus' : ''}. ${Math.min(rows.length, 10)} affichées ; toutes sur NXT5.` : 'Aucune review accessible.'}`,
       rows.slice(0, 10).map(r => ({ name: text(r.title, 150), value: `${timestamp(r.created_at, 'd')} · ${r.discord_status === 'draft' ? 'Brouillon staff' : 'Publiée'} · version ${r.discord_version}\nID : \`${r.id}\` · [Ouvrir](${link(ctx, '/rapports', { report: r.id })})` })), '/rapports');
     if (rows.length) result.components.unshift({ type: 1, components: [{ type: 3, custom_id: `nxt:read:review:${ctx.teamId}`,
-      placeholder: 'Ouvrir une review', options: rows.slice(0, 10).map(r => ({ label: String(r.title).slice(0, 100), value: r.id })) }] } as any);
+      placeholder: 'Ouvrir une review', options: rows.slice(0, 10).map(r => ({ label: selectLabel(r.title), value: r.id })) }] } as any);
     return result;
   }
   const report = await reportById(ctx, options.review);

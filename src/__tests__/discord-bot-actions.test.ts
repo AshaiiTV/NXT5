@@ -43,7 +43,9 @@ vi.mock('../../netlify/functions/_lib/discord-bot-common',()=>({
   botConfirmation:async(ctx:any,command:string,options:any,description:string)=>({confirmation:true,command,options,description}),
   assertBotStaff:(ctx:any,manage=false)=>{if(manage?!ctx.canManage:!ctx.canStaff)throw new Error('Staff requis');},
 }));
-import { executeDiscordAction } from '../../netlify/functions/_lib/discord-bot-actions';
+import { executeDiscordAction, memberCanUseChannel } from '../../netlify/functions/_lib/discord-bot-actions';
+import { botOutboxFailureState } from '../../netlify/functions/_lib/discord-bot-schedule';
+const CAN_POST=String((1n<<10n)|(1n<<11n));
 import { enqueueScheduledBotMessages,deliverBotOutbox,localDateTime,nextWeeklyRun,queueBotMessage,validateTimezone } from '../../netlify/functions/_lib/discord-bot-schedule';
 import { withDiscordContext } from '../../netlify/functions/_lib/discord-runtime';
 import { loadBotWorkflows } from '../../netlify/functions/_lib/discord-bot-bootstrap';
@@ -84,7 +86,7 @@ describe('Discord workflows with real PostgreSQL and fake transport',()=>{
       else await rows("update discord_connections set guild_id='100000000000000009',config_version=config_version+1 where team_id=$1",[team]);
       return {channels:[{id:'100000000000000003',canSend:true,name:'autre salon'}]};
     });
-    await expect(executeDiscordAction({...ctx,role:'captain'},'reglages canal',{type:'games',canal:'100000000000000003'},true))
+    await expect(executeDiscordAction({...ctx,role:'captain'},'reglages canal',{type:'games',canal:'100000000000000003',_canalPermissions:CAN_POST},true))
       .rejects.toMatchObject({status:409,code:'DISCORD_CONFIG_CHANGED'});
     expect(await rows('select * from discord_routes where team_id=$1',[team])).toEqual([]);
     expect(await rows('select * from discord_bot_settings where team_id=$1',[team])).toEqual(beforeSettings);
@@ -369,4 +371,80 @@ it.each([
     database.timezoneCatalog = false;
     await database.pg.exec('drop table test_timezone_names');
   }
+});
+
+describe('Discord hardening 2026-11-23',()=>{
+  const channel='100000000000000002';
+  it('requires the invoking member to see and write in the chosen publication channel',async()=>{
+    expect(memberCanUseChannel(CAN_POST)).toBe(true);
+    expect(memberCanUseChannel(String(1n<<10n))).toBe(false);
+    expect(memberCanUseChannel(String(1n<<11n))).toBe(false);
+    for(const value of [undefined,null,'',' 3072','abc',3072])expect(memberCanUseChannel(value)).toBe(false);
+    const before=await rows('select channels from discord_bot_settings where team_id=$1',[team]);
+    for(const permissions of [undefined,String(1n<<10n)]){
+      await expect(executeDiscordAction(ctx,'reglages canal',{type:'bilans',canal:'100000000000000003',_canalPermissions:permissions}))
+        .rejects.toMatchObject({status:403,code:'DISCORD_MEMBER_CHANNEL_FORBIDDEN'});
+      await expect(executeDiscordAction(ctx,'reglages canal',{type:'bilans',canal:'100000000000000003',_canalPermissions:permissions},true))
+        .rejects.toMatchObject({code:'DISCORD_MEMBER_CHANNEL_FORBIDDEN'});
+    }
+    expect(await rows('select channels from discord_bot_settings where team_id=$1',[team])).toEqual(before);
+    expect(await executeDiscordAction(ctx,'reglages canal',{type:'bilans',canal:'100000000000000003',_canalPermissions:CAN_POST})).toMatchObject({confirmation:true});
+    await executeDiscordAction(ctx,'reglages canal',{type:'bilans',canal:'100000000000000003',_canalPermissions:CAN_POST},true);
+    expect((await rows('select channels from discord_bot_settings where team_id=$1',[team]))[0].channels.bilans).toBe('100000000000000003');
+  });
+  it.each(['reglages rappels','reglages bilan'])('%s rechecks current team rights under lock',async(command)=>{
+    const before=await rows('select * from discord_bot_settings where team_id=$1',[team]);
+    const removedCaptain='00000000-0000-4000-8000-000000000098';
+    await rows("insert into users(id,account_name,name,password_hash) values($1,'removed','Removed','unused')",[removedCaptain]);
+    await expect(executeDiscordAction({...ctx,userId:removedCaptain,role:'captain'},command,{actif:false}))
+      .rejects.toMatchObject({status:409,code:'DISCORD_CONFIG_CHANGED'});
+    expect(await rows('select * from discord_bot_settings where team_id=$1',[team])).toEqual(before);
+    expect(await rows("select * from audit_logs where action like 'discord.reglages.%'")).toEqual([]);
+    await executeDiscordAction(ctx,command,{actif:false});
+    expect(await rows("select * from audit_logs where action like 'discord.reglages.%'")).toHaveLength(1);
+  });
+  async function queueJobs(count:number){
+    const[{config_version}]=await rows('select config_version from discord_connections where team_id=$1',[team]);
+    await rows(`insert into discord_bot_outbox(team_id,guild_id,channel_id,channel_kind,kind,dedupe_key,config_version,payload)
+      select $1,$2,$3,'bilans','presence','bulk-'||i,$4,'{"embeds":[]}'::jsonb from generate_series(1,$5::integer) i`,[team,ctx.guildId,channel,config_version,count]);
+  }
+  it('drains more than ten jobs in one run and looks up each guild once',async()=>{
+    await queueJobs(25);
+    expect(await deliverBotOutbox(500,{budgetMs:20_000})).toEqual({sent:25});
+    expect(transport.send).toHaveBeenCalledTimes(25);
+    expect(transport.guild).toHaveBeenCalledTimes(1);
+  });
+  it('stops at the time budget and leaves the rest queued',async()=>{
+    await queueJobs(5);
+    // The first job always runs; each database round trip then exceeds a 1 ms budget.
+    await deliverBotOutbox(500,{budgetMs:1});
+    const sent=transport.send.mock.calls.length;
+    expect(sent).toBeGreaterThan(0);expect(sent).toBeLessThan(5);
+    expect(await rows("select id from discord_bot_outbox where state='queued'")).toHaveLength(5-sent);
+  });
+  it('requeues jobs whose POST was never attempted after a transient Discord or network error',async()=>{
+    await queueJobs(1);
+    transport.guild.mockRejectedValueOnce(Object.assign(new Error('Discord down'),{status:503,code:'DISCORD_UNAVAILABLE'}));
+    await deliverBotOutbox();
+    const[row]=await rows('select state,error_code,attempts,available_at>now() as delayed from discord_bot_outbox');
+    expect(row).toMatchObject({state:'queued',error_code:'DISCORD_UNAVAILABLE',attempts:1,delayed:true});
+    expect(transport.send).not.toHaveBeenCalled();
+    expect(botOutboxFailureState({status:503},false,1)).toBe('queued');
+    expect(botOutboxFailureState(new Error('network'),false,1)).toBe('queued');
+    expect(botOutboxFailureState({status:503},false,5)).toBe('failed');
+    expect(botOutboxFailureState({status:409},false,1)).toBe('failed');
+    expect(botOutboxFailureState({status:403},false,1)).toBe('failed');
+    expect(botOutboxFailureState(new Error('network'),true,1)).toBe('uncertain');
+    expect(botOutboxFailureState({status:503,ambiguous:true},true,1)).toBe('uncertain');
+    expect(botOutboxFailureState({status:429},true,1)).toBe('queued');
+    expect(botOutboxFailureState({status:500},true,1)).toBe('failed');
+  });
+  it('closes uncertain deliveries for review after three days, then prunes them like other failures',async()=>{
+    await rows(`insert into discord_bot_outbox(team_id,guild_id,channel_id,channel_kind,kind,dedupe_key,config_version,state,created_at)
+      values($1,$2,$3,'bilans','weekly','old-uncertain',1,'uncertain',now()-interval '4 days'),($1,$2,$3,'bilans','weekly','recent-uncertain',1,'uncertain',now()-interval '1 day')`,[team,ctx.guildId,channel]);
+    await deliverBotOutbox(0);
+    expect(await rows('select dedupe_key,state,error_code from discord_bot_outbox order by dedupe_key')).toEqual([
+      {dedupe_key:'old-uncertain',state:'failed',error_code:'DELIVERY_UNCONFIRMED_REVIEW'},
+      {dedupe_key:'recent-uncertain',state:'uncertain',error_code:null}]);
+  });
 });

@@ -213,8 +213,9 @@ export async function dispatchPublicationBatch({allowSoon=false}: {allowSoon?:bo
   if (!['https:','http:'].includes(base.protocol)) throw new Error('URL Netlify invalide.');
   const notBefore = allowSoon ? Math.min(Date.now()+8000,Number(due[0].not_before)) : Date.now();
   const body = JSON.stringify({limit:4,notBefore});
-  const response = await fetch(new URL('/.netlify/functions/discord-publish-background',base),{
-    method:'POST',headers:{'Content-Type':'application/json',...signDiscordInternalRequest(body)},body,signal:AbortSignal.timeout(8000)
+  const target = new URL('/.netlify/functions/discord-publish-background',base);
+  const response = await fetch(target,{
+    method:'POST',headers:{'Content-Type':'application/json',...signDiscordInternalRequest(body,target)},body,signal:AbortSignal.timeout(8000)
   });
   if (!response.ok) throw new Error(`Le traitement Discord n’a pas été accepté (${response.status}).`);
   return {enabled:true,dispatched:true};

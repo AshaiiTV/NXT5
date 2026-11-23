@@ -20,21 +20,25 @@ async function handler(request: Request, context: Context) {
       return json({ ok: true });
     }
     const body = request.method === 'POST' ? await readJson(request, 2000) : null;
-    const token = body?.token ?? new URL(request.url).searchParams.get('token');
-    if (link && request.method === 'GET') return json({ link });
-    if (!token && request.method === 'GET') return json({ link: link || null });
+    // Current clients send the personal token in a POST body only (never in
+    // an URL that logs or Referer headers could keep). `preview: true` reads
+    // the request without confirming it. GET ?token= stays for old pages.
+    const preview = request.method === 'GET' || body?.preview === true;
+    const token = request.method === 'POST' ? body?.token : new URL(request.url).searchParams.get('token');
+    if (link && preview) return json({ link });
+    if (!token && preview) return json({ link: link || null });
     if (!validBotToken(token)) throw discordError('Ce lien personnel est invalide. Lance /nxt lier dans Discord.');
     const [pending] = await sql.query(`select discord_user_id,discord_label,user_id,expires_at from discord_account_link_requests
       where token_hash=$1 and used_at is null and expires_at>now()`, [botTokenHash(token)]);
     if (!pending || (pending.user_id && pending.user_id !== user.id)) throw discordError('Ce lien a expiré ou est déjà utilisé. Lance /nxt lier dans Discord.', 409, 'DISCORD_ACCOUNT_LINK_EXPIRED');
     if (link && link.discord_user_id !== pending.discord_user_id) throw discordError('Ton compte NXT5 est déjà lié. Délie-le avant de choisir un autre compte Discord.', 409, 'DISCORD_ACCOUNT_LINK_CONFLICT');
-    if (request.method === 'POST') {
+    if (!preview) {
       const changed = await sql.query(`update discord_account_link_requests set user_id=$2 where token_hash=$1 and used_at is null
         and expires_at>now() and (user_id is null or user_id=$2) returning token_hash`, [botTokenHash(token), user.id]);
       if (!changed.length) throw discordError('La demande a changé. Lance /nxt lier dans Discord.', 409, 'DISCORD_ACCOUNT_LINK_EXPIRED');
     }
     return json({ link: link || null, request: { discordUserId: pending.discord_user_id, discordLabel: pending.discord_label,
-      expiresAt: pending.expires_at, prepared: request.method === 'POST' || pending.user_id === user.id }, accountName: user.account_name });
+      expiresAt: pending.expires_at, prepared: !preview || pending.user_id === user.id }, accountName: user.account_name });
   } catch (error) { return discordResponseError(error); }
 }
 export default withDiscordRuntime(handler);

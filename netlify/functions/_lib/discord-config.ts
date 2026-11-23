@@ -55,11 +55,22 @@ export function publicDiscordStatus() {
     installUrl: isDiscordId(config.applicationId) ? install.toString() : null, issues };
 }
 
-export function signDiscordInternalRequest(body: string): Record<string, string> {
+/** Path component of an internal call, the same on the signing and receiving side. */
+function internalPath(target: string | URL): string {
+  try { return new URL(String(target), 'https://internal.invalid').pathname; } catch { return ''; }
+}
+/** HMAC over `path.timestamp.body`: a signature captured for one internal
+ * function cannot be replayed against another one within the 120 s window. */
+export function discordInternalSignature(secret: string, target: string | URL, timestamp: string, body: string): string {
+  return createHmac('sha256', secret).update(internalPath(target) + '.' + timestamp + '.' + body).digest('hex');
+}
+
+export function signDiscordInternalRequest(body: string, target: string | URL): Record<string, string> {
   const { workerSecret } = getDiscordConfig();
   if (workerSecret.length < 32) throw new Error('DISCORD_WORKER_SECRET_MISSING');
+  if (!internalPath(target).startsWith('/')) throw new Error('DISCORD_INTERNAL_TARGET_INVALID');
   const timestamp = String(Math.floor(Date.now() / 1000));
-  const signature = createHmac('sha256', workerSecret).update(timestamp + '.' + body).digest('hex');
+  const signature = discordInternalSignature(workerSecret, target, timestamp, body);
   return { 'Content-Type': 'application/json', 'x-nxt5-discord-timestamp': timestamp, 'x-nxt5-discord-signature': signature };
 }
 
@@ -69,7 +80,7 @@ export function verifyDiscordInternalRequest(request: Request, body: string): bo
   const signature = request.headers.get('x-nxt5-discord-signature') || '';
   if (workerSecret.length < 32 || !/^\d{10}$/.test(timestamp) || !/^[a-f0-9]{64}$/.test(signature)) return false;
   if (Math.abs(Date.now() / 1000 - Number(timestamp)) > 120) return false;
-  const expected = createHmac('sha256', workerSecret).update(timestamp + '.' + body).digest();
+  const expected = Buffer.from(discordInternalSignature(workerSecret, request.url, timestamp, body), 'hex');
   return timingSafeEqual(expected, Buffer.from(signature, 'hex'));
 }
 

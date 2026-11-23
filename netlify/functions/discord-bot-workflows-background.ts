@@ -15,7 +15,9 @@ async function handler(request:Request) {
     let queued=0;
     let schedulingError: unknown;
     try { pruned=await pruneDiscordBotArtifacts(); queued=await enqueueScheduledBotMessages(); } catch (error) { schedulingError=error; }
-    const delivered=await deliverBotOutbox(10);
+    // Background function (15 min limit): drain the queue for about 20 s per
+    // five-minute tick instead of a fixed ten messages.
+    const delivered=await deliverBotOutbox(500,{budgetMs:20_000});
     if(schedulingError)throw schedulingError;
     return json({queued,pruned,...delivered});
   }catch(error){return discordResponseError(error);}

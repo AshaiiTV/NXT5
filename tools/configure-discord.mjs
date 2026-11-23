@@ -27,10 +27,12 @@ async function main() {
   if (key.length < 32) throw new Error('Fournis la clé opérateur privée via --key-file ou DISCORD_WORKER_SECRET.');
   const body = JSON.stringify({ action: values.action, expectedApplicationId: values.application });
   const timestamp = String(Math.floor(Date.now() / 1000));
-  const signature = createHmac('sha256', key).update(timestamp + '.' + body).digest('hex');
+  const target = new URL('/.netlify/functions/discord-setup', origin);
+  // Same format as signDiscordInternalRequest: path.timestamp.body.
+  const signature = createHmac('sha256', key).update(target.pathname + '.' + timestamp + '.' + body).digest('hex');
   let response;
   try {
-    response = await fetch(new URL('/.netlify/functions/discord-setup', origin), {
+    response = await fetch(target, {
       method: 'POST', redirect: 'error', signal: AbortSignal.timeout(55_000),
       headers: { 'Content-Type': 'application/json', 'x-nxt5-discord-timestamp': timestamp, 'x-nxt5-discord-signature': signature }, body,
     });

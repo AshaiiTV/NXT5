@@ -30,6 +30,12 @@ export function parseDiscordCommand(interaction: any) {
     options[option.name] = value;
   }
   if (entry.options.some((spec: any) => spec.required && options[spec.name] === undefined)) throw discordError('Une option obligatoire manque. Relance la commande depuis le menu Discord.');
+  if (command === 'reglages canal' && typeof options.canal === 'string') {
+    // Discord signs the invoking member's computed permissions for each
+    // resolved channel option. Keep only that string, never the full object.
+    const permissions = interaction.data?.resolved?.channels?.[options.canal]?.permissions;
+    options._canalPermissions = typeof permissions === 'string' ? permissions : null;
+  }
   return { command, options };
 }
 export function immediateDiscordHelp(interaction: any) {
@@ -154,6 +160,17 @@ async function runBotComponent(interaction: any) {
   }
   throw discordError('Ce bouton n’est plus disponible. Relance /nxt help.');
 }
+export const PUBLIC_READ_LIMITED = 'Ce résultat a déjà été partagé dans ce salon il y a moins de 30 secondes. Il est affiché pour toi seul.';
+/** One public post per channel and topic every 30 s; other requests stay private. */
+async function publicReadAllowed(channelId: string, topic: string) {
+  try {
+    await assertSubjectRateLimit('discord-public-read', `${channelId}:${topic}`, { limit: 1, windowSeconds: 30 });
+    return true;
+  } catch (error: any) {
+    if (error?.status === 429) return false;
+    throw error;
+  }
+}
 export async function executeDiscordBot(interaction: any) {
   await assertDiscordBotSchemaReady();
   await assertSubjectRateLimit('discord-bot-command', interaction.guild_id + ':' + interaction.member.user.id, { limit: 30, windowSeconds: 60 });
@@ -184,9 +201,16 @@ export async function executeDiscordBot(interaction: any) {
           const options = ['bilan', 'stats', 'planning'].includes(topic) ? { periode: 'semaine' } : {};
           result = await runTeamCommand(ctx, selected, options);
           if (['derniere', 'bilan', 'stats'].includes(topic)) {
-            result = { ...result, _nxtPublicTeamId: ctx.teamId };
-            for (const embed of result.embeds || []) {
-              if (typeof embed.footer?.text === 'string') embed.footer.text = embed.footer.text.replace('Consultation privée', 'Dans le salon de l’équipe');
+            if (await publicReadAllowed(interaction.channel_id, topic)) {
+              result = { ...result, _nxtPublicTeamId: ctx.teamId };
+              for (const embed of result.embeds || []) {
+                if (typeof embed.footer?.text === 'string') embed.footer.text = embed.footer.text.replace('Consultation privée', 'Dans le salon de l’équipe');
+              }
+            } else {
+              // Same data, kept private: a channel cannot be flooded with
+              // identical public posts by repeated invocations.
+              const [first, ...others] = result.embeds || [];
+              if (first) result = { ...result, embeds: [{ ...first, description: `${PUBLIC_READ_LIMITED}\n\n${String(first.description || '')}`.slice(0, 3900) }, ...others] };
             }
           }
         } else result = await runTeamCommand(ctx, parsed.command, parsed.options);

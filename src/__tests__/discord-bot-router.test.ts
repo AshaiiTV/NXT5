@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({ pg: null as any, sql: vi.fn(), rate: vi.fn(), 
 vi.mock('../../netlify/functions/_lib/db', () => ({ sql: Object.assign(state.sql, { query: state.sql, transaction: async (queries: Promise<any>[]) => Promise.all(queries) }) }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertSubjectRateLimit: state.rate }));
 import interactions from '../../netlify/functions/discord-interactions';
+import { parseDiscordCommand } from '../../netlify/functions/_lib/discord-bot';
 
 const id = (n: number) => `72000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const owner = id(1), coach = id(2), member = id(3), team = id(10), otherTeam = id(11), matchId = id(20);
@@ -392,5 +393,32 @@ describe('Signed Discord HTTP bot routing', () => {
     expect(allowed.message.content).toContain('Team A');
     expect((await rows('select status from discord_connections where team_id=$1', [team]))[0].status).toBe('paused');
     expect((await rows('select status from discord_connections where team_id=$1', [otherTeam]))[0].status).toBe('active');
+  });
+
+  it('limits public team reads to one post per channel and topic, then answers privately', async () => {
+    const used = new Set<string>();
+    state.rate.mockImplementation(async (endpoint: string, subject: string) => {
+      if (endpoint !== 'discord-public-read') return;
+      if (used.has(subject)) throw Object.assign(new Error('Trop de requêtes.'), { status: 429 });
+      used.add(subject);
+    });
+    const first = await dispatch(command('voir', { sujet: 'stats' }));
+    expect(first.published).toHaveLength(1);
+    const second = await dispatch(command('voir', { sujet: 'stats' }));
+    expect(second.published).toHaveLength(0);
+    expect(second.message.embeds[0].title).toBe('Statistiques d’équipe');
+    expect(second.message.embeds[0].description).toContain('déjà été partagé dans ce salon');
+    const otherTopic = await dispatch(command('voir', { sujet: 'derniere' }));
+    expect(otherTopic.published).toHaveLength(1);
+    expect(state.rate).toHaveBeenCalledWith('discord-public-read', `${channelA}:stats`, { limit: 1, windowSeconds: 30 });
+  });
+
+  it('keeps only the invoking member permissions of the resolved channel for reglages canal', () => {
+    const data = (resolved: any) => ({ type: 2, data: { name: 'nxt', resolved, options: [{ type: 2, name: 'reglages', options: [{ type: 1, name: 'canal', options: [
+      { name: 'type', type: 3, value: 'bilans' }, { name: 'canal', type: 7, value: channelB }] }] }] } });
+    expect(parseDiscordCommand(data({ channels: { [channelB]: { id: channelB, name: 'x', permissions: '3072' } } })).options)
+      .toMatchObject({ type: 'bilans', canal: channelB, _canalPermissions: '3072' });
+    expect(parseDiscordCommand(data(undefined)).options._canalPermissions).toBeNull();
+    expect(parseDiscordCommand(data({ channels: { [channelA]: { permissions: '3072' } } })).options._canalPermissions).toBeNull();
   });
 });

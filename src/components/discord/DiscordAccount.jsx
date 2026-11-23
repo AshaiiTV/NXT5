@@ -9,7 +9,13 @@ import "./discord.css";
 
 export default function DiscordAccount({ user }) {
   useLanguage();
-  const [token] = useState(() => new URLSearchParams(globalThis.window?.location?.search || "").get("lier") || "");
+  // The bot now sends the personal token in the URL fragment (never sent to a
+  // server); older links in Discord still carry it in the query string.
+  const [token] = useState(() => {
+    const location = globalThis.window?.location;
+    return new URLSearchParams(String(location?.hash || "").replace(/^#/, "")).get("lier")
+      || new URLSearchParams(location?.search || "").get("lier") || "";
+  });
   const [state, setState] = useState(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -23,7 +29,11 @@ export default function DiscordAccount({ user }) {
   async function refresh() {
     setLoading(true);
     setError("");
-    try { setState(await apiFetch(`discord-account${token ? `?token=${encodeURIComponent(token)}` : ""}`)); }
+    try {
+      setState(await (token
+        ? apiFetch("discord-account", { method: "POST", body: JSON.stringify({ token, preview: true }) })
+        : apiFetch("discord-account")));
+    }
     catch (err) { setError(err.message); }
     finally { setLoading(false); }
   }
@@ -32,7 +42,9 @@ export default function DiscordAccount({ user }) {
     if (token) {
       const url = new URL(window.location.href);
       url.searchParams.delete("lier");
-      window.history.replaceState(window.history.state, "", url.pathname + url.search + url.hash);
+      const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+      if (hash.has("lier")) { hash.delete("lier"); url.hash = hash.toString(); }
+      window.history.replaceState(window.history.state, "", url.pathname + url.search + (url.hash && url.hash !== "#" ? url.hash : ""));
     }
     refresh();
   }, [token]);
@@ -93,6 +105,7 @@ export default function DiscordAccount({ user }) {
           <div><dt className="text-slate-400">{t("Ton compte NXT5")}</dt><dd className="break-words font-bold text-white">{state.accountName || user?.account_name}</dd></div>
           <div><dt className="text-slate-400">{t("Ton compte Discord")}</dt><dd className="break-words font-bold text-white">{request.discordLabel}<span className="discord-account-user-id">{t("Identifiant : ")}{request.discordUserId}</span></dd></div>
         </dl>
+        <p className="discord-account-warning" role="note"><strong>{t("Ne confirme jamais un lien qu’une autre personne t’a envoyé.")}</strong>{t(" Vérifie le nom d’utilisateur Discord unique (@…) et l’identifiant : un nom d’affichage peut être imité.")}</p>
         {request.prepared ? <div className="discord-feedback" role="status"><strong>{t("Compte NXT5 confirmé. Dernière étape dans Discord.")}</strong><p>{t("Reviens dans Discord, clique sur « Vérifier la liaison », puis sur « Confirmer la liaison » après avoir vérifié les deux comptes.")}</p></div> : <><p className="text-sm leading-6 text-slate-300">{t("Ces deux comptes sont bien les tiens ? Confirme ici, puis termine la validation dans Discord.")}</p><Button type="button" disabled={busy || loading} onClick={prepare}>{busy ? t("Confirmation…") : t("Confirmer mon compte NXT5")}</Button></>}
         <p className="discord-help">{t("Ce lien personnel expire à ")}{new Date(request.expiresAt).toLocaleTimeString(getLocale(), { hour: "2-digit", minute: "2-digit" })}{t(". Pour recommencer, lance ")}<code>/nxt lier</code>{t(" dans Discord.")}</p>
         <Button type="button" variant="ghost" icon={RefreshCw} disabled={busy || loading} onClick={refresh}>{loading ? t("Vérification…") : request.prepared ? t("J’ai confirmé dans Discord · Vérifier") : t("Actualiser la liaison")}</Button>

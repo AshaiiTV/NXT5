@@ -2,6 +2,20 @@ import { randomBytes } from 'node:crypto';
 import { sql } from './db';
 import { discordError, assertDiscordArtifactEnvironment } from './discord-access';
 import { botTokenHash, validBotToken, botMessage, botLink, botText, botIdentity, saveBotPending } from './discord-bot-common';
+import { sendNotification } from './email';
+import { escapeHtml } from './text';
+
+/** Display name plus the unique Discord username: a display name alone can be
+ * copied by anyone and must never be the only thing a person verifies. */
+export function discordAccountLabel(user: any): string {
+  const clean = (value: unknown) => String(value ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim();
+  const discriminator = clean(user?.discriminator);
+  const username = clean(user?.username) + (discriminator && discriminator !== '0' ? '#' + discriminator : '');
+  const display = clean(user?.global_name);
+  const label = username ? (display && display !== username ? `${display} (@${username})` : `@${username}`) : display || clean(user?.id);
+  return Array.from(label).slice(0, 100).join('');
+}
+const LINK_WARNING = 'Ne confirme jamais un lien qu’une autre personne t’a envoyé.';
 
 export async function beginDiscordAccountLink(interaction: any) {
   assertDiscordArtifactEnvironment();
@@ -9,11 +23,12 @@ export async function beginDiscordAccountLink(interaction: any) {
   const [linked] = await sql.query('select id from discord_user_links where discord_user_id=$1', [discordUser.id]);
   if (linked) return accountStatus(discordUser.id);
   const token = randomBytes(24).toString('hex');
-  const label = String(discordUser.global_name || discordUser.username || discordUser.id).slice(0, 100);
+  const label = discordAccountLabel(discordUser);
   await sql.query(`insert into discord_account_link_requests(token_hash,discord_user_id,guild_id,discord_label,expires_at)
     values($1,$2,$3,$4,now()+interval '10 minutes')`, [botTokenHash(token), discordUser.id, interaction.guild_id, label]);
-  return { ...botMessage('Lier ton compte NXT5', '1. Ouvre NXT5 et confirme ton compte.\n2. Reviens ici et vérifie la liaison.\n3. Confirme le compte affiché dans Discord.\n\nCe lien personnel expire dans 10 minutes. Il ne rejoint aucune équipe.'), components: [{ type: 1, components: [
-    { type: 2, style: 5, label: 'Ouvrir NXT5', url: botLink('/bot-discord?lier=' + token) },
+  return { ...botMessage('Lier ton compte NXT5', '1. Ouvre NXT5 et confirme ton compte.\n2. Reviens ici et vérifie la liaison.\n3. Confirme le compte affiché dans Discord.\n\nCe lien personnel expire dans 10 minutes. Il ne rejoint aucune équipe.\n' + LINK_WARNING), components: [{ type: 1, components: [
+    // The fragment is never sent to a server or in a Referer header.
+    { type: 2, style: 5, label: 'Ouvrir NXT5', url: botLink('/bot-discord#lier=' + token) },
     { type: 2, style: 1, label: 'Vérifier la liaison', custom_id: 'nxt:link:review:' + token },
   ] }] };
 }
@@ -25,7 +40,7 @@ export async function reviewDiscordAccountLink(token: string, discordUserId: str
   const request = await getDiscordAccountLinkRequest(token, discordUserId, guildId);
   if (!request.user_id) return botMessage('Confirmation NXT5 attendue', 'Ouvre le lien personnel précédent, connecte-toi à NXT5 et confirme ton compte. Reviens ensuite sur « Vérifier la liaison ».');
   const [user] = await sql.query('select account_name from users where id=$1', [request.user_id]);
-  return { ...botMessage('Vérifie les deux comptes', 'Discord : **' + botText(request.discord_label, 100) + '**\nCompte NXT5 : **' + botText(user.account_name, 100) + '**\n\nConfirme uniquement si ces deux comptes sont les tiens.'), components: [{ type: 1, components: [
+  return { ...botMessage('Vérifie les deux comptes', 'Discord : **' + botText(request.discord_label, 100) + '** · identifiant ' + botText(request.discord_user_id, 20) + '\nCompte NXT5 : **' + botText(user.account_name, 100) + '**\n\nConfirme uniquement si ces deux comptes sont les tiens. ' + LINK_WARNING), components: [{ type: 1, components: [
     { type: 2, style: 3, label: 'Confirmer la liaison', custom_id: 'nxt:link:confirm:' + token },
     { type: 2, style: 2, label: 'Annuler', custom_id: 'nxt:link:cancel:' + token },
   ] }] };
@@ -58,7 +73,25 @@ export async function finishDiscordAccountLink(token: string, discordUserId: str
     if (['23505', '22012'].includes(error?.code)) throw discordError('Un des comptes est déjà lié, ou la demande a changé. Consulte /nxt profil avant de réessayer.', 409, 'DISCORD_ACCOUNT_LINK_CONFLICT');
     throw error;
   }
+  await notifyDiscordAccountLinked(request.user_id, discordUserId, request.discord_label);
   return botMessage('Compte lié', 'Va dans le salon de commandes de ton équipe, puis utilise `/nxt voir`. Tes droits restent ceux de ton compte NXT5.');
+}
+/** Best effort: tell the NXT5 account owner, so an unexpected link is noticed. Never blocks the link. */
+export async function notifyDiscordAccountLinked(userId: string, discordUserId: string, discordLabel: string) {
+  try {
+    const [user] = await sql.query('select email,account_name from users where id=$1', [userId]);
+    const to = String(user?.email || '').trim();
+    if (!to) return;
+    const manageUrl = botLink('/bot-discord');
+    const html = `<p>Le compte Discord <strong>${escapeHtml(discordLabel)}</strong> (identifiant ${escapeHtml(discordUserId)}) vient d’être lié à ton compte NXT5 <strong>${escapeHtml(user.account_name || '')}</strong>.</p>`
+      + `<p>Il peut désormais utiliser les commandes du bot avec tes droits d’équipe.</p>`
+      + `<p>Ce n’est pas toi ? Délie ce compte immédiatement depuis <a href="${escapeHtml(manageUrl)}">Bot Discord</a>, puis change ton mot de passe.</p>`;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      sendNotification({ to, subject: 'Compte Discord lié à NXT5', html }),
+      new Promise(resolve => { timer = setTimeout(resolve, 5000); }),
+    ]).finally(() => clearTimeout(timer));
+  } catch { console.error('[discord-account]', { code: 'LINK_NOTICE_FAILED' }); }
 }
 export async function unlinkDiscordAccount(discordUserId: string, expectedIdentityId?: string) {
   assertDiscordArtifactEnvironment();

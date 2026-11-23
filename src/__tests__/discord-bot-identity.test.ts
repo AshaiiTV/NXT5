@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const state = vi.hoisted(() => ({ pg: null as any, auth: vi.fn(), rate: vi.fn(), beforeQuery: null as null | ((query: string) => Promise<void>) }));
+const state = vi.hoisted(() => ({ pg: null as any, auth: vi.fn(), rate: vi.fn(), notify: vi.fn(), beforeQuery: null as null | ((query: string) => Promise<void>) }));
 vi.mock('../../netlify/functions/_lib/db', async () => {
   const { neon, neonConfig } = await import('@neondatabase/serverless');
   // Preserve Neon transaction semantics and real PostgreSQL constraints while
@@ -34,10 +34,11 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
 });
 vi.mock('../../netlify/functions/_lib/auth', () => ({ requireAuth: state.auth }));
 vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertSubjectRateLimit: state.rate }));
+vi.mock('../../netlify/functions/_lib/email', () => ({ sendNotification: state.notify }));
 
 import accountEndpoint from '../../netlify/functions/discord-account';
 import { beginDiscordAccountLink, executeDiscordAccount, finishDiscordAccountLink, reviewDiscordAccountLink, unlinkDiscordAccount } from '../../netlify/functions/_lib/discord-bot-account';
-import { assertBotStaff, BOT_SCHEMA_VERSIONS, botIdentity, botTeams, botTokenHash, loadBotPending, resolveBotContext, saveBotPending } from '../../netlify/functions/_lib/discord-bot-common';
+import { assertBotStaff, BOT_SCHEMA_VERSIONS, botIdentity, botText, botTeams, botTokenHash, loadBotPending, resolveBotContext, saveBotPending } from '../../netlify/functions/_lib/discord-bot-common';
 import { withDiscordContext } from '../../netlify/functions/_lib/discord-runtime';
 import { pruneDiscordBotArtifacts } from '../../netlify/functions/_lib/discord-bot-schedule';
 
@@ -54,13 +55,16 @@ const discordRoleA = '100000000000000301', discordRoleB = '100000000000000302';
 const context = { deploy: { context: 'production' } } as any;
 const rows = async (query: string, params: any[] = []) => (await state.pg.query(query, params)).rows as any[];
 const interaction = (discordUserId = actor, guildId = guild, roles: string[] = []) => ({ guild_id: guildId, member: { roles, user: { id: discordUserId, username: 'Discord player' } } });
+// PREVIEW is the current read-only page call: the token travels in a POST body.
 const website = (method: string, token?: string, headers: Record<string, string> = {}, env = context) => accountEndpoint(new Request('https://nxt5.example/.netlify/functions/discord-account' + (method === 'GET' && token ? '?token=' + token : ''), {
-  method, headers: { origin: 'https://nxt5.example', 'content-type': 'application/json', ...headers },
-  ...(method === 'POST' ? { body: JSON.stringify({ token }) } : {}),
+  method: method === 'PREVIEW' ? 'POST' : method, headers: { origin: 'https://nxt5.example', 'content-type': 'application/json', ...headers },
+  ...(method === 'POST' ? { body: JSON.stringify({ token }) } : method === 'PREVIEW' ? { body: JSON.stringify({ token, preview: true }) } : {}),
 }), env);
 async function begin(discordUserId = actor, guildId = guild) {
   const response: any = await beginDiscordAccountLink(interaction(discordUserId, guildId));
-  const token = new URL(response.components[0].components[0].url).searchParams.get('lier')!;
+  const url = new URL(response.components[0].components[0].url);
+  expect(url.search).toBe('');
+  const token = new URLSearchParams(url.hash.slice(1)).get('lier')!;
   return { response, token };
 }
 async function link(discordUserId = actor, userId = member) {
@@ -82,6 +86,7 @@ beforeEach(async () => {
   for (const [key, value] of Object.entries({ CONTEXT: 'production', AWS_LAMBDA_FUNCTION_NAME: '', LAMBDA_TASK_ROOT: '', SITE_ID: '', PUBLIC_SITE_URL: 'https://nxt5.example', DISCORD_APPLICATION_ID: '100000000000000010', DISCORD_BOT_TOKEN: 'test-only', DISCORD_PUBLIC_KEY: 'a'.repeat(64), DISCORD_WORKER_SECRET: 'test-only-worker-secret-longer-than-32', DISCORD_ENVIRONMENT: 'production' })) vi.stubEnv(key, value);
   state.auth.mockReset().mockResolvedValue({ id: member, account_name: 'member-account' });
   state.rate.mockReset().mockResolvedValue(undefined);
+  state.notify.mockReset().mockResolvedValue(undefined);
   state.beforeQuery = null;
   await state.pg.exec('truncate users cascade; truncate app_schema_migrations');
   for (const key of BOT_SCHEMA_VERSIONS) await rows('insert into app_schema_migrations(migration_key) values($1)', [key]);
@@ -127,11 +132,41 @@ describe('Personal identity linking requires both accounts', () => {
     expect(await rows('select * from discord_user_links')).toHaveLength(1);
   });
 
+  it('shows the unique Discord username, warns against forwarded links and e-mails the NXT5 account after linking', async () => {
+    const response: any = await beginDiscordAccountLink({ guild_id: guild, member: { roles: [], user: { id: actor, username: 'real_player', global_name: 'Captain' } } });
+    expect(response.embeds[0].description).toContain('Ne confirme jamais un lien qu’une autre personne t’a envoyé.');
+    const token = new URLSearchParams(new URL(response.components[0].components[0].url).hash.slice(1)).get('lier')!;
+    const preview = await website('PREVIEW', token);
+    expect(preview.status).toBe(200);
+    expect(await preview.json()).toMatchObject({ request: { discordLabel: 'Captain (@real_player)', discordUserId: actor, prepared: false } });
+    expect((await rows('select user_id from discord_account_link_requests'))[0].user_id).toBeNull();
+    expect((await website('POST', token)).status).toBe(200);
+    const review: any = await reviewDiscordAccountLink(token, actor, guild);
+    expect(review.embeds[0].description).toContain(botText('Captain (@real_player)'));
+    expect(review.embeds[0].description).toContain(actor);
+    expect(review.embeds[0].description).toContain('Ne confirme jamais');
+    expect(state.notify).not.toHaveBeenCalled();
+    await finishDiscordAccountLink(token, actor, guild);
+    expect(state.notify).toHaveBeenCalledOnce();
+    const [notice] = state.notify.mock.calls[0];
+    expect(notice.to).toBe('member-account@example.test');
+    expect(notice.html).toContain('Captain (@real_player)');
+    expect(notice.html).toContain(actor);
+  });
+
+  it('keeps the link when the notification e-mail fails', async () => {
+    state.notify.mockRejectedValue(new Error('provider down'));
+    const { token } = await begin();
+    await website('POST', token);
+    await expect(finishDiscordAccountLink(token, actor, guild)).resolves.toMatchObject({ embeds: [{ title: 'Compte lié' }] });
+    expect(await rows('select * from discord_user_links')).toHaveLength(1);
+  });
+
   it('prevents another logged-in user from inspecting or claiming a prepared request', async () => {
     const { token } = await begin();
     await website('POST', token);
     state.auth.mockResolvedValue({ id: otherMember, account_name: 'other-account' });
-    for (const method of ['GET', 'POST']) {
+    for (const method of ['GET', 'PREVIEW', 'POST']) {
       const response = await website(method, token);
       expect(response.status).toBe(409);
       expect(await response.json()).toMatchObject({ code: 'DISCORD_ACCOUNT_LINK_EXPIRED' });
