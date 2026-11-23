@@ -35,7 +35,7 @@ function DemoGoldTimeline({ match }) {
   </div>;
 }
 
-export function DemoMatchSummary({ match = DEMO_MATCHES[2], compact = false, onOpenReview, timeline = false, detailsOpen = false }) {
+export function DemoMatchSummary({ match = DEMO_MATCHES[2], compact = false, onOpenReview, timeline = false, detailsOpen = false, titleTag: Title = "h2" }) {
   useLanguage();
   const gold = buildTrendSeries([match], "gold").points[0].value;
   const vision = buildTrendSeries([match], "vision").points[0].value;
@@ -43,7 +43,7 @@ export function DemoMatchSummary({ match = DEMO_MATCHES[2], compact = false, onO
   const signed = (value) => `${value > 0 ? "+" : ""}${number(value)}`;
   return <Surface glow={compact} className={`demo-match-summary${compact ? " is-compact" : ""}`}>
     <div className="demo-match-heading"><p>{t("Données fictives · Lecture seule")}</p><Badge tone={match.result === "Victoire" ? "green" : "red"}>{t(match.result)}</Badge></div>
-    <h2>{matchDisplayName(match)}</h2>
+    <Title>{matchDisplayName(match)}</Title>
     <p className="demo-match-context">{t(DEMO_TEAM)} · {Math.floor(match.duration_seconds / 60)}{t(" min")}</p>
     <dl className="demo-match-metrics demo-match-primary">
       <div><dt>{t("Écart d’or final")}</dt><dd>{signed(gold)} <span>{t("or")}</span></dd></div>

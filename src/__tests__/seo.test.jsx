@@ -6,7 +6,7 @@ import { createSeoDocument } from "./helpers/seo-document.js";
 import { dynamicPaths, privatePaths, publicPaths, render } from "../seo/render.jsx";
 import { NAV } from "../app/constants.jsx";
 import { isAppPath, isKnownPath } from "../app/routing.js";
-import { redirectRules, resolveSeoConfig, robotsHeaders, robotsTxt, sitemapXml, withMetadata } from "../../tools/seo-build.mjs";
+import { redirectRules, resolveSeoConfig, robotsHeaders, robotsTxt, shellFiles, sitemapXml, withMetadata } from "../../tools/seo-build.mjs";
 
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
@@ -163,6 +163,19 @@ describe("public SEO and real component rendering", () => {
       expect(getMetadata(`${path}?invite=private-token`)).toMatchObject({ robots: "noindex, follow", canonical: null, structuredData: null });
       expect(sitemapXml({ noindex: false })).not.toContain(`<loc>${SITE_ORIGIN}${path}</loc>`);
     }
+  });
+
+  it("serves account creation from a shell titled for it, never the sign-in title", () => {
+    const rules = redirectRules(privatePaths, dynamicPaths).split("\n");
+    for (const path of ["/creer-un-compte", "/creer-un-compte/"]) expect(rules).toContain(`${path} /app-shell-register.html 200`);
+    expect(rules).toContain("/connexion /app-shell.html 200");
+    expect(rules).toContain("/inscription /creer-un-compte 301!");
+    const shells = Object.fromEntries(shellFiles());
+    expect(shells).toEqual({ "app-shell.html": "/connexion", "app-shell-register.html": "/creer-un-compte" });
+    const html = withMetadata("<head><!--seo:start--><!--seo:end--></head>", shells["app-shell-register.html"], { noindex: false, socialLinks: [] });
+    expect(html).toContain("<title>Créer un compte — NXT5</title>");
+    expect(html).not.toContain("Connexion — NXT5");
+    expect(robotsHeaders({ noindex: false }, privatePaths, dynamicPaths)).toContain("/app-shell-register.html\n  X-Robots-Tag: noindex, follow\n");
   });
 
   it("serves the guest-capable Nexus portal directly through the app shell", () => {
