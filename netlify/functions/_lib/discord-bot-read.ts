@@ -72,18 +72,20 @@ function period(value: unknown, defaultDays = 7): Period {
 function periodLabel(p: Period) { return `${p.label} · ${timestamp(p.from, 'd')} → ${timestamp(p.to, 'd')}`; }
 
 // The same preference as trendMatchTimestamp: date played first, import date as a fallback.
-// Only finite, bounded numeric timestamps are cast. User-controlled JSON never becomes SQL.
-function dateExpression(key: string) {
-  const value = `m.raw->'info'->>'${key}'`;
-  return `case when ${value} ~ '^[0-9]{9,13}$' then to_timestamp((${value})::double precision / case when (${value})::numeric < 100000000000 then 1 else 1000 end) end`;
-}
-export const DISCORD_MATCH_TIME_SQL = `coalesce(${dateExpression('gameStartTimestamp')},${dateExpression('gameCreation')},m.created_at)`;
+// nxt5_match_started_at (20261123_query_performance.sql) reads raw info.gameStartTimestamp,
+// then info.gameCreation; only bounded numeric timestamps are cast. Filters and sorting use
+// exactly this expression so idx_matches_team_played serves them without reading raw.
+export const DISCORD_MATCH_TIME_SQL = 'coalesce(nxt5_match_started_at(m.raw),m.created_at)';
 const MATCH_TIME = DISCORD_MATCH_TIME_SQL;
-const MATCH_DATE_SOURCE = `case when coalesce(${dateExpression('gameStartTimestamp')},${dateExpression('gameCreation')}) is null then 'import' else 'game' end`;
+const MATCH_DATE_SOURCE = `case when nxt5_match_started_at(m.raw) is null then 'import' else 'game' end`;
+// Listed games read raw through one lateral value (see MATCH_FROM): a single detoast per
+// game instead of one per JSON path. "|| '{}'" returns the detoasted object unchanged.
 const MATCH_COLUMNS = `m.id,m.team_id,m.game_id,m.opponent,m.result,m.side,m.duration,m.duration_seconds,m.patch,m.created_at,
-  m.category_id,m.category_ids,${MATCH_TIME} as played_at,${MATCH_DATE_SOURCE} as date_source,
-  jsonb_build_object('info',coalesce(m.raw->'info','{}'::jsonb)-'participants'-'timeline'-'frames','nxt5Label',m.raw->'nxt5Label') as raw,
+  m.category_id,m.category_ids,coalesce(nxt5_match_started_at(d.raw),m.created_at) as played_at,
+  case when nxt5_match_started_at(d.raw) is null then 'import' else 'game' end as date_source,
+  jsonb_build_object('info',coalesce(d.raw->'info','{}'::jsonb)-'participants'-'timeline'-'frames','nxt5Label',d.raw->'nxt5Label') as raw,
   coalesce((select jsonb_agg(to_jsonb(p)-'raw' order by p.team_key,p.role,p.id) from match_participants p where p.match_id=m.id),'[]'::jsonb) as participants`;
+const MATCH_FROM = `matches m cross join lateral (select m.raw || '{}'::jsonb as raw offset 0) d`;
 
 async function resolveNamed(ctx: BotContext, table: 'players' | 'match_categories' | 'match_archives', value: unknown, label: string) {
   const name = String(value ?? '').trim();
@@ -123,7 +125,7 @@ async function loadMatches(ctx: BotContext, options: Row, selected: Period | nul
   if (options.playerId) clauses.push(`exists(select 1 from match_participants p where p.match_id=m.id and p.player_id=${add(options.playerId)}::uuid and p.team_key='ALLY')`);
   const interval = range || selected;
   if (interval) clauses.push(`${MATCH_TIME} >= ${add(interval.from.toISOString())}::timestamptz and ${MATCH_TIME} <= ${add(interval.to.toISOString())}::timestamptz`);
-  const rows = await sql.query(`select ${MATCH_COLUMNS} from matches m where ${clauses.join(' and ')} order by ${MATCH_TIME} desc,m.id desc limit 1001`, values);
+  const rows = await sql.query(`select ${MATCH_COLUMNS} from ${MATCH_FROM} where ${clauses.join(' and ')} order by played_at desc,m.id desc limit 1001`, values);
   if (rows.length > 1000) throw discordError('Plus de 1 000 games correspondent à ce filtre. Réduis la période ou choisis un groupe pour calculer un bilan complet.');
   return { rows, scope };
 }

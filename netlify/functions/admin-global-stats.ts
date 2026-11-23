@@ -56,9 +56,12 @@ export default async function handler(request:Request,context:Context):Promise<R
           from matches m where m.created_at>=${start} and m.created_at<${end}
             and (${patch}='' or m.patch=${patch} or m.patch like ${patchPattern})
           order by case when upper(m.game_id) ~ '^[A-Z]+[0-9]*_[0-9]+$' then upper(m.game_id) else upper(m.region)||':'||upper(m.game_id) end,participants desc,m.created_at desc,m.id
+        -- chosen keeps raw as a TOAST reference through DISTINCT ON, so only the
+        -- kept games are read. The lateral extracts info.teams with one detoast
+        -- per game instead of two, then the bans come from that small value.
         ) select (select jsonb_agg(jsonb_build_object('teamId',t->'teamId','bans',t->'bans'))
-          from jsonb_array_elements(case when jsonb_typeof(raw->'info'->'teams')='array' then raw->'info'->'teams' else '[]'::jsonb end) t) as teams
-          from chosen`
+          from jsonb_array_elements(case when jsonb_typeof(x.teams)='array' then x.teams else '[]'::jsonb end) t) as teams
+          from chosen cross join lateral (select chosen.raw->'info'->'teams' as teams offset 0) x`
       ],{isolationLevel:'RepeatableRead',readOnly:true}),
       getChampionDataMap({ signal:AbortSignal.timeout(10000) })
     ]);

@@ -69,14 +69,16 @@ export default async function handler(request: Request, context: Context): Promi
     const teamId = String(body.teamId || '').trim();
     if (!teamId) throw Object.assign(new Error('Team ID requis.'), { status: 400 });
 
+    // Primary-key lookup with an indexed membership check: no DISTINCT over
+    // every team column (avatar included), only the fields used below.
     const teams = await sql`
-      select distinct teams.*
+      select teams.id, teams.name, teams.region
       from teams
-      left join team_members on team_members.team_id = teams.id and team_members.user_id = ${user.id}
       where teams.id = ${teamId}
         and (
           teams.owner_id = ${user.id}
-          or team_members.role in ('captain', 'coach', 'assistant', 'analyst', 'manager', 'board')
+          or exists (select 1 from team_members where team_members.team_id = teams.id and team_members.user_id = ${user.id}
+            and team_members.role in ('captain', 'coach', 'assistant', 'analyst', 'manager', 'board'))
         )
       limit 1
     `;

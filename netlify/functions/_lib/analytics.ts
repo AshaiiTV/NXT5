@@ -548,7 +548,8 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       // Caller-specific authorizations (an Importer link, for instance) are rechecked
       // under the same transaction: a 22012 here rolls back every write above.
       ...(guards.map((guard) => guard(tx)) as any[]),
-      tx`select * from matches where team_id = ${team.id} and game_id = ${gameId}`
+      // Callers only read these columns: never send the stored raw JSON back.
+      tx`select id, team_id, game_id, opponent, opponent_id, result, created_at from matches where team_id = ${team.id} and game_id = ${gameId}`
     ]);
     savedMatch = results[results.length - 1][0];
     inserted = results[5]?.[0]?.inserted === true;

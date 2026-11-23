@@ -99,12 +99,24 @@ async function loadDashboard() {
           interval '1 day'
         ) as day
       )
+      -- One grouped scan per table instead of 30 correlated counts per table.
+      -- date_trunc uses the same session time zone as the generated days.
+      , bounds as (select min(day) as start, max(day) + interval '1 day' as stop from days)
+      , user_days as (select date_trunc('day', users.created_at) as day, count(*) as total from users, bounds
+          where users.created_at >= bounds.start and users.created_at < bounds.stop group by 1)
+      , team_days as (select date_trunc('day', teams.created_at) as day, count(*) as total from teams, bounds
+          where teams.created_at >= bounds.start and teams.created_at < bounds.stop group by 1)
+      , match_days as (select date_trunc('day', matches.created_at) as day, count(*) as total from matches, bounds
+          where matches.created_at >= bounds.start and matches.created_at < bounds.stop group by 1)
       select
         to_char(days.day, 'YYYY-MM-DD') as date,
-        (select count(*) from users where users.created_at >= days.day and users.created_at < days.day + interval '1 day') as users,
-        (select count(*) from teams where teams.created_at >= days.day and teams.created_at < days.day + interval '1 day') as teams,
-        (select count(*) from matches where matches.created_at >= days.day and matches.created_at < days.day + interval '1 day') as matches
+        coalesce(user_days.total, 0) as users,
+        coalesce(team_days.total, 0) as teams,
+        coalesce(match_days.total, 0) as matches
       from days
+      left join user_days on user_days.day = days.day
+      left join team_days on team_days.day = days.day
+      left join match_days on match_days.day = days.day
       order by days.day asc
     `,
     sql`

@@ -65,7 +65,7 @@ function statement(strings: TemplateStringsArray) {
 
 function queryRows(strings: TemplateStringsArray) {
   const query = statement(strings);
-  if (query.startsWith('select distinct teams.')) return teams;
+  if (query.startsWith('select teams.id, teams.owner_id')) return teams;
   const table = query.match(/\bfrom (\w+)/)?.[1];
   if (!table || !rows[table]) throw new Error(`Unexpected bootstrap query: ${query}`);
   return rows[table];
@@ -106,7 +106,7 @@ describe('bootstrap independent data loading', () => {
     mocks.loadBotWorkflows.mockReturnValue(bot.promise);
     mocks.seedDefaultMatchCategories.mockReturnValue(seed.promise);
     mocks.sql.mockImplementation((strings: TemplateStringsArray) => {
-      if (statement(strings).startsWith('select distinct teams.')) return membership.promise;
+      if (statement(strings).startsWith('select teams.id, teams.owner_id')) return membership.promise;
       return teamQueries.promise.then(() => queryRows(strings));
     });
     let completed = false;
@@ -232,7 +232,7 @@ describe('bootstrap independent data loading', () => {
     if (group === 'bot') mocks.loadBotWorkflows.mockRejectedValue(failure);
     if (group === 'seed') mocks.seedDefaultMatchCategories.mockRejectedValue(failure);
     if (group === 'team query') mocks.sql.mockImplementation((strings: TemplateStringsArray) =>
-      statement(strings).startsWith('select distinct teams.') ? Promise.resolve(teams) : Promise.reject(failure));
+      statement(strings).startsWith('select teams.id, teams.owner_id') ? Promise.resolve(teams) : Promise.reject(failure));
     const result = await request();
     expect(result.status).toBe(500);
     expect(await result.json()).toEqual({ error: 'Erreur serveur.' });
