@@ -60,7 +60,7 @@
 .profile-next-step { border-top: 1px solid var(--nxt5-border); border-radius: 0 0 var(--nxt5-radius-control) var(--nxt5-radius-control); padding: 20px 24px; margin: 0; background: var(--nxt5-field); }
 .profile-review .profile-next-step { border: 1px solid var(--nxt5-glass-border); border-left: 2px solid var(--nxt5-accent-2); border-radius: 10px; background: linear-gradient(125deg,rgba(139,92,246,.17),rgba(17,27,45,.96) 65%); }
 .profile-summary .profile-metrics { background: rgba(17,27,45,.4); border-radius: 10px; padding: 24px 18px 18px; }
-.profile-pool-champion .profile-champion-name > img, .profile-history-identity > img { border: 1px solid var(--nxt5-glass-border); box-shadow: 0 3px 16px rgba(139,92,246,.12); }
+.profile-pool-champion .profile-champion-name > img { border: 1px solid var(--nxt5-glass-border); box-shadow: 0 3px 16px rgba(139,92,246,.12); }
 .profile-next-step h4 { font-size: var(--nxt5-font-small); color: #ddd6fe; font-weight: 700; }
 .profile-next-step p { max-width: 68ch; margin: 8px 0 20px; font-size: var(--nxt5-font-body); line-height: 1.75; color: var(--nxt5-text); }
 .profile-text-action { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; max-width: 100%; border-radius: var(--nxt5-radius-button, 2px); font-size: var(--nxt5-font-ui); font-weight: 650; line-height: 1.6; color: #a5f3fc; text-align: left; }
@@ -101,25 +101,6 @@
 .profile-empty-tier { font-size: var(--nxt5-font-small); color: var(--nxt5-text-secondary); padding: 4px 0; }
 .profile-pool-footer { margin-top: 24px; border-top: 1px solid var(--nxt5-border-strong); padding-top: 20px; }
 .profile-pool-footer p { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-body); line-height: 1.65; margin-bottom: 16px; }
-.profile-history-list { margin-top: 16px; }
-.profile-history-row { border-top: 1px solid var(--nxt5-border-strong); padding: 20px 0 8px; }
-.profile-history-main { display: grid; grid-template-columns: minmax(0,1fr) 155px auto; align-items: center; gap: 20px; }
-.profile-history-identity { display: flex; align-items: start; gap: 12px; min-width: 0; }
-.profile-history-identity img { flex-shrink: 0; }
-.profile-history-identity h4 { font-size: var(--nxt5-font-ui); font-weight: 700; line-height: 1.5; }
-.profile-history-identity h4 > span { font-size: var(--nxt5-font-small); font-weight: 500; color: var(--nxt5-text-secondary); }
-.profile-history-identity p { font-size: var(--nxt5-font-body); line-height: 1.6; margin-top: 4px; color: var(--nxt5-text-secondary); }
-.profile-history-identity small, .profile-history-result small { font-size: var(--nxt5-font-small); line-height: 1.6; color: var(--nxt5-text-secondary); }
-.profile-history-result { display: flex; flex-direction: column; gap: 3px; }
-.profile-history-result > span { font-size: var(--nxt5-font-small); font-weight: 650; }
-.profile-history-result strong { font-size: var(--nxt5-font-body); font-weight: 700; font-variant-numeric: tabular-nums; }
-.profile-win { color: #6ee7b7; }
-.profile-loss { color: #fda4af; }
-.profile-history-details { margin-top: 8px; font-size: var(--nxt5-font-small); color: var(--nxt5-text-secondary); }
-.profile-history-details > summary { cursor: pointer; padding: 12px 0; min-height: 44px; width: fit-content; }
-.nxt5-profile-page .profile-history-details dl { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 18px; padding: 12px 0 18px; }
-.profile-history-details dt { font-size: var(--nxt5-font-small); }
-.profile-history-details dd { margin-top: 4px; color: var(--nxt5-text); font-size: var(--nxt5-font-ui); font-variant-numeric: tabular-nums; }
 .profile-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 20px; font-size: var(--nxt5-font-small); }
 .profile-notes { display: block; }
 .profile-notes > span { display: block; font-size: var(--nxt5-font-small); margin-bottom: 12px; }
@@ -138,10 +119,6 @@
   .nxt5-profile-page .profile-metrics { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px 24px; }
   .profile-metrics > div { padding-left: 0; border: 0; padding-bottom: 12px; }
 }
-@container profile-page (max-width: 850px) {
-  .profile-history-main { grid-template-columns: minmax(0,1fr) auto; }
-  .profile-history-main > button { grid-column: 1 / -1; justify-self: start; }
-}
 @container profile-page (max-width: 660px) {
   .profile-identity-header { align-items: flex-start; gap: 14px; padding: 18px; }
   .profile-identity-role { flex-basis: 52px; width: 52px; height: 52px; border-radius: var(--nxt5-radius-control); }
@@ -156,10 +133,6 @@
   .profile-filters > label { max-width: none; }
   .profile-pool-champion { align-items: start; flex-direction: column; gap: 12px; }
   .profile-pool-tier > header { flex-direction: column; gap: 6px; }
-  .profile-history-main { grid-template-columns: minmax(0,1fr); gap: 14px; }
-  .profile-history-result { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
-  .profile-history-result small { flex-basis: 100%; }
-  .nxt5-profile-page .profile-history-details dl { grid-template-columns: repeat(2,minmax(0,1fr)); }
     .nxt5-profile-page .profile-goals form input, .nxt5-profile-page .profile-goals form select, .profile-notes textarea { font-size: var(--nxt5-font-body); }
   .nxt5-profile-page .profile-secondary-stats { grid-template-columns: minmax(0,1fr); }
   .profile-content { gap: 16px; }
@@ -192,9 +165,6 @@
 .profile-pool-result > span:only-child { grid-column: 1 / -1; }
 .profile-pool-footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px 24px; }
 .profile-pool-footer p { flex: 1 1 240px; margin: 0; }
-.profile-history-details > summary { color: var(--nxt5-text-secondary); }
-.profile-history-details[open] { padding-bottom: 4px; }
-.profile-history-details[open] dl { background: var(--nxt5-surface-soft); border-radius: 10px; padding: 16px; }
 .profile-pagination > span { text-align: center; font-variant-numeric: tabular-nums; }
 .profile-link-audit { border-top: 1px solid rgba(251,191,36,.25); border-bottom: 1px solid rgba(251,191,36,.25); margin-top: 4px; }
 .profile-link-row { display: grid; grid-template-columns: minmax(0,1fr) minmax(160px,.65fr); align-items: start; gap: 16px 24px; padding: 16px; border-bottom: 1px solid var(--nxt5-border); }
