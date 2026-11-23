@@ -106,59 +106,78 @@
 .team-roster-champion { border-color: rgba(196,181,253,.5); box-shadow: 0 3px 14px rgba(139,92,246,.16); }
 .team-roster-row:hover { background: linear-gradient(100deg,rgba(103,232,249,.05),rgba(139,92,246,.1),transparent); }
 .team-roster-staff li { padding: 12px 16px; border-color: #c4b5fd; background: linear-gradient(110deg,rgba(139,92,246,.12),transparent); }
-/* Prisme: opaque roster cards keep identities and champion art readable. */
-.team-roster-list[data-roster="main"] { display: grid; gap: 12px; }
+/* Prisme: player cards. The champion artwork signs the identity area only;
+   names stay on a dark gradient and every value sits on an opaque field. */
+.team-roster-list[data-roster="main"] { display: grid; gap: 16px; }
 .team-roster-list[data-roster="main"] > li { min-width: 0; border: 0; }
 .team-roster-list[data-roster="main"] .team-roster-row {
   position: relative; isolation: isolate; overflow: hidden; height: 100%; padding: 20px;
   grid-template-columns: 7rem minmax(0,1fr) minmax(200px,264px) 18px; gap: 20px;
-  border: 1px solid rgba(196,181,253,.38); border-radius: 16px;
-  background: var(--nxt5-surface);
-  box-shadow: inset 1px 1px 0 rgba(226,232,255,.16), inset -1px -1px 0 rgba(139,92,246,.08), 0 12px 28px rgba(2,6,17,.18);
+  border: 1px solid rgba(196,181,253,.3); border-radius: 16px;
+  background: linear-gradient(160deg,#191C38,#17112E 62%,#11172A);
+  box-shadow: inset 1px 1px 0 rgba(226,232,255,.12), 0 12px 28px rgba(2,6,17,.22);
   transition: border-color 180ms, box-shadow 180ms, transform 180ms;
 }
-.team-roster-list[data-roster="main"] .team-roster-row::before {
-  content: none; position: absolute; z-index: -1; pointer-events: none; inset: 0;
-  background: linear-gradient(135deg,rgba(226,232,255,.13),rgba(196,181,253,.03) 48%,transparent 49%);
-  clip-path: polygon(0 0,100% 0,100% 14%,0 43%);
-}
+.team-roster-list[data-roster="main"] .team-roster-row::before { content: none; }
 .team-roster-list[data-roster="main"] .team-roster-row::after {
-  content: ""; position: absolute; pointer-events: none; inset: 0 16px auto; height: 1px;
-  background: linear-gradient(90deg,transparent,rgba(165,243,252,.65),rgba(216,180,254,.55),transparent);
+  content: ""; position: absolute; z-index: 1; pointer-events: none; inset: 0 16px auto; height: 1px;
+  background: linear-gradient(90deg,transparent,rgba(165,243,252,.65),rgba(196,181,253,.55),transparent);
 }
+.team-roster-list[data-roster="main"] .team-roster-row[data-me] { border-color: rgba(103,232,249,.5); }
 .team-roster-list[data-roster="main"] .team-roster-row:focus-visible { outline-offset: -3px; }
+.team-roster-art {
+  position: absolute; z-index: -1; top: 0; right: 0; width: min(62%,240px); height: 200px; pointer-events: none;
+  -webkit-mask-image: linear-gradient(to left,#000 30%,transparent 100%), linear-gradient(to bottom,#000 40%,transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(to left,#000 30%,transparent 100%), linear-gradient(to bottom,#000 40%,transparent 100%);
+  mask-composite: intersect;
+}
+.team-roster-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 14%; opacity: .5; transition: opacity 220ms, transform 320ms; }
 .team-roster-list[data-roster="main"] .team-roster-role { gap: 10px; }
-.team-roster-list[data-roster="main"] .team-roster-role > :first-child { border-color: rgba(196,181,253,.42); background: linear-gradient(145deg,rgba(226,232,255,.14),rgba(139,92,246,.22)); box-shadow: inset 1px 1px 0 rgba(226,232,255,.18),0 4px 14px rgba(2,6,17,.14); }
-.team-roster-list[data-roster="main"] .team-roster-name { font-size: 23px; line-height: 1.2; letter-spacing: -.04em; }
+.team-roster-list[data-roster="main"] .team-roster-role > :first-child { border-color: rgba(196,181,253,.42); background: linear-gradient(145deg,rgba(226,232,255,.14),rgba(139,92,246,.26)); box-shadow: inset 1px 1px 0 rgba(226,232,255,.18),0 4px 14px rgba(2,6,17,.3); }
+.team-roster-list[data-roster="main"] .team-roster-role > :last-child { color: var(--nxt5-text); font-weight: 600; text-shadow: 0 1px 10px rgba(7,10,20,.9); }
+.team-roster-list[data-roster="main"] .team-roster-name { font-size: 24px; line-height: 1.2; letter-spacing: -.04em; text-shadow: 0 2px 14px rgba(7,10,20,.95); }
+.team-roster-list[data-roster="main"] .team-roster-riot { color: var(--nxt5-text-secondary); text-shadow: 0 1px 10px rgba(7,10,20,.95); }
+.team-roster-list[data-roster="main"] .team-roster-me { align-self: center; padding: 2px 8px; border: 1px solid rgba(103,232,249,.45); border-radius: 999px; background: rgba(7,10,20,.7); font-size: var(--nxt5-font-micro); font-weight: 600; letter-spacing: 0; line-height: 1.4; text-shadow: none; }
 .team-roster-champion-pool { display: flex; flex-direction: column; gap: 10px; min-width: 0; grid-column: 3; }
+.team-roster-list[data-roster="main"] .team-roster-champion-pool { gap: 12px; padding: 14px; border: 1px solid var(--nxt5-border); border-radius: 12px; background: var(--nxt5-field); }
 .team-roster-pool-label { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-micro); line-height: 1.5; }
 .team-roster-champion-pool > .team-roster-champions { min-height: 44px; }
+.team-roster-list[data-roster="main"] .team-roster-champion { width: 52px; height: 52px; border-radius: 10px; }
+.team-roster-list[data-roster="main"] .team-roster-champion:first-child { border-color: rgba(103,232,249,.7); box-shadow: 0 0 0 1px rgba(103,232,249,.18),0 4px 16px rgba(103,232,249,.14); }
+.team-roster-list[data-roster="main"] .team-roster-champion-count { min-width: 20px; padding: 1px 4px; font-size: 11px; }
 .team-roster-pool-empty { display: flex; align-items: center; min-height: 44px; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); line-height: 1.5; }
+.team-roster-record { display: flex; flex-wrap: wrap; gap: 4px 14px; padding-top: 10px; border-top: 1px solid var(--nxt5-border); color: var(--nxt5-muted); font-size: var(--nxt5-font-micro); line-height: 1.5; }
+.team-roster-record strong { color: var(--nxt5-text); font-size: var(--nxt5-font-small); font-weight: 650; font-variant-numeric: tabular-nums; }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .team-roster-list[data-roster="main"] .team-roster-row:hover { transform: translateY(-3px); border-color: rgba(165,243,252,.65); box-shadow: inset 1px 1px 0 rgba(226,232,255,.2),0 16px 32px rgba(2,6,17,.28),0 0 24px rgba(139,92,246,.1); }
+  .team-roster-list[data-roster="main"] .team-roster-row:hover { transform: translateY(-3px); border-color: rgba(165,243,252,.65); box-shadow: inset 1px 1px 0 rgba(226,232,255,.2),0 16px 32px rgba(2,6,17,.32),0 0 24px rgba(139,92,246,.12); }
+  .team-roster-list[data-roster="main"] .team-roster-row:hover .team-roster-art img { opacity: .68; transform: scale(1.04); }
 }
 @container team-roster (min-width: 600px) {
   .team-roster-list[data-roster="main"] { grid-template-columns: repeat(2,minmax(0,1fr)); }
-  .team-roster-list[data-roster="main"] .team-roster-row { display: flex; align-items: stretch; flex-direction: column; gap: 24px; padding: 22px 14px 14px; }
+  .team-roster-list[data-roster="main"] .team-roster-row { display: flex; align-items: stretch; flex-direction: column; gap: 20px; padding: 20px 16px 16px; }
   .team-roster-list[data-roster="main"] .team-roster-role { padding-right: 16px; }
   .team-roster-list[data-roster="main"] .team-roster-role { flex-direction: row; text-align: left; justify-content: flex-start; font-size: var(--nxt5-font-small); }
-  .team-roster-list[data-roster="main"] .team-roster-champion-pool { margin-top: auto; padding-top: 16px; border-top: 1px solid rgba(196,181,253,.2); }
-  .team-roster-list[data-roster="main"] .team-roster-arrow { position: absolute; right: 14px; top: 35px; width: 18px; height: 18px; }
+  .team-roster-list[data-roster="main"] .team-roster-identity { padding-bottom: 8px; }
+  .team-roster-list[data-roster="main"] .team-roster-champion-pool { margin-top: auto; }
+  .team-roster-list[data-roster="main"] .team-roster-arrow { position: absolute; right: 16px; top: 33px; width: 18px; height: 18px; color: var(--nxt5-text-secondary); }
 }
 @container team-roster (min-width: 940px) {
   .team-roster-list[data-roster="main"] { grid-template-columns: repeat(3,minmax(0,1fr)); }
 }
 @container team-roster (min-width: 1280px) {
   .team-roster-list[data-roster="main"] { grid-template-columns: repeat(5,minmax(0,1fr)); }
+  .team-roster-list[data-roster="main"] .team-roster-champion { width: 46px; height: 46px; }
 }
 @container team-roster (max-width: 599px) {
   .team-roster-list[data-roster="main"] .team-roster-row { grid-template-columns: 56px minmax(0,1fr) 18px; padding: 18px; gap: 18px 12px; }
   .team-roster-list[data-roster="main"] .team-roster-role { gap: 5px; }
   .team-roster-list[data-roster="main"] .team-roster-name { font-size: 21px; }
-  .team-roster-champion-pool { grid-column: 1 / -1; grid-row: 2; padding-top: 14px; border-top: 1px solid rgba(196,181,253,.2); }
+  .team-roster-champion-pool { grid-column: 1 / -1; grid-row: 2; }
+  .team-roster-art { width: 55%; height: 150px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .team-roster-list[data-roster="main"] .team-roster-row { transition: none; }
+  .team-roster-list[data-roster="main"] .team-roster-row, .team-roster-art img { transition: none; }
 }
 .teams-workspace-layout { display: grid; grid-template-columns: minmax(0,1fr); gap: 20px; }
 .team-setup-forms { display: grid; grid-template-columns: minmax(0,1fr); align-items: start; gap: 16px; max-width: 560px; margin-inline: auto; width: 100%; }

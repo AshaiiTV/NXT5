@@ -12,6 +12,8 @@ import { multiOpggUrlFromRoster, playerRosterStatus, rosterPlayersByStatus } fro
 import { RoleIcon, TeamAvatar } from "../../components/brand/BrandAssets.jsx";
 import { ROSTER_ROLE_ORDER, canStaffManage, isGameplayRole, isStaffRole, formatCountdown, championDisplayName, lazyNamed, loadNextPhase, COMP_ROLES, STAFF_ROLES, ChampionPortrait, playerIntegratedRows } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
+import { canonicalChampion } from "../../../shared/champions.js";
+import { assetProxyUrl } from "../../utils/matches.js";
 import "./Teams.css";
 import { TeamManagementPanel } from "./TeamManagementPanel.jsx";
 import { LinkButton } from "../public/PublicPages.jsx";
@@ -625,13 +627,37 @@ function playerImportedChampionStats(player, matches = []) {
   }, new Map()).values()).sort((a, b) => b.games - a.games || b.wins - a.wins || championDisplayName(a.champion).localeCompare(championDisplayName(b.champion)));
 }
 
+/** Riot's loading artwork already frames the champion: decorative, never behind a value. */
+function RosterChampionArt({ champion }) {
+  const id = canonicalChampion(champion);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [id]);
+  if (!id || failed) return null;
+  return <span className="team-roster-art" aria-hidden="true">
+    <img src={assetProxyUrl(`https://ddragon.leagueoflegends.com/cdn/img/champion/loading/${id}_0.jpg`)} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} />
+  </span>;
+}
+
+function RosterRecord({ stats }) {
+  useLanguage();
+  const games = stats.reduce((total, item) => total + (item.games || 0), 0);
+  if (!games) return null;
+  const wins = stats.reduce((total, item) => total + (item.wins || 0), 0);
+  return <span className="team-roster-record">
+    <span><strong>{games}</strong> {t(games > 1 ? "parties" : "partie")}</span>
+    <span><strong>{Math.round((wins / games) * 100)} %</strong> {t("de victoires")}</span>
+  </span>;
+}
+
 function ImportedChampionBadges({ player, matches = [], labelled = false }) {
   useLanguage();
-  const items = playerImportedChampionStats(player, matches).slice(0, 3);
+  const stats = playerImportedChampionStats(player, matches);
+  const items = stats.slice(0, 3);
   if (labelled) return <span className="team-roster-champion-pool">
     <span className="team-roster-pool-label">{t("Champions les plus joués")}</span>
     {items.length ? <span className="team-roster-champions">{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}</span>
       : <span className="team-roster-pool-empty">{t("Aucune partie associée.")}</span>}
+    <RosterRecord stats={stats} />
   </span>;
   if (!items.length) return null;
   return <span className="team-roster-champions"><span className="sr-only">{t("Champions les plus joués : ")}</span>{items.map((champion) => <ChampionCircle key={champion.champion} champion={champion} />)}</span>;
@@ -653,12 +679,14 @@ function PremiumRosterTable({ roster, matches = [], currentUserId = "", canManag
       {items.map((player) => {
         const href = `/mon-profil?player=${encodeURIComponent(player.id)}`;
         const isMe = Boolean(currentUserId && player.user_id && String(player.user_id) === String(currentUserId));
+        const signature = title === "Titulaires" && historyComplete ? playerImportedChampionStats(player, matches)[0]?.champion : "";
         return <li key={player.id}>
-          <a href={href} className="team-roster-row" onClick={(event) => {
+          <a href={href} className="team-roster-row" data-me={isMe || undefined} onClick={(event) => {
             if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
             event.preventDefault();
             openAppPath(href);
           }}>
+            {signature && <RosterChampionArt champion={signature} />}
             <span className="team-roster-role"><span aria-hidden="true"><RoleIcon role={player.role} className="h-5 w-5" /></span><span>{t(roleLabel(player.role))}</span></span>
             <span className="team-roster-identity"><span className="team-roster-name"><span className="sr-only">{t("Voir le profil de ")}</span>{player.name}{isMe && <span className="team-roster-me">{t("Toi")}</span>}</span><span className="team-roster-riot">{player.riot_id || t("Riot ID à renseigner")}</span></span>
             {!historyComplete && title === "Titulaires"
