@@ -2,7 +2,7 @@ import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { AlertTriangle } from "lucide-react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { PlayerUltimateProfile } from "../pages/workspace/PlayerUltimateProfile.jsx";
+import { PlayerUltimateProfile, ProfileHistoryView } from "../pages/workspace/PlayerUltimateProfile.jsx";
 import { ProfileShowcase } from "../components/profile/ProfileShowcase.jsx";
 import { ProfileNavigation } from "../pages/workspace/ProfileNavigation.jsx";
 import { TrendsOverview } from "../components/trends/TrendsOverview.jsx";
@@ -18,6 +18,33 @@ const text = (node) => typeof node === "string" ? node : (node?.children || []).
 const mount = (element) => { act(() => { renderer = TestRenderer.create(element); }); return renderer; };
 
 describe("profile and analyses reading order", () => {
+  it("paginates the filtered history at the selected size and returns to page one when it changes", () => {
+    const rows = Array.from({ length: 105 }, (_, index) => ({
+      champion: index < 51 ? "Ahri" : "Jinx",
+      match: { id: String(index), game_date: "2026-11-22", result: "Victoire" },
+    }));
+    mount(<ProfileHistoryView rows={rows} />);
+    const select = (label, value) => act(() => renderer.root.findAllByType(SelectInput).find((field) => field.props.label === label).props.onChange(value));
+    const next = () => act(() => renderer.root.findAllByType("button").find((button) => text(button) === "Suivante").props.onClick());
+    const matches = () => renderer.root.findAllByType("article");
+    expect(matches()).toHaveLength(10);
+    select("Parties par page", "20");
+    expect(matches()).toHaveLength(20);
+    select("Champion", "Ahri");
+    next();
+    expect(text(renderer.root.findByType("nav"))).toContain("Page 2 sur 3");
+    select("Parties par page", "50");
+    expect(text(renderer.root.findByType("nav"))).toContain("Page 1 sur 2");
+    expect(matches()).toHaveLength(50);
+    next();
+    expect(matches()).toHaveLength(1);
+    select("Parties par page", "100");
+    expect(matches()).toHaveLength(51);
+    expect(renderer.root.findAllByType("nav")).toHaveLength(0);
+    select("Champion", "");
+    expect(matches()).toHaveLength(100);
+  });
+
   it("shows the Wrapped before one review prompt, keeps explanations folded, and retains scoped navigation", async () => {
     vi.stubGlobal("document", { fonts: { ready: Promise.resolve() } });
     vi.stubGlobal("window", { location: new URL("https://nxt5.test/mon-profil?player=p1") });

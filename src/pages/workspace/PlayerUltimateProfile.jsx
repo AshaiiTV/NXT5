@@ -1029,12 +1029,13 @@ function ProfileHistoryView({ rows = [], selectedCategoryId, navigate }) {
   const [championFilter, setChampionFilter] = useState("");
   const [resultFilter, setResultFilter] = useState("all");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const orderedRows = rows.slice().sort((a, b) => profileHistorySortKey(b) - profileHistorySortKey(a));
   const championOptions = Array.from(new Set(orderedRows.map((row) => row.champion).filter(Boolean))).sort((a, b) => championDisplayName(a).localeCompare(championDisplayName(b)));
   const filteredRows = orderedRows.filter((row) => (!championFilter || row.champion === championFilter) && (resultFilter === "all" || row.match?.result === (resultFilter === "win" ? "Victoire" : "Défaite")));
-  const pages = Math.max(1, Math.ceil(filteredRows.length / 10));
+  const pages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
   const currentPage = Math.min(page, pages);
-  const visibleRows = filteredRows.slice((currentPage - 1) * 10, currentPage * 10);
+  const visibleRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const dayFormat = new Intl.DateTimeFormat(getLocale(), { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const days = new Map();
   for (const row of visibleRows) {
@@ -1062,6 +1063,9 @@ function ProfileHistoryView({ rows = [], selectedCategoryId, navigate }) {
           <option value="all">{t("Tous")}</option>
           <option value="win">{t("Victoires")}</option>
           <option value="loss">{t("Défaites")}</option>
+        </SelectInput>
+        <SelectInput label={t("Parties par page")} value={pageSize} onChange={(value) => { setPageSize(Number(value)); setPage(1); }}>
+          {[10, 20, 50, 100].map((size) => <option key={size} value={size}>{size}</option>)}
         </SelectInput>
         {filtered && <button type="button" className="profile-text-action" onClick={() => { setChampionFilter(""); setResultFilter("all"); setPage(1); }}>{t("Réinitialiser les filtres")}</button>}
       </div>
