@@ -228,6 +228,12 @@ export function resolveAutoAssignments(match: any, roster: any[]) {
   return { allyTeamSide: allyTeamId === 100 ? "BLUE" : "RED", laneAssignments, enemyLaneAssignments, playerAssignments };
 }
 
+/** Automatic collection only accepts custom games: ranked, normal or ARAM games of a player are never imported. */
+export function isCustomGame(match: any) {
+  const info = match?.info;
+  return info?.gameType === 'CUSTOM_GAME' && (info.queueId == null || Number(info.queueId) === 0);
+}
+
 function matchGameId(match: any) {
   return String(match?.metadata?.matchId || match?.metadata?.gameId || "").trim().toUpperCase();
 }
@@ -267,6 +273,7 @@ export async function submitTeamImport(token: string, body: any, idempotencyKey:
   // The stored copy keeps one timeline so the staff can finalize it within the manual import limit.
   const stored = () => ({ match: { ...match, timeline: undefined }, timeline });
   try {
+    if (!isCustomGame(match)) return { accepted: true, submission: await settle("skipped", "Partie hors custom : seules les parties personnalisées sont importées automatiquement.") };
     const existing = await sql`select id from matches where team_id = ${team.id} and game_id = ${gameId}`;
     if (existing[0]) return { duplicate: true, submission: await settle("imported", "Partie déjà présente dans NXT5.", { matchId: existing[0].id }) };
     const roster = await sql`select * from players where team_id = ${team.id}`;

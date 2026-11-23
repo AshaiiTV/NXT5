@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from "electron";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import fs from "node:fs/promises";
@@ -35,6 +35,8 @@ const CURRENT_VERSION = String(PACKAGE_META.version || "0.0.0");
 const RENDERER_FILE = path.join(__dirname, "renderer.html");
 const RENDERER_URL = pathToFileURL(RENDERER_FILE).toString();
 const NXT5_SITE_URL = (() => {
+  // The override only exists for development: a packaged build always talks to production.
+  if (app.isPackaged) return "https://nxt5.org";
   try {
     const url = new URL(process.env.NXT5_SITE_URL || "https://nxt5.org");
     if (url.protocol === "https:" && !url.username && !url.password)
@@ -627,7 +629,13 @@ else {
       filePath: path.join(app.getPath("userData"), "collector.json"),
       payloadDirectory: path.join(app.getPath("userData"), "collector-games"),
       siteUrl: NXT5_SITE_URL,
+      // Fallback only: the collector asks the client for its region first.
       platform: () => store.snapshot().settings.platform || "EUW1",
+      cipher: {
+        available: () => safeStorage.isEncryptionAvailable(),
+        encrypt: (value) => safeStorage.encryptString(value).toString("base64"),
+        decrypt: (value) => safeStorage.decryptString(Buffer.from(value, "base64")),
+      },
       readLockfile: () => readLeagueLockfile(store.snapshot().settings.leaguePath),
       lcuRequest,
       fetchLocal: localMatch,
