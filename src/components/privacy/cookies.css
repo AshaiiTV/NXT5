@@ -46,8 +46,14 @@ body:has(.nxt5-cookie-feedback) { padding-bottom: 9rem; }
   .nxt5-cookie-banner .nxt5-cookie-icon, .nxt5-cookie-banner .nxt5-cookie-eyebrow { display: none; }
   .nxt5-cookie-banner .nxt5-cookie-heading h2 { font-size: 17px; }
   .nxt5-cookie-banner > p { font-size: var(--nxt5-font-small); line-height: 1.5; margin: 6px 0; }
-  .nxt5-cookie-banner .nxt5-cookie-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
-  .nxt5-cookie-banner .nxt5-cookie-actions > button { min-height: 44px; padding-inline: 4px; font-size: var(--nxt5-font-small); white-space: nowrap; }
+  /* Columns follow the banner's measured width, not the viewport, and every label keeps 12px of
+     inner margin without a smaller font. Two columns from 15rem (refuse | accept, Personnaliser
+     full width): at 320px the longest label ("Refuse everything", 125px) wraps on two balanced
+     lines instead of touching the edges. One column below; three from 30rem, where every FR/EN/ES
+     label fits on one line. Refuse and accept always share the same row, size and weight. */
+  .nxt5-cookie-banner { container: nxt5-cookie-banner / inline-size; }
+  .nxt5-cookie-banner .nxt5-cookie-actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; margin-top: 10px; }
+  .nxt5-cookie-banner .nxt5-cookie-actions > button { min-height: 44px; padding-inline: 12px; font-size: var(--nxt5-font-small); line-height: 1.25; white-space: normal; text-wrap: balance; }
   /* The policy link joins the main sentence; necessary cookies and retention stay in Personnaliser and on /cookies. */
   .nxt5-cookie-banner > .nxt5-cookie-detail:not([role]) { display: none; }
   .nxt5-cookie-inline-link { display: inline; }
@@ -55,5 +61,13 @@ body:has(.nxt5-cookie-feedback) { padding-bottom: 9rem; }
   .nxt5-cookie-dialog { padding: 18px; max-height: calc(100dvh - 24px); border-radius: 14px; }
   .nxt5-cookie-category { padding: 12px; gap: 10px; }
   .nxt5-cookie-category > svg { display: none; }
+}
+@container nxt5-cookie-banner (min-width: 15rem) {
+  .nxt5-cookie-banner .nxt5-cookie-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .nxt5-cookie-banner .nxt5-cookie-actions > button:last-child { grid-column: 1 / -1; }
+}
+@container nxt5-cookie-banner (min-width: 30rem) {
+  .nxt5-cookie-banner .nxt5-cookie-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .nxt5-cookie-banner .nxt5-cookie-actions > button:last-child { grid-column: auto; }
 }
 @media (prefers-reduced-motion: reduce) { .nxt5-cookie-banner *, .nxt5-cookie-dialog *, .nxt5-cookie-settings { transition: none !important; animation: none !important; } }
