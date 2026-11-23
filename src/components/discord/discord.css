@@ -254,3 +254,5 @@
 
 .discord-quick-command > div { margin-top: .5rem; }
 .discord-quick-command code { min-width: 0; overflow-wrap: anywhere; }
+.discord-account-warning { padding: 0.75rem 1rem; border: 1px solid rgba(253, 164, 175, 0.35); border-radius: var(--nxt5-radius-control, 0.625rem); background: rgba(251, 113, 133, 0.07); color: #fecdd3; font-size: var(--nxt5-font-small); line-height: 1.6; overflow-wrap: anywhere; }
+.discord-account-warning strong { color: #fff1f2; }

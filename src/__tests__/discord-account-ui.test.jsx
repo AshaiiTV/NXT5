@@ -45,13 +45,22 @@ describe("personal Discord account consent", () => {
     await render();
     expect(text()).toContain("mon-compte"); expect(text()).toContain("Joueur Discord");
     expect(text()).toContain("À confirmer ici");
+    expect(text()).toContain("Ne confirme jamais un lien qu’une autre personne t’a envoyé.");
     expect(api.fetch).toHaveBeenCalledOnce();
+    // The personal token never appears in an API URL.
+    expect(api.fetch).toHaveBeenCalledWith("discord-account", { method: "POST", body: JSON.stringify({ token, preview: true }) });
     expect(window.history.replaceState).toHaveBeenCalledWith(null, "", "/bot-discord");
     await act(async () => button("Confirmer mon compte NXT5").props.onClick());
     expect(api.fetch).toHaveBeenLastCalledWith("discord-account", { method: "POST", body: JSON.stringify({ token }) });
     expect(text()).toContain("Reviens dans Discord");
     expect(text()).toContain("À terminer dans Discord");
     expect(text()).not.toContain("Compte lié");
+  });
+  it("reads the personal token from the URL fragment and removes it from history", async () => {
+    window.location = { href: "https://nxt5.test/bot-discord#lier=" + token, search: "", hash: "#lier=" + token };
+    await render();
+    expect(api.fetch).toHaveBeenCalledWith("discord-account", { method: "POST", body: JSON.stringify({ token, preview: true }) });
+    expect(window.history.replaceState).toHaveBeenCalledWith(null, "", "/bot-discord");
   });
   it("never labels a failed confirmation as successful", async () => {
     api.fetch.mockResolvedValueOnce({ request: { discordUserId: "100000000000000001", discordLabel: "Joueur", expiresAt: "2026-09-22T18:30:00Z" } }).mockRejectedValueOnce(new Error("Le lien a expiré."));
@@ -98,7 +107,7 @@ describe("personal Discord account consent", () => {
     expect(text()).toContain("À terminer dans Discord");
     expect(text()).not.toContain("Compte lié");
     await act(async () => button("J’ai confirmé dans Discord · Vérifier").props.onClick());
-    expect(api.fetch).toHaveBeenLastCalledWith(`discord-account?token=${token}`);
+    expect(api.fetch).toHaveBeenLastCalledWith("discord-account", { method: "POST", body: JSON.stringify({ token, preview: true }) });
     expect(text()).toContain("Compte lié");
     expect(text()).not.toContain("À terminer dans Discord");
   });

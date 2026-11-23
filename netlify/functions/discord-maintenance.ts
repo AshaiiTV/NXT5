@@ -7,8 +7,9 @@ async function handler() {
   const config = getDiscordConfig();
   if (!config.configured || getDiscordDeployContext() !== 'production') return json({ enabled: false });
   const body = JSON.stringify({ operation: 'maintenance' });
-  const response = await fetch(new URL('/.netlify/functions/discord-maintenance-background', config.siteUrl), {
-    method: 'POST', headers: { 'Content-Type': 'application/json', ...signDiscordInternalRequest(body) },
+  const target = new URL('/.netlify/functions/discord-maintenance-background', config.siteUrl);
+  const response = await fetch(target, {
+    method: 'POST', headers: { 'Content-Type': 'application/json', ...signDiscordInternalRequest(body, target) },
     body, signal: AbortSignal.timeout(8000), redirect: 'error',
   });
   if (!response.ok) throw new Error('DISCORD_MAINTENANCE_DISPATCH_FAILED');

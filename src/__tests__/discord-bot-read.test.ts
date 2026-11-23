@@ -5,7 +5,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } 
 const state = vi.hoisted(() => ({ pg: null as any, sql: vi.fn(), request: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/db', () => ({ sql: Object.assign(state.sql, { query: state.sql }) }));
 vi.mock('../../netlify/functions/_lib/discord-client', async original => ({ ...await original<any>(), discordRequest: state.request }));
-import { executeDiscordRead } from '../../netlify/functions/_lib/discord-bot-read';
+import { executeDiscordRead, selectLabel } from '../../netlify/functions/_lib/discord-bot-read';
 import type { BotContext } from '../../netlify/functions/_lib/discord-bot-common';
 
 const id = (n: number) => `71000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
@@ -306,4 +306,15 @@ it('T3-G3 ranks canonical confidence and work statuses before game counts', asyn
   expect(confidence.embeds[0].fields.slice(0,2).map((row: any) => row.name)).toEqual(['Ahri','Vi']);
   const work = await read('pool suggerer', { joueur: teammate, objectif: 'travail' }, staff);
   expect(work.embeds[0].fields.slice(0,2).map((row: any) => row.name)).toEqual(['Zed','LeeSin']);
+});
+
+it('keeps every select menu label within Discord bounds', () => {
+  expect(selectLabel('  Scrim vs  Team\n')).toBe('Scrim vs Team');
+  for (const empty of ['', '   ', null, undefined, '\u0000\n']) expect(selectLabel(empty)).toBe('Sans titre');
+  expect(selectLabel(' ', 'Résultat inconnu')).toBe('Résultat inconnu');
+  expect(selectLabel('x'.repeat(250))).toHaveLength(100);
+  const emoji = selectLabel('a' + '😀'.repeat(60));
+  expect(emoji.length).toBeLessThanOrEqual(100);
+  expect(emoji.endsWith('\ud83d')).toBe(false);
+  expect(selectLabel('   ' + 'y'.repeat(120)).length).toBe(100);
 });

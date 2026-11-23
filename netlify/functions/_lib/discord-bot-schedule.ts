@@ -7,7 +7,8 @@ import { botLink, botText } from './discord-bot-common';
 import { DISCORD_MATCH_TIME_SQL } from './discord-bot-read';
 
 // Keep temporary form content only for the short recovery window. Ambiguous
-// deliveries remain available for reconciliation and are never pruned here.
+// deliveries remain available for reconciliation; after BOT_OUTBOX_UNCERTAIN_DAYS
+// deliverBotOutbox closes them as failed, and they are pruned 30 days later.
 export async function pruneDiscordBotArtifacts() {
   assertDiscordArtifactEnvironment();
   const results = await sql.transaction([
@@ -156,11 +157,34 @@ async function stillDeliverable(row:any) {
       and (o.report_id is null or (r.discord_status='published' and not r.discord_summary_stale and r.discord_version=o.report_version))`,[row.id]);
   return rows.length>0;
 }
-export async function deliverBotOutbox(limit=2) {
+export const BOT_OUTBOX_MAX_ATTEMPTS=5;
+export const BOT_OUTBOX_UNCERTAIN_DAYS=3;
+/** Retry delay in seconds: Discord's Retry-After when given, else exponential (60 s … 15 min). */
+function retryDelay(error:any,attempts:number){
+  if(error?.status===429)return Math.max(5,Number(error?.retryAfter)||60);
+  return Math.min(900,60*2**Math.max(0,attempts-1));
+}
+/** Final state of a job whose delivery threw. Exported for tests. */
+export function botOutboxFailureState(error:any,attempted:boolean,attempts:number):'uncertain'|'queued'|'failed'{
+  // After the POST left, only a confirmed Discord rejection is a failure.
+  if(error?.ambiguous||(attempted&&!error?.status))return 'uncertain';
+  const status=Number(error?.status)||0;
+  // Before the POST nothing reached the channel: network errors, Discord or
+  // database outages are transient. A 4xx (missing salon, rights) is not.
+  const transient=status===429||(!attempted&&(!status||status>=500));
+  return transient&&attempts<BOT_OUTBOX_MAX_ATTEMPTS?'queued':'failed';
+}
+export async function deliverBotOutbox(limit=2,options:{budgetMs?:number}={}) {
   assertDiscordArtifactEnvironment();
   if(!isDiscordEnabled()) return {sent:0};
+  const startedAt=Date.now(),budgetMs=Math.max(0,Number(options.budgetMs)||0);
   // A process dying after POST is ambiguous. Never send that job again without read reconciliation.
   await sql.query("update discord_bot_outbox set state='uncertain',error_code='DELIVERY_UNCONFIRMED',updated_at=now() where state='sending' and updated_at<now()-interval '90 seconds'");
+  // An unconfirmed delivery cannot stay pending forever. After a few days of
+  // unsuccessful read reconciliation, close it for a human review; it is then
+  // pruned with other failed jobs.
+  await sql.query(`update discord_bot_outbox set state='failed',error_code='DELIVERY_UNCONFIRMED_REVIEW',updated_at=now()
+    where state='uncertain' and created_at<now()-($1*interval '1 day')`,[BOT_OUTBOX_UNCERTAIN_DAYS]);
   const uncertain=await sql.query("select * from discord_bot_outbox where state='uncertain' and available_at<=now() order by updated_at limit 2");
   for(const row of uncertain){
     try{const found=await findDiscordMessage(row.channel_id,{reference:'bot:'+row.id,after:row.created_at});
@@ -170,14 +194,20 @@ export async function deliverBotOutbox(limit=2) {
     await sql.query("update discord_bot_outbox set available_at=now()+interval '5 minutes',updated_at=now() where id=$1 and state='uncertain'",[row.id]);
   }
   let sent=0;
-  for(let i=0;i<Math.min(10,Math.max(0,limit));i++){
+  // One guild lookup per run: a busy server must not cost one API call per job.
+  // A failed lookup is reused too, so an outage requeues the guild's jobs without retrying the API each time.
+  const guilds=new Map<string,ReturnType<typeof getDiscordGuild>>();
+  const guildFor=(id:string)=>{let found=guilds.get(id);if(!found){found=getDiscordGuild(id);guilds.set(id,found);}return found;};
+  const maxJobs=Math.min(500,Math.max(0,Math.floor(Number(limit)||0)));
+  for(let i=0;i<maxJobs;i++){
+    if(budgetMs&&i>0&&Date.now()-startedAt>=budgetMs)break;
     const rows=await sql.query(`update discord_bot_outbox set state='sending',attempts=attempts+1,updated_at=now() where id=(select id from discord_bot_outbox
       where state='queued' and available_at<=now() order by available_at for update skip locked limit 1) returning *`);
     const row=rows[0];if(!row)break;
     let attempted=false;
     try{
       if(!await stillDeliverable(row)){await sql.query("update discord_bot_outbox set state='cancelled',updated_at=now() where id=$1",[row.id]);continue;}
-      const live=await getDiscordGuild(row.guild_id);
+      const live=await guildFor(row.guild_id);
       if(!live.channels.some(c=>c.id===row.channel_id&&c.canSend))throw discordError('Salon indisponible.',409,'DISCORD_CHANNEL_FORBIDDEN');
       if(!isDiscordEnabled()||!await stillDeliverable(row)){await sql.query("update discord_bot_outbox set state='cancelled',updated_at=now() where id=$1",[row.id]);continue;}
       const reference='bot:'+row.id;
@@ -190,10 +220,9 @@ export async function deliverBotOutbox(limit=2) {
       if(!isDiscordId(message?.id)||message.channel_id!==row.channel_id)throw Object.assign(new Error('Delivery unconfirmed'),{ambiguous:true});
       await sql.query("update discord_bot_outbox set state='sent',message_id=$2,error_code=null,updated_at=now() where id=$1 and state='sending'",[row.id,message.id]);sent++;
     }catch(error){
-      const retry=error?.status===429&&!error?.ambiguous&&Number(row.attempts)<5;
-      const state=error?.ambiguous||(attempted&&!error?.status)?'uncertain':retry?'queued':'failed';
+      const state=botOutboxFailureState(error,attempted,Number(row.attempts));
       await sql.query("update discord_bot_outbox set state=$2,error_code=$3,available_at=now()+($4*interval '1 second'),updated_at=now() where id=$1 and state='sending'",
-        [row.id,state,String(error?.code||'DISCORD_DELIVERY_FAILED'),Math.max(5,Number(error?.retryAfter)||60)]);
+        [row.id,state,String(error?.code||'DISCORD_DELIVERY_FAILED'),retryDelay(error,Number(row.attempts))]);
     }
   }
   return {sent};

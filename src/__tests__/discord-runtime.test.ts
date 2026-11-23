@@ -81,7 +81,7 @@ describe('Netlify invocation context, independent from build variables', () => {
       expect(isDiscordEnabled()).toBe(false);
       const config = getDiscordConfig();
       expect([config.botToken, config.workerSecret, config.publicKey]).toEqual(['', '', '']);
-      expect(() => signDiscordInternalRequest('{}')).toThrow('SECRET_MISSING');
+      expect(() => signDiscordInternalRequest('{}', '/.netlify/functions/test')).toThrow('SECRET_MISSING');
     });
   });
   it('trusts production metadata over a stale preview environment and fails closed if hosted metadata is absent', () => {
@@ -122,7 +122,7 @@ describe('Netlify invocation context, independent from build variables', () => {
 describe('Actual Discord HTTP entry points receive trusted invocation metadata', () => {
   it('applies trusted production metadata to the fifteenth handler: operator setup', async () => {
     const body = JSON.stringify({ action: 'inspect', expectedApplicationId: '100000000000000001' });
-    const headers = withDiscordContext(netlifyContext('production'), () => signDiscordInternalRequest(body));
+    const headers = withDiscordContext(netlifyContext('production'), () => signDiscordInternalRequest(body, '/.netlify/functions/test'));
     const isolated = await setup(request('POST', body, headers), netlifyContext('deploy-preview'));
     expect(isolated.status).toBe(409);
     expect(await isolated.json()).toMatchObject({ code: 'DISCORD_SETUP_PRODUCTION_REQUIRED' });
@@ -243,7 +243,7 @@ describe('Scheduled, background and import wake propagation', () => {
   });
   it.each([['publish', background, mocks.run], ['maintenance', maintenanceBackground, mocks.maintain]] as const)('verifies signed %s callbacks using the invocation context', async (_name, handler, operation) => {
     const body = '{}';
-    const headers = withDiscordContext(netlifyContext('production'), () => signDiscordInternalRequest(body));
+    const headers = withDiscordContext(netlifyContext('production'), () => signDiscordInternalRequest(body, '/.netlify/functions/test'));
     const response = await (handler as any)(request('POST', body, headers), netlifyContext('production'));
     expect(await response.json()).toEqual({ context: 'production', enabled: true, configured: true });
     expect((await (handler as any)(request('POST', body, headers), netlifyContext('deploy-preview'))).status).toBe(401);

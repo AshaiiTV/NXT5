@@ -23,7 +23,7 @@ function signed(body: unknown = { action: 'inspect', expectedApplicationId: APP 
   const timestamp = String(Math.floor(Date.now() / 1000) - age);
   return new Request('https://nxt5.example/.netlify/functions/discord-setup', { method: 'POST', body: raw, headers: {
     'content-type': 'application/json', 'x-nxt5-discord-timestamp': timestamp,
-    'x-nxt5-discord-signature': createHmac('sha256', SECRET).update(timestamp + '.' + raw).digest('hex'), ...overrides,
+    'x-nxt5-discord-signature': createHmac('sha256', SECRET).update('/.netlify/functions/discord-setup.' + timestamp + '.' + raw).digest('hex'), ...overrides,
   } });
 }
 function mockDiscord(initial = application()) {
