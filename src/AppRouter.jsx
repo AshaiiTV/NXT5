@@ -183,7 +183,9 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
   useEffect(() => {
     let mounted = true;
     const generation = authGeneration.current;
-    apiFetch("auth-me").then((result) => { if (mounted && authGeneration.current === generation) setUser(result.user); }).catch(() => { if (mounted && authGeneration.current === generation) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
+    // auth-me answers 200 { user: null } for an anonymous visitor (no session
+    // cookie); a present but invalid session still rejects with 401.
+    apiFetch("auth-me").then((result) => { if (mounted && authGeneration.current === generation) setUser(result?.user || null); }).catch(() => { if (mounted && authGeneration.current === generation) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
     return () => { mounted = false; };
   }, []);
 

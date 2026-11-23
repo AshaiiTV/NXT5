@@ -45,6 +45,16 @@ describe("B1 verification recovery", () => {
     act(() => button("Se déconnecter").props.onClick());
     expect(onLogout).toHaveBeenCalledOnce();
   });
+  it("reports a lost session when auth-me answers user null, without signing the user out", async () => {
+    const onUserUpdate = vi.fn();
+    await render(<EmailVerificationRequiredModal user={user} onLogout={vi.fn()} onUserUpdate={onUserUpdate} pushToast={vi.fn()} />);
+    apiFetch.mockResolvedValueOnce({ user: null });
+    await act(async () => button("J'ai vérifié mon email").props.onClick());
+    expect(apiFetch).toHaveBeenLastCalledWith("auth-me");
+    expect(onUserUpdate).not.toHaveBeenCalled();
+    expect(text()).toContain("Session invalide ou expirée.");
+    expect(button("Se déconnecter").props.disabled).toBe(false);
+  });
   it("offers logout and an explanation for an account without a password", async () => {
     apiFetch.mockResolvedValueOnce({ hasPassword: false });
     await render(<EmailVerificationRequiredModal user={user} onLogout={vi.fn()} />);

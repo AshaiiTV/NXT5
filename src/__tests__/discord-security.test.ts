@@ -284,6 +284,20 @@ describe('NXT5 authentication and team action boundaries', () => {
     await expect(requireDiscordTeam(request(), {} as any, TEAM, 'read')).rejects.toMatchObject({ status: 401 });
     expect(mocks.sql).not.toHaveBeenCalled();
   });
+  it('reports a missing or expired NXT5 session as AUTH_REQUIRED, not as a Discord failure', async () => {
+    for (const message of ['Session absente.', 'Session invalide ou expirée.']) {
+      mocks.auth.mockRejectedValueOnce(Object.assign(new Error(message), { status: 401 }));
+      const response = await preview(request(undefined, 'team-discord-preview'), {} as any);
+      expect(response.status).toBe(401);
+      expect(await response.json()).toEqual({ error: message, code: 'AUTH_REQUIRED' });
+    }
+    // An explicit code is kept, and Discord's own 401 stays an unavailable upstream.
+    expect(await discordResponseError(Object.assign(new Error('Association modifiée.'), { status: 401, code: 'SOCIAL_ACCOUNT_CHANGED' })).json()).toMatchObject({ code: 'SOCIAL_ACCOUNT_CHANGED' });
+    const upstream = discordResponseError(Object.assign(new Error('Discord token rejected.'), { name: 'DiscordApiError', status: 401 }));
+    expect(upstream.status).toBe(503);
+    expect(await upstream.json()).toMatchObject({ code: 'DISCORD_FAILED' });
+    expect(await discordResponseError(Object.assign(new Error('boom'), { status: 500 })).json()).toMatchObject({ code: 'DISCORD_FAILED' });
+  });
   it('blocks cross-site mutations before auth or database operations', async () => {
     const response = await connection(request({ teamId: TEAM, action: 'pause' }, 'team-discord-connection', { origin: 'https://evil.example', 'sec-fetch-site': 'cross-site' }), {} as any);
     expect(response.status).toBe(403);
