@@ -23,4 +23,5 @@ Tests : `importer-app/test/collector.test.mjs` (custom uniquement, région du cl
 
 ## Suite à prévoir
 
-- Signature de code Windows (Authenticode) et signature + notarisation Apple, avec publication des sommes de contrôle SHA-256 des binaires. Nécessite les certificats ; non traité ici.
+- Signature de code Windows (Authenticode) et signature + notarisation Apple : nécessite des certificats payants, écartée faute de budget (23/11/2026).
+- Fait : la release « latest » publie `SHA256SUMS.txt`, les empreintes SHA-256 des exécutables de chaque build, avec la commande de vérification Windows et macOS dans sa description.
