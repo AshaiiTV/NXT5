@@ -7,6 +7,7 @@ import { AUTH_PATHS, NAV, PUBLIC_ROUTES } from "../app/constants.jsx";
 import { ADMIN_PAGES } from "../app/admin-navigation.js";
 import { DRAFT_DETAIL_IDS } from "../app/trends-navigation.js";
 import { PUBLIC_METADATA } from "./metadata.js";
+import { DEMO_SECTIONS } from "../app/demo-routes.js";
 
 export const publicPaths = Object.keys(PUBLIC_METADATA);
 export const privatePaths = [...new Set([
@@ -18,10 +19,10 @@ export const privatePaths = [...new Set([
   "/integration", "/statistiques", "/profil", "/mon-profil", "/champion-pool", "/compositions-types", "/draft", "/nexus-rising", "/salle-de-draft",
 ])];
 export const dynamicPaths = ["/profil", "/mon-profil", "/draft", "/demo/partie"];
-// Public demo steps (/demo/analyses, /demo/partie/:id[/debrief]) load the SPA shell
+// Public demo steps (/demo/<section>, /demo/partie/:id[/debrief]) load the SPA shell
 // with a noindex header and stay out of the sitemap; only /demo itself is prerendered.
 // /demo/partie/* is covered by dynamicPaths. Unknown game ids redirect to /demo in the app.
-export const demoShellPaths = ["/demo/analyses", "/demo/partie"];
+export const demoShellPaths = [...DEMO_SECTIONS.map((section) => `/demo/${section}`), "/demo/partie"];
 
 export function render(path) {
   if (!publicPaths.includes(path) && path !== "/404") throw new Error(`Public prerender missing for ${path}`);

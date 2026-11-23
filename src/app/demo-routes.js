@@ -1,8 +1,9 @@
 import { DEMO_MATCHES } from "../pages/public/demo-data.js";
 
-// Public demo URLs: /demo (games), /demo/analyses (trends),
+// Public demo URLs: /demo (games), /demo/<section> for the team views below,
 // /demo/partie/:id (game analysis) and /demo/partie/:id/debrief, with id = DEMO_1…3.
 export const DEMO_PATH = "/demo";
+export const DEMO_SECTIONS = ["analyses", "joueurs", "champions", "draft", "planning"];
 const MATCH_PATH = /^\/demo\/partie\/([^/]+)(\/debrief)?$/;
 
 const normalize = (path = "") => (String(path).split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/");
@@ -16,7 +17,8 @@ export function findDemoMatch(value) {
 export function parseDemoPath(pathname = DEMO_PATH) {
   const path = normalize(pathname);
   if (path === DEMO_PATH) return { section: "parties", match: null, known: true };
-  if (path === `${DEMO_PATH}/analyses`) return { section: "analyses", match: null, known: true };
+  const section = DEMO_SECTIONS.find((id) => path === `${DEMO_PATH}/${id}`);
+  if (section) return { section, match: null, known: true };
   const found = MATCH_PATH.exec(path);
   const id = found ? decodeURIComponentSafe(found[1]) : "";
   const match = DEMO_MATCHES.find((item) => item.game_id === id);
@@ -29,7 +31,7 @@ function decodeURIComponentSafe(value) {
 }
 
 export function demoPath(section = "parties", match = null) {
-  if (section === "analyses") return `${DEMO_PATH}/analyses`;
+  if (DEMO_SECTIONS.includes(section)) return `${DEMO_PATH}/${section}`;
   if (!match) return section === "debrief" ? demoPath("debrief", DEMO_MATCHES[2]) : DEMO_PATH;
   return `${DEMO_PATH}/partie/${encodeURIComponent(match.game_id)}${section === "debrief" ? "/debrief" : ""}`;
 }
@@ -37,5 +39,5 @@ export function demoPath(section = "parties", match = null) {
 /** Every URL handled by the demo page, including unknown match ids (redirected to /demo). */
 export function isDemoPath(pathname = "") {
   const path = normalize(pathname);
-  return path === DEMO_PATH || path === `${DEMO_PATH}/analyses` || path === `${DEMO_PATH}/partie` || MATCH_PATH.test(path);
+  return path === DEMO_PATH || DEMO_SECTIONS.some((id) => path === `${DEMO_PATH}/${id}`) || path === `${DEMO_PATH}/partie` || MATCH_PATH.test(path);
 }

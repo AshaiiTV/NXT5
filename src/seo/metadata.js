@@ -97,6 +97,13 @@ function demoStepMetadata(path) {
     title: ["Analyses de la démonstration — NXT5"],
     description: ["Compare l’écart d’or, la vision et les morts des trois parties fictives de la démonstration NXT5."],
   };
+  const teamViews = {
+    joueurs: ["Joueurs de la démonstration — NXT5", "Profils et historique des cinq joueurs fictifs de la démonstration NXT5, partie par partie."],
+    champions: ["Champions de la démonstration — NXT5", "Champion pool, champions adverses et carnet de matchup de l’équipe fictive de la démonstration NXT5."],
+    draft: ["Draft de la démonstration — NXT5", "Compositions, côtés et duels par poste des trois parties fictives de la démonstration NXT5."],
+    planning: ["Planning de la démonstration — NXT5", "Semaine d’entraînement fictive et disponibilités des joueurs dans la démonstration NXT5."],
+  };
+  if (teamViews[section]) return { title: [teamViews[section][0]], description: [teamViews[section][1]] };
   if (section === "debrief") return {
     title: ["Débrief du {0} — Démonstration NXT5", [match.title]],
     description: ["Exemple de débrief fictif : le fait observé, la question à vérifier et l’action pour la prochaine séance d’entraînement."],
