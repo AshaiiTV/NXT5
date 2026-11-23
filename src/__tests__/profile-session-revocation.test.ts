@@ -35,9 +35,9 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
   return { sql: neon('postgresql://test:test@local-test.invalid/nxt5') };
 });
 vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: async () => {} }));
-vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertSubjectRateLimit: async () => {}, assertVerificationEmailRateLimit: async () => {} }));
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {}, assertVerificationEmailRateLimit: async () => {}, releaseSubjectRateLimit: async () => {}, DAILY_RECIPIENT_LIMITS: { passwordReset: { limit: 5, windowSeconds: 86400 }, verification: { limit: 5, windowSeconds: 86400 }, emailChangeAccount: { limit: 5, windowSeconds: 86400 } } }));
 vi.mock('../../netlify/functions/_lib/team-member-emails', () => ({ ensureUserNotificationColumns: async () => {} }));
-vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.emails }));
+vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.emails, sendAccountSecurityEmail: async () => {}, maskEmail: (email: string) => email }));
 
 import updateProfile from '../../netlify/functions/auth-update-profile';
 import { sha256 } from '../../netlify/functions/_lib/auth';
@@ -86,13 +86,14 @@ afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 afterAll(async () => { await state.pg?.close(); });
 
 describe('email changes recheck the browser session at commit', () => {
-  it('keeps an authorized email change and private response working', async () => {
+  it('keeps an authorized email change request and private response working', async () => {
     const response = await profile();
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('no-store');
-    expect(await response.json()).toMatchObject({ user: { email: 'next@example.test', email_verified: false } });
+    expect(await response.json()).toMatchObject({ emailChangePending: true, user: { email: 'original@example.test', email_verified: true, pending_email: 'next@example.test' } });
     const saved = await credentials();
-    expect(saved.recovery.every((token: any) => token.used_at)).toBe(true);
+    // Recovery through the current address stays valid until the new one is confirmed.
+    expect(saved.recovery.every((token: any) => token.used_at === null)).toBe(true);
     expect(saved.audit).toEqual([{ action: 'auth.profile_update' }]);
     expect(state.emails).toHaveBeenCalledTimes(1);
   });

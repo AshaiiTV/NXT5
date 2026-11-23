@@ -1,11 +1,20 @@
+import type { Context } from '@netlify/functions';
 import crypto from 'node:crypto';
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, isValidEmail, normalizeEmail, sha256 } from './_lib/auth';
 import { isPasswordEmailConfigured, sendPasswordResetEmail } from './_lib/email';
-import { assertRateLimit, assertSubjectRateLimit, requestIp } from './_lib/rate-limit';
+import { assertRateLimit, assertSubjectRateLimit, DAILY_RECIPIENT_LIMITS, requestIp } from './_lib/rate-limit';
+import { padResponseTime, runInBackground } from './_lib/response-timing';
 
-export default async function handler(request: Request): Promise<Response> {
+export default async function handler(request: Request, context?: Context): Promise<Response> {
+  const startedAt = Date.now();
+  // Every accepted request answers the same body after the same minimum time,
+  // whether or not the address belongs to an account.
+  const accepted = async () => {
+    await padResponseTime(startedAt);
+    return json({ ok: true });
+  };
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
@@ -19,8 +28,9 @@ export default async function handler(request: Request): Promise<Response> {
     try {
       await assertSubjectRateLimit('password-reset-recipient-ip', JSON.stringify([sha256(email), requestIp(request)]), { limit: 3, windowSeconds: 3600 });
       await assertSubjectRateLimit('password-reset-recipient', sha256(email), { limit: 10, windowSeconds: 3600 });
+      await assertSubjectRateLimit('password-reset-recipient-day', sha256(email), DAILY_RECIPIENT_LIMITS.passwordReset);
     } catch (error: any) {
-      if (error?.status === 429) return json({ ok: true });
+      if (error?.status === 429) return accepted();
       throw error;
     }
     if (!isPasswordEmailConfigured()) {
@@ -87,17 +97,17 @@ export default async function handler(request: Request): Promise<Response> {
       `;
       // Preserve the same public response for a missing or concurrently changed
       // account; never send a link unless its issuance actually committed.
-      if (!issued[0]) return json({ ok: true });
-      try {
-        await sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl });
-      } catch {
-        // Delivery availability must not disclose whether an address is
-        // registered. Do not log the email, recovery URL or provider response.
+      if (!issued[0]) return accepted();
+      // Delivery runs after the response: its latency must not disclose
+      // whether the address is registered.
+      const delivery = sendPasswordResetEmail({ to: user.email, name: user.name, resetUrl }).catch(() => {
+        // Do not log the email, recovery URL or provider response.
         console.error('[password-reset] Email delivery failed.', { code: 'PASSWORD_RESET_EMAIL_FAILED' });
-      }
+      });
+      await runInBackground(context, delivery);
     }
 
-    return json({ ok: true });
+    return accepted();
   } catch (err) {
     return handleError(err);
   }

@@ -53,11 +53,26 @@ async function sendResendEmail({ to, subject, text, html }) {
   }
 }
 
-export async function sendEmailVerificationEmail({ to, token }) {
+export async function sendEmailVerificationEmail({ to, token, purpose = 'signup' }: { to: string; token: string; purpose?: 'signup' | 'email-change' }) {
   const siteUrl = String(env('PUBLIC_SITE_URL') || 'https://nxt5.org').replace(/\/+$/, '');
   const verifyUrl = `${siteUrl}/verify-email?token=${encodeURIComponent(token)}`;
   const htmlVerifyUrl = escapeHtml(verifyUrl);
   const htmlSiteUrl = escapeHtml(siteUrl);
+
+  if (purpose === 'email-change') {
+    await sendAccountSecurityEmail({
+      to,
+      subject: 'Confirme ta nouvelle adresse e-mail NXT5',
+      title: 'Confirme ta nouvelle adresse',
+      paragraphs: [
+        'Une modification de l’adresse e-mail d’un compte NXT5 vers cette adresse a été demandée.',
+        'Ouvre ce lien dans le navigateur où tu es connecté à ton compte NXT5. L’adresse ne change qu’après cette confirmation, et le lien est valable 24h.',
+        'Si tu n’es pas à l’origine de cette demande, ignore cet e-mail : rien ne sera modifié.'
+      ],
+      action: { label: 'Confirmer ma nouvelle adresse', url: verifyUrl }
+    });
+    return;
+  }
 
   await sendResendEmail({
     to,
@@ -103,6 +118,63 @@ export async function sendEmailVerificationEmail({ to, token }) {
                       </div>
 
                       <p style="margin:24px 0 0;color:#92a0be;font-size:13px;line-height:1.6">Cet e-mail a été envoyé automatiquement par NXT5 depuis ${htmlSiteUrl}. Ne transfère pas ce lien de vérification.</p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </div>
+    `
+  });
+}
+
+/** Masks a mailbox for security notices sent to another address: j***@example.com. */
+export function maskEmail(email: string): string {
+  const [local = '', domain = ''] = String(email || '').split('@');
+  return `${local.slice(0, 1) || '*'}***@${domain || '***'}`;
+}
+
+/**
+ * Short account-security message (password changed, e-mail change requested
+ * or completed). Same frame as the other NXT5 e-mails; throws like
+ * sendResendEmail, so best-effort callers catch and log without details.
+ */
+export async function sendAccountSecurityEmail({ to, subject, title, paragraphs, action }: {
+  to: string; subject: string; title: string; paragraphs: string[]; action?: { label: string; url: string };
+}) {
+  const siteUrl = String(env('PUBLIC_SITE_URL') || 'https://nxt5.org').replace(/\/+$/, '');
+  const supportUrl = `${siteUrl}/contact`;
+  const footer = `Tu n’es pas à l’origine de cette action ? Réinitialise ton mot de passe et contacte le support NXT5 : ${supportUrl}`;
+  const text = [...paragraphs, ...(action ? [`${action.label} : ${action.url}`] : []), footer].join('\n\n');
+  const paragraphHtml = paragraphs
+    .map(paragraph => `<p style="margin:12px 0 0;color:#e2e8f0;font-size:16px;line-height:1.65">${escapeHtml(paragraph)}</p>`)
+    .join('');
+  const actionHtml = action
+    ? `<div style="margin:26px 0 8px"><a href="${escapeHtml(action.url)}" style="display:inline-block;border-radius:2px;background-color:#67e8f9;background-image:linear-gradient(90deg,#67e8f9 0%,#a5b4fc 52%,#c4b5fd 100%);color:#020611;text-decoration:none;padding:15px 22px;font-size:15px;font-weight:900">${escapeHtml(action.label)}</a></div><p style="margin:10px 0 0;color:#67e8f9;font-size:12px;line-height:1.55;word-break:break-all">${escapeHtml(action.url)}</p>`
+    : '';
+  await sendResendEmail({
+    to,
+    subject,
+    text,
+    html: `
+      <div style="margin:0;padding:0;background:#070a14;font-family:Inter,Arial,sans-serif;color:#e5eefb">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background:#070a14">
+          <tr>
+            <td align="center" style="padding:32px 14px">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:640px;border-collapse:collapse;overflow:hidden;border-radius:16px;background:#070b16">
+                <tr>
+                  <td style="padding:0;background:#11172a">
+                    <div style="height:6px;background:#7c3aed"></div>
+                    <div style="padding:34px 34px 30px">
+                      <div style="display:inline-block;margin:0 0 22px;padding:7px 11px;border:1px solid rgba(103,232,249,.30);border-radius:999px;background:rgba(8,145,178,.14);color:#9beafe;font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase">Sécurité du compte</div>
+                      <h1 style="margin:0;color:#ffffff;font-size:28px;line-height:1.15;font-weight:900">${escapeHtml(title)}</h1>
+                      ${paragraphHtml}
+                      ${actionHtml}
+                      <div style="margin-top:22px;border:1px solid rgba(248,113,113,.24);border-radius:18px;background:rgba(127,29,29,.18);padding:16px 18px">
+                        <p style="margin:0;color:#fecdd3;font-size:13px;line-height:1.6">Tu n’es pas à l’origine de cette action ? Réinitialise ton mot de passe et <a href="${escapeHtml(supportUrl)}" style="color:#67e8f9;text-decoration:none;font-weight:800">contacte le support NXT5</a>.</p>
+                      </div>
                     </div>
                   </td>
                 </tr>

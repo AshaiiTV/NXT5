@@ -6,10 +6,11 @@ import { assertSessionSecret, ensureEmailVerificationColumns, hashPassword, isVa
 import { sendEmailVerificationEmail } from './_lib/email';
 import { assertRateLimit, assertVerificationEmailRateLimit } from './_lib/rate-limit';
 import { recordRegistrationSignup } from './_lib/audience-registration';
+import { padResponseTime, runInBackground } from './_lib/response-timing';
 
 import { LEGAL_VERSION } from '../../shared/legal.js';
 
-const registrationAccepted = () => json({ ok: true, message: 'Si cette adresse peut être utilisée, tu recevras un e-mail de vérification. Si tu as déjà un compte, connecte-toi ou réinitialise ton mot de passe.' }, 202);
+const acceptedResponse = () => json({ ok: true, message: 'Si cette adresse peut être utilisée, tu recevras un e-mail de vérification. Si tu as déjà un compte, connecte-toi ou réinitialise ton mot de passe.' }, 202);
 
 function accountNameFromEmail(email) {
   const base = normalizeAccountName(email.split('@')[0]).replace(/[^a-z0-9._-]/g, '').slice(0, 18) || 'compte';
@@ -17,6 +18,13 @@ function accountNameFromEmail(email) {
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
+  const startedAt = Date.now();
+  // New, existing and rate-limited addresses get the same body after the same
+  // minimum time; e-mail delivery and measurement run after the response.
+  const registrationAccepted = async () => {
+    await padResponseTime(startedAt);
+    return acceptedResponse();
+  };
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
@@ -81,8 +89,7 @@ export default async function handler(request: Request, context: Context): Promi
     const delivery = sendEmailVerificationEmail({ to: email, token: verifyToken }).catch(() => {
       console.error('[registration] Verification email unavailable.', { code: 'EMAIL_DELIVERY_FAILED' });
     });
-    if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(delivery);
-    else await delivery;
+    await runInBackground(context, delivery);
 
     await sql`
       insert into audit_logs (user_id, action, entity_type, metadata)
@@ -90,8 +97,7 @@ export default async function handler(request: Request, context: Context): Promi
     `;
 
     const measurement = recordRegistrationSignup(request, context);
-    if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(measurement);
-    else await measurement;
+    await runInBackground(context, measurement);
 
     return registrationAccepted();
   } catch (err) {

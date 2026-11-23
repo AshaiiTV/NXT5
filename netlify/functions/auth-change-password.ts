@@ -1,13 +1,15 @@
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
-import { assertSessionSecret, hashPassword, readSessionCookie, requireAuth, sha256, verifyPassword } from './_lib/auth';
-import { assertSubjectRateLimit } from './_lib/rate-limit';
+import { assertSessionSecret, hashPassword, readSessionCookie, requireAuth, sha256, verifyReauthenticationPassword } from './_lib/auth';
+import { assertRateLimit } from './_lib/rate-limit';
+import { notifyAccountSecurity } from './_lib/account-notices';
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
+    await assertRateLimit(request, 'auth-change-password', { limit: 10, windowSeconds: 60 });
     const user = await requireAuth(request, context, { allowUnverifiedEmail: true });
     const body = await readJson(request, 4096);
     const currentPassword = String(body.currentPassword || '');
@@ -26,10 +28,9 @@ export default async function handler(request: Request, context: Context): Promi
       throw Object.assign(new Error('Le nouveau mot de passe doit être différent de l’ancien.'), { status: 400 });
     }
 
-    await assertSubjectRateLimit('password-change-reauth', user.id, { limit: 5, windowSeconds: 60 });
     const rows = await sql`select password_hash, xmin::text as account_version from users where id = ${user.id} limit 1`;
     const passwordHash = rows[0]?.password_hash;
-    const passwordOk = passwordHash ? await verifyPassword(currentPassword, passwordHash) : false;
+    const passwordOk = await verifyReauthenticationPassword(user.id, currentPassword, passwordHash);
     if (!passwordOk) {
       throw Object.assign(new Error('Mot de passe actuel incorrect.'), { status: 401 });
     }
@@ -78,6 +79,7 @@ export default async function handler(request: Request, context: Context): Promi
       });
     }
 
+    if (user.email_verified === true) await notifyAccountSecurity(context, user.email, 'password-changed');
     return json({ ok: true });
   } catch (err) {
     return handleError(err);

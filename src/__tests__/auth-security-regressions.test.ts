@@ -13,7 +13,9 @@ const state = vi.hoisted(() => ({
   beforeQuery: null as null | ((query: string) => Promise<void>),
   emails: vi.fn(async (_message: any) => {}),
   recipients: [] as string[],
-  notification: vi.fn(async (_message: any) => {})
+  notification: vi.fn(async (_message: any) => {}),
+  security: vi.fn(async (_message: any) => {}),
+  pad: vi.fn(async (_startedAt: number, _minimumMs?: number) => {})
 }));
 
 // Execute the handlers' actual parameterized queries in PostgreSQL. Sessions
@@ -64,7 +66,9 @@ vi.mock('../../netlify/functions/_lib/auth', async (importOriginal) => {
   };
 });
 vi.mock('../../netlify/functions/_lib/team-member-emails', () => ({ ensureUserNotificationColumns: async () => {}, getTeamMemberEmails: async () => state.recipients }));
-vi.mock('../../netlify/functions/_lib/email', () => ({ sendNotification: state.notification, sendEmailVerificationEmail: state.emails, isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails }));
+vi.mock('../../netlify/functions/_lib/email', () => ({ sendNotification: state.notification, sendEmailVerificationEmail: state.emails, isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails, sendAccountSecurityEmail: state.security, maskEmail: (email: string) => email }));
+// The minimum response time is asserted through this spy; real waiting is covered by response-timing.test.ts.
+vi.mock('../../netlify/functions/_lib/response-timing', async original => ({ ...await original<any>(), padResponseTime: state.pad }));
 
 import verifyEmail from '../../netlify/functions/verify-email';
 import updateProfile from '../../netlify/functions/auth-update-profile';
@@ -73,7 +77,7 @@ import requestPasswordReset from '../../netlify/functions/auth-request-password-
 import resetPassword from '../../netlify/functions/auth-reset-password';
 import registerAccount from '../../netlify/functions/auth-register';
 import resendVerification from '../../netlify/functions/resend-verify-email';
-import { sha256, purgeExpiredAuthData } from '../../netlify/functions/_lib/auth';
+import { sha256, purgeExpiredAuthData, verifyReauthenticationPassword } from '../../netlify/functions/_lib/auth';
 import { assertVerificationEmailRateLimit, assertSubjectRateLimit } from '../../netlify/functions/_lib/rate-limit';
 import bootstrap from '../../netlify/functions/bootstrap';
 import createTeam from '../../netlify/functions/teams-create';
@@ -139,6 +143,8 @@ beforeEach(async () => {
   state.emails.mockReset().mockResolvedValue(undefined);
   state.recipients = [];
   state.notification.mockReset().mockResolvedValue(undefined);
+  state.security.mockReset().mockResolvedValue(undefined);
+  state.pad.mockClear();
   await state.pg.exec('truncate users cascade; truncate rate_limits; truncate audience_consents cascade');
   for (const [id, email] of [[userId, 'original@example.test'], [otherUserId, 'other@example.test']]) {
     await state.pg.query(`insert into users(id, account_name, name, email, password_hash, email_verified, email_verify_token, email_verify_expires_at)
@@ -193,17 +199,17 @@ describe('email verification belongs to the current address', () => {
     expect((await user()).email_verified).toBe(false);
   });
 
-  it('cannot confirm the new address when it changes just before the verification write', async () => {
+  it('fails safely when an address change is requested just before the verification write, then still accepts the link', async () => {
     state.beforeQuery = async query => {
       if (!/set\s+email_verified = true/i.test(query)) return;
       state.beforeQuery = null;
       expect((await profile()).status).toBe(200);
     };
     expect((await verify()).headers.get('location')).toContain('error=invalid');
-    const current = await user();
-    expect(current).toMatchObject({ email: 'next@example.test', email_verified: false });
-    expect(current.email_verify_token).not.toBe(sha256(originalToken));
+    expect(await user()).toMatchObject({ email: 'original@example.test', email_verified: false, pending_email: 'next@example.test', email_verify_token: sha256(originalToken) });
     expect(state.emails).toHaveBeenCalledTimes(1);
+    expect((await verify()).headers.get('location')).toContain('success=true');
+    expect(await user()).toMatchObject({ email: 'original@example.test', email_verified: true, pending_email: 'next@example.test' });
   });
 
   it('does not put a token for an old address onto a concurrently changed address during resend', async () => {
@@ -248,16 +254,19 @@ describe('email changes require the current password', () => {
     expect(await user()).toMatchObject({ email: 'original@example.test', email_verify_token: sha256(originalToken) });
   });
 
-  it('changes the address and rotates verification after successful reauthentication', async () => {
+  it('keeps the current address until the new mailbox confirms the change', async () => {
     const response = await profile();
     expect(response.status).toBe(200);
     const payload = await response.json();
-    expect(payload.user).toMatchObject({ email: 'next@example.test', email_verified: false });
+    expect(payload).toMatchObject({ emailChangePending: true, user: { email: 'original@example.test', pending_email: 'next@example.test' } });
     expect(JSON.stringify(payload)).not.toContain(password);
     expect(payload.user).not.toHaveProperty('password_hash');
     expect(payload.user).not.toHaveProperty('email_verify_token');
+    expect(payload.user).not.toHaveProperty('pending_email_token');
     expect(state.emails).toHaveBeenCalledTimes(1);
-    expect((await user()).email_verify_token).toBe(sha256(state.emails.mock.calls[0][0].token));
+    const sent = state.emails.mock.calls[0][0];
+    expect(sent).toMatchObject({ to: 'next@example.test', purpose: 'email-change' });
+    expect(await user()).toMatchObject({ email: 'original@example.test', email_verify_token: sha256(originalToken), pending_email_token: sha256(sent.token) });
   });
 
   it('rejects a password reset that occurs after reauthentication but before the address write', async () => {
@@ -704,12 +713,16 @@ describe('R-I5 password reset budgets', () => {
     expect((await submit(1)).status).toBe(200);
     expect(state.emails).toHaveBeenCalledTimes(5);
   });
-  it('caps the global recipient budget at ten even across different IPs', async () => {
-    for (let ip = 1; ip <= 10; ip++) expect((await submit(ip)).status).toBe(200);
+  it('caps the recipient at five links per day even across different IPs and hourly windows', async () => {
+    for (let ip = 1; ip <= 5; ip++) expect((await submit(ip)).status).toBe(200);
+    await state.pg.exec("update rate_limits set window_start=now()-interval '61 minutes' where endpoint <> 'password-reset-recipient-day'");
     const before = (await state.pg.query('select * from password_reset_tokens order by id')).rows;
-    expect(await (await submit(11)).json()).toEqual({ ok: true });
-    expect(state.emails).toHaveBeenCalledTimes(10);
+    expect(await (await submit(6)).json()).toEqual({ ok: true });
+    expect(state.emails).toHaveBeenCalledTimes(5);
     expect((await state.pg.query('select * from password_reset_tokens order by id')).rows).toEqual(before);
+    await state.pg.exec("update rate_limits set window_start=now()-interval '25 hours'");
+    expect((await submit(7)).status).toBe(200);
+    expect(state.emails).toHaveBeenCalledTimes(6);
   });
 });
 
@@ -765,5 +778,208 @@ describe('team creation hardening', () => {
     for (let index = 0; index < 10; index++) expect((await create({ name: `Team ${index}`, tag: `T${index}` })).status).toBe(200);
     expect((await create({ name: 'One too many', tag: 'MAX' })).status).toBe(429);
     expect(await ownTeams()).toHaveLength(10);
+  });
+});
+
+describe('pending e-mail changes (confirmation by the new mailbox)', () => {
+  async function requestChange(email = 'next@example.test') {
+    const response = await profile(email);
+    expect(response.status).toBe(200);
+    return state.emails.mock.calls.at(-1)![0].token as string;
+  }
+  async function otherSession() {
+    await state.pg.query("insert into sessions(user_id, token_hash, expires_at) values ($1, $2, now() + interval '1 day')", [userId, sha256('other-device')]);
+  }
+
+  it('switches the address, consumes old recovery links and signs out other sessions on confirmation', async () => {
+    await state.pg.query('update users set email_verified = true where id = $1', [userId]);
+    await state.pg.query("insert into password_reset_tokens(user_id, token_hash, expires_at) values ($1, 'old-recovery', now() + interval '30 minutes')", [userId]);
+    await otherSession();
+    const token = await requestChange();
+    // Requesting changes nothing but the pending address: old links stay valid.
+    expect((await state.pg.query('select used_at from password_reset_tokens where user_id = $1', [userId])).rows).toEqual([{ used_at: null }]);
+    expect(state.security).toHaveBeenCalledWith(expect.objectContaining({ to: 'original@example.test', subject: expect.stringContaining('Changement d’adresse') }));
+
+    const location = (await verify(token)).headers.get('location')!;
+    expect(location).toContain('success=true');
+    expect(location).toContain('changed=email');
+    expect(await user()).toMatchObject({ email: 'next@example.test', email_verified: true, pending_email: null, pending_email_token: null, email_verify_token: null });
+    expect((await state.pg.query('select used_at from password_reset_tokens where user_id = $1', [userId])).rows[0].used_at).not.toBeNull();
+    const sessions = (await state.pg.query('select token_hash, revoked_at from sessions where user_id = $1', [userId])).rows;
+    expect(sessions.find((row: any) => row.token_hash === sha256('other-device')).revoked_at).not.toBeNull();
+    expect(sessions.find((row: any) => row.token_hash === sha256(verificationSession)).revoked_at).toBeNull();
+    expect(state.security).toHaveBeenLastCalledWith(expect.objectContaining({ to: 'original@example.test', subject: expect.stringContaining('a changé') }));
+    expect((await state.pg.query("select action from audit_logs where user_id = $1 and action = 'auth.email_change_complete'", [userId])).rows).toHaveLength(1);
+    expect((await verify(token)).headers.get('location')).toContain('error=invalid');
+  });
+
+  it('does not notify an unverified current address', async () => {
+    const token = await requestChange();
+    expect((await verify(token)).headers.get('location')).toContain('success=true');
+    expect(state.security).not.toHaveBeenCalled();
+  });
+
+  it('requires the account session in the confirming browser', async () => {
+    const token = await requestChange();
+    const anonymous = await verifyEmail(new Request(`https://nxt5.test/verify-email?token=${token}`), { cookies: { get: () => null } } as any);
+    expect(anonymous.headers.get('location')).toContain('error=signin');
+    await state.pg.query("insert into sessions(user_id, token_hash, expires_at) values ($1, $2, now() + interval '1 day')", [otherUserId, sha256('intruder-session')]);
+    const intruder = await verifyEmail(new Request(`https://nxt5.test/verify-email?token=${token}`), { cookies: { get: () => 'intruder-session' } } as any);
+    expect(intruder.headers.get('location')).toContain('error=signin');
+    expect(await user()).toMatchObject({ email: 'original@example.test', pending_email: 'next@example.test' });
+  });
+
+  it('does not reserve the requested address: another account may take it, and confirmation then fails cleanly', async () => {
+    const token = await requestChange('shared@example.test');
+    await state.pg.exec("update rate_limits set window_start = now() - interval '301 seconds' where endpoint = 'email-verification-recipient'");
+    expect((await register('shared@example.test')).status).toBe(202);
+    expect((await state.pg.query('select id from users where email = $1', ['shared@example.test'])).rows).toHaveLength(1);
+    expect((await verify(token)).headers.get('location')).toContain('error=in-use');
+    expect((await user()).email).toBe('original@example.test');
+  });
+
+  it('can be cancelled, which invalidates the link', async () => {
+    const token = await requestChange();
+    const cancelled = await updateProfile(new Request('https://nxt5.test/profile', { method: 'POST', body: JSON.stringify({ cancelEmailChange: true }) }), context);
+    expect(cancelled.status).toBe(200);
+    expect((await cancelled.json()).user).toMatchObject({ email: 'original@example.test', pending_email: null });
+    expect((await verify(token)).headers.get('location')).toContain('error=invalid');
+    expect((await user()).email).toBe('original@example.test');
+  });
+
+  it('is dropped by a password reset', async () => {
+    await requestChange();
+    expect((await requestPasswordReset(new Request('https://nxt5.test/reset-request', { method: 'POST', body: JSON.stringify({ email: 'original@example.test' }) }))).status).toBe(200);
+    const resetUrl = state.emails.mock.calls.at(-1)![0].resetUrl as string;
+    const token = new URL(resetUrl).searchParams.get('token');
+    expect((await resetPassword(new Request('https://nxt5.test/reset', { method: 'POST', body: JSON.stringify({ token, nextPassword: 'A brand new password' }) }))).status).toBe(200);
+    expect(await user()).toMatchObject({ pending_email: null, pending_email_token: null });
+  });
+
+  it('caps address change requests per account and per day', async () => {
+    for (let index = 0; index < 5; index++) {
+      await requestChange(`next${index}@example.test`);
+      await state.pg.exec("update rate_limits set window_start = now() - interval '301 seconds' where endpoint in ('email-verification-account', 'email-verification-recipient')");
+    }
+    const blocked = await profile('next5@example.test');
+    expect(blocked.status).toBe(429);
+    expect(await blocked.json()).toMatchObject({ code: 'EMAIL_CHANGE_RATE_LIMIT' });
+    expect(state.emails).toHaveBeenCalledTimes(5);
+  });
+});
+
+describe('daily verification e-mail cap per recipient', () => {
+  it('stops a sixth verification e-mail to the same mailbox within a day, whichever account asks', async () => {
+    for (let index = 0; index < 5; index++) {
+      await assertVerificationEmailRateLimit(crypto.randomUUID(), 'mailbox@example.test');
+      await state.pg.exec("update rate_limits set window_start = now() - interval '301 seconds' where endpoint = 'email-verification-recipient'");
+    }
+    await expect(assertVerificationEmailRateLimit(crypto.randomUUID(), 'mailbox@example.test')).rejects.toMatchObject({ status: 429, code: 'EMAIL_VERIFY_RATE_LIMIT' });
+  });
+});
+
+describe('shared password re-verification budget', () => {
+  const change = (currentPassword: string, ip = '198.51.100.1') => changePassword(new Request('https://nxt5.test/change', {
+    method: 'POST', headers: { 'x-nf-client-connection-ip': ip }, body: JSON.stringify({ currentPassword, nextPassword: 'A different password' })
+  }), { cookies: { get: () => verificationSession, set: vi.fn() } } as any);
+  beforeEach(async () => {
+    await state.pg.query("insert into sessions(user_id, token_hash, expires_at) values ($1, $2, now() + interval '1 day')", [userId, sha256(verificationSession)]);
+  });
+
+  it('shares one budget between password change and e-mail change, across IPs', async () => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const response = attempt % 2
+        ? await profile('next@example.test', 'wrong password')
+        : await change('wrong password', `198.51.100.${attempt}`);
+      expect(response.status).toBe(401);
+    }
+    const blocked = await change(password, '198.51.100.50');
+    expect(blocked.status).toBe(429);
+    expect(await blocked.json()).toMatchObject({ code: 'REAUTH_RATE_LIMIT' });
+    expect((await profile('next@example.test', password)).status).toBe(429);
+    await state.pg.exec("update rate_limits set window_start = now() - interval '16 minutes' where endpoint = 'password-reauth'");
+    expect((await change(password)).status).toBe(200);
+  });
+
+  it('only charges wrong passwords and applies a daily ceiling', async () => {
+    for (let attempt = 0; attempt < 8; attempt++) expect(await verifyReauthenticationPassword(userId, password, (await user()).password_hash)).toBe(true);
+    for (let round = 0; round < 4; round++) {
+      for (let attempt = 0; attempt < 5; attempt++) expect(await verifyReauthenticationPassword(userId, 'wrong', (await user()).password_hash)).toBe(false);
+      await state.pg.exec("update rate_limits set window_start = now() - interval '16 minutes' where endpoint = 'password-reauth'");
+    }
+    await expect(verifyReauthenticationPassword(userId, password, (await user()).password_hash)).rejects.toMatchObject({ status: 429, code: 'REAUTH_RATE_LIMIT' });
+  });
+
+  it('limits password change requests per IP', async () => {
+    const invalid = () => changePassword(new Request('https://nxt5.test/change', {
+      method: 'POST', headers: { 'x-nf-client-connection-ip': '198.51.100.200' }, body: JSON.stringify({})
+    }), context);
+    for (let attempt = 0; attempt < 10; attempt++) expect((await invalid()).status).toBe(400);
+    expect((await invalid()).status).toBe(429);
+  });
+
+  it('e-mails a notice after a password change and after a password reset', async () => {
+    await state.pg.query('update users set email_verified = true where id = $1', [userId]);
+    expect((await change(password)).status).toBe(200);
+    expect(state.security).toHaveBeenCalledWith(expect.objectContaining({ to: 'original@example.test', subject: expect.stringContaining('modifié') }));
+    expect((await requestPasswordReset(new Request('https://nxt5.test/reset-request', { method: 'POST', body: JSON.stringify({ email: 'original@example.test' }) }))).status).toBe(200);
+    const token = new URL(state.emails.mock.calls.at(-1)![0].resetUrl).searchParams.get('token');
+    expect((await resetPassword(new Request('https://nxt5.test/reset', { method: 'POST', body: JSON.stringify({ token, nextPassword: 'Another new password' }) }))).status).toBe(200);
+    expect(state.security).toHaveBeenLastCalledWith(expect.objectContaining({ to: 'original@example.test', subject: expect.stringContaining('réinitialisé') }));
+  });
+
+  it('keeps the password change when the notice cannot be delivered', async () => {
+    await state.pg.query('update users set email_verified = true where id = $1', [userId]);
+    state.security.mockRejectedValueOnce(new Error('provider down'));
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect((await change(password)).status).toBe(200);
+    expect(JSON.stringify(errors.mock.calls)).not.toContain('original@example.test');
+    errors.mockRestore();
+  });
+});
+
+describe('login budget counts failures only', () => {
+  const signIn = (secret: string, ip: string) => login(new Request('https://nxt5.test/login', {
+    method: 'POST', headers: { 'x-nf-client-connection-ip': ip },
+    body: JSON.stringify({ accountName: 'original@example.test', password: secret })
+  }), context);
+
+  it('does not let the owner’s successful sign-ins consume the account budget', async () => {
+    for (let attempt = 0; attempt < 7; attempt++) expect((await signIn('Incorrect password', `203.0.113.${attempt}`)).status).toBe(401);
+    for (let attempt = 0; attempt < 3; attempt++) expect((await signIn(password, `198.18.0.${attempt}`)).status).toBe(200);
+    expect((await signIn('Incorrect password', '203.0.113.50')).status).toBe(401);
+    const blocked = await signIn(password, '203.0.113.51');
+    expect(blocked.status).toBe(429);
+    const payload = await blocked.json();
+    expect(payload.code).toBe('ACCOUNT_LOGIN_RATE_LIMIT');
+    expect(payload.error).toContain('Mot de passe oublié');
+  });
+});
+
+describe('account-existence timing', () => {
+  it('pads password reset responses for known and unknown addresses alike', async () => {
+    for (const email of ['original@example.test', 'missing@example.test']) {
+      await requestPasswordReset(new Request('https://nxt5.test/reset-request', { method: 'POST', body: JSON.stringify({ email }) }));
+    }
+    expect(state.pad).toHaveBeenCalledTimes(2);
+    for (const [startedAt] of state.pad.mock.calls) expect(typeof startedAt).toBe('number');
+  });
+
+  it('answers before reset delivery completes when the platform keeps background work', async () => {
+    let release!: () => void;
+    state.emails.mockImplementationOnce(() => new Promise<void>(resolve => { release = resolve; }));
+    const background: Promise<unknown>[] = [];
+    const response = await requestPasswordReset(new Request('https://nxt5.test/reset-request', { method: 'POST', body: JSON.stringify({ email: 'original@example.test' }) }),
+      { waitUntil: (task: Promise<unknown>) => background.push(task) } as any);
+    expect(response.status).toBe(200);
+    expect(background).toHaveLength(1);
+    release();
+    await Promise.all(background);
+  });
+
+  it('pads registration responses for new and existing addresses alike', async () => {
+    expect((await register('timing-new@example.test')).status).toBe(202);
+    expect((await register('original@example.test')).status).toBe(202);
+    expect(state.pad).toHaveBeenCalledTimes(2);
   });
 });

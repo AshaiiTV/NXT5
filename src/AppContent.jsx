@@ -95,8 +95,9 @@ export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, 
   const [email, setEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [saving, setSaving] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
   const [hasPassword, setHasPassword] = useState(null);
-  const busy = saving || sending || checking;
+  const busy = saving || sending || checking || cancelling;
   useEffect(() => {
     let active = true;
     setHasPassword(null);
@@ -105,6 +106,20 @@ export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, 
     }).catch((err) => { if (active) setError(err.message || "Options de sécurité indisponibles. Reconnecte-toi pour réessayer."); });
     return () => { active = false; };
   }, [user?.id]);
+
+  async function cancelEmailChange() {
+    if (busy) return;
+    setCancelling(true);
+    setError("");
+    try {
+      const result = await apiFetch("auth-update-profile", { method: "POST", body: JSON.stringify({ cancelEmailChange: true }) });
+      onUserUpdate?.(result.user);
+    } catch (err) {
+      setError(err.message || "Impossible d’annuler ce changement.");
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   async function correctEmail(event) {
     event.preventDefault();
@@ -120,8 +135,7 @@ export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, 
       setCurrentPassword("");
       setEmail("");
       onUserUpdate?.(result.user);
-      setSent(true);
-      pushToast?.({ type: "green", title: "E-mail corrigé", text: "Un lien de vérification vient de t’être envoyé." });
+      pushToast?.({ type: "green", title: "Lien envoyé", text: "Ouvre le lien reçu à la nouvelle adresse dans ce navigateur pour confirmer la correction." });
     } catch (err) {
       setError(err.message || "Impossible de corriger cet e-mail.");
     } finally {
@@ -178,6 +192,7 @@ export function EmailVerificationRequiredModal({ user, onUserUpdate, pushToast, 
           <p className="flex items-center gap-2 text-sm font-black text-amber-100"><AlertTriangle className="h-4 w-4 shrink-0" />{t("Profil non vérifié")}</p>
           <p className="mt-1 text-xs font-semibold leading-5 text-amber-50/80">{t("L’accès aux équipes et les notifications restent bloqués tant que l’e-mail n’est pas confirmé.")}</p>
         </div>
+        {user?.pending_email && <div role="status" className="mt-4 rounded-2xl border border-cyan-300/22 bg-cyan-400/10 p-3 text-sm font-bold leading-6 text-cyan-50"><p>{t("En attente de confirmation :")} <span className="break-all font-black text-white">{user.pending_email}</span></p><p className="mt-1 text-xs font-semibold leading-5 text-cyan-50/80">{t("Ouvre le lien reçu à cette adresse dans ce navigateur. Ton adresse actuelle reste active jusque-là.")}</p><Button type="button" variant="ghost" icon={cancelling ? Loader2 : X} onClick={cancelEmailChange} disabled={busy} className="mt-3">{t("Annuler le changement")}</Button></div>}
         {sent && <div role="status" className="mt-4 rounded-2xl border border-emerald-300/22 bg-emerald-400/10 p-3 text-sm font-bold leading-6 text-emerald-100">{t("Lien envoyé. Clique dessus dans ta boîte mail, puis reviens ici vérifier le statut.")}</div>}
         {error && <div role="alert" className="mt-4 rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm font-bold leading-6 text-rose-100">{t(error)}</div>}
         {hasPassword === null && !error && <p role="status" className="mt-4 text-sm text-slate-300">{t("Chargement des options de récupération…")}</p>}

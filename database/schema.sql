@@ -22,6 +22,12 @@ create unique index if not exists idx_users_email_lower on users (lower(email)) 
 alter table users add column if not exists email_verified boolean default false;
 alter table users add column if not exists email_verify_token text default null;
 alter table users add column if not exists email_verify_expires_at timestamptz default null;
+-- Changement d'adresse en attente de confirmation (20261123_email_change_confirmation.sql).
+alter table users add column if not exists pending_email text default null;
+alter table users add column if not exists pending_email_token text default null;
+alter table users add column if not exists pending_email_expires_at timestamptz default null;
+create index if not exists idx_users_pending_email_token
+  on users(pending_email_token) where pending_email_token is not null;
 -- Préférences de notification par user.
 alter table users add column if not exists notif_match boolean default true;
 alter table users add column if not exists notif_report boolean default true;

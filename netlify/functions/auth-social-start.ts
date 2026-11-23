@@ -31,7 +31,7 @@ export default async function handler(request: Request, context: Context): Promi
     if (user && revision == null) throw socialError(401, 'SOCIAL_ACCOUNT_CHANGED', 'Ta session a changé. Recommence.');
     await sql`insert into social_auth_flows (state_hash, browser_hash, provider, flow, user_id, session_hash, link_revision, nonce, code_verifier, remember, destination)
       values (${sha256(state)}, ${sha256(browser)}, ${provider}, ${body.flow}, ${user?.id || null},
-        ${user ? sha256(readSessionCookie(context) || '') : null}, ${revision}, ${nonce}, ${codeVerifier}, ${body.rememberMe !== false},
+        ${user ? sha256(readSessionCookie(context) || '') : null}, ${revision}, ${nonce}, ${codeVerifier}, ${body.rememberMe === true},
         ${socialDestination(body.next, body.invite, body.flow === 'register')})`;
     setSocialCookie(context, SOCIAL_BROWSER_COOKIE, browser, provider === 'apple');
     setSocialCookie(context, SOCIAL_TICKET_COOKIE, '');

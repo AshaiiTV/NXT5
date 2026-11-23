@@ -8,7 +8,7 @@ const state = vi.hoisted(() => ({
   beforeQuery: null as null | ((query: string) => Promise<void>)
 }));
 vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: async () => {}, assertSocialSchemaReady: async () => {} }));
-vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.emails }));
+vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.emails, sendAccountSecurityEmail: async () => {}, maskEmail: (email: string) => email }));
 // Keep the production guard, handlers and parameterized SQL. Only transport and
 // email delivery are replaced, so a mocked requireAuth cannot hide a bypass.
 vi.mock('../../netlify/functions/_lib/db', async () => {
@@ -124,15 +124,16 @@ describe('verified email is required by the real business API guard', () => {
     expect((await create()).status).toBe(200);
   });
 
-  it('immediately removes business access from an existing session when its address changes', async () => {
+  it('keeps the verified address and business access while an address change awaits confirmation', async () => {
     await state.pg.exec('update users set email_verified = true');
     expect((await bootstrap(request('bootstrap'), context)).status).toBe(200);
     expect((await profile()).status).toBe(200);
-    expect((await create()).status).toBe(403);
-    expect((await authMe(request('auth-me'), context)).status).toBe(200);
+    expect((await create()).status).toBe(200);
+    const me = await authMe(request('auth-me'), context);
+    expect((await me.json()).user).toMatchObject({ email_verified: true, pending_email: expect.stringContaining('@') });
     const delivery = state.emails.mock.calls[0][0];
     expect((await verifyEmail(request(`verify-email?token=${delivery.token}`), context)).headers.get('location')).toContain('success=true');
-    expect((await create()).status).toBe(200);
+    expect(await account()).toMatchObject({ email_verified: true, pending_email: null });
   });
 
   it('lets an old account without an address add one and finish verification', async () => {

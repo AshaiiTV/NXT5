@@ -36,7 +36,7 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
   return { sql: neon('postgresql://test:test@local-test.invalid/nxt5') };
 });
 vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: async () => {} }));
-vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {} }));
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {}, releaseSubjectRateLimit: async () => {}, DAILY_RECIPIENT_LIMITS: { passwordReset: { limit: 5, windowSeconds: 86400 }, verification: { limit: 5, windowSeconds: 86400 }, emailChangeAccount: { limit: 5, windowSeconds: 86400 } } }));
 
 import login from '../../netlify/functions/auth-login';
 import resetPassword from '../../netlify/functions/auth-reset-password';
@@ -97,9 +97,12 @@ afterAll(async () => { await state.pg?.close(); });
 
 describe('session issuance serializes with credential changes', () => {
   it.each([
-    { identifier: 'test-account', remember: true, maxAge: 30 * 24 * 60 * 60 },
-    { identifier: 'test@example.test', remember: false, maxAge: 12 * 60 * 60 }
-  ])('keeps $identifier login and its cookie lifetime working', async ({ identifier, remember, maxAge }) => {
+    { identifier: 'test-account', remember: true, maxAge: 30 * 24 * 60 * 60, hours: 30 * 24 },
+    { identifier: 'test@example.test', remember: false, maxAge: undefined, hours: 12 },
+    // An absent or malformed field never opts into the long session.
+    { identifier: 'test-account', remember: 'true' as any, maxAge: undefined, hours: 12 },
+    { identifier: 'test-account', remember: null as any, maxAge: undefined, hours: 12 }
+  ])('keeps $identifier login (remember: $remember) and its cookie lifetime working', async ({ identifier, remember, maxAge, hours }) => {
     const cookieContext = context();
     const before = await account();
     const response = await signIn(cookieContext, currentPassword, identifier, remember);
@@ -109,7 +112,12 @@ describe('session issuance serializes with credential changes', () => {
     expect(body.user).not.toHaveProperty('password_hash');
     expect(cookieContext.cookies.set).toHaveBeenCalledTimes(1);
     const cookie = cookieContext.cookies.set.mock.calls[0][0];
-    expect(cookie).toMatchObject({ name: 'rb_session', httpOnly: true, secure: true, sameSite: 'Lax', maxAge });
+    expect(cookie).toMatchObject({ name: 'rb_session', httpOnly: true, secure: true, sameSite: 'Lax' });
+    // Without "Rester connecté" the cookie is a browser-session cookie (no Max-Age).
+    if (maxAge === undefined) expect(cookie).not.toHaveProperty('maxAge');
+    else expect(cookie.maxAge).toBe(maxAge);
+    const [stored] = (await state.pg.query('select extract(epoch from expires_at - now()) / 3600 as hours from sessions where token_hash = $1', [sha256(cookie.value)])).rows;
+    expect(Math.round(Number(stored.hours))).toBe(hours);
     expect(await sessions()).toContainEqual({ token_hash: sha256(cookie.value), revoked_at: null });
     expect((await account()).version).not.toBe(before.version);
     expect((await account()).password_hash).toBe(before.password_hash);

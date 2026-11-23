@@ -43,7 +43,7 @@ export function assertSocialOrigin(request: Request, mutation = false) {
 export function socialFailure(err: any): Response {
   // Never log raw errors: an upstream response or SQL error can contain secrets.
   const status = [400, 401, 403, 405, 409, 413, 429, 503].includes(err?.status) ? err.status : 503;
-  const known = /^(SOCIAL_|SCHEMA_MIGRATION_REQUIRED|RATE_LIMIT_UNAVAILABLE|EMAIL_VERIFY_RATE_LIMIT|EMAIL_VERIFICATION_REQUIRED|LEGAL_ACCEPTANCE_REQUIRED)/.test(String(err?.code || ''));
+  const known = /^(SOCIAL_|SCHEMA_MIGRATION_REQUIRED|RATE_LIMIT_UNAVAILABLE|EMAIL_VERIFY_RATE_LIMIT|REAUTH_RATE_LIMIT|EMAIL_VERIFICATION_REQUIRED|LEGAL_ACCEPTANCE_REQUIRED)/.test(String(err?.code || ''));
   return json({ error: status < 500 && known ? err.message : 'Connexion temporairement indisponible. Réessaie.',
     ...(known ? { code: err.code } : {}), ...(err?.retryAfter ? { retryAfter: err.retryAfter } : {}) }, status,
   err?.retryAfter ? { 'Retry-After': String(err.retryAfter) } : {});

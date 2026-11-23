@@ -50,17 +50,21 @@ vi.mock('../../netlify/functions/_lib/rate-limit', () => ({
   requestIp: (request: Request) => request.headers.get('x-nf-client-connection-ip') || 'unknown',
   assertRateLimit: async () => {},
   assertSubjectRateLimit: async () => {},
-  assertVerificationEmailRateLimit: async () => {}
+  assertVerificationEmailRateLimit: async () => {},
+  releaseSubjectRateLimit: async () => {}, DAILY_RECIPIENT_LIMITS: { passwordReset: { limit: 5, windowSeconds: 86400 }, verification: { limit: 5, windowSeconds: 86400 }, emailChangeAccount: { limit: 5, windowSeconds: 86400 } }
 }));
 vi.mock('../../netlify/functions/_lib/email', () => ({
   isPasswordEmailConfigured: () => true,
   sendEmailVerificationEmail: state.verificationEmails,
-  sendPasswordResetEmail: state.recoveryEmails
+  sendPasswordResetEmail: state.recoveryEmails,
+  sendAccountSecurityEmail: async () => {},
+  maskEmail: (email: string) => email
 }));
 
 import updateProfile from '../../netlify/functions/auth-update-profile';
 import resetPassword from '../../netlify/functions/auth-reset-password';
 import requestReset from '../../netlify/functions/auth-request-password-reset';
+import verifyEmail from '../../netlify/functions/verify-email';
 import { sha256 } from '../../netlify/functions/_lib/auth';
 
 const userId = '00000000-0000-4000-8000-000000000001';
@@ -75,6 +79,16 @@ function request(path: string, body: object) {
 }
 function profile(email = 'next@example.test') {
   return updateProfile(request('profile', { email, name: 'Updated account', currentPassword }), context);
+}
+/** Opens the link sent to the new address from the signed-in browser. */
+async function confirm() {
+  const token = state.verificationEmails.mock.calls.at(-1)![0].token;
+  const response = await verifyEmail(new Request(`https://nxt5.test/verify-email?token=${token}`), context);
+  return response.headers.get('location') || '';
+}
+async function changeAndConfirm(email = 'next@example.test') {
+  expect((await profile(email)).status).toBe(200);
+  expect(await confirm()).toContain('success=true');
 }
 function reset(token = oldToken) {
   return resetPassword(request('reset', { token, nextPassword: 'A new secure password' }));
@@ -116,12 +130,20 @@ afterEach(() => vi.restoreAllMocks());
 afterAll(async () => { await state.pg?.close(); });
 
 describe('email changes invalidate recovery to the old address', () => {
-  it('consumes all prior recovery links atomically and preserves other accounts', async () => {
+  it('keeps recovery through the current address while the change is pending', async () => {
     expect((await profile()).status).toBe(200);
+    const pending = await accountState();
+    expect(pending.account).toMatchObject({ email: 'original@example.test', email_verified: true, pending_email: 'next@example.test' });
+    expect(pending.tokens.every((token: any) => token.used_at === null)).toBe(true);
+    expect((await reset()).status).toBe(200);
+  });
+
+  it('consumes all prior recovery links atomically on confirmation and preserves other accounts', async () => {
+    await changeAndConfirm();
     const saved = await accountState();
-    expect(saved.account).toMatchObject({ email: 'next@example.test', email_verified: false });
+    expect(saved.account).toMatchObject({ email: 'next@example.test', email_verified: true, pending_email: null });
     expect(saved.tokens.every((token: any) => token.used_at)).toBe(true);
-    expect(saved.audit).toEqual([{ action: 'auth.profile_update' }]);
+    expect(saved.audit).toEqual([{ action: 'auth.email_change_complete' }, { action: 'auth.profile_update' }]);
     expect(state.verificationEmails).toHaveBeenCalledTimes(1);
     expect((await reset()).status).toBe(400);
     expect((await reset(otherToken)).status).toBe(400);
@@ -150,7 +172,7 @@ describe('email changes invalidate recovery to the old address', () => {
     state.beforeQuery = async query => {
       if (!query.includes("'auth.password_reset_complete'")) return;
       state.beforeQuery = null;
-      expect((await profile()).status).toBe(200);
+      await changeAndConfirm();
     };
     expect((await reset()).status).toBe(400);
     expect((await accountState()).account.email).toBe('next@example.test');
@@ -174,7 +196,7 @@ describe('email changes invalidate recovery to the old address', () => {
     state.beforeQuery = async query => {
       if (!query.includes("'auth.password_reset_request'")) return;
       state.beforeQuery = null;
-      expect((await profile()).status).toBe(200);
+      await changeAndConfirm();
     };
     const response = await issue();
     expect(response.status).toBe(200);
@@ -184,7 +206,7 @@ describe('email changes invalidate recovery to the old address', () => {
   });
 
   it('allows new recovery only through the current email address after the change', async () => {
-    expect((await profile()).status).toBe(200);
+    await changeAndConfirm();
     expect((await issue()).status).toBe(200);
     expect(state.recoveryEmails).not.toHaveBeenCalled();
     expect((await issue('next@example.test')).status).toBe(200);
