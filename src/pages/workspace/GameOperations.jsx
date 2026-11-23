@@ -594,7 +594,7 @@ function ImportOpponentField({ teamId, value, onChange, disabled }) {
   </div>;
 }
 
-export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, onImported, onBusyChange, onDirtyChange, currentMember, user, receivedImport = null, onReceivedImportConsumed }) {
+export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, onImported, onBusyChange, onDirtyChange, currentMember, user, receivedImport = null, onReceivedImportConsumed, children }) {
   useLanguage();
   const [laneAssignments, setLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
   const [enemyLaneAssignments, setEnemyLaneAssignments] = useState({ TOP: "", JGL: "", MID: "", ADC: "", SUP: "" });
@@ -940,7 +940,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
   </Surface>;
   return <div className="nxt5-data-dense nxt5-import-page game-import-flow">
         {fileError && <p role="alert" className="mb-4 rounded-xl border border-rose-300/25 bg-rose-500/10 p-3 text-sm text-rose-100">{fileError}</p>}
-        <ImporterDownloadPanel fileImporting={fileImporting || importing || creatingProfiles || creatingCategory} hasTeam={Boolean(selectedTeamId)} hasPreview={Boolean(importPreview)} onImport={importLocalFile}>
+        <ImporterDownloadPanel fileImporting={fileImporting || importing || creatingProfiles || creatingCategory} hasTeam={Boolean(selectedTeamId)} hasPreview={Boolean(importPreview)} onImport={importLocalFile} linkSettings={children}>
           {uploadProgress?.active && <div className="mt-4"><JsonUploadProgress progress={uploadProgress} /></div>}
         </ImporterDownloadPanel>
 

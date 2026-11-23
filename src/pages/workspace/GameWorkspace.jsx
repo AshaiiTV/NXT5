@@ -9,10 +9,10 @@ import { PNG_THEME, pngFitText, pngWrapText, pngLine, pngPanel, pngBackground, p
 import React, { useEffect, useState, useCallback, useDeferredValue, useMemo, useRef, useId } from "react";
 import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js";
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput, ReadingDetails } from "../../components/ui/Core.jsx";
-import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft, Settings } from "lucide-react";
+import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, Link2, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft, Settings } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
 import { trackAudienceEvent } from "../../app/audience-client.js";
-import { ImporterAutoLink } from "../../components/importer/ImporterAutoLink.jsx";
+import { ImporterLinkSettings, ImporterQueue, useImporterAutoLink } from "../../components/importer/ImporterAutoLink.jsx";
 import { ImportGameFlow, GameActions, GameCategoryManager, GameOperationDialog, matchImportTitle, matchCategoriesForMatch, CategoryMultiSelect, JsonUploadProgress, ImportRoleHeader, ImportHistoryEditor } from "./GameOperations.jsx";
 import "./games-workspace.css";
 import "./match-timeline-reading.css";
@@ -1451,7 +1451,9 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const normalizedArchiveSearch = normalizeArchiveSearch(deferredArchiveSearch.trim());
   const searchedArchives = normalizedArchiveSearch ? archives.filter((archive) => normalizeArchiveSearch([archive.name, archive.description, archive.created_by_name, archive.opponent_name].filter(Boolean).join(" ")).includes(normalizedArchiveSearch)) : archives;
   const importTriggerRef = useRef(null);
-  const [importerActionContainer, setImporterActionContainer] = useState(null);
+  const showImportActions = !selectedMatchId && !selectedArchiveId && workspaceView !== "teams";
+  const importer = useImporterAutoLink({ teamId: showImportActions || importOpen ? selectedTeamId : null, busy: importBusy, pushToast, refreshKey: data.matches?.length, dialogOpen: importOpen });
+  const readOnlyLinks = Boolean(selectedTeam && !canImport);
   const statsRef = useRef(null);
   const listRef = useRef(null);
   const previousSelection = useRef("");
@@ -1529,10 +1531,9 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
     updateLocation({ import: "", view: "", archive: "", match: id ? String(id) : "" });
   }
   function renderImportAction(variant = "primary") {
-    if (selectedMatchId || selectedArchiveId || workspaceView === "teams") return null;
     if (!selectedTeam) return <div className="games-import-action"><Button type="button" variant={variant} onClick={() => openAppPath("/mon-equipe")}>{t("Choisir une équipe")}</Button><p>{t("Crée ou rejoins une équipe pour y retrouver tes parties.")}</p></div>;
     if (!canImport) return <p className="games-import-help">{t("Le capitaine ou le staff peut importer les parties de ton équipe.")}</p>;
-    return <Button type="button" variant={variant} icon={Upload} onClick={() => updateLocation({ import: "1" })}>{t("Importer une partie")}</Button>;
+    return <Button type="button" variant={variant} icon={Upload} aria-haspopup="dialog" onClick={() => updateLocation({ import: "1" })}>{t("Importer une partie")}</Button>;
   }
   const toggleArchiveMatch = (matchId) => setArchiveForm((current) => ({ ...current, matchIds: current.matchIds.includes(matchId) ? current.matchIds.filter((id) => id !== matchId) : current.matchIds.length < 80 ? [...current.matchIds, matchId] : current.matchIds }));
   const resetArchiveForm = () => setArchiveForm({ id: "", name: "", description: "", matchIds: [] });
@@ -1606,15 +1607,19 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
 
   return <div className="nxt5-data-dense nxt5-stats-page nxt5-games-page min-w-0">
     <PageHeader eyebrow={selectedTeamName} title={t("Parties")} subtitle={selectedMatchId ? t("Résultat, pistes de travail et détails.") : workspaceView === "teams" ? t("Équipes adverses, champions et parties.") : t("Ouvre une partie pour préparer la suite.")}>
-      {!selectedMatchId && !selectedArchiveId && <>
-        <div ref={importTriggerRef}>{renderImportAction()}</div>
-        {!importOpen && workspaceView !== "teams" && <span ref={setImporterActionContainer} className="empty:hidden" />}
-      </>}
+      {showImportActions && <div ref={importTriggerRef}>
+        {readOnlyLinks && importer.links.length > 0 ? <Button type="button" variant="ghost" icon={Link2} aria-haspopup="dialog" aria-label={t("Liaison avec l’Importer")} onClick={() => updateLocation({ import: "1" })}>{t("Liaison")}</Button> : renderImportAction()}
+      </div>}
     </PageHeader>
-    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog className="game-import-dialog" title={t("Importer une partie")} onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy} dirty={importDirty} returnFocusRef={importTriggerRef}>
-      <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} onDirtyChange={setImportDirty} receivedImport={receivedImport} onReceivedImportConsumed={() => setReceivedImport(null)} />
+    {importOpen && !selectedMatchId && !selectedArchiveId && <GameOperationDialog className={readOnlyLinks ? "" : "game-import-dialog"} compact={readOnlyLinks} title={readOnlyLinks ? t("Liaison avec l’Importer") : t("Importer une partie")} onClose={(context) => { if (context?.reason === "history") { setImportOpen(false); } else updateLocation({ import: "" }); }} busy={importBusy || Boolean(importer.working)} dirty={importDirty} returnFocusRef={importTriggerRef}>
+      {readOnlyLinks ? <>
+        {!importer.links.length && !importer.error && !importer.loading && <p className="importer-auto-hint">{t("Aucune liaison active. Le staff de l’équipe peut lier NXT5 Importer depuis cette page.")}</p>}
+        <ImporterLinkSettings importer={importer} canManage={false} />
+      </> : <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} onDirtyChange={setImportDirty} receivedImport={receivedImport} onReceivedImportConsumed={() => setReceivedImport(null)}>
+        <ReadingDetails className="importer-link-settings" title={t("Liaison avec l’Importer")}><ImporterLinkSettings importer={importer} canManage={canImport} categories={matchCategories} /></ReadingDetails>
+      </ImportGameFlow>}
     </GameOperationDialog>}
-    {!selectedMatchId && !selectedArchiveId && !importOpen && workspaceView !== "teams" && <ImporterAutoLink teamId={selectedTeamId} actionContainer={importerActionContainer} categories={matchCategories} canManage={canImport} pushToast={pushToast} refreshKey={data.matches?.length} onFinalize={async (payload, submission) => { setReceivedImport({ payload, submission }); setImportOpen(true); }} />}
+    {showImportActions && selectedTeamId && !importOpen && <ImporterQueue importer={importer} canManage={canImport} onFinalize={(payload, submission) => { setReceivedImport({ payload, submission }); updateLocation({ import: "1" }); }} />}
 
     {selectedMatchId && <div ref={statsRef} id="selected-game-stats" tabIndex={-1} className="games-detail" aria-label={t("Analyse de la partie")}>
       <div className="games-detail-toolbar">
@@ -1695,7 +1700,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
           description={t("Recherche une partie pour lire son résumé, puis ses statistiques.")}
           scopeName={selectedArchive?.name || ""}
           headerActions={<GameCategoryManager data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} />}
-          emptyAction={renderImportAction()}
+          emptyAction={showImportActions ? renderImportAction() : null}
         />
       </div>
       </div>
