@@ -48,7 +48,7 @@ export function ImporterDownloadPanel({ fileImporting, hasTeam, hasPreview, onIm
       {linkSettings}
       {!hasPreview && <div className="importer-resources">
         <ImporterTutorialLink compact />
-        <ReadingDetails className="importer-download-details" title={<><Download aria-hidden="true" />{t("Pas encore de fichier ? Obtenir NXT5 Importer")}</>}>
+        <ReadingDetails className="importer-download-details" title={<><Download aria-hidden="true" />{t("Pas encore de fichier ?")}</>} description={t("Obtenir NXT5 Importer")}>
           <p>{t("Ouvre League of Legends, exporte la partie avec NXT5 Importer, puis ajoute le .json ici.")}</p>
           <div className="importer-platform-actions">
             <SelectInput label={t("Version de l’application")} value={selectedVersion} onChange={setSelectedVersion}>

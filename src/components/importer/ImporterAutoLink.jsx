@@ -122,6 +122,7 @@ export function ImporterLinkSettings({ importer, categories = [], canManage }) {
   const { result, links, code, setCode, working, disabled, act } = importer;
   const [categoryId, setCategoryId] = useState("");
   const [copied, setCopied] = useState(false);
+  const showCreate = canManage && result && !code;
   async function createCode() {
     const response = await act("create", { action: "create", ...(categoryId ? { categoryId } : {}) });
     if (response) { setCode(response); setCopied(false); }
@@ -132,14 +133,16 @@ export function ImporterLinkSettings({ importer, categories = [], canManage }) {
   return <>
     <LoadError importer={importer} />
     {canManage && result && !links.length && <p className="importer-auto-hint">{t("Lie NXT5 Importer pour importer les parties personnalisées de ton équipe.")}</p>}
-    {canManage && (code ? <div className="importer-auto-code" role="status">
+    {canManage && code && <div className="importer-auto-code" role="status">
       <p className="importer-auto-code-label">{t("Colle ce code dans l’onglet Collecte automatique de NXT5 Importer. Il n’est valable qu’une fois, pendant 15 minutes.")}</p>
       <div className="importer-auto-code-row"><code translate="no">{code.code}</code><Button variant="ghost" icon={copied ? Check : Copy} onClick={copyCode}>{copied ? t("Copié") : t("Copier")}</Button><Button variant="ghost" icon={X} onClick={() => setCode(null)}>{t("Fermer")}</Button></div>
       <p className="importer-auto-hint">{t("Expire le {0}.", [formatDate(code.expiresAt)])}</p>
-    </div> : result && <div className="importer-auto-create">
+    </div>}
+    {showCreate && <div className="importer-auto-create">
       {categories.length > 1 && <SelectInput label="Tag des parties reçues" value={categoryId} onChange={setCategoryId}><option value="">{t("Tag par défaut de l’équipe")}</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</SelectInput>}
       <Button variant="ghost" icon={working === "create" ? Loader2 : Link2} disabled={disabled} onClick={createCode}>{links.length ? t("Lier un autre ordinateur") : t("Lier NXT5 Importer")}</Button>
-    </div>)}
+      <RefreshButton importer={importer} />
+    </div>}
 
     {links.length > 0 && <ul className="importer-auto-links" aria-label={t("Liaisons de l’Importer")}>{links.map((link) => <li key={link.id}>
       <Plug aria-hidden="true" />
@@ -147,6 +150,6 @@ export function ImporterLinkSettings({ importer, categories = [], canManage }) {
       <Badge tone={LINK_TONES[link.status] || "slate"}>{t(LINK_LABELS[link.status] || link.status)}</Badge>
       {canManage && <Button variant="ghost" icon={working === link.id ? Loader2 : ShieldOff} disabled={disabled} onClick={() => act(link.id, { action: "revoke", linkId: link.id }, [t("Liaison révoquée"), t("Cet ordinateur ne peut plus envoyer de parties.")])}>{t("Révoquer")}</Button>}
     </li>)}</ul>}
-    {!importer.error && <div className="importer-auto-dialog-footer"><RefreshButton importer={importer} /></div>}
+    {!showCreate && !importer.error && <div className="importer-auto-dialog-footer"><RefreshButton importer={importer} /></div>}
   </>;
 }
