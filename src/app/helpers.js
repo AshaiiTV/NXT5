@@ -64,9 +64,10 @@ export function cx(...classes) {
 
 export function readRememberPreference() {
   try {
-    return window.localStorage.getItem(REMEMBER_ME_STORAGE_KEY) !== "false";
+    // Opt-in only: a 30-day session must never be the silent default on a shared device.
+    return window.localStorage.getItem(REMEMBER_ME_STORAGE_KEY) === "true";
   } catch {
-    return true;
+    return false;
   }
 }
 

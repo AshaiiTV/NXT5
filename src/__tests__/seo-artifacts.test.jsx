@@ -5,7 +5,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { publicPaths, privatePaths, dynamicPaths, render } from "../seo/render.jsx";
 import { escapeHtml, getMetadata } from "../seo/metadata.js";
-import { redirectRules, resolveSeoConfig, robotsHeaders, robotsTxt, sitemapXml, withMetadata } from "../../tools/seo-build.mjs";
+import { redirectRules, resolveSeoConfig, robotsHeaders, robotsTxt, shellFiles, sitemapXml, withMetadata } from "../../tools/seo-build.mjs";
 import { verifySeoArtifacts } from "../../tools/verify-seo.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -46,7 +46,7 @@ beforeAll(async () => {
     else await copyFile(join(root, "public", asset), target);
   }
   await copyFile(join(root, "public/og-nxt5.png"), join(directory, "og-nxt5.png"));
-  await save("app-shell.html", withMetadata(template, "/connexion", config));
+  for (const [file, path] of shellFiles()) await save(file, withMetadata(template, path, config));
   await save("sitemap.xml", sitemapXml(config));
   await save("robots.txt", robotsTxt(config));
   await save("_redirects", redirectRules(privatePaths, dynamicPaths));
@@ -99,7 +99,7 @@ describe("SEO checks against generated HTML artifacts", () => {
     await expect(verify()).rejects.toThrow("/fonctionnalites: title matches expected metadata");
   });
 
-  it.each(["app-shell.html", "404.html"])("checks titles and descriptions in %s too", async file => {
+  it.each(["app-shell.html", "app-shell-register.html", "404.html"])("checks titles and descriptions in %s too", async file => {
     await mutate(file, html => html.replace(descriptionTag, ""));
     await expect(verify()).rejects.toThrow(`${file}: exactly one meta description`);
   });

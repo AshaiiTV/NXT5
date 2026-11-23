@@ -675,6 +675,20 @@
     align-items: flex-start;
   }
 }
+/* Tall narrow phones (375 × 812): a smaller sculpture lifts the title and the main
+   action higher in the first screen, keeping NXT top-left and the 5 below it on the
+   right without touching the T. Shorter screens keep the approved composition. */
+@media (max-width: 399px) and (min-height: 780px) {
+  .hm-glass-wrap {
+    width: 76%;
+    top: 15%;
+    height: 46%;
+  }
+  .hm-intro {
+    top: 55%;
+    bottom: auto;
+  }
+}
 @media (max-height: 680px) and (min-width: 701px) {
   .hm-glass-wrap {
     right: 0%;

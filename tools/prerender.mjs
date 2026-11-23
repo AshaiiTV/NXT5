@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { createServer, loadEnv } from "vite";
-import { redirectRules, resolveSeoConfig, robotsHeaders, robotsTxt, sitemapXml, withMetadata } from "./seo-build.mjs";
+import { redirectRules, resolveSeoConfig, robotsHeaders, robotsTxt, shellFiles, sitemapXml, withMetadata } from "./seo-build.mjs";
 import { verifySeoArtifacts } from "./verify-seo.mjs";
 
 const config = resolveSeoConfig({ ...loadEnv("production", process.cwd(), ["PUBLIC_", "VITE_SOCIAL_"]), ...process.env });
@@ -21,7 +21,7 @@ try {
     await mkdir(dirname(resolve(outputDir, file)), { recursive: true });
     await writeFile(resolve(outputDir, file), html);
   }
-  await writeFile(resolve(outputDir, "app-shell.html"), withMetadata(template, "/connexion", config));
+  for (const [file, path] of shellFiles()) await writeFile(resolve(outputDir, file), withMetadata(template, path, config));
   await writeFile(resolve(outputDir, "sitemap.xml"), sitemapXml(config));
   await writeFile(resolve(outputDir, "robots.txt"), robotsTxt(config));
   await writeFile(resolve(outputDir, "_redirects"), redirectRules(privatePaths, dynamicPaths));

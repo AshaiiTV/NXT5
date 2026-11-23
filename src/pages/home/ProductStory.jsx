@@ -213,6 +213,7 @@ function SceneSignature({ children }) {
 function AnalysisScene() {
   useLanguage();
   const [seconds, setSeconds] = useState(MOMENTS[1].seconds);
+  const [detailOpen, setDetailOpen] = useState(false);
   const gold = goldAtTime(GOLD_TIMELINE, seconds);
   const displayedGold = Math.round(gold / 10) * 10;
   const time = formatTime(seconds);
@@ -284,11 +285,12 @@ function AnalysisScene() {
       <p className="ps-illustration-note">
         {t("Courbe, objectifs et notes illustratifs. Les chiffres seuls n’expliquent pas les décisions.")}
       </p>
-      <details className="ps-match-detail">
+      {/* Mounted only when open: a heading inside a closed disclosure is announced without a name. */}
+      <details className="ps-match-detail" onToggle={(event) => setDetailOpen(event.currentTarget.open)}>
         <summary>
           {t("Voir le bilan détaillé")} <ChevronRight size={16} aria-hidden="true" />
         </summary>
-        <DemoMatchSummary />
+        {detailOpen && <DemoMatchSummary titleTag="h3" />}
       </details>
     </div>
   );

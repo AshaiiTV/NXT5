@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import { escapeHtml, getMetadata, SITE_ORIGIN, SOCIAL_IMAGE } from "../src/seo/metadata.js";
+import { ROUTE_SHELLS, shellFiles } from "./seo-build.mjs";
 
 function verifyHtmlMetadata(html, metadata, path) {
   // Inspect emitted tags, not the source registry or strings inside JSON-LD.
@@ -65,11 +66,11 @@ export async function verifySeoArtifacts(outputDir, { config, publicPaths, priva
     assert.ok(assets.some(asset => asset.endsWith(".css")), `${path}: CSS linked before JavaScript`);
     for (const asset of new Set(assets)) assert.ok((await stat(resolve(outputDir, `.${asset}`))).isFile(), `${path}: asset ${asset} exists`);
   }
-  for (const file of ["app-shell.html", "404.html"]) {
+  for (const [file, path] of [...shellFiles(), ["404.html", "/404"]]) {
     const html = await readFile(resolve(outputDir, file), "utf8");
     if (file === "404.html") assert.ok(html.includes('data-prerender-path="/404"'), "404: matching initial hydration route");
     else assert.ok(!html.includes('data-prerender-path='), "private shell has no public hydration route");
-    verifyHtmlMetadata(html, getMetadata(file === "404.html" ? "/404" : "/connexion", config), file);
+    verifyHtmlMetadata(html, getMetadata(path, config), file);
     assert.ok(html.includes('name="robots" content="noindex, follow"'), `${file}: noindex in initial HTML`);
     assert.ok(!html.includes('rel="canonical"'), `${file}: no false public canonical`);
     assert.ok(!html.includes('type="application/ld+json"'), `${file}: no public structured data`);
@@ -92,7 +93,7 @@ export async function verifySeoArtifacts(outputDir, { config, publicPaths, priva
   ], "production alias redirects preserve paths and precede file and SPA rules");
   assert.ok(redirects.endsWith("/* /404.html 404\n"), "unknown URLs are HTTP 404");
   assert.ok(!redirects.includes("/* /index.html 200"), "no indexable homepage fallback");
-  for (const path of privatePaths.filter(path => path !== "/inscription")) assert.ok(redirects.includes(`${path} /app-shell.html 200\n`), `${path}: private deep link works`);
+  for (const path of privatePaths.filter(path => path !== "/inscription")) assert.ok(redirects.includes(`${path} /${ROUTE_SHELLS[path] || "app-shell.html"} 200\n`), `${path}: private deep link works`);
   for (const path of dynamicPaths) assert.ok(redirects.includes(`${path}/* /app-shell.html 200\n`), `${path}: private nested link works`);
   const headers = await readFile(resolve(outputDir, "_headers"), "utf8");
   if (config.noindex) assert.equal(headers, "/*\n  X-Robots-Tag: noindex, follow\n", "preview has a site-wide noindex response header");

@@ -138,11 +138,12 @@ export function SelectInput({ label, value, onChange, children, disabled = false
 
 export function PremiumToggle({ checked, onChange, title, text, disabled = false }) {
   useLanguage();
+  const id = useId();
   return (
-    <button type="button" role="switch" aria-checked={checked} aria-disabled={disabled} onClick={() => { if (!disabled) onChange(!checked); }} className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 nxt5-toggle group flex w-full items-center justify-between gap-4 p-3 text-left transition">
+    <button type="button" role="switch" aria-checked={checked} aria-disabled={disabled} aria-labelledby={`${id}-title`} aria-describedby={text ? `${id}-text` : undefined} onClick={() => { if (!disabled) onChange(!checked); }} className="aria-disabled:cursor-not-allowed aria-disabled:opacity-50 nxt5-toggle group flex w-full items-center justify-between gap-4 p-3 text-left transition">
       <span className="min-w-0">
-        <span className="block text-sm font-semibold text-white">{title}</span>
-        {text && <span className="mt-1 block text-xs font-normal leading-5 text-slate-400">{text}</span>}
+        <span id={`${id}-title`} className="block text-sm font-semibold text-white">{title}</span>
+        {text && <span id={`${id}-text`} className="mt-1 block text-xs font-normal leading-5 text-slate-400">{text}</span>}
       </span>
       <span aria-hidden="true" className="nxt5-toggle-track">
         <span className="nxt5-toggle-thumb" />
