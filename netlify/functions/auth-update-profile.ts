@@ -120,7 +120,9 @@ export default async function handler(request: Request, context: Context): Promi
 
     return json({ user: safeUser(rows[0]) });
   } catch (err) {
-    if (String(err.message || '').includes('idx_users_email_lower')) err.message = 'Cet e-mail est déjà utilisé.';
+    if (err?.code === '23505' && (err.constraint === 'idx_users_email_lower' || String(err.message || '').includes('idx_users_email_lower'))) {
+      return handleError(Object.assign(new Error('Cet e-mail est déjà utilisé.'), { status: 409, code: 'EMAIL_IN_USE' }));
+    }
     return handleError(err);
   }
 }

@@ -27,6 +27,15 @@ const listing = (overrides = {}) => ({
 describe("scrim finder page", () => {
   beforeEach(() => { api.fetch.mockReset(); });
 
+  it("renders each team avatar from the deduplicated teamAvatars map", async () => {
+    const avatar = "data:image/png;base64,QUJD";
+    const team = { id: "team-b", name: "Beta", tag: "BTA", avatar_zoom: 1, avatar_x: 50, avatar_y: 50 };
+    const base = listing();
+    api.fetch.mockResolvedValue({ ...base, teamAvatars: { "team-b": avatar }, offers: [{ ...base.offers[0], team }, { ...base.offers[0], id: "offer-b2", team }] });
+    await mount(<ScrimFinder data={data} selectedTeamId="team-a" currentMember={{ role: "captain" }} user={{ id: "u1" }} pushToast={vi.fn()} />);
+    expect(renderer.root.findAll((node) => node.type === "img" && node.props.src === avatar)).toHaveLength(2);
+  });
+
   it("loads the team listing and lets the staff answer, confirm and publish", async () => {
     api.fetch.mockImplementation(async (path, options) => options?.method === "POST" ? { ok: true } : listing());
     const pushToast = vi.fn();

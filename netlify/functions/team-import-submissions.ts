@@ -22,7 +22,7 @@ async function handler(request: Request, context: Context): Promise<Response> {
     const result: any = await submitTeamImport(token, body, request.headers.get("idempotency-key") || "", request.signal);
     if (result.imported && result.inserted) {
       wakeDiscordPublications(context);
-      const notification = notifyMatchImport({ siteUrl: process.env.PUBLIC_SITE_URL || new URL(request.url).origin, teamId: result.teamId, matchId: result.matchId, gameId: result.submission?.gameId || "" })
+      const notification = notifyMatchImport({ siteUrl: process.env.PUBLIC_SITE_URL || new URL(request.url).origin, teamId: result.teamId, matchId: result.matchId, gameId: result.submission?.gameId || "", actorKey: `team-import:${token}` })
         .catch((error) => logFailure("[team-import] notification email failed after match persistence.", error));
       if (typeof (context as any).waitUntil === "function") (context as any).waitUntil(notification); else await notification;
     }

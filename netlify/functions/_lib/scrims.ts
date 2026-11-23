@@ -57,8 +57,10 @@ function revokedError(): never {
   scrimError("Tes droits sur cette équipe ont changé. Recharge la page.", 403, "SCRIM_FORBIDDEN");
 }
 
+// Avatars can weigh ~1 MB each: rows only carry the framing, the image itself is
+// sent once per team in `teamAvatars` so the listing stays under Netlify's cap.
 function teamView(row: any) {
-  return { id: row.team_id, name: row.team_name, tag: row.team_tag, avatar_data_url: row.avatar_data_url || null, avatar_zoom: row.avatar_zoom, avatar_x: row.avatar_x, avatar_y: row.avatar_y };
+  return { id: row.team_id, name: row.team_name, tag: row.team_tag, avatar_zoom: row.avatar_zoom, avatar_x: row.avatar_x, avatar_y: row.avatar_y };
 }
 function offerView(row: any, viewerTeamId: string) {
   return {
@@ -107,7 +109,7 @@ export async function listScrims(userId: string, teamIdValue: unknown) {
   const { teamId } = membership;
   const [offers, mine, requests] = await Promise.all([
     sql`
-      select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region, t.avatar_data_url, t.avatar_zoom, t.avatar_x, t.avatar_y,
+      select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region, t.avatar_zoom, t.avatar_x, t.avatar_y,
         (select count(*) from scrim_requests r where r.offer_id = o.id and r.status = 'pending') as request_count,
         r.id as my_request_id, r.status as my_request_status, r.message as my_request_message
       from scrim_offers o
@@ -117,7 +119,7 @@ export async function listScrims(userId: string, teamIdValue: unknown) {
       order by o.starts_at asc
       limit 100`,
     sql`
-      select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region, t.avatar_data_url, t.avatar_zoom, t.avatar_x, t.avatar_y, m.name as matched_team_name,
+      select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region, t.avatar_zoom, t.avatar_x, t.avatar_y, m.name as matched_team_name,
         (select count(*) from scrim_requests r where r.offer_id = o.id and r.status = 'pending') as request_count
       from scrim_offers o
       join teams t on t.id = o.team_id
@@ -126,7 +128,7 @@ export async function listScrims(userId: string, teamIdValue: unknown) {
       order by o.starts_at asc
       limit 100`,
     sql`
-      select r.*, t.name as team_name, t.tag as team_tag, t.avatar_data_url, t.avatar_zoom, t.avatar_x, t.avatar_y, u.name as created_by_name,
+      select r.*, t.name as team_name, t.tag as team_tag, t.avatar_zoom, t.avatar_x, t.avatar_y, u.name as created_by_name,
         o.team_id as offer_team_id, o.status as offer_status, o.starts_at as offer_starts_at
       from scrim_requests r
       join teams t on t.id = r.team_id
@@ -143,15 +145,22 @@ export async function listScrims(userId: string, teamIdValue: unknown) {
     byOffer.set(row.offer_id, list);
   }
   const matchedOffers = await sql`
-    select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region, t.avatar_data_url, t.avatar_zoom, t.avatar_x, t.avatar_y, m.name as matched_team_name
+    select o.*, t.name as team_name, t.tag as team_tag, t.region as team_region, t.avatar_zoom, t.avatar_x, t.avatar_y, m.name as matched_team_name
     from scrim_offers o
     join teams t on t.id = o.team_id
     left join teams m on m.id = o.matched_team_id
     where o.matched_team_id = ${teamId} and o.starts_at > now() - interval '7 days'
     order by o.starts_at asc
     limit 100`;
+  const teamIds = [...new Set([...offers, ...mine, ...requests, ...matchedOffers].map((row) => String(row.team_id)))];
+  const avatarRows = teamIds.length
+    ? await sql`select id, avatar_data_url from teams where id = any(${teamIds}::uuid[]) and avatar_data_url is not null`
+    : [];
+  const teamAvatars: Record<string, string> = {};
+  for (const row of avatarRows) teamAvatars[row.id] = row.avatar_data_url;
   return {
     tiers: SCRIM_TIERS,
+    teamAvatars,
     canManage: membership.canManage,
     offers: offers.map((row) => offerView(row, teamId)),
     mine: mine.map((row) => ({ ...offerView(row, teamId), requests: (byOffer.get(row.id) || []).map(requestView) })),

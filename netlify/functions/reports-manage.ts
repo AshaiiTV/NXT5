@@ -121,6 +121,8 @@ export default async function handler(request: Request, context: Context): Promi
       return json({ ok: true });
     }
 
+    // Each save can carry 256 000 characters and rewrites the review row.
+    await assertSubjectRateLimit('reports-manage-write', user.id, { limit: 30, windowSeconds: 600 });
     if (!title || !content.trim()) throw Object.assign(new Error('Titre et contenu requis.'), { status: 400 });
     if (content.length > MAX_REPORT_CONTENT_LENGTH) {
       throw Object.assign(new Error('La review dépasse la limite de 256 000 caractères. Réduis son contenu avant de l’enregistrer.'), {

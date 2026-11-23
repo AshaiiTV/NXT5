@@ -14,12 +14,12 @@ vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmai
 vi.mock('../../netlify/functions/_lib/db', async () => {
   const { neon, neonConfig } = await import('@neondatabase/serverless');
   neonConfig.fetchFunction = async (_url, options: any) => {
-    const statement = JSON.parse(options.body);
-    state.queries.push(statement.query);
-    try {
+    const body = JSON.parse(options.body);
+    async function execute(db: any, statement: any) {
+      state.queries.push(statement.query);
       await state.beforeQuery?.(statement.query);
-      const result = await state.pg.query(statement.query, statement.params);
-      return new Response(JSON.stringify({
+      const result = await db.query(statement.query, statement.params);
+      return {
         fields: result.fields,
         rows: result.rows.map((row: any) => result.fields.map((field: any) => {
           const value = row[field.name];
@@ -28,7 +28,15 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
           if (typeof value === 'boolean') return value ? 't' : 'f';
           return value instanceof Date ? value.toISOString() : String(value);
         })), rowCount: result.affectedRows ?? result.rows.length
-      }));
+      };
+    }
+    try {
+      if (body.queries) return new Response(JSON.stringify({ results: await state.pg.transaction(async (tx: any) => {
+        const results = [];
+        for (const statement of body.queries) results.push(await execute(tx, statement));
+        return results;
+      }) }));
+      return new Response(JSON.stringify(await execute(state.pg, body)));
     } catch (error: any) {
       return new Response(JSON.stringify({ message: error.message, code: error.code, constraint: error.constraint }), { status: 400 });
     }

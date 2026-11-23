@@ -636,8 +636,10 @@ describe('review notification abuse protection preserves saved reviews', () => {
   it('does not send mail when the limiter fails and still saves the notes', async () => {
     await seedTeam('member');
     state.recipients = ['one@example.test'];
+    // The write budget (purge + upsert) passes; the notification limiter then fails.
+    let limiterQueries = 0;
     state.beforeQuery = async query => {
-      if (query.includes('rate_limits')) throw new Error('Simulated limiter outage with private data');
+      if (query.includes('rate_limits') && ++limiterQueries > 2) throw new Error('Simulated limiter outage with private data');
     };
     const response = await save();
     expect(response.status).toBe(200);
@@ -706,5 +708,60 @@ describe('R-I5 password reset budgets', () => {
     expect(await (await submit(11)).json()).toEqual({ ok: true });
     expect(state.emails).toHaveBeenCalledTimes(10);
     expect((await state.pg.query('select * from password_reset_tokens order by id')).rows).toEqual(before);
+  });
+});
+
+describe('profile e-mail conflicts', () => {
+  it('answers 409 EMAIL_IN_USE when another account already uses the address', async () => {
+    const response = await profile('Other@example.test');
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'EMAIL_IN_USE', error: 'Cet e-mail est déjà utilisé.' });
+    expect((await user()).email).toBe('original@example.test');
+  });
+});
+
+describe('team creation hardening', () => {
+  const create = (body: any) => createTeam(new Request('https://nxt5.test/create', { method: 'POST', body: JSON.stringify(body) }), context);
+  const ownTeams = async () => (await state.pg.query('select id, name, tag, region from teams where owner_id = $1 order by name', [userId])).rows;
+
+  it('bounds the name, tag and region like a team update', async () => {
+    const response = await create({ name: `  ${'N'.repeat(200)} `, tag: 'abcdefghijklmnopqrstuvwxyz', region: 'J.P.' });
+    expect(response.status).toBe(200);
+    expect(await ownTeams()).toEqual([expect.objectContaining({ name: 'N'.repeat(80), tag: 'ABCDEFGHIJKL', region: 'JP' })]);
+    expect((await create({ name: 'Mars team', tag: 'MRS', region: 'MARS' })).status).toBe(400);
+    expect((await create({ name: 'Default region', tag: 'DEF' })).status).toBe(200);
+    expect((await ownTeams()).map((team: any) => team.region)).toEqual(['EUW', 'JP']);
+  });
+
+  it('creates the team, its captain and the audit entry atomically', async () => {
+    state.beforeQuery = async query => {
+      if (/insert into team_members/i.test(query)) throw Object.assign(new Error('Simulated membership failure'), { code: 'XX000' });
+    };
+    expect((await create({ name: 'Atomic team', tag: 'ATM' })).status).toBe(500);
+    state.beforeQuery = null;
+    expect(await ownTeams()).toEqual([]);
+    expect((await create({ name: 'Atomic team', tag: 'ATM' })).status).toBe(200);
+    const [team] = await ownTeams();
+    expect((await state.pg.query('select role from team_members where team_id = $1 and user_id = $2', [team.id, userId])).rows).toEqual([{ role: 'captain' }]);
+    expect((await state.pg.query("select count(*)::int as n from audit_logs where action = 'team.create' and entity_id = $1", [team.id])).rows).toEqual([{ n: 1 }]);
+  });
+
+  it('answers 409 when the owner already has a team with this name, on create and rename', async () => {
+    expect((await create({ name: 'Alpha', tag: 'ALP' })).status).toBe(200);
+    expect((await create({ name: 'Beta', tag: 'BET' })).status).toBe(200);
+    const duplicate = await create({ name: 'Alpha', tag: 'ALP' });
+    expect(duplicate.status).toBe(409);
+    expect(await duplicate.json()).toMatchObject({ code: 'TEAM_NAME_TAKEN', error: 'Cette team existe déjà sur ton compte.' });
+    const beta = (await ownTeams()).find((team: any) => team.name === 'Beta');
+    const rename = await updateTeam(new Request('https://nxt5.test/update', { method: 'POST', body: JSON.stringify({ teamId: beta.id, name: 'Alpha', tag: 'BET' }) }), context);
+    expect(rename.status).toBe(409);
+    expect(await rename.json()).toMatchObject({ code: 'TEAM_NAME_TAKEN' });
+    expect((await ownTeams()).map((team: any) => team.name)).toEqual(['Alpha', 'Beta']);
+  });
+
+  it('limits team creation per account', async () => {
+    for (let index = 0; index < 10; index++) expect((await create({ name: `Team ${index}`, tag: `T${index}` })).status).toBe(200);
+    expect((await create({ name: 'One too many', tag: 'MAX' })).status).toBe(429);
+    expect(await ownTeams()).toHaveLength(10);
   });
 });

@@ -4,7 +4,7 @@ import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
-import { ensurePlayerRosterSchema, isPlayerRosterStatus } from './_lib/player-roster';
+import { ensurePlayerRosterSchema, isPlayerRosterStatus, validatePlayerName, validatePlayerOpggUrl, validatePlayerRiotId } from './_lib/player-roster';
 
 const STAFF_ROLES = new Set(['COACH', 'ASSISTANT', 'ANALYST', 'MANAGER', 'BOARD']);
 const ROLES = new Set(['TOP', 'JGL', 'MID', 'ADC', 'SUP', 'SUB', ...STAFF_ROLES]);
@@ -34,6 +34,9 @@ export default async function handler(request: Request, context: Context): Promi
       riotId = null;
       opggUrl = null;
     }
+    validatePlayerName(name);
+    validatePlayerRiotId(riotId);
+    validatePlayerOpggUrl(opggUrl);
 
     const allowed = await sql`
       select teams.id

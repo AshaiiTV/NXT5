@@ -5,7 +5,9 @@ const database = vi.hoisted(() => ({
   report: { id: 'review', team_id: 'team', created_by: 'user', title: 'Review', content: 'Notes initiales' } as Record<string, unknown>
 }));
 
+const limiter = vi.hoisted(() => ({ subject: vi.fn(async (..._args: unknown[]) => {}) }));
 vi.mock('../../netlify/functions/_lib/db', () => ({ sql: database.sql }));
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertSubjectRateLimit: limiter.subject }));
 vi.mock('../../netlify/functions/_lib/auth', async original => ({ ...await original<any>(), assertSessionSecret: vi.fn(), requireAuth: async () => ({ id: 'user' }) }));
 vi.mock('../../netlify/functions/_lib/schema', () => ({ ensureReportsSchema: vi.fn(), ensureAuditLogsSchema: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/team-member-emails', () => ({ getTeamMemberEmails: async () => [] }));
@@ -17,6 +19,8 @@ beforeEach(() => {
   vi.spyOn(console, 'error').mockImplementation(() => {});
   database.report = { id: 'review', team_id: 'team', created_by: 'user', title: 'Review', content: 'Notes initiales' };
   database.sql.mockReset();
+  limiter.subject.mockReset();
+  limiter.subject.mockImplementation(async () => {});
   database.sql.mockImplementation(async (parts: TemplateStringsArray, ...values: unknown[]) => {
     const query = parts.join('?').replace(/\s+/g, ' ').trim();
     if (query.startsWith('update teams set first_review_at')) return [{ id: 'team' }];
@@ -115,5 +119,24 @@ describe('complete review persistence', () => {
     const response = await save({ content: ' \n\t ' });
     expect(response.status).toBe(400);
     expect(reportWrites()).toHaveLength(0);
+  });
+
+  it.each(['create', 'update'])('throttles %s per user before writing anything', async (action) => {
+    expect((await save({ action })).status).toBe(200);
+    expect(limiter.subject).toHaveBeenCalledWith('reports-manage-write', 'user', { limit: 30, windowSeconds: 600 });
+    database.sql.mockClear();
+    limiter.subject.mockImplementation(async (endpoint) => {
+      if (endpoint === 'reports-manage-write') throw Object.assign(new Error('Trop de tentatives. Réessaie dans quelques instants.'), { status: 429, retryAfter: 60 });
+    });
+    const before = { ...database.report };
+    const response = await save({ action, content: 'Autre version' });
+    expect(response.status).toBe(429);
+    expect(database.report).toEqual(before);
+    expect(reportWrites()).toHaveLength(0);
+  });
+
+  it('does not throttle deletions', async () => {
+    expect((await save({ kind: 'note', action: 'delete' })).status).toBe(200);
+    expect(limiter.subject).not.toHaveBeenCalledWith('reports-manage-write', expect.anything(), expect.anything());
   });
 });

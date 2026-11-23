@@ -15,3 +15,14 @@ export function assertMatchSourceMutationEnvironment(context: unknown): void {
     });
   });
 }
+
+/** True when this invocation may write games (production or a dedicated test site). */
+export function matchSourceMutationsAllowed(context: unknown): boolean {
+  try {
+    assertMatchSourceMutationEnvironment(context);
+    return true;
+  } catch (err: any) {
+    if (err?.status === 409) return false;
+    throw err;
+  }
+}

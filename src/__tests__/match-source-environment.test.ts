@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({ sql: vi.fn(), transaction: vi.fn(), auth: vi.fn(), secret: vi.fn(), rate: vi.fn(),
-  persist: vi.fn(), riot: vi.fn(), side: vi.fn(), wake: vi.fn(), schema: vi.fn(), emails: vi.fn(), notify: vi.fn() }));
+  persist: vi.fn(), riot: vi.fn(), side: vi.fn(), wake: vi.fn(), schema: vi.fn(), emails: vi.fn(), notify: vi.fn(), subject: vi.fn() }));
 vi.mock('../../netlify/functions/_lib/db', () => ({ sql: Object.assign(mocks.sql, { transaction: mocks.transaction }) }));
 vi.mock('../../netlify/functions/_lib/auth', () => ({ assertSessionSecret: mocks.secret, requireAuth: mocks.auth }));
-vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: mocks.rate }));
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ assertRateLimit: mocks.rate, assertSubjectRateLimit: mocks.subject }));
 vi.mock('../../netlify/functions/_lib/analytics', () => ({ persistAnalyzedMatch: mocks.persist }));
 vi.mock('../../netlify/functions/_lib/riot', () => ({ fetchRiotMatch: mocks.riot }));
 vi.mock('../../netlify/functions/_lib/match-side', () => ({ changeMatchSide: mocks.side }));
@@ -101,5 +101,35 @@ describe('source mutation compatibility and read-only requests', () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ matches: [{ id: MATCH, participants: [] }] });
     expect(mocks.persist).not.toHaveBeenCalled(); expect(mocks.wake).not.toHaveBeenCalled();
+  });
+});
+
+describe('import endpoints throttle and authenticate before reading the body', () => {
+  const unreadable = () => new Request('https://nxt5.example/.netlify/functions/test', { method: 'POST', headers: {
+    'content-type': 'application/json', origin: 'https://nxt5.example' }, body: '{not json' });
+
+  it.each([['Riot', importRiot], ['file', importFile]] as const)('refuses an anonymous %s import before parsing it in production', async (_name, handler) => {
+    mocks.auth.mockRejectedValue(Object.assign(new Error('Connexion requise.'), { status: 401 }));
+    const response = await handler(unreadable(), context('production'));
+    expect(response.status).toBe(401);
+    expect(mocks.rate).toHaveBeenCalledOnce();
+  });
+
+  it.each([['Riot', importRiot], ['file', importFile]] as const)('refuses a throttled %s import before authenticating or parsing it', async (_name, handler) => {
+    mocks.rate.mockRejectedValue(Object.assign(new Error('Trop de tentatives.'), { status: 429, retryAfter: 30 }));
+    const response = await handler(unreadable(), context('production'));
+    expect(response.status).toBe(429);
+    expect(mocks.auth).not.toHaveBeenCalled();
+  });
+
+  it.each([['Riot', importRiot], ['file', importFile]] as const)('still saves a %s import when its notification budget is exhausted', async (_name, handler) => {
+    mocks.emails.mockResolvedValue(['staff@example.test']);
+    mocks.subject.mockRejectedValue(Object.assign(new Error('Trop de tentatives.'), { status: 429, retryAfter: 60 }));
+    mocks.persist.mockResolvedValue({ id: MATCH, team_id: TEAM, game_id: common.gameId, inserted: true });
+    const response = await handler(request(common), context('production'));
+    expect(response.status).toBe(200);
+    expect(mocks.persist).toHaveBeenCalledOnce();
+    expect(mocks.subject).toHaveBeenCalledWith('match-notification-account', USER, { limit: 10, windowSeconds: 600 });
+    expect(mocks.notify).not.toHaveBeenCalled();
   });
 });
