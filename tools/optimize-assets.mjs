@@ -13,7 +13,7 @@ export async function optimizeAsset(input, output, { width }) {
   await writeFile(output, await canvas.encode("webp", 82));
 }
 
-// Les déclinaisons du logo et des icônes sont produites par tools/logo-verre/build-brand.mjs.
+// Les déclinaisons du logo et des icônes sont produites par tools/prisme/build-soude-signature.mjs puis build-assets.mjs.
 // Ajouter ici les autres images à convertir : [source, destination WebP, { width }].
 const tasks = [];
 

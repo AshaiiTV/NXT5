@@ -32,9 +32,11 @@ function OutlineMark() {
         fill="none"
         strokeLinejoin="miter"
       >
-        <path d="M534,361L443,362L393,502L303,362L201,363L142,533L100,663L212,663L261,515L351,664L438,664L533,375Z" />
-        <path d="M872,360L760,360L688,432L684,429L640,361L538,361L543,380L605,492L458,651L451,664L572,664L652,577L655,579L705,664L834,663L735,506L866,373Z" />
-        <path d="M1159,359L884,361L825,441L927,442L856,663L967,663L1036,441L1133,440Z" />
+        {/* Ligature de la signature soudée (charte) : N, X et T fusionnés, deux contre-formes.
+            Le bord droit reste où était le T, pour garder la relation avec le 5 en 3D. */}
+        <path d="M894,351L779,351L705,425L701,422L655,352L487,353L436,497L343,353L238,354L177,529L134,663L250,663L300,511L393,664L585,664L668,574L671,576L722,664L961,663L1032,434L1132,433L1159,350Z" />
+        <path d="M920,435L850,654L753,501L819,434Z" />
+        <path d="M497,619L570,398L619,487Z" />
       </g>
     </svg>
   );

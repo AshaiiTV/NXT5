@@ -16,9 +16,9 @@ export function ResponsiveImage({ src, sources = [], alt, className = "", fetchP
   );
 }
 
-const LOGO = { src: "/assets/brand/prisme/nxt5-neon-source.png", srcSet: "/assets/brand/prisme/nxt5-neon-640.webp 640w, /assets/brand/prisme/nxt5-neon-320.webp 320w", width: "1600", height: "600" };
-const COMPACT_LOGO = { src: "/assets/brand/prisme/nxt5-neon-interface-640.png", srcSet: "/assets/brand/prisme/nxt5-neon-interface-320.webp 320w, /assets/brand/prisme/nxt5-neon-interface-640.webp 640w" };
-const ICON = { src: "/assets/brand/prisme/unified-icon-512.png", width: "512", height: "512" };
+const LOGO = { src: "/assets/brand/prisme/nxt5-soude-source.png", srcSet: "/assets/brand/prisme/nxt5-soude-640.webp 640w, /assets/brand/prisme/nxt5-soude-320.webp 320w", width: "1600", height: "600" };
+const COMPACT_LOGO = { src: "/assets/brand/prisme/nxt5-soude-interface-640.png", srcSet: "/assets/brand/prisme/nxt5-soude-interface-320.webp 320w, /assets/brand/prisme/nxt5-soude-interface-640.webp 640w" };
+const ICON = { src: "/assets/brand/prisme/soude-icon-512.png", width: "512", height: "512" };
 
 export function BrandLogo({ compact = false, className = "" }) {
   useLanguage();
