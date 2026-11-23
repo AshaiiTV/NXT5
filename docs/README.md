@@ -11,6 +11,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 - [Réécriture des reviews historiques](review-backfill.md)
 - [Fréquentation : contrat et exploitation](audience-api.md)
 - [Référencement et présentation publique](seo.md)
+- [Publications YouTube](youtube-playbook.md)
 
 ### Bot Discord
 
