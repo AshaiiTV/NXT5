@@ -8213,5 +8213,12 @@
   "Libre": "Sin límite",
   "Le chrono démarre quand l’adversaire est prêt. Chaque capitaine confirme son choix, même en prolongation.": "El reloj empieza cuando el rival está listo. Cada capitán puede confirmar incluso en tiempo extra.",
   "Verrouiller {0}": "Confirmar a {0}",
-  "Confirme que ton équipe est prête.": "Confirma que tu equipo está listo."
+  "Confirme que ton équipe est prête.": "Confirma que tu equipo está listo.",
+  "Choisis une date et une heure à venir.": "Elige una fecha y una hora futuras.",
+  "La copie automatique a été bloquée par le navigateur. Sélectionne le lien et copie-le manuellement.": "El navegador ha bloqueado la copia automática. Selecciona el enlace y cópialo manualmente.",
+  "Certaines modifications du planning n’ont pas pu être enregistrées. Elles restent affichées ici ; réessaie dans un instant.": "Algunos cambios de la planificación no se han podido guardar. Siguen visibles aquí; vuelve a intentarlo en un momento.",
+  "Actualisation impossible. Vérifie ta connexion et réessaie.": "No se ha podido actualizar. Comprueba tu conexión y vuelve a intentarlo.",
+  "Lien d’invitation créé": "Enlace de invitación creado",
+  "Copie-le depuis le champ affiché dans Invitations et accès : ce navigateur bloque la copie automatique.": "Cópialo desde el campo que aparece en Invitaciones y acceso: este navegador bloquea la copia automática.",
+  "Lien d’invitation à copier": "Enlace de invitación para copiar"
 }

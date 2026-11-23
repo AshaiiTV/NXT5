@@ -8213,5 +8213,12 @@
   "Libre": "Unlimited",
   "Le chrono démarre quand l’adversaire est prêt. Chaque capitaine confirme son choix, même en prolongation.": "The clock starts when your opponent is ready. Captains can still lock in during overtime.",
   "Verrouiller {0}": "Lock in {0}",
-  "Confirme que ton équipe est prête.": "Confirm that your team is ready."
+  "Confirme que ton équipe est prête.": "Confirm that your team is ready.",
+  "Choisis une date et une heure à venir.": "Choose an upcoming date and time.",
+  "La copie automatique a été bloquée par le navigateur. Sélectionne le lien et copie-le manuellement.": "Your browser blocked automatic copying. Select the link and copy it manually.",
+  "Certaines modifications du planning n’ont pas pu être enregistrées. Elles restent affichées ici ; réessaie dans un instant.": "Some planning changes could not be saved. They are still shown here; try again in a moment.",
+  "Actualisation impossible. Vérifie ta connexion et réessaie.": "Unable to refresh. Check your connection and try again.",
+  "Lien d’invitation créé": "Invitation link created",
+  "Copie-le depuis le champ affiché dans Invitations et accès : ce navigateur bloque la copie automatique.": "Copy it from the field shown in Invitations and access: this browser blocks automatic copying.",
+  "Lien d’invitation à copier": "Invitation link to copy"
 }

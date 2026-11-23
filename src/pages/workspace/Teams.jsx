@@ -125,6 +125,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   const [nowTick, setNowTick] = useState(Date.now());
   const [teamEdit, setTeamEdit] = useState({ name: "", tag: "", avatarDataUrl: "", avatarZoom: 1, avatarX: 50, avatarY: 50 });
   const [editingPlayer, setEditingPlayer] = useState(null);
+  const [manualInvite, setManualInvite] = useState(null);
   const [playerEditForm, setPlayerEditForm] = useState({ name: "", riotId: "", opggUrl: "", rosterStatus: "MAIN" });
   const selectedTeam = data.teams.find((team) => team.id === selectedTeamId) || data.teams[0];
   const roster = selectedTeam ?data.players.filter((player) => player.team_id === selectedTeam.id) : [];
@@ -273,14 +274,28 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   async function copyInviteLink() {
     if (!canInvite || saving) return;
     if (!selectedTeam) return;
+    const teamId = selectedTeam.id;
     setSaving(true);
     try {
-      const result = await apiFetch("teams-invite-code", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id }) });
-      await navigator.clipboard.writeText(`${window.location.origin}/mon-equipe?invite=${encodeURIComponent(result.code)}`);
-      await refreshAll();
-      pushToast({ type: "green", title: "Lien d’invitation copié", text: "Valable 1h maximum. Les anciens liens ont été révoqués." });
-    } catch (err) {
-      pushToast({ type: "red", title: "Code impossible", text: err.message });
+      let result;
+      try {
+        result = await apiFetch("teams-invite-code", { method: "POST", body: JSON.stringify({ teamId }) });
+      } catch (err) {
+        pushToast({ type: "red", title: "Code impossible", text: err.message });
+        return;
+      }
+      const link = `${window.location.origin}/mon-equipe?invite=${encodeURIComponent(result.code)}`;
+      // The server has already revoked the previous codes: refresh whatever happens with the clipboard.
+      await Promise.resolve(refreshAll?.()).catch(() => {});
+      try {
+        // Safari/iOS may refuse a clipboard write that no longer follows the click directly.
+        await navigator.clipboard.writeText(link);
+        setManualInvite(null);
+        pushToast({ type: "green", title: "Lien d’invitation copié", text: "Valable 1h maximum. Les anciens liens ont été révoqués." });
+      } catch {
+        setManualInvite({ teamId, link });
+        pushToast({ type: "yellow", title: "Lien d’invitation créé", text: "Copie-le depuis le champ affiché dans Invitations et accès : ce navigateur bloque la copie automatique." });
+      }
     } finally {
       setSaving(false);
     }
@@ -292,6 +307,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
     setSaving(true);
     try {
       await apiFetch("teams-invite-code", { method: "POST", body: JSON.stringify({ teamId: selectedTeam.id, action: "revoke" }) });
+      setManualInvite(null);
       await refreshAll();
       pushToast({ type: "green", title: "Invitations révoquées", text: "Les anciens liens ne permettent plus de rejoindre l’équipe." });
     } catch (err) { pushToast({ type: "red", title: "Révocation impossible", text: err.message }); }
@@ -502,7 +518,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
       <LinkButton href="/mon-equipe" navigate={openAppPath} variant="ghost" icon={ArrowLeft}>{t("Retour à l’équipe")}</LinkButton>
     </PageHeader>
     {selectedTeam ? <div className="space-y-5">
-      <TeamManagementPanel key={selectedTeam.id} team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} onRevokeInvites={revokeInvites} canManageRoster={canManageRoster} canEditIdentity={canEditIdentity} canInvite={canInvite} canManageMembers={canManageMembers} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} routeSearch={routeSearch}>
+      <TeamManagementPanel key={selectedTeam.id} team={selectedTeam} edit={teamEdit} setEdit={setTeamEdit} onAvatarFile={loadTeamAvatar} onSaveTeam={updateTeam} onCopyInvite={copyInviteLink} manualInviteLink={manualInvite?.teamId === selectedTeam.id ? manualInvite.link : ""} onRevokeInvites={revokeInvites} canManageRoster={canManageRoster} canEditIdentity={canEditIdentity} canInvite={canInvite} canManageMembers={canManageMembers} canDeleteTeam={canDeleteTeam} members={teamMembers} roster={roster} inviteCodes={inviteCodes} saving={saving} onRoleChange={updateMemberRole} onLink={linkPlayerAccount} onRemoveMember={removeMember} onDeletePlayer={deletePlayer} onDeleteTeam={deleteTeam} playerForm={playerForm} setPlayerForm={setPlayerForm} onCreatePlayer={createPlayer} editingPlayer={editingPlayer} playerEditForm={playerEditForm} setPlayerEditForm={setPlayerEditForm} onUpdatePlayer={updatePlayer} onClosePlayerEdit={closePlayerEdit} onEditPlayer={openPlayerEdit} routeSearch={routeSearch}>
         <Surface className="p-4 sm:p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0"><h3 className="text-lg font-black text-white">{t("Bot Discord")}</h3><p className="mt-1 text-sm leading-6 text-slate-300">{t("Invitation, connexion du serveur, salons et historique des publications de ton équipe.")}</p></div>
