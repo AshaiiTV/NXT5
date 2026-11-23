@@ -391,3 +391,40 @@ describe('malformed identifiers and dates are client errors', () => {
     expect(await snapshot()).toEqual(before);
   });
 });
+
+describe('team logo size', () => {
+  const logo = (chars: number) => `data:image/webp;base64,${'A'.repeat(chars)}`;
+  const saveLogo = (avatarDataUrl: string) => updateTeam(request({ teamId, name: 'Logo team', tag: 'LOGO', avatarDataUrl }), context);
+  const storedLogo = async () => (await state.pg.query('select avatar_data_url from teams where id = $1', [teamId])).rows[0].avatar_data_url;
+
+  it('accepts a reduced logo', async () => {
+    const small = logo(60_000);
+    expect((await saveLogo(small)).status).toBe(200);
+    expect(await storedLogo()).toBe(small);
+  });
+
+  it('refuses a new logo above the cap instead of storing it', async () => {
+    const before = await storedLogo();
+    const response = await saveLogo(logo(500_000));
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({ code: 'AVATAR_TOO_LARGE' });
+    expect(await storedLogo()).toBe(before);
+  });
+
+  it('keeps accepting a larger logo saved before the cap when it is sent back unchanged', async () => {
+    const legacy = logo(900_000);
+    await state.pg.query('update teams set avatar_data_url = $1 where id = $2', [legacy, teamId]);
+    expect((await saveLogo(legacy)).status).toBe(200);
+    expect(await storedLogo()).toBe(legacy);
+  });
+
+  it('never truncates an oversized image', async () => {
+    const before = await storedLogo();
+    const response = await updateTeam(new Request('https://nxt5.test/.netlify/functions/team-mutation', {
+      method: 'POST', headers: { Origin: 'https://nxt5.test', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ teamId, name: 'Logo team', tag: 'LOGO', avatarDataUrl: logo(1_600_000) })
+    }), context);
+    expect(response.status).toBe(413);
+    expect(await storedLogo()).toBe(before);
+  });
+});

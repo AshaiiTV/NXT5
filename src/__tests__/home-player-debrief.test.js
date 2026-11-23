@@ -28,6 +28,13 @@ describe("home player debrief source", () => {
     expect(read({ matchArchives: [group(), newest] })).toEqual({ group: newest, report: null, sections: [] });
   });
 
+  it("tolerates a review whose content was left out of the bootstrap", () => {
+    const omitted = report("omitted", { content: null, content_omitted: true });
+    const result = read({ reports: [omitted] });
+    expect(result.report).toBe(omitted);
+    expect(result.sections).toEqual([]);
+  });
+
   it("accepts serialized group IDs and legacy single-match reports", () => {
     const legacy = report("legacy", { match_ids: "bad", match_id: "one" });
     expect(read({ matchArchives: [group("one-game", { match_ids: '["one"]' })], reports: [legacy] }).report).toBe(legacy);
