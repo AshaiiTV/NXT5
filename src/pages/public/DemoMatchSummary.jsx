@@ -9,6 +9,7 @@ import { buildTrendSeries } from "../../utils/trends.js";
 import { matchDisplayName } from "../../utils/matches.js";
 import { DEMO_MATCHES, DEMO_TEAM } from "./demo-data.js";
 import { formatGoldDifference, formatMatchTime, goldAtTime, GoldTimelineChart } from "../home/GoldTimelineChart.jsx";
+import { DemoRoleDuels } from "./DemoTeamViews.jsx";
 import "./public-demo.css";
 
 const number = (value) => value === null ? "—" : value.toLocaleString(getLocale());
@@ -35,7 +36,7 @@ function DemoGoldTimeline({ match }) {
   </div>;
 }
 
-export function DemoMatchSummary({ match = DEMO_MATCHES[2], compact = false, onOpenReview, timeline = false, detailsOpen = false, titleTag: Title = "h2" }) {
+export function DemoMatchSummary({ match = DEMO_MATCHES[2], compact = false, onOpenReview, timeline = false, detailsOpen = false, duels = false, titleTag: Title = "h2" }) {
   useLanguage();
   const gold = buildTrendSeries([match], "gold").points[0].value;
   const vision = buildTrendSeries([match], "vision").points[0].value;
@@ -45,19 +46,19 @@ export function DemoMatchSummary({ match = DEMO_MATCHES[2], compact = false, onO
     <div className="demo-match-heading"><p>{t("Données fictives · Lecture seule")}</p><Badge tone={match.result === "Victoire" ? "green" : "red"}>{t(match.result)}</Badge></div>
     <Title>{matchDisplayName(match)}</Title>
     <p className="demo-match-context">{t(DEMO_TEAM)} · {Math.floor(match.duration_seconds / 60)}{t(" min")}</p>
-    <dl className="demo-match-metrics demo-match-primary">
+    {timeline && match.goldTimeline ? <DemoGoldTimeline key={`gold-${match.id}`} match={match} /> : <dl className="demo-match-metrics demo-match-primary">
       <div><dt>{t("Écart d’or final")}</dt><dd>{signed(gold)} <span>{t("or")}</span></dd></div>
-    </dl>
-    {timeline && match.goldTimeline && <DemoGoldTimeline key={match.id} match={match} />}
+    </dl>}
     <p className="demo-data-note">{t("Notre équipe − adversaires. Un écart final ne suffit pas à expliquer le résultat.")}</p>
     <div className="demo-coach-question"><p>{t("La question du débrief")}</p><strong>{t(match.demoReview.question)}</strong></div>
     {onOpenReview && <div className="demo-review-action"><Button type="button" icon={ArrowRight} onClick={onOpenReview}>{t("Lire le débrief")}</Button></div>}
-    <ReadingDetails key={match.id} title={compact ? t("Autre indicateur") : t("Statistiques et joueurs")} description={compact ? t("Écart de vision") : t("Vision, morts et résultats des cinq joueurs")} className="demo-match-details" open={detailsOpen || undefined}>
+    <ReadingDetails key={`details-${match.id}`} title={compact ? t("Autre indicateur") : t("Statistiques et joueurs")} description={compact ? t("Écart de vision") : t(duels ? "Vision, morts, joueurs et duels par poste" : "Vision, morts et résultats des cinq joueurs")} className="demo-match-details" open={detailsOpen || undefined}>
       <dl className="demo-match-metrics">
         <div><dt>{t("Écart de vision")}</dt><dd>{signed(vision)} <span>{t("points")}</span></dd></div>
         {!compact && <div><dt>{t("Morts de l’équipe")}</dt><dd>{number(deaths)}</dd></div>}
       </dl>
       {!compact && <ul className="demo-player-list" aria-label={t("Les cinq joueurs fictifs")}>{match.participants.filter((row) => row.team_key === "ALLY").map((row) => <li key={row.id}><RoleIcon role={row.role} className="h-7 w-7" /><span><strong>{row.summoner_name}</strong><span>{row.champion}</span></span><span className="demo-kda"><strong>{row.kills} / {row.deaths} / {row.assists}</strong><span>{t("Éliminations / morts / assistances")}</span></span></li>)}</ul>}
+      {!compact && duels && <DemoRoleDuels match={match} />}
     </ReadingDetails>
   </Surface>;
 }

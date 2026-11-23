@@ -58,14 +58,14 @@ describe("public, read-only product demonstration", () => {
     act(() => renderer.root.findByProps({ "data-match-id": "demo-1" }).props.onClick());
     expect(history.current()).toBe("/demo/partie/DEMO_1");
     expect(renderer.root.findByType(DemoMatchSummary).props.match.id).toBe("demo-1");
-    expect(text(renderer.root)).toContain("-3");
+    expect(text(renderer.root)).toMatch(/−3\s500\sor/u);
     act(() => button("Lire le débrief").props.onClick());
     expect(history.current()).toBe("/demo/partie/DEMO_1/debrief");
     expect(text(renderer.root)).toContain(DEMO_MATCHES[0].demoReview.question);
     act(() => button("Revoir la partie source").props.onClick());
     expect(history.current()).toBe("/demo/partie/DEMO_1");
     expect(renderer.root.findByType(DemoMatchSummary).props.match.id).toBe("demo-1");
-    act(() => button("2. Analyses").props.onClick());
+    act(() => button("Analyses").props.onClick());
     expect(history.current()).toBe("/demo/analyses");
     act(() => renderer.root.findByProps({ label: "Mesure à suivre" }).props.onChange("deaths"));
     expect(text(renderer.root)).toContain("Morts de l’équipe");
@@ -79,8 +79,8 @@ describe("public, read-only product demonstration", () => {
     const history = createHistory("/demo/partie/DEMO_2");
     act(() => { renderer = TestRenderer.create(<RoutedDemo history={history} />); });
     expect(renderer.root.findByType(DemoMatchSummary).props.match.id).toBe("demo-2");
-    expect(button("1. Parties").props["aria-pressed"]).toBe(true);
-    act(() => button("3. Débrief").props.onClick());
+    expect(button("Parties").props["aria-pressed"]).toBe(true);
+    act(() => button("Notes").props.onClick());
     expect(history.current()).toBe("/demo/partie/DEMO_2/debrief");
     expect(text(renderer.root)).toContain(DEMO_MATCHES[1].demoReview.question);
     act(() => history.back());

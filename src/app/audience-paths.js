@@ -9,7 +9,7 @@ const PATHS = new Set([
   '/profil/historique', '/profil/coaching',
 ]);
 
-const DEMO_STEP = /^\/demo\/(?:analyses|partie(?:\/DEMO_\d{1,2}(?:\/debrief)?)?)$/;
+const DEMO_STEP = /^\/demo\/(?:analyses|joueurs|champions|draft|planning|partie(?:\/DEMO_\d{1,2}(?:\/debrief)?)?)$/;
 
 export function canonicalAudiencePath(value) {
   if (typeof value !== 'string' || value.length > 2048 || !value.startsWith('/') || value.startsWith('//')) return null;

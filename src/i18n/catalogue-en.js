@@ -19,6 +19,7 @@ import { en as playerComparison } from './player-comparison-overrides.js';
 import { en as socialCalendar } from './social-calendar-overrides.js';
 import { en as matchRecap } from './match-recap-overrides.js';
 import { en as debrief } from './debrief-overrides.js';
+import { en as demo } from './demo-overrides.js';
 const teamManagement = {
   "Effectif": "Roster",
   "Titulaires": "Starters",
@@ -89,6 +90,7 @@ const matchKillMap = {
 };
 export default { ...base, ...adminTeams, ...quality, ...reviewed, ...components, ...interfaceCopy, ...showcase, ...draftAssistance, ...opponents, ...groupOpponents, ...draftIntelligence, ...helpFeatures, ...assistantRefresh, ...home, ...teamManagement, ...playerComparison, ...socialCalendar, ...matchRecap, ...matchKillMap, ...compositions,
   ...debrief,
+  ...demo,
   ...nexus,
   ...concise,
   "Tuto vidéo : importer une partie sur Windows": "Video tutorial: import a game on Windows",

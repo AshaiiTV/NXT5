@@ -23,6 +23,20 @@ Conventions observées dans toutes les descriptions publiées, à conserver :
 - illustrations de champions attribuées à Riot Games et mention de non-affiliation à Riot Games ;
 - chapitres horodatés pour les tutoriels.
 
+### Exemples cités et démo
+
+Chaque exemple montré dans une publication doit exister dans la démo publique (données fictives de l’équipe Horizon). Relevé du 23 novembre 2026 :
+
+| Exemple | Adresse |
+| --- | --- |
+| « Scrim 3 · Aurore », Lulu 1/3/16, vision +20 | `nxt5.org/demo/partie/DEMO_3` |
+| Jinx 7/5/8 à −3 500 or (défaite) | `nxt5.org/demo/partie/DEMO_1` |
+| 67 % = deux victoires sur trois | `nxt5.org/demo/analyses` |
+| Carnet de matchup Syndra contre Ahri | `nxt5.org/demo/champions` |
+| Renekton à 0 % : champion **adverse**, une seule partie | `nxt5.org/demo/champions` (« Champions adverses ») |
+
+Avant de publier un nouvel exemple, vérifier qu’il figure dans la démo ou l’y ajouter dans le même travail.
+
 Formats visuels : vertical 1 080 × 1 920 pour les Shorts, paysage 1 600 × 900 pour les miniatures, selon les repères de la section « Exports et réseaux » de la charte. Les maquettes ne sont pas présentées comme des captures de production.
 
 ## Résultats mesurés
