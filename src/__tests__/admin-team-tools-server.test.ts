@@ -159,3 +159,49 @@ describe('platform team and profile administration',()=>{
     finally{await state.db.exec('alter table audit_logs drop constraint fail_admin_audit');}
   });
 });
+describe('team deletion and Nexus Rising engagement',()=>{
+  const season='00000000-0000-4000-8000-000000000008';
+  const engage=async(seasonStatus:string,registration='pending')=>{
+    await rows('insert into nexus_seasons(id,name,status) values($1,$2,$3)',[season,'Saison test',seasonStatus]);
+    await rows('insert into nexus_registrations(season_id,team_id,status) values($1,$2,$3)',[season,teamId,registration]);
+  };
+  const remove=async()=>body('team-delete',{confirmName:'Alpha',expectedCounts:(await detail()).counts});
+  beforeEach(async()=>{await state.db.exec('truncate nexus_seasons cascade');});
+  it.each([['open','pending'],['open','approved'],['running','approved']])('refuses to delete a team engaged in a %s season (%s)',async(status,registration)=>{
+    await engage(status,registration);
+    const response=await invoke('',await remove());
+    expect(response.status).toBe(409);expect(await response.json()).toMatchObject({code:'NEXUS_TEAM_ENGAGED'});
+    expect(await rows('select id from teams where id=$1',[teamId])).toHaveLength(1);
+    expect(await rows('select id from nexus_registrations')).toHaveLength(1);expect(await rows('select id from audit_logs')).toHaveLength(0);
+  });
+  it.each([['open','rejected'],['completed','approved']])('deletes a team that is no longer engaged (%s season, %s)',async(status,registration)=>{
+    await engage(status,registration);
+    expect((await invoke('',await remove())).status).toBe(200);
+    expect(await rows('select id from teams where id=$1',[teamId])).toHaveLength(0);
+  });
+  it('reports a registration created during the deletion as a Nexus refusal and rolls back',async()=>{
+    const payload=await remove();
+    // First hook runs before the pre-check, the second before the transaction.
+    state.before=async()=>{state.before=()=>engage('running','approved');};
+    const response=await invoke('',payload);
+    expect(response.status).toBe(409);expect(await response.json()).toMatchObject({code:'NEXUS_TEAM_ENGAGED'});
+    expect(await rows('select id from teams where id=$1',[teamId])).toHaveLength(1);expect(await rows('select id from audit_logs')).toHaveLength(0);
+  });
+  it('keeps the generic stale-dossier message when the inventory changed',async()=>{
+    const payload=await remove();
+    await rows("insert into reports(team_id,title,content) values($1,'New report','Private content')",[teamId]);
+    const response=await invoke('',payload);
+    expect(response.status).toBe(409);expect((await response.json()).error).toMatch(/dossier ou son contenu a changé/);
+  });
+});
+describe('administration audit details',()=>{
+  it('records the deleted profile name',async()=>{
+    expect((await invoke('',await profileBody('profile-delete',{confirmName:'Player'}))).status).toBe(200);
+    expect((await rows("select entity_id,metadata from audit_logs where action='admin.profile.delete'"))[0]).toMatchObject({entity_id:profileId,metadata:{name:'Player',teamId}});
+  });
+  it('refuses a suspended administrator inside the transaction',async()=>{
+    const edit=await body('team-update',{name:'Blocked',tag:'NO',region:'EUW'});
+    state.before=()=>rows('update users set suspended_at=now() where id=$1',[adminId]);
+    expect((await invoke('',edit)).status).toBe(403);expect((await detail()).team.name).toBe('Alpha');
+  });
+});

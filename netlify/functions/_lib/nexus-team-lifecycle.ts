@@ -6,8 +6,12 @@ const TEAM_MESSAGE =
 const ACCOUNT_MESSAGE =
   "Une équipe de ce compte est inscrite à une saison Nexus Rising en cours. Transfère-la ou fais clôturer la saison avant de supprimer le compte.";
 
-/** Teams owned by `ownerId`, narrowed to one team when `teamId` is given. */
-export type NexusTeamScope = { ownerId: string; teamId?: string };
+/**
+ * Teams owned by `ownerId`, narrowed to one team when `teamId` is given. The
+ * owner-less form is reserved for platform administrators, who may already read
+ * every team and the league state.
+ */
+export type NexusTeamScope = { ownerId: string; teamId?: string } | { ownerId?: undefined; teamId: string };
 
 // A pending or approved registration in a season that is not completed keeps the
 // team's fixtures and its players' seats consistent for the whole league. Only
@@ -15,7 +19,8 @@ export type NexusTeamScope = { ownerId: string; teamId?: string };
 function engagedCount(tx: any, scope: NexusTeamScope) {
   return tx`select count(*)::int as engaged from nexus_registrations r join nexus_seasons s on s.id=r.season_id
     where r.status<>'rejected' and s.status<>'completed'
-      and r.team_id in (select id from teams where owner_id=${scope.ownerId} and (${scope.teamId ?? null}::uuid is null or id=${scope.teamId ?? null}::uuid))`;
+      and r.team_id in (select id from teams where (${scope.ownerId ?? null}::uuid is null or owner_id=${scope.ownerId ?? null}::uuid)
+        and (${scope.teamId ?? null}::uuid is null or id=${scope.teamId ?? null}::uuid))`;
 }
 
 export function nexusEngagementError(scope: NexusTeamScope) {
@@ -35,5 +40,19 @@ export async function assertNotEngagedInNexus(scope: NexusTeamScope): Promise<vo
 export function nexusEngagementGuard(tx: any, scope: NexusTeamScope) {
   return tx`select 1/case when count(*)=0 then 1 else 0 end as nexus_free from nexus_registrations r join nexus_seasons s on s.id=r.season_id
     where r.status<>'rejected' and s.status<>'completed'
-      and r.team_id in (select id from teams where owner_id=${scope.ownerId} and (${scope.teamId ?? null}::uuid is null or id=${scope.teamId ?? null}::uuid))`;
+      and r.team_id in (select id from teams where (${scope.ownerId ?? null}::uuid is null or owner_id=${scope.ownerId ?? null}::uuid)
+        and (${scope.teamId ?? null}::uuid is null or id=${scope.teamId ?? null}::uuid))`;
+}
+
+/**
+ * After a 22012 from a transaction that also carries other guards, tell the
+ * Nexus refusal apart from a stale dossier by re-reading the engagement.
+ */
+export async function nexusFailureOr(scope: NexusTeamScope, fallback: Error): Promise<Error> {
+  try {
+    const rows = await engagedCount(sql, scope);
+    return Number(rows[0]?.engaged || 0) > 0 ? nexusEngagementError(scope) : fallback;
+  } catch {
+    return fallback;
+  }
 }

@@ -69,6 +69,17 @@ describe('platform account administration',()=>{
     expect((await invoke('',body)).status).toBe(200);expect((await invoke('',body)).status).toBe(409);
     expect((await rows('select name from users where id=$1',[userId]))[0].name).toBe('Updated player');
     expect(await rows('select * from audit_logs')).toHaveLength(1);
+    expect((await rows('select metadata from audit_logs'))[0].metadata).toEqual({previousName:'Player 100%',newName:'Updated player'});
+  });
+  it('summarises whitelisted audit metadata with the entity id in the journal and the account activity',async()=>{
+    await invoke('',{action:'rename',userId,name:'Updated player',expectedRevision:await revision()});
+    await rows("insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values($1,'admin.team.delete','team',$2,$3::jsonb)",[adminId,teamId,JSON.stringify({name:'Gone',counts:{matches:3,profiles:2},token:'PRIVATE_SECRET'})]);
+    const journal=await (await invoke('?view=journal')).json();
+    const removed=journal.rows.find((row:any)=>row.action==='admin.team.delete');
+    expect(removed).toMatchObject({entity_id:teamId,summary:{name:'Gone',counts:{matches:3,profiles:2}}});
+    expect(removed).not.toHaveProperty('metadata');expect(JSON.stringify(journal)).not.toContain('PRIVATE_SECRET');
+    const detail=await (await invoke('?userId='+userId)).json();
+    expect(detail.activity[0]).toMatchObject({entity_id:userId,summary:{previousName:'Player 100%',newName:'Updated player'}});
   });
   it('revokes only the selected account sessions and makes duplicate retries harmless',async()=>{
     const body={action:'revoke-sessions',userId,expectedRevision:await revision()};

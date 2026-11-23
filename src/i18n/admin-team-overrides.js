@@ -120,7 +120,21 @@ export const en = {
   "Nouveau propriétaire : {0} ({1})": "New owner: {0} ({1})",
   "Confirmer le transfert": "Confirm transfer",
   "Propriété de l’équipe transférée": "Team ownership transferred",
-  "Suspension et réactivation": "Suspension and reactivation"
+  "Suspension et réactivation": "Suspension and reactivation",
+  "Motif (obligatoire, conservé dans le journal)": "Reason (required, kept in the log)",
+  "Entre 5 et 500 caractères. Visible par les administrateurs dans le journal des actions.": "Between 5 and 500 characters. Visible to administrators in the action log.",
+  "Ancien → nouveau : {0} → {1}": "Previous → new: {0} → {1}",
+  "Équipe « {0} » · {1} profils · {2} parties": "Team “{0}” · {1} profiles · {2} games",
+  "Nom : {0}": "Name: {0}",
+  "Équipes supprimées : {0}": "Deleted teams: {0}",
+  "Rôle : {0}": "Role: {0}",
+  "Référence : {0}": "Reference: {0}",
+  "Motif : {0}": "Reason: {0}",
+  "Identifiant : {0}": "Identifier: {0}",
+  "Membre retiré de l’équipe": "Member removed from team",
+  "Salons des annonces Discord configurés": "Discord announcement channels configured",
+  "Annonce Discord publiée": "Discord announcement published",
+  "Indique un motif de 5 à 500 caractères.": "Enter a reason of 5 to 500 characters."
 };
 export const es = {
   "Copier OP.GG titulaires de {0}": "Copiar OP.GG de los titulares de {0}",
@@ -244,5 +258,19 @@ export const es = {
   "Nouveau propriétaire : {0} ({1})": "Nuevo propietario: {0} ({1})",
   "Confirmer le transfert": "Confirmar transferencia",
   "Propriété de l’équipe transférée": "Propiedad del equipo transferida",
-  "Suspension et réactivation": "Suspensión y reactivación"
+  "Suspension et réactivation": "Suspensión y reactivación",
+  "Motif (obligatoire, conservé dans le journal)": "Motivo (obligatorio, se conserva en el registro)",
+  "Entre 5 et 500 caractères. Visible par les administrateurs dans le journal des actions.": "Entre 5 y 500 caracteres. Visible para los administradores en el registro de acciones.",
+  "Ancien → nouveau : {0} → {1}": "Anterior → nuevo: {0} → {1}",
+  "Équipe « {0} » · {1} profils · {2} parties": "Equipo «{0}» · {1} perfiles · {2} partidas",
+  "Nom : {0}": "Nombre: {0}",
+  "Équipes supprimées : {0}": "Equipos eliminados: {0}",
+  "Rôle : {0}": "Rol: {0}",
+  "Référence : {0}": "Referencia: {0}",
+  "Motif : {0}": "Motivo: {0}",
+  "Identifiant : {0}": "Identificador: {0}",
+  "Membre retiré de l’équipe": "Miembro retirado del equipo",
+  "Salons des annonces Discord configurés": "Canales de anuncios de Discord configurados",
+  "Annonce Discord publiée": "Anuncio de Discord publicado",
+  "Indique un motif de 5 à 500 caractères.": "Indica un motivo de 5 a 500 caracteres."
 };

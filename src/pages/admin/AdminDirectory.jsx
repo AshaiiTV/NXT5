@@ -24,7 +24,7 @@ const ACTIONS = {
   "player.create":"Profil créé", "player.update":"Profil modifié", "player.delete":"Profil supprimé",
   "player.link_account":"Compte lié au profil", "player.unlink_account":"Compte délié du profil",
   "reports.create":"Débrief créé", "reports.update":"Débrief modifié", "reports.delete":"Débrief supprimé",
-  "player_availability.upsert":"Disponibilités enregistrées", "discord.connected":"Discord connecté", "discord.disconnect":"Discord déconnecté",
+  "player_availability.upsert":"Disponibilités enregistrées", "team_member.remove":"Membre retiré de l’équipe", "discord.connected":"Discord connecté", "discord.disconnect":"Discord déconnecté",
 
   "admin.account.rename":"Nom du compte modifié",
   "admin.sessions.revoke":"Sessions révoquées",
@@ -33,8 +33,24 @@ const ACTIONS = {
   "admin.team.update":"Équipe modifiée", "admin.team.delete":"Équipe supprimée",
   "admin.member.role":"Droits du membre modifiés", "admin.member.remove":"Accès membre retiré",
   "admin.profile.update":"Profil modifié", "admin.profile.unlink":"Compte délié du profil", "admin.profile.delete":"Profil supprimé",
+  "admin.community.configure":"Salons des annonces Discord configurés", "admin.community.publish":"Annonce Discord publiée",
 };
 export const actionLabel = action => ACTIONS[action] ? t(ACTIONS[action]) : action;
+const shortId = value => String(value || "").slice(0, 8);
+// One short line per known metadata field; the server already whitelists them.
+export function activitySummary(summary = {}) {
+  const lines = [];
+  if (summary.previousOwnerId && summary.newOwnerId) lines.push(t("Ancien → nouveau : {0} → {1}", [shortId(summary.previousOwnerId), shortId(summary.newOwnerId)]));
+  if (summary.previousName && summary.newName) lines.push(t("Ancien → nouveau : {0} → {1}", [summary.previousName, summary.newName]));
+  if (summary.counts && summary.name) lines.push(t("Équipe « {0} » · {1} profils · {2} parties", [summary.name, count(summary.counts.profiles), count(summary.counts.matches)]));
+  else if (summary.name && !summary.newName) lines.push(t("Nom : {0}", [summary.name]));
+  if (summary.accountName) lines.push([summary.accountName, summary.accountEmailMasked].filter(Boolean).join(" · "));
+  if (Array.isArray(summary.ownedTeams) && summary.ownedTeams.length) lines.push(t("Équipes supprimées : {0}", [summary.ownedTeams.map(team => team.name).join(", ")]));
+  if (summary.role) lines.push(t("Rôle : {0}", [t(TEAM_ROLES[summary.role] || summary.role)]));
+  if (summary.reference) lines.push(t("Référence : {0}", [summary.reference]));
+  if (summary.reason) lines.push(t("Motif : {0}", [summary.reason]));
+  return lines;
+}
 
 function AccountDetail({ id, user, navigate }) {
   const [detail,setDetail] = useState(null);
@@ -110,7 +126,7 @@ function AccountDetail({ id, user, navigate }) {
 
 function ActivityList({ rows=[],navigate }) {
   if (!rows.length) return <p className="admin-empty-copy">{t("Aucune action enregistrée.")}</p>;
-  return <ol className="admin-activity-list">{rows.map(row=><li key={row.id}><time dateTime={row.created_at}>{date(row.created_at)}</time><div><strong title={row.action}>{actionLabel(row.action)}</strong><span>{row.actor_name || t("Compte supprimé")}{row.entity_type ? ` · ${row.entity_type}`:""}</span></div>{navigate && row.user_id && <Button variant="ghost" icon={ArrowRight} onClick={()=>navigate(accountPath(row.user_id))} aria-label={t("Ouvrir le compte de {0}",[row.actor_name || row.user_id])} />}</li>)}</ol>;
+  return <ol className="admin-activity-list">{rows.map(row=><li key={row.id}><time dateTime={row.created_at}>{date(row.created_at)}</time><div><strong title={row.action}>{actionLabel(row.action)}</strong><span>{row.actor_name || t("Compte supprimé")}{row.entity_type ? ` · ${row.entity_type}`:""}</span>{activitySummary(row.summary).map((line,index)=><span key={index}>{line}</span>)}{row.entity_id && <span className="admin-record-id">{t("Identifiant : {0}",[row.entity_id])}</span>}</div>{navigate && row.user_id && <Button variant="ghost" icon={ArrowRight} onClick={()=>navigate(accountPath(row.user_id))} aria-label={t("Ouvrir le compte de {0}",[row.actor_name || row.user_id])} />}</li>)}</ol>;
 }
 
 export default function AdminDirectory({ route,navigate,user,journal=false }) {

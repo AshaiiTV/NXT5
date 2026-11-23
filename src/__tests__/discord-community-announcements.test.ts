@@ -54,7 +54,9 @@ function channelFromPath(path: string) { return path.match(/^\/channels\/([0-9]+
 
 beforeAll(async () => {
   state.pg = new PGlite();
-  await state.pg.exec('create table users(id uuid primary key); create table app_schema_migrations(migration_key text primary key)');
+  await state.pg.exec(`create table users(id uuid primary key); create table app_schema_migrations(migration_key text primary key);
+    create table audit_logs(id uuid primary key default gen_random_uuid(), user_id uuid references users(id) on delete set null, action text not null,
+      entity_type text, entity_id uuid, metadata jsonb not null default '{}'::jsonb, created_at timestamptz not null default now())`);
   for (const file of ['20260924_discord_community_announcements.sql', '20260925_discord_community_destinations.sql']) {
     await state.pg.exec(readFileSync(new URL('../../database/migrations/' + file, import.meta.url), 'utf8'));
   }
@@ -64,7 +66,7 @@ beforeAll(async () => {
 afterAll(async () => state.pg?.close());
 afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
 beforeEach(async () => {
-  await state.pg.exec('truncate discord_community_announcements,discord_community_batches,discord_community_settings');
+  await state.pg.exec('truncate discord_community_announcements,discord_community_batches,discord_community_settings,audit_logs');
   for (const [key, value] of Object.entries({ PUBLIC_SITE_URL: 'https://nxt5.test', DISCORD_APPLICATION_ID: app,
     DISCORD_BOT_TOKEN: 'test-only-token', DISCORD_PUBLIC_KEY: 'a'.repeat(64), DISCORD_WORKER_SECRET: 'b'.repeat(40),
     DISCORD_PUBLISHING_ENABLED: 'true', DISCORD_COMMUNITY_GUILD_ID: '', DISCORD_ENVIRONMENT: 'production' })) vi.stubEnv(key, value);
@@ -290,6 +292,24 @@ describe('multi-server announcements: real SQL, simulated Discord only', () => {
     expect(delivery(first).messageUrl).toContain(`/${guild}/${channel}/`);
     expect(delivery(first, secondGuild).messageUrl).toContain(`/${secondGuild}/${secondChannel}/`);
     expect(state.request.mock.calls.some(([path]) => path.includes('crosspost'))).toBe(false);
+  });
+
+  it('audits configuration and each sending attempt with identifiers and a content hash, never the content', async () => {
+    await configure(pair); const payload = await preview(pair);
+    await call(payload); await call(payload);
+    const audit = await rows('select user_id,action,entity_type,metadata from audit_logs order by created_at,action');
+    expect(audit.map(row => row.action)).toEqual(['admin.community.configure', 'admin.community.publish']);
+    expect(audit[0]).toMatchObject({ user_id: admin, entity_type: 'discord_community', metadata: { destinations: [...pair].sort((a, b) => a.guildId < b.guildId ? -1 : 1), configVersion: 1 } });
+    expect(audit[1]).toMatchObject({ user_id: admin, entity_type: 'discord_announcement', metadata: { reference, resumed: false } });
+    expect(audit[1].metadata.contentHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(audit[1].metadata.destinations.map((item: any) => item.channelId).sort()).toEqual([channel, secondChannel].sort());
+    expect(JSON.stringify(audit)).not.toContain('Une annonce');
+  });
+
+  it('writes no audit entry when the selection cannot be saved', async () => {
+    joinedGuilds = joinedGuilds.filter(item => item.id !== secondGuild);
+    expect((await call({ action: 'configure', destinations: pair })).status).not.toBe(200);
+    expect(await rows('select id from audit_logs')).toHaveLength(0);
   });
 
   it('treats destination order as irrelevant to the preview and delivery identity', async () => {

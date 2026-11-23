@@ -82,12 +82,13 @@ function TeamDetail({ teamId, revision, onBack }) {
   const heading = useRef(null);
   useEffect(() => { heading.current?.focus(); }, []);
   useEffect(() => {
-    let current = true;
+    // Abort the previous request when the team changes or the panel unmounts.
+    const controller = new AbortController();
     setDetail(null); setError("");
-    apiFetch(`admin-dashboard?view=team&teamId=${encodeURIComponent(teamId)}`, { timeoutMs: 20000 })
-      .then((result) => { if (current) setDetail(result); })
-      .catch((err) => { if (current) setError(err.message || "Impossible de charger cette équipe."); });
-    return () => { current = false; };
+    apiFetch(`admin-dashboard?view=team&teamId=${encodeURIComponent(teamId)}`, { timeoutMs: 20000, signal: controller.signal })
+      .then((result) => { if (!controller.signal.aborted) setDetail(result); })
+      .catch((err) => { if (!controller.signal.aborted) setError(err.message || "Impossible de charger cette équipe."); });
+    return () => controller.abort();
   }, [teamId, revision, retry]);
   const totals = detail?.totals || {};
   const matches = detail?.matches || {};
