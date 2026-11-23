@@ -289,8 +289,10 @@ test("a manual send waits for a background flush in progress instead of failing"
   await collector.connect(CODE, "PC");
   const first = "EUW1_4000000001";
   const firstSend = collector.submitGame(first);
-  await new Promise((resolve) => setTimeout(resolve, 20));
-  assert.equal(requests.filter((request) => request.url.endsWith("/team-import-submissions")).length, 1, "the first send is in flight");
+  const sends = () => requests.filter((request) => request.url.endsWith("/team-import-submissions")).length;
+  // Wait for the condition, not a fixed delay: disk writes are much slower on CI runners (Windows).
+  for (const deadline = Date.now() + 5000; sends() < 1 && Date.now() < deadline;) await new Promise((resolve) => setTimeout(resolve, 5));
+  assert.equal(sends(), 1, "the first send is in flight");
   const second = collector.submitGame(ID);
   await new Promise((resolve) => setTimeout(resolve, 20));
   release();
