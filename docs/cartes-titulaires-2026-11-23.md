@@ -24,3 +24,14 @@ marque sur une page dense ; pas de magenta fonctionnel ; textes sur fond opaque 
 
 - Rendu contrôlé à 1 400 px (5 colonnes), 1 100 px (3 colonnes) et 375 px (mobile) avec des données fictives.
 - `npm run verify` vert.
+
+## Suite du 23 novembre 2026
+
+- **4 champions** par carte titulaire ; les vignettes rétrécissent dans les colonnes étroites au lieu de déborder
+  (hauteur réservée de 52 px, identique pendant le chargement).
+- Bouton **« Ajouter un joueur »** retiré des titres Titulaires/Remplaçants : l'ajout se fait depuis
+  « Gestion de l'équipe ». Il reste uniquement dans l'état vide d'une équipe sans joueur.
+- **Encadrement** refait en cartes (initiales, rôle avec icône, pastille « Toi »). La liste réunit les profils
+  staff du roster et les comptes membres ayant un accès staff (coach, assistant, analyste, manager, board) sans
+  profil, triés par rôle. Un compte lié à un profil joueur n'y figure pas.
+- `tools/verify-roster-layout.mjs` vérifie désormais le focus clavier sur la première carte.
