@@ -39,8 +39,8 @@ vi.mock('../../netlify/functions/_lib/db', async () => {
 });
 vi.mock('../../netlify/functions/_lib/auth', async original => ({ ...await original<any>(), assertSessionSecret: () => {} }));
 vi.mock('../../netlify/functions/_lib/migrations', () => ({ assertSchemaReady: async () => {} }));
-vi.mock('../../netlify/functions/_lib/email', () => ({ isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails, sendEmailVerificationEmail: state.verification }));
-vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ requestIp: (request: Request) => request.headers.get('x-nf-client-connection-ip') || 'unknown', assertRateLimit: state.rate, assertSubjectRateLimit: state.rate, assertVerificationEmailRateLimit: state.rate }));
+vi.mock('../../netlify/functions/_lib/email', () => ({ isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails, sendEmailVerificationEmail: state.verification, sendAccountSecurityEmail: async () => {}, maskEmail: (email: string) => email }));
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ requestIp: (request: Request) => request.headers.get('x-nf-client-connection-ip') || 'unknown', assertRateLimit: state.rate, assertSubjectRateLimit: state.rate, assertVerificationEmailRateLimit: state.rate, releaseSubjectRateLimit: async () => {}, DAILY_RECIPIENT_LIMITS: { passwordReset: { limit: 5, windowSeconds: 86400 }, verification: { limit: 5, windowSeconds: 86400 }, emailChangeAccount: { limit: 5, windowSeconds: 86400 } } }));
 
 import resetPassword from '../../netlify/functions/auth-reset-password';
 import requestPasswordReset from '../../netlify/functions/auth-request-password-reset';

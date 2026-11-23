@@ -33,7 +33,7 @@ export default async function handler(request: Request, context: Context): Promi
     const user = await requireAuth(request, context, { allowUnverifiedEmail: true });
     stage = 'load-user';
     const rows = await sql`
-      select id, account_name, email, coalesce(email_verified, false) as email_verified, email_verify_expires_at, name, created_at
+      select id, account_name, email, coalesce(email_verified, false) as email_verified, pending_email, email_verify_expires_at, name, created_at
       from users
       where id = ${user.id}
       limit 1
@@ -69,7 +69,7 @@ export default async function handler(request: Request, context: Context): Promi
       where id = ${current.id}
         and email = ${current.email}
         and coalesce(email_verified, false) = false
-      returning id, account_name, email, coalesce(email_verified, false) as email_verified, name, created_at
+      returning id, account_name, email, coalesce(email_verified, false) as email_verified, pending_email, name, created_at
     `;
     if (!updated[0]) {
       throw Object.assign(new Error('Ton adresse e-mail a changé. Recharge la page puis réessaie.'), {

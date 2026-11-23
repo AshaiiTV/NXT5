@@ -75,14 +75,15 @@ describe('query performance migration', () => {
     try {
       const client = { query: async (text: string, params?: unknown[]) => params ? db.query(text, params) : (await db.exec(text)).at(-1) || { rows: [] } };
       const migrations = (await loadMigrations()).map(m => ({ ...m, sql: m.sql.replace(/create extension if not exists pgcrypto;/g, '').replaceAll('gen_random_bytes(5)', "decode('0123456789','hex')") }));
-      expect(migrations.at(-1)!.key).toBe('query-performance-20261123-v1');
-      await applyMigrations(client, migrations.slice(0, -1));
+      const target = migrations.findIndex(migration => migration.key === 'query-performance-20261123-v1');
+      expect(target).toBeGreaterThan(0);
+      await applyMigrations(client, migrations.slice(0, target));
       await db.query("insert into users(id,account_name,name,password_hash) values($1,'perf','Perf','unused')", [ownerId]);
       await db.query("insert into teams(id,owner_id,name,tag) values($1,$2,'Perf','PERF')", [teamId, ownerId]);
       await db.query(`insert into matches(team_id,game_id,raw) values($1,'EUW1_1','{"info":{"gameCreation":1789480000000}}')`, [teamId]);
-      expect(await applyMigrations(client, migrations)).toEqual(['query-performance-20261123-v1']);
+      expect(await applyMigrations(client, migrations.slice(0, target + 1))).toEqual(['query-performance-20261123-v1']);
       // Idempotent when replayed by hand, e.g. after preparing an index concurrently.
-      await db.exec(migrations.at(-1)!.sql);
+      await db.exec(migrations[target].sql);
       const indexes = (await db.query(`select indexname from pg_indexes where indexname = any($1::text[]) order by indexname`, [[
         'idx_matches_team_played', 'idx_matches_team_recent', 'idx_matches_created_at', 'idx_opponent_drafts_imported_at',
         'idx_discord_team_events_team_starts', 'idx_discord_team_goals_team_status', 'idx_participants_player',

@@ -98,11 +98,19 @@ describe('one-way security tokens', () => {
     expect(sha256(token)).toBe(digest);
   });
 
-  it('uses Argon2id for new passwords and verifies them', async () => {
+  it('hashes new passwords with bcrypt everywhere and verifies them', async () => {
     const password = 'correct horse battery staple';
     const digest = await hashPassword(password);
-    expect(digest).toMatch(/^\$argon2id\$/);
+    expect(digest).toMatch(/^\$2[aby]\$12\$/);
     await expect(verifyPassword(password, digest)).resolves.toBe(true);
+    await expect(verifyPassword('wrong password', digest)).resolves.toBe(false);
+  });
+
+  it('still verifies a legacy Argon2id hash when the native module is available', async () => {
+    const moduleName = 'argon2';
+    const argon2: any = await import(moduleName);
+    const digest = await argon2.hash('legacy password', { type: argon2.argon2id });
+    await expect(verifyPassword('legacy password', digest)).resolves.toBe(true);
     await expect(verifyPassword('wrong password', digest)).resolves.toBe(false);
   });
 });

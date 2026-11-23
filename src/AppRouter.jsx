@@ -55,9 +55,14 @@ function VerifiedPage({ navigate, user, onLogout, checkingSession }) {
   const success = params.get("success") === "true";
   const error = params.get("error");
   const signinRequired = !success && error === "signin";
-  const copy = success
+  const emailChanged = success && params.get("changed") === "email";
+  const copy = emailChanged
+    ? [t("Adresse e-mail modifiée"), t("Ta nouvelle adresse est confirmée. Tes autres sessions ont été déconnectées."), "green"]
+    : success
     ? [t("Email vérifié !"), t("Tu peux maintenant accéder à ton espace NXT5 et recevoir les notifications."), "green"]
-    : signinRequired
+    : error === "in-use"
+      ? [t("Adresse déjà utilisée"), t("Cette adresse est désormais utilisée par un autre compte. Ton adresse actuelle est conservée."), "red"]
+      : signinRequired
       ? [t("Connecte-toi pour vérifier ton e-mail"), t("Connecte-toi au compte concerné avec le mot de passe que tu as choisi lors de l’inscription, puis rouvre le lien reçu par e-mail dans ce même navigateur."), "yellow"]
       : error === "expired"
       ? [t("Lien expiré"), t("Ce lien a expiré. Renvoie un email de vérification depuis tes paramètres."), "yellow"]

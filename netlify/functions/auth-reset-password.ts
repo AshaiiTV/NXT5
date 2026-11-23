@@ -1,8 +1,10 @@
+import type { Context } from '@netlify/functions';
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, hashPassword, sha256 } from './_lib/auth';
+import { notifyAccountSecurity } from './_lib/account-notices';
 
-export default async function handler(request: Request): Promise<Response> {
+export default async function handler(request: Request, context?: Context): Promise<Response> {
   try {
     assertSessionSecret();
     assertMethod(request, 'POST');
@@ -82,6 +84,17 @@ export default async function handler(request: Request): Promise<Response> {
     if (!changed[0]) {
       throw Object.assign(new Error('Lien de réinitialisation invalide ou expiré.'), { status: 400 });
     }
+
+    // Recovery proves control of the current mailbox: drop any address change
+    // requested from a session that the reset has just signed out.
+    const changedUserId = changed[0].user_id || changed[0].id;
+    const [account] = await sql`
+      update users
+      set pending_email = null, pending_email_token = null, pending_email_expires_at = null
+      where id = ${changedUserId}
+      returning email
+    `;
+    await notifyAccountSecurity(context, account?.email, 'password-reset');
 
     return json({ ok: true });
   } catch (err) {

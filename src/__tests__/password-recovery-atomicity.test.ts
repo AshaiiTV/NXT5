@@ -39,8 +39,8 @@ vi.mock('../../netlify/functions/_lib/auth', async importOriginal => {
   const actual: any = await importOriginal();
   return { ...actual, assertSessionSecret: () => {}, requireAuth: async () => ({ id: '00000000-0000-4000-8000-000000000001' }) };
 });
-vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ requestIp: (request: Request) => request.headers.get('x-nf-client-connection-ip') || 'unknown', assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {} }));
-vi.mock('../../netlify/functions/_lib/email', () => ({ isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails }));
+vi.mock('../../netlify/functions/_lib/rate-limit', () => ({ requestIp: (request: Request) => request.headers.get('x-nf-client-connection-ip') || 'unknown', assertRateLimit: async () => {}, assertSubjectRateLimit: async () => {}, releaseSubjectRateLimit: async () => {}, DAILY_RECIPIENT_LIMITS: { passwordReset: { limit: 5, windowSeconds: 86400 }, verification: { limit: 5, windowSeconds: 86400 }, emailChangeAccount: { limit: 5, windowSeconds: 86400 } } }));
+vi.mock('../../netlify/functions/_lib/email', () => ({ isPasswordEmailConfigured: () => true, sendPasswordResetEmail: state.emails, sendAccountSecurityEmail: async () => {}, maskEmail: (email: string) => email }));
 
 import changePassword from '../../netlify/functions/auth-change-password';
 import resetPassword from '../../netlify/functions/auth-reset-password';

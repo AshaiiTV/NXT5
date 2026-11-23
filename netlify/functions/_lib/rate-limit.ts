@@ -35,10 +35,42 @@ export async function assertRateLimit(request: Request, endpoint: string, option
 }
 
 /** Shared budgets must not reset when a caller changes IP or uses another route. */
-export async function assertSubjectRateLimit(endpoint: string, subject: string, options: RateLimitOptions = {}): Promise<void> {
+function subjectRateKey(endpoint: string, subject: string): string {
   const digest = crypto.createHash('sha256').update(subject.trim().toLowerCase()).digest('hex');
-  return assertLimit(`subject:${endpoint}:${digest}`, 'subject', endpoint, options);
+  return `subject:${endpoint}:${digest}`;
 }
+
+export async function assertSubjectRateLimit(endpoint: string, subject: string, options: RateLimitOptions = {}): Promise<void> {
+  return assertLimit(subjectRateKey(endpoint, subject), 'subject', endpoint, options);
+}
+
+/**
+ * Gives back one attempt charged by assertSubjectRateLimit. Callers charge
+ * before the check (concurrent guesses cannot all pass a read-only peek) and
+ * release after a success, so only failures consume the budget. Best effort:
+ * a failed release only leaves the budget slightly stricter.
+ */
+export async function releaseSubjectRateLimit(endpoint: string, subject: string): Promise<void> {
+  try {
+    await sql`
+      update rate_limits set attempts = greatest(attempts - 1, 0), updated_at = now()
+      where rate_key = ${subjectRateKey(endpoint, subject)}
+    `;
+  } catch {
+    console.error('Rate limit release failed.', { code: 'RATE_LIMIT_RELEASE_FAILED' });
+  }
+}
+
+/**
+ * Daily mailbox budgets, keyed by a hash of the normalized recipient. They
+ * bound how many messages NXT5 can be made to send to one address per day,
+ * whichever account or IP asks.
+ */
+export const DAILY_RECIPIENT_LIMITS = {
+  passwordReset: { limit: 5, windowSeconds: 24 * 60 * 60 },
+  verification: { limit: 5, windowSeconds: 24 * 60 * 60 },
+  emailChangeAccount: { limit: 5, windowSeconds: 24 * 60 * 60 }
+} as const;
 
 export async function assertVerificationEmailRateLimit(userId: string, email: string): Promise<void> {
   try {
@@ -50,6 +82,16 @@ export async function assertVerificationEmailRateLimit(userId: string, email: st
     if (err?.status === 429) {
       err.code = 'EMAIL_VERIFY_RATE_LIMIT';
       err.message = 'Attends quelques minutes avant de demander un nouvel e-mail de vérification.';
+    }
+    throw err;
+  }
+  try {
+    // Daily cap per mailbox across registration, resend and address changes.
+    await assertSubjectRateLimit('email-verification-recipient-day', email, DAILY_RECIPIENT_LIMITS.verification);
+  } catch (err: any) {
+    if (err?.status === 429) {
+      err.code = 'EMAIL_VERIFY_RATE_LIMIT';
+      err.message = 'Trop d’e-mails de vérification envoyés à cette adresse aujourd’hui. Réessaie demain.';
     }
     throw err;
   }

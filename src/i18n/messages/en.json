@@ -8231,5 +8231,12 @@
   "Note indisponible": "Note unavailable",
   "Débrief indisponible": "Debrief unavailable",
   "Ne confirme jamais un lien qu’une autre personne t’a envoyé.": "Never confirm a link that someone else sent you.",
-  "Vérifie le nom d’utilisateur Discord unique (@…) et l’identifiant : un nom d’affichage peut être imité.": "Check the unique Discord username (@…) and the ID: a display name can be imitated."
+  "Vérifie le nom d’utilisateur Discord unique (@…) et l’identifiant : un nom d’affichage peut être imité.": "Check the unique Discord username (@…) and the ID: a display name can be imitated.",
+  "En attente de confirmation :": "Awaiting confirmation:",
+  "Ouvre le lien reçu à cette adresse dans ce navigateur. Ton adresse actuelle reste active jusque-là.": "Open the link sent to this address in this browser. Your current address stays active until then.",
+  "Annuler le changement": "Cancel the change",
+  "Adresse e-mail modifiée": "Email address changed",
+  "Ta nouvelle adresse est confirmée. Tes autres sessions ont été déconnectées.": "Your new address is confirmed. Your other sessions have been signed out.",
+  "Adresse déjà utilisée": "Address already in use",
+  "Cette adresse est désormais utilisée par un autre compte. Ton adresse actuelle est conservée.": "This address is now used by another account. Your current address has been kept."
 }

@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import type { Context } from '@netlify/functions';
 import { sql } from './db';
 import { INACTIVITY_DAYS, recordUserActivity } from './engagement';
+import { assertSubjectRateLimit, releaseSubjectRateLimit } from './rate-limit';
 import type { DbUser } from './types';
 
 export const COOKIE_NAME = 'rb_session';
@@ -55,34 +56,68 @@ export function assertSessionSecret(): void {
   });
 }
 
+/**
+ * New hashes are always bcrypt (cost 12). Argon2 used to be loaded through a
+ * dynamic import of a variable, which esbuild cannot bundle: production fell
+ * back to bcrypt silently while local runs produced $argon2 hashes. One
+ * deterministic algorithm everywhere removes that split.
+ */
 export async function hashPassword(password: string): Promise<string> {
-  const moduleName = 'argon2';
-  const argon2 = await import(moduleName).catch(() => null) as any;
-  if (argon2) {
-    return argon2.hash(password, {
-      type: argon2.argon2id,
-      memoryCost: 19_456,
-      timeCost: 2,
-      parallelism: 1
-    });
-  }
   if (Buffer.byteLength(password, 'utf8') > 72) {
     throw Object.assign(new Error('Le mot de passe est trop long.'), { status: 400 });
   }
   return bcrypt.hash(password, 12);
 }
 
+let argon2Module: Promise<any> | undefined;
+function loadArgon2(): Promise<any> {
+  // Kept only to verify legacy $argon2 hashes where the native module exists.
+  const moduleName = 'argon2';
+  argon2Module ||= import(moduleName).catch(() => null);
+  return argon2Module;
+}
+
 export async function verifyPassword(password: string, hash: string): Promise<boolean> {
   try {
     if (String(hash || '').startsWith('$argon2')) {
-      const moduleName = 'argon2';
-      const argon2 = await import(moduleName).catch(() => null) as any;
-      return argon2 ? argon2.verify(hash, password) : false;
+      const argon2 = await loadArgon2();
+      if (!argon2) {
+        // No account detail: the hash, identifier and password stay out of logs.
+        console.error('Legacy Argon2 hash cannot be verified: module unavailable.', { code: 'ARGON2_UNAVAILABLE' });
+        return false;
+      }
+      return await argon2.verify(hash, password);
     }
-    return bcrypt.compare(password, hash);
+    return await bcrypt.compare(password, hash);
   } catch {
     return false;
   }
+}
+
+/** One budget for every password re-verification made with an open session. */
+const REAUTH_BUDGETS = [
+  ['password-reauth', { limit: 5, windowSeconds: 15 * 60 }],
+  ['password-reauth-day', { limit: 20, windowSeconds: 24 * 60 * 60 }]
+] as const;
+
+/**
+ * Re-verifies the current password for a sensitive change (password, e-mail,
+ * social unlink). Every attempt is charged before the check so concurrent
+ * guesses cannot overrun the budget; a correct password gives the attempt back.
+ */
+export async function verifyReauthenticationPassword(userId: string, password: string, hash: string | null | undefined): Promise<boolean> {
+  try {
+    for (const [endpoint, options] of REAUTH_BUDGETS) await assertSubjectRateLimit(endpoint, userId, options);
+  } catch (err: any) {
+    if (err?.status === 429) {
+      err.code = 'REAUTH_RATE_LIMIT';
+      err.message = 'Trop de tentatives de mot de passe. Réessaie plus tard ou réinitialise ton mot de passe.';
+    }
+    throw err;
+  }
+  const valid = Boolean(hash) && password.length > 0 && password.length <= 128 && await verifyPassword(password, String(hash));
+  if (valid) for (const [endpoint] of REAUTH_BUDGETS) await releaseSubjectRateLimit(endpoint, userId);
+  return valid;
 }
 
 let loginFallbackHash: Promise<string> | undefined;
@@ -161,6 +196,13 @@ export async function purgeExpiredAuthData(): Promise<void> {
         email_verify_expires_at = null
     where email_verify_expires_at < now() - interval '30 days'
   `);
+  await cleanup('pending-email-changes', () => sql`
+    update users
+    set pending_email = null,
+        pending_email_token = null,
+        pending_email_expires_at = null
+    where pending_email_expires_at < now() - interval '30 days'
+  `);
   await cleanup('audit-logs', () => sql`
     delete from audit_logs
     where created_at < now() - interval '12 months'
@@ -178,6 +220,9 @@ export function safeUser(user: Partial<DbUser> | null | undefined) {
     account_name: user.account_name,
     email: user.email || '',
     email_verified: Boolean((user as any).email_verified),
+    // Address waiting for confirmation from its own mailbox; never used for
+    // sign-in, recovery or notifications until confirmed.
+    pending_email: (user as any).pending_email || null,
     name: user.name || user.account_name,
     notif_match: user.notif_match ?? true,
     notif_report: user.notif_report ?? true,
@@ -192,7 +237,7 @@ export function safeUser(user: Partial<DbUser> | null | undefined) {
   };
 }
 
-export async function createSession({ userId, context, request, remember = true, expectedPasswordHash, socialIdentity }: {
+export async function createSession({ userId, context, request, remember = false, expectedPasswordHash, socialIdentity }: {
   userId: string;
   context: Context;
   request: Request;
@@ -204,8 +249,8 @@ export async function createSession({ userId, context, request, remember = true,
   await purgeExpiredAuthData();
   const rawToken = crypto.randomBytes(48).toString('base64url');
   const tokenHash = sha256(rawToken);
-  const maxAge = remember ? REMEMBER_SESSION_DAYS * 24 * 60 * 60 : SHORT_SESSION_HOURS * 60 * 60;
-  const expiresAt = new Date(Date.now() + maxAge * 1000);
+  const lifetimeSeconds = remember ? REMEMBER_SESSION_DAYS * 24 * 60 * 60 : SHORT_SESSION_HOURS * 60 * 60;
+  const expiresAt = new Date(Date.now() + lifetimeSeconds * 1000);
   const userAgent = String(request.headers.get('user-agent') || '').slice(0, 512);
   const ip = String(request.headers.get('x-nf-client-connection-ip') || request.headers.get('x-forwarded-for') || '')
     .split(',')[0]
@@ -261,11 +306,13 @@ export async function createSession({ userId, context, request, remember = true,
     throw error;
   }
 
+  // Without "Rester connecté" the cookie has no Max-Age: the browser drops it
+  // when it closes, and the server still expires the session after 12 hours.
   context.cookies.set({
     name: COOKIE_NAME,
     value: rawToken,
     ...sessionCookieOptions(request),
-    maxAge
+    ...(remember ? { maxAge: lifetimeSeconds } : {})
   });
 }
 
@@ -295,6 +342,7 @@ export async function requireAuth(request: Request, context: Context, options: {
       users.account_name,
       users.email,
       coalesce(users.email_verified, false) as email_verified,
+      to_jsonb(users)->>'pending_email' as pending_email,
       users.name,
       users.notif_match,
       users.notif_report,

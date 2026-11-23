@@ -12,7 +12,7 @@ export default async function handler(request: Request, context: Context): Promi
       update users
       set inactivity_notice_pending = false
       where id = ${user.id}
-      returning id, account_name, email, email_verified, name, notif_match, notif_report,
+      returning id, account_name, email, email_verified, pending_email, name, notif_match, notif_report,
                 notif_inactivity, inactivity_notice_pending, created_at
     `;
     return json({ user: safeUser(rows[0] || user) });

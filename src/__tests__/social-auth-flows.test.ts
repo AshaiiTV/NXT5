@@ -42,7 +42,7 @@ vi.mock('../../netlify/functions/_lib/social-auth-protocol', async original => (
 vi.mock('../../netlify/functions/_lib/email', () => ({ sendEmailVerificationEmail: state.email, sendSocialSignupEmail: state.email }));
 vi.mock('../../netlify/functions/_lib/rate-limit', async original => {
   const actual=await original<any>();
-  return { assertRateLimit: state.rate, assertVerificationEmailRateLimit: state.rate,
+  return { assertRateLimit: state.rate, assertVerificationEmailRateLimit: state.rate, releaseSubjectRateLimit: async () => {},
     assertSubjectRateLimit: async (...args:any[]) => {
       await state.rate(...args);
       if(state.realTicketRate) await actual.assertSubjectRateLimit(...args);
@@ -194,13 +194,13 @@ describe('provider discovery and request initiation', () => {
     const target = browser();
     const value = await begin(target, { next: 'https://attacker.example' });
     const [flow] = await rows('select * from social_auth_flows');
-    expect(flow).toMatchObject({ state_hash: sha256(value), browser_hash: sha256(target.jar.get(SOCIAL_BROWSER_COOKIE)!), remember: true, destination: '/accueil', flow: 'login', user_id: null });
+    expect(flow).toMatchObject({ state_hash: sha256(value), browser_hash: sha256(target.jar.get(SOCIAL_BROWSER_COOKIE)!), remember: false, destination: '/accueil', flow: 'login', user_id: null });
     expect(flow.nonce).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(flow.code_verifier).toMatch(/^[A-Za-z0-9_-]{43}$/);
     expect(target.set).toHaveBeenCalledWith(expect.objectContaining({ name: SOCIAL_BROWSER_COOKIE, httpOnly: true, secure: true, sameSite: 'Lax', path: '/', maxAge: 300 }));
-    const second = await begin(target, { flow: 'register', rememberMe: false, invite: 'TEAM_valid_123' });
+    const second = await begin(target, { flow: 'register', rememberMe: true, invite: 'TEAM_valid_123' });
     expect(await rows('select * from social_auth_flows where state_hash=$1', [sha256(value)])).toHaveLength(0);
-    expect((await rows('select * from social_auth_flows where state_hash=$1', [sha256(second)]))[0]).toMatchObject({ remember: false, destination: '/mon-equipe?invite=TEAM_valid_123' });
+    expect((await rows('select * from social_auth_flows where state_hash=$1', [sha256(second)]))[0]).toMatchObject({ remember: true, destination: '/mon-equipe?invite=TEAM_valid_123' });
   });
 });
 
@@ -296,7 +296,10 @@ describe('signup completion and ownership', () => {
     expect((await complete(replay)).status).toBe(400);
     expect(await rows('select * from users')).toHaveLength(1);
     expect(state.email).not.toHaveBeenCalled();
-    expect(target.set).toHaveBeenCalledWith(expect.objectContaining({ name: COOKIE_NAME, httpOnly: true, secure: true, sameSite: 'Lax', maxAge: 30 * 24 * 60 * 60 }));
+    // Started without rememberMe: a browser-session cookie without Max-Age.
+    const sessionCookie = target.set.mock.calls.map(([cookie]: any[]) => cookie).find((cookie: any) => cookie.name === COOKIE_NAME && cookie.value);
+    expect(sessionCookie).toMatchObject({ httpOnly: true, secure: true, sameSite: 'Lax' });
+    expect(sessionCookie).not.toHaveProperty('maxAge');
   });
 
   it('allows only one competing redemption of the same signup ticket', async () => {
@@ -437,7 +440,10 @@ describe('existing identities and guarded login sessions', () => {
     const [savedSession] = await rows('select * from sessions');
     expect(savedSession.user_id).toBe(userId);
     expect(savedSession.token_hash).toBe(sha256(target.jar.get(COOKIE_NAME)!));
-    expect(target.set).toHaveBeenCalledWith(expect.objectContaining({ name: COOKIE_NAME, maxAge: 12 * 60 * 60, sameSite: 'Lax', httpOnly: true, secure: true }));
+    const sessionCookie = target.set.mock.calls.map(([cookie]: any[]) => cookie).find((cookie: any) => cookie.name === COOKIE_NAME && cookie.value);
+    expect(sessionCookie).toMatchObject({ sameSite: 'Lax', httpOnly: true, secure: true });
+    expect(sessionCookie).not.toHaveProperty('maxAge');
+    expect(Math.round((new Date(savedSession.expires_at).getTime() - Date.now()) / 3_600_000)).toBe(12);
     expect((await rows('select email from users where id=$1', [userId]))[0].email).toBe(email);
     expect(await rows('select * from social_auth_tickets')).toHaveLength(0);
   });
