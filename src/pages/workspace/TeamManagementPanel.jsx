@@ -7,7 +7,7 @@ import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { rosterPlayersByStatus, ROSTER_STATUS_OPTIONS } from "../../utils/roster.js";
 import { COMP_ROLES, STAFF_ROLES, TEAM_ACCESS_ROLES, formatCountdown, isGameplayRole, isStaffRole } from "./workspace-shared.jsx";
 import { roleLabel } from "./shell-shared.jsx";
-import { LinkButton } from "../public/PublicPages.jsx";
+import { LinkButton } from "../public/PublicChrome.jsx";
 import { openAppPath } from "../../app/routing.js";
 import "./team-management.css";
 

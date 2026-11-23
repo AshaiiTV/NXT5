@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowUpRight, Heart, MessageCircle, Sparkles, Wrench } from 
 import { normalizeSupportUrl, SUPPORT_URL } from "../../app/support.js";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Surface } from "../../components/ui/Core.jsx";
-import { LegalLinks, LinkButton, PublicTextLink, SiteHeader } from "./PublicPages.jsx";
+import { LegalLinks, LinkButton, PublicTextLink, SiteHeader } from "./PublicChrome.jsx";
 import { PublicScene } from "./PublicScene.jsx";
 import "./support.css";
 

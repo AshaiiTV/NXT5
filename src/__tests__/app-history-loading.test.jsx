@@ -12,7 +12,7 @@ vi.mock("../components/layout/AppChrome.jsx", () => ({
   Topbar: ({ onSelectTeam }) => <nav data-history-team-selector><button onClick={() => onSelectTeam("b")}>Autre équipe</button></nav>,
   ApiBanner: ({ error }) => error ? <aside role="alert">{error}</aside> : null,
 }));
-vi.mock("../pages/public/PublicPages.jsx", () => ({ LegalLinks: () => null, SiteHeader: () => null }));
+vi.mock("../pages/public/PublicChrome.jsx", () => ({ LegalLinks: () => null, SiteHeader: () => null }));
 vi.mock("../pages/workspace/HomeWorkspace.jsx", () => ({ default: ({ data }) => <section data-history-page="home" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));
 vi.mock("../pages/workspace/Teams.jsx", () => ({ Teams: () => <section data-history-page="teams" /> }));
 vi.mock("../pages/workspace/GameWorkspace.jsx", () => ({ GameWorkspace: ({ data }) => <section data-history-page="games" data-games={data.matches.length} data-team={data.selectedTeamId} /> }));

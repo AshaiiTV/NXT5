@@ -13,11 +13,11 @@ vi.mock("../seo/metadata.js", () => ({ applyDocumentMetadata: vi.fn() }));
 vi.mock("../components/privacy/CookieConsent.jsx", () => ({ default: () => null }));
 vi.mock("../components/loading/AppLoadingProvider.jsx", () => ({ useAppLoading: vi.fn() }));
 vi.mock("../components/layout/AppChrome.jsx", () => ({ AmbientBackground: () => null }));
-vi.mock("../pages/public/PublicPages.jsx", () => ({
-  SiteHeader: () => <header>NXT5</header>, LEGAL_PAGES: {},
+vi.mock("../pages/public/PublicChrome.jsx", () => ({ SiteHeader: () => <header>NXT5</header> }));
+vi.mock("../pages/public/AuthPages.jsx", () => ({
   AuthPage: () => <main data-page="auth" />,
   ForgotPasswordPage: () => <main data-page="recovery" />,
-  HomeScreen: () => null, LegalPage: () => null, NotFoundPage: () => null, ResetPasswordPage: () => null,
+  NotFoundPage: () => null, ResetPasswordPage: () => null,
 }));
 
 let renderer;

@@ -4,7 +4,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { SocialAccounts, SocialLogin, SocialNotice, SocialSignup, socialReturnContext } from "../components/account/SocialAccounts.jsx";
-import { AuthPage, ForgotPasswordPage, ResetPasswordPage } from "../pages/public/PublicPages.jsx";
+import { AuthPage, ForgotPasswordPage, ResetPasswordPage } from "../pages/public/AuthPages.jsx";
 import { AccountSettings } from "../pages/workspace/AccountSettings.jsx";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));

@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import TestRenderer, { act } from "react-test-renderer";
-import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import AppRouter from "../AppRouter.jsx";
 import { AppLoadingProvider, useAppLoading } from "../components/loading/AppLoadingProvider.jsx";
 import { apiFetch } from "../api/client.js";
 import { createSeoDocument } from "./helpers/seo-document.js";
+import { PUBLIC_PAGES } from "../app/public-pages.jsx";
 
 const modules = vi.hoisted(() => ({ workspace: vi.fn(), demo: vi.fn(), consentMounts: 0, pendingWorkspace: null }));
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -26,16 +27,15 @@ vi.mock("../pages/public/DemoPage.jsx", () => {
   modules.demo();
   return { DemoPage: props => <Page {...props} page="demo" /> };
 });
-vi.mock("../pages/public/PublicPages.jsx", () => ({
-  HomeScreen: props => <Page {...props} page="home" />,
+vi.mock("../pages/public/HomePage.jsx", () => ({ HomeScreen: props => <Page {...props} page="home" /> }));
+vi.mock("../pages/public/AuthPages.jsx", () => ({
   AuthPage: props => <Page {...props} page="auth" />,
-  LegalPage: props => <Page {...props} page="legal" />,
   ForgotPasswordPage: props => <Page {...props} page="forgot" />,
   ResetPasswordPage: props => <Page {...props} page="reset" />,
   NotFoundPage: props => <Page {...props} page="not-found" />,
-  SiteHeader: () => null,
-  LEGAL_PAGES: { "/confidentialite": {} },
 }));
+vi.mock("../pages/public/LegalPage.jsx", () => ({ LegalPage: props => <Page {...props} page="legal" />, LEGAL_PAGES: { "/confidentialite": {} } }));
+vi.mock("../pages/public/PublicChrome.jsx", () => ({ SiteHeader: () => null }));
 vi.mock("../pages/public/FeaturesPage.jsx", () => ({ FeaturesPage: props => <Page {...props} page="features" /> }));
 vi.mock("../pages/public/PublicGuides.jsx", () => ({
   PUBLIC_GUIDES: { "/guides/importer-premier-scrim": {} },
@@ -59,6 +59,9 @@ const settleModules = async () => {
   await act(async () => { await vi.dynamicImportSettled(); });
   await act(async () => { await vi.dynamicImportSettled(); });
 };
+
+// Public page chunks are ready, as main.jsx preloads them before hydration.
+beforeAll(() => Promise.all(Object.values(PUBLIC_PAGES).map(page => page.preload())));
 
 beforeEach(() => {
   modules.consentMounts = 0;

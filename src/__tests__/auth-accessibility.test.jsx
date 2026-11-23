@@ -6,7 +6,7 @@ import { readRememberPreference } from "../app/helpers.js";
 import { SocialLogin } from "../components/account/SocialAccounts.jsx";
 import { PremiumToggle } from "../components/ui/Core.jsx";
 import ProductStory from "../pages/home/ProductStory.jsx";
-import { AuthPage } from "../pages/public/PublicPages.jsx";
+import { AuthPage } from "../pages/public/AuthPages.jsx";
 import { getMetadata } from "../seo/metadata.js";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));

@@ -6,7 +6,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { RoleIcon } from "../components/brand/BrandAssets.jsx";
 import GuidePage from "../pages/GuidePage.jsx";
 import AdminDashboard, { ImportChart } from "../pages/admin/AdminDashboard.jsx";
-import { LEGAL_PAGES } from "../pages/public/PublicPages.jsx";
+import { LEGAL_PAGES } from "../pages/public/LegalPage.jsx";
 import { apiFetch } from "../api/client.js";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));

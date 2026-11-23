@@ -18,7 +18,7 @@ import { roleLabel } from "./shell-shared.jsx";
 import "../../components/games/imported-games.css";
 import "./GameOperations.css";
 import { GameOperationDialog } from "../../components/games/GameOperationDialog.jsx";
-import { LinkButton } from "../public/PublicPages.jsx";
+import { LinkButton } from "../public/PublicChrome.jsx";
 import { openAppPath } from "../../app/routing.js";
 
 export { GameOperationDialog };

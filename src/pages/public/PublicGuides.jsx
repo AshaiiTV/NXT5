@@ -3,7 +3,7 @@ import { t } from "../../i18n/translate.js";
 import React from "react";
 import { ArrowRight, BookOpen, Download, FileText } from "lucide-react";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
-import { LegalLinks, LinkButton, PublicTextLink, SiteHeader } from "./PublicPages.jsx";
+import { LegalLinks, LinkButton, PublicTextLink, SiteHeader } from "./PublicChrome.jsx";
 import { DemoMatchSummary } from "./DemoMatchSummary.jsx";
 import { PublicScene } from "./PublicScene.jsx";
 import { DEMO_MATCHES } from "./demo-data.js";

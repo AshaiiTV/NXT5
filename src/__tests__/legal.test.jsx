@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LEGAL_PAGES, LEGAL_VERSION } from "../pages/public/PublicPages.jsx";
+import { LEGAL_PAGES, LEGAL_VERSION } from "../pages/public/LegalPage.jsx";
 import { PUBLIC_ROUTES } from "../app/constants.jsx";
 
 describe("public legal information", () => {

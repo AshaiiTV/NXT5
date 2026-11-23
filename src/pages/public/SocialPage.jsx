@@ -6,7 +6,7 @@ import { ArrowRight, ArrowUpRight, Camera, LifeBuoy, MessageCircle, Play, Radio,
 import { getSocialLinks } from "../../app/social-links.js";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { Badge, PageHeader, Surface } from "../../components/ui/Core.jsx";
-import { LegalLinks, LinkButton, PublicInformationNav, PublicTextLink, SiteHeader } from "./PublicPages.jsx";
+import { LegalLinks, LinkButton, PublicInformationNav, PublicTextLink, SiteHeader } from "./PublicChrome.jsx";
 
 const COMMUNITY_USES = [
   [Users, "Rencontre la communauté", "Échange avec les joueurs et les encadrants."],

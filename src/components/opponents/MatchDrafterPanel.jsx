@@ -6,7 +6,8 @@ import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { Button, SelectInput, TextInput } from "../ui/Core.jsx";
 import { GameOperationDialog } from "../games/GameOperationDialog.jsx";
-import { DraftSnapshot, SnapshotContext, SourceLink } from "./OpponentsWorkspace.jsx";
+import { DraftSnapshot, SnapshotContext } from "./OpponentsWorkspace.jsx";
+import { SourceLink } from "./SourceLink.jsx";
 import DraftBoard from "../draft/DraftBoard.jsx";
 import "./match-drafter-panel.css";
 

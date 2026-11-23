@@ -6,7 +6,7 @@ import { Nxt5Wordmark } from "../../components/brand/BrandAssets.jsx";
 import { Button } from "../../components/ui/Core.jsx";
 import ProductStory from "./ProductStory.jsx";
 import GlassScene from "../../components/brand/GlassScene.jsx";
-import { LegalLinks, PublicTextLink } from "../public/PublicPages.jsx";
+import { LegalLinks, PublicTextLink } from "../public/PublicChrome.jsx";
 import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 
 function OutlineMark() {

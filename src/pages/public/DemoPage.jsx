@@ -3,7 +3,7 @@ import { t } from "../../i18n/translate.js";
 import React from "react";
 import { ArrowRight } from "lucide-react";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
-import { LegalLinks, LinkButton, PublicTextLink, SiteHeader } from "./PublicPages.jsx";
+import { LegalLinks, LinkButton, PublicTextLink, SiteHeader } from "./PublicChrome.jsx";
 import { DEMO_NAVIGATION, DemoExplorer } from "./DemoExperience.jsx";
 import { DEMO_PATH, parseDemoPath } from "../../app/demo-routes.js";
 import DemoSculpture from "./DemoSculpture.jsx";

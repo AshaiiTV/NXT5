@@ -11,7 +11,7 @@ function deferred() {
 
 const InitialRouter = () => <main data-router />;
 const InitialDemo = () => <main data-demo />;
-let root, appDownload, demoDownload, preloadApp, demoRequested, createRoot, hydrateRoot, clientRender;
+let root, appDownload, demoDownload, preloadApp, demoRequested, createRoot, hydrateRoot, clientRender, preloadPublicPage, preloadPrivateApp, prefetchWorkspacePage;
 
 beforeEach(() => {
   vi.resetModules();
@@ -28,6 +28,12 @@ beforeEach(() => {
   vi.doMock("react-dom/client", () => ({ createRoot, hydrateRoot }));
   vi.doMock("../App.jsx", () => ({ default: ActualApp, preloadApp }));
   vi.doMock("../app/chunk-recovery.js", () => ({ installChunkRecovery: () => () => {} }));
+  preloadPublicPage = vi.fn(() => null);
+  preloadPrivateApp = vi.fn(() => new Promise(() => {}));
+  prefetchWorkspacePage = vi.fn();
+  vi.doMock("../app/public-pages.jsx", () => ({ preloadPublicPage }));
+  vi.doMock("../app/private-app.js", () => ({ preloadPrivateApp }));
+  vi.doMock("../app/workspace-pages.js", () => ({ prefetchWorkspacePage }));
   vi.doMock("../pages/public/DemoPage.jsx", async () => {
     demoRequested();
     await demoDownload.promise;
@@ -41,6 +47,9 @@ afterEach(async () => {
   vi.doUnmock("react-dom/client");
   vi.doUnmock("../App.jsx");
   vi.doUnmock("../app/chunk-recovery.js");
+  vi.doUnmock("../app/public-pages.jsx");
+  vi.doUnmock("../app/private-app.js");
+  vi.doUnmock("../app/workspace-pages.js");
   vi.doUnmock("../pages/public/DemoPage.jsx");
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
@@ -125,7 +134,11 @@ describe("browser entry bootstrap", () => {
     expect(createRoot).toHaveBeenCalledExactlyOnceWith(root);
     expect(clientRender).toHaveBeenCalledOnce();
     expect(hydrateRoot).not.toHaveBeenCalled();
-    expect(preloadApp).not.toHaveBeenCalled();
+    // The router, private shell and page chunk download in parallel, not in sequence.
+    expect(preloadApp).toHaveBeenCalledOnce();
+    expect(preloadPrivateApp).toHaveBeenCalledOnce();
+    expect(prefetchWorkspacePage).toHaveBeenCalledExactlyOnceWith("teams");
+    expect(preloadPublicPage).not.toHaveBeenCalled();
     expect(demoRequested).not.toHaveBeenCalled();
     expect(mountedApp(clientRender.mock.calls[0][0]).props.initialRoute).toBeUndefined();
   });
@@ -140,6 +153,22 @@ describe("browser entry bootstrap", () => {
     expect(demoRequested).not.toHaveBeenCalled();
     expect(mountedApp(clientRender.mock.calls[0][0]).props).toMatchObject({ initialApp: InitialRouter });
     expect(mountedApp(clientRender.mock.calls[0][0]).props.initialRoute).toBeUndefined();
+  });
+
+  it.each(["/", "/fonctionnalites", "/guides/preparer-debrief", "/confidentialite"])("waits for the lazily loaded %s page chunk before hydrating its snapshot", async path => {
+    const pageDownload = deferred();
+    preloadPublicPage.mockImplementation(() => pageDownload.promise);
+    locate(path, path);
+    appDownload.resolve({ default: InitialRouter });
+    await boot();
+    expect(preloadPublicPage).toHaveBeenCalledExactlyOnceWith(path);
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(hydrateRoot).not.toHaveBeenCalled();
+    expect(root.innerHTML).toContain('id="snapshot"');
+    pageDownload.resolve();
+    await vi.waitFor(() => expect(hydrateRoot).toHaveBeenCalledOnce());
+    expect(createRoot).not.toHaveBeenCalled();
+    expect(preloadPrivateApp).not.toHaveBeenCalled();
   });
 
   it("hydrates the recorded 404 snapshot rather than substituting the unknown request path", async () => {

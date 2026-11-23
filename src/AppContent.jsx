@@ -7,7 +7,7 @@ import { guideSectionForRoute } from "./app/guide-navigation.js";
 import { gameWorkspaceSectionFromPath, isAppPath, pageFromPath, pathFromPage } from "./app/routing.js";
 import { ModalDialog } from "./components/ui/ModalDialog.jsx";
 import { Surface, Badge, Button, SkeletonRows, TextInput } from "./components/ui/Core.jsx";
-import { LegalLinks, SiteHeader } from "./pages/public/PublicPages.jsx";
+import { LegalLinks, SiteHeader } from "./pages/public/PublicChrome.jsx";
 import { Loader2, ArrowRight, LogOut, MessageCircleQuestion, X, Lock, Mail, AlertTriangle, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 import { AmbientBackground, ApiBanner, Sidebar, Topbar } from "./components/layout/AppChrome.jsx";
 import { BrandIcon, Nxt5Wordmark } from "./components/brand/BrandAssets.jsx";
@@ -22,21 +22,22 @@ import { getOnboardingSteps } from "./utils/onboarding.js";
 import { useOnboarding } from "./hooks/useOnboarding.js";
 import HomeWorkspace from "./pages/workspace/HomeWorkspace.jsx";
 import { roleLabel } from "./pages/workspace/shell-shared.jsx";
-const Teams = lazy(() => import("./pages/workspace/Teams.jsx").then((module) => ({ default: module.Teams })));
-const DiscordWorkspace = lazy(() => import("./pages/workspace/DiscordWorkspace.jsx"));
-const PlayerUltimateProfile = lazy(() => import("./pages/workspace/PlayerUltimateProfile.jsx").then((module) => ({ default: module.PlayerUltimateProfile })));
-const TrendsPage = lazy(() => import("./pages/workspace/TrendsPage.jsx").then((module) => ({ default: module.TrendsPage })));
-const GameWorkspace = lazy(() => import("./pages/workspace/GameWorkspace.jsx").then((module) => ({ default: module.GameWorkspace })));
-const Planning = lazy(() => import("./pages/workspace/Planning.jsx").then((module) => ({ default: module.Planning })));
-const ScrimFinder = lazy(() => import("./pages/workspace/ScrimFinder.jsx"));
-const AccountSettings = lazy(() => import("./pages/workspace/AccountSettings.jsx").then((module) => ({ default: module.AccountSettings })));
-const DraftWorkspace = lazy(() => import("./pages/workspace/DraftWorkspace.jsx").then((module) => ({ default: module.DraftWorkspace })));
+import { WORKSPACE_PAGE_LOADERS } from "./app/workspace-pages.js";
+const Teams = lazy(() => WORKSPACE_PAGE_LOADERS.teams().then((module) => ({ default: module.Teams })));
+const DiscordWorkspace = lazy(WORKSPACE_PAGE_LOADERS["bot-discord"]);
+const PlayerUltimateProfile = lazy(() => WORKSPACE_PAGE_LOADERS.profile().then((module) => ({ default: module.PlayerUltimateProfile })));
+const TrendsPage = lazy(() => WORKSPACE_PAGE_LOADERS.trends().then((module) => ({ default: module.TrendsPage })));
+const GameWorkspace = lazy(() => WORKSPACE_PAGE_LOADERS.matches().then((module) => ({ default: module.GameWorkspace })));
+const Planning = lazy(() => WORKSPACE_PAGE_LOADERS.planning().then((module) => ({ default: module.Planning })));
+const ScrimFinder = lazy(WORKSPACE_PAGE_LOADERS.scrims);
+const AccountSettings = lazy(() => WORKSPACE_PAGE_LOADERS["account-settings"]().then((module) => ({ default: module.AccountSettings })));
+const DraftWorkspace = lazy(() => WORKSPACE_PAGE_LOADERS.draft().then((module) => ({ default: module.DraftWorkspace })));
 
 const AssistantPanel = lazy(() => import("./components/assistant/AssistantPanel.jsx"));
 
 const AdministrationPage = lazy(() => import("./pages/admin/AdministrationPage.jsx"));
 
-const GuidePage = lazy(() => import("./pages/GuidePage.jsx"));
+const GuidePage = lazy(WORKSPACE_PAGE_LOADERS.guide);
 function HistoryLoadingState({ error, loading, onRetry }) {
   return <Surface className="p-5 sm:p-6">
     <div role={error ? "alert" : "status"} aria-live="polite" aria-busy={loading}>
