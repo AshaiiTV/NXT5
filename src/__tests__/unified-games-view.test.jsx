@@ -51,6 +51,7 @@ beforeEach(() => {
   vi.stubGlobal("document", { activeElement: { focus: vi.fn() }, body: { style: { overflow: "" } } });
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({ data: {} }) }));
   apiFetch.mockImplementation(async (endpoint, options) => {
+    if (endpoint.startsWith("team-import-link?")) return { links: [], submissions: [] };
     if (endpoint.startsWith("team-discord-connection?")) return { configured: true, connection: null };
     if (endpoint === "opponents-drafts") {
       const action = JSON.parse(options.body).action;
@@ -326,9 +327,14 @@ describe("unified Games workspace", () => {
     props.data.players.push({ ...props.data.players[0] }, { id: "foreign", team_id: "other", role: "SUP" }, { id: "coach", team_id: "team", role: "COACH" });
     const renderer = await mount("/games", props);
     expect(button(renderer, "Importer une partie")).toBeTruthy();
+    expect(button(renderer, "Liaison")).toBeUndefined();
     await click(renderer, "Importer une partie");
     expect(window.location.search).toBe("?import=1");
     expect(renderer.root.findAllByType(ImportGameFlow)).toHaveLength(1);
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(1);
+    const dialog = renderer.root.findByType("dialog");
+    expect(dialog.findAllByType("summary").map(text)).toContain("Liaison avec l’Importer");
+    expect(text(dialog)).toContain("Lier NXT5 Importer");
   });
 
   it.each([
@@ -397,7 +403,8 @@ describe("unified Games workspace", () => {
   ])("gates the Discord statistics action for %s", async (_label, userId, currentMember, allowed) => {
     const originalFetch = apiFetch.getMockImplementation();
     apiFetch.mockImplementation(async (endpoint, options) => {
-      if (endpoint.startsWith("team-discord-connection?")) return {
+      if (endpoint.startsWith("team-import-link?")) return { links: [], submissions: [] };
+    if (endpoint.startsWith("team-discord-connection?")) return {
         configured: true, enabled: true,
         connection: { guildId: "guild", status: "active", paused: false, configVersion: 1 },
         channels: [{ id: "channel", name: "games", canSend: true }],

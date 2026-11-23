@@ -4,7 +4,7 @@
 
 `/games` réunit les parties et leurs bilans. Pour un import manuel, choisir le fichier JSON produit par NXT5 Importer, le côté de l’équipe, les postes, cinq profils joueurs distincts, un nom et au moins une catégorie. Les profils manquants peuvent être créés pendant l’import. Une fiche d’équipe adverse reste facultative. Les associations peuvent être corrigées depuis les options de la partie.
 
-Dans **Parties → Liaison**, le staff génère un code de liaison à usage unique valable 15 minutes. Le coller dans **Collecte automatique** de NXT5 Importer et laisser l’application ouverte pendant les customs. Les parties reconnues rejoignent la bibliothèque. Celles qui demandent une intervention apparaissent dans **Parties à finaliser** jusqu’à leur import ou jusqu’au clic sur **Ignorer**. La liaison expire après 90 jours et peut être révoquée.
+Dans **Parties → Importer une partie → Liaison avec l’Importer**, le staff génère un code de liaison à usage unique valable 15 minutes. Le coller dans **Collecte automatique** de NXT5 Importer et laisser l’application ouverte pendant les customs. Les parties reconnues rejoignent la bibliothèque. Celles qui demandent une intervention apparaissent dans **Parties à finaliser** jusqu’à leur import ou jusqu’au clic sur **Ignorer**. La liaison expire après 90 jours et peut être révoquée.
 
 Depuis NXT5 Importer 0.4.1, la navigation regroupe **Exporter**, **Collecte automatique**, **Historique** et **Paramètres** dans une barre latérale, remplacée par une barre supérieure sous 900 px. Les fonctions et raccourcis de collecte restent ceux de la version 0.4.0. Voir le [journal de l’Importer](../../importer-app/CHANGELOG.md).
 
