@@ -8,6 +8,7 @@
 .nxt5-cookie-heading h2 { margin: 0; font-size: clamp(18px, 2vw, 22px); line-height: 1.3; font-weight: 700; letter-spacing: -.025em; }
 .nxt5-cookie-banner > p, .nxt5-cookie-dialog > p { font-size: var(--nxt5-font-body); line-height: 1.75; margin: 12px 0; color: var(--nxt5-text-secondary); }
 .nxt5-cookie-banner > .nxt5-cookie-detail, .nxt5-cookie-dialog > .nxt5-cookie-detail { font-size: var(--nxt5-font-small); color: var(--nxt5-text-secondary); }
+.nxt5-cookie-inline-link { display: none; }
 .nxt5-cookie-banner a, .nxt5-cookie-dialog a { color: #a5f3fc; text-decoration: underline; text-underline-offset: 3px; }
 .nxt5-cookie-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
 .nxt5-cookie-actions > button { flex: 1 1 140px; min-height: 46px; border-color: var(--nxt5-border-strong); background: var(--nxt5-surface-soft); color: var(--nxt5-text); }
@@ -40,10 +41,16 @@ body:has(.nxt5-cookie-feedback) { padding-bottom: 9rem; }
   .nxt5-cookie-actions > button { flex-basis: 100%; }
   .nxt5-cookie-banner { padding: 14px; }
   .nxt5-cookie-banner .nxt5-cookie-heading { margin-bottom: 8px; }
-  .nxt5-cookie-banner > p { line-height: 1.75; margin: 12px 0; }
-  .nxt5-cookie-banner .nxt5-cookie-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 12px; }
-  .nxt5-cookie-banner .nxt5-cookie-actions > button { min-height: 44px; padding-inline: 8px; }
-  .nxt5-cookie-banner .nxt5-cookie-actions > button:last-child { grid-column: 1 / -1; }
+  /* Compact on phones so the banner leaves the page's main call to action visible;
+     refuse and accept keep the same size and weight. */
+  .nxt5-cookie-banner .nxt5-cookie-icon, .nxt5-cookie-banner .nxt5-cookie-eyebrow { display: none; }
+  .nxt5-cookie-banner .nxt5-cookie-heading h2 { font-size: 17px; }
+  .nxt5-cookie-banner > p { font-size: var(--nxt5-font-small); line-height: 1.5; margin: 6px 0; }
+  .nxt5-cookie-banner .nxt5-cookie-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 10px; }
+  .nxt5-cookie-banner .nxt5-cookie-actions > button { min-height: 44px; padding-inline: 4px; font-size: var(--nxt5-font-small); white-space: nowrap; }
+  /* The policy link joins the main sentence; necessary cookies and retention stay in Personnaliser and on /cookies. */
+  .nxt5-cookie-banner > .nxt5-cookie-detail:not([role]) { display: none; }
+  .nxt5-cookie-inline-link { display: inline; }
   .nxt5-cookie-backdrop { padding: 12px; }
   .nxt5-cookie-dialog { padding: 18px; max-height: calc(100dvh - 24px); border-radius: 14px; }
   .nxt5-cookie-category { padding: 12px; gap: 10px; }

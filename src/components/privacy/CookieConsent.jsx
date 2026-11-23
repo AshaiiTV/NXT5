@@ -72,7 +72,7 @@ export default function CookieConsent({ route, ready, excluded = false }) {
     <p className="sr-only" role="status">{t(notice)}</p>
     {showBanner && <section className="nxt5-cookie-banner" aria-labelledby="cookie-banner-title" aria-describedby="cookie-banner-description">
       <div className="nxt5-cookie-heading"><span className="nxt5-cookie-icon"><ShieldCheck size={23} aria-hidden="true" /></span><div><p className="nxt5-cookie-eyebrow">{t("Confidentialité")}</p><h2 id="cookie-banner-title">{t("Choisis tes cookies")}</h2></div></div>
-      <p id="cookie-banner-description">{t("Avec ton accord, NXT5 mesure les visites et les actions sur le site. Aucun suivi publicitaire. Refuser ne limite pas le service.")}</p>
+      <p id="cookie-banner-description">{t("Avec ton accord, NXT5 mesure les visites et les actions sur le site. Aucun suivi publicitaire. Refuser ne limite pas le service.")}<span className="nxt5-cookie-inline-link"> <a href="/cookies">{t("En savoir plus")}</a></span></p>
       <p className="nxt5-cookie-detail">{t("Les cookies de connexion sont nécessaires. Ton choix est conservé 180 jours et reste modifiable. ")}<a href="/cookies">{t("En savoir plus")}</a></p>
       {state.error && <p className="nxt5-cookie-error" role="alert">{t(state.error)}</p>}
       <div className="nxt5-cookie-actions">

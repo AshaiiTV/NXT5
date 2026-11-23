@@ -134,7 +134,6 @@
 .nxt5-provider-skeleton { display: block; height: 52px; border: 1px solid var(--nxt5-border); border-radius: 4px; background: rgba(255,255,255,.035); animation: nxt5-provider-skeleton 1.6s ease-in-out infinite; }
 @keyframes nxt5-provider-skeleton { 50% { background: rgba(255,255,255,.07); } }
 .nxt5-provider-discord-mark { display: block; width: 20px; height: 20px; flex-shrink: 0; }
-.nxt5-social-loading { margin-top: 16px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; text-align: center; }
 .nxt5-social-inline-error { margin-top: 12px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
 .nxt5-social-inline-error button { min-height: 44px; margin-left: .3rem; color: var(--nxt5-accent); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .nxt5-social-inline-error button:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
