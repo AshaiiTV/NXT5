@@ -75,7 +75,6 @@ Source : API TubeAlfred, 13 Shorts. Les sous-titres décrivent ce qui est dit ; 
 | Un chiffre contre-intuitif en accroche aide un Short. | En octobre, « 1 kill… 16 assistances » et « 7 kills… défaite » arrivent en tête. En novembre, les Shorts narrés qui ouvrent sur une statistique (67 %, +20 en vision) restent entre 40 et 154 vues. | Ouvrir plusieurs Shorts sur une statistique trompeuse (vision, or, objectifs) et comparer à la médiane de la période. |
 | Une voix off aide un Short. | Médiane 148 vues pour la période narrée contre 58 sans voix ; les deux Shorts au-delà de 700 vues sont narrés. Le sujet, la date et la diffusion diffèrent aussi. | Publier la même idée en deux versions, narrée et musicale, à quelques jours d’intervalle. |
 | Ouvrir sur une scène de jeu à juger attire plus qu’ouvrir sur un chiffre. | Les deux meilleurs Shorts commencent par une situation (« ce gank paraît évident », « encore une vague ou retour ? »). Deux exemples seulement. | Ouvrir plusieurs Shorts narrés par « tu vois X, que fais-tu ? » et comparer à ceux qui ouvrent sur une statistique. |
-| Une question explicite en fin de Short déclenche des commentaires. | Aucun commentaire sur les 13 Shorts, dont aucun ne pose de question au spectateur à la fin. Sur Instagram, trois Reels terminés par une question ouverte n’en ont reçu aucun. | Terminer par un choix fermé (« Toi, tu restais ou tu rentrais ? ») plutôt qu’une question ouverte, et épingler une première réponse. |
 | Un rythme régulier vaut mieux que des rafales suivies de pauses. | Rythme irrégulier observé ; aucune comparaison isolée. | Tenir un Short tous les deux jours pendant un mois. |
 | Relier les Shorts au tutoriel d’import soutient l’usage réel du service. | Le tutoriel reste à 41 vues ; l’analyse de ses propres parties exige un import préalable. | Ajouter le lien du tutoriel aux Shorts les plus vus et suivre les imports mesurés sur le site. |
 
@@ -88,6 +87,7 @@ Les comptages de vues ne démontrent aucune cause : le moment de publication, la
 - **Teaser** : mesurer ses clics UTM sur le site séparément de la croissance organique.
 - **Mots-clés de la chaîne** : vides au 20 octobre.
 - **Ton** : revenir au tutoiement dans les narrations, comme le prévoit la charte.
+- **Pas de question finale** (décision de l’utilisateur, 23 novembre 2026) : ne pas terminer les Shorts et Reels par une question adressée au spectateur ; ce format est écarté par choix éditorial. Constat associé : trois Reels Instagram terminés par une question ouverte n’ont reçu aucun commentaire. Les commentaires se suivent sans les solliciter de cette façon.
 
 ## Avant chaque publication
 
@@ -95,7 +95,7 @@ Les comptages de vues ne démontrent aucune cause : le moment de publication, la
 2. Vérifier que l’accroche du titre correspond à ce que la vidéo montre réellement.
 3. Signaler les données fictives, créditer la musique et les illustrations, mentionner la non-affiliation à Riot Games.
 4. Vérifier le cadrage vertical sur téléphone : texte hors des zones couvertes par l’interface de YouTube.
-5. Relire la narration : tutoiement, première phrase qui pose la situation, question finale éventuelle.
+5. Relire la narration : tutoiement, première phrase qui pose la situation, pas de question finale adressée au spectateur.
 6. Après 7 jours, relever vues, j’aime et commentaires, puis consigner les résultats et les conclusions dans ce guide.
 
 ## Instagram
@@ -135,5 +135,4 @@ Source : statistiques organiques Metricool du 11 octobre au 23 novembre 2026, sa
 
 - Concentrer la production sur des Reels qui ouvrent sur une scène de jeu à juger, sur le modèle du Reel Thresh, et réduire les carrousels de méthode.
 - Reprendre la publication, à l’arrêt depuis le 18 novembre, puis comparer les créneaux de 10 h et de 18 h.
-- Terminer par un choix fermé plutôt qu’une question ouverte, et répondre ou épingler un premier commentaire.
 - Revenir au tutoiement dans les légendes et les narrations.
