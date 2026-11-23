@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, ListOrdered, RefreshCw, Shield } from "lucide-react";
+import { AlertTriangle, ArrowRight, Info, ListOrdered, RefreshCw, Shield } from "lucide-react";
 import { loadDraftHistory } from "../../api/draft-history.js";
 import { openAppPath } from "../../app/routing.js";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { buildDraftIntelligence } from "../../utils/draft-intelligence.js";
-import { DraftBanIntelligence, DraftRotations } from "./DraftIntelligence.jsx";
+import { DraftBanIntelligence, DraftRotations, Meter, Segmented } from "./DraftIntelligence.jsx";
 import { draftMode, buildDraftAnalysis, normalizeDraftRows } from "../../utils/draft-analysis.js";
 import { matchDisplayName } from "../../utils/matches.js";
 import { ChampionPortrait, championDisplayName } from "../../pages/workspace/workspace-shared.jsx";
@@ -19,10 +19,14 @@ function Frequency({ title, entries = [], coverage = 0, total = 0, limit = 8 }) 
     <h4>{title}</h4>
     <p className="drafter-muted">{coverage === 1 ? t("1 draft exploitable sur {0}", [total]) : t("{0} drafts exploitables sur {1}", [coverage, total])}</p>
     {entries.length ? <ol>{entries.slice(0, limit).map(({ champion, count, total: denominator }) => <li key={champion}>
-      <span className="drafter-champion"><ChampionPortrait champion={champion} className="h-8 w-8 rounded-md object-cover" /><span>{championDisplayName(champion)}</span></span>
-      <strong>{count} / {denominator}</strong>
+      <ChampionPortrait champion={champion} className="h-8 w-8 rounded-md object-cover" />
+      <span className="drafter-frequency-bar"><span><span>{championDisplayName(champion)}</span><strong>{count} / {denominator}</strong></span><Meter value={denominator ? 100 * count / denominator : 0} /></span>
     </li>)}</ol> : <p className="drafter-muted">{t("Aucune donnée disponible.")}</p>}
   </section>;
+}
+
+function Coverage({ label, count, total, children }) {
+  return <div><dt>{label}</dt><dd>{children || `${count} / ${total}`}</dd><Meter value={total ? 100 * count / total : 0} tone={count === total ? "cyan" : "lavender"} /></div>;
 }
 
 export function DraftChronology({ snapshot, allySide }) {
@@ -78,28 +82,36 @@ function TeamDrafterAnalysis({ teamId, matches, players, championPool }) {
   if (state.loading) return <Surface><p role="status">{t("Chargement des drafts…")}</p><SkeletonRows /></Surface>;
   if (state.error) return <Surface><p role="alert">{t(state.error)}</p><Button type="button" variant="ghost" icon={RefreshCw} onClick={() => setReload((value) => value + 1)}>{t("Réessayer")}</Button></Surface>;
   if (!state.drafts.length) return <Surface><EmptyState icon={ListOrdered} title={t("Les drafts importées commencent l’analyse")} text={t("Ajoute un lien Drafter dans le détail d’une partie pour retrouver ses picks, ses bans et leur ordre. Le lien vers une équipe adverse reste facultatif.")} /><Button type="button" icon={ArrowRight} onClick={() => openAppPath("/games")}>{t("Ouvrir les parties")}</Button></Surface>;
+  const warnings = [...new Set([...normalized.warnings, ...model.warnings, ...(intelligence.warnings || [])])].map((warning) => t(warning));
+  if (intelligence.patches.length > 1 || intelligence.modes.length > 1) warnings.push(t("Plusieurs patchs ou formats mélangés : affine le périmètre pour comparer."));
+  if (intelligence.coverage.mismatched > 0) warnings.push(t("{0} liens de parties ont des champions absents ou différents : leurs rôles ne sont pas attribués à ces drafts.", [intelligence.coverage.mismatched]));
   return <div className="drafter-analysis">
     <Surface>
       <div className="drafter-analysis-heading"><div className="drafter-analysis-title"><h3>{t("Drafts & bans")}</h3><p className="drafter-sample" role="status" aria-atomic="true"><strong>{model.total}</strong> {t("Drafts analysées")}</p></div><Button type="button" variant="ghost" icon={RefreshCw} onClick={() => setReload((value) => value + 1)}>{t("Actualiser")}</Button></div>
       <div className="drafter-filters">
+        <Segmented label={t("Bans à analyser")} value={camp} onChange={setCamp} options={[["enemy", t("Contre nous")], ["ally", t("Les nôtres")]]} />
+        <Segmented label={t("Côté de notre équipe")} value={side} onChange={(value) => { setSide(value); setSelectedId(""); }} options={[["", t("Les deux")], ["blue", t("Bleu"), "blue"], ["red", t("Rouge"), "red"]]} />
         <SelectInput label={t("Équipe adverse liée")} value={opponentId} onChange={changeOpponent}><option value="">{t("Toutes les équipes et sans équipe")}</option><option value="unassigned">{t("Sans équipe liée")}</option>{state.opponents.map((opponent) => <option key={opponent.id} value={opponent.id}>{opponent.name}</option>)}</SelectInput>
-        <SelectInput label={t("Bans à analyser")} value={camp} onChange={setCamp}><option value="enemy">{t("Bans contre nous")}</option><option value="ally">{t("Nos bans")}</option></SelectInput>
-        <SelectInput label={t("Côté de notre équipe")} value={side} onChange={(value) => { setSide(value); setSelectedId(""); }}><option value="">{t("Les deux côtés")}</option><option value="blue">{t("Côté bleu")}</option><option value="red">{t("Côté rouge")}</option></SelectInput>
       </div>
-      <details className="draft-intelligence-disclosure"><summary>{t("Affiner le périmètre")}</summary><div className="drafter-filters">
-        <SelectInput label={t("Drafts incluses")} value={scope} onChange={changeScope}><option value="all">{t("Toutes les drafts")}</option><option value="linked">{t("Liées à une partie")}</option><option value="unlinked">{t("Sans partie liée")}</option></SelectInput>
-        <SelectInput label={t("Patch de la draft")} value={patch} onChange={(value) => { setPatch(value); setSelectedId(""); }}><option value="">{t("Tous les patchs")}</option><option value="unknown">{t("Patch non renseigné")}</option>{patches.map((value) => <option key={value} value={value}>{value}</option>)}</SelectInput>
-        <SelectInput label={t("Format de draft")} value={mode} onChange={(value) => { setMode(value); setSelectedId(""); }}><option value="">{t("Tous les formats")}</option><option value="standard">{t("Standard")}</option><option value="fearless">Fearless</option><option value="ironman">Ironman</option><option value="unknown">{t("Non renseigné")}</option></SelectInput>
-      </div></details>
-      <details className="draft-intelligence-disclosure drafter-data-details"><summary>{t("Comprendre les données")}</summary>
-        <dl className="drafter-coverage"><div><dt>{t("Ordre disponible")}</dt><dd>{model.ordered} / {model.total}</dd></div><div><dt>{t("Liées à une partie")}</dt><dd>{model.linked} / {model.total}</dd></div><div><dt>{t("Bans complets")}</dt><dd>{banStats.coverage.bans} / {model.total}</dd></div><div><dt>{t("Retraits en phase 2")}</dt><dd>{phaseTwoCount}<span>{t("sur {0} drafts exploitables", [banStats.coverage.phase2])}</span></dd></div></dl>
-        <p className="drafter-muted">{t("Ces filtres portent sur les drafts enregistrées, y compris celles qui ne sont pas encore liées à une partie.")}</p>
-        <p className="drafter-muted">{t("Les fréquences décrivent cet échantillon. Elles ne prouvent ni une préférence durable ni l’efficacité d’un choix. Les données incomplètes sont exclues du calcul concerné.")}</p>
-        <p className="drafter-muted">{t("Phase 1 : avant les picks. Phase 2 : après trois picks de chaque côté. Un ban adverse retire le champion aux deux équipes.")}</p>
-      </details>
-      {[...new Set([...normalized.warnings, ...model.warnings, ...(intelligence.warnings || [])])].map((warning) => <p className="drafter-muted" key={warning}>{t(warning)}</p>)}
-      {(intelligence.patches.length > 1 || intelligence.modes.length > 1) && <p className="drafter-muted">{t("Ce périmètre mélange plusieurs patchs ou formats. Affine-le pour comparer des contraintes similaires.")}</p>}
-      {intelligence.coverage.mismatched > 0 && <p className="drafter-muted">{t("{0} liens de parties ont des champions absents ou différents : leurs rôles ne sont pas attribués à ces drafts.", [intelligence.coverage.mismatched])}</p>}
+      <dl className="drafter-coverage" aria-label={t("Qualité des données")}>
+        <Coverage label={t("Ordre disponible")} count={model.ordered} total={model.total} />
+        <Coverage label={t("Liées à une partie")} count={model.linked} total={model.total} />
+        <Coverage label={t("Bans complets")} count={banStats.coverage.bans} total={model.total} />
+        <div><dt>{t("Retraits en phase 2")}</dt><dd>{phaseTwoCount}<span>{t("sur {0} drafts exploitables", [banStats.coverage.phase2])}</span></dd></div>
+      </dl>
+      {warnings.length > 0 && <ul className="drafter-warnings">{warnings.map((warning) => <li key={warning}><AlertTriangle aria-hidden="true" /><span>{warning}</span></li>)}</ul>}
+      <div className="drafter-disclosures">
+        <details className="draft-intelligence-disclosure"><summary>{t("Affiner le périmètre")}</summary><div className="drafter-filters">
+          <SelectInput label={t("Drafts incluses")} value={scope} onChange={changeScope}><option value="all">{t("Toutes les drafts")}</option><option value="linked">{t("Liées à une partie")}</option><option value="unlinked">{t("Sans partie liée")}</option></SelectInput>
+          <SelectInput label={t("Patch de la draft")} value={patch} onChange={(value) => { setPatch(value); setSelectedId(""); }}><option value="">{t("Tous les patchs")}</option><option value="unknown">{t("Patch non renseigné")}</option>{patches.map((value) => <option key={value} value={value}>{value}</option>)}</SelectInput>
+          <SelectInput label={t("Format de draft")} value={mode} onChange={(value) => { setMode(value); setSelectedId(""); }}><option value="">{t("Tous les formats")}</option><option value="standard">{t("Standard")}</option><option value="fearless">Fearless</option><option value="ironman">Ironman</option><option value="unknown">{t("Non renseigné")}</option></SelectInput>
+        </div></details>
+        <details className="draft-intelligence-disclosure drafter-data-details"><summary><Info aria-hidden="true" />{t("Comprendre les données")}</summary><ul>
+          <li>{t("Les filtres portent sur toutes les drafts enregistrées, liées ou non à une partie.")}</li>
+          <li>{t("Les fréquences décrivent cet échantillon, pas une préférence durable ni l’efficacité d’un choix. Les données incomplètes sont exclues du calcul concerné.")}</li>
+          <li>{t("Phase 1 : avant les picks. Phase 2 : après trois picks de chaque côté. Un ban retire le champion aux deux équipes.")}</li>
+        </ul></details>
+      </div>
     </Surface>
     {!drafts.length ? <Surface><EmptyState icon={Shield} title={t("Aucune draft dans cette sélection")} text={t("Change l’adversaire ou la portée pour retrouver les drafts enregistrées.")} /></Surface> : <>
       <DraftBanIntelligence key={scopeKey} model={intelligence} camp={camp} onOpenDraft={inspectDraft} draftLabel={draftLabel} />
@@ -113,8 +125,7 @@ function TeamDrafterAnalysis({ teamId, matches, players, championPool }) {
         <DraftChronology snapshot={selected.snapshot} allySide={selected.allySide} />
       </details></Surface>
       <Surface><details className="drafter-priorities"><summary>{t("Comparer les priorités de sélection")}</summary>
-        <p className="drafter-muted">{t("Le premier pick global ne compte que les drafts où le camp analysé ouvre la sélection. Les rangs 1 à 5 désignent ses propres choix, pas les rôles joués.")}</p>
-        <p className="drafter-muted">{t(camp === "enemy" ? "Ces listes décrivent les picks adverses." : "Ces listes décrivent nos picks.")}</p>
+        <p className="drafter-muted">{t(camp === "enemy" ? "Ces listes décrivent les picks adverses." : "Ces listes décrivent nos picks.")} {t("Premier pick global : seulement quand ce camp ouvre. Rangs 1 à 5 ≠ rôles joués.")}</p>
         <div className="drafter-frequencies">
           <Frequency title={t("Champions sélectionnés")} entries={stats.picks} coverage={stats.coverage.picks} total={model.total} />
           <Frequency title={t("Premier pick global")} entries={stats.firstPicks} coverage={stats.coverage.firstPicks} total={model.total} /></div>
