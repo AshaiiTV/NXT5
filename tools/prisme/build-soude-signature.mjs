@@ -30,26 +30,27 @@ const STROKE = {
   interface: [['0', '#67E8F9'], ['.5', '#A5B4FC'], ['.82', '#C4B5FD'], ['1', '#E3B4FD']],
   clair: [['0', '#0E7490'], ['.5', '#4F46E5'], ['1', '#7E22CE']],
 };
-const GLASS = {
-  profond: [['0', '#B3A6FF'], ['.42', '#6F4FE8'], ['1', '#41209C']],
-  clair: [['0', '#C2BCFF'], ['.42', '#8A6CF6'], ['1', '#5F35D6']],
-};
+// Un seul verre, à toutes les tailles : les couleurs du 5 en vraie 3D de la scène d'accueil,
+// relevées sur son poster (public/assets/home-motion/glass-poster@2x.webp). Pervenche à gauche,
+// indigo profond au centre, reflet violet, et les arêtes cyan, lavande et rose du moteur 3D.
+const GLASS = [['0', '#6E7DD0'], ['.22', '#555BBF'], ['.46', '#3844A9'], ['.66', '#2B2A8C'], ['.84', '#201777'], ['1', '#252581']];
+const GLASS_EDGE = [['0', '#B9F4FF'], ['.5', '#EEE8FF'], ['1', '#F6D8FF']];
 
 /**
- * variant : "large" (trait fin, lueur, verre profond), "interface" (trait renforcé, verre clair)
+ * variant : "large" (trait fin, lueur), "interface" (trait renforcé pour les petits formats)
  * ou "clair" (trait sombre pour fond clair).
  */
 function signatureSvg(variant) {
   const large = variant === 'large';
   const strokeWidth = large ? 6 : 16;
-  const glass = large ? GLASS.profond : GLASS.clair;
   const [fadeFrom, fadeTo] = alongStems(SOUDE_FIVE_EDGE - 115, SOUDE_FIVE_EDGE + 16);
   const area = `x="0" y="0" width="${W}" height="${H}"`;
   const glow = large ? `<path d="${SOUDE_CONTOUR}" fill="none" stroke="#8068FF" stroke-width="${strokeWidth + 5}" stroke-linejoin="miter" opacity=".5" filter="url(#lueur)"/>` : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><title>NXT5</title>
 <defs>
 ${linear('trait', [B.x0, SOUDE_BASELINE], [B.x1, B.y0], STROKE[variant])}
-${linear('verre', [F.x0, F.y0], [F.x1, F.y1], glass)}
+${linear('verre', [F.x0, F.y0], [F.x1, F.y1], GLASS)}
+${linear('biseau', [F.x0, F.y0], [F.x1, F.y1], GLASS_EDGE)}
 ${linear('naissance', fadeFrom, fadeTo, [['0', '#fff', 0], ['1', '#fff', 1]])}
 <mask id="fondu" maskUnits="userSpaceOnUse" ${area}><rect ${area} fill="url(#naissance)"/></mask>
 <clipPath id="silhouette"><path d="${SOUDE_CONTOUR}"/></clipPath>
@@ -57,10 +58,10 @@ ${large ? '<filter id="lueur" x="-10%" y="-30%" width="120%" height="160%"><feGa
 </defs>
 <g clip-path="url(#silhouette)" mask="url(#fondu)">
 <rect ${area} fill="url(#verre)"/>
-<polygon points="${facet([[0, 0], [.73, 0], [0, .79]])}" fill="#FFFFFF" opacity="${large ? '.14' : '.2'}"/>
-<polygon points="${facet([[.15, 1], [1, .2], [1, .41], [.34, 1]])}" fill="#FFFFFF" opacity=".1"/>
-<polygon points="${facet([[1, .52], [1, 1], [.5, 1]])}" fill="#2A1280" opacity=".4"/>
-<path d="${SOUDE_FIVE_INNER}" fill="none" stroke="#FFFFFF" stroke-opacity="${large ? '.26' : '.3'}" stroke-width="${large ? 5 : 6}"/>
+<polygon points="${facet([[0, 0], [.73, 0], [0, .79]])}" fill="#8FA2E8" opacity=".3"/>
+<polygon points="${facet([[.15, 1], [1, .2], [1, .41], [.34, 1]])}" fill="#5147B3" opacity=".5"/>
+<polygon points="${facet([[1, .52], [1, 1], [.5, 1]])}" fill="#161164" opacity=".5"/>
+<path d="${SOUDE_FIVE_INNER}" fill="none" stroke="url(#biseau)" stroke-opacity="${large ? '.34' : '.42'}" stroke-width="${large ? 5 : 6}"/>
 </g>
 ${glow}<path d="${SOUDE_CONTOUR}" fill="none" stroke="url(#trait)" stroke-width="${strokeWidth}" stroke-linejoin="miter"/>
 </svg>
@@ -102,11 +103,12 @@ for (const width of [320, 640]) {
     await fs.writeFile(path.join(importer, 'nxt5-soude-interface-640.png'), png);
   }
 }
-// Signe compact : le 5 de la signature, seul, sur tuile nuit. L'arête (#arete) est retirée
-// sous 48 px par tools/prisme/build-assets.mjs, où elle ne ferait qu'épaissir le chiffre.
+// Signe compact : le 5 de la signature, seul, sur tuile nuit, dans les couleurs du 5 en 3D.
+// Son arête lumineuse (#arete) le détache du fond ; tools/prisme/build-assets.mjs la renforce
+// sous 48 px, où le verre indigo seul ne se lirait pas.
 const iconScale = 44 / (F.y1 - F.y0);
 const iconTransform = `translate(${((64 - (F.x1 - F.x0) * iconScale) / 2 - F.x0 * iconScale).toFixed(2)} ${(10 - F.y0 * iconScale).toFixed(2)}) scale(${iconScale.toFixed(5)})`;
-const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><title>NXT5</title><defs><linearGradient id="verre" x1="0" y1="0" x2="1" y2="1">${stops([['0', '#E3DEFF'], ['.5', '#A78BFA'], ['1', '#7C4FF0']])}</linearGradient><linearGradient id="trait" x1="0" y1="1" x2="1" y2="0">${stops([['0', '#A5B4FC'], ['1', '#E3B4FD']])}</linearGradient></defs><rect width="64" height="64" rx="12" fill="#070A14"/><path transform="${iconTransform}" d="${SOUDE_FIVE}" fill="url(#verre)"/><path id="arete" transform="${iconTransform}" d="${SOUDE_FIVE}" fill="none" stroke="url(#trait)" stroke-width="${(1.8 / iconScale).toFixed(1)}" stroke-linejoin="miter"/></svg>
+const favicon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><title>NXT5</title><defs><linearGradient id="verre" x1="0" y1="0" x2="1" y2="1">${stops(GLASS)}</linearGradient><linearGradient id="trait" x1="0" y1="0" x2="1" y2="1">${stops(GLASS_EDGE)}</linearGradient></defs><rect width="64" height="64" rx="12" fill="#070A14"/><path transform="${iconTransform}" d="${SOUDE_FIVE}" fill="url(#verre)"/><path id="arete" transform="${iconTransform}" d="${SOUDE_FIVE}" fill="none" stroke="url(#trait)" stroke-width="${(2 / iconScale).toFixed(1)}" stroke-linejoin="miter"/></svg>
 `;
 await fs.writeFile(path.join(root, 'favicon.svg'), favicon);
 console.log('Signature soudée NXT5 : masters SVG, favicon et rendus écrits dans public/assets/brand/prisme.');

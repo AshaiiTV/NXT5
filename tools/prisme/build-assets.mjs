@@ -5,8 +5,9 @@ const root=path.resolve('public/assets/brand/prisme');
 const iconSvg=await fs.readFile(path.join(root,'favicon.svg'),'utf8');
 async function icon(size){
   const canvas=createCanvas(size,size),ctx=canvas.getContext('2d');
-  // L'arête lumineuse du 5 n'apparaît qu'à partir de 48 px ; en dessous elle épaissit le chiffre.
-  const source=(size<48?iconSvg.replace(/<path id="arete"[^>]*\/>/,''):iconSvg).replace('<svg ','<svg width="'+size+'" height="'+size+'" ');
+  // Le verre du 5 est indigo, comme la sculpture 3D : sous 48 px, son arête lumineuse est renforcée
+  // pour qu'il se détache de la tuile nuit.
+  const source=(size<48?iconSvg.replace(/(<path id="arete"[^>]*stroke-width=")([\d.]+)/,(_,head,width)=>head+(Number(width)*(size<24?2.1:1.6)).toFixed(1)):iconSvg).replace('<svg ','<svg width="'+size+'" height="'+size+'" ');
   ctx.drawImage(await loadImage(Buffer.from(source)),0,0,size,size);
   return canvas.toBuffer('image/png');
 }
