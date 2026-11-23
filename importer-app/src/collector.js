@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { atomicWrite, normalizeGameId, throwIfAborted } from "./core.js";
+import { atomicWrite, normalizeGameId, normalizePlatform, throwIfAborted } from "./core.js";
 
 /** Automatic collection: one team link, games observed in the LoL client, a retrying send queue. */
 const MAX_GAMES = 50;
@@ -47,6 +47,12 @@ function cleanState(value) {
     games: Array.isArray(value?.games) ? value.games.map(cleanGame).filter(Boolean).slice(0, MAX_GAMES) : [],
   };
 }
+/** Games whose local payload may still be sent; every other payload file is removed. */
+function keptPayloads(games) {
+  return new Set(games.filter((game) => game.status !== "sent").map((game) => game.gameId));
+}
+/** No-op cipher: the token stays in clear when the OS offers no encryption (and in plain Node tests). */
+const PLAIN_CIPHER = { available: () => false, encrypt: (value) => value, decrypt: (value) => value };
 function userMessage(status, payload, fallback) {
   const message = typeof payload?.error === "string" && payload.error.trim() ? payload.error.trim() : fallback;
   return `${message}${status ? ` (${status})` : ""}`;
@@ -68,25 +74,47 @@ export function createCollector({
   pollIntervalMs = 10_000,
   onChange = () => {},
   appVersion = "0.0.0",
+  cipher = PLAIN_CIPHER,
 }) {
   let state = cleanState(null);
   let queue = Promise.resolve();
   let active = false;
   let timer = null;
   let polling = false;
-  let flushing = false;
+  let flushPromise = null;
   let phase = "idle";
   let clientMessage = "";
   let currentGame = "";
   const observed = new Map();
   const captures = new Map();
   let controller = null;
+  let platformCache = { key: "", value: "" };
 
+  /** On disk the token is encrypted with the OS keychain (Electron safeStorage) when available. */
+  function serialize(value) {
+    if (!value.link || !cipher.available()) return value;
+    const { token, ...link } = value.link;
+    return { ...value, link: { ...link, tokenEncrypted: cipher.encrypt(token) } };
+  }
+  function deserialize(value) {
+    if (!value?.link || typeof value.link.tokenEncrypted !== "string") return { state: cleanState(value), legacy: Boolean(value?.link?.token) };
+    let token = "";
+    try { token = cipher.decrypt(value.link.tokenEncrypted); } catch { token = ""; }
+    return { state: cleanState({ ...value, link: { ...value.link, token } }), legacy: false };
+  }
+  async function removePayloads(ids) {
+    await Promise.all([...ids].map((gameId) => fs.rm(payloadPath(gameId), { force: true }).catch(() => {})));
+  }
   async function persist(transform) {
     const operation = queue.then(async () => {
-      state = cleanState(transform(structuredClone(state)));
+      const next = cleanState(transform(structuredClone(state)));
       await fs.mkdir(path.dirname(filePath), { recursive: true });
-      await atomicWrite(filePath, JSON.stringify(state, null, 2));
+      // Commit to disk first: the memory state only changes once the file is written.
+      await atomicWrite(filePath, JSON.stringify(serialize(next), null, 2));
+      const before = keptPayloads(state.games);
+      state = next;
+      const after = keptPayloads(state.games);
+      await removePayloads([...before].filter((gameId) => !after.has(gameId)));
       onChange(snapshot());
     });
     queue = operation.catch(() => {});
@@ -221,9 +249,13 @@ export function createCollector({
       catch (error) { setPhase("no-client", "Le client LoL ne répond pas pour le moment.", ""); return; }
       const gamePhase = String(session?.phase || "None");
       const numericId = session?.gameData?.gameId ? String(session.gameData.gameId) : "";
-      const gameId = /^\d+$/.test(numericId) && numericId !== "0" ? `${platform()}_${numericId}` : "";
-      if (gamePhase === "InProgress" && gameId) {
-        if (!observed.has(gameId)) observed.set(gameId, { seenAt: now(), custom: session?.gameData?.isCustomGame === true });
+      // Only custom games are collected: ranked, ARAM or normal games never leave the computer.
+      const custom = session?.gameData?.isCustomGame === true;
+      const gameId = gamePhase === "InProgress" && custom && /^\d+$/.test(numericId) && numericId !== "0" ? `${await clientPlatform(lockfile, signal)}_${numericId}` : "";
+      if (gamePhase === "InProgress" && !custom) {
+        setPhase("watching", "Partie hors custom en cours : elle ne sera pas collectée.", "");
+      } else if (gamePhase === "InProgress" && gameId) {
+        if (!observed.has(gameId)) observed.set(gameId, { seenAt: now() });
         setPhase("in-game", "Partie en cours. Elle sera envoyée à la fin.", gameId);
       } else if (END_PHASES.has(gamePhase) || gamePhase === "GameStart") {
         const waiting = [...observed.keys()].filter((id) => !captures.has(id) || captures.get(id).status === "retry");
@@ -239,6 +271,19 @@ export function createCollector({
       }
     } finally {
       polling = false;
+    }
+  }
+  /** The game ID uses the region the client is connected to; the setting is only a fallback. */
+  async function clientPlatform(lockfile, signal) {
+    const key = `${lockfile?.port || ""}:${lockfile?.password || ""}`;
+    if (platformCache.key === key && platformCache.value) return platformCache.value;
+    try {
+      const locale = await lcuRequest(lockfile, "/riotclient/region-locale", { signal, timeoutMs: 4000 });
+      const value = normalizePlatform(locale?.region);
+      platformCache = { key, value };
+      return value;
+    } catch {
+      return platform();
     }
   }
   async function capture(gameId, signal) {
@@ -272,14 +317,16 @@ export function createCollector({
     }
   }
 
+  /** One flush at a time; a caller arriving during a flush waits for it, then flushes what is still due. */
   async function flush() {
-    if (flushing || !state.link) return;
-    flushing = true;
-    try {
-      for (const game of state.games.filter((entry) => entry.status === "queued" && entry.nextAttemptAt <= now())) await send(game.gameId);
-    } finally {
-      flushing = false;
-    }
+    while (flushPromise) await flushPromise.catch(() => {});
+    if (!state.link) return;
+    flushPromise = (async () => {
+      for (const game of state.games.filter((entry) => entry.status === "queued" && entry.nextAttemptAt <= now())) {
+        if (state.games.some((entry) => entry.gameId === game.gameId && entry.status === "queued")) await send(game.gameId);
+      }
+    })().finally(() => { flushPromise = null; });
+    return flushPromise;
   }
   async function send(gameId) {
     const link = state.link;
@@ -315,7 +362,6 @@ export function createCollector({
     }
     const submission = response.payload?.submission || {};
     await persist((current) => ({ ...current, games: current.games.map((game) => game.gameId === gameId ? { ...game, status: "sent", sentAt: new Date(now()).toISOString(), lastError: "", result: { status: submission.status || (response.payload?.imported ? "imported" : ""), reason: submission.reason || "", matchId: submission.matchId || response.payload?.matchId || "" } } : game) }));
-    if (submission.status !== "pending") await fs.rm(payloadPath(gameId), { force: true }).catch(() => {});
   }
 
   async function submitGame(value) {
@@ -345,8 +391,17 @@ export function createCollector({
     return snapshot();
   }
   async function load() {
-    try { state = cleanState(JSON.parse(await fs.readFile(filePath, "utf8"))); }
+    let legacy = false;
+    try { ({ state, legacy } = deserialize(JSON.parse(await fs.readFile(filePath, "utf8")))); }
     catch { state = cleanState(null); }
+    // A token saved in clear by an older version is encrypted as soon as possible.
+    if (legacy && state.link && cipher.available()) await persist((current) => current).catch(() => {});
+    // Payloads of sent, evicted or forgotten games are removed (older versions kept some).
+    try {
+      const kept = keptPayloads(state.games);
+      const orphans = (await fs.readdir(payloadDirectory)).filter((name) => name.endsWith(".json") && !kept.has(name.slice(0, -5))).map((name) => name.slice(0, -5));
+      await removePayloads(orphans);
+    } catch { /* no payload directory yet */ }
     return snapshot();
   }
 

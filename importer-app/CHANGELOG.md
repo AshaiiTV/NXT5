@@ -1,3 +1,13 @@
+# NXT5 Importer 0.4.9 — Collecte réservée aux customs et durcissement
+
+- La collecte automatique n’observe plus que les parties personnalisées : les parties classées, normales ou ARAM restent sur ton ordinateur. NXT5 ignore aussi, côté serveur, toute partie hors custom reçue par une liaison d’équipe.
+- L’identifiant de partie reprend la région du client LoL connecté (NA, KR…) au lieu du réglage par défaut EUW1, qui ne sert plus qu’en secours.
+- Le jeton de liaison est chiffré avec le trousseau du système quand il est disponible ; un jeton enregistré en clair par une version précédente est chiffré au premier lancement.
+- Les fichiers de parties déjà envoyées, en attente côté NXT5 ou sorties de la liste sont supprimés ; les restes des versions précédentes sont nettoyés au démarrage.
+- Un envoi manuel attend la fin d’un envoi automatique en cours au lieu d’afficher « Envoi impossible ».
+- L’état n’est mis à jour qu’une fois écrit sur le disque, avec de nouveaux essais si un antivirus bloque brièvement le fichier.
+- Application packagée : adresse NXT5 fixe et options d’exécution Electron verrouillées (fuses).
+
 # NXT5 Importer 0.4.8 — Signature soudée
 
 - Nouveau logo commun au site : NXT et le 5 ne forment plus qu’un seul tracé lumineux, et le verre du 5 naît dans la barre du T.

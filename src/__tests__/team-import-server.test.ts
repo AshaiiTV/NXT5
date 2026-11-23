@@ -262,6 +262,24 @@ describe('receiving games from the desktop app', () => {
     expect(plan()).toHaveProperty('pending');
   });
 
+  it('skips ranked, normal or ARAM games sent with the team token without importing them', async () => {
+    const token = await link();
+    const ranked = customGame();
+    ranked.info.gameType = 'MATCHED_GAME';
+    (ranked.info as any).queueId = 420;
+    const result = await submit(token, ranked);
+    expect(result.status).toBe(201);
+    expect(result.body.submission).toMatchObject({ status: 'skipped' });
+    expect(result.body.submission.reason).toContain('hors custom');
+    const queued = customGame();
+    (queued.info as any).queueId = 450;
+    expect((await submit(token, queued)).body.submission).toMatchObject({ status: 'skipped' });
+    expect(await rows('select id from matches where team_id = $1', [team])).toHaveLength(0);
+    const [stored] = await rows('select payload from team_import_submissions where game_id = $1', [ranked.metadata.matchId]);
+    expect(stored.payload).toEqual({});
+    expect((await submit(token, customGame())).body.submission).toMatchObject({ status: 'imported' });
+  });
+
   it('skips games that are not the team’s and keeps unresolved games for the staff, who can finalise them with the usual import', async () => {
     const token = await link();
     const foreign = await submit(token, customGame({ allies: ['Someone#EUW', 'Else#EUW', roster[0].riotId] }));

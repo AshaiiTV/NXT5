@@ -368,6 +368,20 @@ export function validatedTimeline(value, match, requestedId) {
   return timeline;
 }
 
+// Windows antivirus or indexers briefly lock a freshly written file: retry the commit a few times.
+const RENAME_RETRY_CODES = new Set(["EPERM", "EBUSY", "EACCES"]);
+const RENAME_DELAYS_MS = [50, 150, 400];
+async function renameWithRetry(from, to) {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fs.rename(from, to);
+    } catch (error) {
+      if (!RENAME_RETRY_CODES.has(error?.code) || attempt >= RENAME_DELAYS_MS.length) throw error;
+      await new Promise((resolve) => setTimeout(resolve, RENAME_DELAYS_MS[attempt]));
+    }
+  }
+}
+
 export async function atomicWrite(filePath, contents) {
   const temporary = path.join(
     path.dirname(filePath),
@@ -380,7 +394,7 @@ export async function atomicWrite(filePath, contents) {
     await handle.sync();
     await handle.close();
     handle = null;
-    await fs.rename(temporary, filePath);
+    await renameWithRetry(temporary, filePath);
   } finally {
     await handle?.close().catch(() => {});
     await fs.unlink(temporary).catch(() => {});
