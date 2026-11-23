@@ -57,9 +57,7 @@
 
 .importer-download-details > summary:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
 .importer-download-details > summary { line-height: 1.6; }
-.game-import-select { width: 100%; min-width: 0; min-height: 44px; padding: 10px 12px; border: 1px solid var(--nxt5-border-strong); border-radius: 10px; background: var(--nxt5-field); color: var(--nxt5-text); font-size: var(--nxt5-font-body); font-weight: 500; }
-.game-import-select:focus-visible, .game-import-side:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 2px; }
-.game-import-select:disabled { opacity: .5; cursor: not-allowed; }
+.game-import-side:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 2px; }
 .game-operation-dialog-header { position: sticky; top: 0; z-index: 2; padding-block: 12px 16px; border-bottom: 1px solid var(--nxt5-glass-border); background: linear-gradient(120deg, #293247, #27233f 62%, #212b40); }
 .game-operation-dialog-content { min-width: 0; }
 
@@ -90,52 +88,61 @@
 /* Import review: one team sheet, with no nested panels around individual fields. */
 .game-import-flow { display: grid; gap: 24px; min-width: 0; }
 .game-import-review { min-width: 0; margin: 0; padding: 0; border: 0; }
-.game-import-review > section + section { margin-top: 24px; }
-.game-import-section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 12px; }
-.game-import-section-heading h3 { color: var(--nxt5-text); font-size: 18px; font-weight: 700; line-height: 1.4; }
-.game-import-section-heading > span { color: var(--nxt5-muted); font-size: var(--nxt5-font-small); }
-.game-import-section-heading > span[data-side="blue"] { color: var(--nxt5-side-blue-text); }
-.game-import-section-heading > span[data-side="red"] { color: var(--nxt5-side-red-text); }
-.game-import-recognition { margin: -4px 0 12px; max-width: 76ch; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
-.game-import-side-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.game-import-side { display: block; min-width: 0; padding: 12px 16px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-button); background: transparent; text-align: left; }
+.game-import-review { display: grid; gap: 20px; }
+.game-import-section-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 10px; }
+.game-import-section-heading h3 { color: var(--nxt5-text); font-size: var(--nxt5-font-body); font-weight: 700; line-height: 1.4; }
+.game-import-recognition { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.5; }
+.game-import-recognition > svg { display: inline; margin: -2px 6px 0 0; vertical-align: middle; color: var(--nxt5-accent); }
+/* Side choice: two compact toggles, champions shown as portraits only. */
+.game-import-side-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.game-import-side { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; min-width: 0; min-height: 52px; padding: 8px 12px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-button); background: transparent; text-align: left; }
 .game-import-side:hover { background: var(--nxt5-surface-soft); }
-.game-import-side[aria-pressed="true"] { border-color: var(--nxt5-accent); background: rgb(103 232 249 / .055); }
 .game-import-side:disabled { cursor: wait; }
-.game-import-side-heading { display: flex; align-items: center; gap: 8px; min-height: 28px; }
-.game-import-side-heading > strong { color: var(--nxt5-text); font-size: var(--nxt5-font-body); }
+.game-import-side[data-side="blue"][aria-pressed="true"] { border-color: var(--nxt5-side-blue); background: rgb(59 130 246 / .08); }
+.game-import-side[data-side="red"][aria-pressed="true"] { border-color: var(--nxt5-side-red); background: rgb(239 68 68 / .08); }
+.game-import-side-heading { display: flex; align-items: center; gap: 8px; }
+.game-import-side-heading > strong { color: var(--nxt5-text); font-size: var(--nxt5-font-ui); }
 .game-import-side[data-side="blue"] .game-import-side-heading > strong { color: var(--nxt5-side-blue-text); }
 .game-import-side[data-side="red"] .game-import-side-heading > strong { color: var(--nxt5-side-red-text); }
-.game-import-side[data-side="blue"][aria-pressed="true"] { border-color: var(--nxt5-side-blue); background: rgb(59 130 246 / .07); }
-.game-import-side[data-side="red"][aria-pressed="true"] { border-color: var(--nxt5-side-red); background: rgb(239 68 68 / .07); }
-.game-import-side-heading > .nxt5-badge { margin-left: auto; }
-.game-import-side-indicator { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; flex: 0 0 18px; border: 1px solid var(--nxt5-border-strong); border-radius: 50%; color: var(--nxt5-bg); }
+.game-import-side-indicator { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; flex: 0 0 16px; border: 1px solid var(--nxt5-border-strong); border-radius: 50%; color: var(--nxt5-bg); }
 .game-import-side[aria-pressed="true"] .game-import-side-indicator { border-color: var(--nxt5-accent); background: var(--nxt5-accent); }
-.game-import-side-champions { display: flex; flex-wrap: wrap; gap: 8px 12px; margin-top: 12px; }
-.game-import-side-champion { display: inline-flex; align-items: center; gap: 6px; min-width: 0; font-size: var(--nxt5-font-small); line-height: 1.4; color: var(--nxt5-text-secondary); }
-.game-import-side-champion > span { overflow-wrap: anywhere; }
-.game-import-team { min-width: 0; }
-.game-import-roster-head, .game-import-roster-row { display: grid; grid-template-columns: 104px minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
-.game-import-roster-head { padding: 0 0 8px; color: var(--nxt5-muted); font-size: var(--nxt5-font-ui); font-weight: 600; }
-.game-import-roster-row { padding: 12px 0; border-top: 1px solid var(--nxt5-border); }
-.game-import-role { display: flex; align-items: center; gap: 10px; min-height: 44px; color: var(--nxt5-text); font-size: var(--nxt5-font-ui); }
-.game-import-champion-field { display: flex; align-items: start; gap: 10px; min-width: 0; }
-.game-import-portrait { width: 44px; height: 44px; flex: 0 0 44px; }
-.game-import-portrait-empty { display: flex; justify-content: center; align-items: center; border: 1px dashed var(--nxt5-border-strong); border-radius: 10px; color: var(--nxt5-muted); }
-.game-import-field { display: grid; flex: 1; gap: 5px; min-width: 0; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); font-weight: 600; }
+.game-import-side-champions { display: flex; gap: 4px; }
+.game-import-side:not([aria-pressed="true"]) .game-import-side-champions { opacity: .7; }
+/* 5v5 lineups: both teams side by side, one compact row per player. */
+.game-import-lineups { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 12px; }
+.game-import-team { min-width: 0; padding: 4px 14px 6px; border: 1px solid var(--nxt5-border); border-top: 2px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control); background: var(--nxt5-surface-soft); }
+.game-import-team[data-side="blue"] { border-top-color: var(--nxt5-side-blue); }
+.game-import-team[data-side="red"] { border-top-color: var(--nxt5-side-red); }
+.game-import-team-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 10px 0 6px; }
+.game-import-team-heading h3 { color: var(--nxt5-text); font-size: var(--nxt5-font-ui); font-weight: 700; }
+.game-import-team-heading > span { color: var(--nxt5-muted); font-size: var(--nxt5-font-small); }
+.game-import-team[data-side="blue"] .game-import-team-heading > span { color: var(--nxt5-side-blue-text); }
+.game-import-team[data-side="red"] .game-import-team-heading > span { color: var(--nxt5-side-red-text); }
+.game-import-roster-head, .game-import-roster-row { display: grid; grid-template-columns: 32px minmax(0, 1fr) minmax(0, .9fr); gap: 10px; align-items: center; }
+.game-import-enemies .game-import-roster-head, .game-import-enemy { grid-template-columns: minmax(0, 1fr) minmax(104px, auto); }
+.game-import-roster-head { padding-bottom: 4px; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); font-weight: 600; }
+.game-import-roster { margin: 0; padding: 0; list-style: none; }
+.game-import-roster-row { min-height: 60px; padding: 6px 0; border-top: 1px solid var(--nxt5-border); }
+.game-import-role { display: flex; align-items: center; justify-content: center; color: var(--nxt5-text-secondary); }
+.game-import-role-label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.game-import-pick { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.game-import-portrait { width: 36px; height: 36px; flex: 0 0 36px; }
+.game-import-portrait-empty { display: flex; justify-content: center; align-items: center; border: 1px dashed var(--nxt5-border-strong); border-radius: 8px; color: var(--nxt5-muted); }
+.game-import-field { display: grid; flex: 1; min-width: 0; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 600; }
 .game-import-mobile-label { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.game-import-identity { display: block; min-width: 0; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); font-weight: 400; line-height: 1.45; overflow-wrap: anywhere; }
-.game-import-enemies { padding-top: 20px; border-top: 1px solid var(--nxt5-border); }
-.game-import-enemies .game-import-section-heading { margin-bottom: 4px; }
-.game-import-enemy-help { margin-bottom: 16px; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); line-height: 1.5; }
-.game-import-enemy-roster { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 16px; }
-.game-import-enemy { display: grid; grid-template-rows: 1fr auto; gap: 12px; min-width: 0; }
-.game-import-enemy-player { display: flex; align-items: start; gap: 8px; min-width: 0; }
-.game-import-enemy-player > div { min-width: 0; }
-.game-import-enemy-player strong { display: block; color: var(--nxt5-text); font-size: var(--nxt5-font-ui); line-height: 1.5; overflow-wrap: anywhere; }
-.game-import-enemy .nxt5-field-label { font-size: var(--nxt5-font-small); }
-.game-import-enemy select { padding-left: 12px; }
-.game-import-confirmation-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; margin-top: 24px; padding: 24px 0; border-top: 1px solid var(--nxt5-border); }
+.game-import-identity { display: block; min-width: 0; padding-left: 8px; overflow: hidden; color: var(--nxt5-muted); font-size: var(--nxt5-font-small); font-weight: 400; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.game-import-enemy-name { display: grid; min-width: 0; }
+.game-import-enemy-name strong { overflow: hidden; color: var(--nxt5-text); font-size: var(--nxt5-font-ui); line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.game-import-enemy-name .game-import-identity { padding-left: 0; }
+/* Quiet inline selects: read as text, reveal a frame on hover and focus. */
+.game-import-chip { width: 100%; min-width: 0; min-height: 40px; padding: 6px 28px 6px 8px; overflow: hidden; border: 1px solid transparent; border-radius: 8px; background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center; color: var(--nxt5-text); font-size: var(--nxt5-font-ui); font-weight: 600; text-overflow: ellipsis; white-space: nowrap; appearance: none; cursor: pointer; }
+.game-import-chip:hover:not(:disabled) { border-color: var(--nxt5-border-strong); background-color: var(--nxt5-field); }
+.game-import-chip:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 1px; background-color: var(--nxt5-field); }
+.game-import-chip:disabled { opacity: .5; cursor: not-allowed; }
+.game-import-chip[data-empty] { border-color: rgb(252 211 77 / .5); border-style: dashed; color: #fcd34d; }
+.game-import-chip option { background: var(--nxt5-field); color: var(--nxt5-text); }
+.game-import-role-chip { border-color: var(--nxt5-border); background-color: var(--nxt5-field); }
+.game-import-confirmation-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 20px; padding-top: 4px; }
 .game-import-confirmation-fields > * { min-width: 0; }
 .game-import-categories { display: grid; align-content: start; gap: 12px; min-width: 0; container-type: inline-size; }
 .game-import-categories > button { justify-self: start; }
@@ -167,7 +174,17 @@
 .game-import-status strong:has(svg) { color: var(--nxt5-accent); }
 .game-import-status p { margin-top: 3px; max-width: 48ch; }
 .game-import-footer-actions { display: flex; flex-shrink: 0; gap: 8px; }
-.game-import-roster-setup { padding: 16px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control); background: var(--nxt5-surface-soft); }
+.game-import-roster-setup { display: grid; gap: 12px; padding: 16px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control); background: var(--nxt5-surface-soft); }
+.game-import-roster-setup h4 { color: var(--nxt5-text); font-size: var(--nxt5-font-body); font-weight: 700; }
+.game-import-roster-setup > p { max-width: var(--nxt5-reading-width); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); line-height: 1.6; }
+.game-import-roster-setup > button { justify-self: start; }
+.game-import-profile-drafts { display: grid; gap: 12px; }
+.game-import-profile-draft { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.game-import-opponent-details { grid-column: 1 / -1; padding-top: 12px; border-top: 1px solid var(--nxt5-border); }
+.game-import-opponent-details > summary { width: fit-content; min-height: 32px; color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-ui); font-weight: 600; line-height: 2; cursor: pointer; }
+.game-import-opponent-details > summary:hover { color: var(--nxt5-text); }
+.game-import-opponent-details > summary:focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 2px; }
+.game-import-opponent-details[open] > summary { margin-bottom: 8px; }
 
 .importer-download-panel { min-width: 0; }
 .importer-file-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; padding: 20px; border: 1px solid var(--nxt5-border-strong); border-radius: var(--nxt5-radius-control); background: var(--nxt5-surface); }
@@ -203,30 +220,20 @@
 .game-import-dialog .game-import-flow:not(:has(.game-import-review)) { padding-bottom: 24px; }
 
 @container (max-width: 760px) {
-  .game-import-roster-head { display: none; }
-  .game-import-roster-row { grid-template-columns: 92px minmax(0, 1fr); gap: 12px; }
-  .game-import-profile-field { grid-column: 2; margin-left: 54px; }
-  .game-import-mobile-label { position: static; width: auto; height: auto; overflow: visible; clip-path: none; white-space: normal; }
-  .game-import-role { align-self: start; padding-top: 24px; }
-  .game-import-champion-field > .game-import-portrait { margin-top: 27px; }
-  .game-import-enemy-roster { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .game-import-enemy { grid-template-columns: minmax(0, 1fr) minmax(160px, .8fr); grid-template-rows: auto; align-items: center; gap: 16px; padding: 12px 0; border-top: 1px solid var(--nxt5-border); }
+  .game-import-lineups { grid-template-columns: minmax(0, 1fr); }
   .game-import-footer { align-items: start; flex-direction: column; }
   .game-import-footer-actions { align-self: stretch; justify-content: flex-end; flex-wrap: wrap; }
 }
 @container (max-width: 560px) {
   .game-import-side-options, .game-import-confirmation-fields { grid-template-columns: minmax(0, 1fr); }
-  .game-import-roster-row { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 16px 0; }
-  .game-import-role { padding: 0; min-height: 28px; }
-  .game-import-profile-field { grid-column: 1; margin-left: 54px; }
-  .game-import-enemy { grid-template-columns: minmax(0, 1fr); gap: 8px; }
-  .game-import-enemy > .nxt5-field { margin-left: 48px; }
+  .game-import-roster-head { display: none; }
+  .game-import-roster-row { grid-template-columns: 24px minmax(0, 1fr); row-gap: 2px; }
+  .game-import-profile-field { grid-column: 2; padding-left: 46px; }
+  .game-import-enemy { grid-template-columns: minmax(0, 1fr) minmax(96px, auto); }
   .importer-file-row { padding: 16px; gap: 12px; }
   .importer-file-actions, .importer-file-actions > button { width: 100%; }
   .importer-resources { grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 4px; }
   .importer-video-resource { border-bottom: 1px solid var(--nxt5-border); }
-  .game-import-side-champions { gap: 8px 10px; }
-  .game-import-side { padding: 12px; }
   .game-import-footer-actions > button { width: 100%; }
 }
 @media (max-width: 720px) {

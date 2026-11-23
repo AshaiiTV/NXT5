@@ -947,78 +947,78 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
         {importPreview && <fieldset disabled={importing || fileImporting || creatingProfiles || creatingCategory} className="game-import-review">
                 <legend className="sr-only">{t("Vérification avant import")}</legend>
                 <section className="game-import-side-section" aria-labelledby="game-import-side-title">
-                  <div className="game-import-section-heading"><h3 id="game-import-side-title">{t("Choisis ton équipe")}</h3></div>
-                  {suggestedSide && <p className="game-import-recognition">{t("Ton équipe a été reconnue grâce aux cinq Riot ID. Vérifie les postes et les profils avant de confirmer.")}</p>}
+                  <div className="game-import-section-heading"><h3 id="game-import-side-title">{t("Choisis ton équipe")}</h3>{suggestedSide && <p className="game-import-recognition"><Check size={14} aria-hidden="true" />{t("Ton équipe a été reconnue grâce aux cinq Riot ID. Vérifie les postes et les profils avant de confirmer.")}</p>}</div>
                   <div className="game-import-side-options">
                     {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} aria-pressed={allyTeamSide === team.side} data-side={team.side?.toLowerCase()} className="game-import-side">
-                      <span className="game-import-side-heading"><strong>{team.side === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</strong><span className="game-import-side-indicator" aria-hidden="true">{allyTeamSide === team.side && <Check size={14} />}</span><Badge tone={team.win ? "green" : "red"}>{team.win ? t("Victoire") : t("Défaite")}</Badge></span>
-                      <span className="game-import-side-champions">{team.participants.map((participant) => <span key={participant.participantId} className="game-import-side-champion"><ChampionPortrait champion={participant.champion} alt="" className="h-8 w-8 shrink-0 rounded-lg object-cover" /><span>{championDisplayName(participant.champion)}</span></span>)}</span>
+                      <span className="game-import-side-heading"><span className="game-import-side-indicator" aria-hidden="true">{allyTeamSide === team.side && <Check size={12} />}</span><strong>{team.side === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</strong><Badge tone={team.win ? "green" : "red"}>{team.win ? t("Victoire") : t("Défaite")}</Badge></span>
+                      <span className="game-import-side-champions">{team.participants.map((participant) => <span key={participant.participantId} className="game-import-side-champion" title={championDisplayName(participant.champion)}><ChampionPortrait champion={participant.champion} alt={championDisplayName(participant.champion)} className="h-7 w-7 shrink-0 rounded-md object-cover" /></span>)}</span>
                     </button>)}
                   </div>
                 </section>
                 {missingProfileRoles.length > 0 && <section className="game-import-roster-setup" aria-labelledby="import-profiles-title">
-                  <h4 id="import-profiles-title" className="text-lg font-bold">{t("Créer les profils manquants depuis le fichier")}</h4>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">{t("Vérifie les noms et les Riot IDs proposés. Tu peux aussi choisir un profil existant dans les associations ci-dessous. La création est distincte de l’import : ces profils resteront dans l’équipe si tu fermes ensuite cette fenêtre.")}</p>
-                  <div className="mt-3 grid gap-3">{missingProfileRoles.map(role => <div key={role} className="grid gap-3 sm:grid-cols-2"><TextInput label={t("Nom · {0}", [t(roleLabel(role))])} value={profileDraft[role]?.name || ""} onChange={name => setProfileDraft(current => ({...current,[role]:{...current[role],name}}))} maxLength={80} /><TextInput label={t("Riot ID · {0}", [t(roleLabel(role))])} value={profileDraft[role]?.riotId || ""} placeholder="Pseudo#TAG" onChange={riotId => setProfileDraft(current => ({...current,[role]:{...current[role],riotId}}))} maxLength={128} /></div>)}</div>
-                  {!profilesReady && <p className="mt-3 text-sm text-slate-300">{t("Renseigne un nom et un Riot ID distinct au format Pseudo#TAG pour chaque profil proposé.")}</p>}
-                  <Button className="mt-3" type="button" icon={creatingProfiles ? Loader2 : Users} disabled={!profilesReady || creatingProfiles} onClick={createProposedProfiles}>{creatingProfiles ? t("Création…") : t("Créer les profils proposés")}</Button>
+                  <h4 id="import-profiles-title">{t("Créer les profils manquants depuis le fichier")}</h4>
+                  <p>{t("Vérifie les noms et les Riot IDs proposés. Tu peux aussi choisir un profil existant dans les associations ci-dessous. La création est distincte de l’import : ces profils resteront dans l’équipe si tu fermes ensuite cette fenêtre.")}</p>
+                  <div className="game-import-profile-drafts">{missingProfileRoles.map(role => <div key={role} className="game-import-profile-draft"><TextInput label={t("Nom · {0}", [t(roleLabel(role))])} value={profileDraft[role]?.name || ""} onChange={name => setProfileDraft(current => ({...current,[role]:{...current[role],name}}))} maxLength={80} /><TextInput label={t("Riot ID · {0}", [t(roleLabel(role))])} value={profileDraft[role]?.riotId || ""} placeholder="Pseudo#TAG" onChange={riotId => setProfileDraft(current => ({...current,[role]:{...current[role],riotId}}))} maxLength={128} /></div>)}</div>
+                  {!profilesReady && <p>{t("Renseigne un nom et un Riot ID distinct au format Pseudo#TAG pour chaque profil proposé.")}</p>}
+                  <Button type="button" icon={creatingProfiles ? Loader2 : Users} disabled={!profilesReady || creatingProfiles} onClick={createProposedProfiles}>{creatingProfiles ? t("Création…") : t("Créer les profils proposés")}</Button>
                 </section>}
-                {allyTeamSide && <>
-                  <section className="game-import-team" aria-labelledby="game-import-allies-title">
-                    <div className="game-import-section-heading"><h3 id="game-import-allies-title">{t("Notre équipe")}</h3><span data-side={allyTeamSide?.toLowerCase()}>{allyTeamSide === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</span></div>
-                    <div className="game-import-roster-head" aria-hidden="true"><span>{t("Poste")}</span><span>{t("Champion joué")}</span><span>{t("Profil lié")}</span></div>
-                    <div className="game-import-roster">
+                {allyTeamSide && <div className="game-import-lineups">
+                  <section className="game-import-team" data-side={allyTeamSide?.toLowerCase()} aria-labelledby="game-import-allies-title">
+                    <div className="game-import-team-heading"><h3 id="game-import-allies-title">{t("Notre équipe")}</h3><span>{allyTeamSide === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</span></div>
+                    <div className="game-import-roster-head" aria-hidden="true"><span /><span>{t("Champion joué")}</span><span>{t("Profil lié")}</span></div>
+                    <ul className="game-import-roster">
                       {COMP_ROLES.map((role) => {
                         const assignedPlayer = gameplayRoster.find((player) => player.id === playerAssignments[role]);
                         const pickedChampion = selectedPreviewParticipant(allyPreviewTeam, laneAssignments[role]);
-                        return <div key={role} className="game-import-roster-row">
-                          <div className="game-import-role"><RoleIcon role={role} className="h-6 w-6 shrink-0" /><strong>{t(roleLabel(role))}</strong></div>
-                          <div className="game-import-champion-field">
-                            {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt="" className="game-import-portrait h-11 w-11 shrink-0 rounded-lg object-cover" /> : <span className="game-import-portrait game-import-portrait-empty"><Swords size={20} aria-hidden="true" /></span>}
-                            <label className="game-import-field"><span className="game-import-mobile-label">{t("Champion joué")}</span><select aria-label={t("Champion allié · {0}", [t(roleLabel(role))])} value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-select">
+                        return <li key={role} className="game-import-roster-row">
+                          <span className="game-import-role" title={t(roleLabel(role))}><RoleIcon role={role} className="h-5 w-5 shrink-0" /><span className="game-import-role-label">{t(roleLabel(role))}</span></span>
+                          <span className="game-import-pick">
+                            {pickedChampion ? <ChampionPortrait champion={pickedChampion.champion} alt="" className="game-import-portrait rounded-lg object-cover" /> : <span className="game-import-portrait game-import-portrait-empty"><Swords size={16} aria-hidden="true" /></span>}
+                            <label className="game-import-field"><span className="game-import-mobile-label">{t("Champion joué")}</span><select aria-label={t("Champion allié · {0}", [t(roleLabel(role))])} value={laneAssignments[role] || ""} onChange={(event) => updateLaneAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-chip" data-empty={!laneAssignments[role] || undefined}>
                               <option value="">{t("Champion joué")}</option>
-                              {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={previewAssignmentValue(participant)}>{championDisplayName(participant.champion)} · {participant.riotId || participant.summonerName}</option>)}
+                              {(allyPreviewTeam?.participants || []).map((participant) => <option key={participant.participantId} value={previewAssignmentValue(participant)}>{championDisplayName(participant.champion)}</option>)}
                             </select><span className="game-import-identity">{pickedChampion?.riotId || pickedChampion?.summonerName || t("Joueur du fichier")}</span></label>
-                          </div>
-                          <label className="game-import-field game-import-profile-field"><span className="game-import-mobile-label">{t("Profil lié")}</span><select aria-label={t("Profil NXT5 · {0}", [t(roleLabel(role))])} value={playerAssignments[role] || ""} onChange={(event) => updatePlayerAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-select">
-                            <option value="">{t("Profil NXT5 lié")}</option>
-                            {gameplayRoster.map((player) => <option key={player.id} value={player.id}>{t(roleLabel(player.role))} · {player.name}{player.riot_id ? ` · ${player.riot_id}` : ""}</option>)}
-                          </select><span className="game-import-identity">{assignedPlayer?.name || t("À lier")}{assignedPlayer?.riot_id ? ` · ${assignedPlayer.riot_id}` : ""}</span></label>
-                        </div>;
+                          </span>
+                          <label className="game-import-field game-import-profile-field"><span className="game-import-mobile-label">{t("Profil lié")}</span><select aria-label={t("Profil NXT5 · {0}", [t(roleLabel(role))])} value={playerAssignments[role] || ""} onChange={(event) => updatePlayerAssignment(role, event.target.value)} disabled={!allyPreviewTeam} className="game-import-chip" data-empty={!assignedPlayer || undefined}>
+                            <option value="">{t("À lier")}</option>
+                            {gameplayRoster.map((player) => <option key={player.id} value={player.id}>{player.name}{player.riot_id && gameplayRoster.some((other) => other.id !== player.id && other.name === player.name) ? ` · ${player.riot_id}` : ""}</option>)}
+                          </select></label>
+                        </li>;
                       })}
-                    </div>
+                    </ul>
                   </section>
-                  <section className="game-import-team game-import-enemies" aria-labelledby="game-import-enemies-title">
-                    <div className="game-import-section-heading"><h3 id="game-import-enemies-title">{t("Équipe adverse")}</h3><span data-side={enemyPreviewTeam?.side?.toLowerCase()}>{enemyPreviewTeam?.side === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</span></div>
-                    <p className="game-import-enemy-help">{t("Vérifie les postes adverses. Un poste déjà pris est échangé.")}</p>
-                    {enemyPreviewTeam && !enemyAssignmentsReady && <p role="status" className="mb-3 text-sm text-rose-100">{t("Attribue un poste à chaque champion adverse pour confirmer l’import.")}</p>}
-                    <div className="game-import-enemy-roster">
+                  <section className="game-import-team game-import-enemies" data-side={enemyPreviewTeam?.side?.toLowerCase()} aria-labelledby="game-import-enemies-title">
+                    <div className="game-import-team-heading"><h3 id="game-import-enemies-title">{t("Équipe adverse")}</h3><span>{enemyPreviewTeam?.side === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</span></div>
+                    <div className="game-import-roster-head" aria-hidden="true"><span>{t("Champion joué")}</span><span>{t("Poste")}</span></div>
+                    <ul className="game-import-roster">
                       {(enemyPreviewTeam?.participants || []).map((participant) => {
                         const role = COMP_ROLES.find((item) => enemyLaneAssignments[item] === previewAssignmentValue(participant)) || "";
                         const champion = championDisplayName(participant.champion);
-                        return (
-                        <div key={participant.participantId} className="game-import-enemy">
-                          <div className="game-import-enemy-player">
-                            <ChampionPortrait champion={participant.champion} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
-                            <div><strong>{champion}</strong><span className="game-import-identity">{participant.riotId || participant.summonerName || t("Adversaire")}</span></div>
-                          </div>
-                          <SelectInput label={t("Poste · {0}", [champion])} aria-label={t("Poste · {0}", [champion])} value={role} onChange={(nextRole) => updateEnemyParticipantRole(participant, nextRole)} disabled={importing || fileImporting}>
+                        return <li key={participant.participantId} className="game-import-roster-row game-import-enemy">
+                          <span className="game-import-pick">
+                            <ChampionPortrait champion={participant.champion} alt="" className="game-import-portrait rounded-lg object-cover" />
+                            <span className="game-import-enemy-name"><strong>{champion}</strong><span className="game-import-identity">{participant.riotId || participant.summonerName || t("Adversaire")}</span></span>
+                          </span>
+                          <label className="game-import-field"><span className="game-import-mobile-label">{t("Poste")}</span><select aria-label={t("Poste · {0}", [champion])} value={role} onChange={(event) => updateEnemyParticipantRole(participant, event.target.value)} disabled={importing || fileImporting} className="game-import-chip game-import-role-chip" data-empty={!role || undefined}>
                             <option value="">{t("À attribuer")}</option>
                             {COMP_ROLES.map((item) => <option key={item} value={item}>{t(roleLabel(item))}</option>)}
-                          </SelectInput>
-                        </div>
-                      );})}
-                    </div>
+                          </select></label>
+                        </li>;
+                      })}
+                    </ul>
                   </section>
-                </>}
-                {allyTeamSide && <div className="game-import-confirmation-fields">
+                </div>}
+                {allyTeamSide && <section className="game-import-confirmation-fields" aria-label={t("Nom de la partie")}>
                   <TextInput label={t("Nom de la partie")} value={importDetails.label} onChange={(label) => setImportDetails((current) => ({ ...current, label }))} placeholder={t("Entraînement contre Otters · Partie 1")} required icon={FileText} />
                   <div className="game-import-categories">
                     <CategoryMultiSelect categories={matchCategories} selectedIds={importDetails.categoryIds || []} onChange={(categoryIds) => setImportDetails((current) => ({ ...current, categoryIds }))} required />
                     <InlineCategoryCreator creator={categoryCreator} />
                   </div>
-                  {previewTeamId === selectedTeamId && <ImportOpponentField key={selectedTeamId} teamId={selectedTeamId} value={importOpponent} onChange={setImportOpponent} disabled={importing || fileImporting || creatingProfiles || creatingCategory} />}
-                </div>}
+                  {previewTeamId === selectedTeamId && <details className="game-import-opponent-details" open={importOpponent.creating || Boolean(importOpponent.id) || undefined}>
+                    <summary>{t("Équipe adverse (facultatif)")}</summary>
+                    <ImportOpponentField key={selectedTeamId} teamId={selectedTeamId} value={importOpponent} onChange={setImportOpponent} disabled={importing || fileImporting || creatingProfiles || creatingCategory} />
+                  </details>}
+                </section>}
                 <footer className="game-import-footer">
                   <div id="game-import-status" role="status" className="game-import-status">
                     <strong>{importReady ? <><Check size={16} aria-hidden="true" />{t("Prêt à importer")}</> : t("À compléter")}</strong>
