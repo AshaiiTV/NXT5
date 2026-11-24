@@ -29,8 +29,6 @@
 .opponents-preview { border-top: 1px solid var(--nxt5-border); padding-top: 20px; margin-top: 20px; }
 .opponents-preview-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
 .opponents-preview-heading h3 { font-size: 1.125rem; font-weight: 700; }
-.opponents-source { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--nxt5-accent); font-size: .875rem; text-decoration: underline; text-underline-offset: 4px; }
-.opponents-source svg { flex: none; }
 .opponents-badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 16px; }
 .opponents-draft-camps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
 .opponents-camp { min-width: 0; border-top: 3px solid var(--nxt5-side-blue); padding-top: 12px; }

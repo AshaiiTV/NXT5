@@ -10,7 +10,7 @@ import { draftMode, buildDraftAnalysis, normalizeDraftRows } from "../../utils/d
 import { matchDisplayName } from "../../utils/matches.js";
 import { ChampionPortrait, championDisplayName } from "../../pages/workspace/workspace-shared.jsx";
 import { Badge, Button, EmptyState, SelectInput, SkeletonRows, Surface } from "../ui/Core.jsx";
-import { SourceLink } from "../opponents/OpponentsWorkspace.jsx";
+import { SourceLink } from "../opponents/SourceLink.jsx";
 import DraftBoard from "../draft/DraftBoard.jsx";
 import "./drafter-analysis.css";
 

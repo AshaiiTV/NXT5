@@ -12,7 +12,7 @@ import { ROLES } from "../../../shared/roles.js";
 import { rosterPlayersByStatus } from "../../utils/roster.js";
 import { getHomeContext, homeMatchTimestamp } from "../../utils/home-context.js";
 import { matchDisplayName } from "../../utils/matches.js";
-import { LinkButton, PublicTextLink } from "../public/PublicPages.jsx";
+import { LinkButton, PublicTextLink } from "../public/PublicChrome.jsx";
 import "./home-workspace.css";
 
 const matchPath = match => `/games?match=${encodeURIComponent(match.id)}`;

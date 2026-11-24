@@ -2,7 +2,7 @@ import React from "react";
 import "./helpers/i18n.js";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
-import { HomeScreen } from "../pages/public/PublicPages.jsx";
+import { HomeScreen } from "../pages/public/HomePage.jsx";
 import { FeaturesPage } from "../pages/public/FeaturesPage.jsx";
 import { PUBLIC_GUIDES, PublicGuidePage } from "../pages/public/PublicGuides.jsx";
 import { setLanguage } from "../i18n/locale.js";

@@ -4,7 +4,7 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import HomeMotion from "../pages/home/HomeMotion.jsx";
 import ProductStory from "../pages/home/ProductStory.jsx";
-import { HomeScreen } from "../pages/public/PublicPages.jsx";
+import { HomeScreen } from "../pages/public/HomePage.jsx";
 
 let renderer;
 

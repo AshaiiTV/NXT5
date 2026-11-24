@@ -10,7 +10,7 @@ vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/fun
 vi.mock("../hooks/useTeamData.js", () => ({ useTeamData: vi.fn() }));
 vi.mock("../components/ui/ModalDialog.jsx", () => ({ ModalDialog: ({ children }) => <dialog open>{children}</dialog> }));
 vi.mock("../components/layout/AppChrome.jsx", () => ({ AmbientBackground: () => null, Sidebar: () => null, Topbar: () => null, ApiBanner: () => null }));
-vi.mock("../pages/public/PublicPages.jsx", () => ({ SiteHeader: () => <header>NXT5</header>, LEGAL_PAGES: {} }));
+vi.mock("../pages/public/PublicChrome.jsx", () => ({ SiteHeader: () => <header>NXT5</header> }));
 
 let renderer;
 beforeEach(() => {

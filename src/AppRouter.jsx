@@ -9,11 +9,11 @@ import { authModeFromPath, buildLoginRedirect, canonicalAppPath, gameWorkspaceSe
 import CookieConsent from "./components/privacy/CookieConsent.jsx";
 import { reviewDrafts } from "./utils/review-drafts.js";
 import { ToastStack, Surface, Badge, Button } from "./components/ui/Core.jsx";
-import { AuthPage, ForgotPasswordPage, HomeScreen, LEGAL_PAGES, LegalPage, NotFoundPage, ResetPasswordPage, SiteHeader } from "./pages/public/PublicPages.jsx";
-import { FeaturesPage } from "./pages/public/FeaturesPage.jsx";
-import { PublicGuidePage, PUBLIC_GUIDES } from "./pages/public/PublicGuides.jsx";
-import SocialPage from "./pages/public/SocialPage.jsx";
-import { SupportPage } from "./pages/public/SupportPage.jsx";
+import { AuthPage, ForgotPasswordPage, NotFoundPage, ResetPasswordPage } from "./pages/public/AuthPages.jsx";
+import { SiteHeader } from "./pages/public/PublicChrome.jsx";
+import { PUBLIC_PAGES } from "./app/public-pages.jsx";
+import { isGuidePath, isLegalPath } from "./app/public-paths.js";
+import { preloadPrivateApp } from "./app/private-app.js";
 import { applyDocumentMetadata } from "./seo/metadata.js";
 import { isDemoPath } from "./app/demo-routes.js";
 import { Loader2, ArrowRight } from "lucide-react";
@@ -22,10 +22,19 @@ import { useAppLoading } from "./components/loading/AppLoadingProvider.jsx";
 
 // The session, navigation and consent lifecycle stays mounted across both sides
 // of this boundary. No workspace module is requested for a public visitor.
-const PrivateApp = lazy(() => import("./AppContent.jsx"));
+const PrivateApp = lazy(preloadPrivateApp);
 const GuestDraftRoom = lazy(() => import("./components/draft/LiveDraftRoom.jsx").then(m => ({ default: m.GuestDraftRoom })));
 const NexusRisingPage = lazy(() => import("./pages/nexus/NexusRisingPage.jsx"));
 const DemoPage = lazy(() => import("./pages/public/DemoPage.jsx").then((module) => ({ default: module.DemoPage })));
+
+// Public pages are separate chunks. Client navigation runs in a transition and
+// keeps the current page until the next one is ready; this fallback only shows
+// for history navigation to a page that is not downloaded yet.
+function PublicPageLoading() {
+  useLanguage();
+  return <div role="status" className="p-6 text-slate-200">{t("Chargement…")}</div>;
+}
+const publicPage = (Page, props) => <Suspense fallback={<PublicPageLoading />}><Page {...props} /></Suspense>;
 
 function PrivateModuleLoading() {
   useLanguage();
@@ -90,7 +99,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   const adminPage = adminPageFromRoute(route);
   const DemoComponent = initialDemoPage || DemoPage;
 
-  const rendersPrivateApp = user && !unknownRoute && !forbiddenAdminRoute && !LEGAL_PAGES[route.path] && !PUBLIC_GUIDES[route.path] && !isDemoPath(route.path) && !["/salle-de-draft", "/nexus-rising", "/fonctionnalites", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
+  const rendersPrivateApp = user && !unknownRoute && !forbiddenAdminRoute && !isLegalPath(route.path) && !isGuidePath(route.path) && !isDemoPath(route.path) && !["/salle-de-draft", "/nexus-rising", "/fonctionnalites", "/reseaux", "/soutenir", "/verify-email", "/verified", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe"].includes(route.path);
   // Once authorized, the private module (including its download fallback)
   // owns the shared loader. Public routes always release it.
   useAppLoading(checkingSession && routeIsPrivate ? "session" : rendersPrivateApp ? undefined : null);
@@ -102,13 +111,13 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (!checkingSession && forbiddenAdminRoute) return <NotFoundPage navigate={navigate} />;
   if (route.path === "/salle-de-draft") return <Suspense fallback={<p role="status">{t("Chargement…")}</p>}><GuestDraftRoom /></Suspense>;
   if (route.path === "/nexus-rising") return <Suspense fallback={<div role="status" className="p-6 text-slate-200">{t("Chargement de Nexus Rising…")}</div>}><NexusRisingPage key={user?.id || "guest"} user={user} navigate={navigate} /></Suspense>;
-  if (route.path === "/fonctionnalites") return <FeaturesPage navigate={navigate} user={user} />;
+  if (route.path === "/fonctionnalites") return publicPage(PUBLIC_PAGES.features, { navigate, user });
   if (isDemoPath(route.path)) return <Suspense fallback={<div role="status" className="p-6 text-slate-200">{t("Chargement de la démo…")}</div>}><DemoComponent navigate={navigate} user={user} path={route.path} /></Suspense>;
-  if (PUBLIC_GUIDES[route.path]) return <PublicGuidePage path={route.path} navigate={navigate} user={user} />;
+  if (isGuidePath(route.path)) return publicPage(PUBLIC_PAGES.guide, { path: route.path, navigate, user });
   if (adminPage) return <PrivateRoute user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
-  if (route.path === "/reseaux") return <SocialPage navigate={navigate} user={user} />;
-  if (route.path === "/soutenir") return <SupportPage navigate={navigate} user={user} />;
-  if (LEGAL_PAGES[route.path]) return <LegalPage route={route} navigate={navigate} user={user} />;
+  if (route.path === "/reseaux") return publicPage(PUBLIC_PAGES.social, { navigate, user });
+  if (route.path === "/soutenir") return publicPage(PUBLIC_PAGES.support, { navigate, user });
+  if (isLegalPath(route.path)) return publicPage(PUBLIC_PAGES.legal, { route, navigate, user });
   if (route.path === "/verify-email") return <VerifyEmailPage />;
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} user={user} onLogout={onLogout} checkingSession={checkingSession} />;
   if (route.path === "/mot-de-passe-oublie") return <ForgotPasswordPage navigate={navigate} />;
@@ -116,7 +125,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (user) return <PrivateRoute user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
   if (mode) return <AuthPage mode={mode} onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
   if (routeIsPrivate) return <AuthPage mode="login" onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
-  return <HomeScreen navigate={navigate} />;
+  return publicPage(PUBLIC_PAGES.home, { navigate });
 });
 
 export default function NXT5({ initialRoute, initialDemoPage } = {}) {

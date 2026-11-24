@@ -2,7 +2,8 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { PublicGuidePage } from "../pages/public/PublicGuides.jsx";
-import { LEGAL_PAGES, LegalLinks, LegalPage } from "../pages/public/PublicPages.jsx";
+import { LEGAL_PAGES, LegalPage } from "../pages/public/LegalPage.jsx";
+import { LegalLinks } from "../pages/public/PublicChrome.jsx";
 import SocialPage from "../pages/public/SocialPage.jsx";
 import { DEMO_MATCHES } from "../pages/public/demo-data.js";
 

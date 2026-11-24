@@ -5,6 +5,7 @@ import { Activity, ArrowRight, AlertTriangle, BookOpen, CalendarDays, Check, Che
 import { MORE_NAV_IDS, NAV, PRIMARY_NAV_IDS } from "../../app/constants.jsx";
 import { draftViewFromPath, draftViewLabel, pathFromPage, profileViewFromPath, profileViewLabel } from "../../app/routing.js";
 import { cx, profileStatusLabel } from "../../app/helpers.js";
+import { prefetchWorkspacePage } from "../../app/workspace-pages.js";
 import { BrandIcon, Nxt5Wordmark, RoleIcon, TeamAvatar } from "../brand/BrandAssets.jsx";
 import { Button, Surface } from "../ui/Core.jsx";
 import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
@@ -118,7 +119,7 @@ export function Sidebar({ active, setActive, open, setOpen, collapsed, setCollap
     const Icon = item.icon;
     const selected = active === item.id;
     const hintId = item.hint && showHint ? `nxt5-nav-${item.id}-hint` : undefined;
-    return <a key={item.id} href={pageHref(item.id)} onClick={(event) => go(event, item.id)} aria-label={t(item.label)} aria-describedby={hintId} aria-current={selected ? "page" : undefined} title={item.hint ? `${t(item.label)} · ${t(item.hint)}` : t(item.label)} className={cx("nxt5-sidebar-link", selected && "is-active")}>
+    return <a key={item.id} href={pageHref(item.id)} onClick={(event) => go(event, item.id)} onPointerEnter={() => prefetchWorkspacePage(item.id)} onFocus={() => prefetchWorkspacePage(item.id)} aria-label={t(item.label)} aria-describedby={hintId} aria-current={selected ? "page" : undefined} title={item.hint ? `${t(item.label)} · ${t(item.hint)}` : t(item.label)} className={cx("nxt5-sidebar-link", selected && "is-active")}>
       <Icon size={19} aria-hidden="true" /><span className="nxt5-sidebar-label nxt5-sidebar-link-copy"><span>{t(item.label)}</span>{hintId && <span id={hintId} className="nxt5-sidebar-hint">{t(item.hint)}</span>}</span>
     </a>;
   };

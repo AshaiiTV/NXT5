@@ -4,7 +4,7 @@ import React from "react";
 import { ArrowRight, BarChart3, CalendarDays, FileText, MessageSquare, Swords, Users } from "lucide-react";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
 import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
-import { LegalLinks, LinkButton, PublicTextLink, SiteHeader } from "./PublicPages.jsx";
+import { LegalLinks, LinkButton, PublicTextLink, SiteHeader } from "./PublicChrome.jsx";
 import { DemoMatchSummary } from "./DemoMatchSummary.jsx";
 import { PublicScene } from "./PublicScene.jsx";
 import "./features-page.css";

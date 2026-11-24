@@ -5,7 +5,7 @@ import { openAppPath } from "../../app/routing.js";
 import DiscordSettings from "../../components/discord/DiscordSettings.jsx";
 import DiscordAccount from "../../components/discord/DiscordAccount.jsx";
 import { EmptyState, PageHeader, Surface } from "../../components/ui/Core.jsx";
-import { LinkButton } from "../public/PublicPages.jsx";
+import { LinkButton } from "../public/PublicChrome.jsx";
 import { canStaffManage } from "./workspace-shared.jsx";
 
 export default function DiscordWorkspace({ data, selectedTeamId, currentMember, user }) {

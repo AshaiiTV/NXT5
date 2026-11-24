@@ -6,7 +6,7 @@ import * as locale from "../i18n/locale.js";
 import { getLanguage, LANGUAGE_STORAGE_KEY, setLanguage } from "../i18n/locale.js";
 import { useLanguage } from "../i18n/useLanguage.js";
 import { Topbar } from "../components/layout/AppChrome.jsx";
-import { SiteHeader } from "../pages/public/PublicPages.jsx";
+import { SiteHeader } from "../pages/public/PublicChrome.jsx";
 
 let renderer;
 afterEach(async () => {

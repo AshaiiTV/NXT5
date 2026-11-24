@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AppContent from "../AppRouter.jsx";
 import { AppLoadingProvider } from "../components/loading/AppLoadingProvider.jsx";
 import { apiFetch } from "../api/client.js";
+import { PUBLIC_PAGES } from "../app/public-pages.jsx";
 
 const visual = vi.hoisted(() => ({ mounts: 0, unmounts: 0 }));
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
@@ -17,16 +18,17 @@ vi.mock("../components/loading/AppLoadingScreen.jsx", () => ({
     return <section data-loader={identity.current} data-phase={phase} data-progress={progress} />;
   },
 }));
-vi.mock("../pages/public/PublicPages.jsx", () => ({
+vi.mock("../pages/public/HomePage.jsx", () => ({
   HomeScreen: ({ navigate }) => <main data-page="home"><button onClick={() => navigate("/equipes")}>Ouvrir</button></main>,
+}));
+vi.mock("../pages/public/AuthPages.jsx", () => ({
   AuthPage: ({ onAuth }) => <main data-page="auth"><button onClick={() => onAuth({ id: "user", email: "staff@nxt5.test", email_verified: true })}>Connexion réussie</button></main>,
-  LegalPage: () => <main data-page="legal" />,
   ForgotPasswordPage: () => <main data-page="forgot" />,
   ResetPasswordPage: () => <main data-page="reset" />,
   NotFoundPage: () => <main data-page="not-found" />,
-  LegalLinks: () => null,
-  LEGAL_PAGES: { "/confidentialite": {} },
 }));
+vi.mock("../pages/public/LegalPage.jsx", () => ({ LegalPage: () => <main data-page="legal" />, LEGAL_PAGES: { "/confidentialite": {} } }));
+vi.mock("../pages/public/PublicChrome.jsx", () => ({ LegalLinks: () => null, SiteHeader: () => null }));
 vi.mock("../components/layout/AppChrome.jsx", () => ({
   AmbientBackground: () => null,
   Sidebar: ({ onLogout }) => <button data-logout onClick={onLogout}>Déconnexion</button>,
@@ -95,7 +97,8 @@ function mount(path = "/equipes") {
     renderer, requests,
     get loaders() { return renderer.root.findAll((node) => node.type === "section" && node.props["data-loader"]); },
     get pages() { return renderer.root.findAll((node) => node.type === "main" && node.props["data-page"]); },
-    async loadModule() { await act(async () => module.resolve({ default: AppContent })); },
+    // Like main.jsx before hydration, public page chunks are ready with the router.
+    async loadModule() { await Promise.all(Object.values(PUBLIC_PAGES).map(page => page.preload())); await act(async () => module.resolve({ default: AppContent })); },
     async resolve(index, data) {
       expect(requests[index]).toBeDefined();
       await act(async () => requests[index].resolve(data));

@@ -16,7 +16,7 @@ import { canonicalChampion } from "../../../shared/champions.js";
 import { assetProxyUrl } from "../../utils/matches.js";
 import "./Teams.css";
 import { TeamManagementPanel } from "./TeamManagementPanel.jsx";
-import { LinkButton } from "../public/PublicPages.jsx";
+import { LinkButton } from "../public/PublicChrome.jsx";
 
 const TeamDataHealthPanel = lazyNamed(loadNextPhase, "TeamDataHealthPanel");
 
@@ -539,7 +539,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
   </div>;
 
   return <div ref={pageRef} className="nxt5-teams-page" data-entry={showSetup ? "true" : undefined}><div className={!showSetup ? "team-identity-header" : undefined}>
-    {!showSetup && <div className="team-identity-avatar" aria-hidden="true"><TeamAvatar team={selectedTeam} className="team-identity-image" /></div>}
+    {!showSetup && <div className="team-identity-avatar" aria-hidden="true"><TeamAvatar team={selectedTeam} className="team-identity-image" sizes="112px" /></div>}
     <PageHeader eyebrow={showSetup ? t("Bienvenue dans NXT5") : t("Équipe")} title={showSetup ? pendingCreation ? t("Ton équipe est créée. On continue.") : setupIntent === "create" ? t("Créons ton espace d’équipe.") : setupIntent === "join" ? t("Retrouve ton équipe.") : t("Comment veux-tu commencer ?") : selectedTeam.name} subtitle={showSetup ? setupIntent === "choose" && !pendingCreation ? t("Crée une équipe ou rejoins-la.") : undefined : [selectedTeam.tag, selectedTeam.region, t(activeRoster.length === 1 ? "{0} joueur actif" : "{0} joueurs actifs", [activeRoster.length])].filter(Boolean).join(" · ")}>{hasTeams && <>
       {!showSetup && <Button type="button" icon={Clipboard} disabled={!activeRoster.length} title={activeRoster.length ? t("Copier le lien des titulaires et des remplaçants") : t("Ajoute un titulaire ou un remplaçant pour copier le multi OP.GG")} onClick={() => copyMultiOpggLink(activeRoster, "de l’équipe")}>{t("Copier le multi OP.GG")}</Button>}
       {canManageRoster && !showSetup && <LinkButton href="/gestion-equipe" navigate={openAppPath} variant="ghost" icon={Shield}>{t("Gestion de l’équipe")}</LinkButton>}
