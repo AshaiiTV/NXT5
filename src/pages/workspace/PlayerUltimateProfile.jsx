@@ -287,7 +287,7 @@ function ProfileLinkAuditPanel({ player, matches, issues, open, canRepair, repai
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <Button type="button" variant="ghost" icon={ArrowRight} onClick={() => openAppPath(`/games?match=${encodeURIComponent(item.match.id)}`)}>{t("Ouvrir")}</Button>
             {canRepair && row && <Button type="button" icon={repairing ? Loader2 : RefreshCw} disabled={Boolean(repairingId)} onClick={() => onRepair(item)}>{repairing ? "Correction..." : t("Attribuer à {0}", [player.name])}</Button>}
-            {!canRepair && <Badge tone="slate">{t("Lecture seule")}</Badge>}
+            {!canRepair && <Badge tone="neutral">{t("Lecture seule")}</Badge>}
           </div>
         </div>;
       })}

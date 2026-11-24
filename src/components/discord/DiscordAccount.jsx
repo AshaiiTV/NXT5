@@ -84,7 +84,7 @@ export default function DiscordAccount({ user }) {
         {linked ? <p className="discord-account-description"><strong>{state.link.discord_label}</strong>{t(" · ton compte personnel est reconnu par NXT5.")}</p> : <p className="discord-account-description">{t("Relie ton compte personnel pour utiliser les commandes du bot avec ton équipe.")}</p>}
       </div>
       {!initiallyLoading && <div className="discord-account-heading-actions">
-        <Badge tone={linked ? "green" : request || error ? "yellow" : "slate"}>{t(status)}</Badge>
+        <Badge tone={linked ? "success" : request || error ? "warning" : "neutral"}>{t(status)}</Badge>
         {linked && <Button type="button" variant="ghost" disabled={busy} aria-expanded={managing} aria-controls={managing ? manageId : undefined} onClick={() => { setManaging((open) => !open); setUnlink(false); }}>{managing ? t("Fermer la gestion") : t("Gérer")}</Button>}
       </div>}
     </div>

@@ -42,7 +42,7 @@ function ExportCard({ template, hidden, onPreview }) {
   const openPreview = event => onPreview({ template, example, opener: event.currentTarget });
   return <article hidden={hidden} className="export-catalog-item" aria-labelledby={`export-title-${template.id}`}>
     <Surface className="export-catalog-surface">
-      <div className="export-card-heading"><div><p className="export-source">{t(template.source)}</p><h3 id={`export-title-${template.id}`}>{t(template.title)}</h3></div><Badge tone={isImage ? "cyan" : "purple"}>{template.format}</Badge></div>
+      <div className="export-card-heading"><div><p className="export-source">{t(template.source)}</p><h3 id={`export-title-${template.id}`}>{t(template.title)}</h3></div><Badge tone={isImage ? "info" : "brand"}>{template.format}</Badge></div>
       <p className="export-card-description">{t(template.description)}</p>
       <div className="export-card-preview">
         {state.status === "loading" && <div className="export-preview-state" role="status"><Loader2 size={24} className="export-preview-spinner" aria-hidden="true" /><span>{t("Préparation de l’aperçu…")}</span></div>}

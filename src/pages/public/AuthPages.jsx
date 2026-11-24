@@ -34,10 +34,10 @@ export function NotFoundPage({ navigate }) {
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
         <Surface variant="reading" glow className="nxt5-auth-card">
-          <Badge tone="red">404</Badge>
+          <Badge tone="danger">404</Badge>
           <h1>{t("Page introuvable")}</h1>
           <p className="nxt5-auth-intro">{t("Cette page n’existe pas. Retourne à l’accueil ou connecte-toi.")}</p>
-          <div className="mt-7 flex flex-wrap justify-center gap-3">
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
             <LinkButton href="/" navigate={navigate} variant="ghost">{t("Retour accueil")}</LinkButton>
             <LinkButton href="/connexion" navigate={navigate} icon={Lock}>{t("Se connecter")}</LinkButton>
           </div>
@@ -146,7 +146,7 @@ export function ResetPasswordPage({ navigate, onAuth }) {
       </SiteHeader>
       <main className="nxt5-entry-main nxt5-recovery-main">
         <Surface variant="reading" glow className="nxt5-auth-card">
-          <Badge tone="purple">{t("Nouveau mot de passe")}</Badge>
+          <Badge tone="brand">{t("Nouveau mot de passe")}</Badge>
           <h1>{t("Réinitialiser le mot de passe")}</h1>
           {!token ? (<div className="mt-6 space-y-4"><p role="alert" className="nxt5-auth-notice is-error">{t("Ce lien de réinitialisation est incomplet. Demande un nouveau lien pour retrouver l’accès à ton compte.")}</p><LinkButton href="/mot-de-passe-oublie" navigate={navigate}>{t("Demander un nouveau lien")}</LinkButton></div>) : done ? (<div className="mt-6 space-y-4">
               <div role="status" className="nxt5-auth-notice is-success">{t("Mot de passe mis à jour. Connecte-toi avec ton e-mail et ce mot de passe, puis associe à nouveau tes comptes externes dans Paramètres.")}</div>

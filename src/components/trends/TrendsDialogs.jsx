@@ -52,7 +52,7 @@ export function TrendSourcesDialog({ source, onClose, onOpenGame, signals, read 
     <div className="trends-source-list">{filtered.map((game, index) => {
       const timestamp = trendMatchTimestamp(game.match || game);
       return <article key={`${game.id || game.title}-${index}`}>
-        <div className="trends-source-heading"><div><h4>{game.title}</h4><p>{timestamp === null ? t("Date inconnue") : new Date(timestamp).toLocaleDateString(getLocale())} · {game.duration} · {t(game.side)} · {game.patch}</p></div><Badge tone={game.result === "Victoire" ? "green" : game.result === "Défaite" ? "red" : "slate"}>{t(game.result)}</Badge></div>
+        <div className="trends-source-heading"><div><h4>{game.title}</h4><p>{timestamp === null ? t("Date inconnue") : new Date(timestamp).toLocaleDateString(getLocale())} · {game.duration} · {t(game.side)} · {game.patch}</p></div><Badge tone={game.result === "Victoire" ? "success" : game.result === "Défaite" ? "danger" : "neutral"}>{t(game.result)}</Badge></div>
         <dl className="trends-source-signals">{(source.playstyle ? game.playstyleEvidence || [] : signals(game)).map((signal) => <div key={signal.label}><dt>{source.playstyle ? t(signal.label) : t(analysisCopy(signal.label))}</dt><dd className={`trends-value-${signal.toneName || "slate"}`}>{signal.value}</dd></div>)}</dl>
         <p className="trends-source-read">{source.playstyle ? t(game.playstyleRead) : t(analysisCopy(read(game)))}</p>
         {!source.playstyle && <p className="trends-source-role"><strong>{t("Contribution repérée : ")}{t(game.topRoleLabel)}</strong><span>{t(analysisCopy(game.topRoleDetail))}</span></p>}

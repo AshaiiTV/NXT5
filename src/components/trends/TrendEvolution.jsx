@@ -110,7 +110,7 @@ export function TrendEvolution({ matches = [], onOpenMatch }) {
         </div>
         <div className="trend-series-selected">
           <div className="trend-series-selected-content" aria-live="polite" aria-atomic="true">
-            <div className="trend-series-selected-context"><span>{selected.timestamp === null ? t("Hors courbe") : t("Partie {0} sur {1}", [selectedIndex + 1, dated.length])}</span><Badge tone={selected.result === 100 ? "green" : selected.result === 0 ? "red" : "slate"}>{t(resultLabel(selected))}</Badge></div>
+            <div className="trend-series-selected-context"><span>{selected.timestamp === null ? t("Hors courbe") : t("Partie {0} sur {1}", [selectedIndex + 1, dated.length])}</span><Badge tone={selected.result === 100 ? "success" : selected.result === 0 ? "danger" : "neutral"}>{t(resultLabel(selected))}</Badge></div>
             <h4>{matchDisplayName(selected.match)}</h4>
             <p>{date(selected, true)}</p>
             <dl><dt>{t(metric.label)}</dt><dd>{t(valueLabel(selected, metric))}</dd></dl>

@@ -462,7 +462,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
                   <p className="mt-0.5 text-sm text-slate-400">{selectedPlayer ? `${selectedDisplayRole} · ${selectedIsStaff ? "disponibilités partagées par le staff" : "profil lié à ton compte"}` : t("Demande au staff de relier ton compte à un profil joueur.")}</p>
                 </div>
               </div>
-              <Badge tone={canEditSelected ? "green" : "slate"}>{canEditSelected ? (selectedIsStaff ? t("Planning partagé du staff") : t("Mon planning")) : t("Lecture seule")}</Badge>
+              <Badge tone={canEditSelected ? "success" : "neutral"}>{canEditSelected ? (selectedIsStaff ? t("Planning partagé du staff") : t("Mon planning")) : t("Lecture seule")}</Badge>
             </div>
             <div className="nxt5-planning-actions">
               {canEditEvents && canEditSelected && <Button type="button" variant="ghost" icon={CalendarDays} aria-pressed={editingEvents} onClick={() => setEditingEvents((active) => !active)} className={editingEvents ? "border-cyan-200/45 bg-cyan-400/10 text-cyan-100" : ""}>{editingEvents ? t("Revenir à mes disponibilités") : t("Ajouter une séance")}</Button>}
@@ -477,7 +477,7 @@ function Planning({ data, selectedTeamId, planningStore, currentMember, user, re
               <p>{t("Un clic sur un jour remplit ou vide cette journée. Un clic sur une heure fait la même chose pour toute la semaine. Un clic droit sur un créneau ouvre aussi les types de séance.")}</p>
               <p>{t("Les séances différentes sur un même créneau sont affichées ensemble. Tu peux modifier ou retirer celle que tu as ajoutée ; les séances des autres membres sont conservées.")}</p>
               <div className="nxt5-planning-legend">{PLANNING_EVENT_TYPES.map((item) => <span key={item.id}><span aria-hidden="true" className={cx("h-2 w-2 rounded-full", item.dot)} />{t(SESSION_LABELS[item.id]?.label) || t(item.label)}</span>)}</div>
-              <div className="nxt5-planning-legend">{bestCells[0]?.count > 0 && <Badge tone="cyan">{t("Présences maximum : ")}{bestCells[0].count}/{planningUnitTotal}</Badge>}<Badge tone={fullTeamSlots ? "green" : "slate"}>{fullTeamSlots}{t(" créneaux avec ")}{representedRoles}{t(" joueurs")}</Badge>{staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "purple" : "slate"}>{staffAvailableSlots}{t(" créneaux avec encadrement")}</Badge>}</div>
+              <div className="nxt5-planning-legend">{bestCells[0]?.count > 0 && <Badge tone="info">{t("Présences maximum : ")}{bestCells[0].count}/{planningUnitTotal}</Badge>}<Badge tone={fullTeamSlots ? "success" : "neutral"}>{fullTeamSlots}{t(" créneaux avec ")}{representedRoles}{t(" joueurs")}</Badge>{staffProfiles.length > 0 && <Badge tone={staffAvailableSlots ? "brand" : "neutral"}>{staffAvailableSlots}{t(" créneaux avec encadrement")}</Badge>}</div>
             </details>
           </Surface>
 

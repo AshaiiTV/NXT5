@@ -38,7 +38,7 @@ function RoleTag({ role, staff = false, className = "" }) {
   useLanguage();
   const label = roleLabel(role);
   return (
-    <Badge tone={staff ? "purple" : "blue"} className={cx("overflow-hidden justify-center px-2 sm:justify-start sm:px-2.5", className)} title={t(label)}>
+    <Badge tone={staff ? "brand" : "info"} className={cx("overflow-hidden justify-center px-2 sm:justify-start sm:px-2.5", className)} title={t(label)}>
       <span className="block max-w-full truncate">{t(label)}</span>
     </Badge>
   );
@@ -567,7 +567,7 @@ function Teams({ data, refreshAll, selectedTeamId, setSelectedTeamId, currentMem
             <SelectInput label={t("Région")} value={teamForm.region} onChange={(region) => setTeamForm({ ...teamForm, region })} disabled={saving}>{["EUW", "EUNE", "NA", "KR", "BR", "LAN", "LAS", "JP", "OCE", "TR"].map((region) => <option key={region} value={region}>{t(region)}</option>)}</SelectInput></div>
             <details className="team-entry-optional"><summary>{t("Ajouter aussi mes joueurs ")}<span>{t("Facultatif")}</span></summary><p>{t("Tu pourras aussi créer les profils pendant l’import de ta première partie.")}</p>
             <TextAreaInput label={t("Joueurs à ajouter (facultatif)")} value={teamForm.multiOpgg} onChange={(multiOpgg) => setTeamForm({ ...teamForm, multiOpgg })} disabled={saving} placeholder={t("Colle un lien multi OP.GG ou une liste :\nToplaner#EUW\nJungler#EUW\nMidlaner#EUW\nADC#EUW\nSupport#EUW")} icon={Clipboard} />
-            {multiPlayers.length > 0 && <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">{multiPlayers.length}{t(multiPlayers.length > 1 ? " joueurs" : " joueur")}{t(multiPlayers.length > 1 ? " détectés" : " détecté")}</p><div className="mt-2 flex flex-wrap gap-2">{multiPlayers.map((player, index) => <Badge key={player.riotId} tone={index < 5 ?"cyan" : "slate"}>{ROSTER_ROLE_ORDER[index] || "SUB"} · {player.riotId}</Badge>)}</div></div>}
+            {multiPlayers.length > 0 && <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/10 p-3"><p className="text-xs font-black uppercase tracking-[0.18em] text-cyan-100">{multiPlayers.length}{t(multiPlayers.length > 1 ? " joueurs" : " joueur")}{t(multiPlayers.length > 1 ? " détectés" : " détecté")}</p><div className="mt-2 flex flex-wrap gap-2">{multiPlayers.map((player, index) => <Badge key={player.riotId} tone={index < 5 ?"info" : "neutral"}>{ROSTER_ROLE_ORDER[index] || "SUB"} · {player.riotId}</Badge>)}</div></div>}
             </details></>}
             {pendingCreation && <p role="status" className="break-words text-sm text-slate-300">{t("L’équipe ")}{pendingCreation.team.name}{t(" est créée. Joueurs restant à ajouter : ")}{pendingCreation.players.slice(pendingCreation.next).map(player => player.riotId).join(", ")}.</p>}
             {teamCreation.error && <p role="alert" className="team-entry-error">{teamCreation.error}</p>}

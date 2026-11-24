@@ -108,7 +108,7 @@ function OfferCard({ offer, children, highlight = false, opponent = null }) {
       <TeamIdentity team={offer.team} name={offer.teamName} tag={offer.teamTag} />
       {opponent && <div className="scrim-versus" aria-hidden="true"><Swords /></div>}
       {opponent && <TeamIdentity team={opponent.team} name={opponent.name} tag={opponent.tag} />}
-      <Badge tone={STATUS_TONES[offer.status] || "slate"} className="scrim-status">{t(STATUS_LABELS[offer.status] || offer.status)}</Badge>
+      <Badge tone={STATUS_TONES[offer.status] || "neutral"} className="scrim-status">{t(STATUS_LABELS[offer.status] || offer.status)}</Badge>
     </div>
     <div className="scrim-slot">
       <div className="scrim-slot-time"><Clock3 aria-hidden="true" /><strong>{slot.time}</strong></div>
@@ -197,7 +197,7 @@ export function ScrimFinder({ data, selectedTeamId, currentMember, user, pushToa
       : !open.length ? <Surface className="scrim-card"><EmptyState icon={Handshake} title={t("Aucune proposition ouverte pour le moment")} text={t("Publie la tienne : les équipes qui cherchent un adversaire la verront ici.")} action={canManage ? <Button icon={Megaphone} onClick={() => setTab("mine")}>{t("Proposer un scrim")}</Button> : null} /></Surface>
       : <div className="scrim-list">{open.map((offer) => <OfferCard key={offer.id} offer={offer}>
         {offer.myRequest?.status === "pending" ? <div className="scrim-actions">
-          <Badge tone="yellow">{t("Réponse envoyée")}</Badge>
+          <Badge tone="warning">{t("Réponse envoyée")}</Badge>
           {canManage && <Button variant="ghost" icon={X} disabled={Boolean(busy)} onClick={() => act(offer.id, { action: "withdraw", requestId: offer.myRequest.id })}>{t("Retirer ma réponse")}</Button>}
         </div> : replyFor === offer.id ? <form className="scrim-reply" onSubmit={(event) => { event.preventDefault(); act(offer.id, { action: "respond", offerId: offer.id, message: reply.trim() }, [t("Réponse envoyée"), t("Le staff de {0} peut maintenant confirmer.", [offer.teamName])]).then((ok) => { if (ok) { setReplyFor(""); setReply(""); } }); }}>
           <TextAreaInput label="Message pour l’équipe" value={reply} onChange={setReply} rows={2} maxLength={300} placeholder={t("Vos disponibilités exactes, votre niveau, un contact Discord…")} />
@@ -228,7 +228,7 @@ export function ScrimFinder({ data, selectedTeamId, currentMember, user, pushToa
     </section>}
 
     {mine.length > 0 && <section aria-label={t("Mes propositions")} className="scrim-section">
-      <h3 className="scrim-section-title"><Megaphone aria-hidden="true" />{t("Mes propositions")}{pendingForMe > 0 && <Badge tone="yellow">{t("{0} réponse(s) à traiter", [pendingForMe])}</Badge>}</h3>
+      <h3 className="scrim-section-title"><Megaphone aria-hidden="true" />{t("Mes propositions")}{pendingForMe > 0 && <Badge tone="warning">{t("{0} réponse(s) à traiter", [pendingForMe])}</Badge>}</h3>
       <div className="scrim-list">{mine.map((offer) => <OfferCard key={offer.id} offer={offer}>
         {offer.requests?.filter((request) => request.status === "pending").length ? <ul className="scrim-requests">{offer.requests.filter((request) => request.status === "pending").map((request) => <li key={request.id}>
           <div className="scrim-request-team"><TeamIdentity team={request.team} name={request.teamName} tag={request.teamTag} size="h-10 w-10" />{request.message ? <p>{request.message}</p> : null}</div>
@@ -247,7 +247,7 @@ export function ScrimFinder({ data, selectedTeamId, currentMember, user, pushToa
         const offer = open.find((item) => item.id === request.offerId);
         return <li key={request.id}>
           <div className="scrim-request-team">{offer ? <TeamIdentity team={offer.team} name={offer.teamName} tag={offer.teamTag} size="h-10 w-10" /> : <strong>{t("Proposition fermée")}</strong>}<p>{offer ? formatSlot(offer.startsAt) : ""}{request.message ? ` · ${request.message}` : ""}</p></div>
-          <div className="scrim-actions"><Badge tone={STATUS_TONES[request.status] || "slate"}>{t(STATUS_LABELS[request.status] || request.status)}</Badge>{canManage && request.status === "pending" && <Button variant="ghost" icon={X} disabled={Boolean(busy)} onClick={() => act(request.id, { action: "withdraw", requestId: request.id })}>{t("Retirer")}</Button>}</div>
+          <div className="scrim-actions"><Badge tone={STATUS_TONES[request.status] || "neutral"}>{t(STATUS_LABELS[request.status] || request.status)}</Badge>{canManage && request.status === "pending" && <Button variant="ghost" icon={X} disabled={Boolean(busy)} onClick={() => act(request.id, { action: "withdraw", requestId: request.id })}>{t("Retirer")}</Button>}</div>
         </li>;
       })}</ul>
     </section>}

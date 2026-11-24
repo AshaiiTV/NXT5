@@ -46,11 +46,11 @@ function HomeGoals({ context, navigate }) {
     <ul className="nxt5-home-goal-list">
       {playerGoals.map(goal => <li key={`player:${goal.id}`}>
         <div><h4>{goal.title}</h4><p>{t(goalMetricLabels[goal.metric])} {goal.operator === "lte" ? "≤" : "≥"} {new Intl.NumberFormat(getLocale()).format(Number(goal.target_value))}{goal.metric === "kp" ? "%" : ""} · {t("{0}/{1} parties", [goal.required_successes, goal.sample_size])}</p></div>
-        <Badge tone="cyan">{t("Suivi joueur")}</Badge>
+        <Badge tone="info">{t("Suivi joueur")}</Badge>
       </li>)}
       {botGoals.map(goal => {
         const dueAt = goal.due_at ? homeMatchTimestamp({ date: goal.due_at }) : null;
-        return <li key={`bot:${goal.id}`}><div><h4>{goal.title}</h4>{dueAt !== null && <p>{t("Échéance : {0}", [dateLabel(dueAt)])}</p>}</div><Badge tone="purple">{t("Consigne du staff")}</Badge></li>;
+        return <li key={`bot:${goal.id}`}><div><h4>{goal.title}</h4>{dueAt !== null && <p>{t("Échéance : {0}", [dateLabel(dueAt)])}</p>}</div><Badge tone="brand">{t("Consigne du staff")}</Badge></li>;
       })}
     </ul>
   </section>;
@@ -226,7 +226,7 @@ export default function HomeWorkspace({ data = {}, currentTeam, currentMember, u
               return <li key={match.id} data-result={match.result === "Victoire" ? "win" : match.result === "Défaite" ? "loss" : undefined}>
                 <PublicTextLink className="nxt5-home-game-link" href={matchPath(match)} navigate={navigate}>
                   <span><strong>{matchDisplayName(match, "Partie de l’équipe")}</strong><span className="nxt5-home-game-meta">{t(dateLabel(homeMatchTimestamp(match)))} · {report ? t("Note disponible") : t("Sans note")}</span></span>
-                  {match.result && <Badge tone={match.result === "Victoire" ? "green" : match.result === "Défaite" ? "red" : "slate"}>{t(match.result)}</Badge>}
+                  {match.result && <Badge tone={match.result === "Victoire" ? "success" : match.result === "Défaite" ? "danger" : "neutral"}>{t(match.result)}</Badge>}
                   <ArrowRight size={16} aria-hidden="true" />
                 </PublicTextLink>
               </li>;

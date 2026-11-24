@@ -147,7 +147,7 @@ export function ImporterLinkSettings({ importer, categories = [], canManage }) {
     {links.length > 0 && <ul className="importer-auto-links" aria-label={t("Liaisons de l’Importer")}>{links.map((link) => <li key={link.id}>
       <Plug aria-hidden="true" />
       <div><strong>{link.label || t("Ordinateur sans nom")}</strong><span>{link.status === "connected" ? t("Vu le {0} · expire le {1}", [formatDate(link.lastSeenAt || link.connectedAt), formatDate(link.expiresAt, false)]) : t("Code en attente dans l’Importer")}</span></div>
-      <Badge tone={LINK_TONES[link.status] || "slate"}>{t(LINK_LABELS[link.status] || link.status)}</Badge>
+      <Badge tone={LINK_TONES[link.status] || "neutral"}>{t(LINK_LABELS[link.status] || link.status)}</Badge>
       {canManage && <Button variant="ghost" icon={working === link.id ? Loader2 : ShieldOff} disabled={disabled} onClick={() => act(link.id, { action: "revoke", linkId: link.id }, [t("Liaison révoquée"), t("Cet ordinateur ne peut plus envoyer de parties.")])}>{t("Révoquer")}</Button>}
     </li>)}</ul>}
     {!showCreate && !importer.error && <div className="importer-auto-dialog-footer"><RefreshButton importer={importer} /></div>}

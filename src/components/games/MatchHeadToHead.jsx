@@ -57,8 +57,8 @@ function TeamIdentity({ snapshot, teamKey, result = "" }) {
     <strong>{name}</strong>
     <span className="mhh-team-meta">
       {name !== relationship && <span>{relationship}</span>}
-      <Badge tone={side === "blue" ? "side-blue" : side === "red" ? "side-red" : "slate"}>{side === "blue" ? t("Côté bleu") : side === "red" ? t("Côté rouge") : t("Côté inconnu")}</Badge>
-      {result && <Badge tone={result === "Victoire" ? "green" : "slate"}>{t(result)}</Badge>}
+      <Badge tone={side === "blue" ? "side-blue" : side === "red" ? "side-red" : "neutral"}>{side === "blue" ? t("Côté bleu") : side === "red" ? t("Côté rouge") : t("Côté inconnu")}</Badge>
+      {result && <Badge tone={result === "Victoire" ? "success" : "neutral"}>{t(result)}</Badge>}
     </span>
   </span>;
 }

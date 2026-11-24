@@ -43,7 +43,7 @@ export function DemoMatchSummary({ match = DEMO_MATCHES[2], compact = false, onO
   const deaths = buildTrendSeries([match], "deaths").points[0].value;
   const signed = (value) => `${value > 0 ? "+" : ""}${number(value)}`;
   return <Surface glow={compact} className={`demo-match-summary${compact ? " is-compact" : ""}`}>
-    <div className="demo-match-heading"><p>{t("Données fictives · Lecture seule")}</p><Badge tone={match.result === "Victoire" ? "green" : "red"}>{t(match.result)}</Badge></div>
+    <div className="demo-match-heading"><p>{t("Données fictives · Lecture seule")}</p><Badge tone={match.result === "Victoire" ? "success" : "danger"}>{t(match.result)}</Badge></div>
     <Title>{matchDisplayName(match)}</Title>
     <p className="demo-match-context">{t(DEMO_TEAM)} · {Math.floor(match.duration_seconds / 60)}{t(" min")}</p>
     {timeline && match.goldTimeline ? <DemoGoldTimeline key={`gold-${match.id}`} match={match} /> : <dl className="demo-match-metrics demo-match-primary">
