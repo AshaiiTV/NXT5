@@ -6239,7 +6239,7 @@
   "Le bot doit pouvoir voir le salon, y envoyer des messages et images, et lire son historique.": "The bot must be able to see the room, send messages and images, and read its history.",
   "Catégories invalides.": "Invalid categories.",
   "Une catégorie n’appartient pas à cette équipe.": "A category does not belong to this team.",
-  "Ce rôle ne peut pas être mentionné dans ce salon.": "This role cannot be mentioned in this show.",
+  "Ce rôle n’est pas mentionnable : active « Autoriser tout le monde à @mentionner ce rôle » dans Discord.": "This role is not mentionable: turn on “Allow anyone to @mention this role” in Discord.",
   "Requête de test": "Test request",
   "Seul le propriétaire ou un capitaine peut renvoyer un profil.": "Only the owner or a captain can return a profile.",
   "Tu ne peux pas te renvoyer toi-même.": "You can't fire yourself.",

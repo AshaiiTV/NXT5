@@ -6239,7 +6239,7 @@
   "Le bot doit pouvoir voir le salon, y envoyer des messages et images, et lire son historique.": "El bot debe poder ver la sala, enviar mensajes e imágenes y leer su historial.",
   "Catégories invalides.": "Categorías no válidas.",
   "Une catégorie n’appartient pas à cette équipe.": "Una categoría no pertenece a este equipo.",
-  "Ce rôle ne peut pas être mentionné dans ce salon.": "Este papel no se puede mencionar en este programa.",
+  "Ce rôle n’est pas mentionnable : active « Autoriser tout le monde à @mentionner ce rôle » dans Discord.": "Este rol no se puede mencionar: activa «Permitir que cualquiera @mencione este rol» en Discord.",
   "Requête de test": "Solicitud de prueba",
   "Seul le propriétaire ou un capitaine peut renvoyer un profil.": "Sólo el propietario o el capitán pueden devolver un perfil.",
   "Tu ne peux pas te renvoyer toi-même.": "No puedes despedirte tú mismo.",

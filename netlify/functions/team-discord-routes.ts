@@ -47,7 +47,7 @@ async function handler(request: Request, context: Context) {
       const roleId = route.mentionRoleId || null;
       if (roleId) {
         const role = live.roles.find((item) => item.id === roleId);
-        if (!isDiscordId(roleId) || !role || (!role.mentionable && !channel.canMentionRoles)) throw discordError('Ce rôle ne peut pas être mentionné dans ce salon.');
+        if (!isDiscordId(roleId) || !role || !role.mentionable) throw discordError('Ce rôle n’est pas mentionnable : active « Autoriser tout le monde à @mentionner ce rôle » dans Discord.');
       }
       return { channelId: channel.id, channelName: channel.name, categoryIds: selected, includeHints: route.includeHints === true, mentionRoleId: roleId, automatic: route.enabled === true };
     });
