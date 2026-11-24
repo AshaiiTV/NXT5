@@ -133,17 +133,18 @@ describe("one continuous application loading screen", () => {
     expectPhase("bootstrap");
     expect(app.loaders[0].props["data-progress"]).toEqual({ loaded: 100, total: 205 });
     expect(app.pages).toHaveLength(0);
-    expect(app.requests).toHaveLength(3);
+    // The remaining pages are requested together, three at most.
+    expect(app.requests).toHaveLength(4);
     expect(app.requests[2].url).toContain("offset=100");
     expect(app.requests[2].url).toContain("matchesOnly=1");
-    await app.resolve(2, { selectedTeamId: "a", matches: matches.slice(100, 200),
-      pagination: { offset: 100, total: 205, nextOffset: 200, hasMore: true } });
-    expectPhase("bootstrap");
-    expect(app.loaders[0].props["data-progress"]).toEqual({ loaded: 200, total: 205 });
-    expect(app.pages).toHaveLength(0);
     expect(app.requests[3].url).toContain("offset=200");
     await app.resolve(3, { selectedTeamId: "a", matches: matches.slice(200),
       pagination: { offset: 200, total: 205, nextOffset: null, hasMore: false } });
+    expectPhase("bootstrap");
+    expect(app.loaders[0].props["data-progress"]).toEqual({ loaded: 105, total: 205 });
+    expect(app.pages).toHaveLength(0);
+    await app.resolve(2, { selectedTeamId: "a", matches: matches.slice(100, 200),
+      pagination: { offset: 100, total: 205, nextOffset: 200, hasMore: true } });
     expect(app.loaders).toHaveLength(0);
     expect(app.pages[0].props["data-games"]).toBe(205);
     expect(visual).toEqual({ mounts: 1, unmounts: 1 });

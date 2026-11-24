@@ -3,6 +3,9 @@ import { apiFetch } from "../api/client.js";
 import { DEFAULT_DATA } from "../app/constants.jsx";
 
 const MATCH_BATCH_SIZE = 100;
+// Follow-up pages requested at once. Three requests cut the round trips of
+// the initial synchronisation while bounding the burst per visitor.
+export const HISTORY_CONCURRENCY = 3;
 const interrupted = () => new DOMException("Chargement annulé.", "AbortError");
 
 function appendMatches(matches, page, teamId) {
@@ -31,35 +34,78 @@ function initialSnapshot(result, teamId, ticket, cached = false) {
   return { teamId, ticket, total, matches, pagination: result.pagination, complete: matches.size === total, failed: false };
 }
 
+// Every follow-up page must match the position, size and total fixed by the
+// first page; a page that moved, shrank or changed total invalidates the run.
+function validateFollowUp(page, snapshot, offset) {
+  const received = page?.matches?.length || 0;
+  const end = offset + received;
+  if (page?.selectedTeamId !== snapshot.teamId || Number(page.pagination?.offset) !== offset) {
+    throw new Error("La suite de l’historique reçue est invalide. Réessaie.");
+  }
+  if (Number(page.pagination?.total) !== snapshot.total || !received) {
+    throw new Error("L’historique a changé pendant le chargement. Réessaie pour analyser toutes les games.");
+  }
+  if (received !== Math.min(MATCH_BATCH_SIZE, snapshot.total - offset)) {
+    throw new Error("L’historique est incomplet. Réessaie pour analyser toutes les games.");
+  }
+  const hasMore = page.pagination?.hasMore === true;
+  if (hasMore !== end < snapshot.total || (hasMore && Number(page.pagination.nextOffset) !== end)) {
+    throw new Error("La suite de l’historique reçue est invalide. Réessaie.");
+  }
+}
+
 async function completeHistory(snapshot, signal, isCurrent, onProgress, pageLimit = Infinity) {
   // Full analyses publish atomically; a manual list request publishes one page.
-  const matches = new Map(snapshot.matches);
-  let pagination = snapshot.pagination;
-  let pages = 0;
-  while (pagination?.hasMore && pages < pageLimit) {
-    const offset = Number(pagination.nextOffset);
-    if (!snapshot.teamId || !Number.isSafeInteger(offset) || offset !== matches.size || offset >= snapshot.total) {
-      throw new Error("Impossible de charger l’historique complet. Réessaie.");
-    }
-    const params = new URLSearchParams({ teamId: snapshot.teamId, limit: String(MATCH_BATCH_SIZE), offset: String(offset), matchesOnly: "1" });
-    const page = await apiFetch(`bootstrap?${params}`, { signal });
-    if (signal.aborted || !isCurrent()) throw interrupted();
-    if (page.selectedTeamId !== snapshot.teamId || Number(page.pagination?.offset) !== offset) {
-      throw new Error("La suite de l’historique reçue est invalide. Réessaie.");
-    }
-    if (Number(page.pagination?.total) !== snapshot.total || !page.matches?.length) {
-      throw new Error("L’historique a changé pendant le chargement. Réessaie pour analyser toutes les games.");
-    }
-    appendMatches(matches, page, snapshot.teamId);
-    if (matches.size > snapshot.total) throw new Error("La suite de l’historique reçue est invalide. Réessaie.");
-    pagination = page.pagination;
-    if (pagination?.hasMore && (Number(pagination.nextOffset) !== matches.size || matches.size >= snapshot.total)) {
-      throw new Error("La suite de l’historique reçue est invalide. Réessaie.");
-    }
-    pages += 1;
-    onProgress?.({ loaded: matches.size, total: snapshot.total });
+  const start = snapshot.matches.size;
+  if (!snapshot.pagination?.hasMore) {
+    if (start !== snapshot.total) throw new Error("L’historique est incomplet. Réessaie pour analyser toutes les games.");
+    return { matches: [...snapshot.matches.values()], pagination: snapshot.pagination };
   }
-  if (!pagination?.hasMore && matches.size !== snapshot.total) throw new Error("L’historique est incomplet. Réessaie pour analyser toutes les games.");
+  const first = Number(snapshot.pagination.nextOffset);
+  if (!snapshot.teamId || !Number.isSafeInteger(first) || first !== start || start >= snapshot.total) {
+    throw new Error("Impossible de charger l’historique complet. Réessaie.");
+  }
+  if (signal.aborted) throw interrupted();
+  // The first page fixes the total, so every remaining offset is known and
+  // up to HISTORY_CONCURRENCY pages are requested at once.
+  const offsets = [];
+  for (let offset = start; offset < snapshot.total && offsets.length < pageLimit; offset += MATCH_BATCH_SIZE) offsets.push(offset);
+  // One failed page stops its siblings; the caller's signal still cancels all.
+  const run = new AbortController();
+  const cancel = () => run.abort();
+  signal.addEventListener("abort", cancel, { once: true });
+  const pages = [];
+  let next = 0;
+  let loaded = start;
+  async function worker() {
+    while (next < offsets.length && !run.signal.aborted) {
+      const index = next++;
+      const offset = offsets[index];
+      const params = new URLSearchParams({ teamId: snapshot.teamId, limit: String(MATCH_BATCH_SIZE), offset: String(offset), matchesOnly: "1" });
+      const page = await apiFetch(`bootstrap?${params}`, { signal: run.signal });
+      if (run.signal.aborted || !isCurrent()) throw interrupted();
+      validateFollowUp(page, snapshot, offset);
+      pages[index] = page;
+      loaded += page.matches.length;
+      onProgress?.({ loaded, total: snapshot.total });
+    }
+  }
+  try {
+    await Promise.all(Array.from({ length: Math.min(HISTORY_CONCURRENCY, offsets.length) }, () => worker().catch((error) => {
+      run.abort();
+      throw error;
+    })));
+  } finally {
+    signal.removeEventListener("abort", cancel);
+  }
+  if (signal.aborted || !isCurrent()) throw interrupted();
+  // Pages arrive in any order; they are assembled in server order.
+  const matches = new Map(snapshot.matches);
+  for (const page of pages) appendMatches(matches, page, snapshot.teamId);
+  const pagination = pages[pages.length - 1].pagination;
+  if (matches.size > snapshot.total || (!pagination?.hasMore && matches.size !== snapshot.total)) {
+    throw new Error("L’historique est incomplet. Réessaie pour analyser toutes les games.");
+  }
   return { matches: [...matches.values()], pagination };
 }
 
