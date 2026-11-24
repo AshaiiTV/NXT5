@@ -529,7 +529,7 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
         {games > 0 ? <>
           <section id="carte-wrapped" className="profile-showcase-section" aria-labelledby="profile-showcase-title">
             <div className="profile-showcase-intro"><div><h3 id="profile-showcase-title" tabIndex={-1}>{t("Carte & Wrapped")}</h3></div></div>
-            <React.Suspense fallback={<p role="status" className="profile-notice">{t("Chargement de la carte et du Wrapped…")}</p>}><ProfileShowcase embedded summaryMetrics={metrics} afterVisual={<CoachDiagnosticPanel player={selectedPlayer} games={games} issues={coachIssues} strengths={coachStrengths} onFollowUp={() => { openProfileView("coaching"); requestAnimationFrame(() => document.getElementById("profile-panel")?.focus()); }} />} player={selectedPlayer} rows={rows} teamName={selectedTeam?.name} category={activeProfileCategory?.name || t("Toutes les parties")} teammates={players} navigate={navigate || openAppPath} /></React.Suspense>
+            <React.Suspense fallback={<p role="status" className="profile-notice">{t("Chargement de la carte et du Wrapped…")}</p>}><ProfileShowcase embedded summaryMetrics={metrics} player={selectedPlayer} rows={rows} teamName={selectedTeam?.name} category={activeProfileCategory?.name || t("Toutes les parties")} teammates={players} navigate={navigate || openAppPath} /></React.Suspense>
           </section>
 
           <details className="profile-disclosure"><summary>{t("Autres statistiques et aide à la lecture")}</summary><dl className="profile-secondary-stats">{metrics.map((metric) => <div key={metric.label}><dt>{t(metric.label)}</dt><dd>{metric.value}</dd><p>{t(metric.detail)}</p>{metric.explanation && <p>{t(metric.explanation)}</p>}</div>)}</dl><dl className="profile-secondary-stats"><div><dt>{t("Ratio KDA")}</dt><dd>{kda}</dd><p>{t("(Kills + assists) ÷ morts, avec un minimum de 1 mort au dénominateur.")}</p></div><div><dt>{t("Score de vision")}</dt><dd>{meanMetric("vision")}</dd><p>{t("Moyenne par partie renseignée.")}</p></div><div><dt>{t("Farm à 20 min")}</dt><dd>{globalCs.at20 === null ? "—" : t("{0} CS", [globalCs.at20])}</dd><p>{cs20Values.length}{t(" parties renseignées.")}</p></div></dl><p>{t("La participation aux kills mesure les kills et assists du joueur rapportés aux kills de son équipe. Les CS comptent les sbires et monstres tués. « — » indique une donnée indisponible. Ces statistiques décrivent un résultat ; elles ne démontrent pas sa cause.")}</p>{!profileLinkIssues.length && <ProfileLinkAuditPanel player={selectedPlayer} matches={filteredMatches} issues={profileLinkIssues} open={profileLinkAuditOpen} canRepair={canRepairProfileLinks} repairingId={repairingProfileLinkId} onToggle={() => setProfileLinkAuditOpen((value) => !value)} onRepair={repairProfileLink} />}</details>
@@ -551,22 +551,6 @@ function PlayerUltimateProfile({ data, selectedTeamId, currentMember, user, refr
       </>}
     </section>
   </div>;
-}
-
-function CoachDiagnosticPanel({ player, games, issues = [], strengths = [], onFollowUp }) {
-  useLanguage();
-  if (!games) return null;
-  const priority = issues[0] || strengths[0];
-  if (!priority) return null;
-  const otherSignals = issues.slice(1);
-  return <Surface className="profile-review">
-    <div className="profile-review-layout"><div className="profile-review-observation"><p className="profile-eyebrow">{t("À vérifier en débrief")}</p>
-    <h3>{t(priority.title)}</h3>
-    </div>
-    <div className="profile-next-step"><p>{t(priority.action)}</p>{onFollowUp && <Button type="button" onClick={onFollowUp} icon={ArrowRight}>{t("Objectifs et notes")}</Button>}</div></div>
-    <details className="profile-disclosure"><summary>{t("Voir les parties à l’origine de cette piste ")}<span>{priority.rows?.length || 0}{t(" parties")}</span></summary><p className="profile-copy">{t(priority.text)}</p><div className="profile-evidence">{(priority.rows || []).slice(0, 5).map((row, index) => <a key={row.match?.id || index} href={`/games?match=${encodeURIComponent(row.match?.id || "")}`} onClick={(event) => { event.preventDefault(); openAppPath(`/games?match=${encodeURIComponent(row.match?.id || "")}`); }}><span><strong>{matchDisplayName(row.match)}</strong><small>{championDisplayName(row.champion)} · {t(profileHistoryDateLabel(row))} · {row.kills ?? "—"} / {row.deaths ?? "—"} / {row.assists ?? "—"}{t(" kills / morts / assists")}</small></span><ArrowRight aria-hidden="true" /></a>)}</div>{priority.rows?.length > 5 && <p>{t("Les 5 premières parties sont affichées. Retrouve toutes les sources dans l’historique.")}</p>}</details>
-    {otherSignals.length > 0 && <details className="profile-disclosure"><summary>{t("Autres pistes à vérifier ")}<span>{otherSignals.length}</span></summary>{otherSignals.map((item) => <article className="profile-other-signal" key={item.title}><h4>{t(item.title)}</h4><p>{t(item.text)}</p><p>{t(item.action)}</p></article>)}</details>}
-  </Surface>;
 }
 
 function CoachReferenceMetric({ item }) {
@@ -1249,4 +1233,4 @@ function csMilestoneSummary(rows = []) {
   return { at10: average(at10), at20: average(at20), samples: Math.max(at10.length, at20.length) };
 }
 
-export { renderPlayerProfilePng, playerProfilePngData, PlayerUltimateProfile, PlayerGoalsPanel, profileLinkAuditRows, ProfileLinkAuditPanel, CoachDiagnosticPanel, CoachReferenceMetric, ProfileChampionsView, ProfileChampionSignal, ProfileChampionAction, ProfileChampionCommandCard, profileChampionStatusMeta, ProfileChampionMini, ProfileChampionDecisionCard, ChampionProfileDetail, ChampionStylePill, ChampionVisualMetric, ChampionReferenceLine, ChampionLanePanel, ChampionLaneGameLine, towerDamage, ParticipantCompareCard, finalBuildItems, itemBuildTimeline, itemEventMeta, VersusDeltaStack, ChampionMiniStat, profileHistoryDateLabel, itemDisplayName, ITEM_NAME_CACHE, ITEM_NAME_OVERRIDES, ItemNameText, loadItemNames, DDRAGON_VERSION, itemNamesPromise, csMilestoneSummary, ProfileChampionPoolView, ProfilePoolReadLine, ProfilePoolChampionRow, ProfileHudMetric, ProfileHistoryView, profileHistorySortKey, ProfileFold };
+export { renderPlayerProfilePng, playerProfilePngData, PlayerUltimateProfile, PlayerGoalsPanel, profileLinkAuditRows, ProfileLinkAuditPanel, CoachReferenceMetric, ProfileChampionsView, ProfileChampionSignal, ProfileChampionAction, ProfileChampionCommandCard, profileChampionStatusMeta, ProfileChampionMini, ProfileChampionDecisionCard, ChampionProfileDetail, ChampionStylePill, ChampionVisualMetric, ChampionReferenceLine, ChampionLanePanel, ChampionLaneGameLine, towerDamage, ParticipantCompareCard, finalBuildItems, itemBuildTimeline, itemEventMeta, VersusDeltaStack, ChampionMiniStat, profileHistoryDateLabel, itemDisplayName, ITEM_NAME_CACHE, ITEM_NAME_OVERRIDES, ItemNameText, loadItemNames, DDRAGON_VERSION, itemNamesPromise, csMilestoneSummary, ProfileChampionPoolView, ProfilePoolReadLine, ProfilePoolChampionRow, ProfileHudMetric, ProfileHistoryView, profileHistorySortKey, ProfileFold };

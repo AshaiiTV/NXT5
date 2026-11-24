@@ -191,7 +191,6 @@ html.nxt5-low-gpu .profile-showcase-chapter-line { transition: none; }
 .profile-showcase.is-embedded .is-card .profile-showcase-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); width: 100%; gap: 6px; }
 .profile-showcase.is-embedded .is-card .profile-showcase-actions .nxt5-control { min-width: 0; min-height: 44px; padding-inline: 6px; font-size: 13px; }
 .profile-showcase.is-embedded .profile-showcase-status { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 13px; }
-.profile-showcase.is-embedded > .profile-review { margin-top: 24px; }
 @container profile-showcase (max-width: 720px) {
   .profile-showcase.is-embedded .profile-showcase-stage.is-card { grid-template-rows: auto; }
   .profile-showcase.is-embedded .is-card .profile-showcase-story { grid-row: 1; }
