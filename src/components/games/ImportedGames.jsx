@@ -2,7 +2,7 @@ import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";
 import { getLocale } from "../../i18n/locale.js";
 import React, { useDeferredValue, useId, useMemo, useRef, useState } from "react";
-import { ArrowRight, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileText, Search, X } from "lucide-react";
+import { ArrowRight, Check, ChevronLeft, ChevronRight, Clock3, FileText, Search, X } from "lucide-react";
 import { Button, SelectInput, Surface } from "../ui/Core.jsx";
 import { SortButton } from "../ui/SortButton.jsx";
 import { ChampionPortrait, championDisplayName, ROSTER_ROLE_ORDER } from "../../pages/workspace/workspace-shared.jsx";
@@ -13,7 +13,7 @@ import "./imported-games.css";
 
 const pluralCount = (count) => count !== 1 && (count !== 0 || getLocale() !== "fr-FR");
 
-const initialFilters = { query: "", result: "", review: "", side: "", category: "", sort: "newest", page: 1, pageSize: 10 };
+const initialFilters = { query: "", result: "", side: "", category: "", sort: "newest", page: 1, pageSize: 10 };
 
 function gameDate(match, history) {
   const timestamp = history ? importedGameImportTimestamp(match) : trendMatchTimestamp(match);
@@ -33,11 +33,26 @@ function GameComposition({ participants, teamKey, side, id }) {
     return index < 0 ? ROSTER_ROLE_ORDER.length : index;
   };
   const rows = participants.filter((row) => row.team_key === teamKey).sort((a, b) => roleIndex(a) - roleIndex(b)).slice(0, 5);
-  return <span id={id} className={`ig-composition ig-composition-${teamKey.toLowerCase()}`}>
-    <span className="ig-composition-label">{teamKey === "ALLY" ? t("Alliés") : t("Ennemis")}</span>
+  const sideName = side === "blue" ? t("Côté bleu") : side === "red" ? t("Côté rouge") : t("Côté inconnu");
+  return <span id={id} className={`ig-composition ig-composition-${teamKey.toLowerCase()}`} data-side={side || undefined}>
+    <span className="ig-composition-label"><i aria-hidden="true" />{teamKey === "ALLY" ? t("Alliés") : t("Ennemis")}<span className="ig-side">{sideName}</span></span>
     <span className="ig-champions">{rows.length ? rows.map((row, index) => <ChampionPortrait key={row.id || index} row={row} champion={row.champion} alt={championDisplayName(row.champion)} className="ig-champion" />) : <span className="ig-missing">{t("Composition indisponible")}</span>}</span>
-    <span className={`ig-side ${side ? `ig-side-${side}` : ""}`}>{side === "blue" ? t("Côté bleu") : side === "red" ? t("Côté rouge") : t("Côté inconnu")}</span>
   </span>;
+}
+
+function ResultsOverview({ results }) {
+  const language = useLanguage();
+  const wins = results.filter((match) => match.result === "Victoire").length;
+  const losses = results.filter((match) => match.result === "Défaite").length;
+  const known = wins + losses;
+  if (!known) return null;
+  const rate = Math.round((wins / known) * 100);
+  return <div className="ig-overview" role="img" aria-label={t("{0} V · {1} D · {2} % de victoires", [wins, losses, rate])}>
+    <span className="ig-overview-count ig-win">{wins} {language === "en" ? "W" : "V"}</span>
+    <span className="ig-overview-bar"><span style={{ width: `${(wins / known) * 100}%` }} /></span>
+    <span className="ig-overview-count ig-loss">{losses} {language === "en" ? "L" : "D"}</span>
+    <strong className="ig-overview-rate">{rate} %</strong>
+  </div>;
 }
 
 export function ImportedGames({ matches = [], categories = [], selectedMatchId, selectedMatch, selectedReport, onSelectMatch, onCreateReview, onOpenReview, onViewStats, onResetScope, scopeName = "", history = false, dateTimeZone, headerActions, categoryManager, selectionActions, selectionDetails, selectionLocked = false, showSelection = true, showCategoryFilter = history, allowImportSort = history, title, description, emptyAction, historyComplete = true, historyLoading = false, historyError = "", totalMatches, onLoadMore, onLoadHistory }) {
@@ -53,11 +68,11 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
   const searchRef = useRef(null);
   const resultsRef = useRef(null);
   const deferredQuery = useDeferredValue(filters.query);
-  const hasFilters = Boolean(filters.query.trim() || filters.result || filters.review || filters.side || filters.category);
+  const hasFilters = Boolean(filters.query.trim() || filters.result || filters.side || filters.category);
   const awaitingHistory = !historyComplete && (hasFilters || deferredQuery.trim() || filters.sort !== "import-newest");
   const knownTotal = totalMatches != null && Number.isFinite(Number(totalMatches)) ? Math.max(matches.length, Number(totalMatches)) : null;
   const loadedSummary = knownTotal === null ? t("{0} parties chargées", [matches.length]) : t("{0} parties chargées sur {1}", [matches.length, knownTotal]);
-  const results = useMemo(() => awaitingHistory ? [] : filterImportedGames(matches, { ...filters, query: deferredQuery }, categories), [awaitingHistory, matches, categories, deferredQuery, filters.result, filters.review, filters.side, filters.category, filters.sort, locale]);
+  const results = useMemo(() => awaitingHistory ? [] : filterImportedGames(matches, { ...filters, query: deferredQuery }, categories), [awaitingHistory, matches, categories, deferredQuery, filters.result, filters.side, filters.category, filters.sort, locale]);
   const pageCount = Math.max(1, Math.ceil(results.length / filters.pageSize));
   const page = Math.min(filters.page, pageCount);
   const start = (page - 1) * filters.pageSize;
@@ -69,7 +84,7 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
   const setFilter = (key, value) => {
     const next = { ...filters, [key]: value, page: 1 };
     setFilters(next);
-    if (!historyComplete && (next.query.trim() || next.result || next.review || next.side || next.category || next.sort !== "import-newest")) loadHistory();
+    if (!historyComplete && (next.query.trim() || next.result || next.side || next.category || next.sort !== "import-newest")) loadHistory();
   };
   const resetFilters = () => setFilters((current) => ({ ...initialFilters, sort: current.sort, pageSize: current.pageSize }));
   const clearSearch = () => { setFilter("query", ""); searchRef.current?.focus(); };
@@ -122,9 +137,6 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
         <SelectInput label={t("Résultat")} value={filters.result} onChange={(value) => setFilter("result", value)}>
           <option value="">{t("Tous")}</option><option value="Victoire">{t("Victoires")}</option><option value="Défaite">{t("Défaites")}</option>
         </SelectInput>
-        <SelectInput label={t("Débrief")} value={filters.review} onChange={(value) => setFilter("review", value)}>
-          <option value="">{t("Tous")}</option><option value="todo">{t("À faire")}</option><option value="done">{t("Terminés")}</option>
-        </SelectInput>
         <SelectInput label={t("Côté")} value={filters.side} onChange={(value) => setFilter("side", value)}>
           <option value="">{t("Tous les côtés")}</option><option value="blue">{t("Côté bleu")}</option><option value="red">{t("Côté rouge")}</option>
         </SelectInput>
@@ -132,7 +144,7 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
       </div>
       <div className="ig-results-summary">
         <p role="status" aria-live="polite">{awaitingHistory && historyLoading ? t("Chargement de l’historique pour appliquer les filtres et le tri…") : !historyComplete ? loadedSummary : deferredQuery !== filters.query ? t("Recherche en cours…") : hasFilters ? t(pluralCount(results.length) ? "{0} parties sur {1}" : "{0} partie sur {1}", [results.length, matches.length]) : t(pluralCount(results.length) ? "{0} parties disponibles" : "{0} partie disponible", [results.length])}</p>
-        {hasFilters ? <button type="button" className="ig-text-action" onClick={resetFilters}><X aria-hidden="true" />{t(" Réinitialiser les filtres")}</button> : <p className="ig-search-hint">{t("Essaie « Jinx défaite »")}</p>}
+        {hasFilters ? <button type="button" className="ig-text-action" onClick={resetFilters}><X aria-hidden="true" />{t(" Réinitialiser les filtres")}</button> : !awaitingHistory && <ResultsOverview results={results} />}
       </div>
 
       {showSelection && selectedMatch && <div className="ig-selection">
@@ -155,24 +167,24 @@ export function ImportedGames({ matches = [], categories = [], selectedMatchId, 
       {!historyComplete && historyError && <div className="ig-results-summary"><p role="alert">{t(historyError)}</p><Button type="button" variant="ghost" disabled={historyLoading} onClick={awaitingHistory ? loadHistory : loadMore}>{historyLoading ? t("Chargement…") : t("Réessayer")}</Button></div>}
 
       <div ref={resultsRef} className="ig-results" tabIndex={-1} aria-label={t("Liste des parties")} aria-busy={Boolean(awaitingHistory && historyLoading) || deferredQuery !== filters.query}>
-        <div className="ig-column-labels" aria-hidden="true"><span>{t("Résultat")}</span><span>{t("Partie")}</span><span>{t("Composition alliée")}</span><span>{t("Composition ennemie")}</span><span>{history ? t("Import / durée") : t("Date / durée")}</span><span>{t("Débrief")}</span><span /></div>
         {awaitingHistory ? <div className="ig-empty"><p>{t("Les résultats seront affichés une fois l’historique complet chargé.")}</p>{!historyLoading && !historyError && onLoadHistory && <Button type="button" variant="ghost" onClick={loadHistory}>{t("Charger l’historique complet")}</Button>}</div> : visibleMatches.length ? <ul className="ig-list">{visibleMatches.map((match) => {
           const active = String(match.id) === String(selectedMatchId);
           const won = match.result === "Victoire";
           const lost = match.result === "Défaite";
-          const done = match.review_status === "done";
           const side = importedGameSide(match);
           const date = gameDate(match, history);
           const matchCategories = matchCategoryIds(match).map((id) => categories.find((category) => String(category.id) === id)?.name).filter(Boolean);
           const compositionId = `${titleId}-${match.id}-composition`;
-          return <li key={match.id}>
-            <button type="button" className="ig-game" data-match-id={match.id} disabled={selectionLocked} aria-pressed={active} aria-describedby={`${compositionId}-ally ${compositionId}-enemy`} onClick={() => onSelectMatch(active ? "" : match.id)} aria-label={`${active ? t("Désélectionner") : t("Sélectionner")} ${matchDisplayName(match, t("Partie"))} · ${t(match.result || "Sans résultat")} · ${done ? t("Débrief terminé") : t("À revoir")} · ${match.game_id || t("Partie")}`}>
-              <span className={`ig-result ${won ? "ig-win" : lost ? "ig-loss" : ""}`}><span aria-hidden="true">{won ? language === "en" ? "W" : "V" : lost ? language === "en" ? "L" : "D" : "—"}</span>{won ? t("Victoire") : lost ? t("Défaite") : t("Sans résultat")}</span>
-              <span className="ig-game-identity"><strong>{matchDisplayName(match, t("Partie"))}</strong><span>{match.game_id || t("Identifiant indisponible")}</span><span className="ig-game-categories">{matchCategories.length ? matchCategories.join(" · ") : t("Non classée")}</span>{history && (match.created_by_name || match.created_by_account) && <span>{t("Par ")}{match.created_by_name || match.created_by_account}</span>}</span>
-              <GameComposition participants={match.participants || []} teamKey="ALLY" side={side} id={`${compositionId}-ally`} />
-              <GameComposition participants={match.participants || []} teamKey="ENEMY" side={side === "blue" ? "red" : side === "red" ? "blue" : ""} id={`${compositionId}-enemy`} />
-              <span className="ig-date">{date ? <time dateTime={date.toISOString()}>{dateFormat.format(date)}</time> : <span>{t("Date inconnue")}</span>}<span>{date && <>{timeFormat.format(date)} · </>}{gameDuration(match)}</span></span>
-              <span className={`ig-review ${done ? "ig-review-done" : ""}`}>{done ? <CheckCircle2 aria-hidden="true" /> : <Clock3 aria-hidden="true" />}{done ? t("Terminé") : t("À revoir")}</span>
+          return <li key={match.id} data-result={won ? "win" : lost ? "loss" : undefined}>
+            <button type="button" className="ig-game" data-match-id={match.id} disabled={selectionLocked} aria-pressed={active} aria-describedby={`${compositionId}-ally ${compositionId}-enemy`} onClick={() => onSelectMatch(active ? "" : match.id)} aria-label={`${active ? t("Désélectionner") : t("Sélectionner")} ${matchDisplayName(match, t("Partie"))} · ${t(match.result || "Sans résultat")} · ${match.game_id || t("Partie")}`}>
+              <span className={`ig-result ${won ? "ig-win" : lost ? "ig-loss" : ""}`}><span aria-hidden="true">{won ? language === "en" ? "W" : "V" : lost ? language === "en" ? "L" : "D" : "—"}</span><span className="ig-result-label">{won ? t("Victoire") : lost ? t("Défaite") : t("Sans résultat")}</span></span>
+              <span className="ig-game-identity"><strong>{matchDisplayName(match, t("Partie"))}</strong><span className="ig-game-meta">{matchCategories.length ? matchCategories.map((name) => <span key={name} className="ig-chip">{name}</span>) : <span className="ig-chip ig-chip-muted">{t("Non classée")}</span>}<span className="ig-game-id">{match.game_id || t("Identifiant indisponible")}</span></span>{history && (match.created_by_name || match.created_by_account) && <span className="ig-game-author">{t("Par ")}{match.created_by_name || match.created_by_account}</span>}</span>
+              <span className="ig-matchup">
+                <GameComposition participants={match.participants || []} teamKey="ALLY" side={side} id={`${compositionId}-ally`} />
+                <span className="ig-versus" aria-hidden="true">VS</span>
+                <GameComposition participants={match.participants || []} teamKey="ENEMY" side={side === "blue" ? "red" : side === "red" ? "blue" : ""} id={`${compositionId}-enemy`} />
+              </span>
+              <span className="ig-date"><span className="ig-duration"><Clock3 aria-hidden="true" />{gameDuration(match)}</span><span className="ig-when">{date ? <><time dateTime={date.toISOString()}>{dateFormat.format(date)}</time><span>{timeFormat.format(date)}</span></> : <span>{t("Date inconnue")}</span>}</span></span>
               <span className="ig-open" aria-hidden="true">{active ? <Check /> : <ChevronRight />}</span>
             </button>
           </li>;

@@ -26,8 +26,8 @@ it("renders the same Paris dates in raw server HTML under different process time
     output.push(dates({ dateTimeZone: "Europe/Paris" }));
   }
   expect(output[0]).toEqual([
-    { iso: matches[1].game_date, date: "24 sept. 2026", time: "01:30 · 30:00" },
-    { iso: matches[0].game_date, date: "24 janv. 2026", time: "00:30 · 30:00" },
+    { iso: matches[1].game_date, date: "24 sept. 2026", time: "01:30" },
+    { iso: matches[0].game_date, date: "24 janv. 2026", time: "00:30" },
   ]);
   expect(output[1]).toEqual(output[0]);
   expect(output[2]).toEqual(output[0]);
@@ -36,11 +36,11 @@ it("renders the same Paris dates in raw server HTML under different process time
 it("keeps local time by default for private game lists", () => {
   vi.stubEnv("TZ", "UTC");
   expect(dates()).toEqual([
-    { iso: matches[1].game_date, date: "23 sept. 2026", time: "23:30 · 30:00" },
-    { iso: matches[0].game_date, date: "23 janv. 2026", time: "23:30 · 30:00" },
+    { iso: matches[1].game_date, date: "23 sept. 2026", time: "23:30" },
+    { iso: matches[0].game_date, date: "23 janv. 2026", time: "23:30" },
   ]);
   vi.stubEnv("TZ", "America/Los_Angeles");
-  expect(dates().map(item => item.time)).toEqual(["16:30 · 30:00", "15:30 · 30:00"]);
+  expect(dates().map(item => item.time)).toEqual(["16:30", "15:30"]);
 });
 
 it("sets the time zone only for the demo and explains it next to its introduction", () => {
