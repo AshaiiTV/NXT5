@@ -74,7 +74,7 @@ function BanDetail({ row, phase, camp, onOpenDraft, draftLabel, detailRef }) {
   return <section ref={detailRef} tabIndex={-1} className="draft-ban-detail" aria-label={t("Comprendre les bans de {0}", [name])}>
     <header className="draft-ban-hero">
       <ChampionPortrait champion={row.champion} className="h-16 w-16 rounded-xl object-cover" />
-      <div className="draft-ban-hero-name"><h4>{name}</h4><Badge tone="cyan">{metric.count < 3 ? t("À confirmer") : t("Observation répétée")}</Badge></div>
+      <div className="draft-ban-hero-name"><h4>{name}</h4><Badge tone="info">{metric.count < 3 ? t("À confirmer") : t("Observation répétée")}</Badge></div>
       <p className="draft-ban-hero-rate"><strong>{percentage(metric)}</strong><span>{metric.total ? t("{0}/{1} drafts", [metric.count, metric.total]) : t("Fréquence indisponible")}</span></p>
     </header>
     {!metric.total && <p className="draft-note">{t("Bans renseignés, mais données trop incomplètes pour une fréquence.")}</p>}
@@ -203,7 +203,7 @@ export function DraftRotations({ model, onOpenDraft, draftLabel }) {
   return <Surface className="draft-intelligence"><div className="draft-intelligence-section-heading"><div><h3>{t("Nos rotations de picks")}</h3><p className="drafter-muted">{t("Picks consécutifs avant de rendre la main. Rang de sélection ≠ rôle joué.")}</p></div>
     <Segmented label={t("Notre position dans la sélection")} value={position} onChange={setPosition} options={[["opening", t("Premier pick")], ["responding", t("Réponse au premier pick")]]} /></div>
     {!rotations.length ? <p className="draft-note">{t("Aucune rotation vérifiée dans cette position. Essaie l’autre position ou réimporte les drafts sans ordre.")}</p> : <ol className="draft-rotation-grid">{rotations.map((rotation) => <li className="draft-rotation" data-phase={rotation.phase} key={rotation.id}>
-      <header><Badge tone={rotation.phase === 1 ? "cyan" : "purple"}>{t("Phase {0}", [rotation.phase])}</Badge><span className="draft-rotation-slots">{rotation.labels.join(" / ")}</span><h4>{t(rotation.label)}</h4><p className="drafter-muted">{t("{0} drafts exploitables", [rotation.total])}</p></header>
+      <header><Badge tone={rotation.phase === 1 ? "info" : "brand"}>{t("Phase {0}", [rotation.phase])}</Badge><span className="draft-rotation-slots">{rotation.labels.join(" / ")}</span><h4>{t(rotation.label)}</h4><p className="drafter-muted">{t("{0} drafts exploitables", [rotation.total])}</p></header>
       <ul className="draft-rotation-champions">{rotation.champions.slice(0, 3).map((item) => <li key={item.champion}>
         <ChampionPortrait champion={item.champion} className="h-9 w-9 rounded-md object-cover" />
         <span className="draft-rotation-champion"><span><span>{championDisplayName(item.champion)}</span><strong>{item.count}/{item.total}</strong></span><Meter value={ratio(item)} tone={rotation.phase === 1 ? "cyan" : "lavender"} /></span>

@@ -199,7 +199,7 @@ export function LegalPage({ route, navigate, user }) {
       <main className="nxt5-information-main">
         <PublicInformationNav navigate={navigate} activePath={route.path} />
         <header className="nxt5-information-hero nxt5-enter">
-          <Badge tone="cyan">{t(page.eyebrow)}</Badge>
+          <Badge tone="info">{t(page.eyebrow)}</Badge>
           <h1 id="document-title" className="nxt5-metal-text">{t(page.title)}</h1>
           <p>{t(page.intro)}</p>
           {!page.contact && <div className="nxt5-document-meta"><FileText aria-hidden="true" size={16} /><span>{t("Version applicable : ")}{LEGAL_VERSION}</span></div>}

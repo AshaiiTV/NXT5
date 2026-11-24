@@ -396,7 +396,7 @@ export function CategoryMultiSelect({ categories = [], selectedIds, onChange, la
         const active = ids.includes(String(category.id));
         return <button key={category.id} type="button" onClick={() => toggle(category.id)} aria-pressed={active} className={cx("inline-flex min-h-11 items-center gap-2 rounded-[2px] border px-3 py-2 text-xs font-semibold transition", active ? [tone(matchCategoryTone(category)), "ring-1 ring-white/35"] : "border-white/10 bg-white/[0.04] text-slate-300 hover:bg-white/[0.07]")}>{active && <Check aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />}{category.name}</button>;
       })}
-      {!categories?.length && <Badge tone="slate">{t("Aucune catégorie")}</Badge>}
+      {!categories?.length && <Badge tone="neutral">{t("Aucune catégorie")}</Badge>}
     </div>
     {missingTag && <p id={helpId} className="mt-2 text-xs text-slate-300">{t("Ajoute au moins un tag à la partie.")}</p>}
   </div>;
@@ -950,7 +950,7 @@ export function ImportGameFlow({ data, refreshAll, selectedTeamId, pushToast, on
                   <div className="game-import-section-heading"><h3 id="game-import-side-title">{t("Choisis ton équipe")}</h3>{suggestedSide && <p className="game-import-recognition"><Check size={14} aria-hidden="true" />{t("Ton équipe a été reconnue grâce aux cinq Riot ID. Vérifie les postes et les profils avant de confirmer.")}</p>}</div>
                   <div className="game-import-side-options">
                     {previewTeams.map((team) => <button key={team.side} type="button" onClick={() => selectImportSide(team.side)} aria-pressed={allyTeamSide === team.side} data-side={team.side?.toLowerCase()} className="game-import-side">
-                      <span className="game-import-side-heading"><span className="game-import-side-indicator" aria-hidden="true">{allyTeamSide === team.side && <Check size={12} />}</span><strong>{team.side === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</strong><Badge tone={team.win ? "green" : "red"}>{team.win ? t("Victoire") : t("Défaite")}</Badge></span>
+                      <span className="game-import-side-heading"><span className="game-import-side-indicator" aria-hidden="true">{allyTeamSide === team.side && <Check size={12} />}</span><strong>{team.side === "BLUE" ? t("Côté bleu") : t("Côté rouge")}</strong><Badge tone={team.win ? "success" : "danger"}>{team.win ? t("Victoire") : t("Défaite")}</Badge></span>
                       <span className="game-import-side-champions">{team.participants.map((participant) => <span key={participant.participantId} className="game-import-side-champion" title={championDisplayName(participant.champion)}><ChampionPortrait champion={participant.champion} alt={championDisplayName(participant.champion)} className="h-7 w-7 shrink-0 rounded-md object-cover" /></span>)}</span>
                     </button>)}
                   </div>

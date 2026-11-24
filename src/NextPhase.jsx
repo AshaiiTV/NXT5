@@ -113,7 +113,7 @@ function Panel({ children, className = "" }) {
 
 function Label({ children, tone = "cyan" }) {
   useLanguage();
-  return <Badge tone={tone === "amber" ? "yellow" : tone}>{children}</Badge>;
+  return <Badge tone={tone === "amber" ? "warning" : tone}>{children}</Badge>;
 }
 
 function IconButton({ icon: Icon, label, onClick, danger = false, disabled = false }) {

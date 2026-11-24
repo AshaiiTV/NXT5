@@ -73,7 +73,7 @@ export default function DiscordRoleAccess({ teamId, metadata, canManage = false,
   }
 
   return <section className="discord-section discord-role-access" aria-label={t("Accès aux commandes de l’équipe")}>
-    <div className="discord-heading"><h4><ShieldCheck aria-hidden="true" className="h-5 w-5" />{t("Accès aux commandes de l’équipe")}</h4><Badge tone={policy?.enabled ? stale ? "red" : "cyan" : "slate"}>{policy?.enabled ? stale ? t("À reconfigurer") : t("Rôles requis") : t("Droits NXT5")}</Badge></div>
+    <div className="discord-heading"><h4><ShieldCheck aria-hidden="true" className="h-5 w-5" />{t("Accès aux commandes de l’équipe")}</h4><Badge tone={policy?.enabled ? stale ? "danger" : "info" : "neutral"}>{policy?.enabled ? stale ? t("À reconfigurer") : t("Rôles requis") : t("Droits NXT5")}</Badge></div>
     <DiscordFeedback loading={resource.loading && !policy} error={resource.error || action.error} notice={action.notice} />
     {policy && <>
       {stale && <p role="alert" className="discord-feedback discord-feedback-error">{t("Cette règle vient d’un autre serveur Discord. Les commandes de l’équipe restent bloquées tant qu’un responsable ne supprime pas cette ancienne restriction, puis choisit les rôles du serveur actuel.")}</p>}

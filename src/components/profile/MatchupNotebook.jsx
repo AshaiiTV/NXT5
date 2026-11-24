@@ -160,7 +160,7 @@ function NotebookContent({ draftKey, group, notebook, canEdit, onSave, onReload,
       <dl className="matchup-plan">{PLAN_FIELDS.map(([field, label]) => <div key={field}><dt>{t(label)}</dt><dd>{current.plan[field] || t("À renseigner.")}</dd></div>)}</dl>
       <div className="matchup-section-heading"><h5>{t("Essais et conclusions")}</h5><span className="matchup-meta">{t(pluralCount(current.experiments.length) ? "{0} essais" : "{0} essai", [current.experiments.length])}</span></div>
       {current.experiments.length ? current.experiments.map((experiment) => <details className="matchup-experiment" key={experiment.id}>
-        <summary><strong>{experiment.title}</strong><Badge tone={experiment.status === "active" ? "purple" : "cyan"}>{t(EXPERIMENT_STATES[experiment.status])}</Badge><span className="matchup-meta">{t(pluralCount(experiment.matchIds.length) ? "{0} parties associées" : "{0} partie associée", [experiment.matchIds.length])}</span></summary>
+        <summary><strong>{experiment.title}</strong><Badge tone={experiment.status === "active" ? "brand" : "info"}>{t(EXPERIMENT_STATES[experiment.status])}</Badge><span className="matchup-meta">{t(pluralCount(experiment.matchIds.length) ? "{0} parties associées" : "{0} partie associée", [experiment.matchIds.length])}</span></summary>
         <dl className="matchup-plan">{[["plan", "À tester"], ["observation", "Observations"], ["conclusion", "Conclusion du joueur et du staff"]].map(([key, label]) => <div key={key}><dt>{t(label)}</dt><dd>{experiment[key] || t("À renseigner.")}</dd></div>)}</dl>
         <LinkedGames ids={experiment.matchIds} rows={group.rows} navigate={navigate} />
       </details>) : <p className="matchup-meta">{t("Aucun essai enregistré pour ce duel.")}</p>}

@@ -12,7 +12,7 @@ import "./public-demo.css";
 const ROLE_NAMES = { TOP: "Haut", JGL: "Jungle", MID: "Milieu", ADC: "Tireur", SUP: "Support" };
 const percent = (value) => value === null ? "—" : `${value} %`;
 const kda = (row) => `${row.kills} / ${row.deaths} / ${row.assists}`;
-const resultBadge = (match) => <Badge tone={match.result === "Victoire" ? "green" : "red"}>{t(match.result)}</Badge>;
+const resultBadge = (match) => <Badge tone={match.result === "Victoire" ? "success" : "danger"}>{t(match.result)}</Badge>;
 const SAMPLE_NOTE = "Sur une, deux ou trois parties, un pourcentage donne une piste, pas une conclusion : revois le contexte dans les parties sources.";
 
 function ViewIntro({ title, text }) {
@@ -105,10 +105,10 @@ export function DemoChampions({ onOpenMatch }) {
       <p className="demo-data-note">{t("Victoires sur parties jouées, par champion.")}</p>
     </Surface>
     <Surface className="demo-panel demo-notebook">
-      <div className="demo-match-heading"><h3><BookOpen aria-hidden="true" size={20} />{t("Carnet de matchup : {0} contre {1}", [championName(DEMO_MATCHUP.champion), championName(DEMO_MATCHUP.opponent)])}</h3><Badge tone="cyan">{t(DEMO_MATCHUP.status)}</Badge></div>
+      <div className="demo-match-heading"><h3><BookOpen aria-hidden="true" size={20} />{t("Carnet de matchup : {0} contre {1}", [championName(DEMO_MATCHUP.champion), championName(DEMO_MATCHUP.opponent)])}</h3><Badge tone="info">{t(DEMO_MATCHUP.status)}</Badge></div>
       <p className="demo-match-context">{t("Poste {0} · bilan dans ce duel : {1} victoire sur {2}", [DEMO_MATCHUP.role, notebookWins, notebookGames.length])}</p>
       <dl className="demo-notebook-plan">{DEMO_MATCHUP.plan.map(([title, value]) => <div key={title}><dt>{t(title)}</dt><dd>{t(value)}</dd></div>)}</dl>
-      <p className="demo-notebook-experiment"><Badge tone="purple">{t(DEMO_MATCHUP.experiment.status)}</Badge> {t(DEMO_MATCHUP.experiment.text)}</p>
+      <p className="demo-notebook-experiment"><Badge tone="brand">{t(DEMO_MATCHUP.experiment.status)}</Badge> {t(DEMO_MATCHUP.experiment.text)}</p>
       <div className="demo-source-list">{notebookGames.map(({ match, ally, enemy }) => <Button key={match.id} type="button" variant="ghost" icon={ArrowRight} onClick={() => onOpenMatch(match)}>{t("Partie source : {0} · {1} contre {2}", [matchDisplayName(match), `${championName(ally.champion)} ${kda(ally)}`, `${championName(enemy.champion)} ${kda(enemy)}`])}</Button>)}</div>
       <p className="demo-data-note">{t("Notes rédigées pour la démo. Dans ton espace, chaque joueur complète ses propres carnets.")}</p>
     </Surface>

@@ -11,12 +11,13 @@ import { SUPPORT_URL } from "../../app/support.js";
 import { Nxt5Wordmark } from "../../components/brand/BrandAssets.jsx";
 import LanguageSwitcher from "../../i18n/LanguageSwitcher.jsx";
 
-export function LinkButton({ href, children, icon: Icon, variant = "primary", className = "", navigate, target, rel, ...props }) {
+export function LinkButton({ href, children, icon: Icon, variant = "primary", size = "md", className = "", navigate, target, rel, ...props }) {
   useLanguage();
   const base = "nxt5-cyber-button nxt5-control inline-flex min-h-11 min-w-0 max-w-full items-center justify-center gap-2 whitespace-normal px-4 py-2.5 text-center text-sm font-semibold leading-5 transition duration-200";
   const variants = {
     primary: "nxt5-button-primary border",
-    ghost: "nxt5-button-secondary border",
+    secondary: "nxt5-button-outline border",
+    ghost: "nxt5-button-ghost border",
     danger: "nxt5-button-danger border",
   };
 
@@ -26,7 +27,7 @@ export function LinkButton({ href, children, icon: Icon, variant = "primary", cl
     navigate(href);
   }
 
-  return <a {...props} href={href} onClick={go} target={target} rel={target === "_blank" ? "noopener noreferrer" : rel} className={cx(base, variants[variant], className)}>{Icon && <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
+  return <a {...props} href={href} onClick={go} target={target} rel={target === "_blank" ? "noopener noreferrer" : rel} className={cx(base, variants[variant] || variants.primary, size === "sm" && "nxt5-button-sm", className)}>{Icon && <Icon aria-hidden="true" className="h-4 w-4 shrink-0" />}<span className="min-w-0 break-words">{children}</span></a>;
 }
 
 export function SiteHeader({ children, navigate, simple = false }) {

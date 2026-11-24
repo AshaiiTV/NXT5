@@ -34,7 +34,7 @@ function ChampionList({ champions = [], bans = false, banStates = [], showPositi
 export function DraftSnapshot({ snapshot, allySide = "" }) {
   return <div className="opponents-draft-camps">
     {["blue", "red"].map((side) => <section className="opponents-camp" data-side={side} key={side}>
-      <div className="opponents-camp-heading"><span>{t(side === "blue" ? "Côté bleu" : "Côté rouge")}</span>{allySide && <Badge tone={allySide === side ? "cyan" : "slate"}>{t(allySide === side ? "Notre équipe" : "Adversaire")}</Badge>}</div>
+      <div className="opponents-camp-heading"><span>{t(side === "blue" ? "Côté bleu" : "Côté rouge")}</span>{allySide && <Badge tone={allySide === side ? "info" : "neutral"}>{t(allySide === side ? "Notre équipe" : "Adversaire")}</Badge>}</div>
       <h4>{snapshot[`${side}Name`] || t("Équipe sans nom")}</h4>
       <h5>{t("Picks affichés")}</h5>
       <ChampionList champions={snapshot[`${side}Picks`]} />
@@ -155,7 +155,7 @@ function OpponentDossier({ opponent, model, groups, teamId, headingRef, panel, o
   const results = resultSummary(model.observations);
   const drafts = model.observations.filter((match) => match.draft);
   const latest = model.observations.find((match) => dateValue(match.date));
-  return <Surface className="opponents-dossier">
+  return <Surface variant="glass" className="opponents-dossier">
     <header className="opponent-dossier-heading"><div className="opponent-dossier-identity"><span className="opponent-team-mark" aria-hidden="true"><Shield size={26} /></span><div><h2 ref={headingRef} tabIndex={-1}>{opponent.name}</h2></div></div>{latest && <a className="opponents-source opponent-latest-link" href={`/games?match=${encodeURIComponent(latest.id)}`}>{t("Dernière partie")}<ArrowRight size={16} aria-hidden="true" /></a>}</header>
     <dl className="opponent-dossier-metrics">
       <div><dt>{t("Parties rattachées")}</dt><dd>{model.total}</dd><span>{matchCount(model.total)}</span></div>
