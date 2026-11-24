@@ -1,4 +1,3 @@
-import { logFailure } from './_lib/safe-log';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
@@ -6,7 +5,7 @@ import { assertSessionSecret, requireAuth } from './_lib/auth';
 import { persistAnalyzedMatch } from './_lib/analytics';
 import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment, matchSourceMutationsAllowed } from './_lib/match-source-environment';
-import { assertImportRequestActive, fetchRequestedRiotMatch } from './_lib/match-import-request';
+import { assertImportRequestActive, fetchRequestedRiotMatch, runAfterMatchPersistence } from './_lib/match-import-request';
 import { assertRateLimit } from './_lib/rate-limit';
 import { notifyMatchImport } from './_lib/match-notifications';
 import { settleTeamImport } from './_lib/team-import';
@@ -39,14 +38,6 @@ function assertRiotMatchShape(match) {
   }
   if (!match.info || !Array.isArray(match.info.participants) || !Array.isArray(match.info.teams)) {
     throw Object.assign(new Error('Fichier invalide : il manque info.participants ou info.teams.'), { status: 400, code: 'NXT5_IMPORT_FILE_INVALID' });
-  }
-}
-
-async function runOptionalImportTask(label: string, task: () => Promise<unknown>) {
-  try {
-    await task();
-  } catch (err) {
-    logFailure(`[match-import-file] ${label} failed after match persistence.`, err);
   }
 }
 
@@ -130,14 +121,14 @@ export default async function handler(request: Request, context: Context): Promi
       opponentId: body.opponentId, newOpponentName: body.newOpponentName, signal: request.signal });
     wakeDiscordPublications(context);
 
-    await runOptionalImportTask('pending reception', () => settleTeamImport(teamId, resolvedGameId, savedMatch.id));
-    await runOptionalImportTask('audit log', () => sql`
+    await runAfterMatchPersistence('match-import-file', 'pending reception', () => settleTeamImport(teamId, resolvedGameId, savedMatch.id));
+    await runAfterMatchPersistence('match-import-file', 'audit log', () => sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
         values (${user.id}, 'match.import_file', 'match', ${savedMatch.id}, ${JSON.stringify({ gameId: resolvedGameId, teamId, label, categoryIds })}::jsonb)
       `);
 
     if (savedMatch.inserted) {
-      const notificationTask = runOptionalImportTask('notification email', () => notifyMatchImport({ siteUrl: process.env.PUBLIC_SITE_URL || new URL(request.url).origin, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || resolvedGameId, actorKey: user.id }));
+      const notificationTask = runAfterMatchPersistence('match-import-file', 'notification email', () => notifyMatchImport({ siteUrl: process.env.PUBLIC_SITE_URL || new URL(request.url).origin, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || resolvedGameId, actorKey: user.id }));
       if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(notificationTask);
       else await notificationTask;
     }

@@ -1,9 +1,8 @@
-import { logFailure } from './_lib/safe-log';
 import type { Context } from "@netlify/functions";
 import { sql } from './_lib/db';
 import { json, readJson, assertMethod, handleError } from './_lib/http';
 import { assertSessionSecret, requireAuth } from './_lib/auth';
-import { assertImportRequestActive, fetchRequestedRiotMatch } from './_lib/match-import-request';
+import { assertImportRequestActive, fetchRequestedRiotMatch, runAfterMatchPersistence } from './_lib/match-import-request';
 import { persistAnalyzedMatch } from './_lib/analytics';
 import { wakeDiscordPublications } from './_lib/discord-wake';
 import { assertMatchSourceMutationEnvironment, matchSourceMutationsAllowed } from './_lib/match-source-environment';
@@ -12,14 +11,6 @@ import { notifyMatchImport } from './_lib/match-notifications';
 
 function cleanText(value, max = 240) {
   return String(value || '').trim().replace(/\s+/g, ' ').slice(0, max);
-}
-
-async function runOptionalImportTask(label: string, task: () => Promise<unknown>) {
-  try {
-    await task();
-  } catch (err) {
-    logFailure(`[match-import] ${label} failed after match persistence.`, err);
-  }
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
@@ -101,13 +92,13 @@ export default async function handler(request: Request, context: Context): Promi
       opponentId: body.opponentId, newOpponentName: body.newOpponentName, signal: request.signal });
     wakeDiscordPublications(context);
 
-    await runOptionalImportTask('audit log', () => sql`
+    await runAfterMatchPersistence('match-import', 'audit log', () => sql`
         insert into audit_logs (user_id, action, entity_type, entity_id, metadata)
         values (${user.id}, 'match.import', 'match', ${savedMatch.id}, ${JSON.stringify({ gameId, teamId, label, categoryIds })}::jsonb)
       `);
 
     if (savedMatch.inserted) {
-      const notificationTask = runOptionalImportTask('notification email', () => notifyMatchImport({ siteUrl: process.env.PUBLIC_SITE_URL || new URL(request.url).origin, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || gameId, actorKey: user.id }));
+      const notificationTask = runAfterMatchPersistence('match-import', 'notification email', () => notifyMatchImport({ siteUrl: process.env.PUBLIC_SITE_URL || new URL(request.url).origin, teamId, matchId: savedMatch.id, gameId: savedMatch.game_id || gameId, actorKey: user.id }));
       if (typeof (context as any).waitUntil === 'function') (context as any).waitUntil(notificationTask);
       else await notificationTask;
     }
