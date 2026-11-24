@@ -24,10 +24,10 @@ export function installTarget({ platform, execPath, env = process.env, isPackage
   if (platform === "win32") {
     const file = env.PORTABLE_EXECUTABLE_FILE;
     if (!file || !/\.exe$/i.test(file)) return { supported: false, reason: "layout" };
-    return { supported: true, kind: "windows", target: path.resolve(file) };
+    return { supported: true, kind: "windows", target: path.win32.resolve(file) };
   }
   if (platform === "darwin") {
-    const bundle = path.resolve(execPath, "..", "..", "..");
+    const bundle = path.posix.resolve(execPath, "..", "..", "..");
     if (!/\.app$/i.test(bundle)) return { supported: false, reason: "layout" };
     // Gatekeeper runs quarantined apps from a read-only copy: the user must move it first.
     if (bundle.includes("/AppTranslocation/") || bundle.startsWith("/Volumes/"))
