@@ -41,8 +41,6 @@ export const en = {
   "Carte joueur": "Player card",
   "Carte · {0}": "Card · {0}",
   "Chapitre {0} · {1}": "Chapter {0} · {1}",
-  "Recto": "Front",
-  "Verso": "Back",
   "Parcourir le Wrapped": "Explore the Wrapped",
   "Découvrir le Wrapped": "Discover the Wrapped",
 };
@@ -89,8 +87,6 @@ export const es = {
   "Carte joueur": "Carta de jugador",
   "Carte · {0}": "Carta · {0}",
   "Chapitre {0} · {1}": "Capítulo {0} · {1}",
-  "Recto": "Anverso",
-  "Verso": "Reverso",
   "Parcourir le Wrapped": "Explorar el Wrapped",
   "Découvrir le Wrapped": "Descubrir el Wrapped",
 };

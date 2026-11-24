@@ -131,7 +131,6 @@ export function resolveSeries(fixture, games = fixture?.games || []) {
     acceptedGameIds: accepted.map(game => game.gameId), overflow, issues,
   };
 }
-export const getSeriesResult = resolveSeries;
 
 /** By default only league points order the table. Extra tie-breakers require an
  * explicit configured rule. Input order provides display stability, never a
@@ -284,7 +283,6 @@ export function generatePlayoffBracket(seedTeamIds, { bestOf = 3, allowByes = fa
     finalMatchKey: `po-r${Math.log2(bracketSize)}-m1` });
   return allowByes ? progressPlayoffs(bracket) : bracket;
 }
-export const generatePlayoffs = generatePlayoffBracket;
 
 /** Standard double elimination, including the optional reset when the upper
  * bracket winner receives its first defeat in the grand final. */

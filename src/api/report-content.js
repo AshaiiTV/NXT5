@@ -31,14 +31,6 @@ export function loadFullReport(teamId, report) {
   return cache.get(key);
 }
 
-export async function loadReportContent(teamId, report) {
-  return (await loadFullReport(teamId, report)).content;
-}
-
-export function clearReportContentCache() {
-  cache.clear();
-}
-
 /**
  * Replaces omitted reports by their full rows once loaded. Rows still loading
  * (or failed) stay in `pending` and keep `content_omitted: true`.
