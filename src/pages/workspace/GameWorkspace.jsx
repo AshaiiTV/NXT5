@@ -22,6 +22,7 @@ import { MatchDrafting as DraftImpactPanel } from "../../components/games/MatchD
 import { ImportedGames } from "../../components/games/ImportedGames.jsx";
 import { MatchVisualRecap } from "../../components/games/MatchVisualRecap.jsx";
 import DebriefAnalysis from "../../components/games/DebriefAnalysis.jsx";
+import AutoDebrief, { isGeneratedImportReport, plainCoachText } from "../../components/games/AutoDebrief.jsx";
 import { isTeamNote, reportMatchIds, savedDebrief, staffNotesFromReport } from "../../../shared/report-notes.js";
 import VisualDebrief, { DebriefPlayers, Moments, Objectives } from "../../components/games/VisualDebrief.jsx";
 import NotesWorkspace from "./NotesWorkspace.jsx";
@@ -1183,21 +1184,6 @@ function matchCoachSnapshot(match) {
   return buildGamePublicationSnapshot({ match }).coach;
 }
 
-function plainCoachText(value) {
-  return String(value || "")
-    .replace(/\bVOD\b/g, "vidéo de la partie")
-    .replace(/\bun setup\b/gi, "une préparation")
-    .replace(/\ble setup\b/gi, "la préparation")
-    .replace(/\bsetup\b/gi, "préparation")
-    .replace(/\bgames\b/gi, "parties")
-    .replace(/\bgame\b/gi, "partie")
-    .replace(/\breview\b/gi, "débrief")
-    .replace(/\bla débrief\b/g, "le débrief")
-    .replace(/\bune débrief\b/g, "un débrief")
-    .replace(/\bde or\b/g, "d’or")
-    .replace(/Écart final : (.+?) en or final entre/g, "Écart d’or final : $1 entre");
-}
-
 function MatchCoachBrief({ match, onReview, hasReview = false }) {
   useLanguage();
   const publication = buildGamePublicationSnapshot({ match });
@@ -1276,19 +1262,18 @@ function SavedMatchDebrief({ report, match, complete }) {
   </ReadingDetails>;
 }
 
-function MatchWrittenSummary({ match, reports, complete, reportsLoading = false, reportsError = "", onRetryReports }) {
+function MatchWrittenSummary({ match, snapshot, reports, complete, reportsLoading = false, reportsError = "", onRetryReports }) {
   const singleGameAnalysis = reports.some((report) => reportMatchIds(report).length === 1 && /^\[NXT5_REPORT_V3\]\r?$/m.test(report.content || ""));
-  const [readAnalysis, setReadAnalysis] = useState(false);
+  const showAutoDebrief = complete && !singleGameAnalysis && match.participants?.length > 0;
+  // The import's statistics dump is part of the automatic debrief, never a second entry.
+  const generated = reports.find((report) => isGeneratedImportReport(report) && reportMatchIds(report).length === 1);
+  const saved = reports.filter((report) => report.content?.trim() && !(showAutoDebrief && isGeneratedImportReport(report)));
   return <div className="match-written-summary">
-    {(reportsLoading || reportsError || reports.some((report) => report.content?.trim())) && <h4 className="games-section-heading">{t("Débriefs enregistrés")}</h4>}
+    {(reportsLoading || reportsError || showAutoDebrief || saved.length > 0) && <h4 className="games-section-heading">{t("Débriefs enregistrés")}</h4>}
     {reportsLoading && <p className="games-load-state" role="status"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{t("Chargement des débriefs…")}</p>}
     {reportsError && <p role="alert">{t("Un débrief n’a pas pu être chargé.")} <Button type="button" variant="ghost" icon={RefreshCw} onClick={onRetryReports}>{t("Réessayer")}</Button></p>}
-    {complete && !singleGameAnalysis && match.participants?.length > 0 &&
-      <ReadingDetails title={t("Lecture automatique de la partie")} onToggle={(event) => setReadAnalysis(event.currentTarget.open)}>
-        {readAnalysis && renderReportContent(buildGameReviewContent(match).split(REPORT_REWRITE_MARKER)[0], match.participants)}
-      </ReadingDetails>}
-    {reports.filter((report) => report.content?.trim()).map((report) =>
-      <SavedMatchDebrief key={report.id} report={report} match={match} complete={complete} />)}
+    {showAutoDebrief && <AutoDebrief snapshot={snapshot} report={generated} />}
+    {saved.map((report) => <SavedMatchDebrief key={report.id} report={report} match={match} complete={complete} />)}
   </div>;
 }
 
@@ -1325,7 +1310,7 @@ function MatchDataContent({ match, teamName, reports = [], reportsLoading = fals
     <TabNav idPrefix={id} panelId={`${id}-panel`} label={t("Vues de la partie")} items={tabs} activeId={tab} onChange={setTab} className="match-recap-tabs" />
     <div id={`${id}-panel`} role="tabpanel" tabIndex={0} aria-labelledby={`${id}-tab-${tab}`} className="match-recap-tab-content">
       <div hidden={tab !== "summary"}>
-        <MatchWrittenSummary match={match} reports={reports} complete={!loading && !error} reportsLoading={reportsLoading} reportsError={reportsError} onRetryReports={onRetryReports} />
+        <MatchWrittenSummary match={match} snapshot={publication} reports={reports} complete={!loading && !error} reportsLoading={reportsLoading} reportsError={reportsError} onRetryReports={onRetryReports} />
         <MatchVisualRecap match={match} snapshot={publication} loading={loading} error={error} teamFilter={mapTeamFilter} onTeamFilterChange={setMapTeamFilter} />
         {!loading && !error && <div className="match-summary-analysis">
           <Objectives snapshot={publication} />
