@@ -11,7 +11,7 @@ describe("public legal information", () => {
   });
 
   it("publishes a consistent dated legal version", () => {
-    expect(LEGAL_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(LEGAL_VERSION).toMatch(/^\d{4}-\d{2}-\d{2}(\.\d+)?$/);
     expect(JSON.stringify(LEGAL_PAGES["/confidentialite"])).toContain(LEGAL_VERSION);
     expect(JSON.stringify(LEGAL_PAGES["/conditions"])).toContain(LEGAL_VERSION);
     expect(JSON.stringify(LEGAL_PAGES["/reglement"])).toContain(LEGAL_VERSION);

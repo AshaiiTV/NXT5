@@ -31,6 +31,9 @@ create index if not exists idx_users_pending_email_token
 -- Préférences de notification par user.
 alter table users add column if not exists notif_match boolean default true;
 alter table users add column if not exists notif_report boolean default true;
+-- Suppression de compte : la ligne est conservée, anonymisée et datée
+-- (20261124_account_deletion.sql). Ne jamais supprimer un compte par DELETE.
+alter table users add column if not exists deleted_at timestamptz;
 
 create table if not exists sessions (
   id uuid primary key default gen_random_uuid(),

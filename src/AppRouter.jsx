@@ -25,6 +25,8 @@ import { useAppLoading } from "./components/loading/AppLoadingProvider.jsx";
 const PrivateApp = lazy(preloadPrivateApp);
 const GuestDraftRoom = lazy(() => import("./components/draft/LiveDraftRoom.jsx").then(m => ({ default: m.GuestDraftRoom })));
 const NexusRisingPage = lazy(() => import("./pages/nexus/NexusRisingPage.jsx"));
+const AccountDeletionReceipt = lazy(() => import("./pages/workspace/AccountDeletion.jsx").then((module) => ({ default: module.AccountDeletionReceipt })));
+const ACCOUNT_DELETION_PENDING_KEY = "nxt5_account_deletion_pending";
 const DemoPage = lazy(() => import("./pages/public/DemoPage.jsx").then((module) => ({ default: module.DemoPage })));
 
 // Public pages are separate chunks. Client navigation runs in a transition and
@@ -89,7 +91,7 @@ function VerifiedPage({ navigate, user, onLogout, checkingSession }) {
   </Surface></main></div>;
 }
 
-const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate, initialDemoPage }) {
+const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession, user, route, navigate, pushToast, onAuth, onLogout, onUserUpdate, onAccountDeleted, initialDemoPage }) {
   useLanguage();
   const inviteMode = new URLSearchParams(route.search).has("invite") ?"register" : null;
   const mode = authModeFromPath(route.path) || inviteMode;
@@ -122,7 +124,7 @@ const RoutedAppContent = React.memo(function RoutedAppContent({ checkingSession,
   if (route.path === "/verified") return <VerifiedPage navigate={navigate} user={user} onLogout={onLogout} checkingSession={checkingSession} />;
   if (route.path === "/mot-de-passe-oublie") return <ForgotPasswordPage navigate={navigate} />;
   if (route.path === "/reinitialiser-mot-de-passe") return <ResetPasswordPage navigate={navigate} onAuth={onAuth} />;
-  if (user) return <PrivateRoute user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
+  if (user) return <PrivateRoute user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} onAccountDeleted={onAccountDeleted} pushToast={pushToast} navigate={navigate} route={route} />;
   if (mode) return <AuthPage mode={mode} onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
   if (routeIsPrivate) return <AuthPage mode="login" onAuth={onAuth} pushToast={pushToast} navigate={navigate} />;
   return publicPage(PUBLIC_PAGES.home, { navigate });
@@ -134,6 +136,8 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
   const [checkingSession, setCheckingSession] = useState(true);
   const [user, setUser] = useState(null);
   const [toasts, setToasts] = useState([]);
+  const [accountDeletionReceipt, setAccountDeletionReceipt] = useState(null);
+  useAppLoading(accountDeletionReceipt ? null : undefined);
   const [route, setRoute] = useState(() => initialRoute || readRoute());
 
   // Hydrate the exact build-time route first, then apply browser-only query
@@ -160,8 +164,19 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
   const handleAuth = useCallback((nextUser) => {
     authGeneration.current += 1;
     setCheckingSession(false);
+    setAccountDeletionReceipt(null);
     setUser(nextUser);
   }, []);
+  // The server already closed every session: leave the private space without a logout request.
+  const handleAccountDeleted = useCallback((receipt) => {
+    authGeneration.current += 1;
+    reviewDrafts.clear();
+    setCheckingSession(false);
+    setUser(null);
+    setToasts([]);
+    setAccountDeletionReceipt(receipt);
+    navigate("/connexion", { replace: true });
+  }, [navigate]);
   const handleLogout = useCallback(async (beforeLogout) => {
     if (reviewDrafts.hasDrafts() && !window.confirm(t("Te déconnecter supprimera les brouillons de débrief non enregistrés de cette session. Continuer ?"))) return;
     if (typeof beforeLogout === "function" && !await beforeLogout()) {
@@ -200,7 +215,23 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
     const generation = authGeneration.current;
     // auth-me answers 200 { user: null } for an anonymous visitor (no session
     // cookie); a present but invalid session still rejects with 401.
-    apiFetch("auth-me").then((result) => { if (mounted && authGeneration.current === generation) setUser(result?.user || null); }).catch(() => { if (mounted && authGeneration.current === generation) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
+    (async () => {
+      // A deletion whose response was lost (reload, network) is resolved before the session check.
+      let pending = "";
+      try { pending = window.sessionStorage?.getItem(ACCOUNT_DELETION_PENDING_KEY) || ""; } catch {}
+      if (pending) {
+        try {
+          const result = await apiFetch("auth-delete-account", { method: "POST", body: JSON.stringify({ action: "status", confirmationToken: pending }) });
+          if (result?.ok && result.receipt?.reference) {
+            try { window.sessionStorage?.removeItem(ACCOUNT_DELETION_PENDING_KEY); } catch {}
+            if (mounted && authGeneration.current === generation) handleAccountDeleted(result.receipt);
+            return;
+          }
+        } catch {}
+      }
+      const result = await apiFetch("auth-me");
+      if (mounted && authGeneration.current === generation) setUser(result?.user || null);
+    })().catch(() => { if (mounted && authGeneration.current === generation) setUser(null); }).finally(() => { if (mounted) setCheckingSession(false); });
     return () => { mounted = false; };
   }, []);
 
@@ -237,5 +268,6 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
     navigate(buildLoginRedirect(route.path, route.search), { replace: true });
   }, [checkingSession, user, route.path, route.search]);
 
-  return <><CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true || isAdminPath(route.path)} /><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} initialDemoPage={initialDemoPage} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
+  if (accountDeletionReceipt) return <div className="relative min-h-screen text-white"><AmbientBackground /><Suspense fallback={<p role="status" className="relative z-10 p-6 text-slate-200">{t("Compte supprimé. Chargement du reçu…")}</p>}><AccountDeletionReceipt receipt={accountDeletionReceipt} onContinue={() => { setAccountDeletionReceipt(null); navigate("/connexion", { replace: true }); }} /></Suspense></div>;
+  return <><CookieConsent route={route} ready={!checkingSession} excluded={user?.is_platform_admin === true || isAdminPath(route.path)} /><RoutedAppContent checkingSession={checkingSession} user={user} route={route} navigate={navigate} pushToast={pushToast} onAuth={handleAuth} onLogout={handleLogout} onUserUpdate={handleAuth} onAccountDeleted={handleAccountDeleted} initialDemoPage={initialDemoPage} /><ToastStack toasts={toasts} removeToast={removeToast} /></>;
 }

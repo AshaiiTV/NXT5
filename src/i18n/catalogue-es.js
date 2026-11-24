@@ -20,6 +20,7 @@ import { es as socialCalendar } from './social-calendar-overrides.js';
 import { es as matchRecap } from './match-recap-overrides.js';
 import { es as debrief } from './debrief-overrides.js';
 import { es as demo } from './demo-overrides.js';
+import { es as accountDeletion } from './account-deletion-overrides.js';
 const teamManagement = {
   "Effectif": "Plantilla",
   "Encadrement": "Cuerpo técnico",
@@ -93,6 +94,7 @@ export default { ...base, ...adminTeams, ...quality, ...reviewed, ...components,
   ...demo,
   ...nexus,
   ...concise,
+  ...accountDeletion,
   "Tuto vidéo : importer une partie sur Windows": "Vídeo tutorial: importar una partida en Windows",
   "YouTube · 2 min 31 · En français · Nouvel onglet": "YouTube · 2 min 31 · En francés · Nueva pestaña",
 };

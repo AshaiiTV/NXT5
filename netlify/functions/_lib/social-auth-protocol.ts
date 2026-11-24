@@ -111,10 +111,12 @@ function assertVerifier(nonce: string, codeVerifier: string) {
 
 export async function createSocialAuthorizationUrl(
   config: SocialConfig,
-  { state, nonce, codeVerifier }: { state: string; nonce: string; codeVerifier: string },
+  { state, nonce, codeVerifier, freshLogin = false }: { state: string; nonce: string; codeVerifier: string; freshLogin?: boolean },
 ): Promise<string> {
   assertVerifier(nonce, codeVerifier);
   if (!/^[A-Za-z0-9_-]{32,128}$/.test(state)) throw protocolError();
+  // Riot RSO ne documente pas de paramètre de reconnexion forcée : la preuve
+  // repose alors uniquement sur l'antériorité de l'association (voir reauth).
   if (config.provider === 'riot') return createRiotAuthorizationUrl(config.riot, { state, nonce, codeVerifier });
   const provider = PROVIDERS[config.provider];
   const url = new URL(provider.authorize);
@@ -126,6 +128,17 @@ export async function createSocialAuthorizationUrl(
   if (config.provider === 'google') {
     url.searchParams.set('code_challenge', createHash('sha256').update(codeVerifier).digest('base64url'));
     url.searchParams.set('code_challenge_method', 'S256');
+  }
+  if (freshLogin) {
+    // Reconnexion avant une suppression de compte : jamais de retour silencieux.
+    // Google n'accepte pas prompt=login ; select_account impose une action et
+    // max_age=0 (OIDC) demande une authentification récente. Discord n'offre
+    // que prompt=consent. Apple demande toujours une action de l'utilisateur.
+    if (config.provider === 'google') {
+      url.searchParams.set('prompt', 'select_account');
+      url.searchParams.set('max_age', '0');
+    }
+    if (config.provider === 'discord') url.searchParams.set('prompt', 'consent');
   }
   // Apple discovery and Discord's confidential-client code flow do not
   // advertise PKCE. Do not send unsupported parameters as a security claim.

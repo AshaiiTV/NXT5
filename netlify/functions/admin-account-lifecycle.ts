@@ -63,6 +63,9 @@ export default async function handler(request:Request,context:Context) {
         tx`select 1 / case when ${JSON.stringify(body.expectedOwnedTeams || [])}::jsonb = coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'name',t.name,'revision',t.xmin::text,
           'profiles',(select count(*)::int from players p where p.team_id=t.id),'matches',(select count(*)::int from matches m where m.team_id=t.id)) order by t.id) from teams t where t.owner_id=${id}),'[]'::jsonb) then 1 else 0 end`,
         nexusEngagementGuard(tx,{ownerId:id}),
+        // Deliberate administrative deletion with a confirmed team inventory: lift the
+        // shared-team guard of account-deletion-20261124-v1 for this transaction only.
+        tx`select set_config('nxt5.admin_account_delete','on',true)`,
         tx`delete from users where id=${id}`] : [
         tx`update users set suspended_at=case when ${action}='suspend' then clock_timestamp() else null end,updated_at=clock_timestamp() where id=${id}`,
         // The user lock also serializes against the session-creation trigger.

@@ -5,6 +5,13 @@ type Translation = Omit<AssistantKnowledgeEntry, 'id' | 'path'>;
 
 export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>> = {
   en: {
+    'account-deletion': {
+      title: 'Delete my account', actionLabel: 'Open settings',
+      summary: 'The “Delete my account” section, at the bottom of Settings, permanently deletes your account after two confirmations. A team with other members is transferred to the member you choose, never deleted.',
+      keywords: ['delete my account', 'account deletion', 'delete account', 'erase my account', 'close my account', 'unsubscribe', 'gdpr', 'erasure', 'personal data'],
+      steps: ['Open Settings, then the “Delete my account” section at the bottom of the page.', 'Read the consequences and choose a new owner for each team that has other members.', 'Type SUPPRIMER then your current password. Without an NXT5 password, sign in again with a linked service.', 'Keep the reference shown on the receipt. The team’s shared games stay available without your name as author.'],
+      suggestions: ['What happens to my team?', 'Which data is kept?', 'How do I secure my account?'],
+    },
     'importer-video': {
       title: 'NXT5 Importer video tutorial', actionLabel: 'Open the import tutorial',
       summary: `This French video shows how to export a game with NXT5 Importer on Windows and add it to NXT5: ${IMPORTER_TUTORIAL_URL}. The YouTube link is also available in the assistant and beside the import controls.`,
@@ -372,6 +379,13 @@ export const ASSISTANT_TRANSLATIONS: Record<string, Record<string, Translation>>
     },
   },
   es: {
+    'account-deletion': {
+      title: 'Eliminar mi cuenta', actionLabel: 'Abrir los ajustes',
+      summary: 'La sección «Eliminar mi cuenta», al final de Ajustes, elimina tu cuenta definitivamente tras dos confirmaciones. Un equipo con otros miembros se transfiere al miembro que elijas, nunca se elimina.',
+      keywords: ['eliminar mi cuenta', 'eliminación de cuenta', 'borrar cuenta', 'cerrar mi cuenta', 'darse de baja', 'rgpd', 'supresión', 'datos personales'],
+      steps: ['Abre Ajustes y después la sección «Eliminar mi cuenta» al final de la página.', 'Lee las consecuencias y elige un nuevo propietario para cada equipo que tenga otros miembros.', 'Escribe SUPPRIMER y tu contraseña actual. Sin contraseña de NXT5, vuelve a iniciar sesión con un servicio vinculado.', 'Guarda la referencia que aparece en el comprobante. Las partidas compartidas del equipo siguen disponibles sin tu nombre como autor.'],
+      suggestions: ['¿Qué pasa con mi equipo?', '¿Qué datos se conservan?', '¿Cómo protejo mi cuenta?'],
+    },
     'importer-video': {
       title: 'Vídeo tutorial de NXT5 Importer', actionLabel: 'Abrir el tutorial de importación',
       summary: `Este vídeo en francés muestra cómo exportar una partida con NXT5 Importer en Windows y añadirla a NXT5: ${IMPORTER_TUTORIAL_URL}. El enlace de YouTube también está en el asistente y junto a los controles de importación.`,

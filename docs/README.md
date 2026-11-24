@@ -28,6 +28,7 @@ Les sorties de travail nouvelles vont dans `artifacts/`, `tmp/` ou `output/`, ig
 - [Inscription et connexions externes](social-auth.md)
 - [Configuration des fournisseurs Google, Discord, Apple et Riot](social-provider-configuration.md)
 - [Interface et vérifications des connexions externes](social-auth-ui-qa.md)
+- [Suppression de compte : parcours et décisions par clé étrangère](suppression-compte-2026-11-24.md)
 
 ### Produit
 
@@ -64,6 +65,7 @@ Ils ne décrivent pas des fonctionnalités actives ni une commercialisation pré
 
 | Date | Rapport |
 | --- | --- |
+| 2026-11-24 | [Suppression de compte en libre-service](suppression-compte-2026-11-24.md) |
 | 2026-11-24 | [Rangement des guides et des sorties de travail](rangement-guides-2026-11-24.md) |
 | 2026-11-09 | [Logo NXT5 : le 5 de la page d’accueil partout](logo-verre-integration-2026-11-09.md) |
 | 2026-11-09 | [Pistes de logo dans la direction « 5 en verre »](logo-verre-pistes-2026-11-09.md) |

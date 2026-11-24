@@ -8,8 +8,9 @@ import { Badge, Button, PageHeader, PremiumToggle, Surface, TextInput } from "..
 import { cx, preciseErrorText } from "../../app/helpers.js";
 import "./account-settings.css";
 import { SocialAccounts } from "../../components/account/SocialAccounts.jsx";
+import { AccountDeletion } from "./AccountDeletion.jsx";
 
-function AccountSettings({ user, onUserUpdate, pushToast }) {
+function AccountSettings({ user, onUserUpdate, onAccountDeleted, pushToast }) {
   useLanguage();
   const [profileForm, setProfileForm] = useState({ name: user?.name || user?.account_name || "", email: user?.email || "" });
   const [emailPassword, setEmailPassword] = useState("");
@@ -230,6 +231,7 @@ function AccountSettings({ user, onUserUpdate, pushToast }) {
         </div>
       </Surface>
     </div>
+    <AccountDeletion key={`deletion-${user?.id}`} onDeleted={onAccountDeleted} />
   </div>;
 }
 
