@@ -12,4 +12,4 @@ Un écart de nombre de parties entre joueurs peut venir d’une association erro
 
 ## Mon profil
 
-`/mon-profil` réunit Synthèse, Champions, Champions déclarés, Historique, Suivi et Carte & Wrapped. Les notes et carnets sont soumis aux droits d’accès. Si un profil semble vide, vérifier le compte lié dans Gestion de l’équipe puis les joueurs associés aux parties importées.
+`/mon-profil` réunit Synthèse, Champions joués, Champion pool, Historique et Suivi. La carte joueur et le Wrapped s’affichent en tête de Synthèse (`/mon-profil/carte` y conduit encore). Dans Historique, **Parties par page** règle l’affichage. Les notes et carnets sont soumis aux droits d’accès. Si un profil semble vide, vérifier le compte lié dans Gestion de l’équipe puis les joueurs associés aux parties importées.
