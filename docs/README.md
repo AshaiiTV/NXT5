@@ -4,6 +4,8 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 
 ## Guides
 
+Les sorties de travail nouvelles vont dans `artifacts/`, `tmp/` ou `output/`, ignorés par Git. Les captures, scripts et résultats historiques déjà versionnés restent suivis : les exclusions ne les retirent pas du dépôt. Pour versionner une nouvelle preuve citée par un rapport, l’ajouter explicitement avec `git add -f`. Conserver les preuves citées par les rapports, les jeux de données synthétiques nécessaires aux comparaisons et les outils permettant de refaire les contrôles. Une capture ancienne ne certifie pas le rendu courant ni la production.
+
 ### Exploitation
 
 - [Migrations de la base](../database/MIGRATIONS.md)
@@ -12,6 +14,7 @@ Sommaire des documents du dépôt. Les **guides** décrivent l’état actuel et
 - [Fréquentation : contrat et exploitation](audience-api.md)
 - [Référencement et présentation publique](seo.md)
 - [Publications YouTube](youtube-playbook.md)
+- [Chargement des historiques](chargement-historique.md) et [banc de mesure local](../tools/bench-history/README.md)
 
 ### Bot Discord
 
@@ -61,6 +64,7 @@ Ils ne décrivent pas des fonctionnalités actives ni une commercialisation pré
 
 | Date | Rapport |
 | --- | --- |
+| 2026-11-24 | [Rangement des guides et des sorties de travail](rangement-guides-2026-11-24.md) |
 | 2026-11-09 | [Logo NXT5 : le 5 de la page d’accueil partout](logo-verre-integration-2026-11-09.md) |
 | 2026-11-09 | [Pistes de logo dans la direction « 5 en verre »](logo-verre-pistes-2026-11-09.md) |
 | 2026-10-15 | [Enseignements des Reels et vérification de la production](enseignements-reels-2026-10-15.md) |
