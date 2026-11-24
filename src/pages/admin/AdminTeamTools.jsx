@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Pencil, RefreshCw, Trash2 } from "lucide-react";
 
 import { apiFetch } from "../../api/client.js";
+import { isUncertainFailure } from "./mutation-outcome.js";
 
 import { Badge, Button, PageHeader, ReadingDetails, SelectInput, SkeletonRows, Surface, TextInput } from "../../components/ui/Core.jsx";
 
@@ -90,7 +91,7 @@ function useMutation(onSuccess) {
 
       if(mounted.current){setState({busy:false,error:"",message:"Action enregistrée.",uncertain:false});onSuccess(body.action);}
 
-    } catch(error){if(mounted.current)setState({busy:false,error:error.message,message:"",uncertain:true});}
+    } catch(error){if(mounted.current)setState({busy:false,error:error.message,message:"",uncertain:isUncertainFailure(error)});}
 
     finally{pending.current=false;}
 

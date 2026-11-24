@@ -29,7 +29,7 @@ const rows=async(q:string,v:any[]=[]) => (await state.db.query(q,v)).rows;
 const context={deploy:{context:'production'},cookies:{get:()=> 'token',set:vi.fn()}} as any;
 const req=(body?:any)=>new Request('https://nxt5.org/.netlify/functions/admin-account-lifecycle?userId='+user,{method:body?'POST':'GET',headers:{Origin:'https://nxt5.org','Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
 const snapshot=async()=>await(await handler(req(),context)).json();
-const act=async(action:string,extra:any={})=>{const d=await snapshot();return handler(req({action,userId:user,confirmAccount:'player',expectedRevision:d.account.revision,expectedOwnedTeams:d.ownedTeams,...extra}),context);};
+const act=async(action:string,extra:any={})=>{const d=await snapshot();return handler(req({action,userId:user,confirmAccount:'player',expectedRevision:d.account.revision,expectedOwnedTeams:d.ownedTeams,...(action==='resume' ? {}:{reason:'Motif de test'}),...extra}),context);};
 beforeAll(async()=>{state.db=new PGlite();await state.db.exec(readFileSync(new URL('../../database/schema.sql',import.meta.url),'utf8').replace('create extension if not exists pgcrypto;','').replaceAll('gen_random_bytes(5)',"decode('0000000000','hex')"));await state.db.exec(readFileSync(new URL('../../database/migrations/20260906_runtime_schema.sql',import.meta.url),'utf8'));},20000);
 afterAll(async()=>state.db?.close());
 beforeEach(async()=>{state.admin.mockReset().mockResolvedValue({id:admin,email:'admin@example.test',session_id:session});state.before=null;
@@ -40,7 +40,7 @@ beforeEach(async()=>{state.admin.mockReset().mockResolvedValue({id:admin,email:'
  await rows("insert into players(team_id,user_id,name,role) select id,$1,'Linked player','COACH' from teams",[user]);
 });
 it('suspends, revokes sessions, refuses replay and resumes without restoring sessions',async()=>{
- const d=await snapshot();const body={action:'suspend',userId:user,confirmAccount:'player',expectedRevision:d.account.revision};
+ const d=await snapshot();const body={action:'suspend',userId:user,confirmAccount:'player',expectedRevision:d.account.revision,reason:'Abus signalé'};
  expect((await handler(req(body),context)).status).toBe(200);expect((await handler(req(body),context)).status).toBe(409);
  expect((await snapshot()).account.suspended_at).not.toBeNull();expect(await rows('select id from sessions where user_id=$1 and revoked_at is null',[user])).toHaveLength(0);
  expect((await act('resume')).status).toBe(200);expect((await snapshot()).account.suspended_at).toBeNull();expect(await rows('select id from sessions where user_id=$1 and revoked_at is null',[user])).toHaveLength(0);
@@ -72,15 +72,49 @@ it('rolls back deletion and cascades when audit fails',async()=>{
 it('protects the acting admin and rechecks revoked administrator rights',async()=>{
  expect((await handler(new Request('https://nxt5.org/?userId='+admin.toUpperCase()),context)).status).toBe(403);
  const d=await snapshot();state.before=()=>rows('update sessions set revoked_at=now() where id=$1',[session]);
- expect((await handler(req({userId:user,action:'suspend',confirmAccount:'player',expectedRevision:d.account.revision}),context)).status).toBe(403);
+ expect((await handler(req({userId:user,action:'suspend',confirmAccount:'player',expectedRevision:d.account.revision,reason:'Motif de test'}),context)).status).toBe(403);
 });
 it('blocks cross-site writes and cascading deletes in previews',async()=>{
  expect((await handler(new Request(req({}),{headers:{Origin:'https://evil.example','Content-Type':'application/json'}}),context)).status).toBe(403);
- const d=await snapshot();expect((await handler(req({userId:user,action:'delete',confirmAccount:'player',expectedRevision:d.account.revision,expectedOwnedTeams:d.ownedTeams}),{deploy:{context:'deploy-preview'}} as any)).status).toBe(409);
+ const d=await snapshot();expect((await handler(req({userId:user,action:'delete',confirmAccount:'player',expectedRevision:d.account.revision,expectedOwnedTeams:d.ownedTeams,reason:'Motif de test'}),{deploy:{context:'deploy-preview'}} as any)).status).toBe(409);
 });
 
 it('protects administrator UUIDs regardless of letter case',async()=>{
  const id='abcdefab-abcd-abcd-abcd-abcdefabcdef';
  state.admin.mockResolvedValue({id,email:'admin@example.test',session_id:session});
  expect((await handler(new Request('https://nxt5.org/?userId='+id.toUpperCase()),context)).status).toBe(403);
+});
+
+it('requires a bounded reason to suspend or delete and writes nothing without it',async()=>{
+ for(const action of ['suspend','delete'])for(const reason of [undefined,'','  abc ','x'.repeat(501),'Motif\u0000caché']){
+  expect((await act(action,{reason})).status).toBe(400);
+ }
+ expect((await snapshot()).account.suspended_at).toBeNull();expect(await rows('select id from audit_logs')).toHaveLength(0);
+});
+it('records the account, masked e-mail, reason and validated inventory in the audit trail',async()=>{
+ expect((await act('suspend',{reason:'  Abus répété  '})).status).toBe(200);
+ expect((await act('resume')).status).toBe(200);
+ const d=await snapshot();
+ expect((await act('delete',{reason:'Demande RGPD',expectedOwnedTeams:d.ownedTeams.map((team:any)=>({...team,extra:'ignored'}))})).status).toBe(409);
+ expect((await act('delete',{reason:'Demande RGPD'})).status).toBe(200);
+ const logs=await rows('select action,metadata from audit_logs order by created_at,action');
+ expect(logs.map((row:any)=>row.action)).toEqual(['admin.account.suspend','admin.account.resume','admin.account.delete']);
+ expect(logs[0].metadata).toEqual({accountName:'player',accountEmailMasked:'p***@example.test',reason:'Abus répété'});
+ expect(logs[1].metadata).toEqual({accountName:'player',accountEmailMasked:'p***@example.test',reason:null});
+ expect(logs[2].metadata).toEqual({accountName:'player',accountEmailMasked:'p***@example.test',reason:'Demande RGPD',ownedTeams:[{id:d.ownedTeams[0].id,name:'Owned team',profiles:1,matches:0}]});
+ expect(JSON.stringify(logs)).not.toContain('player@example.test');
+});
+
+it('reports a Nexus registration created during the account deletion with the Nexus reason',async()=>{
+ const d=await snapshot();
+ const team=(await rows('select id from teams where owner_id=$1',[user]))[0].id;
+ // Hooks run before the pre-check, the account read, then the transaction.
+ state.before=async()=>{state.before=async()=>{state.before=async()=>{
+  await rows("insert into nexus_seasons(id,name,status) values('00000000-0000-4000-8000-000000000009','S','running')");
+  await rows("insert into nexus_registrations(season_id,team_id,status) values('00000000-0000-4000-8000-000000000009',$1,'approved')",[team]);
+ };};};
+ const response=await handler(req({action:'delete',userId:user,confirmAccount:'player',expectedRevision:d.account.revision,expectedOwnedTeams:d.ownedTeams,reason:'Demande RGPD'}),context);
+ expect(response.status).toBe(409);expect(await response.json()).toMatchObject({code:'NEXUS_TEAM_ENGAGED'});
+ expect(await rows('select id from users where id=$1',[user])).toHaveLength(1);
+ await state.db.exec('truncate nexus_seasons cascade');
 });

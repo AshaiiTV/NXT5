@@ -10,6 +10,26 @@ const uuid = (value: unknown) => {
   return id;
 };
 
+// Audit metadata is free-form and written by many endpoints. Expose only the
+// fields the journal summarises, with bounded sizes, never the raw object.
+const SUMMARY_KEYS = ['previousOwnerId','newOwnerId','previousName','newName','name','accountName','accountEmailMasked','reason','role','targetUserId','reference','sessionCount'];
+function summary(metadata: unknown) {
+  const source = metadata && typeof metadata === 'object' && !Array.isArray(metadata) ? metadata as Record<string, any> : {};
+  const output: Record<string, unknown> = {};
+  for (const key of SUMMARY_KEYS) {
+    const value = source[key];
+    if (typeof value === 'string' && value) output[key] = value.slice(0, 500);
+    else if (typeof value === 'number' && Number.isFinite(value)) output[key] = value;
+  }
+  if (source.counts && typeof source.counts === 'object' && !Array.isArray(source.counts)) {
+    output.counts = Object.fromEntries(Object.entries(source.counts).filter(([key, value]) => /^[a-z]{1,20}$/.test(key) && Number.isFinite(Number(value))).slice(0, 12).map(([key, value]) => [key, Number(value)]));
+  }
+  if (Array.isArray(source.ownedTeams)) output.ownedTeams = source.ownedTeams.slice(0, 50).map((team: any) => ({ name: String(team?.name ?? '').slice(0, 80), profiles: Number(team?.profiles) || 0, matches: Number(team?.matches) || 0 }));
+  if (Array.isArray(source.destinations)) output.destinationCount = source.destinations.length;
+  return output;
+}
+const withSummary = (rows: any[]) => rows.map(({ metadata, ...row }) => ({ ...row, summary: summary(metadata) }));
+
 async function accountDetail(id: string) {
   const [accounts, teams, profiles, activity] = await sql.transaction(tx => [
     tx`select u.id, u.name, u.account_name, u.email, u.email_verified, u.created_at, u.last_active_at,
@@ -21,13 +41,13 @@ async function accountDetail(id: string) {
       where t.owner_id=${id} or tm.user_id=${id} order by t.name,t.id`,
     tx`select p.id,p.name,p.role,p.riot_id,p.team_id,t.name as team_name from players p
       join teams t on t.id=p.team_id where p.user_id=${id} order by t.name,p.name,p.id`,
-    tx`select a.id,a.action,a.entity_type,a.created_at,u.name as actor_name
+    tx`select a.id,a.action,a.entity_type,a.entity_id,a.metadata,a.created_at,u.name as actor_name
       from audit_logs a left join users u on u.id=a.user_id
       where a.user_id=${id} or (a.entity_type='user' and a.entity_id=${id})
       order by a.created_at desc,a.id desc limit 15`
   ], { isolationLevel: 'RepeatableRead', readOnly: true });
   if (!accounts.length) throw fail('Compte introuvable.', 404);
-  return { account: accounts[0], teams, profiles, activity };
+  return { account: accounts[0], teams, profiles, activity: withSummary(activity) };
 }
 
 export default async function handler(request: Request, context: Context): Promise<Response> {
@@ -53,6 +73,9 @@ export default async function handler(request: Request, context: Context): Promi
         with valid_admin as materialized (
           select s.id from sessions s join users u on u.id=s.user_id where s.id=${sessionId} and s.user_id=${admin.id}
           and s.revoked_at is null and s.expires_at>clock_timestamp() and u.email is not distinct from ${admin.email || null} for update of s,u
+        ), previous as (
+          -- Every part of this statement reads the same snapshot: the name before the update.
+          select name from users where id=${id}
         ), changed as (
           update users set name=case when ${body.action}='rename' then ${name} else name end,
             updated_at=clock_timestamp()
@@ -65,7 +88,9 @@ export default async function handler(request: Request, context: Context): Promi
         ), logged as (
           insert into audit_logs(user_id,action,entity_type,entity_id,metadata)
           select ${admin.id},case when ${body.action}='rename' then 'admin.account.rename' else 'admin.sessions.revoke' end,
-            'user',id,jsonb_build_object('sessionCount',(select count(*) from revoked))
+            'user',id,case when ${body.action}='rename'
+              then jsonb_build_object('previousName',(select name from previous),'newName',${name}::text)
+              else jsonb_build_object('sessionCount',(select count(*) from revoked)) end
           from changed where ${body.action}='rename' or exists(select 1 from revoked) returning id
         ) select exists(select 1 from valid_admin) as authorized,exists(select 1 from changed) as changed,
           (select count(*)::int from revoked) as revoked, (select count(*) from logged) as logged`;
@@ -101,7 +126,7 @@ export default async function handler(request: Request, context: Context): Promi
       ], { isolationLevel:'RepeatableRead', readOnly:true });
     } else if (view === 'journal') {
       [rows,counts] = await sql.transaction(tx => [
-        tx`select a.id,a.action,a.entity_type,a.entity_id,a.created_at,u.id as user_id,u.name as actor_name
+        tx`select a.id,a.action,a.entity_type,a.entity_id,a.metadata,a.created_at,u.id as user_id,u.name as actor_name
           from audit_logs a left join users u on u.id=a.user_id
           where concat_ws(' ',a.action,a.entity_type,a.entity_id::text,u.name,u.account_name) ilike ${search}
           order by a.created_at desc,a.id desc limit ${limit} offset ${offset}`,
@@ -126,6 +151,6 @@ export default async function handler(request: Request, context: Context): Promi
             and (${filter}<>'no-team' or not exists(select 1 from teams t where t.owner_id=u.id or exists(select 1 from team_members m where m.team_id=t.id and m.user_id=u.id)))`
       ], { isolationLevel:'RepeatableRead', readOnly:true });
     }
-    return json({ rows, pagination:{ page,pageSize:limit,total:Number(counts[0]?.total || 0) } });
+    return json({ rows: view === 'journal' ? withSummary(rows) : rows, pagination:{ page,pageSize:limit,total:Number(counts[0]?.total || 0) } });
   } catch(error) { return handleError(error); }
 }

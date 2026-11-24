@@ -71,7 +71,7 @@ it('transfers ownership and memberships without changing any team content',async
 it('keeps a transferred team and its content when deleting its previous owner, and rejects an old deletion inventory',async()=>{
  await rows('update players set user_id=$1 where id=$2',[ownerId,profileId]);
  const old=await oldAccount();expect((await change(await transferBody())).status).toBe(200);
- const deletion={action:'delete',userId:ownerId,confirmAccount:'Owner',expectedRevision:old.account.revision,expectedOwnedTeams:old.ownedTeams};
+ const deletion={action:'delete',reason:'Demande de suppression',userId:ownerId,confirmAccount:'Owner',expectedRevision:old.account.revision,expectedOwnedTeams:old.ownedTeams};
  expect((await lifecycle(accountRequest(deletion),{deploy:{context:'production'}} as any)).status).toBe(409);
  const fresh=await oldAccount();expect(fresh.ownedTeams.map((t:any)=>t.id)).toEqual([otherTeam]);
  expect((await lifecycle(accountRequest({...deletion,expectedRevision:fresh.account.revision,expectedOwnedTeams:fresh.ownedTeams}),{deploy:{context:'production'}} as any)).status).toBe(200);

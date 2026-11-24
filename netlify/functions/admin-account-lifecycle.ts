@@ -3,11 +3,24 @@ import { sql } from './_lib/db';
 import { requirePlatformAdmin } from './_lib/platform-admin';
 import { assertTrustedMutation,handleError,json,readJson } from './_lib/http';
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
-import { assertNotEngagedInNexus, nexusEngagementGuard } from './_lib/nexus-team-lifecycle';
+import { assertNotEngagedInNexus, nexusEngagementGuard, nexusFailureOr } from './_lib/nexus-team-lifecycle';
+import { maskEmail } from './_lib/email';
 
 const invalid=(message:string,status=400)=>Object.assign(new Error(message),{status});
+const stale=()=>invalid('Le compte ou ses équipes ont changé. Recharge le dossier.',409);
+// The reason is kept in the audit trail: plain text, no control characters.
+function reason(value:unknown,required:boolean) {
+  const text=typeof value==='string' ? value.trim():'';
+  if(!text && !required)return null;
+  if(text.length<5 || text.length>500 || /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(text))throw invalid('Indique un motif de 5 à 500 caractères.');
+  return text;
+}
+// Only the validated inventory fields are recorded, never arbitrary client keys.
+const ownedTeams=(value:unknown)=>(Array.isArray(value) ? value:[]).map((team:any)=>({id:String(team?.id ?? ''),name:String(team?.name ?? ''),
+  profiles:Number(team?.profiles) || 0,matches:Number(team?.matches) || 0}));
 const uuid=(value:unknown)=>{const id=String(value || '');if(!/^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id))throw invalid('Identifiant invalide.');return id.toLowerCase();};
 export default async function handler(request:Request,context:Context) {
+  let deleteScope:{ownerId:string}|null=null;
   try {
     if(!['GET','POST'].includes(request.method))return json({error:'Méthode refusée.'},405,{Allow:'GET, POST'});
     assertTrustedMutation(request);
@@ -26,8 +39,15 @@ export default async function handler(request:Request,context:Context) {
     }
     const action=String(body.action),revision=String(body.expectedRevision || '');
     if(!['suspend','resume','delete'].includes(action) || !/^\d{1,20}$/.test(revision))throw invalid('Action ou révision invalide.');
-    if(action==='delete'){assertMatchSourceMutationEnvironment(context);await assertNotEngagedInNexus({ownerId:id});}
+    const why=reason(body.reason,action!=='resume');
+    if(action==='delete'){assertMatchSourceMutationEnvironment(context);deleteScope={ownerId:id};await assertNotEngagedInNexus(deleteScope);}
     if(String(body.confirmAccount || '')==='')throw invalid('Saisis l’identifiant du compte pour confirmer.');
+    // Read before the transaction: the revision check below proves the account
+    // (name and e-mail included) did not change before the audit is written.
+    const [target]=await sql`select account_name,email from users where id=${id} and xmin::text=${revision}`;
+    if(!target)throw stale();
+    const metadata={accountName:target.account_name,accountEmailMasked:target.email ? maskEmail(target.email):null,
+      ...(action==='delete' ? {ownedTeams:ownedTeams(body.expectedOwnedTeams)}:{}),reason:why};
     const sessionId=(admin as typeof admin & {session_id?:string}).session_id;
     if(!sessionId)throw invalid('Session administrateur invalide.',403);
     await sql.transaction(tx=>[
@@ -48,11 +68,11 @@ export default async function handler(request:Request,context:Context) {
         // The user lock also serializes against the session-creation trigger.
         tx`update sessions set revoked_at=clock_timestamp() where user_id=${id} and revoked_at is null`
       ]),
-      tx`insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values(${admin.id},${'admin.account.'+action},'user',${id},'{}'::jsonb)`
+      tx`insert into audit_logs(user_id,action,entity_type,entity_id,metadata) values(${admin.id},${'admin.account.'+action},'user',${id},${JSON.stringify(metadata)}::jsonb)`
     ]);
     return json({ok:true});
   }catch(error:any){
-    if(error.code==='22012')return json({error:'Le compte ou ses équipes ont changé. Recharge le dossier.'},409);
+    if(error.code==='22012')return handleError(deleteScope ? await nexusFailureOr(deleteScope,stale()):stale());
     if(error.code==='22P02')return json({error:'La session administrateur a changé. Reconnecte-toi.'},403);
     return handleError(error);
   }
