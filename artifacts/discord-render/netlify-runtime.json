@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-09-15T12:44:17.621Z",
+  "deployId": "6aa93d60e4ca58458e931fd0",
+  "status": 200,
+  "type": "image/png",
+  "runtime": "linux/x64 v22.23.2",
+  "renderMs": "860",
+  "size": "1440x2519",
+  "bytes": 496388,
+  "synthetic": true
+}

@@ -1,0 +1,11 @@
+.preview-shell { min-height: 100vh; background: var(--nxt5-bg); }
+.preview-controls { padding: 12px 24px; border-bottom: 1px solid var(--nxt5-border); background: #0b1323; color: var(--nxt5-muted); font-size: 12px; }
+.preview-controls > div { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; }
+.preview-controls label { display: inline-flex; align-items: center; gap: 6px; }
+.preview-controls button, .preview-controls select { min-height: 32px; padding: 4px 8px; border: 1px solid var(--nxt5-border); border-radius: 4px; color: var(--nxt5-text); background: var(--nxt5-surface); }
+.preview-controls :focus-visible { outline: 2px solid var(--nxt5-accent); outline-offset: 3px; }
+.preview-main { max-width: 1500px; margin: 0 auto; padding: 28px 28px 48px; }
+.preview-heading > span { color: var(--nxt5-accent); font-weight: 700; font-size: 14px; }
+.preview-heading h1 { color: var(--nxt5-text); font-weight: 800; font-size: 28px; margin: 4px 0; }
+.preview-status { color: var(--nxt5-text-secondary); margin-top: 16px; min-height: 24px; }
+@media (max-width: 600px) { .preview-controls { padding: 10px 12px; } .preview-main { padding: 18px 12px 32px; } .preview-heading h1 { font-size: 24px; } }
