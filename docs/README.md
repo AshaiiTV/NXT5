@@ -91,6 +91,7 @@ Un nouveau rapport s’écrit dans `docs/rapports/<sujet>-AAAA-MM-JJ.md` et s’
 | Date | Rapport |
 | --- | --- |
 | 2026-11-24 | [Rangement de la documentation](rapports/rangement-documentation-2026-11-24.md) |
+| 2026-11-24 | [Nettoyage du code sans effet sur le site](rapports/nettoyage-code-2026-11-24.md) |
 | 2026-11-24 | [Suppression de compte en libre-service](suppression-compte-2026-11-24.md) † |
 | 2026-11-24 | [Effectif : hauteur stable des cartes joueur](rapports/roster-hauteur-stable-2026-11-24.md) |
 | 2026-11-24 | [Rangement des guides et des sorties de travail](rapports/rangement-guides-2026-11-24.md) |
