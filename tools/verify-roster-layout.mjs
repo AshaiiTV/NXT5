@@ -81,6 +81,9 @@ try {
             overrides: [...document.querySelectorAll('main > .nxt5-surface')].slice(1).map(el => parseFloat(getComputedStyle(el).paddingLeft)),
             arrowOffsets: [...document.querySelectorAll('[data-roster="main"] .team-roster-row')].map(row => { const arrow = rect(row.querySelector(".team-roster-arrow")), role = rect(row.querySelector(".team-roster-role")); return Math.abs((arrow.top + arrow.bottom - role.top - role.bottom) / 2); }),
             overflow: document.documentElement.scrollWidth > innerWidth,
+            // Diagnostic only: first card's parts, reported when the stable-height check fails.
+            parts: Object.fromEntries(['.team-roster-role', '.team-roster-identity', '.team-roster-name', '.team-roster-pool-label', '.team-roster-champion-pool > .team-roster-champions', '.team-roster-record'].map(selector => [selector, document.querySelector('.team-roster-list > li ' + selector)?.getBoundingClientRect().height ?? null])),
+            fonts: [...document.fonts].filter(font => font.family.includes('Inter')).map(font => font.weight + ':' + font.status).join(' '),
           };
         });
         const label = width + 'px / ' + order + ' / ' + state;
@@ -107,7 +110,7 @@ try {
   for (const order of ['normal', 'reset-last']) for (const width of [320, 390, 768, 1440, 1920]) {
     const complete = results.find((item) => item.order === order && item.width === width && item.state === 'complete');
     const partial = results.find((item) => item.order === order && item.width === width && item.state === 'partial');
-    assert(Math.abs(complete.cards[0].height - partial.cards[0].height) <= 1, width + 'px / ' + order + ': stable player card height');
+    assert(Math.abs(complete.cards[0].height - partial.cards[0].height) <= 1, width + 'px / ' + order + ': stable player card height ' + JSON.stringify({ complete: [complete.cards[0].height, complete.parts, complete.fonts], partial: [partial.cards[0].height, partial.parts, partial.fonts] }));
     assert(Math.abs(complete.headings[1].top - partial.headings[1].top) <= 1, width + 'px / ' + order + ': stable staff position');
   }
   await fs.writeFile(path.join(output, 'results.json'), JSON.stringify(results, null, 2));
