@@ -121,6 +121,16 @@ describe('server-only provider configuration and authorization', () => {
     if (provider === 'apple') expect(url.searchParams.get('response_mode')).toBe('form_post');
   });
 
+  it.each(['google', 'apple', 'discord'] as const)('forces a fresh %s login only when asked (deletion reauthentication)', async provider => {
+    const normal = new URL(await createSocialAuthorizationUrl(requireSocialConfig(provider), { state, nonce, codeVerifier }));
+    expect(normal.searchParams.has('prompt')).toBe(false);
+    expect(normal.searchParams.has('max_age')).toBe(false);
+    const fresh = new URL(await createSocialAuthorizationUrl(requireSocialConfig(provider), { state, nonce, codeVerifier, freshLogin: true }));
+    // Google refuses prompt=login; Discord only knows consent and none; Apple always asks.
+    expect(fresh.searchParams.get('prompt')).toBe({ google: 'select_account', discord: 'consent', apple: null }[provider]);
+    expect(fresh.searchParams.get('max_age')).toBe(provider === 'google' ? '0' : null);
+  });
+
   it('rejects short or malformed correlation values before network access', async () => {
     await expect(createSocialAuthorizationUrl(requireSocialConfig('google'), { state: 'short', nonce, codeVerifier })).rejects.toThrow();
     await expect(exchangeSocialAuthorizationCode(requireSocialConfig('google'), { code: 'valid-code', nonce: 'short', codeVerifier })).rejects.toThrow();

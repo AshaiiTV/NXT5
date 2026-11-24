@@ -1,7 +1,8 @@
 import { maskEmail, sendAccountSecurityEmail } from './email';
 import { runInBackground } from './response-timing';
+import { NXT5_CONTACT_EMAIL } from '../../../shared/legal.js';
 
-export type AccountNoticeKind = 'password-changed' | 'password-reset' | 'email-change-requested' | 'email-changed';
+export type AccountNoticeKind = 'password-changed' | 'password-reset' | 'email-change-requested' | 'email-changed' | 'account-deleted';
 
 function noticeContent(kind: AccountNoticeKind, newEmail = '') {
   const masked = newEmail ? maskEmail(newEmail) : '';
@@ -20,6 +21,10 @@ function noticeContent(kind: AccountNoticeKind, newEmail = '') {
       return { subject: 'L’adresse e-mail de ton compte NXT5 a changé', title: 'Adresse e-mail modifiée',
         paragraphs: [`L’adresse e-mail de ton compte NXT5 est désormais ${masked}. Cette adresse-ci ne recevra plus les e-mails du compte.`,
           'Les autres sessions ont été déconnectées et les liens de récupération envoyés ici ne sont plus valables.'] };
+    case 'account-deleted':
+      return { subject: 'Ton compte NXT5 a été supprimé', title: 'Compte supprimé',
+        paragraphs: ['Ton compte NXT5 vient d’être supprimé depuis tes paramètres. Toutes tes sessions ont été fermées et cette adresse n’est plus associée à NXT5.',
+          `Si tu n’es pas à l’origine de cette suppression, écris à ${NXT5_CONTACT_EMAIL}.`] };
   }
 }
 

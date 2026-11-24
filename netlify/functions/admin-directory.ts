@@ -4,6 +4,7 @@ import { requirePlatformAdmin } from './_lib/platform-admin';
 import { assertTrustedMutation, handleError, json, readJson } from './_lib/http';
 
 const fail = (message: string, status = 400) => Object.assign(new Error(message), { status });
+const DELETED_ACCOUNT = 'Ce compte a été supprimé : il ne peut plus être renommé ni modifié.';
 const uuid = (value: unknown) => {
   const id = String(value || '');
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) throw fail('Identifiant invalide.');
@@ -66,6 +67,10 @@ export default async function handler(request: Request, context: Context): Promi
       if (!/^\d{1,20}$/.test(revision)) throw fail('Recharge la fiche avant de modifier le compte.');
       const sessionId = (admin as typeof admin & { session_id?: string }).session_id;
       if (!sessionId) throw fail('Session administrateur invalide.',403);
+      // A deleted account is immutable (trg_deleted_account_immutable): refuse clearly
+      // instead of letting the trigger surface as a server error.
+      const [state] = await sql`select deleted_at from users where id=${id}`;
+      if (state?.deleted_at) throw fail(DELETED_ACCOUNT,409);
       // The session lock serializes this action against concurrent revocation.
       // The account version prevents stale edits and duplicate retries. Mutation
       // and audit are one statement: either both persist or neither does.
@@ -152,5 +157,9 @@ export default async function handler(request: Request, context: Context): Promi
       ], { isolationLevel:'RepeatableRead', readOnly:true });
     }
     return json({ rows: view === 'journal' ? withSummary(rows) : rows, pagination:{ page,pageSize:limit,total:Number(counts[0]?.total || 0) } });
-  } catch(error) { return handleError(error); }
+  } catch(error: any) {
+    // Lost race with a self-service deletion: same clear refusal as the pre-check.
+    if (error?.code === '23514' && error?.message === 'ACCOUNT_DELETED') return handleError(fail(DELETED_ACCOUNT,409));
+    return handleError(error);
+  }
 }

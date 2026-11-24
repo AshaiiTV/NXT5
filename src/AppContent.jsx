@@ -280,10 +280,10 @@ function assistantEntityForRoute(route, data, selectedTeamId) {
   return null;
 }
 
-export function MainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
+export function MainApp({ user, onLogout, onUserUpdate, onAccountDeleted, pushToast, navigate, route }) {
   useLanguage();
   if (!user?.email || user.email_verified !== true) return <EmailVerificationGate user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
-  return <VerifiedMainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
+  return <VerifiedMainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} onAccountDeleted={onAccountDeleted} pushToast={pushToast} navigate={navigate} route={route} />;
 }
 
 function EmailVerificationGate({ user, onLogout, onUserUpdate, pushToast }) {
@@ -293,7 +293,7 @@ function EmailVerificationGate({ user, onLogout, onUserUpdate, pushToast }) {
   return <div className="nxt5-entry-page nxt5-auth-page"><AmbientBackground /><SiteHeader /><Dialog user={user} onLogout={() => onLogout()} onUserUpdate={onUserUpdate} pushToast={pushToast} /></div>;
 }
 
-function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, route }) {
+function VerifiedMainApp({ user, onLogout, onUserUpdate, onAccountDeleted, pushToast, navigate, route }) {
   useLanguage();
   const isPlatformAdmin = user?.is_platform_admin === true;
   const initialPage = new URLSearchParams(route.search).get("invite") ?"teams" : pageFromPath(route.path);
@@ -376,9 +376,9 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
     if (active === "draft") return <DraftWorkspace data={data} setData={setData} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} route={route} navigate={navigate} />;
     if (active === "profile") return <PlayerUltimateProfile data={data} selectedTeamId={selectedTeamId} currentMember={currentMember} user={user} refreshAll={refreshAll} pushToast={pushToast} route={route} navigate={navigate} />;
     if (active === "guide") return <GuidePage route={route} navigate={navigate} onOpenAssistant={openAssistant} />;
-    if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
+    if (active === "account-settings") return <AccountSettings user={user} onUserUpdate={onUserUpdate} onAccountDeleted={onAccountDeleted} pushToast={pushToast} />;
     return <Teams teamCreation={teamCreation} data={data} refreshAll={refreshAll} selectedTeamId={selectedTeamId} setSelectedTeamId={setSelectedTeamId} currentMember={currentMember} routeSearch={route.search} pushToast={pushToast} user={user} />;
-  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, navigate, isPlatformAdmin, planningStore, teamCreation, ensureHistory, loadNextPage, historyLoading, historyError]);
+  }, [active, data, selectedTeamId, currentMember, route.path, route.search, pushToast, user, onUserUpdate, onAccountDeleted, navigate, isPlatformAdmin, planningStore, teamCreation, ensureHistory, loadNextPage, historyLoading, historyError]);
   const linkedPlayer = currentTeam ?(data.players || []).find((player) => player.team_id === currentTeam.id && player.user_id === user.id) : null;
   const onboardingReady = Boolean(bootstrapReady && currentTeam && data.selectedTeamId === currentTeam.id && !apiError);
   const onboarding = useOnboarding({ user, currentTeam, data, route, ready: onboardingReady });
@@ -482,11 +482,11 @@ function VerifiedMainApp({ user, onLogout, onUserUpdate, pushToast, navigate, ro
   );
 }
 
-export default function PrivateApp({ user, route, navigate, pushToast, onLogout, onUserUpdate }) {
+export default function PrivateApp({ user, route, navigate, pushToast, onLogout, onUserUpdate, onAccountDeleted }) {
   useLanguage();
   const adminPage = adminPageFromRoute(route);
   useAppLoading(adminPage ? null : undefined);
   if (adminPage && (!user?.email || user.email_verified !== true)) return <EmailVerificationGate user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} />;
   if (adminPage) return <Suspense fallback={<div className="p-6 text-slate-200" role="status" aria-label={t("Chargement de l’administration")}><SkeletonRows count={3} /></div>}><AdministrationPage route={route} navigate={navigate} user={user} onLogout={onLogout} /></Suspense>;
-  return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} pushToast={pushToast} navigate={navigate} route={route} />;
+  return <MainApp user={user} onLogout={onLogout} onUserUpdate={onUserUpdate} onAccountDeleted={onAccountDeleted} pushToast={pushToast} navigate={navigate} route={route} />;
 }

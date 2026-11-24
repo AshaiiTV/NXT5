@@ -8,6 +8,7 @@ import { maskEmail } from './_lib/email';
 
 const invalid=(message:string,status=400)=>Object.assign(new Error(message),{status});
 const stale=()=>invalid('Le compte ou ses équipes ont changé. Recharge le dossier.',409);
+const DELETED_ACCOUNT='Ce compte a été supprimé par son titulaire : il ne peut plus être suspendu ni réactivé.';
 // The reason is kept in the audit trail: plain text, no control characters.
 function reason(value:unknown,required:boolean) {
   const text=typeof value==='string' ? value.trim():'';
@@ -44,8 +45,11 @@ export default async function handler(request:Request,context:Context) {
     if(String(body.confirmAccount || '')==='')throw invalid('Saisis l’identifiant du compte pour confirmer.');
     // Read before the transaction: the revision check below proves the account
     // (name and e-mail included) did not change before the audit is written.
-    const [target]=await sql`select account_name,email from users where id=${id} and xmin::text=${revision}`;
+    const [target]=await sql`select account_name,email,deleted_at from users where id=${id} and xmin::text=${revision}`;
     if(!target)throw stale();
+    // A self-deleted account is immutable (trg_deleted_account_immutable): only the
+    // administrative deletion of its remaining row stays possible.
+    if(target.deleted_at && action!=='delete')throw invalid(DELETED_ACCOUNT,409);
     const metadata={accountName:target.account_name,accountEmailMasked:target.email ? maskEmail(target.email):null,
       ...(action==='delete' ? {ownedTeams:ownedTeams(body.expectedOwnedTeams)}:{}),reason:why};
     const sessionId=(admin as typeof admin & {session_id?:string}).session_id;
@@ -63,6 +67,9 @@ export default async function handler(request:Request,context:Context) {
         tx`select 1 / case when ${JSON.stringify(body.expectedOwnedTeams || [])}::jsonb = coalesce((select jsonb_agg(jsonb_build_object('id',t.id,'name',t.name,'revision',t.xmin::text,
           'profiles',(select count(*)::int from players p where p.team_id=t.id),'matches',(select count(*)::int from matches m where m.team_id=t.id)) order by t.id) from teams t where t.owner_id=${id}),'[]'::jsonb) then 1 else 0 end`,
         nexusEngagementGuard(tx,{ownerId:id}),
+        // Deliberate administrative deletion with a confirmed team inventory: lift the
+        // shared-team guard of account-deletion-20261124-v1 for this transaction only.
+        tx`select set_config('nxt5.admin_account_delete','on',true)`,
         tx`delete from users where id=${id}`] : [
         tx`update users set suspended_at=case when ${action}='suspend' then clock_timestamp() else null end,updated_at=clock_timestamp() where id=${id}`,
         // The user lock also serializes against the session-creation trigger.
@@ -72,6 +79,7 @@ export default async function handler(request:Request,context:Context) {
     ]);
     return json({ok:true});
   }catch(error:any){
+    if(error.code==='23514' && error.message==='ACCOUNT_DELETED')return handleError(invalid(DELETED_ACCOUNT,409));
     if(error.code==='22012')return handleError(deleteScope ? await nexusFailureOr(deleteScope,stale()):stale());
     if(error.code==='22P02')return json({error:'La session administrateur a changé. Reconnecte-toi.'},403);
     return handleError(error);

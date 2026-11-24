@@ -32,7 +32,7 @@ const revision=async()=>String((await rows('select xmin::text as revision from u
 beforeAll(async()=>{
   state.db=new PGlite();
   await state.db.exec(`
-    create table users(id uuid primary key,name text,account_name text,email text,email_verified boolean,created_at timestamptz default now(),updated_at timestamptz default now(),last_active_at timestamptz);
+    create table users(id uuid primary key,name text,account_name text,email text,email_verified boolean,created_at timestamptz default now(),updated_at timestamptz default now(),last_active_at timestamptz,deleted_at timestamptz);
     create table sessions(id uuid primary key,user_id uuid,token_hash text,expires_at timestamptz,revoked_at timestamptz);
     create table teams(id uuid primary key,name text,tag text,owner_id uuid);
     create table team_members(team_id uuid,user_id uuid,role text);
@@ -63,6 +63,14 @@ describe('platform account administration',()=>{
     const detail=await (await invoke('?userId='+userId)).json();
     expect(detail.account.active_sessions).toBe(1);expect(detail.teams[0].role).toBe('owner');expect(detail.profiles).toHaveLength(1);
     expect(JSON.stringify(detail)).not.toContain('PRIVATE_TOKEN');expect(detail.account).not.toHaveProperty('password_hash');
+  });
+  it('refuses clearly to rename or revoke a self-deleted account',async()=>{
+    await rows('update users set deleted_at=now() where id=$1',[userId]);
+    for(const action of ['rename','revoke-sessions']){
+      const response=await invoke('',{action,userId,name:'Updated player',expectedRevision:await revision()});
+      expect(response.status).toBe(409);expect((await response.json()).error).toContain('supprimé');
+    }
+    expect(await rows('select * from audit_logs')).toHaveLength(0);
   });
   it('renames once and refuses replay of a stale account revision',async()=>{
     const body={action:'rename',userId,name:'Updated player',expectedRevision:await revision()};

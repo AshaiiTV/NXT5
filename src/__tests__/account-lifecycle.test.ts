@@ -60,6 +60,12 @@ it('deletes the login, owned teams and sessions but preserves shared teams with 
  expect(await rows('select user_id from players')).toEqual([{user_id:null}]);
  expect(await rows("select id from audit_logs where action='admin.account.delete'")).toHaveLength(1);
 });
+it('refuses clearly to suspend or resume a self-deleted account, still allows deleting its row',async()=>{
+ await rows("delete from teams where owner_id=$1",[user]);
+ await rows("update users set deleted_at=now(),name='Compte supprimé' where id=$1",[user]);
+ for(const action of ['suspend','resume']){const response=await act(action);expect(response.status).toBe(409);expect((await response.json()).error).toContain('supprimé');}
+ expect((await act('delete')).status).toBe(200);
+});
 it('requires the exact account identifier and current inventory',async()=>{
  expect((await act('delete',{confirmAccount:'wrong'})).status).toBe(409);
  const d=await snapshot();await rows("insert into teams(owner_id,name,tag) values($1,'New team','NEW')",[user]);
