@@ -15,6 +15,13 @@ contextBridge.exposeInMainWorld("nxt5", {
     return () => ipcRenderer.removeListener("import-progress", listener);
   },
   checkUpdate: () => ipcRenderer.invoke("check-update"),
+  installUpdate: () => ipcRenderer.invoke("install-update"),
+  onUpdateState: (callback) => {
+    if (typeof callback !== "function") return () => {};
+    const listener = (_event, state) => callback(state);
+    ipcRenderer.on("update-state", listener);
+    return () => ipcRenderer.removeListener("update-state", listener);
+  },
   openExternal: (url) => ipcRenderer.invoke("open-external", url),
   collector: {
     state: () => ipcRenderer.invoke("collector-state"),

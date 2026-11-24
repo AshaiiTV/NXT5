@@ -34,6 +34,9 @@ let checkingUpdate = false;
 let checkingClient = false;
 let resultHistoryId = "";
 let updateDownloadUrl = "";
+let latestUpdateVersion = "";
+let installingUpdate = false;
+let unsubscribeUpdate;
 let unsubscribeProgress;
 let unsubscribeCollector;
 const dateFormat = new Intl.DateTimeFormat("fr-FR", {
@@ -316,11 +319,8 @@ async function checkForUpdate({ manual = false } = {}) {
           "La recherche de mise à jour est temporairement indisponible.",
       );
     updateDownloadUrl = info.updateAvailable ? info.downloadUrl : "";
-    $("#update").hidden = !info.updateAvailable;
-    $("#latestVersion").textContent = info.updateAvailable
-      ? `Version ${info.latestVersion} disponible`
-      : "Ton application est à jour";
-    $("#updateText").textContent = `Mise à jour disponible · v${info.latestVersion}`;
+    latestUpdateVersion = info.updateAvailable ? info.latestVersion : "";
+    renderUpdate(info.update);
     if (manual)
       $("#updateStatus").textContent =
         "Vérification terminée à " +
@@ -337,6 +337,49 @@ async function checkForUpdate({ manual = false } = {}) {
     checkingUpdate = false;
     $("#manualUpdateButton").disabled = false;
     $("#manualUpdateButton").textContent = "Vérifier les mises à jour";
+  }
+}
+// The update downloads on its own; the banner only asks for a restart once it is ready.
+function renderUpdate(state = {}) {
+  const version = state.version || latestUpdateVersion;
+  if (!version) {
+    $("#update").hidden = true;
+    $("#latestVersion").textContent = "Ton application est à jour";
+    return;
+  }
+  const status = state.status || "idle";
+  const manual = status === "manual" || status === "error";
+  $("#update").hidden = false;
+  $("#updateInstall").hidden = status !== "ready";
+  $("#updateInstall").disabled = installingUpdate;
+  $("#updateLink").hidden = !manual || !updateDownloadUrl;
+  const percent = Math.round((Number(state.progress) || 0) * 100);
+  $("#updateText").textContent =
+    status === "ready"
+      ? `Mise à jour v${version} prête`
+      : status === "downloading" || status === "idle"
+        ? `Téléchargement de la v${version}… ${percent ? `${percent} %` : ""}`.trim()
+        : status === "error"
+          ? `Mise à jour v${version} : téléchargement automatique impossible`
+          : `Mise à jour disponible · v${version}`;
+  $("#latestVersion").textContent =
+    status === "ready"
+      ? `Version ${version} prête : elle s’installe au prochain redémarrage.`
+      : `Version ${version} disponible`;
+  if (state.message) $("#updateStatus").textContent = state.message;
+}
+async function installUpdate() {
+  if (installingUpdate || !api?.installUpdate) return;
+  installingUpdate = true;
+  $("#updateInstall").disabled = true;
+  $("#updateInstall").textContent = "Redémarrage…";
+  try {
+    await api.installUpdate();
+  } catch (error) {
+    installingUpdate = false;
+    $("#updateInstall").disabled = false;
+    $("#updateInstall").textContent = "Redémarrer pour mettre à jour";
+    $("#updateStatus").textContent = cleanError(error);
   }
 }
 async function openExternal(url) {
@@ -581,6 +624,7 @@ $("#refreshClient").addEventListener("click", checkClient);
 $("#manualUpdateButton").addEventListener("click", () =>
   checkForUpdate({ manual: true }),
 );
+$("#updateInstall").addEventListener("click", installUpdate);
 $("#updateLink").addEventListener("click", () =>
   openExternal(updateDownloadUrl),
 );
@@ -657,6 +701,7 @@ async function initialize() {
     submit.disabled = false;
   }
   if (api.onProgress) unsubscribeProgress = api.onProgress(renderProgress);
+  if (api.onUpdateState) unsubscribeUpdate = api.onUpdateState(renderUpdate);
   if (api.collector?.onUpdate) unsubscribeCollector = api.collector.onUpdate(renderCollector);
   if (!$("#collectLabel").value) $("#collectLabel").value = appState.deviceName || "";
   if (appState.collector) renderCollector(appState.collector);
@@ -666,5 +711,6 @@ async function initialize() {
 window.addEventListener("pagehide", () => {
   unsubscribeProgress?.();
   unsubscribeCollector?.();
+  unsubscribeUpdate?.();
 });
 void initialize();
