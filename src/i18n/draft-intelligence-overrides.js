@@ -171,13 +171,6 @@ const translations = {
   "Nos rotations de picks": ["Our pick rotations","Nuestras rotaciones de selección"],
   "Picks consécutifs avant de rendre la main. Rang de sélection ≠ rôle joué.": ["Consecutive picks before handing over. Pick rank ≠ role played.","Selecciones consecutivas antes de ceder el turno. Rango de selección ≠ rol jugado."],
   "Rôles retrouvés": ["Roles found","Roles encontrados"],
-  "Un champion souvent banni en phase 2 ? Discutez de le prendre plus tôt, sans sacrifier vos autres priorités.": ["A champion often banned in phase 2? Discuss picking it earlier, without sacrificing your other priorities.","¿Un campeón bloqueado a menudo en la fase 2? Valorad elegirlo antes, sin sacrificar vuestras otras prioridades."],
-  "Phase inconnue : impossible de relier ce ban aux picks déjà révélés.": ["Unknown phase: this ban cannot be linked to the picks already revealed.","Fase desconocida: imposible relacionar este bloqueo con las selecciones ya reveladas."],
-  "Phase 2 : trois picks déjà révélés par camp. Le ban peut retirer une réponse à la composition visible.": ["Phase 2: three picks already revealed per side. The ban may remove an answer to the visible composition.","Fase 2: tres selecciones ya reveladas por lado. El bloqueo puede retirar una respuesta a la composición visible."],
-  "Phase 1 : aucun pick révélé. Confort connu ou priorité générale, le comptage seul ne tranche pas.": ["Phase 1: no pick revealed. Known comfort pick or general priority; the count alone cannot tell.","Fase 1: ninguna selección revelada. Comodidad conocida o prioridad general; el recuento por sí solo no lo decide."],
-  "Vérifiez ce que ce ban laisse à l’adversaire avant de le reconduire.": ["Check what this ban leaves the opponent before repeating it.","Comprobad qué deja este bloqueo al rival antes de repetirlo."],
-  "S’il doit rester jouable, prenez-le plus tôt et préparez une autre option au même poste.": ["If it must stay playable, pick it earlier and prepare another option for the same role.","Si debe seguir disponible, elegidlo antes y preparad otra opción en el mismo puesto."],
-  "Préparez un plan sans lui avant de construire votre ouverture autour de lui.": ["Prepare a plan without it before building your opening around it.","Preparad un plan sin él antes de construir vuestra apertura a su alrededor."],
 };
 
 export const en = Object.fromEntries(Object.entries(translations).map(([key, values]) => [key, values[0]]));
