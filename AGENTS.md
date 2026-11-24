@@ -21,6 +21,10 @@ Dans l’espace Codex local, éditer uniquement `2026-05-05/utilise-github-pour-
 
 Pour une modification uniquement documentaire, vérifier les liens et la cohérence du contenu. Pour le code, effectuer les contrôles adaptés au changement et les vérifications exigées par le dépôt (`npm run verify` pour le contrôle complet).
 
+## Documentation et traçabilité
+
+Le [sommaire de la documentation](docs/README.md) distingue les guides, tenus à jour dans `docs/`, et les rapports datés. Un travail notable se documente dans `docs/rapports/<sujet>-AAAA-MM-JJ.md`, ajouté en tête de l’index chronologique du sommaire dans la même pull request ; un rapport n’est plus réécrit ensuite. Lorsqu’un changement modifie un comportement décrit par un guide, mettre ce guide à jour dans le même travail. Quelques rapports antérieurs restent dans `docs/` parce que du code, une migration ou la charte graphique citent leur chemin.
+
 ## Publications YouTube
 
 Avant de préparer une publication YouTube NXT5 (sujet, script, titre, miniature, description ou analyse des résultats), lire [le guide YouTube](docs/youtube-playbook.md) et appliquer les enseignements pertinents. Distinguer les conseils de leurs auteurs, les hypothèses NXT5 et les résultats réellement mesurés. Mettre à jour ce guide lorsque l’utilisateur apporte de nouvelles références ou décisions ; ne pas transformer les promesses de viralité en faits.
