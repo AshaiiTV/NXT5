@@ -22,7 +22,15 @@ de #305 a seulement rendu la course de police visible sur la CI à 390 px.
 
 `src/pages/workspace/Teams.css` : la ligne de bilan reste sur une ligne dans tous les
 états. Le nombre de parties ne rétrécit pas ; le libellé du taux de victoire se tronque
-avec une ellipse quand la place manque. Le test n'a pas été assoupli.
+avec une ellipse quand la place manque.
+
+Après ce correctif, la CI a encore échoué une fois, de façon intermittente, à
+`768px / reset-last`. Dans l'ordre `reset-last`, `index.css` (qui déclare Inter) arrive en
+dernier : `document.fonts.ready` peut se résoudre avant qu'aucune police Inter ne soit
+demandée, et une carte est alors mesurée avec la police de repli. `tools/verify-roster-layout.mjs`
+charge désormais explicitement les polices Inter et attend deux images avant de mesurer ;
+en cas d'échec, l'assertion affiche la hauteur de chaque partie de la carte et l'état des
+polices. La tolérance (1 px) n'a pas été assouplie.
 
 ## Vérification
 

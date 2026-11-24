@@ -68,7 +68,13 @@ try {
         page.on('pageerror', error => pageErrors.push(error.message));
         await page.goto(server.resolvedUrls.local[0] + '__roster-layout.html?' + order + '&' + state, { waitUntil: 'domcontentloaded' });
         await page.locator('.team-roster-heading').first().waitFor();
-        await page.evaluate(() => document.fonts.ready);
+        // fonts.ready resolves at once when no face has been requested yet (index.css arrives last in
+        // reset-last), so load the Inter faces explicitly: both states are then measured with the same font.
+        await page.evaluate(async () => {
+          await Promise.all([...document.fonts].filter(font => font.family.replaceAll('"', '') === 'Inter').map(font => font.load().catch(() => null)));
+          await document.fonts.ready;
+          await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        });
         const geometry = await page.evaluate(() => {
           const panel = document.querySelector('.team-roster-surface');
           const rect = el => { const r = el.getBoundingClientRect(); return {left:r.left, top:r.top, right:r.right, bottom:r.bottom, width:r.width, height:r.height}; };
