@@ -145,7 +145,10 @@
 .team-roster-list[data-roster="main"] .team-roster-champion { width: 52px; height: 52px; border-radius: 10px; }
 .team-roster-list[data-roster="main"] .team-roster-champion:first-child { border-color: rgba(103,232,249,.7); box-shadow: 0 0 0 1px rgba(103,232,249,.18),0 4px 16px rgba(103,232,249,.14); }
 .team-roster-list[data-roster="main"] .team-roster-champion-count { min-width: 20px; padding: 1px 4px; font-size: 11px; }
-.team-roster-record { display: flex; flex-wrap: wrap; gap: 4px 14px; padding-top: 10px; border-top: 1px solid var(--nxt5-border); color: var(--nxt5-muted); font-size: var(--nxt5-font-micro); line-height: 1.5; }
+/* One line in every state: a wider fallback font or a longer translation truncates the label instead of adding a line, so loaded and loading cards keep one height. */
+.team-roster-record { display: flex; gap: 14px; min-width: 0; padding-top: 10px; border-top: 1px solid var(--nxt5-border); color: var(--nxt5-muted); font-size: var(--nxt5-font-micro); line-height: 1.5; white-space: nowrap; }
+.team-roster-record > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.team-roster-record > span:first-child { flex-shrink: 0; }
 .team-roster-record[data-placeholder] { visibility: hidden; }
 /* Four champions share the pool width: tiles shrink in narrow columns instead of overflowing. */
 .team-roster-list[data-roster="main"] .team-roster-champion-pool > .team-roster-champions { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
