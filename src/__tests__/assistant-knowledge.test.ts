@@ -352,6 +352,16 @@ describe('assistant knowledge', () => {
     ['fr', 'Comment lire les cinq duels par poste ?', 'côté bleu', '/games'],
     ['en', 'How do I read the five role matchups?', 'blue then red', '/games'],
     ['es', '¿Cómo leo los cinco duelos por puesto?', 'azul y luego rojo', '/games'],
+    ['fr', 'Comment inviter le capitaine adverse dans la salle de draft ?', 'sans compte NXT5', '/draft/salle'],
+    ['en', 'What is the difference between Standard and Fearless?', 'locked for both sides', '/draft/salle'],
+    ['es', '¿Cómo corrijo o elimino una sala de draft?', 'definitiva', '/draft/salle'],
+    ['fr', 'Comment consulter les données de l’équipe sur Discord ?', '30 secondes', '/bot-discord'],
+    ['en', 'Why does the bot refuse my command?', 'Command access', '/bot-discord'],
+    ['fr', 'Comment lier mon compte Discord ?', 'ne confirme jamais un lien', '/bot-discord'],
+    ['fr', 'Comment changer mon adresse e-mail ?', '24 heures', '/parametres'],
+    ['es', '¿Cómo vinculo Google o Discord a mi cuenta?', '/nxt lier', '/parametres'],
+    ['fr', 'Pourquoi la collecte automatique ignore-t-elle une partie ?', 'customs', '/games'],
+    ['fr', 'Comment soutenir NXT5 ?', 'ne modifie aucun accès', '/soutenir'],
   ] as const)('retrieves recent product help in %s: %s', (language, question, fact, path) => {
     const matches = retrieveAssistantKnowledge(question, path, 4, language);
     const response = buildFallbackAssistantResponse(question, matches, language);
@@ -447,7 +457,7 @@ describe('assistant knowledge', () => {
   });
 
   it('keeps the adaptive home and new destinations available without allowing arbitrary paths', () => {
-    for (const path of ['/accueil', '/bot-discord', '/mon-profil/carte', '/nexus-rising']) {
+    for (const path of ['/accueil', '/bot-discord', '/mon-profil/carte', '/nexus-rising', '/draft/salle', '/soutenir']) {
       expect(safeAssistantRoute(path)).toBe(path);
       expect(sanitizeAssistantActions([{ label: 'Ouvrir', path }])).toEqual([{ label: 'Ouvrir', path }]);
     }
@@ -456,6 +466,15 @@ describe('assistant knowledge', () => {
     const matches = retrieveAssistantKnowledge('Quel est mon prochain pas sur l’accueil ?', '/accueil');
     expect(matches[0].id).toBe('getting-started');
     expect(buildFallbackAssistantResponse('Quel est mon prochain pas sur l’accueil ?', matches).answer).toContain('selon ton rôle');
+  });
+
+  it('answers draft room questions from the draft room without leaking to the champion pool', () => {
+    const question = 'Comment lancer une draft en direct contre le capitaine adverse ?';
+    const matches = retrieveAssistantKnowledge(question, '/draft/salle', 4, 'fr', 'draft-room');
+    expect(matches[0].id).toBe('draft-room');
+    const response = buildFallbackAssistantResponse(question, matches);
+    expect(response.actions[0].path).toBe('/draft/salle');
+    expect(response.answer).toContain('Créer la salle');
   });
 
   it('only allows known internal navigation actions', () => {

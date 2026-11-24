@@ -12,7 +12,7 @@ const tutorialPages = [
     description: 'Trois étapes suffisent pour consulter les données de ton équipe sur Discord.',
     fields: [
       field('Tuto vidéo · importer une partie', `[Regarder le tutoriel NXT5 Importer sur Windows](${IMPORTER_TUTORIAL_URL})\nEn français · 2 min 31. Exporte ta partie avec NXT5 Importer, puis ajoute le fichier JSON dans NXT5.`),
-      field('1 · Lie ton compte', 'Utilise `/nxt lier` et confirme la liaison de ton compte Discord sur NXT5. Ton profil NXT5 doit appartenir à l’équipe concernée. `/nxt profil` permet de vérifier ton compte lié.'),
+      field('1 · Lie ton compte', 'Utilise `/nxt lier`, confirme ton compte sur NXT5, puis reviens vérifier les deux comptes dans Discord. Ne confirme jamais un lien qu’une autre personne t’a envoyé. Ton e-mail NXT5 doit être vérifié et ton compte doit appartenir à l’équipe concernée. `/nxt profil` permet de vérifier ton compte lié.'),
       field('2 · Rejoins le bon salon', 'Un responsable choisit dans NXT5 un seul salon de commandes Discord pour chaque équipe. Ouvre le salon lié à ton équipe avant d’utiliser `/nxt voir`.'),
       field('3 · Demande ce que tu veux voir', 'Par exemple, `/nxt voir sujet:derniere`. Le bot retrouve l’équipe grâce au salon, puis vérifie ton compte, ton appartenance à cette équipe et, si nécessaire, ton rôle Discord. Tu n’as aucun nom d’équipe ni identifiant à saisir.'),
     ],
@@ -21,9 +21,10 @@ const tutorialPages = [
     title: 'Joueur · consulter les données',
     description: 'Toutes les consultations passent par `/nxt voir` dans le salon de ton équipe.',
     fields: [
-      field('Les sujets disponibles', '`derniere` · dernière game\n`bilan` · résultats récents\n`stats` · statistiques d’équipe\n`planning` · prochains rendez-vous\n`objectifs` · tes objectifs\n`reviews` · reviews accessibles\n`draft` · préparation de draft'),
-      field('Où apparaît la réponse ?', 'Les informations d’équipe qui peuvent être partagées apparaissent dans le salon. Ton profil, tes objectifs personnels, les reviews privées et les brouillons restent visibles uniquement par toi.'),
-      field('Accès refusé ?', 'Vérifie la liaison avec `/nxt profil`, ton appartenance à l’équipe sur NXT5 et ton salon Discord. Si l’équipe exige un rôle Discord, demande au responsable de vérifier ce rôle.'),
+      field('Les sujets disponibles', '`derniere` · dernière partie\n`bilan` · résultats des 7 derniers jours\n`stats` · statistiques d’équipe sur 7 jours\n`planning` · rendez-vous des 7 prochains jours\n`objectifs` · tes objectifs\n`reviews` · débriefs accessibles\n`draft` · compositions enregistrées'),
+      field('Où apparaît la réponse ?', 'La dernière partie, le bilan et les statistiques apparaissent dans le salon, au plus une fois toutes les 30 secondes par sujet ; au-delà, le résultat s’affiche pour toi seul. Le planning, les objectifs, les débriefs et les compositions restent visibles uniquement par toi.'),
+      field('Accès refusé ?', 'Vérifie la liaison avec `/nxt profil`, ton appartenance à l’équipe sur NXT5 et le salon utilisé. Si l’équipe exige un rôle Discord, demande au responsable de vérifier ce rôle : même un administrateur Discord en a besoin.'),
+      field('Sur le site NXT5', 'Importer et corriger les parties, lire les analyses, préparer le pool, les compositions et la Salle de draft en direct, ou renseigner le planning se fait sur le site. `/nxt voir` consulte ces données sans les modifier.'),
     ],
   },
   {
@@ -32,7 +33,8 @@ const tutorialPages = [
     fields: [
       field('1 · Relie l’équipe', 'Lie d’abord ton compte avec `/nxt lier`. Dans NXT5, ouvre Bot Discord pour ton équipe et génère un code temporaire. Sur Discord, utilise `/nxt connecter code:<code>` avec ce même compte lié.'),
       field('2 · Choisis un seul salon', 'Dans les réglages Bot Discord de NXT5, sélectionne le salon de commandes de cette équipe et, si besoin, les rôles Discord autorisés. Une autre équipe peut avoir son propre salon et ses propres rôles.'),
-      field('3 · Vérifie le parcours', 'Un membre lie son compte, rejoint le salon de son équipe et utilise `/nxt voir`. Le bot refuse les demandes faites dans un autre salon ou par un membre sans accès à cette équipe.'),
+      field('3 · Teste puis active', 'Dans Bot Discord, choisis les salons de publication, envoie l’exemple fictif avec « Tester et activer », vérifie sa réception, puis active la diffusion. Les anciennes parties ne sont pas republiées.'),
+      field('4 · Vérifie le parcours', 'Un membre lie son compte, rejoint le salon de son équipe et utilise `/nxt voir`. Le bot refuse les demandes faites dans un autre salon ou par un membre sans accès à cette équipe.'),
     ],
   },
 ];
@@ -107,7 +109,8 @@ function commandPage(entry) {
     field('Exemple', '`' + example(entry) + '`'),
     field('Accès', entry.access === 'Tous' ? 'Accessible avant la liaison de compte.' : entry.access + '. Le bot vérifie tes droits à chaque demande.'),
   ];
-  if (entry.path === 'voir') fields.push(field('Contexte', 'Utilise cette commande dans le salon lié à ton équipe. Le bot retrouve l’équipe automatiquement ; les contenus personnels restent privés.'));
+  if (entry.path === 'voir') fields.push(field('Contexte', 'Utilise cette commande dans le salon lié à ton équipe. Le bot retrouve l’équipe automatiquement ; les contenus personnels restent privés. Un même sujet est publié dans le salon au plus une fois toutes les 30 secondes.'));
+  if (entry.path === 'lier') fields.push(field('Sécurité', 'Le lien personnel expire après 10 minutes. Vérifie le nom d’utilisateur Discord affiché avant de confirmer et ne confirme jamais un lien qu’une autre personne t’a envoyé. Un e-mail prévient ensuite ton compte NXT5 ; tu peux délier ton compte depuis Bot Discord.'));
   if (entry.path === 'connecter') fields.push(field('Avant de connecter', 'Lie ton compte avec `/nxt lier`, puis génère un code pour cette équipe dans NXT5. Le compte Discord lié doit appartenir au responsable qui a généré le code.'));
   if (required.length) fields.push(field('Option obligatoire', details(required)));
   if (optional.length) fields.push(field('Options facultatives', details(optional)));

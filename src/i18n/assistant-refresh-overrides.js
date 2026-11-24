@@ -16,6 +16,13 @@ export const en = {
   "Pourquoi Nexus Rising affiche Coming soon ?": "Why does Nexus Rising show Coming soon?",
   "Puis-je inscrire mon équipe à Nexus Rising ?": "Can I register my team for Nexus Rising?",
   "Comment sont validés les résultats Nexus Rising ?": "How are Nexus Rising results validated?",
+  "Comment inviter le capitaine adverse dans la salle de draft ?": "How do I invite the opposing captain to the draft room?",
+  "Quelle différence entre Standard et Fearless ?": "What is the difference between Standard and Fearless?",
+  "Comment corriger ou supprimer une salle de draft ?": "How do I correct or delete a draft room?",
+  "Comment changer mon adresse e-mail ?": "How do I change my email address?",
+  "Comment associer Google ou Discord à mon compte ?": "How do I link Google or Discord to my account?",
+  "Comment consulter les données de l’équipe sur Discord ?": "How do I view team data on Discord?",
+  "Pourquoi le bot refuse ma commande ?": "Why does the bot refuse my command?",
 };
 
 export const es = {
@@ -35,4 +42,11 @@ export const es = {
   "Pourquoi Nexus Rising affiche Coming soon ?": "¿Por qué Nexus Rising muestra Próximamente?",
   "Puis-je inscrire mon équipe à Nexus Rising ?": "¿Puedo inscribir mi equipo en Nexus Rising?",
   "Comment sont validés les résultats Nexus Rising ?": "¿Cómo se validan los resultados de Nexus Rising?",
+  "Comment inviter le capitaine adverse dans la salle de draft ?": "¿Cómo invito al capitán rival a la sala de draft?",
+  "Quelle différence entre Standard et Fearless ?": "¿Qué diferencia hay entre Estándar y Fearless?",
+  "Comment corriger ou supprimer une salle de draft ?": "¿Cómo corrijo o elimino una sala de draft?",
+  "Comment changer mon adresse e-mail ?": "¿Cómo cambio mi dirección de correo?",
+  "Comment associer Google ou Discord à mon compte ?": "¿Cómo vinculo Google o Discord a mi cuenta?",
+  "Comment consulter les données de l’équipe sur Discord ?": "¿Cómo consulto los datos del equipo en Discord?",
+  "Pourquoi le bot refuse ma commande ?": "¿Por qué el bot rechaza mi comando?",
 };

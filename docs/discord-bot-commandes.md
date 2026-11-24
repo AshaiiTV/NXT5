@@ -28,6 +28,8 @@ L’aide s’ouvre dans un **embed visible uniquement par son auteur**. Elle don
 
 L’embed explique aussi la visibilité : dernière game, bilan et statistiques d’équipe sont envoyés dans le salon après autorisation ; profil, planning, objectifs, reviews, brouillons et notes restent privés.
 
+Mise à jour du 24 novembre 2026 : l’aide reprend les protections de la liaison (« Ne confirme jamais un lien qu’une autre personne t’a envoyé. », e-mail NXT5 vérifié, e-mail d’avis après liaison) et la limite de publication publique de `/nxt voir` (un même sujet au plus une fois toutes les 30 secondes par salon, sinon réponse privée). La page joueur précise les sujets (`draft` affiche les compositions enregistrées), rappelle ce qui se fait sur le site (imports, analyses, pool, compositions, Salle de draft, planning) et la page responsable ajoute l’étape « Tester et activer ». Ce changement de texte ne nécessite pas de réenregistrer `/nxt`.
+
 L’embed indique quoi faire si le compte n’est pas lié, si le salon n’est pas configuré ou si l’accès à l’équipe manque. Il renvoie le responsable à la page **Bot Discord** pour connecter le serveur, choisir le salon et régler les rôles. Lire l’aide n’exige aucun compte lié.
 
 ## Cinq chemins visibles

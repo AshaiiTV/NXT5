@@ -4,7 +4,7 @@ import "./assistant-panel.css";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AlertCircle, ArrowRight, BookOpen, ChevronRight, Loader2, MessageCircleQuestion, RefreshCw, Send, Trash2, WifiOff, X } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
-import { isSafeInternalPath } from "../../app/routing.js";
+import { draftViewFromPath, isSafeInternalPath, normalizePath } from "../../app/routing.js";
 import { guideSectionForRoute } from "../../app/guide-navigation.js";
 import { cx } from "../../app/helpers.js";
 import { ImporterTutorialLink } from "../importer/ImporterTutorialLink.jsx";
@@ -28,23 +28,31 @@ const SECTION_SUGGESTIONS = {
   planning: ["Comment renseigner les disponibilités ?", "Qui peut modifier le planning ?", "Comment préparer une séance d'équipe ?"],
   scrims: ["Comment proposer un scrim à une autre équipe ?", "Qui peut confirmer un scrim ?", "Où apparaît un scrim confirmé ?"],
   "nexus-rising": ["Pourquoi Nexus Rising affiche Coming soon ?", "Puis-je inscrire mon équipe à Nexus Rising ?", "Comment sont validés les résultats Nexus Rising ?"],
+  "draft-room": ["Comment inviter le capitaine adverse dans la salle de draft ?", "Quelle différence entre Standard et Fearless ?", "Comment corriger ou supprimer une salle de draft ?"],
   "champion-pool": ["Comment modifier les champions d'un joueur ?", "Comment indiquer le niveau de maîtrise d’un champion ?", "Comment distinguer un champion maîtrisé d’un champion en entraînement ?"],
   compositions: ["Comment créer une composition ?", "Comment utiliser l’aide au choix des champions ?", "Comment sont classées les suggestions de champions ?"],
   "player-profile": ["Comment consulter le profil d’un joueur ?", "Comment lire l'historique d'un joueur ?", "Où comparer ses champions aux champions adverses ?"],
-  "permissions-and-account": ["Pourquoi un bouton est bloqué ?", "Où modifier les accès de l'équipe ?", "Comment sécuriser mon compte ?"],
+  "permissions-and-account": ["Comment changer mon adresse e-mail ?", "Comment associer Google ou Discord à mon compte ?", "Pourquoi un bouton est bloqué ?"],
   troubleshooting: ["Pourquoi la page reste en chargement ?", "Pourquoi la chronologie est-elle incomplète ?", "Pourquoi un bouton est-il désactivé ?"],
   "champion-analysis": ["Comment analyser les champions de l’équipe ?", "Où revoir les défaites d’un champion ?", "Comment comparer les associations de champions ?"],
   "player-champions": ["Comment lire les dégâts moyens aux champions ?", "Comment enregistrer un carnet de matchups ?", "Où comparer ses champions aux champions adverses ?"],
   "player-showcase": ["Comment exporter ma carte joueur ?", "Comment parcourir mon Wrapped ?", "Pourquoi ma carte est vide ?"],
-  discord: ["Comment lier mon compte Discord ?", "Comment configurer le serveur Discord ?", "Comment publier une partie sur Discord ?"],
+  discord: ["Comment lier mon compte Discord ?", "Comment consulter les données de l’équipe sur Discord ?", "Pourquoi le bot refuse ma commande ?"],
 };
 
 function messageId() {
   return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+/** The Guide has no Draft room section; the assistant documents it separately. */
+export function assistantSectionForRoute(route = {}) {
+  const path = normalizePath(route?.path || "");
+  if (path.startsWith("/draft") && draftViewFromPath(path) === "salle") return "draft-room";
+  return guideSectionForRoute(route);
+}
+
 export function suggestionsForRoute(route = {}) {
-  const section = guideSectionForRoute(route);
+  const section = assistantSectionForRoute(route);
   return SECTION_SUGGESTIONS[section] || DEFAULT_SUGGESTIONS;
 }
 
@@ -226,7 +234,7 @@ export default function AssistantPanel({ open, onClose, route, selectedTeamId, s
           message: content,
           language,
           route: route?.path || "/mon-equipe",
-          helpSection: guideSectionForRoute(route),
+          helpSection: assistantSectionForRoute(route),
           selectedTeamId: selectedTeamId || null,
           selectedEntity: selectedEntity || null,
           history: historyPayload(previousMessages),

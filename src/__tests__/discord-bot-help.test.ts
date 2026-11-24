@@ -179,11 +179,18 @@ describe('Private Discord help content and navigation', () => {
     expect(welcome).toContain('/nxt voir sujet:derniere');
     expect(welcome).toContain('aucun nom d’équipe ni identifiant');
     const player = JSON.stringify(buildDiscordHelp({ page: 'joueur' }).embeds);
-    expect(player).toContain('informations d’équipe');
     expect(player).toContain('uniquement par toi');
+    expect(player).toContain('30 secondes');
+    expect(player).toContain('compositions enregistrées');
+    expect(player).toContain('Salle de draft');
+    expect(welcome).toContain('Ne confirme jamais un lien qu’une autre personne t’a envoyé.');
     const install = JSON.stringify(buildDiscordHelp({ page: 'responsable' }).embeds);
     expect(install).toContain('un seul salon');
     expect(install).toContain('/nxt connecter code:<code>');
+    expect(install).toContain('Tester et activer');
+    const link = JSON.stringify(buildDiscordHelp({ command: 'lier' }).embeds);
+    expect(link).toContain('expire après 10 minutes');
+    expect(link).toContain('Bot Discord');
   });
 
   it('finds normalized command names without advertising obsolete commands', () => {

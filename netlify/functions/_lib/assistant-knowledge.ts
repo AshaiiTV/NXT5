@@ -49,6 +49,7 @@ export const ALLOWED_ASSISTANT_PATHS = [
   '/tendances',
   '/draft/pool',
   '/draft/compositions',
+  '/draft/salle',
   '/planning',
   '/scrims',
   '/nexus-rising',
@@ -59,7 +60,8 @@ export const ALLOWED_ASSISTANT_PATHS = [
   '/mon-profil/coaching',
   '/mon-profil/carte',
   '/guide',
-  '/parametres'
+  '/parametres',
+  '/soutenir'
 ] as const;
 
 const ALLOWED_PATH_SET = new Set<string>(ALLOWED_ASSISTANT_PATHS);
@@ -170,6 +172,11 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
         question: 'Où trouver la collecte automatique dans NXT5 Importer 0.4.1 ?',
         triggers: ['importer 0.4.1', 'barre latérale importer', 'où est collecte automatique', 'nouvelle interface importer'],
         answer: 'Dans NXT5 Importer 0.4.1, la barre latérale regroupe Exporter, Collecte automatique, Historique et Paramètres. Dans une fenêtre de moins de 900 px, elle devient une barre supérieure. Le fonctionnement et les raccourcis de la collecte n’ont pas changé depuis la version 0.4.0.'
+      },
+      {
+        question: 'Pourquoi la collecte automatique ignore-t-elle une partie ?',
+        triggers: ['collecte ignore', 'partie ignorée', 'partie classée', 'partie normale', 'ranked', 'hors custom', 'partie non collectée'],
+        answer: 'Depuis NXT5 Importer 0.4.9, la collecte automatique ne retient que les parties personnalisées (customs). NXT5 ignore aussi toute partie reçue par la liaison qui n’est pas une custom. Une partie classée ou normale peut toujours être ajoutée par l’import manuel du fichier JSON. Vérifie aussi que l’Importer est resté ouvert jusqu’à la fin de la partie et que sa liaison n’a pas expiré.'
       },
       {
         question: 'Comment choisir une équipe adverse pendant l’import ?',
@@ -598,6 +605,38 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     ]
   },
   {
+    id: 'draft-room',
+    title: 'Salle de draft en direct',
+    path: '/draft/salle',
+    actionLabel: 'Ouvrir la salle de draft',
+    summary: "La salle de draft fait jouer une draft en direct contre le capitaine adverse, pour une partie ou une série de 1 à 5 parties, en Standard ou en Fearless. Les picks et bans enregistrés rejoignent Drafts & bans dans Analyses.",
+    keywords: ['salle de draft', 'draft en direct', 'draft live', 'fearless', 'standard', 'capitaine adverse', 'lien adverse', 'lien spectateur', 'spectateur', 'série', 'chrono', 'temps de réflexion', 'prêt', 'voix des champions', 'corriger la draft', 'salles récentes', 'supprimer la salle', 'premier choix'],
+    steps: [
+      "Dans Draft & Pool, ouvre Salle de draft. Le propriétaire ou le staff indique l’adversaire (facultatif), Notre côté, Premier choix, le nombre de parties (1 à 5), le temps de réflexion par tour (Libre, 30 s ou 60 s) et le format Standard ou Fearless, puis choisit Créer la salle.",
+      "Copie le lien adverse pour le capitaine de l’autre équipe et, si besoin, le lien spectateur. Ces liens s’ouvrent sans compte NXT5.",
+      "Chaque capitaine confirme que son équipe est prête avant le premier ban. Avec un chrono, le temps démarre quand l’adversaire est prêt ; chaque choix doit être confirmé et un ban peut être passé.",
+      "À la fin, Analyser la draft ouvre Drafts & bans et Associer à la partie relie la draft à une partie importée. Dans une série, Lancer la partie suivante permet de choisir de nouveau les côtés."
+    ],
+    suggestions: ['Comment inviter le capitaine adverse dans la salle de draft ?', 'Quelle différence entre Standard et Fearless ?', 'Comment corriger ou supprimer une salle de draft ?'],
+    faq: [
+      {
+        question: 'Comment inviter le capitaine adverse dans la salle de draft ?',
+        triggers: ['inviter le capitaine adverse', 'lien adverse', 'lien spectateur', 'capitaine adverse', 'sans compte salle de draft'],
+        answer: "Après Créer la salle, utilise Copier le lien adverse et envoie-le uniquement au capitaine de l’autre équipe : toute personne qui ouvre ce lien joue pour le camp adverse. Copier le lien spectateur permet de suivre la draft sans jouer. Ces liens s’ouvrent sans compte NXT5. Les deux capitaines confirment ensuite que leur équipe est prête avant le premier ban."
+      },
+      {
+        question: 'Quelle différence entre Standard et Fearless ?',
+        triggers: ['fearless', 'format de draft', 'draft standard', 'champions bloqués'],
+        answer: "En Standard, tous les champions reviennent à chaque partie de la série. En Fearless, un champion joué est bloqué pour les deux camps jusqu’à la fin de la série ; la salle affiche les champions bloqués. Le format, le nombre de parties et le temps de réflexion se choisissent à la création de la salle."
+      },
+      {
+        question: 'Comment corriger ou supprimer une salle de draft ?',
+        triggers: ['corriger la draft', 'supprimer la salle', 'salles récentes', 'erreur de pick', 'modifier la draft'],
+        answer: "Une fois la partie terminée, le propriétaire ou le staff choisit Corriger la draft, sélectionne un emplacement puis un champion et enregistre la correction ; en Fearless, un champion déjà joué dans la série est refusé. Dans Salles récentes, Supprimer la salle retire toute la série et ses picks et bans des analyses. Cette suppression est définitive."
+      }
+    ]
+  },
+  {
     id: 'planning',
     title: 'Planning et disponibilités',
     path: '/planning',
@@ -699,13 +738,13 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: "Profil et suivi du joueur",
     path: '/mon-profil',
     actionLabel: "Ouvrir Mon profil",
-    summary: "Mon profil réunit Synthèse, Champions, Champions déclarés, Historique, Suivi et Carte & Wrapped. Les notes et carnets restent soumis aux droits d’accès.",
+    summary: "Mon profil réunit Synthèse, Champions joués, Champion pool, Historique et Suivi. La carte et le Wrapped s’affichent en tête de Synthèse. Les notes et carnets restent soumis aux droits d’accès.",
     keywords: ['profil', 'mon profil', 'joueur', 'historique', 'coaching', 'objectif', 'champions', 'matchups', 'carnet', 'dégâts moyens', 'dégâts champions', 'progression', 'notes', "suivi", "duel"],
     steps: [
       "Vérifie que ton compte est lié au bon joueur dans Gestion de l’équipe.",
       "Commence par la synthèse pour repérer le point à travailler.",
-      "Dans Champions, ouvre un champion puis Statistiques ou Matchups pour examiner les résultats, les dégâts et les carnets. Champions déclarés conserve les niveaux de maîtrise.",
-      "Consulte l’historique et les parties liées pour vérifier une observation, puis le suivi pour les objectifs et les notes."
+      "Dans Champions joués, ouvre un champion puis Statistiques ou Matchups pour examiner les résultats, les dégâts et les carnets. Champion pool reprend les champions préparés dans Draft.",
+      "Dans Historique, retrouve les parties liées pour vérifier une observation (Parties par page règle l’affichage), puis ouvre Suivi pour les objectifs et les notes."
     ],
     suggestions: [
       "Pourquoi mon profil est vide ?",
@@ -727,12 +766,12 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
       {
         question: 'Où lire les dégâts moyens aux champions ?',
         triggers: ['dégâts moyens', 'dégâts aux champions', 'dégâts champions'],
-        answer: "Dans Mon profil → Champions, sélectionne un champion puis Statistiques. Dégâts moyens aux champions utilise les parties où la donnée est renseignée ; « — » signifie indisponible. Ouvre une partie pour comparer les joueurs : les écarts de dégâts sont mesurés en fin de partie."
+        answer: "Dans Mon profil → Champions joués, sélectionne un champion puis Statistiques. Dégâts moyens aux champions utilise les parties où la donnée est renseignée ; « — » signifie indisponible. Ouvre une partie pour comparer les joueurs : les écarts de dégâts sont mesurés en fin de partie."
       },
       {
         question: 'Comment enregistrer un carnet de matchup ?',
         triggers: ['carnet de matchup', 'enregistrer le carnet', 'plan de départ', 'préparer le carnet'],
-        answer: "Dans Mon profil → Champions, ouvre un champion puis Matchups. Préparer le carnet ou Modifier le carnet permet de renseigner le plan de départ et les essais selon tes droits. Le brouillon est conservé pendant la navigation, mais clique sur Enregistrer le carnet pour sauvegarder les changements."
+        answer: "Dans Mon profil → Champions joués, ouvre un champion puis Matchups. Préparer le carnet ou Modifier le carnet permet de renseigner le plan de départ et les essais selon tes droits. Le brouillon est conservé pendant la navigation, mais clique sur Enregistrer le carnet pour sauvegarder les changements."
       }
     ]
   },
@@ -740,13 +779,13 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     id: 'player-showcase',
     title: 'Carte joueur et Wrapped',
     path: '/mon-profil/carte',
-    actionLabel: 'Ouvrir Carte & Wrapped',
-    summary: "Carte & Wrapped crée une carte joueur recto/verso et un récit en cinq chapitres à partir des parties reliées au joueur dans la sélection.",
+    actionLabel: 'Ouvrir la carte dans Synthèse',
+    summary: "En tête de Synthèse, la carte joueur recto/verso et le Wrapped en cinq chapitres résument les parties reliées au joueur dans la catégorie sélectionnée.",
     keywords: ['carte', 'carte joueur', 'wrapped', 'ma fiche', 'poster', 'exporter', 'export png', 'png', 'recto', 'verso', 'chapitre'],
     steps: [
-      "Dans Mon profil, choisis le joueur et la catégorie, puis ouvre Carte & Wrapped.",
+      "Dans Mon profil, choisis le joueur et la catégorie : la carte et les chapitres du Wrapped apparaissent en tête de Synthèse.",
       "Sur La carte, utilise Voir le verso ou Voir le recto pour changer de face.",
-      "Choisis Découvrir le Wrapped pour parcourir les cinq chapitres à ton rythme.",
+      "Choisis un chapitre du Wrapped, puis avance avec les boutons, les flèches du clavier ou un glissement sur le visuel.",
       "Télécharge le visuel affiché en PNG. Données et méthode de cette édition précise les parties et valeurs utilisées."
     ],
     suggestions: ['Comment exporter ma carte en PNG ?', 'Pourquoi ma carte est vide ?', 'Comment parcourir le Wrapped ?'],
@@ -761,20 +800,30 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: 'Compte et bot Discord',
     path: '/bot-discord',
     actionLabel: 'Ouvrir Bot Discord',
-    summary: "Bot Discord regroupe la liaison du compte personnel, la connexion du serveur de l’équipe et les publications de parties. Chaque équipe conserve ses propres réglages.",
-    keywords: ['discord', 'bot', 'lier', 'liaison', 'serveur', 'salon', 'publication', 'diffusion', 'nxt'],
+    summary: "Bot Discord regroupe la liaison de ton compte, la connexion du serveur, le salon des commandes de chaque équipe et les publications. Sur Discord, cinq commandes suffisent : /nxt help, /nxt lier, /nxt profil, /nxt voir et /nxt connecter.",
+    keywords: ['discord', 'bot', 'lier', 'liaison', 'serveur', 'salon', 'salon des commandes', 'publication', 'diffusion', 'nxt', 'nxt voir', 'nxt profil', 'commande discord', 'rôle discord'],
     steps: [
-      "Pour ton compte, lance /nxt lier dans Discord et ouvre le lien personnel. Confirme ton compte sur NXT5, puis Vérifier la liaison et Confirmer la liaison dans Discord.",
-      "Le propriétaire ou un capitaine configure le serveur dans Bot Discord : Connecter le serveur, puis Choisir les salons.",
-      "Associe un salon aux commandes de l’équipe et choisis séparément les salons de publication.",
+      "Pour ton compte, lance /nxt lier et ouvre le lien personnel. Confirme ton compte sur NXT5, puis Vérifier la liaison et Confirmer la liaison dans Discord, après avoir contrôlé le nom d’utilisateur affiché.",
+      "Le propriétaire ou un capitaine crée un code dans Bot Discord, puis lance /nxt connecter code:<code> avec le même compte lié. Il choisit ensuite le salon des commandes de l’équipe et, séparément, les salons de publication.",
+      "Dans le salon des commandes, /nxt voir affiche la dernière partie, le bilan, les statistiques, le planning, les objectifs, les débriefs ou les compositions. Le salon détermine l’équipe.",
       "Envoie l’exemple fictif avec Tester et activer, vérifie sa réception, puis active la diffusion. Les anciennes parties ne sont pas republiées à l’installation."
     ],
-    suggestions: ['Comment lier mon compte Discord ?', 'Comment connecter le serveur Discord ?', 'Que partagent les publications Discord ?'],
+    suggestions: ['Comment lier mon compte Discord ?', 'Comment consulter les données de l’équipe sur Discord ?', 'Pourquoi le bot refuse ma commande ?'],
     faq: [
       {
         question: 'Comment lier mon compte Discord ?',
         triggers: ['lier mon compte discord', 'compte discord', 'nxt lier'],
-        answer: "Dans Discord, lance /nxt lier et ouvre ton lien personnel. Vérifie les comptes et confirme ton compte NXT5. Reviens dans Discord, clique sur Vérifier la liaison puis Confirmer la liaison. La liaison personnelle est distincte de la connexion du serveur d’équipe. /nxt help reste accessible sans compte lié."
+        answer: "Dans Discord, lance /nxt lier et ouvre ton lien personnel, valable 10 minutes. Ton adresse e-mail NXT5 doit être vérifiée. Confirme ton compte sur NXT5, puis reviens dans Discord : Vérifier la liaison affiche ton nom d’utilisateur et ton identifiant Discord. Clique sur Confirmer la liaison seulement s’il s’agit bien de tes comptes, et ne confirme jamais un lien qu’une autre personne t’a envoyé. Un e-mail te prévient ensuite ; Délier mon compte, dans Bot Discord, révoque cette liaison. /nxt help reste accessible sans compte lié."
+      },
+      {
+        question: 'Comment consulter les données de l’équipe sur Discord ?',
+        triggers: ['nxt voir', 'consulter sur discord', 'données sur discord', 'salon des commandes', 'utiliser le bot'],
+        answer: "Dans le salon des commandes de ton équipe, lance /nxt voir et choisis un sujet : derniere, bilan, stats, planning, objectifs, reviews ou draft. Le salon détermine l’équipe ; le bot vérifie ton compte lié, ton appartenance à l’équipe et, si l’équipe en exige, ton rôle Discord. La dernière partie, le bilan et les statistiques sont publiés dans le salon, une fois par sujet toutes les 30 secondes au plus ; les autres sujets restent visibles par toi seul."
+      },
+      {
+        question: 'Pourquoi le bot refuse ma commande ?',
+        triggers: ['commande refusée', 'bot refuse', 'accès refusé discord', 'refus discord', 'mauvais salon'],
+        answer: "Vérifie avec /nxt profil que ton compte est lié, que tu écris dans le salon des commandes de ton équipe et que ton compte NXT5 est membre de cette équipe. Si l’équipe a choisi des rôles dans Accès aux commandes, il faut aussi posséder l’un d’eux : même un administrateur Discord ne contourne pas cette règle. Une commande lancée dans un autre salon est refusée sans rien publier."
       },
       {
         question: 'Que partagent les publications Discord ?',
@@ -788,15 +837,52 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
     title: "Accès et paramètres du compte",
     path: '/parametres',
     actionLabel: 'Ouvrir les paramètres',
-    summary: "Ton rôle dans l’équipe détermine les actions disponibles. Paramètres gère ton compte et ta sécurité ; Gestion de l’équipe organise les joueurs et leurs accès.",
-    keywords: ['permission', 'droits', 'accès', 'capitaine', 'coach', 'manager', 'analyste', 'joueur', 'compte', 'email', 'mot de passe', 'sécurité', 'paramètres'],
+    summary: "Ton rôle dans l’équipe détermine les actions disponibles. Paramètres gère ton pseudo, ton e-mail, ta sécurité, tes connexions associées et tes e-mails NXT5 ; Gestion de l’équipe organise les joueurs et leurs accès.",
+    keywords: ['permission', 'droits', 'accès', 'capitaine', 'coach', 'manager', 'analyste', 'joueur', 'compte', 'email', 'e-mail', 'mot de passe', 'sécurité', 'paramètres', 'connexions associées', 'google', 'rester connecté', 'session'],
     steps: [
       "Vérifie ton rôle dans l’équipe active.",
-      "Ouvre Paramètres pour ton compte, ton e-mail et ton mot de passe.",
+      "Ouvre Paramètres pour ton pseudo, ton e-mail, ton mot de passe, tes connexions associées et tes e-mails NXT5.",
       "Ouvre Gestion de l’équipe pour les profils joueurs et leurs accès.",
       "Si une action reste bloquée, demande au capitaine ou à un membre du staff autorisé."
     ],
-    suggestions: ['Pourquoi un bouton est bloqué ?', 'Comment modifier un accès ?', 'Comment sécuriser mon compte ?']
+    suggestions: ['Comment changer mon adresse e-mail ?', 'Comment associer Google ou Discord à mon compte ?', 'Pourquoi un bouton est bloqué ?'],
+    faq: [
+      {
+        question: 'Comment changer mon adresse e-mail ?',
+        triggers: ['changer mon e-mail', 'changer mon email', 'modifier mon e-mail', 'nouvelle adresse', 'changement d’adresse'],
+        answer: "Dans Paramètres → Pseudo et e-mail, saisis la nouvelle adresse et ton mot de passe actuel. Un lien est envoyé à la nouvelle adresse : ouvre-le dans ce navigateur, connecté à ton compte, sous 24 heures. Ton adresse actuelle reste active jusque-là, et Annuler le changement abandonne la demande. Si ton compte n’a pas encore de mot de passe NXT5, crée-le d’abord depuis Sécurité du compte."
+      },
+      {
+        question: 'Comment associer Google ou Discord à mon compte ?',
+        triggers: ['connexions associées', 'associer google', 'connexion google', 'connexion avec discord', 'dissocier', 'autre méthode de connexion'],
+        answer: "Connecte-toi d’abord à ton compte NXT5 existant, puis ouvre Paramètres → Connexions associées et choisis Associer pour un service disponible ; les services non activés sont indiqués comme indisponibles. Dissocier un service ou modifier ton e-mail demande un mot de passe NXT5 : sans mot de passe, Sécurité du compte permet de recevoir un lien pour en créer un. Cette connexion au site ne lie pas le bot Discord, qui utilise /nxt lier."
+      },
+      {
+        question: 'Que change l’option Rester connecté ?',
+        triggers: ['rester connecté', 'reste connecté', 'déconnecté', 'durée de session'],
+        answer: "Avec Rester connecté, ta session dure 30 jours sur cet appareil. Sans cette option, elle se termine à la fermeture du navigateur et au plus tard après 12 heures. Après un changement d’e-mail confirmé, les autres sessions sont déconnectées."
+      }
+    ]
+  },
+  {
+    id: 'support',
+    title: 'Soutenir NXT5',
+    path: '/soutenir',
+    actionLabel: 'Ouvrir Soutenir NXT5',
+    summary: "Soutenir NXT5 présente un soutien facultatif au développement. Le soutien ne modifie aucun accès et ne débloque aucune fonction.",
+    keywords: ['soutenir', 'soutien', 'ko-fi', 'kofi', 'don', 'faire un don', 'contribution', 'financer'],
+    steps: [
+      "Ouvre Soutenir NXT5 depuis l’accueil ou le pied de page.",
+      "Lorsque les contributions sont ouvertes, Soutenir le projet ouvre Ko-fi dans un nouvel onglet ; le montant, la fréquence et la confirmation se gèrent sur cette plateforme."
+    ],
+    suggestions: ['Comment soutenir NXT5 ?'],
+    faq: [
+      {
+        question: 'Comment soutenir NXT5 ?',
+        triggers: ['soutenir nxt5', 'ko-fi', 'kofi', 'faire un don', 'soutien financier'],
+        answer: "La page Soutenir NXT5 présente un soutien facultatif. Lorsque les contributions sont ouvertes, Soutenir le projet ouvre Ko-fi dans un nouvel onglet pour choisir un montant ponctuel ou mensuel. NXT5 ne collecte aucune donnée de paiement, et le soutien ne modifie aucun accès ni aucune fonction."
+      }
+    ]
   },
   {
     id: 'troubleshooting',
@@ -838,6 +924,11 @@ export const ASSISTANT_KNOWLEDGE: AssistantKnowledgeEntry[] = [
           "reste bloqué"
         ],
         "answer": "Recharge la page, puis vérifie ta connexion. Si une erreur apparaît, utilise Réessayer. Si le problème persiste, conserve le message affiché pour le transmettre avec la page concernée."
+      },
+      {
+        question: 'Le site est lent sur mon appareil, que faire ?',
+        triggers: ['site lent', 'ralentit', 'mode performance', 'effets visuels', 'saccade', 'manque de fluidité'],
+        answer: "Dans Paramètres → Affichage sur cet appareil, choisis Mode performance pour réduire les effets visuels. Ce réglage ne concerne que ce navigateur ; Rendu complet rétablit les effets."
       }
     ]
   }
