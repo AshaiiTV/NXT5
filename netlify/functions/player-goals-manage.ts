@@ -66,7 +66,7 @@ export default async function handler(request: Request, context: Context): Promi
     const sampleSize = Math.max(1, Math.min(10, Number(body.sampleSize || 3)));
     const requiredSuccesses = Math.max(1, Math.min(sampleSize, Number(body.requiredSuccesses || 2)));
     if (!playerId || !title) throw Object.assign(new Error('Joueur et objectif requis.'), { status: 400 });
-    if (!['deaths', 'kp', 'kda', 'vision', 'cs10'].includes(metric)) throw Object.assign(new Error('Métrique invalide.'), { status: 400 });
+    if (!['deaths', 'kp', 'kda', 'vision', 'cs10', 'cs15', 'cs_min', 'gold_min', 'dpm', 'damage_share', 'vision_min', 'control_wards'].includes(metric)) throw Object.assign(new Error('Métrique invalide.'), { status: 400 });
     if (!['gte', 'lte'].includes(operator) || !Number.isFinite(targetValue)) throw Object.assign(new Error('Cible invalide.'), { status: 400 });
     const players = await sql`select id from players where id = ${playerId} and team_id = ${teamId} limit 1`;
     if (!players[0]) throw Object.assign(new Error('Profil joueur introuvable.'), { status: 404 });
