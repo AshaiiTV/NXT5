@@ -3,7 +3,9 @@ import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
 import { Button, SelectInput, TextInput } from "../components/ui/Core.jsx";
-import { Champions, Compositions, CompositionSlot } from "../pages/workspace/DraftWorkspace.jsx";
+import { Champions, Compositions, CompositionSlot, CompositionCard, compositionMastery, compositionPickList } from "../pages/workspace/DraftWorkspace.jsx";
+import { CHAMPION_IDS } from "../../shared/champion-catalog.js";
+import { compositionSlots } from "../utils/planning.js";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn(), API_BASE: "/.netlify/functions" }));
 
@@ -23,11 +25,20 @@ function render(element, options) { act(() => { renderer = TestRenderer.create(e
 function selectRole(role) { return renderer.root.findAllByType(SelectInput).find((node) => node.props.label === `Champion · ${role}`); }
 
 describe("accessible composition choices", () => {
-  it("selects only a champion declared for the chosen player and role", () => {
+  it("keeps the player's pool first and offers every remaining champion once, excluding substitutes from pool groups", () => {
     const onChange = vi.fn();
     render(<CompositionSlot role="TOP" slot={{ playerId: "top", poolId: "" }} players={players} rows={rows} onChange={onChange} />);
     const picker = selectRole("TOP");
-    expect(picker.findAllByType("option").map((node) => node.props.value)).toEqual(["", "aatrox"]);
+    const groups = picker.findAllByType("optgroup");
+    expect(groups[0].findAllByType("option").map(node => node.props.value)).toEqual(["aatrox"]);
+    const others = groups.at(-1);
+    expect(others.props.label).toBe("Autres champions");
+    const values = others.findAllByType("option").map(node => node.props.value);
+    expect(values).toHaveLength(CHAMPION_IDS.length - 1);
+    expect(values).not.toContain("champion:Aatrox");
+    expect(values).toContain("champion:Ornn");
+    expect(values).not.toContain("ornn");
+    expect(new Set(values).size).toBe(values.length);
     act(() => picker.findByType("select").props.onChange({ target: { value: "aatrox" } }));
     expect(onChange).toHaveBeenCalledWith("TOP", { playerId: "top", poolId: "aatrox" });
     const playerPicker = renderer.root.findAllByType(SelectInput).find((node) => node.props.label === "Joueur · TOP");
@@ -35,10 +46,70 @@ describe("accessible composition choices", () => {
     expect(onChange).toHaveBeenLastCalledWith("TOP", { playerId: "sub", poolId: "" });
   });
 
-  it("explains a missing list and disables the selector without selecting another player’s champions", () => {
-    render(<CompositionSlot role="SUP" slot={{}} players={players} rows={rows} onChange={vi.fn()} />);
-    expect(selectRole("SUP").props.disabled).toBe(true);
-    expect(selectRole("SUP").findAllByType("option").map((node) => node.props.value)).toEqual([""]);
+  it("offers the full catalogue for an empty pool or a role without a player, without borrowing private pool rows", () => {
+    const onChange = vi.fn();
+    render(<CompositionSlot role="SUP" slot={{}} players={players} rows={rows} onChange={onChange} />);
+    expect(selectRole("SUP").props.disabled).not.toBe(true);
+    expect(selectRole("SUP").findAllByType("option")).toHaveLength(CHAMPION_IDS.length + 1);
+    act(() => selectRole("SUP").props.onChange("champion:Thresh"));
+    expect(onChange).toHaveBeenCalledWith("SUP", { playerId: "", poolId: "", champion: "Thresh" });
+    expect(selectRole("SUP").findAllByType("option").map(node => node.props.value)).not.toContain("ahri");
+  });
+
+  it("saves an outside-pool pick without creating a pool row and restores its portrait, analysis and saved card", async () => {
+    apiFetch.mockResolvedValue({});
+    const data = { players, championPool: rows, compositions: [] };
+    render(<Compositions data={data} selectedTeamId="team" currentMember={{ role: "player" }} user={{ id: "user" }} refreshAll={vi.fn()} pushToast={vi.fn()} />);
+    act(() => renderer.root.findAllByType(TextInput).find(node => node.props.label === "Nom de la composition").props.onChange("Essai hors pool"));
+    act(() => selectRole("MID").props.onChange("champion:MonkeyKing"));
+    expect(selectRole("MID").props.value).toBe("champion:MonkeyKing");
+    expect(apiFetch).not.toHaveBeenCalled();
+    await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault: vi.fn() }));
+    expect(apiFetch).toHaveBeenCalledOnce();
+    const payload = JSON.parse(apiFetch.mock.calls[0][1].body);
+    const savedSlots = compositionSlots(JSON.stringify(payload.slots));
+    expect(savedSlots.MID).toEqual({ playerId: "mid", poolId: "", champion: "MonkeyKing" });
+    expect(compositionPickList(savedSlots, rows)).toEqual([expect.objectContaining({ role: "MID", champion: "MonkeyKing", outsidePool: true })]);
+    expect(compositionMastery(savedSlots, rows)).toEqual({ label: "Maîtrise non renseignée", tone: "slate" });
+    act(() => renderer.update(<CompositionCard composition={{ title: "Essai hors pool", slots: savedSlots }} rows={rows} players={players} />));
+    const cardText = JSON.stringify(renderer.toJSON());
+    expect(cardText).toContain("Wukong");
+    expect(cardText).toContain("Hors pool");
+    expect(cardText).toContain("Mid");
+    expect(data.championPool).toEqual(rows);
+    act(() => renderer.update(<CompositionSlot role="MID" slot={savedSlots.MID} players={players} rows={rows} onChange={vi.fn()} />));
+    expect(selectRole("MID").props.value).toBe("champion:MonkeyKing");
+  });
+
+  it("removes the free champion when switching to a pool pick or another player", () => {
+    const onChange = vi.fn();
+    render(<CompositionSlot role="TOP" slot={{ playerId: "top", poolId: "", champion: "Ornn" }} players={players} rows={rows} onChange={onChange} />);
+    act(() => selectRole("TOP").props.onChange("aatrox"));
+    expect(onChange).toHaveBeenLastCalledWith("TOP", { playerId: "top", poolId: "aatrox" });
+    act(() => renderer.root.findAllByType(SelectInput).find(node => node.props.label === "Joueur · TOP").props.onChange("sub"));
+    expect(onChange).toHaveBeenLastCalledWith("TOP", { playerId: "sub", poolId: "" });
+  });
+
+  it("recognizes a newly declared champion only for its own player and role", () => {
+    const slot = { playerId: "top", poolId: "", champion: "Ornn" };
+    expect(compositionMastery({ TOP: slot }, rows).label).toBe("Maîtrise non renseignée");
+    const declaredRows = [...rows, { ...rows[0], id: "new-ornn", champion: "Ornn" }];
+    expect(compositionMastery({ TOP: slot }, declaredRows).label).toBe("Très maîtrisée");
+    render(<CompositionSlot role="TOP" slot={slot} players={players} rows={declaredRows} onChange={vi.fn()} />);
+    expect(selectRole("TOP").props.value).toBe("new-ornn");
+    expect(selectRole("TOP").findAllByType("option").map(node => node.props.value)).not.toContain("champion:Ornn");
+  });
+
+  it("reconciles legacy name-only pool rows without borrowing an ID-linked row from a namesake", () => {
+    const slot = { playerId: "top", poolId: "", champion: "Ornn" };
+    const legacyRows = [...rows, { ...rows[0], id: "legacy-ornn", player_id: null, champion: "Ornn" }];
+    render(<CompositionSlot role="TOP" slot={slot} players={players} rows={legacyRows} onChange={vi.fn()} />);
+    expect(selectRole("TOP").props.value).toBe("legacy-ornn");
+    expect(compositionMastery({ TOP: slot }, legacyRows, players).label).toBe("Très maîtrisée");
+    const namesakeRows = [...rows, { ...legacyRows.at(-1), player_id: "other-player" }];
+    act(() => renderer.update(<CompositionSlot role="TOP" slot={slot} players={players} rows={namesakeRows} onChange={vi.fn()} />));
+    expect(selectRole("TOP").props.value).toBe("champion:Ornn");
+    expect(selectRole("TOP").findAllByType("option").map(node => node.props.value)).toContain("champion:Ornn");
   });
 
   it("keeps draft choices when the glossary opens and saves the same composition payload", async () => {

@@ -1,5 +1,6 @@
 import { getLocale } from "../i18n/locale.js";
 import { PLANNING_DAYS, PLANNING_EVENT_TYPES, PLANNING_TIMES } from "../app/constants.jsx";
+import { knownChampionId } from "../../shared/champion-catalog.js";
 
 const DEFAULT_COMP_ROLES = ["TOP", "JGL", "MID", "ADC", "SUP"];
 
@@ -21,7 +22,22 @@ export function compositionSlots(value) {
     .map(([role, slot]) => [role, {
       playerId: typeof slot.playerId === "string" ? slot.playerId : "",
       poolId: typeof slot.poolId === "string" ? slot.poolId : "",
+      ...(!slot.poolId && knownChampionId(slot.champion) ? { champion: knownChampionId(slot.champion) } : {}),
     }]));
+}
+
+export function resolveCompositionPick(slot, rows = [], players = [], role = "") {
+  if (slot?.poolId) return rows.find(item => item.id === slot.poolId) || null;
+  const champion = knownChampionId(slot?.champion);
+  if (!champion) return null;
+  // A formerly free choice can acquire a real mastery once this same player
+  // declares it at this role. Never infer mastery from another player's pool.
+  const player = players.find(player => player.id === slot?.playerId);
+  const declared = role && slot?.playerId && rows.find(item => (item.player_id ? String(item.player_id) === String(slot.playerId) : player && item.player_name === player.name)
+    && String(item.role || role).toUpperCase() === role && ["manual", "riot_manual"].includes(item.source)
+    && knownChampionId(item.champion) === champion);
+  if (declared) return declared;
+  return { champion, player_id: slot?.playerId || "", player_name: player?.name || "", outsidePool: true };
 }
 
 export function jsonList(value) {

@@ -197,7 +197,7 @@ async function read(request:Request) {
     } else if(view==='compositions') {
 
       listing=tx`select c.id,c.title,c.notes,c.created_at,
-        (select jsonb_agg(jsonb_build_object('role',s.key,'player',p.name,'champion',pool.champion) order by s.key)
+        (select jsonb_agg(jsonb_build_object('role',s.key,'player',p.name,'champion',coalesce(pool.champion,nullif(s.value->>'champion',''))) order by s.key)
          from jsonb_each(case when jsonb_typeof(c.slots)='object' then c.slots else '{}'::jsonb end) s
          left join players p on p.id::text=s.value->>'playerId' and p.team_id=c.team_id
          left join champion_pool pool on pool.id::text=s.value->>'poolId' and pool.team_id=c.team_id
