@@ -23,6 +23,14 @@ import {
   lcuChampionNames,
   createChampionCatalog,
 } from "./network.js";
+import {
+  canWriteNextTo,
+  downloadVerified,
+  installTarget,
+  launchSwap,
+  parseChecksums,
+  prepareMacBundle,
+} from "./updater.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const APP_NAME = "NXT5 Importer";
@@ -51,7 +59,7 @@ let store;
 let mainWindow;
 let collector;
 
-async function checkImporterUpdate() {
+async function fetchReleaseInfo() {
   try {
     const { response, payload } = await fetchJson(RELEASE_API, {
       timeoutMs: 8000,
@@ -76,6 +84,108 @@ async function checkImporterUpdate() {
       checked: false,
       message: error.message,
     };
+  }
+}
+
+// Automatic update: download in the background, then swap the file in place on restart or quit.
+const UPDATE_RECHECK_MS = 6 * 60 * 60 * 1000;
+const updatesDirectory = () => path.join(app.getPath("userData"), "updates");
+let updateState = { status: "idle", progress: 0, version: "", message: "" };
+let stagedUpdate = null;
+let preparingUpdate = null;
+let swapLaunched = false;
+let quitSwapAttempted = false;
+
+function setUpdateState(changes) {
+  updateState = { ...updateState, ...changes };
+  if (mainWindow && !mainWindow.webContents.isDestroyed())
+    mainWindow.webContents.send("update-state", updateState);
+}
+
+async function fetchChecksums(url) {
+  if (!url) throw new Error("Empreintes de la publication introuvables.");
+  const response = await fetch(url, {
+    signal: AbortSignal.timeout(15000),
+    headers: { "User-Agent": "NXT5-Importer" },
+  });
+  if (!response.ok)
+    throw new Error(`Empreintes indisponibles (${response.status}).`);
+  const text = await response.text();
+  if (text.length > 100000) throw new Error("Empreintes invalides.");
+  return parseChecksums(text);
+}
+
+async function prepareUpdate(info) {
+  const target = installTarget({
+    platform: process.platform,
+    execPath: process.execPath,
+    isPackaged: app.isPackaged,
+  });
+  if (!target.supported || !(await canWriteNextTo(target.target))) {
+    setUpdateState({
+      status: "manual",
+      version: info.latestVersion,
+      message:
+        target.reason === "readonly"
+          ? "Déplace NXT5 Importer dans le dossier Applications pour activer les mises à jour automatiques."
+          : "",
+    });
+    return;
+  }
+  setUpdateState({ status: "downloading", progress: 0, version: info.latestVersion, message: "" });
+  try {
+    const sums = await fetchChecksums(info.checksumsUrl);
+    const directory = updatesDirectory();
+    await fs.rm(directory, { recursive: true, force: true });
+    const file = await downloadVerified(
+      info.downloadUrl,
+      path.join(directory, path.basename(info.assetName)),
+      {
+        sha256: sums.get(info.assetName),
+        onProgress: (progress) => setUpdateState({ progress }),
+      },
+    );
+    if (target.kind === "mac") {
+      const { bundle, staging } = await prepareMacBundle(file, target.target);
+      await fs.rm(file, { force: true });
+      stagedUpdate = { kind: "mac", target: target.target, file: bundle, staging };
+    } else {
+      stagedUpdate = { kind: "windows", target: target.target, file };
+    }
+    setUpdateState({ status: "ready", progress: 1 });
+  } catch (error) {
+    setUpdateState({ status: "error", message: error.message });
+  }
+}
+
+async function checkImporterUpdate() {
+  const info = await fetchReleaseInfo();
+  if (info.checked && !info.updateAvailable && !stagedUpdate && !preparingUpdate)
+    updateState = { status: "idle", progress: 0, version: "", message: "" };
+  if (
+    info.updateAvailable &&
+    !stagedUpdate &&
+    !preparingUpdate &&
+    updateState.status !== "manual"
+  )
+    preparingUpdate = prepareUpdate(info).finally(() => {
+      preparingUpdate = null;
+    });
+  return { ...info, update: updateState };
+}
+
+async function applyStagedUpdate({ relaunch }) {
+  if (!stagedUpdate || swapLaunched) return false;
+  swapLaunched = true;
+  try {
+    await launchSwap(stagedUpdate, {
+      relaunch,
+      scriptDir: path.join(app.getPath("temp"), "nxt5-importer-update"),
+    });
+    return true;
+  } catch {
+    swapLaunched = false;
+    return false;
   }
 }
 
@@ -569,6 +679,14 @@ const handlers = {
   },
   "cancel-import": () => importer.cancel(),
   "check-update": checkImporterUpdate,
+  async "install-update"() {
+    if (!stagedUpdate)
+      throw new Error("Aucune mise à jour n’est prête à être installée.");
+    if (!(await applyStagedUpdate({ relaunch: true })))
+      throw new Error("La mise à jour n’a pas pu démarrer. Réessaie.");
+    setImmediate(() => app.quit());
+    return true;
+  },
   async "show-export"(id) {
     const entry = store.snapshot().history.find((item) => item.id === id);
     if (!entry) return false;
@@ -647,7 +765,10 @@ else {
       },
     });
     await collector.load();
+    // Leftovers of an update that was never installed are downloaded again if still needed.
+    await fs.rm(updatesDirectory(), { recursive: true, force: true }).catch(() => {});
     createWindow();
+    setInterval(() => void checkImporterUpdate(), UPDATE_RECHECK_MS).unref?.();
   });
   app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();
@@ -655,8 +776,14 @@ else {
   app.on("activate", () => {
     if (store && BrowserWindow.getAllWindows().length === 0) createWindow();
   });
-  app.on("before-quit", () => {
+  app.on("before-quit", (event) => {
     importer.cancel();
     collector?.stop();
+    // A downloaded update is also installed when the app is simply closed.
+    if (stagedUpdate && !swapLaunched && !quitSwapAttempted) {
+      quitSwapAttempted = true;
+      event.preventDefault();
+      applyStagedUpdate({ relaunch: false }).finally(() => app.quit());
+    }
   });
 }

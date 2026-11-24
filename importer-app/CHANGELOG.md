@@ -1,3 +1,11 @@
+# NXT5 Importer 0.5.0 — Mises à jour automatiques
+
+- Les nouvelles versions se téléchargent toutes seules en arrière-plan. Quand elles sont prêtes, un bouton « Redémarrer pour mettre à jour » les installe ; sinon elles s’installent à la prochaine fermeture.
+- La mise à jour remplace l’application à son emplacement actuel : aucun doublon, et tes raccourcis continuent de fonctionner.
+- Chaque fichier téléchargé est comparé à l’empreinte SHA-256 publiée avec la version ; un fichier incomplet ou modifié est supprimé sans être installé.
+- Sur Mac, l’application doit être rangée dans un dossier modifiable (Applications par exemple). Sinon, ou en cas d’échec, le bouton « Télécharger » reste disponible.
+- Cette version est la dernière à installer à la main depuis la 0.4.9 ou une version plus ancienne.
+
 # NXT5 Importer 0.4.9 — Collecte réservée aux customs et durcissement
 
 - La collecte automatique n’observe plus que les parties personnalisées : les parties classées, normales ou ARAM restent sur ton ordinateur. NXT5 ignore aussi, côté serveur, toute partie hors custom reçue par une liaison d’équipe.

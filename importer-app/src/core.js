@@ -542,35 +542,43 @@ export function selectUpdate(payload, currentVersion, platform, arch) {
       : platform === "win32" && arch === "x64"
         ? /^NXT5-Importer-Windows-(\d+\.\d+\.\d+)\.exe$/i
         : null;
-  const candidates = (Array.isArray(payload?.assets) ? payload.assets : [])
+  const assets = Array.isArray(payload?.assets) ? payload.assets : [];
+  const releaseUrl = (asset) => {
+    try {
+      const url = new URL(asset.browser_download_url);
+      if (
+        url.protocol !== "https:" ||
+        url.hostname !== "github.com" ||
+        url.username ||
+        url.password ||
+        url.port ||
+        !url.pathname.startsWith("/AshaiiTV/NXT5/releases/download/") ||
+        decodeURIComponent(url.pathname.split("/").at(-1)) !== asset.name
+      )
+        return "";
+      return url.href;
+    } catch {
+      return "";
+    }
+  };
+  const candidates = assets
     .flatMap((asset) => {
       const match = expected?.exec(String(asset?.name || ""));
-      if (!match) return [];
-      try {
-        const url = new URL(asset.browser_download_url);
-        if (
-          url.protocol !== "https:" ||
-          url.hostname !== "github.com" ||
-          url.username ||
-          url.password ||
-          url.port ||
-          !url.pathname.startsWith("/AshaiiTV/NXT5/releases/download/") ||
-          decodeURIComponent(url.pathname.split("/").at(-1)) !== asset.name
-        )
-          return [];
-        return [{ version: match[1], url: url.href }];
-      } catch {
-        return [];
-      }
+      const url = match ? releaseUrl(asset) : "";
+      return url ? [{ version: match[1], url, name: asset.name }] : [];
     })
     .sort((a, b) => compareVersions(b.version, a.version));
   const latest = candidates[0];
+  const checksums = assets.find((asset) => asset?.name === "SHA256SUMS.txt");
+  const checksumsUrl = checksums ? releaseUrl(checksums) : "";
   return {
     currentVersion,
     latestVersion: latest?.version || currentVersion,
     updateAvailable:
       !!latest && compareVersions(latest.version, currentVersion) > 0,
     downloadUrl: latest?.url || "",
+    assetName: latest?.name || "",
+    checksumsUrl,
     platform:
       platform === "darwin"
         ? "mac"

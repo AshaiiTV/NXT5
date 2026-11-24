@@ -100,7 +100,7 @@ async function bootFixture() {
   const lockfilePath = path.join(runDir, 'lockfile');
   const state = globalThis.__NXT5_SMOKE = {
     runDir, mode: 'success', saved: path.join(runDir, 'initial-export.json'),
-    calls: [], external: [], saveDialogCalls: 0, saveDialogOptions: [], updatesOffline: false
+    calls: [], external: [], saveDialogCalls: 0, saveDialogOptions: [], updatesOffline: false, updateVersion: ''
   };
   globalThis.fetch = async (input, options = {}) => {
     const url = new URL(String(input));
@@ -109,7 +109,7 @@ async function bootFixture() {
       if (state.updatesOffline) throw new Error('Connexion fixture indisponible.');
       const platformName = process.platform === 'darwin' ? `Mac-${process.arch}` : 'Windows';
       const extension = process.platform === 'darwin' ? 'zip' : 'exe';
-      const name = `NXT5-Importer-${platformName}-${packageInfo.version}.${extension}`;
+      const name = `NXT5-Importer-${platformName}-${state.updateVersion || packageInfo.version}.${extension}`;
       return new Response(JSON.stringify({ assets: [{
         name,
         browser_download_url: `https://github.com/AshaiiTV/NXT5/releases/download/nxt5-match-exporter-latest/${name}`
@@ -323,6 +323,20 @@ async function runSmoke() {
         await expect(page.locator('#latestVersion')).toHaveText('Vérification indisponible');
         await expect(page.locator('#currentVersion')).toHaveText(`v${packageInfo.version}`);
       } finally { await application.evaluate(() => { globalThis.__NXT5_SMOKE.updatesOffline = false; }); }
+    });
+    await test('a newer version that cannot install itself offers the download', async () => {
+      // Unpackaged runs never replace files: the banner falls back to the download link.
+      await application.evaluate(() => { globalThis.__NXT5_SMOKE.updateVersion = '99.0.0'; });
+      try {
+        await page.locator('#manualUpdateButton').click();
+        await expect(page.locator('#update')).toBeVisible();
+        await expect(page.locator('#updateText')).toContainText('v99.0.0');
+        await expect(page.locator('#updateLink')).toBeVisible();
+        await expect(page.locator('#updateInstall')).toBeHidden();
+      } finally { await application.evaluate(() => { globalThis.__NXT5_SMOKE.updateVersion = ''; }); }
+      await page.locator('#manualUpdateButton').click();
+      await expect(page.locator('#update')).toBeHidden();
+      await expect(page.locator('#latestVersion')).toHaveText('Ton application est à jour');
     });
     await test('native save cancellation creates neither file nor history', async () => {
       await mode('dialog-cancel'); await clickExport();
