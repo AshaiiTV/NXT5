@@ -147,6 +147,18 @@ export async function getDiscordGuild(guildId: string) {
   };
 }
 
+// The bot holds Administrator, which lets it ping any role. Only roles the
+// server itself marks as mentionable may be pinged; on doubt, no mention.
+export async function isDiscordRoleMentionable(guildId: string, roleId: string): Promise<boolean> {
+  if (!isDiscordId(guildId) || !isDiscordId(roleId) || roleId === guildId) return false;
+  try {
+    const roles = await discordRequest('/guilds/' + guildId + '/roles');
+    return Array.isArray(roles) && roles.some((role) => String(role?.id) === roleId && role.mentionable === true && !role.managed);
+  } catch {
+    return false;
+  }
+}
+
 export function cleanDiscordText(value: unknown, maxLength = 1000): string {
   return String(value ?? '').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '')
     .replace(/([\\`*_{}\[\]<>~|])/g, '\\$1').slice(0, maxLength);

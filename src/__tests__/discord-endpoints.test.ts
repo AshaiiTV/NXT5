@@ -301,6 +301,9 @@ describe('Discord route edits and retained publications', () => {
     expect((await routes(post({ routes: [null] }), {} as any)).status).toBe(400);
     expect((await routes(post({ routes: [{ ...valid, categoryIds: [otherCategory] }] }), {} as any)).status).toBe(403);
     expect((await routes(post({ routes: [{ ...valid, mentionRoleId: role }] }), {} as any)).status).toBe(400);
+    // Administrator lets the bot ping any role; a non-mentionable role stays refused anyway.
+    state.guild.mockResolvedValueOnce({ guild: { id: guild, name: 'Test' }, channels: [{ id: channel, name: 'scrims', canSend: true, canMentionRoles: true }], roles: [{ id: role, name: 'Players', mentionable: false }] });
+    expect((await routes(post({ routes: [{ ...valid, mentionRoleId: role }] }), {} as any)).status).toBe(400);
     expect((await routes(post({ routes: [valid, valid] }), {} as any)).status).toBe(400);
     expect((await rows('select config_version from discord_connections where team_id=$1', [team]))[0].config_version).toBe(1);
     expect((await rows('select * from discord_routes where team_id=$1', [team]))).toHaveLength(1);

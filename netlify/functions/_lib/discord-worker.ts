@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { sql } from './db';
 import { buildGamePublicationSnapshot } from '../../../shared/publications/game-publication.js';
 import { getOrRenderPublicationImage } from './publication-image';
-import { buildDiscordMessage, discordRequest, findDiscordMessage, getDiscordBotUserId } from './discord-client';
+import { buildDiscordMessage, discordRequest, findDiscordMessage, getDiscordBotUserId, isDiscordRoleMentionable } from './discord-client';
 import { isDiscordEnabled, signDiscordInternalRequest, getDiscordConfig } from './discord-config';
 import { assertDiscordSchemaReady, claimPublicationJob, classifyPublicationFailure, recoverPublicationJobs, retryDelaySeconds, PUBLICATION_LEASE_SECONDS } from './discord-queue';
 import { auditDiscord, discordTeamWriteQueries } from './discord-access';
@@ -122,8 +122,10 @@ export async function processPublicationJob(job: Row) {
     }
     const rendered = await getOrRenderPublicationImage(job.team_id,{id:snapshot.id,body:snapshot.body});
     const reference = publicationReference(job.publication_id,job.source_revision);
+    const wantedRole = source.publication.message_id ? null : source.route.mention_role_id;
+    const mentionRoleId = wantedRole && await isDiscordRoleMentionable(source.route.guild_id,wantedRole) ? wantedRole : null;
     const payload = buildDiscordMessage(snapshot.body,{
-      includeHints:source.route.include_hints,mentionRoleId:source.publication.message_id ? null : source.route.mention_role_id,reference,
+      includeHints:source.route.include_hints,mentionRoleId,reference,
       siteUrl:getDiscordConfig().siteUrl,hasImage:Boolean(rendered),filename:rendered?.filename
     });
     if (!rendered) payload.embeds[0].fields.push({name:'Visuel',value:'Visuel trop volumineux. Les détails restent accessibles dans NXT5.',inline:false});

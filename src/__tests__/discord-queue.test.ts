@@ -4,7 +4,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { afterAll,afterEach,beforeAll,beforeEach,describe,expect,it,vi } from 'vitest';
 
 const database = vi.hoisted(() => ({pg:null as any,failQuery:null as null|string,beforeBatch:null as null|(() => Promise<unknown>)}));
-const transport = vi.hoisted(() => ({send:vi.fn(),find:vi.fn(),render:vi.fn(),asset:vi.fn(),getAsset:vi.fn(),deleteAsset:vi.fn(),assetCreatedAt:vi.fn(),blobs:[] as {key:string}[],enabled:true}));
+const transport = vi.hoisted(() => ({send:vi.fn(),find:vi.fn(),render:vi.fn(),asset:vi.fn(),getAsset:vi.fn(),deleteAsset:vi.fn(),assetCreatedAt:vi.fn(),mentionable:vi.fn(),blobs:[] as {key:string}[],enabled:true}));
 // Real Neon parameter encoding and transaction protocol; real local PostgreSQL
 // constraints, deferred triggers and state transitions. No hosted DB is touched.
 vi.mock('../../netlify/functions/_lib/db',async () => {
@@ -40,7 +40,7 @@ vi.mock('../../netlify/functions/_lib/db',async () => {
   };
   return {sql:neon('postgresql://test:test@local-test.invalid/nxt5')};
 });
-vi.mock('../../netlify/functions/_lib/discord-client',async original => ({...await original<any>(),discordRequest:transport.send,findDiscordMessage:transport.find,getDiscordBotUserId:async ()=>'100000000000000088',
+vi.mock('../../netlify/functions/_lib/discord-client',async original => ({...await original<any>(),discordRequest:transport.send,findDiscordMessage:transport.find,getDiscordBotUserId:async ()=>'100000000000000088',isDiscordRoleMentionable:transport.mentionable,
   getDiscordGuild:async (id:string)=>({guild:{id,name:'Test'},channels:[{id:'100000000000000002',name:'Scrims',canSend:true}],roles:[]})}));
 vi.mock('../../netlify/functions/_lib/rate-limit',()=>({assertSubjectRateLimit:vi.fn().mockResolvedValue(undefined)}));
 vi.mock('../../netlify/functions/_lib/auth', async original => ({
@@ -102,6 +102,7 @@ beforeEach(async () => {
   transport.getAsset.mockReset().mockResolvedValue(null);
   transport.deleteAsset.mockReset().mockResolvedValue(undefined);
   transport.assetCreatedAt.mockReset().mockResolvedValue(Date.now()-2*86_400_000);
+  transport.mentionable.mockReset().mockResolvedValue(true);
   transport.blobs=[];
   await database.pg.exec('truncate users cascade');
   await database.pg.exec('truncate discord_interaction_receipts');
@@ -313,6 +314,16 @@ describe('Discord delivery state machine with real PostgreSQL',() => {
     expect(await rows('select state,message_id,published_revision from discord_publications')).toEqual([{state:'published',message_id:'100000000000000099',published_revision:2}]);
     expect((await rows('select body from publication_snapshots order by source_revision')).map(row=>row.body.context.opponentName)).toEqual(['Scrim','Corrected opponent']);
     expect(await rows('select status from discord_deliveries order by created_at')).toEqual([{status:'succeeded'},{status:'succeeded'}]);
+  });
+  it('drops the role ping when Discord no longer marks the role as mentionable',async () => {
+    await database.pg.exec("update discord_routes set mention_role_id='100000000000000077'");
+    transport.mentionable.mockResolvedValue(false);
+    await importGame();
+    expect((await processNext()).outcome).toBe('succeeded');
+    expect(transport.mentionable).toHaveBeenCalledWith('100000000000000001','100000000000000077');
+    const body=transport.send.mock.calls[0][1].body;
+    expect(body.content).toBe('');
+    expect(body.allowed_mentions.roles).toEqual([]);
   });
   it('keeps visible content quiet when only import metadata changes',async () => {
     await importGame();await processNext();
