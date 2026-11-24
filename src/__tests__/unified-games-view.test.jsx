@@ -351,6 +351,32 @@ describe("unified Games workspace", () => {
   });
 
 
+  it("merges the import statistics report into one visual automatic debrief", async () => {
+    const roles = ["TOP", "JGL", "MID", "ADC", "SUP"];
+    const row = (team_key, role, index) => ({
+      team_key, role, summoner_name: `${team_key === "ALLY" ? "Nous" : "Eux"} ${role}`, champion: team_key === "ALLY" ? "Ornn" : "Garen",
+      kills: 2, deaths: index, assists: 4, gold: team_key === "ALLY" ? 9000 + index * 100 : 8500, damage: 12000, vision: 20, cs: 180,
+    });
+    const participants = ["ALLY", "ENEMY"].flatMap((teamKey) => roles.map((role, index) => row(teamKey, role, index)));
+    details.splice(details.findIndex((match) => match.id === "one"), 1, game("one", { participants }));
+    const props = settings();
+    props.data.reports = [{ id: "auto", team_id: "team", match_id: "one", source: "auto", title: "Review — Équipe — EUW1_one", content: "## Review — Équipe\n\n### Données joueurs\n- **TOP Nous TOP** sur **Ornn**" }];
+    try {
+      const renderer = await mount("/games?match=one", props);
+      const panel = () => renderer.root.findByType(MatchDataPanel);
+      expect(text(panel())).not.toContain("Review — Équipe — EUW1_one");
+      const summaries = panel().findAllByType("details").filter((node) => text(node).includes("Débrief automatique de la partie"));
+      expect(summaries).toHaveLength(1);
+      await act(async () => summaries[0].props.onToggle({ currentTarget: { open: true } }));
+      expect(text(panel())).toContain("Nos joueurs");
+      expect(text(panel())).toContain("Nous MID");
+      expect(text(panel())).toContain("À revoir en vidéo");
+      expect(text(panel())).not.toContain("### Données joueurs");
+    } finally {
+      details.splice(details.findIndex((match) => match.id === "one"), 1, game("one"));
+    }
+  });
+
   it("keeps the whole saved debrief in each linked summary and shows only team writing in Notes", async () => {
     const props = settings();
     props.data.reports = [
