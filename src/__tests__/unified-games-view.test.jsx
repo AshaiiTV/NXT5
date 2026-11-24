@@ -1,4 +1,5 @@
 import React, { Suspense, useEffect, useState } from "react";
+import { clearDraftHistoryMemory } from "../api/draft-history.js";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
@@ -68,6 +69,7 @@ beforeEach(() => {
   });
 });
 afterEach(() => {
+  clearDraftHistoryMemory();
   cleanups.splice(0).forEach((cleanup) => cleanup());
   vi.resetAllMocks();
   vi.unstubAllGlobals();
@@ -175,6 +177,23 @@ describe("unified Games workspace", () => {
     const search = renderer.root.findAllByType("input").find((node) => node.props.type === "search");
     await act(async () => search.props.onChange({ target: { value: "OPIF" } }));
     expect(renderer.root.findAllByProps({ className: "opponent-directory-card" })).toHaveLength(1);
+    expect(String(teamsCount(renderer))).toBe("3");
+  });
+
+  it("reopens the Teams tab on the remembered directory while refreshing it in the background", async () => {
+    const opponents = [{ id: "opif", name: "OPIF" }, { id: "other-opponent", name: "Autre adversaire" }];
+    let reads = 0; const refresh = defer();
+    mockOpponents({ "list-opponents": { opponents, canEdit: true }, list: () => (++reads === 1 ? Promise.resolve({ opponents, drafts: [], canEdit: true }) : refresh.promise) });
+    const renderer = await mount();
+    await click(renderer, "Équipes");
+    expect(renderer.root.findAllByProps({ className: "opponent-directory-card" })).toHaveLength(2);
+    await click(renderer, "Parties");
+    await click(renderer, "Équipes");
+    expect(opponentCalls("list")).toHaveLength(2);
+    expect(text(renderer.toJSON ? { children: [JSON.stringify(renderer.toJSON())] } : "")).not.toContain("Chargement des adversaires");
+    expect(renderer.root.findAllByProps({ className: "opponent-directory-card" })).toHaveLength(2);
+    expect(String(teamsCount(renderer))).toBe("2");
+    await act(async () => refresh.resolve({ opponents: [...opponents, { id: "new", name: "Nouveau" }], drafts: [], canEdit: true }));
     expect(String(teamsCount(renderer))).toBe("3");
   });
 

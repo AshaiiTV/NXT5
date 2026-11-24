@@ -1,6 +1,6 @@
 import React, { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, ChevronRight, FileText, Loader2, Plus, RefreshCw, Search, Shield, Swords, X } from "lucide-react";
-import { loadDraftHistory } from "../../api/draft-history.js";
+import { fetchDraftHistory, forgetDraftHistory, peekDraftHistory, rememberDraftHistory } from "../../api/draft-history.js";
 import { apiFetch } from "../../api/client.js";
 import { t } from "../../i18n/translate.js";
 import { getLocale } from "../../i18n/locale.js";
@@ -178,18 +178,27 @@ function OpponentDossier({ opponent, model, groups, teamId, headingRef, panel, o
   </Surface>;
 }
 
-function TeamOpponents({ teamId, opponentId = "", refreshRevision = 0, onCountChange }) {
+function mostRecentOpponentId(result) {
+  const recent = new Map();
+  for (const match of result.opponentMatches || []) recent.set(match.opponentId, Math.max(recent.get(match.opponentId) || 0, Date.parse(match.date) || 0));
+  return [...(result.opponents || [])].sort((a, b) => (recent.get(b.id) || 0) - (recent.get(a.id) || 0) || a.name.localeCompare(b.name, getLocale()))[0]?.id || "";
+}
+
+function TeamOpponents({ teamId, userId = "", opponentId = "", refreshRevision = 0, onCountChange }) {
   const id = useId();
-  const [collection, setCollection] = useState({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], canEdit: false });
-  const [loadState, setLoadState] = useState("loading");
+  // A collection already read in this session shows at once; the read below
+  // refreshes it in the background.
+  const [cached] = useState(() => peekDraftHistory(teamId, userId));
+  const [collection, setCollection] = useState(() => ({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], canEdit: false, ...cached }));
+  const [loadState, setLoadState] = useState(cached ? "ready" : "loading");
   const [reload, setReload] = useState(0);
   const [loadError, setLoadError] = useState("");
-  const [selectedId, setSelectedId] = useState(opponentId);
+  const [selectedId, setSelectedId] = useState(() => opponentId || (cached ? mostRecentOpponentId(cached) : ""));
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("recent");
   const [panel, setPanel] = useState("overview");
   const [directoryOpen, setDirectoryOpen] = useState(false);
-  const initialSelection = useRef(true);
+  const initialSelection = useRef(!cached);
   const [createOpen, setCreateOpen] = useState(false);
   const [name, setName] = useState("");
   const [notes, setNotes] = useState("");
@@ -199,7 +208,7 @@ function TeamOpponents({ teamId, opponentId = "", refreshRevision = 0, onCountCh
   const requests = useRef(new Set());
   const mutationRef = useRef(false);
   const readRequest = useRef(null);
-  const hasCollection = useRef(false);
+  const hasCollection = useRef(Boolean(cached));
   const mounted = useRef(true);
   const pendingFocus = useRef(null);
   const dossierHeading = useRef(null);
@@ -207,7 +216,12 @@ function TeamOpponents({ teamId, opponentId = "", refreshRevision = 0, onCountCh
   const directoryHeading = useRef(null);
   const directoryCards = useRef(new Map());
 
-  useEffect(() => { setSelectedId(opponentId); setPanel("overview"); }, [opponentId]);
+  const linkedOpponent = useRef(opponentId);
+  useEffect(() => {
+    if (linkedOpponent.current === opponentId) return;
+    linkedOpponent.current = opponentId;
+    setSelectedId(opponentId); setPanel("overview");
+  }, [opponentId]);
   useEffect(() => {
     mounted.current = true;
     const pending = requests.current;
@@ -222,23 +236,22 @@ function TeamOpponents({ teamId, opponentId = "", refreshRevision = 0, onCountCh
       readRequest.current = controller;
       if (!hasCollection.current) setLoadState("loading");
       setLoadError("");
-      loadDraftHistory(teamId, controller.signal)
+      fetchDraftHistory(teamId, userId, controller.signal)
         .then((result) => { if (!disposed && !controller.signal.aborted) {
           hasCollection.current = true;
           setCollection({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], ...result });
           const autoSelect = initialSelection.current;
           initialSelection.current = false;
-          const recent = new Map();
-          for (const match of result.opponentMatches || []) recent.set(match.opponentId, Math.max(recent.get(match.opponentId) || 0, Date.parse(match.date) || 0));
           setSelectedId((current) => {
             if (result.opponents.some((item) => item.id === current)) return current;
             if (!autoSelect || current) return "";
-            return [...result.opponents].sort((a, b) => (recent.get(b.id) || 0) - (recent.get(a.id) || 0) || a.name.localeCompare(b.name, getLocale()))[0]?.id || "";
+            return mostRecentOpponentId(result);
           });
           setLoadState("ready");
         } })
         .catch((error) => { if (!disposed && !controller.signal.aborted) {
           if (error.status === 401 || error.status === 403) {
+            forgetDraftHistory(teamId, userId);
             hasCollection.current = false;
             setCollection({ opponents: [], opponentMatches: [], opponentGroups: [], drafts: [], canEdit: false });
             setSelectedId("");
@@ -266,11 +279,15 @@ function TeamOpponents({ teamId, opponentId = "", refreshRevision = 0, onCountCh
       win?.removeEventListener?.("focus", loadVisible);
       win?.removeEventListener?.("online", loadVisible);
     };
-  }, [teamId, reload, refreshRevision]);
+  }, [teamId, userId, reload, refreshRevision]);
 
   useEffect(() => {
-    onCountChange?.(loadState === "ready" ? collection.opponents.length : null);
+    // Keep the known badge while the first read is running.
+    if (loadState !== "loading") onCountChange?.(loadState === "ready" ? collection.opponents.length : null);
   }, [onCountChange, loadState, collection.opponents.length]);
+  useEffect(() => {
+    if (loadState === "ready" && hasCollection.current) rememberDraftHistory(teamId, userId, collection);
+  }, [teamId, userId, loadState, collection]);
 
   const dossiers = useMemo(() => {
     const bucket = (rows) => { const groups = new Map(); for (const row of rows) { if (!groups.has(row.opponentId)) groups.set(row.opponentId, []); groups.get(row.opponentId).push(row); } return groups; };
@@ -361,7 +378,7 @@ export function OpponentsWorkspace({ selectedTeamId, user, embedded = false, tit
   useLanguage();
   return <div className="opponents-workspace">
     {!embedded && <PageHeader title={title || t("Adversaires")} subtitle={t("Prépare les prochaines rencontres à partir des parties de tes adversaires.")} />}
-    {selectedTeamId ? <TeamOpponents key={`${selectedTeamId}:${user?.id || ""}`} teamId={selectedTeamId} opponentId={opponentId} refreshRevision={refreshRevision} onCountChange={onCountChange} /> : <Surface><EmptyState icon={Shield} title={t("Choisis une équipe")} text={t("Les fiches adversaires et leurs parties appartiennent à l’équipe sélectionnée.")} /></Surface>}
+    {selectedTeamId ? <TeamOpponents key={`${selectedTeamId}:${user?.id || ""}`} teamId={selectedTeamId} userId={user?.id || ""} opponentId={opponentId} refreshRevision={refreshRevision} onCountChange={onCountChange} /> : <Surface><EmptyState icon={Shield} title={t("Choisis une équipe")} text={t("Les fiches adversaires et leurs parties appartiennent à l’équipe sélectionnée.")} /></Surface>}
   </div>;
 }
 
