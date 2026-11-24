@@ -43,7 +43,8 @@ Le schéma v1 diffuse une game ; l’analyse reste `nxt5-game-2` et le template 
 ## Vérification reproductible
 
 ```sh
-node tools/benchmark-publication-render.mjs
+./node_modules/.bin/esbuild tools/benchmark-publication-render.mjs --bundle --platform=node --format=esm --packages=external --outfile=artifacts/discord-render/benchmark-runner.mjs
+node artifacts/discord-render/benchmark-runner.mjs artifacts/discord-render
 node node_modules/vitest/vitest.mjs run src/__tests__/publication-model.test.js src/__tests__/publication-render.test.ts src/__tests__/review-backfill-generator.test.jsx
 ```
 

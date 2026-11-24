@@ -51,7 +51,7 @@ L'Origin doit être celui de la requête, le corps doit être JSON et faire au p
   "type": "pageview",
   "eventId": "UUID",
   "pageId": "UUID",
-  "path": "/tarifs",
+  "path": "/demo",
   "referrer": "example.org",
   "source": "newsletter",
   "medium": "email",
@@ -66,7 +66,7 @@ L'Origin doit être celui de la requête, le corps doit être JSON et faire au p
 - `referrer` facultatif : nom d'hôte uniquement. Les URL complètes, IP, credentials, chemins, ports, query strings et références internes au même hôte ne sont pas stockés. Source de session = label `source` propre, sinon hôte externe valide, sinon `direct`.
 - `source`, `medium`, `campaign` facultatifs : labels ASCII de 64 caractères maximum commençant par une lettre ; espaces, chiffres, `_`, `.`, `-` permis. Les adresses email, URL, UUID et longues séquences numériques/hexadécimales sont supprimés. Ne pas placer de données personnelles dans les UTM. Par exemple utiliser `rentree` plutôt que `rentrée`.
 - `engagement` ajoute `durationSeconds` et `scrollDepth`, entiers cumulés, respectivement entre 0 et 86 400 et entre 0 et 100. Le serveur conserve le maximum déjà vu, plafonne le temps à la durée écoulée depuis la vue (+5 secondes de tolérance) et enregistre seulement le delta de temps nouvellement reçu. L'affichage/activité réelle est mesurée côté navigateur ; la durée ne prouve pas l'attention humaine.
-- `event` ajoute un `name` parmi `signup`, `login`, `access_request`, `pricing_view`. Une action de même nom est comptée au maximum une fois par page/session. L'application émet inscription/connexion/demande après succès du parcours ; il s'agit de mesures de parcours, pas d'un registre de facturation.
+- `event` ajoute un `name` parmi `signup`, `login`, `first_import`, `first_review` (`GOALS` dans `netlify/functions/_lib/audience.ts`) ; tout autre nom produit `400`. Une action de même nom est comptée au maximum une fois par page/session. L'application émet ces actions après succès du parcours ; il s'agit de mesures de parcours, pas d'un registre de facturation.
 - Les dimensions d'appareil et de navigateur sont classées depuis le User-Agent côté serveur. Le User-Agent brut n'est pas conservé. Le pays est le code approximatif transmis par Netlify, ou une chaîne vide. Aucun appel de géolocalisation navigateur n'est effectué.
 
 Réponses :
@@ -120,7 +120,7 @@ Tous les compteurs et taux sont des nombres. Les tableaux restent vides sans don
 - Durée active/session : somme des deltas d'engagement reçus pendant la fenêtre, divisée par ses sessions actives. Le delta final est attribué au moment de sa réception ; autour de minuit, quelques secondes de la fenêtre précédente peuvent ainsi être attribuées à la suivante. Plafond technique de 24 h actives pour une ouverture de page.
 - Durée active/vue : pour chaque route, moyenne du temps actif reçu dans la fenêtre pour les vues de cette route ouvertes dans la fenêtre. Une page ouverte avant celle-ci peut contribuer à la durée de session sans apparaître comme une nouvelle vue dans le classement.
 - Session engagée : au moins deux vues, dix secondes actives ou une conversion dans la fenêtre. Rebond = part des autres sessions. Tous les taux sont sur l'échelle 0–100 ; un dénominateur nul donne zéro.
-- Conversion : session avec au moins `signup` ou `access_request` dans la fenêtre. Plusieurs conversions dans une session ne gonflent pas le total. `login` et `pricing_view` restent des objectifs observés, mais ne sont pas des conversions.
+- Conversion : session avec au moins un `signup` dans la fenêtre. Plusieurs conversions dans une session ne gonflent pas le total. `login`, `first_import` et `first_review` restent des objectifs observés, mais ne sont pas des conversions.
 - Sources/campagnes : attribution au premier accès de la session ; la navigation interne ne réattribue pas les visites.
 - Retour : visiteur de la période ayant au moins une vue antérieure au début de cette période dans l'historique encore conservé. Cet indicateur ne peut connaître les visites refusées, expirées ou antérieures au déploiement.
 - Sorties : vues qui sont actuellement la dernière page connue de leur session. Elles sont provisoires pour une session encore active et ne prouvent pas un abandon définitif.
@@ -133,4 +133,4 @@ Tous les compteurs et taux sont des nombres. Les tableaux restent vides sans don
 
 ### Activation des équipes — 28 septembre 2026
 
-`/games`, `/demo` et les deux guides publics font partie des chemins autorisés. `first_import` signale la première partie enregistrée dans une équipe ; `first_review` signale le premier débrief enregistré ou modifié par un membre, en excluant la génération automatique à l’import. Ces événements sont envoyés uniquement après réussite serveur et accord de mesure d’audience. Aucun identifiant d’équipe, compte, joueur ou partie n’est envoyé. Les événements apparaissent dans Objectifs ; le taux historique « conversion » conserve sa définition inscription/demande d’accès. Les comptes de sessions par objectif ne constituent pas un entonnoir nominatif et ne mesurent pas les utilisateurs ayant refusé la collecte. La migration additive `audience-activation-20260928-v1` étend la contrainte des noms d’événements ; elle doit précéder la publication.
+`/games`, `/demo` et les deux guides publics font partie des chemins autorisés. `first_import` signale la première partie enregistrée dans une équipe ; `first_review` signale le premier débrief enregistré ou modifié par un membre, en excluant la génération automatique à l’import. Ces événements sont envoyés uniquement après réussite serveur et accord de mesure d’audience. Aucun identifiant d’équipe, compte, joueur ou partie n’est envoyé. Les événements apparaissent dans Objectifs ; le taux « conversion » reste fondé sur l’inscription. Les comptes de sessions par objectif ne constituent pas un entonnoir nominatif et ne mesurent pas les utilisateurs ayant refusé la collecte. La migration additive `audience-activation-20260928-v1` étend la contrainte des noms d’événements ; elle doit précéder la publication.
