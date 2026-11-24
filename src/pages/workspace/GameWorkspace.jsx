@@ -11,6 +11,7 @@ import { gameWorkspaceSectionFromPath, openAppPath } from "../../app/routing.js"
 import { PageHeader, Surface, TabNav, Badge, Button, EmptyState, TextInput, ReadingDetails } from "../../components/ui/Core.jsx";
 import { Check, Download, FileText, Loader2, Plus, Shield, Swords, Upload, Link2, X, ArrowRight, Pencil, Trash2, BarChart3, ChevronDown, Clipboard, RefreshCw, Search, Eye, Flame, Gauge, Target, AlertTriangle, Crown, Trophy, ChevronRight, ArrowLeft, Settings } from "lucide-react";
 import { apiFetch } from "../../api/client.js";
+import { peekDraftHistory, prefetchDraftHistory } from "../../api/draft-history.js";
 import { loadFullReport, reportContentOmitted, useFullReports } from "../../api/report-content.js";
 import { trackAudienceEvent } from "../../app/audience-client.js";
 import { ImporterLinkDisclosure, ImporterLinkSettings, ImporterQueue, useImporterAutoLink } from "../../components/importer/ImporterAutoLink.jsx";
@@ -1411,23 +1412,29 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const updateOpponentCount = useCallback((value) => {
     setOpponentCount((current) => current.scope === countScope && current.value === value ? current : { scope: countScope, value });
   }, [countScope]);
-  const teamCount = opponentCount.scope === countScope ? opponentCount.value : null;
+  const rememberedOpponents = peekDraftHistory(selectedTeamId, user?.id)?.opponents;
+  const teamCount = opponentCount.scope === countScope && opponentCount.value !== null ? opponentCount.value : rememberedOpponents ? rememberedOpponents.length : null;
   useEffect(() => {
     // The directory and group panel supply their counts, including newly created
     // profiles. Other library views only need the lightweight profile list.
     if (!selectedTeamId || workspaceView === "teams" || selectedMatchId || selectedArchive?.id) return;
     const controller = new AbortController();
+    let warmTimer;
     async function loadCount() {
       try {
         const result = await apiFetch("opponents-drafts", { method: "POST", body: JSON.stringify({ action: "list-opponents", teamId: selectedTeamId }), signal: controller.signal });
-        if (!controller.signal.aborted) updateOpponentCount(result.opponents.length);
+        if (controller.signal.aborted) return;
+        updateOpponentCount(result.opponents.length);
+        // Warm the Teams directory while the library is idle so the tab opens
+        // on its data instead of a loading state.
+        warmTimer = setTimeout(() => prefetchDraftHistory(selectedTeamId, user?.id), 1200);
       } catch {
         if (!controller.signal.aborted) updateOpponentCount(null);
       }
     }
     loadCount();
-    return () => controller.abort();
-  }, [selectedTeamId, workspaceView, selectedMatchId, selectedArchive?.id, data.bootstrapRevision, updateOpponentCount]);
+    return () => { controller.abort(); clearTimeout(warmTimer); };
+  }, [selectedTeamId, user?.id, workspaceView, selectedMatchId, selectedArchive?.id, data.bootstrapRevision, updateOpponentCount]);
   const [exportingStats, setExportingStats] = useState(false);
   const [reviewStatusSaving, setReviewStatusSaving] = useState(false);
   const [archiveForm, setArchiveForm] = useState({ id: "", name: "", description: "", matchIds: [] });

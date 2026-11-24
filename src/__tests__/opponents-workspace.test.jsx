@@ -2,6 +2,7 @@ import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
+import { clearDraftHistoryMemory } from "../api/draft-history.js";
 import OpponentsWorkspace, { DraftSnapshot, SourceLink, SnapshotContext } from "../components/opponents/OpponentsWorkspace.jsx";
 import DraftBoard from "../components/draft/DraftBoard.jsx";
 import { loadLanguageMessages, t } from "../i18n/translate.js";
@@ -26,6 +27,7 @@ let renderer;
 let props;
 
 afterEach(() => {
+  clearDraftHistoryMemory();
   act(() => renderer?.unmount());
   renderer = undefined;
   vi.resetAllMocks();
@@ -90,11 +92,10 @@ describe("opponent game dossiers", () => {
     expect(apiFetch).not.toHaveBeenCalled(); expect(renderedText()).toContain("Choisis une équipe");
   });
 
-  it("reports an unknown total before loading and a real zero for an empty directory", async () => {
+  it("keeps the caller's known total while loading and reports a real zero for an empty directory", async () => {
     const pending = defer(); const onCountChange = vi.fn();
     mockApi({ list: () => pending.promise }); await mount({ onCountChange });
-    expect(onCountChange).toHaveBeenLastCalledWith(null);
-    expect(onCountChange).not.toHaveBeenCalledWith(0);
+    expect(onCountChange).not.toHaveBeenCalled();
     await act(async () => pending.resolve({ ...list, opponents: [] }));
     expect(onCountChange).toHaveBeenLastCalledWith(0);
   });
