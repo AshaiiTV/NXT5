@@ -1,3 +1,5 @@
+> Document historique (septembre 2026) : la vente, les abonnements et les parcours commerciaux ont été retirés le 30 octobre 2026 ; NXT5 reste gratuit. Ce plan ne décrit ni une fonctionnalité active ni une commercialisation prévue. Voir le [guide de l’administration](administration-achats.md) et [Soutenir NXT5](soutenir-nxt5.md).
+
 # Plan de financement et de monétisation de NXT5
 
 Version de travail — septembre 2026

@@ -1,3 +1,7 @@
+// Canvas toolkit for NXT5 PNG images: shared theme, text fitting and wrapping,
+// panels, header/footer and number formats. Also used by shared/publications,
+// whose cards are rendered server-side too; pngCreateCanvas, pngLoadImage and the
+// download helpers need a browser.
 import { getLocale } from "../i18n/locale.js";
 import { t } from "../i18n/translate.js";
 export const PNG_THEME = Object.freeze({

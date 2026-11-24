@@ -64,7 +64,6 @@ export const AUTH_ROUTES = {
 export const PUBLIC_ROUTES = ["/", "/fonctionnalites", "/demo", "/guides/importer-premier-scrim", "/guides/preparer-debrief", "/mot-de-passe-oublie", "/reinitialiser-mot-de-passe", "/verify-email", "/verified", "/mentions-legales", "/confidentialite", "/cookies", "/conditions", "/reglement", "/contact", "/reseaux", "/soutenir"];
 export const AUTH_PATHS = Object.keys(AUTH_ROUTES);
 export const REMEMBER_ME_STORAGE_KEY = "nxt5_remember_me";
-export { DISCORD_INVITE_URL } from "./social-links.js";
 
 export const PLANNING_DAYS = [
   ["MON", "Lun"],

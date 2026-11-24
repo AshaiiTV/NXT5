@@ -9,7 +9,7 @@ import { sql } from './db';
 import type { RiotMatch } from './types';
 import { assertImportMatch, assertImportPlayerAssignments, normalizeImportCategoryIds } from './import-validation';
 import { assertMatchHasCategory } from './match-categories';
-import { assertImportRequestActive } from './match-import-request';
+import { assertImportRequestActive, runAfterMatchPersistence } from './match-import-request';
 import { TEAM_STAFF_ROLES } from './teams';
 import { assertImportOpponentAvailable, importOpponentInput, importOpponentQueries } from './opponents';
 
@@ -395,14 +395,6 @@ async function rebuildImprovements(teamId) {
   await sql`delete from improvements where team_id = ${teamId}`;
 }
 
-async function runImportSideEffect(label: string, task: () => Promise<unknown>) {
-  try {
-    await task();
-  } catch (err) {
-    logFailure(`[match-import] ${label} failed after match persistence.`, err);
-  }
-}
-
 export async function persistAnalyzedMatch({ team, gameId, match, roster, userId, laneAssignments = {}, enemyLaneAssignments = {}, playerAssignments = {}, allyTeamSide = '', label = '', categoryIds = [], opponentId, newOpponentName, signal, guards = [] }: { team: Record<string, any>; gameId: string; match: RiotMatch; roster: Array<Record<string, any>>; userId: string; laneAssignments?: Record<string, string>; enemyLaneAssignments?: Record<string, string>; playerAssignments?: Record<string, string>; allyTeamSide?: string; label?: string; categoryIds?: string[]; opponentId?: unknown; newOpponentName?: unknown; signal?: AbortSignal; guards?: Array<(tx: any) => any> }) {
   assertImportRequestActive(signal);
   const opponentSelection = importOpponentInput(opponentId, newOpponentName);
@@ -573,10 +565,10 @@ export async function persistAnalyzedMatch({ team, gameId, match, roster, userId
       message: 'Game importée, mais le Champion Pool n’a pas pu être recalculé. Les données précédentes ont été conservées.'
     });
   }
-  await runImportSideEffect('improvements rebuild', () => rebuildImprovements(team.id));
+  await runAfterMatchPersistence('match-import', 'improvements rebuild', () => rebuildImprovements(team.id));
 
   const report = reportForMatch({ team, summary, participants });
-  await runImportSideEffect('auto report creation', () => sql`
+  await runAfterMatchPersistence('match-import', 'auto report creation', () => sql`
       insert into reports (team_id, match_id, match_ids, created_by, title, content, source)
       select ${team.id}, ${savedMatch.id}, ${JSON.stringify([savedMatch.id])}::jsonb, ${userId}, ${`Review — ${team.name} — ${gameId}`}, ${report}, 'auto'
       where not exists (

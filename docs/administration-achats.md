@@ -1,6 +1,6 @@
 # Administration, comptes et statistiques globales
 
-Évolution du 30 octobre 2026. La première refonte est publiée par la PR #231 (`165cfdeb`). Les outils supplémentaires ci-dessous doivent être validés et leur publication vérifiée séparément.
+Évolution du 30 octobre 2026, vérifiée sur le code de `main` le 24 novembre 2026. La première refonte est arrivée avec la PR #231 (`165cfdeb`) ; les outils décrits ci-dessous (dossiers d’équipe, suspension, suppression et transfert) sont aussi présents dans `main`.
 
 ## Navigation et recherche
 

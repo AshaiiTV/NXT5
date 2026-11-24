@@ -12,8 +12,8 @@ Depuis NXT5 Importer 0.4.1, la navigation regroupe **Exporter**, **Collecte auto
 
 ## Lire une partie
 
-Le bilan dans `/games` présente Débrief, Face-à-face et Drafting. Débrief rassemble le résultat, les compositions, la courbe d’or, la carte des éliminations et les moments clés. Dans Face-à-face, ouvrir chaque poste pour comparer les deux joueurs ; les valeurs se lisent côté bleu puis côté rouge et la flèche indique le côté devant. Un tiret signifie que la donnée est indisponible. Une draft publique terminée de Drafter.lol peut être rattachée à une partie indépendamment de sa fiche adverse.
+Le bilan dans `/games` présente Résumé, Notes, Face-à-face et Drafting. Résumé rassemble les débriefs enregistrés (dont le débrief automatique de la partie), le résultat, les compositions, la courbe d’or, la carte des éliminations, les moments clés et **Les écarts par poste** (or final, dégâts aux champions et vision). Dans Face-à-face, ouvrir chaque poste pour comparer les deux joueurs ; les valeurs se lisent côté bleu puis côté rouge et la flèche indique le côté devant. Un tiret signifie que la donnée est indisponible. Une draft publique terminée de Drafter.lol peut être rattachée à une partie indépendamment de sa fiche adverse.
 
-## Préparer un débrief
+## Notes de l’équipe
 
-`/rapports` conserve les observations et actions de l’équipe liées à une ou plusieurs parties. **En 10 secondes** propose une synthèse visuelle ; **Les écarts par poste** compare l’or final, les dégâts aux champions et la vision. Les notes restent accessibles au clic. L’engrenage **Gérer ce débrief** donne accès à Dupliquer et, selon les droits, Supprimer. Un débrief peut relier jusqu’à 20 parties.
+`/notes` (l’ancienne adresse `/rapports` y conduit) conserve les observations et décisions rédigées par l’équipe. Elle s’ouvre depuis l’onglet Notes d’une partie ou l’accueil, et ne figure plus dans le menu latéral. **Nouvelle note** crée une note, éventuellement associée à des parties (20 au maximum) ; **Modifier** et **Supprimer la note** dépendent des droits. Les débriefs enregistrés se relisent dans le Résumé des parties liées.

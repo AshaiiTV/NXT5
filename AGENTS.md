@@ -21,13 +21,17 @@ Dans l’espace Codex local, éditer uniquement `2026-05-05/utilise-github-pour-
 
 Pour une modification uniquement documentaire, vérifier les liens et la cohérence du contenu. Pour le code, effectuer les contrôles adaptés au changement et les vérifications exigées par le dépôt (`npm run verify` pour le contrôle complet).
 
+## Documentation et traçabilité
+
+Le [sommaire de la documentation](docs/README.md) distingue les guides, tenus à jour dans `docs/`, et les rapports datés. Un travail notable se documente dans `docs/rapports/<sujet>-AAAA-MM-JJ.md`, ajouté en tête de l’index chronologique du sommaire dans la même pull request ; un rapport n’est plus réécrit ensuite. Lorsqu’un changement modifie un comportement décrit par un guide, mettre ce guide à jour dans le même travail. Quelques rapports antérieurs restent dans `docs/` parce que du code, une migration ou la charte graphique citent leur chemin.
+
 ## Publications YouTube
 
 Avant de préparer une publication YouTube NXT5 (sujet, script, titre, miniature, description ou analyse des résultats), lire [le guide YouTube](docs/youtube-playbook.md) et appliquer les enseignements pertinents. Distinguer les conseils de leurs auteurs, les hypothèses NXT5 et les résultats réellement mesurés. Mettre à jour ce guide lorsque l’utilisateur apporte de nouvelles références ou décisions ; ne pas transformer les promesses de viralité en faits.
 
 ## Mémoire et vérifications ciblées
 
-Enseignements retenus des [trois Reels analysés le 15 octobre 2026](docs/enseignements-reels-2026-10-15.md) :
+Enseignements retenus des [trois Reels analysés le 15 octobre 2026](docs/rapports/enseignements-reels-2026-10-15.md) :
 
 - Conserver les décisions durables, leur raison et les preuves utiles dans les guides existants. Rechercher d’abord dans le sommaire ou le graphe, puis lire les sources actuelles pertinentes. Distinguer les faits vérifiés, les hypothèses et le travail restant ; exclure secrets et données privées des notes de reprise.
 - Lorsqu’un changement touche un import, une écriture ou un envoi externe, vérifier les scénarios concernés : répétition, interruption, concurrence, délais et révocation des droits pendant le traitement. Adapter les tests au risque réel et préserver quotas, transactions et isolation des données privées.

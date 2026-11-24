@@ -2,7 +2,7 @@
 
 ## Démarrage
 
-Depuis `/accueil`, créer ou rejoindre une équipe, puis suivre le prochain pas proposé selon le rôle et l’activité. Les profils joueurs peuvent être préparés dans Gestion de l’équipe ou créés pendant l’import. Les parties se trouvent dans `/games`, les débriefs dans `/rapports` et les analyses dans `/tendances`.
+Depuis `/accueil`, créer ou rejoindre une équipe, puis suivre le prochain pas proposé selon le rôle et l’activité. Les profils joueurs peuvent être préparés dans Gestion de l’équipe ou créés pendant l’import. Les parties se trouvent dans `/games`, les débriefs dans le Résumé de chaque partie, les notes de l’équipe dans `/notes` et les analyses dans `/tendances`.
 
 ## Mon équipe et gestion
 

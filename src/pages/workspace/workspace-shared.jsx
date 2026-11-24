@@ -1,3 +1,7 @@
+// Helpers shared by the team workspace pages: roles and staff access, champion
+// assets and pools (tier list and its PNG export), participant/match readers
+// (items, spells, timeline, objectives) and a few small UI pieces. Everything is
+// exported from the single list at the end of the file.
 import { CHAMPION_STYLE_TAGS, ADDITIONAL_CHAMPION_STYLE_TAGS, ALL_CHAMPION_STYLE_TAGS } from "../../../shared/champion-catalog.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { t } from "../../i18n/translate.js";

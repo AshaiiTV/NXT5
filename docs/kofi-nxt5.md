@@ -41,11 +41,11 @@ Merci pour ton soutien à NXT5 ! Ta contribution encourage le projet et la suite
 
 ## Activation sur NXT5
 
-La destination publique validée est `https://ko-fi.com/nxt5org`. La configuration du site la renseigne avec `VITE_NXT5_SUPPORT_URL` dans `[build.environment]` de `netlify.toml`. La publication passe par la PR et une nouvelle construction Netlify contenant la page `/soutenir` ; modifier la configuration ne change pas un bundle déjà publié.
+La destination publique validée est `https://ko-fi.com/nxt5org`. La configuration du site la renseigne avec `VITE_NXT5_SUPPORT_URL` dans `[build.environment]` de `netlify.toml`. La page `/soutenir` et cette valeur sont dans `main` ; modifier la configuration exige une nouvelle construction Netlify et ne change pas un bundle déjà publié.
 
 Pour un aperçu Vite lancé directement, définir `VITE_NXT5_SUPPORT_URL=https://ko-fi.com/nxt5org` dans un `.env.local` ignoré par Git ou dans l’environnement du processus. Le fichier `.env.example` conserve une valeur vide. Les détails d’activation et de désactivation sont dans [Soutenir NXT5](soutenir-nxt5.md).
 
-Vérifier ensuite les liens « Soutenir NXT5 » de l’accueil et du pied de page, ainsi que le bouton « Soutenir le projet » sur `/soutenir`, sur ordinateur et mobile. Le bouton ouvre la page Ko-fi validée dans un nouvel onglet ; les choix du montant et de la fréquence restent sur Ko-fi. La connexion de réception se gère dans [Settings > Payment](https://ko-fi.com/settings?tab=payment).
+Vérifier ensuite le lien « Soutenir NXT5 » du pied de page (accueil, pages publiques et espace connecté), ainsi que le bouton « Soutenir le projet » sur `/soutenir`, sur ordinateur et mobile. Le bouton ouvre la page Ko-fi validée dans un nouvel onglet ; les choix du montant et de la fréquence restent sur Ko-fi. La connexion de réception se gère dans [Settings > Payment](https://ko-fi.com/settings?tab=payment).
 
 Ne pas effectuer de don de test ni de transaction sans demande spécifique. La vérification doit distinguer configuration prête et paiement réellement reçu.
 

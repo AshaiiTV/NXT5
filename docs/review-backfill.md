@@ -2,6 +2,8 @@
 
 ## Lecture visuelle des débriefs — 26 octobre 2026
 
+> Document historique pour cette section : la page des débriefs qui affichait « En 10 secondes » n’est plus servie. `/rapports` redirige vers les Notes de l’équipe (`src/app/routing.js`, `NotesWorkspace.jsx`) et le composant `Reports` de `GameWorkspace.jsx` n’est plus monté. Les débriefs se lisent désormais dans l’onglet Résumé de chaque partie (débrief automatique, moments clés et « Les écarts par poste ») : voir [Parties, bilans et débriefs](assistant/imports-stats-reviews.md) et [le débrief automatique](rapports/debrief-automatique-2026-11-24.md). Les sections suivantes sur l’opération de réécriture restent valables.
+
 Les débriefs liés à des parties s’ouvrent sur « En 10 secondes » : résultat, éliminations, courbe d’or commune à la fiche de partie, objectifs et décisions explicitement rédigées par l’équipe. Le sélecteur montre une seule partie à la fois ; au-delà de quatre parties, il devient une liste compacte. Les résultats inconnus ne sont pas comptés comme des défaites et les données absentes restent affichées « — ».
 
 Jusqu’à six moments sont proposés dans l’ordre chronologique, en privilégiant dragons, Nashors et combats avec plusieurs éliminations. Chaque carte ouvre les événements enregistrés, leurs horaires et leurs participants, avec navigation précédent/suivant. Le regroupement temporel est un repère de lecture ; il n’établit ni causalité ni importance stratégique. La couverture incomplète est signalée, et aucune position ni valeur d’or intermédiaire n’est inventée.

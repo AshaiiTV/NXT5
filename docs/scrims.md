@@ -1,12 +1,12 @@
 # Scrims entre équipes NXT5
 
-Guide d’exploitation de la recherche de scrims, disponible dans l’espace de travail à `/scrims` (menu « Plus »). La page a deux onglets : « Trouver un adversaire » (propositions des autres équipes) et « Mes scrims » (publication, propositions de l’équipe, réponses envoyées, scrims confirmés). Les cartes affichent le logo et le tag de chaque équipe. Préparation locale au 4 novembre 2026 ; ce document ne prouve pas le comportement du site déployé.
+Guide d’exploitation de la recherche de scrims, disponible dans l’espace de travail à `/scrims` (groupe « Préparation et partage » du menu latéral). La page a deux onglets : « Trouver un adversaire » (propositions des autres équipes) et « Mes scrims » (publication, propositions de l’équipe, réponses envoyées, scrims confirmés). Les cartes affichent le logo et le tag de chaque équipe. Code présent sur `main` (fusion #236, puis durcissements #288 et #289) ; ce document ne prouve pas le comportement du site déployé.
 
 ## Parcours
 
 1. Le staff d’une équipe (propriétaire, capitaine, coach, assistant, analyste, manager, board) publie une proposition : date et heure, format (1 à 5 games, BO3 ou BO5), niveau minimum et maximum (Fer à Maître et plus, déclarés par l’équipe) et une précision facultative de 500 caractères.
 2. Les autres équipes NXT5 voient les propositions ouvertes à venir, avec le nom et le tag de l’équipe, le créneau, le niveau et le nombre d’équipes déjà intéressées. Le staff d’une équipe répond avec un message de 300 caractères ; une seule réponse en attente par équipe et par proposition, retirable tant qu’elle n’est pas traitée.
-3. Le staff de l’équipe qui a publié confirme une réponse. Les autres réponses en attente sont refusées, la proposition passe en « Confirmée » et une séance de type scrim est créée dans la table des séances d’équipe de chacune des deux équipes (`discord_team_events`). Elle apparaît dans le Planning NXT5 et dans `/nxt planning`, et bénéficie des rappels du bot si l’équipe les a activés.
+3. Le staff de l’équipe qui a publié confirme une réponse. Les autres réponses en attente sont refusées, la proposition passe en « Confirmée » et une séance de type scrim est créée dans la table des séances d’équipe de chacune des deux équipes (`discord_team_events`). Elle apparaît dans le Planning NXT5 et dans `/nxt voir sujet:planning`, et bénéficie des rappels du bot si l’équipe les a activés.
 4. Si l’équipe a une diffusion Discord active et un salon « planning » configuré, le bot annonce le scrim confirmé dans ce salon lors de son prochain passage (toutes les cinq minutes). L’absence de Discord n’empêche pas la confirmation.
 
 Les membres sans rôle de staff consultent les propositions sans pouvoir publier, répondre ni confirmer. Une proposition annulée refuse ses réponses en attente et disparaît des autres équipes ; une proposition dont l’heure est passée n’est plus affichée aux autres équipes.

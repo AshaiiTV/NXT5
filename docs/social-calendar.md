@@ -1,6 +1,6 @@
 # Ancien calendrier des publications
 
-Retiré du site le 30 octobre 2026 dans la préparation locale : la page `/calendrier`, son lien de
+Retiré du site le 30 octobre 2026 (absent du code de `main`) : la page `/calendrier`, son lien de
 navigation et l’API `social-calendar` ne sont plus livrés. Le relais et son accès au Site de publications
 ne sont plus utilisés par NXT5. La présence éventuelle d’un ancien secret de déploiement ne réactive pas ce code.
 

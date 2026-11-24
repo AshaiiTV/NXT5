@@ -68,6 +68,9 @@ Les mesures Lighthouse sont des mesures de laboratoire. Les comparer aux donnée
 
 ## Vérification locale du 24 septembre 2026
 
+Historique : le site comptait alors dix pages publiques pré-rendues, treize aujourd’hui.
+
+
 - `npm run verify` réussi : TypeScript, 110 suites / 1 930 tests, build et contrôle des artefacts SEO.
 - `npm audit --audit-level=moderate` réussi : aucune vulnérabilité signalée au moment de la vérification.
 - Build de prévisualisation réel vérifié séparément : dix pages `noindex`, en-tête global, sitemap vide, canonical de production conservées.

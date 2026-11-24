@@ -1,173 +1,152 @@
 # NXT5
 
-Espace de travail des équipes et coachs League of Legends : analyse des parties, débriefs, préparation des champions et organisation des entraînements. Site public : [nxt5.org](https://nxt5.org).
+Espace de travail des équipes et coachs League of Legends : import et lecture des parties, débriefs, préparation des champions et des drafts, planning et scrims. Site public : [nxt5.org](https://nxt5.org). Le service est gratuit ; un [soutien facultatif](docs/soutenir-nxt5.md) passe par Ko-fi.
 
-La [documentation du dépôt](docs/README.md) regroupe les guides d’exploitation, de maintenance et les rapports datés. La [charte graphique unique NXT5](docs/charte-graphique.md) définit l’identité du site et de l’Importer : NXT en contour cyan/lavande, 5 violet facetté et actions principales au dégradé Signature NXT à texte nuit.
+- [Documentation du dépôt](docs/README.md) : guides par thème et index chronologique des rapports.
+- [Charte graphique unique NXT5](docs/charte-graphique.md) : identité Prisme du site et de l’Importer, à consulter avant tout travail visuel ([`AGENTS.md`](AGENTS.md)).
 
-## Stack
+## Par où commencer
 
-- React 19 + Vite + Tailwind CSS, pages publiques pré-rendues (`tools/prerender.mjs`)
-- Netlify Hosting et Netlify Functions (TypeScript)
-- Neon PostgreSQL, migrations versionnées dans `database/`
-- Auth par cookie HttpOnly + sessions en base, connexions Google, Discord et Apple optionnelles
-- Riot Match-V5 API côté serveur
-- Resend pour les e-mails, OpenAI pour l’assistant intégré
-- Bot Discord (commandes `/nxt` et publications d’équipe)
-- NXT5 Importer, application desktop Electron dans `importer-app/`
-- Vitest pour les tests
+1. Lire [`AGENTS.md`](AGENTS.md) : règles permanentes du projet (charte, vérifications, traçabilité).
+2. Installer le projet (section suivante) et lancer `npm run verify` une première fois.
+3. Repérer la zone concernée dans la [carte du dépôt](#carte-du-dépôt), puis le guide correspondant dans le [sommaire de la documentation](docs/README.md).
+4. Pour l’historique d’un chantier, chercher son rapport dans l’[index des rapports](docs/README.md#rapports-datés) : les guides décrivent l’état actuel, les rapports l’état à leur date.
+5. Livrer par pull request vers `main`, après `npm run verify` ; documenter un travail notable dans `docs/rapports/<sujet>-AAAA-MM-JJ.md`.
 
 ## Installation locale
 
-Prérequis : Node 24 (`>=24.15.0 <25`) et la [CLI Netlify](https://docs.netlify.com/cli/get-started/), utilisée par `npm run dev`.
+Prérequis : Node 24 (`>=24.15.0 <25`, voir `package.json`) et la [CLI Netlify](https://docs.netlify.com/cli/get-started/), utilisée par `npm run dev`.
 
 ```bash
 npm ci
 cp .env.example .env
 ```
 
-Renseigne dans `.env` la connexion d’une base de développement dédiée et un `SESSION_SECRET` aléatoire d’au moins 64 caractères. Les valeurs d’exemple doivent être remplacées. Initialise ensuite la base avant de lancer le site et ses fonctions :
+Renseigner dans `.env` la connexion d’une base de développement dédiée (`DATABASE_URL`) et un `SESSION_SECRET` aléatoire d’au moins 64 caractères ; remplacer toutes les valeurs d’exemple. Initialiser ensuite la base, puis lancer le site et ses fonctions :
 
 ```bash
 node --env-file=.env tools/migrate.mjs
 npm run dev
 ```
 
-Avant toute pull request, lancer le contrôle complet :
+## Scripts npm
 
-```bash
-npm run verify
-```
+| Commande | Rôle |
+| --- | --- |
+| `npm run dev` | Site et fonctions en local (`netlify dev`). |
+| `npm run verify` | Contrôle complet avant toute pull request : traductions (`i18n:check`), TypeScript (`typecheck`), tests Vitest (`test`) puis `build`. |
+| `npm run build` | Build Vite puis pré-rendu des pages publiques (`tools/prerender.mjs`). |
+| `npm run build:preview` | Build destiné aux prévisualisations (`tools/build-preview.mjs`). |
+| `npm run test:layout` | Mesures Playwright de l’effectif et des panneaux partagés de 320 à 1 920 px (Chromium requis : `npx playwright install chromium`). |
+| `npm run test:framing` | Contrôle Playwright des cadrages de l’interface. |
+| `npm run db:migrate` | Schéma et migrations versionnées de `database/` ([guide](database/MIGRATIONS.md)). |
+| `npm run discord:commands` | Enregistre la commande `/nxt` auprès de Discord ([guide](docs/discord-bot-commandes.md)). |
+| `npm run discord:check-bundle` | Vérifie le paquet des fonctions du bot. |
+| `npm run bench:history` | Banc local du chargement des historiques ([guide](tools/bench-history/README.md)). |
+| `npm run optimize:assets` | Optimisation des images servies. |
+| `npm run prototype:drafter` | Prototype local d’import Drafter. |
 
-Il enchaîne TypeScript, les tests et le build. Les changements arrivent sur `main` uniquement par pull request.
+## Carte du dépôt
 
-## Sécurité
+| Dossier | Contenu |
+| --- | --- |
+| `src/` | Application React. `AppRouter.jsx` choisit la page ; routes et navigation dans `src/app/` (`constants.jsx`, `routing.js`, `admin-navigation.js`). Pages dans `src/pages/` (`public/`, `workspace/`, `admin/`, `nexus/`, `home/`), composants dans `src/components/`, traductions dans `src/i18n/`, métadonnées SEO dans `src/seo/`, tests dans `src/__tests__/`. |
+| `netlify/functions/` | API serveur (TypeScript), une fonction par point d’entrée, tâches planifiées comprises ; code commun dans `_lib/`. |
+| `shared/` | Code commun au navigateur, aux fonctions et aux outils : champions, Riot ID, rôles, commandes Discord, rendu des [publications](shared/publications/README.md). |
+| `database/` | `schema.sql`, migrations datées et [guide des migrations](database/MIGRATIONS.md). |
+| `tools/` | Scripts de build, pré-rendu, SEO, migrations, audit des dépendances, enregistrement Discord et contrôles Playwright. |
+| `public/` | Fichiers statiques servis tels quels (icônes, logos sous `assets/`, manifeste). |
+| `importer-app/` | Application desktop Electron **NXT5 Importer** ; toute fusion qui la modifie publie une release. |
+| `docs/` | Guides tenus à jour, charte graphique et rapports datés (`docs/rapports/`). |
+| `artifacts/` | Preuves (captures, relevés) citées par les rapports ; les nouvelles sorties de travail y sont ignorées par Git sauf ajout explicite. |
+| `.github/` | Intégration continue (`web-ci.yml`, `build-importer.yml`) et Dependabot. |
 
-La [politique de sécurité](SECURITY.md) précise les versions maintenues, le signalement privé d’une vulnérabilité, les contrôles d’exploitation et la réponse aux incidents. Pour un signalement sensible, suivre la [page Contact](https://nxt5.org/contact) et joindre l’équipe en message privé.
+## Stack
 
-Le front ne stocke aucune donnée métier en localStorage. Les données importantes passent par Neon. La clé Riot n’est jamais exposée côté navigateur.
+- React 19, Vite 8, Tailwind CSS 4 ; pages publiques pré-rendues ; three.js et GSAP pour la scène 3D du 5.
+- Netlify Hosting et Netlify Functions (TypeScript, esbuild), tâches planifiées Netlify.
+- Neon PostgreSQL ; migrations versionnées dans `database/`.
+- Authentification par cookie HttpOnly et sessions en base ; connexions Google, Discord, Apple et Riot Sign On optionnelles, désactivées par défaut.
+- Riot Match-V5 côté serveur uniquement ; Resend pour les e-mails ; modèle OpenAI via Netlify AI Gateway pour l’assistant intégré, avec repli sur une aide locale.
+- Bot Discord (`/nxt` et publications d’équipe) ; NXT5 Importer (Electron) dans `importer-app/`.
+- Vitest pour les tests, Playwright pour les contrôles de mise en page.
+
+## Ce que propose le site
+
+**Pages publiques** : accueil, `/fonctionnalites`, démonstration sans compte (`/demo` et ses vues), guides du [premier import](https://nxt5.org/guides/importer-premier-scrim) et du [premier débrief](https://nxt5.org/guides/preparer-debrief), `/reseaux`, `/soutenir`, pages légales et `/contact`, salle de draft invitée (`/salle-de-draft`) et portail Nexus Rising (`/nexus-rising`). Connexion à `/connexion`, inscription à `/creer-un-compte`. Interface en français, anglais et espagnol ([guide](docs/internationalisation.md)).
+
+**Espace équipe** (connecté) :
+
+- **Accueil** (`/accueil`), **Mon équipe** (`/mon-equipe`, effectif et invitations) et **Gestion équipe** (`/gestion-equipe`).
+- **Parties** (`/games`) : liste des parties, groupes et fiches des équipes adverses (`/games?view=teams`) ; **Importer une partie** depuis un fichier de NXT5 Importer, avec la liaison de l’[import automatique](docs/import-automatique.md). Chaque partie s’ouvre sur un résumé avec débrief automatique ; les notes d’équipe sont à `/notes`.
+- **Analyses** (`/tendances`), **Planning** (`/planning`), **[Scrims](docs/scrims.md)** entre équipes (`/scrims`).
+- **Draft & Pool** (`/draft/pool`, `/draft/compositions`, `/draft/salle`) : champions des joueurs, compositions avec [aide au choix](docs/draft-assistance.md), salle de draft.
+- **Mon profil** (`/mon-profil`) : synthèse, champions joués et [carnets de matchups](docs/carnets-matchups.md), champion pool, historique, objectifs et notes de suivi.
+- **Bot Discord** (`/bot-discord`), **Paramètres** (`/parametres`, dont la suppression du compte), **Guide d’utilisation** (`/guide`) et [assistant NXT5](docs/assistant/README.md).
+
+**Administration** (administrateur de plateforme, `/admin`) : vue d’ensemble, comptes et profils, équipes, statistiques globales, usage, [fréquentation](docs/audience-api.md), publications et statistiques du bot, journal, exports, rappels e-mail et intégrations ([guide](docs/administration-achats.md)).
 
 ## Déploiement Netlify
 
-La production est publiée par Netlify à chaque fusion dans `main`. La configuration est dans `netlify.toml` (Node 24) :
+La production est publiée par Netlify à chaque fusion dans `main` ; les changements y arrivent uniquement par pull request. Configuration dans `netlify.toml` (Node 24) :
 
 ```txt
-Build command (production): npm run verify && node tools/audit-dependencies.mjs && npm run db:migrate
-Publish directory: dist
-Functions directory: netlify/functions
+Build (production) : npm run verify && node tools/audit-dependencies.mjs && npm run db:migrate
+Build (autres contextes) : npm run verify && node tools/audit-dependencies.mjs
+Publish directory : dist
+Functions directory : netlify/functions
 ```
 
-Les contrôles TypeScript, tests, build et audit des dépendances doivent réussir avant les migrations et la publication.
+Les migrations ne s’exécutent qu’en production, après réussite des contrôles. Le déploiement de production effectue aussi la [réécriture unique des reviews historiques](docs/review-backfill.md). Les fonctions planifiées (nettoyages nocturnes, rappels d’inactivité, file et réconciliation du bot Discord) déclarent leur horaire dans leur propre fichier.
 
-## Variables d’environnement Netlify
+## Variables d’environnement
 
-Dans Netlify : Site configuration → Environment variables. Les variables communes et leurs exemples commentés sont dans [`.env.example`](.env.example), avec les guides propres aux intégrations dans [la documentation](docs/README.md). Les principales :
+Dans Netlify : Site configuration → Environment variables. La liste complète et commentée est dans [`.env.example`](.env.example) ; les intégrations ont leur guide dans [la documentation](docs/README.md). Aucun secret ne porte le préfixe `VITE_`.
 
-```txt
-DATABASE_URL=postgresql://...
-RIOT_API_KEY=RGAPI-...
-SESSION_SECRET=une_phrase_longue_random_64_caracteres_minimum
-APP_ENV=production
-RIOT_PROFILE_SYNC_MAX_MATCHES=80
-PUBLIC_SITE_URL=https://nxt5.org
-RESEND_API_KEY=re_...
-RESET_EMAIL_FROM=NXT5 <noreply@ton-domaine.fr>
-```
+| Domaine | Variables |
+| --- | --- |
+| Base et sessions | `DATABASE_URL`, `MIGRATION_DATABASE_URL` (facultative, contexte production / Builds), `SESSION_SECRET` (64 caractères minimum), `APP_ENV`, `PUBLIC_SITE_URL` (facultative ; si définie, exactement `https://nxt5.org`, sinon le build échoue) |
+| Riot | `RIOT_API_KEY`, `RIOT_EXPORT_HOURLY_LIMIT` (appels par heure de l’export public, 1 500 par défaut), `RIOT_PROFILE_SYNC_MAX_MATCHES` (80 au plus), `RIOT_RSO_*` ([configuration](docs/social-provider-configuration.md)) |
+| E-mails | `RESEND_API_KEY`, `RESET_EMAIL_FROM` (domaine validé dans Resend) ; réponses vers `contact@nxt5.org` (`shared/legal.js`) |
+| Administration | `PLATFORM_ADMIN_USER_ID`, `PLATFORM_ADMIN_EMAIL` |
+| Discord | `DISCORD_PUBLISHING_ENABLED`, `DISCORD_ENVIRONMENT`, `DISCORD_APPLICATION_ID`, `DISCORD_BOT_TOKEN`, `DISCORD_PUBLIC_KEY`, `DISCORD_WORKER_SECRET`, `DISCORD_COMMUNITY_GUILD_ID`, `DISCORD_LOCAL_PILOT` ([exploitation](docs/discord-operations.md)) |
+| Connexions externes | `SOCIAL_AUTH_SITE_ORIGIN`, `GOOGLE_AUTH_*`, `DISCORD_AUTH_*`, `APPLE_AUTH_*` ([guide](docs/social-auth.md)) |
+| Assistant | `NXT5_ASSISTANT_DAILY_USER_LIMIT`, `NXT5_ASSISTANT_DAILY_TOTAL_LIMIT` ; autres options serveur dans le [guide de l’assistant](docs/assistant/README.md) |
+| Soutien | `VITE_NXT5_SUPPORT_URL` (URL publique Ko-fi, définie dans `netlify.toml`) |
 
-`DATABASE_URL` vient de Neon et doit être disponible pour les fonctions. Pour les migrations, donne accès au contexte **production / Builds** à `MIGRATION_DATABASE_URL` (ou à `DATABASE_URL` en son absence). Ne partage pas les identifiants de production avec les Deploy Previews.
-`RIOT_PROFILE_SYNC_MAX_MATCHES` est optionnel. Il limite le nombre de matchs scannés par profil quand le bouton « Analyser profils » recalcule les champions joués sur la saison courante. Sa valeur par défaut et son plafond sont de 80 matchs ; une valeur supérieure est ramenée à ce plafond.
-`PUBLIC_SITE_URL` est facultative ; si elle est définie, elle doit valoir exactement `https://nxt5.org`, sinon le build échoue pour ne pas publier de mauvaise URL canonique.
-`RESEND_API_KEY` et `RESET_EMAIL_FROM` servent à envoyer tous les e-mails du site : vérification du compte, mot de passe oublié, inscription sociale, rappels et notifications d’équipe. Le domaine utilisé dans `RESET_EMAIL_FROM` doit être validé dans Resend. L’adresse de réponse (`Reply-To`) est `contact@nxt5.org`, issue de `NXT5_CONTACT_EMAIL` dans `shared/legal.js`.
+Ne pas partager les identifiants de production avec les Deploy Previews.
 
-## Neon
+## Base Neon
 
-Après `npm ci`, initialise ou mets à jour une base avec la connexion appropriée dans l’environnement :
+`npm run db:migrate` applique le schéma et les migrations versionnées dans une transaction, sous verrou PostgreSQL ; la commande s’exécute automatiquement avant la publication de production. Les fonctions ne modifient pas le schéma pendant une requête : sans le marqueur de migration attendu, elles répondent temporairement 503. Voir [le guide des migrations](database/MIGRATIONS.md).
 
-```txt
-npm run db:migrate
-```
+## NXT5 Importer
 
-Cette commande applique le schéma et les migrations versionnées dans une transaction avec verrou PostgreSQL. Elle s’exécute automatiquement avant la publication Netlify en production. Les fonctions ne modifient plus le schéma pendant une requête. Voir [le guide des migrations](database/MIGRATIONS.md).
+Le dossier `importer-app/` contient **NXT5 Importer 0.4.9** pour Windows, Mac Intel et Mac Apple Silicon ([changements](importer-app/CHANGELOG.md), [validation Electron](importer-app/docs/testing.md)).
 
-Pour créer un compte, les fonctions Netlify doivent recevoir `DATABASE_URL` et `npm run db:migrate` doit avoir réussi sur cette base. Sans le marqueur de migration attendu, les fonctions répondent temporairement 503.
+- **Exporter** : saisir le numéro de la partie ou un identifiant complet (`EUW1_7861632138`), puis enregistrer le fichier JSON. L’application interroge d’abord NXT5/Riot, puis le client League of Legends local. Dans NXT5, **Parties → Importer une partie** charge ce fichier, fait confirmer côté, postes et joueurs, puis l’ajoute à l’équipe.
+- **Collecte automatique** : liée à une équipe par un code à usage unique généré dans NXT5, elle envoie seule chaque partie personnalisée observée dans le client ; les autres parties restent sur l’ordinateur ([guide](docs/import-automatique.md)).
+- **Historique** des 30 derniers exports et **Paramètres** (dossier du jeu, mises à jour par architecture).
 
-Le déploiement de production effectue aussi la [réécriture unique des reviews historiques](docs/review-backfill.md), avec sauvegarde des anciennes versions et conservation des notes.
-
-## Présentation publique et référencement
-
-L’accueil et la page `/fonctionnalites` présentent les usages de NXT5. La [démonstration](https://nxt5.org/demo) et les guides du [premier import](https://nxt5.org/guides/importer-premier-scrim) et du [premier débrief](https://nxt5.org/guides/preparer-debrief) sont accessibles sans compte. Les [consignes de maintenance SEO](docs/seo.md) précisent le pré-rendu, les métadonnées et les vérifications avant publication.
-
-## Test rapide du suivi d’équipe
-
-1. Crée un compte et vérifie ton adresse e-mail.
-2. Dans **Équipe**, crée ou rejoins une équipe.
-3. Ajoute un joueur avec son Riot ID exact, par exemple `Pseudo#EUW`.
-4. Exporte une partie de ce joueur avec NXT5 Importer, puis dans **Parties**, choisis **Importer une partie** et charge le fichier JSON.
-5. Confirme le côté de l’équipe et les postes, puis associe les cinq joueurs alliés aux profils existants ou crée les profils manquants avant de valider l’import.
-6. Ouvre la partie, puis consulte **Débriefs**, **Analyses** et **Draft**.
-
-## Application NXT5 Importer
-
-Le dossier `importer-app` contient l’application desktop **NXT5 Importer 0.4.6** pour Windows, Mac Intel et Mac Apple Silicon.
-
-1. Lance le `.exe` Windows ou ouvre `NXT5 Importer.app` après extraction du zip Mac adapté à ton processeur.
-2. Colle le numéro de la partie ou un ID complet comme `EUW1_7861632138`. Vérifie la région.
-3. Clique sur **Exporter la game**, suis la progression et choisis l’emplacement du fichier.
-4. Dans NXT5, ouvre **Parties → Importer une partie** et charge le JSON pour l’ajouter à ton équipe.
-
-L’application vérifie d’abord les données auprès de NXT5/Riot puis essaie le client League of Legends local. Pour cette seconde méthode, ouvrez le client et son historique. Sous Windows, une installation sur un autre disque est retrouvée grâce aux informations du Riot Client ; sinon, choisissez le dossier du jeu dans **Paramètres**. Les champions reçoivent le même nom que dans les parties récupérées auprès de Riot, y compris hors ligne grâce au catalogue du client. Les identifiants complets fonctionnent aussi avec le client local, et la région sélectionnée est respectée.
-
-Les 30 derniers exports sont accessibles dans **Exports récents** : recherche, affichage dans Finder/Explorateur et réexport. Le récapitulatif précise la présence de la timeline ; son absence n’empêche pas l’export du match. Les fichiers sont enregistrés atomiquement et restent sur cet appareil jusqu’à leur import manuel dans NXT5. L’application nécessite un match de deux équipes de cinq joueurs, conformément au format du site.
-
-L’onglet **Collecte automatique** lie l’application à une équipe NXT5 avec le code généré dans Parties → Import automatique, puis envoie seule chaque custom observée dans le client à la fin de la partie ; voir [le guide de l’import automatique](docs/import-automatique.md).
-
-Raccourcis : `Ctrl/⌘ + Entrée` pour exporter, `Ctrl/⌘ + 1`, `2`, `3`, `4` pour changer de vue.
-
-Les mises à jour sont proposées pour l’architecture de l’appareil. Les liens du site suivent la dernière version publiée ; une version demandée explicitement n’est jamais remplacée par une autre.
-
-À chaque pull request touchant `importer-app`, GitHub Actions exécute les tests puis compile les trois applications. La publication de la release est réservée à `main`, après réussite des tests web et des builds desktop.
+Une pull request touchant `importer-app/` lance les tests et les trois builds dans GitHub Actions ; la release n’est publiée que depuis `main`.
 
 ```sh
 cd importer-app
-# Utiliser la version de pnpm déclarée dans importer-app/package.json.
-pnpm install --frozen-lockfile
+pnpm install --frozen-lockfile   # version de pnpm déclarée dans importer-app/package.json
 pnpm test
 pnpm start
 # Packaging : pnpm dist:win / pnpm dist:mac / pnpm dist:mac:arm
 ```
 
-La fenêtre d’enregistrement reprend le dossier du dernier export réussi, même après réouverture de l’application. Si ce dossier n’existe plus, elle revient dans Téléchargements.
+## Bot Discord
 
-Voir [les changements de l’Importer](importer-app/CHANGELOG.md) et [la validation Electron](importer-app/docs/testing.md).
+Le bot propose cinq commandes : `/nxt help`, `/nxt lier`, `/nxt profil`, `/nxt voir` et `/nxt connecter` (catalogue dans `shared/discord-command.js`). Après la liaison personnelle Discord–NXT5, l’équipe est reconnue par le salon de commandes qui lui est réservé ; `/nxt voir` rassemble les consultations courantes. `/nxt connecter` exige d’être propriétaire ou capitaine de l’équipe et de disposer de **Gérer le serveur** ou **Administrateur** dans Discord. Partager un serveur Discord ne donne aucun accès aux autres équipes. Voir [les commandes](docs/discord-bot-commandes.md) et [l’installation et l’exploitation](docs/discord-operations.md) ; les contrôles locaux n’attestent ni un enregistrement ni un envoi réel.
 
-## Import automatique des parties
+## Sécurité
 
-Dans **Parties → Import automatique**, le staff lie NXT5 Importer à l’équipe avec un code à usage unique. Chaque custom jouée avec l’Importer ouvert est ensuite envoyée et importée seule, avec le côté, les postes et les joueurs reconnus par les Riot ID de l’effectif ; les parties non reconnues restent à finaliser dans le formulaire habituel. Voir [le guide de l’import automatique](docs/import-automatique.md).
+La [politique de sécurité](SECURITY.md) précise les versions maintenues, le signalement privé d’une vulnérabilité, les contrôles d’exploitation et la réponse aux incidents. Pour un signalement sensible, suivre la [page Contact](https://nxt5.org/contact) et joindre l’équipe en message privé.
 
-## Scrims entre équipes
-
-Dans **Scrims** (`/scrims`), le staff d’une équipe publie un créneau avec son nombre de games et son niveau, répond aux propositions des autres équipes NXT5 et confirme une réponse. La confirmation crée la séance dans le planning des deux équipes et, si la diffusion Discord est active, l’annonce dans le salon planning. Voir [le guide des scrims](docs/scrims.md).
-
-## Commandes du bot Discord
-
-Le bot propose cinq commandes visibles : `/nxt help`, `/nxt lier`, `/nxt profil`, `/nxt voir` et `/nxt connecter`. Après la liaison personnelle Discord–NXT5, l’équipe est reconnue grâce au salon de commandes qui lui est réservé ; `/nxt voir` rassemble les consultations courantes. Le [guide de développement et d’activation](docs/discord-bot-commandes.md) décrit les droits, les rappels/bilans planifiés et l’ordre déploiement serveur → enregistrement de la commande Discord. Les contrôles locaux n’attestent pas un enregistrement ou un envoi réel.
-
-Le responsable commence par `/nxt lier` avant `/nxt connecter` et génère le code avec ce même compte NXT5. `/nxt connecter` exige d’être propriétaire ou capitaine de l’équipe visée et de disposer de **Gérer le serveur** ou **Administrateur** dans Discord. Chaque équipe configure son propre salon de commandes et, si nécessaire, les rôles Discord autorisés. Partager un serveur Discord ne donne aucun accès aux autres équipes NXT5.
-
-## Administration et accès gratuit
-
-NXT5 reste gratuit. Les offres, abonnements, achats et connecteurs commerciaux sont retirés.
-L’administration propose un annuaire des comptes et des profils, les dossiers d’équipe,
-la révocation des sessions, un journal des actions et les statistiques globales avec exports PNG/CSV.
-Les bans des parties Riot et les bans des drafts Drafter disposent de mesures et de dénominateurs distincts.
-
-Le Planning des séances reste disponible à `/planning`. Seul le calendrier privé des publications
-`/calendrier` et son relais serveur sont retirés. Voir le [guide de l’administration](docs/administration-achats.md).
-
-## Statistiques de fréquentation et cookies
-
-L’administrateur de plateforme dispose de **Administration → Fréquentation du site** (`/admin/frequentation`) : périodes 7/30/90 jours, comparaison, acquisition, campagnes, pages, engagement, conversions, appareils, pays, carte horaire et export CSV. La collecte interne reste désactivée sans consentement, et « Gérer mes cookies » dans le pied de page permet de modifier ou retirer son choix. Le bandeau et le bouton flottant disparaissent une fois le choix enregistré. Les données sont pseudonymisées et distinctes des comptes et des équipes.
-
-Avant la mise en ligne, appliquer la migration `audience-20260914-v1` via le flux habituel `npm run db:migrate`, puis déployer le front et les fonctions ensemble. Aucun nouveau secret ni service tiers n’est requis. Voir [le contrat, les durées et les consignes d’exploitation](docs/audience-api.md). Les chiffres démarrent avec les premières visites consenties ; les visites antérieures ne sont pas reconstituées.
+Le front ne stocke aucune donnée métier en localStorage : les données passent par Neon. La clé Riot n’est jamais exposée côté navigateur. La mesure de fréquentation est interne, sans service tiers, et reste désactivée sans consentement ([guide](docs/audience-api.md)).
 
 ## Licence
 

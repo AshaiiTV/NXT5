@@ -9,7 +9,7 @@ Le site propose le français (par défaut), l’anglais et l’espagnol. Le sél
 - [`translate.js`](../src/i18n/translate.js) charge les catalogues anglais et espagnol uniquement à la demande. La traduction s’effectue dans React, sans réécriture du DOM et sans service externe à l’exécution.
 - [`useLanguage.js`](../src/i18n/useLanguage.js) abonne les composants au changement. Les dates et nombres utilisent `getLocale()` au moment du rendu ; les données originales restent inchangées.
 
-Les catalogues JSON sont une base de traduction automatisée, complétée par les formulations revues dans les fichiers `overrides*.js`, `component-overrides.js` et `quality-overrides.js`. Ils peuvent être améliorés sans modifier les données métier. Les tests vérifient des parcours et formulations représentatifs ; ils ne constituent pas une relecture linguistique exhaustive.
+Les catalogues JSON sont une base de traduction automatisée, complétée par les formulations revues dans les fichiers `overrides*.js` et `*-overrides.js` (par exemple `component-overrides.js` ou `quality-overrides.js`), assemblés par `catalogue-en.js` et `catalogue-es.js`. Ils peuvent être améliorés sans modifier les données métier. Les tests vérifient des parcours et formulations représentatifs ; ils ne constituent pas une relecture linguistique exhaustive.
 
 ## Ajouter ou modifier un texte
 
@@ -27,4 +27,4 @@ La langue concerne les pages publiques, les formulaires, la démo, l’espace é
 
 Les URL et les valeurs métier restent stables. Les métadonnées du navigateur suivent le choix ; les pages HTML pré-rendues et les liens canoniques restent français. Cette fonctionnalité ne crée pas des URL SEO `/en` ou `/es`.
 
-Le sélecteur du site ne modifie pas la langue de l’application Windows Importer, des services externes, des anciens messages de l’assistant ou des publications déjà envoyées sur Discord. Les emails et publications automatiques hors site conservent leur propre contenu.
+Le sélecteur du site ne modifie pas la langue de NXT5 Importer (Windows et Mac), des services externes, des anciens messages de l’assistant ou des publications déjà envoyées sur Discord. Les emails et publications automatiques hors site conservent leur propre contenu.

@@ -129,15 +129,3 @@ export function profileStatusLabel(member) {
   if (role === "board") return "Board";
   return "Joueur";
 }
-
-export function profileStatusTone(member) {
-  const role = String(member?.role || "").toLowerCase();
-  if (role === "owner") return "green";
-  if (role === "captain") return "yellow";
-  if (role === "coach") return "purple";
-  if (role === "assistant") return "purple";
-  if (role === "analyst") return "cyan";
-  if (role === "manager") return "pink";
-  if (role === "board") return "orange";
-  return "blue";
-}

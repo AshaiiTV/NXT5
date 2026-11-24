@@ -22,7 +22,7 @@ Pour un environnement de recette, utiliser une origine HTTPS fixe et des identif
 
 Le projet Google Cloud **NXT5**, identifiant `nxt5-509508`, et son client **NXT5 Web — production** sont créés. [Ouvrir Google Auth Platform](https://console.cloud.google.com/auth/overview?project=nxt5-509508&supportedpurview=project). Audience externe, état Google **En production**, contact d’assistance confirmé et règlement Google accepté avec l’autorisation explicite du propriétaire. Les pages publiques ci-dessous sont enregistrées. Les seuls scopes déclarés sont `openid` et `userinfo.email`, tous deux non sensibles.
 
-L’identifiant client et son secret sont configurés dans Netlify, limités aux **Functions** et à la **production** ; le secret est marqué `is_secret`. `SOCIAL_AUTH_SITE_ORIGIN` est également configuré. Pour la mise en service, passer `GOOGLE_AUTH_ENABLED` à `true` après réussite du contrôle Netlify de la PR, puis déployer en production : le build applique la migration avant la publication des fonctions. Aucun secret n’est conservé dans le dépôt, la documentation ou les variables du navigateur.
+L’identifiant client et son secret sont configurés dans Netlify, limités aux **Functions** et à la **production** ; le secret est marqué `is_secret`. `SOCIAL_AUTH_SITE_ORIGIN` est également configuré. Pour la mise en service, passer `GOOGLE_AUTH_ENABLED` à `true` dans Netlify, puis redéployer en production : le build applique les migrations (`npm run db:migrate`) avant la publication des fonctions. Le dépôt ne permet pas de savoir si ce drapeau est activé en production. Aucun secret n’est conservé dans le dépôt, la documentation ou les variables du navigateur.
 
 Google ne demande pas de validation des accès aux données pour les deux scopes retenus. La validation du nom NXT5 nécessite également une preuve de propriété de `https://nxt5.org/`. La balise publique `google-site-verification` fournie par Google Search Console est conservée dans `index.html` ; elle n’est pas un secret OAuth. Après sa publication, terminer la validation de propriété dans Search Console, puis relancer la validation du branding dans Google Auth Platform.
 
@@ -39,11 +39,9 @@ Valeurs enregistrées pour le client Web :
 | URI de redirection | `https://nxt5.org/.netlify/functions/auth-social-callback` |
 | Autorisations | `openid email` |
 
-Google est la première connexion à mettre en service. Apple et Discord restent désactivés ; la demande Riot est déjà envoyée et attend sa réponse. Le code d’authentification sociale et la migration `social-auth-20260923-v1` doivent être déployés avant l’activation du bouton public.
+Google est la première connexion à mettre en service. Au 23 septembre 2026, Apple et Discord restaient désactivés et la demande Riot attendait sa réponse. Le code d’authentification sociale et la migration `social-auth-20260923-v1` sont dans `main` ; la migration est appliquée par le build de production.
 
-État de déploiement relevé en lecture seule le 23 septembre avant activation : production sur `af09e80`, migration sociale et table `social_identities` absentes. La prévisualisation hérite actuellement du même `DATABASE_URL` que la production via le contexte `all` : elle ne constitue donc pas un environnement de recette isolé. Prévoir une base distincte pour des essais OAuth isolés ; toute migration sur la connexion actuelle affecterait la production.
-
-La branche sociale intègre les corrections de sécurité de `9e30f58` ainsi que le design et les pages légales de `af09e80` : atomicité de la récupération, version de compte `xmin`, revalidation des sessions et protection des journaux. TypeScript et la construction Vite réussissent après composition ; aucune nouvelle exécution locale des tests n’a été lancée pour cette intégration. La vérification Netlify du dernier commit de la PR doit réussir avant fusion et activation.
+Historique du 23 septembre 2026 : avant la fusion, la prévisualisation Netlify héritait du même `DATABASE_URL` que la production via le contexte `all` ; elle ne constituait donc pas un environnement de recette isolé. Vérifier ce point avant tout essai OAuth et prévoir une base distincte pour des essais isolés.
 
 ### Paramètres techniques
 

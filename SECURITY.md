@@ -53,7 +53,7 @@ Les procédures complémentaires sont décrites dans [les migrations](database/M
 
 La [politique d’audit](tools/audit-policy.mjs) bloque tous les avis de sévérité modérée, élevée ou critique, y compris dans les outils de compilation, et refuse une réponse d’audit invalide. Elle ne conserve aucune exception. Exécuter `node tools/audit-dependencies.mjs` après l’installation depuis le lockfile ; un résultat antérieur ne certifie pas l’état courant.
 
-Le [suivi des dépendances de construction](docs/build-dependency-security-2026-10-06.md) conserve la décision historique sur `braces` et sa levée du 28 octobre 2026. Le site utilise désormais Tailwind 4 ; les [tests d’audit](src/__tests__/audit-policy.test.js) vérifient la politique actuelle. Ne pas rétablir l’ancienne exception lors de la reprise d’une branche antérieure.
+Le [suivi des dépendances de construction](docs/rapports/build-dependency-security-2026-10-06.md) conserve la décision historique sur `braces` et sa levée du 28 octobre 2026. Le site utilise désormais Tailwind 4 ; les [tests d’audit](src/__tests__/audit-policy.test.js) vérifient la politique actuelle. Ne pas rétablir l’ancienne exception lors de la reprise d’une branche antérieure.
 
 ### Journaux serveur
 

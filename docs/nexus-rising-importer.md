@@ -1,6 +1,6 @@
 # Nexus Rising : portail et collecte automatique
 
-État des sources au 1er novembre 2026. Ce guide décrit le portail et le protocole prévu pour l’importeur ; les preuves de publication web et le pilote sur une partie réelle restent deux vérifications distinctes. Voir également le [système de tournois](nexus-rising-tournois.md).
+État des sources au 1er novembre 2026, revu le 24 novembre 2026. Le portail `/nexus-rising` et les fonctions serveur citées ci-dessous sont dans le code de `main`. En revanche, la partie importeur (onglet Nexus Rising, chiffrement de la file, `tools/verify-nexus-importer.mjs`) n’a jamais été versée dans ce dépôt : `importer-app/` (0.4.9) ne contient pas d’onglet Nexus Rising. Les sections sur l’importeur décrivent donc le protocole prévu, pas l’application distribuée. Les preuves de publication web et le pilote sur une partie réelle restent deux vérifications distinctes. Voir également le [système de tournois](nexus-rising-tournois.md).
 
 ## Accès décidés
 
@@ -47,8 +47,8 @@ Rétention effectivement implémentée : les données locales d’une contributi
 ## Mise en service et vérification
 
 - Migrations : [réception importeur](../database/migrations/20261031_nexus_import.sql), puis [tournois et équipes natives](../database/migrations/20261101_nexus_tournament.sql), enregistrées dans le runner existant. Ne pas exécuter aveuglément les autres migrations en attente d’un checkout modifié. Suivre [MIGRATIONS.md](../database/MIGRATIONS.md). Les anciennes rencontres sans identité NXT5 restent des archives distinctes ; aucune correspondance n’est inventée à partir d’un nom.
-- Tests : `npm --prefix importer-app test`, tests `nexus-import`, `nexus-tournament`, `nexus-tournament-flow`, `nexus-tournament-ui`, `nexus-rising-ui`, `nexus-rising-navigation` et `migrations`, puis `npm run verify`.
-- Rendu importeur : `node tools/verify-nexus-importer.mjs` (API simulée, fenêtres 820/1180/1440 px). Les captures du portail utilisent aussi des réponses simulées.
+- Tests : tests `nexus-import`, `nexus-tournament`, `nexus-tournament-flow`, `nexus-tournament-ui`, `nexus-rising-ui`, `nexus-rising-navigation` et `migrations`, puis `npm run verify`.
+- Rendu importeur : le script `tools/verify-nexus-importer.mjs` appartenait au checkout de développement et n’existe pas sur `main`. Les captures du portail utilisent des réponses simulées.
 - Pilote réel requis : custom 5v5, deux capitaines, comparaison des dix joueurs aux écrans de fin de partie, présence/absence de timeline, arrêt/redémarrage, réseau coupé puis rétabli et révocation pendant envoi. Vérifier explicitement le comportement avec Vanguard actif ; ne jamais demander sa désactivation.
 - Publier le backend et sa migration avant de distribuer l’importeur. Un exécutable compilé localement ne remplace pas la chaîne de release officielle et ne prouve pas que le serveur est en ligne.
 

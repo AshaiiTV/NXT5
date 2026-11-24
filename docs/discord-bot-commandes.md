@@ -1,6 +1,6 @@
 # Commandes du bot Discord NXT5
 
-Version du 24 septembre 2026. Ce guide décrit le parcours simplifié préparé dans ce checkout. Le catalogue réellement visible dans Discord dépend encore du déploiement du serveur compatible et du réenregistrement de `/nxt` sur l’application Discord concernée.
+État du code au 24 novembre 2026. Ce guide décrit le parcours simplifié de `main`. Le catalogue réellement visible dans un serveur Discord dépend de l’enregistrement de `/nxt` sur l’application Discord concernée (voir « Contrôles techniques et activation »).
 
 ## Le principe
 
@@ -49,12 +49,12 @@ Le bot ne demande plus de choisir une équipe ou de recopier un identifiant de g
 | Sujet | Réponse | Visibilité |
 | --- | --- | --- |
 | `derniere` | Dernière game importée et son résultat connu. | Salon de l’équipe, si la fiche ne contient que des données partageables. |
-| `bilan` | Résumé des games récentes de l’équipe. | Salon de l’équipe. |
-| `stats` | Statistiques agrégées de l’équipe. | Salon de l’équipe. |
-| `planning` | Prochains rendez-vous de l’équipe. | Réponse privée depuis le salon de commandes. |
+| `bilan` | Résumé des games des 7 derniers jours. | Salon de l’équipe. |
+| `stats` | Statistiques agrégées de l’équipe sur 7 jours. | Salon de l’équipe. |
+| `planning` | Rendez-vous des 7 prochains jours. | Réponse privée depuis le salon de commandes. |
 | `objectifs` | Suivi des objectifs accessibles au membre. | Réponse privée, même depuis le salon de commandes. |
 | `reviews` | Reviews et points de lecture autorisés. | Réponse privée, même depuis le salon de commandes. |
-| `draft` | Préparation et notes accessibles au membre. | Réponse privée, même depuis le salon de commandes. |
+| `draft` | Compositions enregistrées de l’équipe. | Réponse privée, même depuis le salon de commandes. |
 
 Une réponse dans un salon Discord est lisible par **toute personne qui a accès à ce salon**, y compris si elle n’est pas membre NXT5. Le responsable choisit donc l’audience du salon avant d’autoriser l’usage du bot. Les liens vers le site NXT5 conservent leurs propres contrôles d’accès. Les notes personnelles, objectifs individuels, consignes non publiées et brouillons ne doivent jamais être révélés dans un message public. Les textes du bot neutralisent les mentions involontaires.
 
