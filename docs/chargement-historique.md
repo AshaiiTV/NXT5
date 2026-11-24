@@ -1,6 +1,6 @@
 # Chargement des historiques
 
-À l’ouverture de l’espace d’équipe, l’écran de synchronisation initial récupère **toutes les parties de l’équipe** avant d’afficher la page demandée. Le serveur envoie les parties par lots de 100 au maximum ; le compteur de cet écran suit les lots reçus. L’accueil, l’effectif, la gestion d’équipe, le planning, les parties et les analyses utilisent ensuite le même historique complet en mémoire. La navigation entre ces pages ne déclenche aucun second chargement d’équipe.
+À l’ouverture de l’espace d’équipe, l’écran de synchronisation initial récupère **toutes les parties de l’équipe** avant d’afficher la page demandée. Le serveur envoie les parties par lots de 100 au maximum. Le premier lot fixe le total ; les lots suivants sont alors demandés **trois à la fois au plus** (`HISTORY_CONCURRENCY`) et le compteur de cet écran suit les lots reçus, dans l’ordre d’arrivée. L’accueil, l’effectif, la gestion d’équipe, le planning, les parties et les analyses utilisent ensuite le même historique complet en mémoire. La navigation entre ces pages ne déclenche aucun second chargement d’équipe.
 
 Un rafraîchissement du navigateur redémarre l’application et refait cette synchronisation complète dans le même écran initial. Le changement d’équipe synchronise également la nouvelle équipe avant de montrer ses données. Les paramètres du compte restent accessibles indépendamment des données d’équipe.
 
@@ -10,6 +10,7 @@ Si une page de l’historique échoue, l’écran de synchronisation se ferme et
 
 - `bootstrapReady` indique que le premier lot appartient à l’équipe sélectionnée ; l’espace d’équipe attend aussi `data.historyComplete` avant de s’afficher.
 - `data.historyComplete` n’est vrai que lorsque toutes les parties ont été reçues et validées. Les pages supplémentaires sont contrôlées pour l’équipe, les identifiants uniques, le total et la progression de pagination.
+- Chaque lot suivant est validé à sa réception (équipe, position, total inchangé, taille exacte, suite annoncée), puis les lots sont assemblés dans l’ordre du serveur et contrôlés contre les doublons. Le premier échec annule les lots en vol et empêche le lancement des suivants ; « Charger la suite » (`loadNextPage()`) reste une requête unique.
 - `loadingProgress` suit chaque lot dans l’écran initial. Les parties complètes sont publiées ensemble après validation ; les vues ne passent pas par un état d’analyse partielle.
 - `refreshAll()` récupère par défaut l’historique complet. Lors d’une actualisation interne de l’équipe déjà affichée, les anciennes données complètes restent visibles jusqu’à la publication du nouvel ensemble.
 - `ensureHistory()` et `loadNextPage()` restent disponibles pour les flux techniques et dédupliquent les requêtes concurrentes. Un réessai après erreur repart d’un nouveau bootstrap.

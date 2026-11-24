@@ -96,13 +96,16 @@ describe("one complete team synchronization before the workspace", () => {
     expect(renderedPages()).toHaveLength(0);
     await resolve(0, snapshot());
     expect(renderedPages()).toHaveLength(0);
-    expect(requests).toHaveLength(2);
+    // Both follow-up pages are requested at once (three at most in flight).
+    expect(requests).toHaveLength(3);
     expect(requests[1].url).toContain("matchesOnly=1");
+    expect(requests[1].url).toContain("offset=100");
+    expect(requests[2].url).toContain("offset=200");
     expect(renderer.root.findAllByProps({ "data-history-navigation": true })).toHaveLength(0);
-    await resolve(1, snapshot({ offset: 100 }));
+    await resolve(2, snapshot({ offset: 200 }));
     expect(renderedPages()).toHaveLength(0);
     expect(requests).toHaveLength(3);
-    await resolve(2, snapshot({ offset: 200 }));
+    await resolve(1, snapshot({ offset: 100 }));
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": page, "data-games": 201, "data-team": "a" });
     shell();
   });
@@ -113,7 +116,7 @@ describe("one complete team synchronization before the workspace", () => {
     await update("/tendances");
     await update("/accueil");
     expect(renderedPages()).toHaveLength(0);
-    expect(requests).toHaveLength(2);
+    expect(requests).toHaveLength(3);
     await resolve(1, snapshot({ offset: 100 }));
     await resolve(2, snapshot({ offset: 200 }));
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "home", "data-games": 201 });
@@ -129,12 +132,12 @@ describe("one complete team synchronization before the workspace", () => {
     shell();
     expect(renderedPages()).toHaveLength(0);
     expect(renderer.root.findAllByProps({ role: "alert" })).toHaveLength(1);
-    expect(requests).toHaveLength(2);
+    expect(requests).toHaveLength(3);
     const retry = renderer.root.findAllByType("button").find((button) => button.children.includes("Réessayer"));
     await act(async () => { void retry.props.onClick(); });
-    expect(requests).toHaveLength(3);
-    expect(requests[2].url).toContain("offset=0");
-    await resolve(2, snapshot({ total: 1 }));
+    expect(requests).toHaveLength(4);
+    expect(requests[3].url).toContain("offset=0");
+    await resolve(3, snapshot({ total: 1 }));
     expect(renderedPages()[0].props).toMatchObject({ "data-history-page": "trends", "data-games": 1 });
   });
 

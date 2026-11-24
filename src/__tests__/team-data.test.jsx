@@ -2,7 +2,7 @@ import React from "react";
 import TestRenderer, { act } from "react-test-renderer";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { apiFetch } from "../api/client.js";
-import { useTeamData } from "../hooks/useTeamData.js";
+import { HISTORY_CONCURRENCY, useTeamData } from "../hooks/useTeamData.js";
 
 vi.mock("../api/client.js", () => ({ apiFetch: vi.fn() }));
 const cleanups = [];
@@ -191,8 +191,9 @@ describe("progressive team history lifecycle in React", () => {
     expect(await next).toBe(true);
     expect(app.state.data.matches).toHaveLength(200);
     expect(app.state.data.historyComplete).toBe(false);
-    expect(app.requests).toHaveLength(3);
+    expect(app.requests).toHaveLength(4);
     expectRequest(app.requests[2], { offset: 200, teamId: "a", matchesOnly: true });
+    expectRequest(app.requests[3], { offset: 300, teamId: "a", matchesOnly: true });
     await app.resolve(2, page("a", history, 200));
     expect(app.state.data.matches).toHaveLength(200);
     await app.resolve(3, page("a", history, 300));
@@ -321,9 +322,10 @@ describe("progressive team history lifecycle in React", () => {
     const history = games("a", 205);
     await app.resolve(0, page("a", history));
     const first = demand(app), second = demand(app);
-    expect(app.requests).toHaveLength(2);
+    expect(app.requests).toHaveLength(3);
     expect(app.state.historyLoading).toBe(true);
     expectRequest(app.requests[1], { offset: 100, teamId: "a", matchesOnly: true });
+    expectRequest(app.requests[2], { offset: 200, teamId: "a", matchesOnly: true });
     await app.resolve(1, page("a", history, 100));
     expect(app.state.data.matches).toHaveLength(100);
     expect(app.state.data.historyComplete).toBe(false);
@@ -391,16 +393,18 @@ describe("progressive team history lifecycle in React", () => {
     const old = games("a", 205), other = games("b", 101);
     await app.resolve(0, page("a", old));
     const obsolete = demand(app);
+    expect(app.requests).toHaveLength(3);
     app.select("b");
     expect(app.requests[1].options.signal.aborted).toBe(true);
+    expect(app.requests[2].options.signal.aborted).toBe(true);
     expect(app.state.bootstrapReady).toBe(false);
-    await app.resolve(2, page("b", other));
+    await app.resolve(3, page("b", other));
     expect(app.state.data.selectedTeamId).toBe("b");
     const done = demand(app);
     await app.resolve(1, page("a", old, 100));
     expect(await obsolete).toHaveProperty("name", "AbortError");
     expect(app.state.data.selectedTeamId).toBe("b");
-    await app.resolve(3, page("b", other, 100));
+    await app.resolve(4, page("b", other, 100));
     expect(await done).toBe(true);
     expect(app.state.data.matches).toEqual(other);
     expect(app.state.historyError).toBe("");
@@ -529,3 +533,49 @@ describe("progressive team history lifecycle in React", () => {
     expect(app.state.loadingProgress).toEqual({ loaded: 0, total: 0 });
   });
 });
+
+describe("parallel follow-up pages", () => {
+  it("keeps at most three pages in flight and assembles out-of-order answers in server order", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 550);
+    await app.resolve(0, page("a", history));
+    const full = demand(app);
+    expect(HISTORY_CONCURRENCY).toBe(3);
+    expect(app.requests).toHaveLength(4);
+    [100, 200, 300].forEach((offset, index) => expectRequest(app.requests[index + 1], { offset, teamId: "a", matchesOnly: true }));
+    await app.resolve(3, page("a", history, 300));
+    expect(app.requests).toHaveLength(5);
+    expectRequest(app.requests[4], { offset: 400, teamId: "a", matchesOnly: true });
+    expect(app.state.loadingProgress).toEqual({ loaded: 200, total: 550 });
+    await app.resolve(4, page("a", history, 400));
+    expectRequest(app.requests[5], { offset: 500, teamId: "a", matchesOnly: true });
+    await app.resolve(5, page("a", history, 500));
+    await app.resolve(2, page("a", history, 200));
+    expect(app.state.data.historyComplete).toBe(false);
+    expect(app.state.data.matches).toEqual(history.slice(0, 100));
+    await app.resolve(1, page("a", history, 100));
+    expect(await full).toBe(true);
+    expect(app.state.data.matches).toEqual(history);
+    expect(app.state.loadingProgress).toEqual({ loaded: 550, total: 550 });
+    expect(app.requests).toHaveLength(6);
+    expect(app.renders.every((render) => !render.complete || render.matches.length === 550)).toBe(true);
+  });
+
+  it("stops sibling pages after a failure and never requests the remaining offsets", async () => {
+    const app = mount("?team=a");
+    const history = games("a", 450);
+    await app.resolve(0, page("a", history));
+    const full = demand(app);
+    expect(app.requests).toHaveLength(4);
+    await app.reject(2);
+    expect(await full).toBeInstanceOf(Error);
+    expect(app.requests[1].options.signal.aborted).toBe(true);
+    expect(app.requests[3].options.signal.aborted).toBe(true);
+    await app.resolve(1, page("a", history, 100));
+    expect(app.requests).toHaveLength(4);
+    expect(app.state.historyError).toBeTruthy();
+    expect(app.state.data.historyComplete).toBe(false);
+    expect(app.state.data.matches).toEqual(history.slice(0, 100));
+  });
+});
+
