@@ -2285,7 +2285,6 @@ function ScopedReports({ data, selectedTeamId, refreshAll, pushToast, currentMem
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="min-w-0">
                 {selected.discord_status === "draft" && <Badge tone="warning">{t("Brouillon · staff uniquement")}</Badge>}
-                {selected.discord_status === "draft" && <p className="mt-2 text-sm leading-6 text-slate-300">{t("Pour le partager, utilise /nxt review partager dans Discord et confirme le résumé ainsi que le salon.")}</p>}
                 <h3 ref={reportHeadingRef} tabIndex={-1} className={cx("games-review-title break-words font-bold text-white", selected.discord_status === "draft" && "mt-3")}>{reportDisplayName(selected, matches, "Débrief", archives)}</h3>
                 <p className="mt-2 text-sm font-semibold text-slate-300">{t("Par ")}{selected.author_name || "NXT5"}{selectedMatchIds.length > 0 && <> · {t(selectedMatchIds.length > 1 ? "{0} parties liées" : "{0} partie liée", [selectedMatchIds.length])}</>}</p>
               </div>
