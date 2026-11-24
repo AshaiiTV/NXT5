@@ -271,7 +271,7 @@ describe('owner of a team with other members', { timeout: 30_000 }, () => {
     const target = browser();
     const inspected = await inspect(target);
     expect(inspected).toMatchObject({ hasPassword: true, discordLinked: false });
-    expect(inspected.teams).toEqual([{ id: teamId, name: 'Team 10', members: [{ id: coachId, name: 'coach' }, { id: successorId, name: 'successor' }] }]);
+    expect(inspected.teams).toEqual([{ id: teamId, name: 'Team 10', members: [{ id: coachId, name: 'coach', eligible: true, nameTaken: false }, { id: successorId, name: 'successor', eligible: true, nameTaken: false }] }]);
     const token = await prepare(target, { [teamId]: successorId });
     const response = await remove(target, token);
     expect(response.status).toBe(200);
@@ -726,6 +726,78 @@ describe('foreign keys added after the first version (#110)', { timeout: 30_000 
     // The setting is local to that transaction: the guard applies again afterwards.
     await seedTeam(otherTeamId, coachId, [[coachId, 'captain'], [successorId, 'player']]);
     await expect(state.pg.query('delete from users where id = $1', [coachId])).rejects.toThrow('ACCOUNT_OWNS_SHARED_TEAM');
+  });
+});
+
+describe('review of #315', { timeout: 30_000 }, () => {
+  it('lets an account with an unverified address delete itself', async () => {
+    await rows('update users set email_verified = false where id = $1', [ownerId]);
+    const target = browser();
+    expect((await call(target, { action: 'inspect' })).status).toBe(200);
+    expect((await remove(target, await prepare(target))).status).toBe(200);
+    expect((await account()).deleted_at).toBeTruthy();
+  });
+
+  it('refuses a successor who already owns a team with the same name, before and at deletion', async () => {
+    await seedTeam();
+    await rows("insert into teams(owner_id, name, tag) values ($1,'Team 10','DUP')", [successorId]);
+    const target = browser();
+    const inspected = await inspect(target);
+    expect(inspected.teams[0].members.find((member: any) => member.id === successorId)).toMatchObject({ eligible: true, nameTaken: true });
+    const refused = await call(target, { action: 'prepare', acknowledged: true, teamPlan: { [teamId]: successorId } });
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toMatchObject({ code: 'DELETION_TEAM_NAME_TAKEN', error: expect.stringContaining('Renomme cette équipe') });
+
+    // The duplicate appears after the first confirmation: the SQL function refuses with the same code.
+    await rows("update teams set name = 'Other name' where owner_id = $1", [successorId]);
+    const token = await prepare(target, { [teamId]: successorId });
+    await rows("update teams set name = 'Team 10' where owner_id = $1 and id <> $2", [successorId, teamId]);
+    const response = await remove(target, token);
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe('DELETION_TEAM_NAME_TAKEN');
+    expect((await account()).deleted_at).toBeNull();
+    expect(await rows('select owner_id from teams where id = $1', [teamId])).toEqual([{ owner_id: ownerId }]);
+  });
+
+  it.each(['suspended', 'unverified'])('refuses a %s successor, before and at deletion', async (kind) => {
+    const block = kind === 'suspended' ? 'update users set suspended_at = now() where id = $1' : 'update users set email_verified = false where id = $1';
+    const unblock = kind === 'suspended' ? 'update users set suspended_at = null where id = $1' : 'update users set email_verified = true where id = $1';
+    await seedTeam();
+    await rows(block, [successorId]);
+    const target = browser();
+    expect((await inspect(target)).teams[0].members.find((member: any) => member.id === successorId)).toMatchObject({ eligible: false });
+    const refused = await call(target, { action: 'prepare', acknowledged: true, teamPlan: { [teamId]: successorId } });
+    expect(refused.status).toBe(409);
+    expect((await refused.json()).code).toBe('DELETION_SUCCESSOR_INELIGIBLE');
+
+    await rows(unblock, [successorId]);
+    const token = await prepare(target, { [teamId]: successorId });
+    await rows(block, [successorId]);
+    const response = await remove(target, token);
+    expect(response.status).toBe(409);
+    expect((await response.json()).code).toBe('DELETION_SUCCESSOR_INELIGIBLE');
+    expect((await account()).deleted_at).toBeNull();
+  });
+
+  it('never treats an empty address as a value to scrub in other accounts\' logs', async () => {
+    await rows("update users set email = '' where id = $1", [ownerId]);
+    await rows("insert into audit_logs(user_id, action, metadata) values ($1,'profile.update','{\"email\":\"\",\"note\":\"\"}')", [successorId]);
+    const target = browser();
+    expect((await remove(target, await prepare(target))).status).toBe(200);
+    expect(await rows("select metadata from audit_logs where action = 'profile.update'")).toEqual([{ metadata: { email: '', note: '' } }]);
+  });
+
+  it('locks the account and the planned successors together, in identifier order', async () => {
+    // A concurrent administrative transfer locks (previous owner, new owner) in id order
+    // before the team; the deletion takes the same locks first, in the same order.
+    const source = (await rows("select prosrc from pg_proc where proname = 'nxt5_delete_account'"))[0].prosrc as string;
+    const lockAll = source.indexOf('order by id for update;');
+    expect(lockAll).toBeGreaterThan(-1);
+    expect(lockAll).toBeLessThan(source.indexOf('select * into account from users where id = account_id for update'));
+    expect(lockAll).toBeLessThan(source.indexOf('perform 1 from teams where owner_id = account_id order by id for update'));
+    await seedTeam();
+    const target = browser();
+    expect((await remove(target, await prepare(target, { [teamId]: successorId }))).status).toBe(200);
   });
 });
 

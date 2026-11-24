@@ -182,7 +182,7 @@ export function AccountDeletion({ onDeleted }) {
           throw new Error(t("La réponse a été interrompue. La suppression peut avoir abouti : vérifie son résultat avant toute autre action."));
         }
         forget(ACCOUNT_DELETION_PENDING_KEY);
-        if (["DELETION_CONFIRMATION_EXPIRED", "DELETION_TEAM_CHANGED", "DELETION_CONFLICT", "ACCOUNT_CHANGED", "NEXUS_TEAM_ENGAGED"].includes(err.code)) {
+        if (["DELETION_CONFIRMATION_EXPIRED", "DELETION_TEAM_CHANGED", "DELETION_CONFLICT", "ACCOUNT_CHANGED", "NEXUS_TEAM_ENGAGED", "DELETION_SUCCESSOR_INELIGIBLE", "DELETION_TEAM_NAME_TAKEN"].includes(err.code)) {
           forget(ACCOUNT_DELETION_CONFIRMATION_KEY);
           setStep(0); setToken(""); setConfirmation(""); setAcknowledged(false);
           setTeamPlan({}); setDeleteEmptyTeams(false); setDetails(null);
@@ -231,7 +231,7 @@ export function AccountDeletion({ onDeleted }) {
           {teams.filter((team) => team.members.length).map((team) => <div key={team.id} className="nxt5-account-deletion-team">
             <SelectInput label={t("Nouveau propriétaire de {0}", [team.name])} value={teamPlan[team.id] || ""} required disabled={busy} onChange={(value) => setTeamPlan((plan) => ({ ...plan, [team.id]: value }))}>
               <option value="">{t("Choisir un membre")}</option>
-              {team.members.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}
+              {team.members.map((member) => { const blocked = member.eligible === false ? t("compte inactif ou e-mail non vérifié") : member.nameTaken ? t("possède déjà une équipe de ce nom") : ""; return <option key={member.id} value={member.id} disabled={Boolean(blocked)}>{blocked ? `${member.name} (${blocked})` : member.name}</option>; })}
             </SelectInput>
             <p className="mt-2 text-xs leading-5 text-slate-400">{t("Ce membre devient propriétaire et capitaine. L’équipe et ses données restent intactes.")}</p>
           </div>)}

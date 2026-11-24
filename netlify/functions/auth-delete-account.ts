@@ -20,13 +20,20 @@ const CONFLICTS: Record<string, [number, string]> = {
   DELETION_REAUTH_REQUIRED: [403, 'Confirme d’abord ton identité avec un service associé à ton compte. Aucune suppression effectuée.'],
   ACCOUNT_CHANGED: [409, 'Ton compte a changé pendant la demande. Aucune suppression effectuée : reconnecte-toi avant de recommencer.'],
   ACCOUNT_DELETED: [409, 'Ce compte est déjà supprimé. Vérifie le résultat de ta demande.'],
+  DELETION_SUCCESSOR_INELIGIBLE: [409, 'Le nouveau propriétaire choisi doit avoir un compte actif, non suspendu, avec une adresse e-mail vérifiée. Aucune suppression effectuée : choisis un autre membre.'],
+  DELETION_TEAM_NAME_TAKEN: [409, 'Le membre choisi possède déjà une équipe portant ce nom. Renomme cette équipe avant de la transférer, ou choisis un autre membre. Aucune suppression effectuée.'],
   NEXUS_TEAM_ENGAGED: [409, 'Une équipe que tu veux supprimer est inscrite à une saison Nexus Rising en cours. Transfère-la ou fais clôturer la saison avant de supprimer ton compte. Aucune suppression effectuée.'],
 };
 
+// Same successor rules as admin-team-transfer: active, not suspended, verified
+// address, and no team of the same name already (unique(owner_id, name)).
 async function ownedTeams(userId: string) {
   return sql`
     select teams.id, teams.name, coalesce((
-      select jsonb_agg(jsonb_build_object('id', users.id, 'name', users.name) order by users.name, users.id)
+      select jsonb_agg(jsonb_build_object('id', users.id, 'name', users.name,
+        'eligible', users.suspended_at is null and users.email_verified is true and nullif(users.email, '') is not null,
+        'nameTaken', exists (select 1 from teams other where other.owner_id = users.id and other.name = teams.name and other.id <> teams.id)
+      ) order by users.name, users.id)
       from team_members join users on users.id = team_members.user_id
       where team_members.team_id = teams.id and users.id <> ${userId} and users.deleted_at is null
     ), '[]'::jsonb) as members
@@ -66,7 +73,8 @@ export default async function handler(request: Request, context: Context): Promi
       if (body.action === 'status') return json({ ok: false, pending: true });
     }
 
-    const user = await requireAuth(request, context);
+    // An unverified address must not prevent deleting the account (like the other account settings).
+    const user = await requireAuth(request, context, { allowUnverifiedEmail: true });
     await assertSubjectRateLimit('account-deletion-account', user.id, { limit: 10, windowSeconds: 300 });
     if (isPlatformAdmin(user)) {
       return json({ error: 'Le compte d’administration de la plateforme ne peut pas être supprimé depuis Paramètres. Change d’abord l’administrateur configuré.', code: 'DELETION_PLATFORM_ADMIN' }, 409);
@@ -110,8 +118,11 @@ export default async function handler(request: Request, context: Context): Promi
       const plan: Record<string, string> = {};
       for (const team of teams) {
         const choice = body.teamPlan[team.id];
+        const successor = typeof choice === 'string' && UUID.test(choice) ? team.members.find((member: any) => member.id === choice.toLowerCase()) : null;
         if (!team.members.length && choice === 'delete' && body.deleteEmptyTeams === true) plan[team.id] = 'delete';
-        else if (typeof choice === 'string' && UUID.test(choice) && team.members.some((member: any) => member.id === choice)) plan[team.id] = choice.toLowerCase();
+        else if (successor && !successor.eligible) return json({ error: CONFLICTS.DELETION_SUCCESSOR_INELIGIBLE[1], code: 'DELETION_SUCCESSOR_INELIGIBLE' }, 409);
+        else if (successor?.nameTaken) return json({ error: CONFLICTS.DELETION_TEAM_NAME_TAKEN[1], code: 'DELETION_TEAM_NAME_TAKEN' }, 409);
+        else if (successor) plan[team.id] = successor.id;
         else return json({ error: 'Choisis un nouveau propriétaire pour chaque équipe partagée et confirme la suppression des équipes sans autre membre.', code: 'DELETION_TEAM_PLAN_REQUIRED' }, 400);
       }
       const confirmationToken = crypto.randomBytes(32).toString('base64url');

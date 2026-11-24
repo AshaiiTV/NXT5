@@ -22,6 +22,15 @@ Aucune suppression **en libre-service** n’existait : rien de #110 n’était d
 - interface : section traduite (anglais, espagnol) avec `t()` et `src/i18n/account-deletion-overrides.js`, reçu affiché par `AppRouter.jsx` (nouveau point d’entrée depuis #305), section « Abonnement » retirée de main donc non réintroduite ;
 - textes légaux portés dans `LegalPage.jsx` (découpage de #305), version `2026-11-24`.
 
+## Corrections après relecture (24 novembre)
+
+- Un compte dont l’adresse n’est pas vérifiée peut se supprimer par l’API (`requireAuth` avec `allowUnverifiedEmail`), comme les autres réglages du compte. L’écran de vérification d’adresse précède toujours Paramètres dans l’interface.
+- Successeur : mêmes règles que le transfert administratif (compte actif, non suspendu, adresse vérifiée), et refus clair si le successeur possède déjà une équipe du même nom (`unique(owner_id, name)`) : `DELETION_SUCCESSOR_INELIGIBLE` et `DELETION_TEAM_NAME_TAKEN` (409), contrôlés dans `prepare` et dans `nxt5_delete_account`. L’interface grise ces membres avec la raison.
+- Verrous : le compte et les successeurs prévus sont verrouillés ensemble dans l’ordre des identifiants, puis les équipes, comme `admin-team-transfer.ts`.
+- Journaux : une adresse vide n’est jamais une valeur à effacer. Le balayage reste sur toute la table `audit_logs` (préfiltre textuel) : des journaux écrits par d’autres comptes, sans équipe ni cible (invitation, commande Discord), peuvent contenir l’adresse ou l’identifiant Discord du compte ; les restreindre par acteur ou par équipe en laisserait passer.
+- Administration : renommer, révoquer les sessions, suspendre ou réactiver un compte supprimé renvoie un refus explicite (409) au lieu d’une erreur 500.
+- `database/schema.sql` reprend la migration sous forme rejouable.
+
 ## Principe
 
 La ligne `users` n’est **jamais supprimée**. `teams.owner_id` est en `ON DELETE CASCADE` : un `DELETE FROM users` effacerait les équipes du propriétaire et les données des autres membres. La fonction `nxt5_delete_account` traite explicitement chaque clé étrangère, puis anonymise la ligne du compte et la marque `deleted_at`. Un déclencheur refuse désormais le `DELETE` d’un propriétaire dont l’équipe compte d’autres membres (`ACCOUNT_OWNS_SHARED_TEAM`).

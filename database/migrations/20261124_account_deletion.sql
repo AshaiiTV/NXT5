@@ -197,7 +197,17 @@ declare
   receipt account_deletion_receipts%rowtype;
   result_summary jsonb;
 begin
-  -- Même ordre de verrous que la connexion sociale, la dissociation et la réinitialisation.
+  -- Le compte et les successeurs prévus sont verrouillés ensemble, dans l'ordre des
+  -- identifiants, avant les équipes : même ordre que le transfert administratif
+  -- (admin-team-transfer), pour qu'un transfert concurrent ne crée pas d'interblocage.
+  -- Le compte seul reste le premier verrou pris quand aucun successeur n'est prévu,
+  -- comme pour la connexion sociale, la dissociation et la réinitialisation.
+  perform 1 from users where id = account_id or id in (
+    select plan.value::uuid from account_deletion_confirmations c
+      cross join lateral jsonb_each_text(c.team_plan) as plan(key, value)
+      where c.token_hash = confirmation_hash and c.user_id = account_id
+        and plan.value ~ '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+    order by id for update;
   select * into account from users where id = account_id for update;
   if not found or account.deleted_at is not null then
     raise exception 'ACCOUNT_CHANGED' using errcode = 'P0001';
@@ -236,7 +246,7 @@ begin
      (select count(*) from jsonb_object_keys(confirmation.team_plan)) then
     raise exception 'DELETION_TEAM_CHANGED' using errcode = 'P0001';
   end if;
-  for team in select id from teams where owner_id = account_id order by id loop
+  for team in select id, name from teams where owner_id = account_id order by id loop
     choice := confirmation.team_plan ->> team.id::text;
     if choice is null then raise exception 'DELETION_TEAM_CHANGED' using errcode = 'P0001'; end if;
     perform 1 from team_members where team_id = team.id order by id for update;
@@ -261,8 +271,15 @@ begin
         where team_id = team.id and user_id = successor) then
         raise exception 'DELETION_TEAM_CHANGED' using errcode = 'P0001';
       end if;
-      perform 1 from users where id = successor and deleted_at is null for key share;
-      if not found then raise exception 'DELETION_TEAM_CHANGED' using errcode = 'P0001'; end if;
+      -- Mêmes conditions que le transfert administratif : compte actif, non
+      -- suspendu, avec une adresse vérifiée (déjà verrouillé plus haut).
+      perform 1 from users where id = successor and deleted_at is null and suspended_at is null
+        and email_verified is true and nullif(email, '') is not null;
+      if not found then raise exception 'DELETION_SUCCESSOR_INELIGIBLE' using errcode = 'P0001'; end if;
+      -- unique(owner_id, name) : le successeur ne doit pas déjà posséder une équipe de ce nom.
+      if exists (select 1 from teams other where other.owner_id = successor and other.name = team.name and other.id <> team.id) then
+        raise exception 'DELETION_TEAM_NAME_TAKEN' using errcode = 'P0001';
+      end if;
       update teams set owner_id = successor where id = team.id;
       update team_members set role = 'captain' where team_id = team.id and user_id = successor and role <> 'owner';
       teams_transferred := teams_transferred + 1;
@@ -363,7 +380,9 @@ begin
   -- (sans casse) ou un de ses identifiants Discord deviennent nulles ; les journaux
   -- des autres comptes gardent leur auteur et le reste de leurs métadonnées.
   -- La recherche de sous-chaîne n'est qu'un préfiltre bon marché avant le parcours exact.
-  scrub_targets := array_remove(array[lower(account_id::text), lower(account.email), lower(account.pending_email)] || discord_ids, null);
+  -- Valeurs vides exclues : un compte avec email = '' ne doit pas effacer les "" des autres journaux.
+  scrub_targets := array_remove(array_remove(array[lower(account_id::text), lower(nullif(btrim(account.email), '')),
+    lower(nullif(btrim(account.pending_email), ''))] || discord_ids, null), '');
   update audit_logs set
     user_id = case when user_id = account_id then null else user_id end,
     entity_id = case when entity_id = account_id then null else entity_id end,
