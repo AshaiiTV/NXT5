@@ -27,7 +27,7 @@ Avant de préparer une publication YouTube NXT5 (sujet, script, titre, miniature
 
 ## Mémoire et vérifications ciblées
 
-Enseignements retenus des [trois Reels analysés le 15 octobre 2026](docs/enseignements-reels-2026-10-15.md) :
+Enseignements retenus des [trois Reels analysés le 15 octobre 2026](docs/rapports/enseignements-reels-2026-10-15.md) :
 
 - Conserver les décisions durables, leur raison et les preuves utiles dans les guides existants. Rechercher d’abord dans le sommaire ou le graphe, puis lire les sources actuelles pertinentes. Distinguer les faits vérifiés, les hypothèses et le travail restant ; exclure secrets et données privées des notes de reprise.
 - Lorsqu’un changement touche un import, une écriture ou un envoi externe, vérifier les scénarios concernés : répétition, interruption, concurrence, délais et révocation des droits pendant le traitement. Adapter les tests au risque réel et préserver quotas, transactions et isolation des données privées.
