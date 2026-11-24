@@ -45,7 +45,7 @@ describe("profile and analyses reading order", () => {
     expect(matches()).toHaveLength(100);
   });
 
-  it("shows the Wrapped before one review prompt, keeps explanations folded, and retains scoped navigation", async () => {
+  it("shows the Wrapped without a review prompt, keeps explanations folded, and retains scoped navigation", async () => {
     vi.stubGlobal("document", { fonts: { ready: Promise.resolve() } });
     vi.stubGlobal("window", { location: new URL("https://nxt5.test/mon-profil?player=p1") });
     const navigate = vi.fn();
@@ -57,13 +57,12 @@ describe("profile and analyses reading order", () => {
     const panel = renderer.root.findByProps({ id: "profile-panel" });
     const content = text(panel);
     expect(content.indexOf("Ton Wrapped")).toBeGreaterThanOrEqual(0);
-    expect(content.indexOf("Ton Wrapped")).toBeLessThan(content.indexOf("À vérifier en débrief"));
-    expect(content.indexOf("À vérifier en débrief")).toBeLessThan(content.indexOf("Données et méthode de cette édition"));
+    expect(content.indexOf("Ton Wrapped")).toBeLessThan(content.indexOf("Données et méthode de cette édition"));
+    expect(content).not.toContain("À vérifier en débrief");
     expect(renderer.root.findAllByProps({ className: "profile-showcase-card-facts" })).toHaveLength(1);
     expect(content).toContain("Part des éliminations de l’équipe");
     expect(content).toContain("Les CS comptent les sbires et monstres tués");
     expect(panel.findAllByType("details").every((detail) => !detail.props.open)).toBe(true);
-    expect(panel.findAllByType("a").some((link) => link.props.href === "/games?match=source-1")).toBe(true);
     act(() => renderer.root.findByType(ProfileNavigation).props.onChange("history"));
     expect(navigate).toHaveBeenCalledWith("/mon-profil/historique?player=p1");
     expect(renderer.root.findByProps({ id: "profile-panel" }).props["aria-label"]).toBe("Historique");
