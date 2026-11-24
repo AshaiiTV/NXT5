@@ -80,7 +80,7 @@ async function removeTeam(teamId: string, userId = owner) {
 }
 async function deleteAccount() {
   const snapshot = await (await accountLifecycle(new Request(`https://nxt5.org/.netlify/functions/admin-account-lifecycle?userId=${owner}`, { headers: { Origin: 'https://nxt5.org' } }), context)).json();
-  const response = await accountLifecycle(post('admin-account-lifecycle', { action: 'delete', userId: owner, confirmAccount: 'player', expectedRevision: snapshot.account.revision, expectedOwnedTeams: snapshot.ownedTeams }), context);
+  const response = await accountLifecycle(post('admin-account-lifecycle', { action: 'delete', userId: owner, confirmAccount: 'player', expectedRevision: snapshot.account.revision, expectedOwnedTeams: snapshot.ownedTeams, reason: 'Demande de suppression' }), context);
   return { status: response.status, body: await response.json() };
 }
 

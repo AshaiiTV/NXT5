@@ -8,6 +8,8 @@ import { assertTrustedMutation, handleError, json, readJson } from './_lib/http'
 
 import { assertMatchSourceMutationEnvironment } from './_lib/match-source-environment';
 
+import { assertNotEngagedInNexus, nexusEngagementGuard, nexusFailureOr } from './_lib/nexus-team-lifecycle';
+
 
 
 const fail=(message:string,status=400)=>Object.assign(new Error(message),{status});
@@ -23,6 +25,8 @@ const roles=['captain','coach','assistant','analyst','manager','board','player',
 const playerRoles=['TOP','JGL','MID','ADC','SUP','SUB','COACH','ASSISTANT','ANALYST','MANAGER','BOARD'];
 
 const staff=['COACH','ASSISTANT','ANALYST','MANAGER','BOARD'];
+
+const stale=()=>Object.assign(new Error('Le dossier ou son contenu a changé. Recharge-le avant de réessayer.'),{status:409});
 
 
 
@@ -240,6 +244,8 @@ async function read(request:Request) {
 
 export default async function handler(request:Request,context:Context):Promise<Response> {
 
+  let teamDeleteScope:{teamId:string}|null=null;
+
   try {
 
     if(!['GET','POST'].includes(request.method))return json({error:'Méthode refusée.'},405,{Allow:'GET, POST'});
@@ -284,6 +290,10 @@ export default async function handler(request:Request,context:Context):Promise<R
 
     if(action.endsWith('delete'))name=text(body.confirmName,1,80);
 
+    // A registration in a season that is not completed cascades with the team:
+    // explain the refusal up front, the in-transaction guard covers races.
+    if(action==='team-delete'){teamDeleteScope={teamId};await assertNotEngagedInNexus(teamDeleteScope);}
+
     // Ordered locks are shared with existing team mutation handlers. The live
 
     // admin session/account are checked again inside the atomic transaction.
@@ -294,7 +304,7 @@ export default async function handler(request:Request,context:Context):Promise<R
 
         where s.id=${sessionId} and s.user_id=${admin.id} and s.revoked_at is null and s.expires_at>clock_timestamp()
 
-        and u.email is not distinct from ${admin.email || null} for update of s,u)
+        and u.suspended_at is null and u.email is not distinct from ${admin.email || null} for update of s,u)
 
         select (case when exists(select 1 from live) then '1' else 'admin_access_revoked' end)::integer`,
 
@@ -321,6 +331,8 @@ export default async function handler(request:Request,context:Context):Promise<R
         'goals',(select count(*) from player_goals where team_id=t.id),'drafts',(select count(*) from opponent_drafts where team_id=t.id),
 
         'archives',(select count(*) from match_archives where team_id=t.id)) then 1 else 0 end from teams t where t.id=${teamId}`,
+
+        nexusEngagementGuard(tx,{teamId}),
 
         tx`delete from teams where id=${teamId}`] : []),
 
@@ -356,7 +368,7 @@ export default async function handler(request:Request,context:Context):Promise<R
 
         ${action.startsWith('profile-') ? 'player':'team'},${action.startsWith('profile-') ? targetId:teamId},
 
-        ${JSON.stringify({teamId,targetId,...(action==='member-role' ? {role}:{}),...(action==='team-delete' ? {name,counts:body.expectedCounts}:{})})}::jsonb)`
+        ${JSON.stringify({teamId,targetId,...(action==='member-role' ? {role}:{}),...(action==='team-delete' ? {name,counts:body.expectedCounts}:{}),...(action==='profile-delete' ? {name}:{})})}::jsonb)`
 
     ]);
 
@@ -366,7 +378,7 @@ export default async function handler(request:Request,context:Context):Promise<R
 
     if(error.code==='22P02')return json({error:'La session administrateur a changé. Reconnecte-toi.'},403);
 
-    if(error.code==='22012')return json({error:'Le dossier ou son contenu a changé. Recharge-le avant de réessayer.'},409);
+    if(error.code==='22012')return handleError(teamDeleteScope ? await nexusFailureOr(teamDeleteScope,stale()):stale());
 
     if(error.code==='23505')return json({error:'Ce nom, ce Riot ID ou ce poste titulaire est déjà utilisé.'},409);
 

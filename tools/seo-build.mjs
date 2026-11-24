@@ -27,7 +27,7 @@ export function robotsTxt(config) {
 // Private routes share a static shell. A route whose own title differs from the
 // sign-in shell gets a dedicated one, so the tab never flashes another page's title.
 export const APP_SHELL = "app-shell.html";
-export const ROUTE_SHELLS = { "/creer-un-compte": "app-shell-register.html" };
+export const ROUTE_SHELLS = { "/creer-un-compte": "app-shell-register.html", "/salle-de-draft": "app-shell-draft-room.html" };
 export const shellFiles = () => [[APP_SHELL, "/connexion"], ...Object.entries(ROUTE_SHELLS).map(([path, file]) => [file, path])];
 const shellFor = path => ROUTE_SHELLS[path] || APP_SHELL;
 

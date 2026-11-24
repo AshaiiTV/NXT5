@@ -788,6 +788,9 @@ describe('opponent draft server', () => {
 
 describe('native draft rooms', () => {
   const roomCall = (body: any) => rooms(request(body), context);
+  const ready = async (host: any, guest: any, gameNumber?: number) => {
+    for (const actor of [host, guest]) expect((await roomCall({action:'ready',...actor,...(gameNumber ? {gameNumber} : {})})).status).toBe(200);
+  };
   it('includes native rooms beyond the imported draft quota without dropping or repeating the boundary', async () => {
     await db.query(`insert into opponent_drafts(team_id,ally_side,source_id,game_number,source_url,snapshot)
       select $1,'blue','room_'||g,1,'/draft/salle','{"source":"nxt5"}'::jsonb from generate_series(1,201) g`, [teamId]);
@@ -802,11 +805,13 @@ describe('native draft rooms', () => {
     const host = {teamId,roomId:room.id}, guest = {invite:room.invite,roomId:room.id};
     const move = {action:'move',...host,step:0,champion:'Ahri'};
     expect((await roomCall(move)).status).toBe(409);
-    expect((await roomCall({action:'start',...host})).status).toBe(404);
     expect((await roomCall({action:'start',roomId:room.id,invite:room.spectatorInvite})).status).toBe(404);
+    const hostReady = (await (await roomCall({action:'ready',...host})).json()).room;
+    expect(hostReady).toMatchObject({started:false,canReady:false,ready:{blue:true,red:false},turnStartedAt:null});
+    expect((await roomCall(move)).status).toBe(409);
     const start = async () => (await (await roomCall({action:'start',...guest})).json()).room;
     const started = await start();
-    expect(started).toMatchObject({turnSeconds:30,canStart:false});
+    expect(started).toMatchObject({turnSeconds:30,canReady:false,started:true,ready:{blue:true,red:true}});
     expect(started.turnStartedAt).toBeTruthy();
     expect((await start()).turnStartedAt).toEqual(started.turnStartedAt);
     const saved = (await (await roomCall(move)).json()).room;
@@ -828,6 +833,7 @@ describe('native draft rooms', () => {
     expect((await roomCall(next)).status).toBe(409);
     expect((await roomCall({action:'move',...guest,step:0,champion:'Vi'})).status).toBe(409);
     for (const gameNumber of [1,2]) {
+      await ready(host, guest, gameNumber);
       const firstPick = gameNumber === 1 ? 'red' : 'blue';
       const turns = draftTurns(firstPick);
       for (const [step,[,side]] of turns.entries()) {
@@ -871,6 +877,8 @@ describe('native draft rooms', () => {
     expect((await roomCall({action:'move',...host,step:0,champion:'Ahri'})).status).toBe(403);
     expect((await roomCall({action:'move',...guest,step:0,champion:'invalid'})).status).toBe(400);
     expect((await roomCall({action:'link',...guest,matchId})).status).toBe(404);
+    expect((await roomCall({action:'move',...guest,step:0,champion:'Ahri'})).status).toBe(409); // nobody is ready yet
+    await ready(host, guest);
     const played = STANDARD_DRAFT_TURNS.map((_,i) => i === 2 ? null : champions[i][1]);
     for (const [step,[kind,side]] of STANDARD_DRAFT_TURNS.entries()) {
       const actor = side === 'blue' ? guest : host;
@@ -902,5 +910,75 @@ describe('native draft rooms', () => {
     expect((await roomCall({action:'move',...host,step:19,champion:played[19]})).status).toBe(403);
     authenticate.mockResolvedValue({id:outsider});
     expect((await roomCall({action:'read',roomId:room.id,teamId:otherTeam})).status).toBe(404);
+  });
+  it('lets staff correct a finished game, republishes it and keeps Fearless rules across the series', async () => {
+    const create = {action:'create',teamId,creationKey:crypto.randomUUID(),side:'blue',opponent:'Fix',seriesLength:2,mode:'fearless'};
+    const {room} = await (await roomCall(create)).json();
+    const host = {teamId,roomId:room.id}, guest = {invite:room.invite,roomId:room.id};
+    const play = async (gameNumber, offset) => {
+      await ready(host, guest, gameNumber);
+      for (const [step,[,side]] of STANDARD_DRAFT_TURNS.entries())
+        expect((await roomCall({action:'move',...(side === 'blue' ? host : guest),gameNumber,step,champion:champions[offset+step][1]})).status).toBe(200);
+    };
+    await play(1,0);
+    const original = champions.slice(0,20).map(c => c[1]);
+    const correct = (moves, fields = {}) => roomCall({action:'correct',...host,gameNumber:1,expected:original,moves,...fields});
+
+    expect((await roomCall({action:'correct',...guest,gameNumber:1,expected:original,moves:original})).status).toBe(404);
+    authenticate.mockResolvedValue({id:viewer});
+    expect((await correct(original)).status).toBe(403);
+    authenticate.mockResolvedValue({id:staff});
+    expect((await correct(original.slice(0,19))).status).toBe(400);
+    expect((await correct(original.map((c,i) => i === 6 ? null : c))).status).toBe(400); // first pick cannot be empty
+    expect((await correct(original.map((c,i) => i === 1 ? original[0] : c))).status).toBe(400);
+
+    const banIndex = STANDARD_DRAFT_TURNS.findIndex(([kind]) => kind === 'ban');
+    const fixed = original.map((c,i) => i === banIndex ? null : i === 6 ? champions[60][1] : c);
+    const response = await correct(fixed);
+    expect(response.status).toBe(200);
+    expect((await response.json()).room.moves).toEqual(fixed);
+    expect((await correct(fixed)).status).toBe(409); // stale expected board
+    const draft = (await (await call('list')).json()).drafts.find(d => d.id === room.id);
+    expect(draftOrder(draft.snapshot).events.map(e => e.champion)).toEqual(fixed);
+    expect(draft.snapshot.banStates[STANDARD_DRAFT_TURNS[banIndex][1]][0]).toBe('skipped');
+
+    await roomCall({action:'next',...host,gameNumber:1,side:'blue',firstPick:'blue'});
+    await play(2,20);
+    const clash = fixed.map((c,i) => i === 6 ? champions[26][1] : c);
+    const refused = await roomCall({action:'correct',...host,gameNumber:1,expected:fixed,moves:clash});
+    expect(refused.status).toBe(409);
+    expect((await refused.json()).error).toContain('Fearless');
+    expect((await (await roomCall({action:'read',...host,gameNumber:1})).json()).room.moves).toEqual(fixed);
+  });
+  it('deletes a whole series and its published drafts for staff only', async () => {
+    const create = {action:'create',teamId,creationKey:crypto.randomUUID(),side:'blue',opponent:'Test',seriesLength:2};
+    const {room} = await (await roomCall(create)).json();
+    const host = {teamId,roomId:room.id}, guest = {invite:room.invite,roomId:room.id};
+    await ready(host, guest, 1);
+    for (const [step,[,side]] of STANDARD_DRAFT_TURNS.entries())
+      expect((await roomCall({action:'move',...(side === 'blue' ? host : guest),gameNumber:1,step,champion:champions[step][1]})).status).toBe(200);
+    expect((await roomCall({action:'link',...host,gameNumber:1,matchId})).status).toBe(200);
+    const game2 = (await (await roomCall({action:'next',...host,gameNumber:1,side:'red',firstPick:'blue'})).json()).room;
+    expect(game2.gameNumber).toBe(2);
+    const {room:kept} = await (await roomCall({action:'create',teamId,creationKey:crypto.randomUUID(),side:'red'})).json();
+    expect((await (await roomCall({action:'list',teamId})).json()).rooms.find(r => r.id === room.id)).toMatchObject({linked:1,game_number:2});
+
+    expect((await roomCall({action:'delete',...guest})).status).toBe(404);
+    authenticate.mockResolvedValue({id:viewer});
+    expect((await roomCall({action:'delete',...host})).status).toBe(403);
+    authenticate.mockResolvedValue({id:outsider});
+    expect((await roomCall({action:'delete',roomId:room.id,teamId:otherTeam})).status).toBe(404);
+    authenticate.mockResolvedValue({id:staff});
+    expect((await roomCall({action:'delete',teamId,roomId:game2.gameId})).status).toBe(404);
+
+    const response = await roomCall({action:'delete',...host});
+    expect(response.status).toBe(200);
+    expect((await response.json()).deleted).toEqual({id:room.id,games:2,drafts:1});
+    expect((await db.query('select id from draft_rooms where id=$1 or series_root=$1',[room.id])).rows).toHaveLength(0);
+    expect((await db.query('select id from opponent_drafts where id=$1',[room.id])).rows).toHaveLength(0);
+    expect((await (await call('get-match-draft',{matchId})).json()).draft).toBeNull();
+    expect((await (await roomCall({action:'list',teamId})).json()).rooms.map(r => r.id)).toEqual([kept.id]);
+    expect((await roomCall({action:'read',...host})).status).toBe(404);
+    expect((await roomCall({action:'delete',...host})).status).toBe(404);
   });
 });

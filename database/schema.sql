@@ -714,3 +714,6 @@ alter table draft_rooms
   add column if not exists turn_started_at timestamptz,
   add column if not exists first_pick text not null default 'blue' check (first_pick in ('blue','red'));
 create unique index if not exists draft_rooms_series_game on draft_rooms(series_root, game_number);
+alter table draft_rooms
+  add column if not exists host_ready_at timestamptz,
+  add column if not exists guest_ready_at timestamptz;

@@ -162,9 +162,14 @@ export async function configureCommunityChannel(value: unknown, userId: string, 
     await liveIdentity();
     await liveDestinations(targets);
   }
-  const [saved] = await sql.query(`insert into discord_community_settings(singleton,destinations,updated_by)
+  // Selection and audit trail are one statement: both persist or neither does.
+  const [saved] = await sql.query(`with saved as (insert into discord_community_settings(singleton,destinations,updated_by)
     values(true,$1::jsonb,$2) on conflict(singleton) do update set destinations=excluded.destinations,
-    config_version=discord_community_settings.config_version+1,updated_by=excluded.updated_by,updated_at=now() returning destinations`, [destinationKey(targets), userId]);
+    config_version=discord_community_settings.config_version+1,updated_by=excluded.updated_by,updated_at=now() returning destinations,config_version),
+    logged as (insert into audit_logs(user_id,action,entity_type,metadata)
+      select $2,'admin.community.configure','discord_community',jsonb_strip_nulls(jsonb_build_object('destinations',destinations,
+        'configVersion',config_version,'reference',$3::text)) from saved)
+    select destinations from saved`, [destinationKey(targets), userId, typeof reference === 'string' ? reference : null]);
   return { destinations: saved.destinations };
 }
 export async function previewCommunityAnnouncement(body: Row, userId: string) {
@@ -316,7 +321,11 @@ export async function publishCommunityAnnouncement(body: Row, userId: string) {
   await sql.query(`with destination as materialized (select 1 from discord_community_settings
       where singleton=true and config_version=$1 and destinations=$2::jsonb for share),
     batch as (insert into discord_community_batches(reference,application_id,bot_id,content,content_hash,destinations)
-      select $3,$4,$5,$6,$7,$2::jsonb from destination on conflict(reference) do nothing returning *)
+      select $3,$4,$5,$6,$7,$2::jsonb from destination on conflict(reference) do nothing returning *),
+    -- Audit each sending attempt with identifiers and a hash, never the content.
+    logged as (insert into audit_logs(user_id,action,entity_type,metadata)
+      select $8,'admin.community.publish','discord_announcement',jsonb_build_object('reference',$3::text,'contentHash',$7::text,
+        'destinations',$2::jsonb,'resumed',not exists(select 1 from batch)) from destination)
     insert into discord_community_announcements(reference,application_id,guild_id,channel_id,content,content_hash,status,created_by,bot_id)
       select batch.reference,batch.application_id,target->>'guildId',target->>'channelId',batch.content,batch.content_hash,'queued',$8,batch.bot_id
       from batch cross join jsonb_array_elements(batch.destinations) target on conflict(reference,guild_id) do nothing returning *`,
