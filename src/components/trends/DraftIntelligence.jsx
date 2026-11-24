@@ -1,5 +1,5 @@
 import React, { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, Info, Lightbulb, Target } from "lucide-react";
+import { ArrowRight, Info } from "lucide-react";
 import { t } from "../../i18n/translate.js";
 import { useLanguage } from "../../i18n/useLanguage.js";
 import { ROLES } from "../../../shared/roles.js";
@@ -65,19 +65,12 @@ function BanDetail({ row, phase, camp, onOpenDraft, draftLabel, detailRef }) {
   const name = championDisplayName(row.champion);
   const early = row.slots.filter((slot) => slot.slot <= 3).reduce((sum, slot) => sum + slot.count, 0);
   const late = row.slots.filter((slot) => slot.slot > 3).reduce((sum, slot) => sum + slot.count, 0);
-  const hasLateBans = phase === "2" || (phase === "all" && late > early);
   const hasKnownPhase = early + late > 0;
   const example = sources.find((source) => draftOrder(source.snapshot).status === "known");
   const exampleOrder = example ? draftOrder(example.snapshot) : null;
   const targetSide = example && (camp === "enemy" ? example.allySide : example.allySide === "blue" ? "red" : "blue");
   const ban = exampleOrder?.events.find((event) => event.kind === "ban" && event.side !== targetSide && canonicalChampion(event.champion) === row.champion);
   const revealed = exampleOrder?.events.filter((event) => event.kind === "pick" && event.side === targetSide && event.order < ban?.order) || [];
-  const meaning = !hasKnownPhase ? "Phase inconnue : impossible de relier ce ban aux picks déjà révélés."
-    : hasLateBans ? "Phase 2 : trois picks déjà révélés par camp. Le ban peut retirer une réponse à la composition visible."
-      : "Phase 1 : aucun pick révélé. Confort connu ou priorité générale, le comptage seul ne tranche pas.";
-  const advice = camp === "ally" ? "Vérifiez ce que ce ban laisse à l’adversaire avant de le reconduire."
-    : hasKnownPhase && hasLateBans ? "S’il doit rester jouable, prenez-le plus tôt et préparez une autre option au même poste."
-      : "Préparez un plan sans lui avant de construire votre ouverture autour de lui.";
   return <section ref={detailRef} tabIndex={-1} className="draft-ban-detail" aria-label={t("Comprendre les bans de {0}", [name])}>
     <header className="draft-ban-hero">
       <ChampionPortrait champion={row.champion} className="h-16 w-16 rounded-xl object-cover" />
@@ -96,11 +89,6 @@ function BanDetail({ row, phase, camp, onOpenDraft, draftLabel, detailRef }) {
       <ol className="draft-ban-slots">{row.slots.map((slot) => <li key={slot.slot} data-phase={slot.slot <= 3 ? 1 : 2} style={{ "--heat": slot.total ? slot.count / slot.total : 0 }}>
         <span>{t("Ban {0}", [slot.slot])}</span><strong>{slot.count}/{slot.total}</strong>
       </li>)}</ol></div>}
-
-    <div className="draft-reading">
-      <p><Target aria-hidden="true" /><span>{t(meaning)}</span></p>
-      <p><Lightbulb aria-hidden="true" /><span>{t(advice)}</span></p>
-    </div>
 
     <div className="draft-detail-block"><h5>{t(camp === "enemy" ? "Qui peut être concerné ?" : "Quels rôles adverses sont concernés ?")}</h5>
       {!!row.poolPlayers?.length && <ul className="draft-pool-players">{row.poolPlayers.map((player) => <li key={`${player.id}-${player.role}`}>
@@ -224,6 +212,5 @@ export function DraftRotations({ model, onOpenDraft, draftLabel }) {
         : <p className="draft-note">{t("Rôles indisponibles sans partie liée compatible.")}</p>}
       <details className="draft-intelligence-disclosure"><summary>{t("Vérifier cette rotation")}</summary><SourceDrafts sources={rotation.sources} onOpenDraft={onOpenDraft} draftLabel={draftLabel} /></details>
     </li>)}</ol>}
-    <p className="draft-tip"><Lightbulb aria-hidden="true" /><span>{t("Un champion souvent banni en phase 2 ? Discutez de le prendre plus tôt, sans sacrifier vos autres priorités.")}</span></p>
   </Surface>;
 }

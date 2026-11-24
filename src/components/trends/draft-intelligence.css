@@ -141,11 +141,6 @@
 .draft-ban-slots span { color: var(--nxt5-text-secondary); font-size: .75rem; }
 .draft-ban-slots strong { color: var(--nxt5-text); font-size: .9375rem; }
 
-.draft-reading { display: grid; gap: 8px; padding: 14px 16px; border-radius: 10px; background: var(--nxt5-spectrum-soft); border: 1px solid rgb(196 181 253 / .22); }
-.draft-reading p, .draft-tip { display: flex; align-items: flex-start; gap: 10px; color: var(--nxt5-text); }
-.draft-reading svg, .draft-tip svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--nxt5-accent-2); }
-.draft-reading p:first-child svg { color: var(--nxt5-accent); }
-.draft-tip { color: var(--nxt5-text-secondary); }
 
 .draft-note { color: var(--nxt5-text-secondary); font-size: .875rem; }
 
