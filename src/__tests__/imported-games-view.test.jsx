@@ -114,7 +114,6 @@ describe("imported games interactions", () => {
   it.each([
     ["search", async (renderer) => search(renderer, "Club"), "EUW1_30", 30],
     ["result", async (renderer) => filter(renderer, "Résultat", "Victoire"), "EUW1_29", 15],
-    ["review", async (renderer) => filter(renderer, "Débrief", "done"), "EUW1_30", 15],
     ["side", async (renderer) => filter(renderer, "Côté", "blue"), "EUW1_29", 15],
     ["sort", async (renderer) => filter(renderer, "Trier par", "oldest"), "EUW1_1", 30],
   ])("returns to page one after changing %s", async (_name, change, firstGame, resultCount) => {
@@ -278,7 +277,6 @@ describe("progressive imported games", () => {
   it.each([
     ["search", (renderer) => search(renderer, "Club")],
     ["result", (renderer) => filter(renderer, "Résultat", "Victoire")],
-    ["review", (renderer) => filter(renderer, "Débrief", "done")],
     ["side", (renderer) => filter(renderer, "Côté", "blue")],
     ["category", (renderer) => filter(renderer, "Catégorie", "scrim")],
     ["played date sort", (renderer) => filter(renderer, "Trier par", "newest")],

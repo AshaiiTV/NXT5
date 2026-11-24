@@ -24,7 +24,11 @@
 .ig-search-field > button svg { width: 16px; height: 16px; }
 .imported-games .ig-sort select, .imported-games .ig-filters select { min-height: 46px; padding-top: 10px; padding-bottom: 10px; font-size: var(--nxt5-font-body); font-weight: 400; }
 .ig-results-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 4px 16px; min-height: 44px; padding: 6px 0; color: var(--nxt5-muted); font-size: var(--nxt5-font-ui); }
-.ig-search-hint { color: #b8c6dc; }
+.ig-overview { display: flex; align-items: center; gap: 10px; flex: 0 1 300px; min-width: 200px; font-variant-numeric: tabular-nums; }
+.ig-overview-count { font-size: var(--nxt5-font-small); font-weight: 750; }
+.ig-overview-bar { position: relative; flex: 1 1 auto; height: 6px; border-radius: 999px; overflow: hidden; background: rgba(251,113,133,.45); }
+.ig-overview-bar > span { position: absolute; inset: 0 auto 0 0; border-radius: inherit; background: linear-gradient(90deg, #34d399, #6ee7b7); box-shadow: 0 0 10px rgba(52,211,153,.35); }
+.ig-overview-rate { color: var(--nxt5-text); font-size: var(--nxt5-font-ui); font-weight: 750; }
 .ig-text-action { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; color: #cffafe; font-size: var(--nxt5-font-ui); font-weight: 650; text-align: left; text-underline-offset: 4px; }
 .ig-text-action svg { width: 14px; height: 14px; flex-shrink: 0; }
 .ig-text-action:hover { color: #fff; text-decoration: underline; }
@@ -35,39 +39,49 @@
 .ig-selection .ig-label { margin-bottom: 4px; color: #a5f3fc; }
 .ig-selection-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .ig-results { scroll-margin-top: 24px; }
-.ig-column-labels { display: none; }
-.ig-list { list-style: none; padding: 0; margin: 0; }
-.ig-game { position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; width: 100%; padding: 18px 12px; border-top: 1px solid var(--nxt5-border); background: rgba(17,27,45,.56); text-align: left; transition: background-color 140ms ease; }
-.ig-game:hover { background: rgba(255,255,255,.035); }
-.ig-game:focus-visible { z-index: 1; outline-offset: -2px; }
+.ig-list { display: grid; gap: 8px; list-style: none; padding: 0; margin: 0; }
+.ig-list > li { --ig-tone: rgba(148,163,184,.5); --ig-tint: rgba(148,163,184,.05); }
+.ig-list > li[data-result="win"] { --ig-tone: #34d399; --ig-tint: rgba(52,211,153,.075); }
+.ig-list > li[data-result="loss"] { --ig-tone: #fb7185; --ig-tint: rgba(251,113,133,.075); }
+.ig-game { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: "result identity date" "matchup matchup matchup"; align-items: center; gap: 14px 16px; width: 100%; padding: 14px 16px 14px 20px; overflow: hidden; border: 1px solid var(--nxt5-border); border-radius: var(--nxt5-radius-control); background: linear-gradient(90deg, var(--ig-tint), transparent 42%), rgba(17,27,45,.56); text-align: left; transition: background-color 140ms ease, border-color 140ms ease; }
+.ig-game::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 4px; background: var(--ig-tone); }
+.ig-game:hover { border-color: var(--nxt5-border-strong); background-color: rgba(255,255,255,.035); }
+.ig-game:focus-visible { z-index: 1; outline-offset: 2px; }
 .ig-game:disabled { cursor: default; }
-.ig-game:disabled:hover { background: transparent; }
-.ig-game[aria-pressed="true"], .ig-game[aria-pressed="true"]:disabled:hover { background: linear-gradient(100deg, rgba(103,232,249,.1), rgba(139,92,246,.17) 58%, rgba(196,181,253,.06)); box-shadow: inset 3px 0 0 var(--nxt5-accent), inset 0 1px rgba(196,181,253,.2); }
-.ig-result { display: inline-flex; align-items: center; gap: 8px; grid-column: 1; grid-row: 1; font-size: var(--nxt5-font-small); font-weight: 700; color: #c2d0e3; }
-.ig-result > span { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 6px; background: rgba(255,255,255,.055); font-size: var(--nxt5-font-small); }
+.ig-game:disabled:hover { border-color: var(--nxt5-border); }
+.ig-game[aria-pressed="true"], .ig-game[aria-pressed="true"]:disabled:hover { border-color: rgba(196,181,253,.55); background: linear-gradient(100deg, rgba(103,232,249,.1), rgba(139,92,246,.17) 58%, rgba(196,181,253,.06)); box-shadow: inset 0 1px rgba(196,181,253,.2); }
+.ig-result { grid-area: result; display: grid; justify-items: center; gap: 4px; width: 64px; color: #c2d0e3; font-size: var(--nxt5-font-small); font-weight: 700; }
+.ig-result > span:first-child { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; border: 1px solid rgba(255,255,255,.08); background: rgba(255,255,255,.055); font-size: 18px; font-weight: 800; }
 .ig-win { color: #a7f3d0; }
-.ig-win > span { background: rgba(52,211,153,.10); }
+.ig-result.ig-win > span:first-child { color: #d1fae5; border-color: rgba(52,211,153,.4); background: rgba(52,211,153,.16); box-shadow: 0 0 18px rgba(52,211,153,.18); }
 .ig-loss { color: #fecdd3; }
-.ig-loss > span { background: rgba(251,113,133,.10); }
-.ig-game-identity { display: grid; gap: 4px; grid-column: 1 / -1; grid-row: 2; min-width: 0; }
-.ig-game-identity > strong { color: var(--nxt5-text); font-size: var(--nxt5-font-ui); font-weight: 750; line-height: 1.5; }
-.ig-game-identity > span { color: #c2d0e3; font-size: var(--nxt5-font-small); line-height: 1.5; }
-.ig-game-identity > .ig-game-categories { color: #d9d0f8; }
-.ig-composition { grid-column: 1; grid-row: 3; display: grid; align-content: start; gap: 7px; min-width: 0; }
-.ig-composition-enemy { grid-column: 2; }
-.ig-composition-label { color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 600; }
-.ig-champions { display: flex; flex-wrap: wrap; gap: 4px; }
-.ig-champion { width: 28px; height: 28px; border: 1px solid rgba(196,181,253,.4); border-radius: 5px; flex-shrink: 0; object-fit: cover; box-shadow: 0 3px 9px rgba(2,6,17,.3); }
-.ig-side, .ig-missing { color: #c2d0e3; font-size: var(--nxt5-font-small); line-height: 1.5; }
-.ig-side-blue { color: var(--nxt5-side-blue-text); }
-.ig-side-red { color: var(--nxt5-side-red-text); }
-.ig-date { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; grid-column: 1 / -1; grid-row: 4; color: #e2eaf7; font-size: var(--nxt5-font-small); line-height: 1.5; font-variant-numeric: tabular-nums; }
-.ig-date > span:last-child { color: #c2d0e3; font-size: var(--nxt5-font-small); }
-.ig-review { display: inline-flex; align-items: center; gap: 6px; grid-column: 2; grid-row: 1; color: #e2d5b7; font-size: var(--nxt5-font-small); }
-.ig-review svg { width: 14px; height: 14px; flex-shrink: 0; }
-.ig-review-done { color: #a7f3d0; }
+.ig-result.ig-loss > span:first-child { color: #ffe4e6; border-color: rgba(251,113,133,.4); background: rgba(251,113,133,.16); box-shadow: 0 0 18px rgba(251,113,133,.16); }
+.ig-result-label { font-size: 12px; line-height: 1.3; }
+.ig-game-identity { grid-area: identity; display: grid; gap: 6px; min-width: 0; }
+.ig-game-identity > strong { overflow: hidden; color: var(--nxt5-text); font-size: var(--nxt5-font-body); font-weight: 750; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.ig-game-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.ig-chip { display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border: 1px solid rgba(196,181,253,.32); border-radius: 999px; background: rgba(196,181,253,.1); color: #e4dcfd; font-size: 12px; font-weight: 650; line-height: 1; }
+.ig-chip-muted { border-color: var(--nxt5-border); background: transparent; color: #c2d0e3; font-weight: 500; }
+.ig-game-id, .ig-game-author { overflow: hidden; color: var(--nxt5-muted); font-size: 12px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.ig-matchup { grid-area: matchup; display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; min-width: 0; }
+.ig-composition { --ig-side: rgba(196,181,253,.45); display: grid; gap: 6px; min-width: 0; }
+.ig-composition[data-side="blue"] { --ig-side: var(--nxt5-side-blue); }
+.ig-composition[data-side="red"] { --ig-side: var(--nxt5-side-red); }
+.ig-composition-label { display: inline-flex; align-items: center; gap: 6px; color: var(--nxt5-text-secondary); font-size: 12px; font-weight: 650; line-height: 1.3; }
+.ig-composition-label > i { width: 8px; height: 8px; border-radius: 50%; background: var(--ig-side); box-shadow: 0 0 8px var(--ig-side); }
+.ig-side { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.ig-champions { display: flex; gap: 4px; }
+.ig-champion { width: 36px; height: 36px; border: 1.5px solid var(--ig-side); border-radius: 8px; flex-shrink: 0; object-fit: cover; box-shadow: 0 3px 9px rgba(2,6,17,.3); }
+.ig-composition-enemy .ig-champion { opacity: .9; }
+.ig-missing { color: #c2d0e3; font-size: var(--nxt5-font-small); line-height: 36px; }
+.ig-versus { align-self: flex-end; padding-bottom: 9px; color: var(--nxt5-muted); font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+.ig-date { grid-area: date; display: grid; justify-items: end; gap: 4px; color: #c2d0e3; font-size: 12px; line-height: 1.4; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.ig-duration { display: inline-flex; align-items: center; gap: 6px; color: var(--nxt5-text); font-size: var(--nxt5-font-body); font-weight: 700; }
+.ig-when { display: inline-flex; gap: 6px; }
+.ig-when > span:last-child::before { content: "· "; }
+.ig-duration svg { width: 14px; height: 14px; color: #a5f3fc; }
 .ig-open { display: none; color: #a5f3fc; }
-.ig-open svg { width: 16px; height: 16px; }
+.ig-open svg { width: 18px; height: 18px; }
 .ig-empty { display: grid; justify-items: center; gap: 10px; border-top: 1px solid var(--nxt5-border); padding: 40px 16px; text-align: center; }
 .ig-empty > svg { width: 24px; height: 24px; color: #a5f3fc; margin-bottom: 4px; }
 .ig-empty h4 { font-size: 18px; font-weight: 750; }
@@ -114,23 +128,9 @@
   .ih-teams, .ih-edit-fields { grid-template-columns: minmax(0, 1fr); }
   .ih-category-create fieldset { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@container (min-width: 700px) and (max-width: 1059px) {
-  .ig-game { grid-template-columns: 100px minmax(0, 1fr) minmax(0, 1fr) 120px; gap: 16px; }
-  .ig-game-identity { grid-column: 2 / 4; grid-row: 1; }
-  .ig-result { align-self: start; padding-top: 2px; }
-  .ig-review { grid-column: 4; grid-row: 1; align-self: start; }
-  .ig-composition { grid-column: 2; grid-row: 2; }
-  .ig-composition-enemy { grid-column: 3; }
-  .ig-date { grid-column: 4; grid-row: 2; display: grid; align-content: start; }
-}
-@container (min-width: 1060px) {
-  .ig-column-labels, .ig-game { display: grid; grid-template-columns: 96px minmax(160px, 1fr) 156px 156px 126px 96px 16px; gap: 18px; align-items: center; }
-  .ig-column-labels { padding: 10px 12px; border-top: 1px solid var(--nxt5-border-strong); color: var(--nxt5-text-secondary); font-size: var(--nxt5-font-small); font-weight: 600; }
-  .ig-game { padding: 18px 12px; }
-  .ig-game > span { grid-column: auto; grid-row: auto; }
-  .ig-composition-label { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-  .ig-date { display: grid; align-content: start; }
-  .ig-open { display: block; }
+@container (min-width: 1000px) {
+  .ig-game { grid-template-columns: 64px minmax(180px, 1fr) auto 128px 18px; grid-template-areas: "result identity matchup date open"; gap: 20px; padding-block: 12px; }
+  .ig-open { grid-area: open; display: block; }
 }
 @container (max-width: 599px) {
   .ig-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
@@ -139,9 +139,13 @@
   .ig-filters > label, .ig-controls-with-category .ig-filters > label { grid-column: span 1; }
   .ig-controls-with-category .ig-filters > label:last-child { grid-column: 1 / -1; }
   .imported-games .ig-search-field input, .imported-games .ig-sort select, .imported-games .ig-filters select { font-size: var(--nxt5-font-body); }
-  .ig-game { padding: 16px 8px; gap: 12px; }
-  .ig-champion { width: 24px; height: 24px; }
-  .ig-composition { max-width: 148px; }
+  .ig-game { grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "result identity" "matchup matchup" "date date"; gap: 12px; padding: 12px 12px 12px 16px; }
+  .ig-result { width: auto; }
+  .ig-result-label { display: none; }
+  .ig-date { display: flex; justify-items: start; gap: 12px; }
+  .ig-champion { width: 30px; height: 30px; }
+  .ig-matchup { justify-content: space-between; }
+  .ig-versus { padding-bottom: 6px; }
   .ig-selection { padding: 14px; }
   .ig-pagination nav { justify-content: space-between; width: 100%; }
   .ih-role-fields { grid-template-columns: minmax(0, 1fr); }
@@ -149,10 +153,10 @@
   .import-history .ih-editor select, .import-history .ih-editor input { font-size: var(--nxt5-font-body); }
 }
 
-@container (max-width: 319px) {
-  .ig-composition { grid-column: 1 / -1; max-width: none; }
-  .ig-composition-enemy { grid-row: 4; }
-  .ig-date { grid-row: 5; }
+@container (max-width: 359px) {
+  .ig-champion { width: 24px; height: 24px; }
+  .ig-champions { gap: 3px; }
+  .ig-versus { display: none; }
 }
 
 /* Native selects need room for their selected value as well as the arrow. */
