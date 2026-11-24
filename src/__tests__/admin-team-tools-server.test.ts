@@ -74,6 +74,13 @@ describe('platform team and profile administration',()=>{
     const d=await profile();expect(d.profile).toMatchObject({user_id:memberId,team_id:teamId});expect(d.pool).toHaveLength(1);expect(d.goals).toHaveLength(1);expect(d.matches).toHaveLength(1);
     for(const view of ['reports','compositions','planning','goals','drafts'])expect((await invoke('?teamId='+teamId+'&view='+view)).status).toBe(200);
   });
+  it('shows pool picks and free composition champions in the compositions view',async()=>{
+    const [pool]=await rows("select id from champion_pool where team_id=$1",[teamId]);
+    const slots={MID:{playerId:profileId,poolId:pool.id},TOP:{playerId:'',poolId:'',champion:'Gwen'}};
+    await rows("insert into composition_types(team_id,title,slots) values($1,'Free pick',$2::jsonb)",[teamId,JSON.stringify(slots)]);
+    const comps=await (await invoke('?teamId='+teamId+'&view=compositions')).json();
+    expect(comps.rows[0].positions).toEqual([{role:'MID',player:'Player',champion:'Ahri'},{role:'TOP',player:null,champion:'Gwen'}]);
+  });
   it('returns the ordered starting roster independently of profile searches, pages and sections',async()=>{
     for(const role of ['SUP','ADC','TOP','JGL'])await rows("insert into players(team_id,name,role,riot_id,opgg_url) values($1,$2,$3,$4,$5)",[teamId,role,role,role+'#TEST','https://www.op.gg/lol/summoners/euw/'+role+'-TEST']);
     for(const [name,role,status] of [['Substitute','TOP','SUB'],['Inactive','MID','INACTIVE'],['Staff','COACH','MAIN'],['Legacy sub','SUB','MAIN']])await rows("insert into players(team_id,name,role,roster_status,riot_id) values($1,$2,$3,$4,$5)",[teamId,name,role,status,name+'#TEST']);

@@ -7,6 +7,12 @@ Dans **Draft & Pool > Compositions**, ouvrir **Aide au choix : pool et parties d
 3. Filtrer les parties de l’équipe par catégorie et par patch si nécessaire. Sans filtre, les observations couvrent toutes les catégories et tous les patches chargés.
 4. Choisir un champion pour l’ajouter au brouillon. Enregistrer la composition reste nécessaire pour partager le choix.
 
+## Choisir un champion hors pool
+
+La liste déroulante **Champion** de chaque poste conserve d’abord les champions déclarés du joueur, regroupés par maîtrise. Le groupe **Autres champions**, à la fin, propose le reste du catalogue par ordre alphabétique, y compris lorsque le pool est vide. Le choix reste attaché à la composition et n’ajoute rien au pool du joueur.
+
+Un choix libre se sauvegarde, se rouvre et se duplique comme les autres choix. La carte indique **Hors pool** ; la maîtrise de la composition reste **non renseignée** tant qu’un des choix n’a pas de classement déclaré. Si le joueur déclare ensuite ce champion à ce poste, son classement actuel est reconnu. Changer de joueur ou retirer le champion efface ce choix dans le brouillon. L’aide ci-dessous conserve ses candidats issus des pools ; elle exclut aussi les champions choisis librement aux autres postes.
+
 ## Ce que les suggestions signifient
 
 Les candidats viennent uniquement du pool manuel du joueur, dans l’équipe et au poste sélectionnés. Les champions pris à un autre poste et le champion adverse sont exclus. Le choix déjà présent à ce poste reste visible.
