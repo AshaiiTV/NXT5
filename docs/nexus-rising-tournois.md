@@ -1,6 +1,6 @@
 # Nexus Rising : saisons et formats de tournoi
 
-Préparation locale au 1er novembre 2026. Ce document ne prouve ni un déploiement, ni l’application de migrations à la base en ligne. Le [guide de l’importeur](nexus-rising-importer.md) décrit la collecte, les droits d’accès et le pilote réel restant à effectuer.
+Rédigé le 1er novembre 2026 ; le code décrit est sur `main` (`netlify/functions/_lib/nexus-tournament-store.ts`, `src/pages/nexus/`). Ce document ne prouve ni un déploiement, ni l’application de migrations à la base en ligne. Le [guide de l’importeur](nexus-rising-importer.md) décrit la collecte, les droits d’accès et le pilote réel restant à effectuer.
 
 ## Décisions du projet
 

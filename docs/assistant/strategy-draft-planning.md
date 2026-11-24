@@ -6,7 +6,7 @@
 
 ## Champions et compositions
 
-`/draft/pool` contient les champions déclarés et leur maîtrise. `/draft/compositions` permet de préparer cinq postes, un côté et un plan de jeu. L’aide au choix rapproche le pool et les parties de l’équipe ; la maîtrise déclarée passe avant le nombre de parties. Le taux de victoire ne classe pas les suggestions et les chiffres Mobalytics ne sont pas importés dans NXT5.
+`/draft/pool` contient les champions déclarés et leur maîtrise. `/draft/compositions` permet de préparer cinq postes, un côté et un plan de jeu ; un champion hors du pool du joueur peut être choisi dans **Autres champions** et porte le badge **Hors pool**. L’aide au choix rapproche le pool et les parties de l’équipe ; la maîtrise déclarée passe avant le nombre de parties. Le taux de victoire ne classe pas les suggestions et les chiffres Mobalytics ne sont pas importés dans NXT5.
 
 ## Salle de draft
 

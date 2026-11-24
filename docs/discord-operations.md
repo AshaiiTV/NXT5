@@ -1,8 +1,8 @@
 # NXT5 → Discord — installation et exploitation
 
-Version V1 · mise à jour du 24 septembre 2026 : publication manuelle depuis les statistiques d’une game, serveurs partagés et salon de commandes propre à chaque équipe.
+Version V1 · état du code au 24 novembre 2026 : publication manuelle depuis les statistiques d’une game, serveurs partagés et salon de commandes propre à chaque équipe.
 
-Ce document décrit le code préparé dans ce checkout. Il ne constitue pas une preuve de déploiement en production, de migration appliquée à Neon, d’installation d’un bot ou de publication réelle dans Discord. Les essais de transport automatisés utilisent des réponses simulées ; les transactions et déclencheurs sont exécutés dans PostgreSQL local avec PGlite.
+Ce document décrit le code de `main`. Il ne constitue pas une preuve de déploiement en production, de migration appliquée à Neon, d’installation d’un bot ou de publication réelle dans Discord. Les essais de transport automatisés utilisent des réponses simulées ; les transactions et déclencheurs sont exécutés dans PostgreSQL local avec PGlite.
 
 ## 1. Bot commun à toutes les équipes
 
@@ -241,9 +241,9 @@ Après l’installation, **Bot Discord** présente d’abord l’équipe, le ser
 
 ### Publier une game depuis ses statistiques
 
-Le bouton **Publier sur Discord** se trouve en haut des statistiques de la game, à côté d’**Exporter PNG**. Il apparaît pour le propriétaire ou le staff autorisé à publier lorsque l’équipe a un serveur Discord relié et au moins un salon enregistré.
+Le bouton **Exporter sur Discord** se trouve en haut des statistiques de la game, à côté d’**Exporter PNG**. Il apparaît pour le propriétaire ou le staff autorisé à gérer l’équipe ; si aucun serveur n’est relié ou aucun salon enregistré, le dialogue renvoie vers **Bot Discord**.
 
-1. Ouvrir le dialogue avec **Publier sur Discord**. Cette ouverture n’envoie aucun message.
+1. Ouvrir le dialogue avec **Exporter sur Discord**. Cette ouverture n’envoie aucun message.
 2. Choisir la **Destination Discord**, puis cliquer sur **Préparer l’aperçu**.
 3. Vérifier le salon, le message et le PNG. Le contenu sera lisible par les membres du salon ; le lien vers NXT5 conserve les droits d’accès de l’équipe.
 4. Confirmer avec **Publier dans #…**. L’état de la publication apparaît dans l’historique ; une publication existante pour cette game et cette destination est actualisée.

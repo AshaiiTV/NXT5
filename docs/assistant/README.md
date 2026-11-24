@@ -32,4 +32,4 @@ Les appels au modèle sont limités par défaut à 50 par compte et 1 000 pour t
 
 Quand une page change, mettre à jour d'abord `assistant-knowledge.ts`, puis les traductions anglaises et espagnoles de `assistant-knowledge-locales.ts` (mêmes identifiants, même nombre d’étapes et de FAQ), puis le document thématique correspondant. Si le parcours concerne Discord, actualiser aussi `shared/discord-help.js`. Vérifier chaque libellé dans le code de `main` : une branche ou un document de préparation ne prouve pas qu’une fonction est disponible. Ajouter un test de recherche si un nouveau terme ou un nouveau chemin devient important.
 
-Dernière révision : 24 novembre 2026 (salle de draft, bot Discord à cinq commandes, compte et connexions associées, collecte réservée aux customs, soutien facultatif).
+Dernière révision : 24 novembre 2026 (salle de draft, bot Discord à cinq commandes, compte et connexions associées, collecte réservée aux customs, soutien facultatif, Résumé des parties et Notes de l’équipe).

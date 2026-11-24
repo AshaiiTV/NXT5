@@ -1,6 +1,6 @@
 # Carnets de matchups
 
-Le carnet rassemble les parties, le plan de jeu et les essais d'un joueur pour un duel précis. Il se trouve dans **Mon profil > Champions > fiche d'un champion > Matchups**, à côté de l'onglet **Statistiques**. Il n'ajoute pas de rubrique principale au profil.
+Le carnet rassemble les parties, le plan de jeu et les essais d'un joueur pour un duel précis. Il se trouve dans **Mon profil > Champions joués > fiche d'un champion > Matchups**, à côté de l'onglet **Statistiques**. Il n'ajoute pas de rubrique principale au profil.
 
 ## Retrouver un duel
 

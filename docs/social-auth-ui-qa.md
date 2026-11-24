@@ -28,9 +28,9 @@ Tester séparément les fournisseurs réellement configurés en recette selon [l
 ## Historique des contrôles du 23 septembre 2026
 
 - 11 tests dans `src/__tests__/social-account-ui.test.jsx` : services réellement activés, URL de retour sûre, invitation, consentement, e-mail manquant, collision de compte, création sans mot de passe, destination serveur, dissociation, premier mot de passe, révocation de la session après réinitialisation et noms accessibles des marques. Les trois liens légaux annoncent le nouvel onglet.
-- Avec `app-loading.test.jsx` et `pricing-routing.test.jsx` : **51 tests passent**.
+- Avec `app-loading.test.jsx` et `pricing-routing.test.jsx` : **51 tests passent**. (`pricing-routing.test.jsx` a depuis été retiré avec la vente, le 30 octobre 2026.)
 - Navigateur Chromium : inscription, fin d’inscription et paramètres à **320, 360, 390, 768, 1024 et 1440 px**, sans débordement horizontal ni erreur JavaScript. Captures étroites et larges relues après ajout des marques ; G en couleurs et glyphe Apple visibles, textes entiers, champs utilisables.
 - Clavier réel : ouverture de la dissociation avec focus dans le mot de passe, Échap avec retour du focus au déclencheur, erreur serveur annoncée et focalisée. Le retour du focus attend la réactivation du bouton après fermeture.
-- Captures de travail : `/tmp/nxt5-social-signup-{320,1440}.png`, `/tmp/nxt5-social-complete-320.png`, `/tmp/nxt5-social-settings-{320,1440}.png`, `/tmp/nxt5-social-unlink-320.png`. Script local : `/tmp/nxt5-social-ui-visual.mjs`.
+- Captures de travail (temporaires, non conservées) : `/tmp/nxt5-social-signup-{320,1440}.png`, `/tmp/nxt5-social-complete-320.png`, `/tmp/nxt5-social-settings-{320,1440}.png`, `/tmp/nxt5-social-unlink-320.png`. Script local : `/tmp/nxt5-social-ui-visual.mjs`.
 
 La vérification complète du dépôt et l’essai OAuth avec les vrais fournisseurs sont distincts de cette vérification d’interface.

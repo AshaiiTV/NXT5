@@ -1,12 +1,12 @@
 # Import automatique des parties
 
-Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible dans Parties → Importer une partie → Liaison avec l’Importer, et de l’onglet « Collecte automatique » de NXT5 Importer 0.4.0. Préparation locale au 5 novembre 2026 ; le pilote sur une vraie custom (ci-dessous) reste à effectuer avant de considérer la fonctionnalité comme en service.
+Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible dans Parties → Importer une partie → Liaison avec l’Importer, et de l’onglet « Collecte automatique » de NXT5 Importer (introduit en 0.4.0, version actuelle 0.4.9). Le code est sur `main` (#238, puis #277 pour la réunion avec l’import de partie et #294 pour la collecte réservée aux customs) ; aucun compte rendu du pilote sur une vraie custom (ci-dessous) n’est consigné dans le dépôt.
 
 ## Parcours
 
 1. Dans Parties, le staff (propriétaire, capitaine, coach, assistant, analyste, manager, board) ouvre « Importer une partie », déplie « Liaison avec l’Importer », choisit éventuellement le tag à appliquer aux parties reçues, puis clique sur « Lier NXT5 Importer » pour obtenir un code à usage unique valable 15 minutes.
 2. Dans NXT5 Importer, onglet Collecte automatique, le code est collé une fois. L’application reçoit un jeton valable 90 jours, le nom de l’équipe, son tag et les Riot ID de l’effectif actif, puis affiche la liaison dans Parties avec le nom de l’ordinateur.
-3. À la fin de chaque custom observée avec l’Importer ouvert, l’application envoie la partie (données Riot converties depuis le client local, avec la chronologie quand elle existe) et une clé de répétition. Un envoi répété de la même partie ne crée rien de plus.
+3. À la fin de chaque custom observée avec l’Importer ouvert, l’application envoie la partie (données Riot converties depuis le client local, avec la chronologie quand elle existe) et une clé de répétition. Un envoi répété de la même partie ne crée rien de plus. Depuis l’Importer 0.4.9, seules les parties personnalisées sont collectées, et le serveur classe « ignorée » toute autre partie reçue par une liaison.
 4. Le serveur reconnaît l’équipe à partir de quatre Riot ID de l’effectif du même côté. Pour chaque joueur des deux équipes, il lit en priorité l’objet de quête de rôle de la Faille (`roleBoundItem`). Ainsi, un joueur habituellement support qui prend la quête bot est associé à son propre profil au poste ADC. Quand la quête manque ou que l’objet est inconnu, les positions Riot, Châtiment, le poste du profil allié et le dernier poste libre servent de repli. Deux joueurs du même côté avec la même quête nécessitent une vérification. Une fois les cinq profils et les dix postes identifiés, le serveur enregistre la partie avec le tag choisi ou le tag par défaut de l’équipe. Les notifications et publications habituelles suivent.
 5. La liste « Parties à finaliser » contient uniquement les parties de l’équipe dont l’import demande une intervention (joueur hors effectif, postes ambigus, aucun tag). Le motif indique ce qu’il faut vérifier. « Finaliser » ouvre le formulaire prérempli. La partie quitte la liste dès que le staff confirme l’import ou choisit « Ignorer ».
 6. Le staff révoque une liaison d’un clic ; les envois suivants sont refusés. Cinq liaisons actives au plus par équipe.
@@ -32,7 +32,7 @@ Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible
 
 ## Pilote à réaliser
 
-1. Sur le site, générer un code ; dans l’Importer 0.4.0, le coller, vérifier que l’équipe et l’effectif s’affichent, puis constater la liaison « Connectée » dans Parties.
+1. Sur le site, générer un code ; dans l’Importer 0.4.9 ou plus récent, le coller, vérifier que l’équipe et l’effectif s’affichent, puis constater la liaison « Connectée » dans Parties.
 2. Activer la collecte, jouer une custom 5v5 avec au moins quatre joueurs de l’effectif, laisser l’Importer ouvert : la partie doit apparaître dans Parties sous deux minutes après la fin, importée avec le bon côté et les bons profils.
 3. Rejouer une custom en coupant le réseau pendant l’envoi : la partie reste « Nouvel essai prévu », puis part seule au retour du réseau, sans doublon.
 4. Révoquer la liaison depuis NXT5 pendant la collecte : l’Importer doit s’arrêter avec le motif, et un nouveau code doit la rétablir.
@@ -42,4 +42,4 @@ Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible
 
 - [team-import-server.test.ts](../src/__tests__/team-import-server.test.ts) : code, liaison, plafond, révocation, import reconnu avec profils et tag, côté rouge avec remplaçant, parties ignorées ou en attente, finalisation par l’import manuel, inférence des postes.
 - [importer-auto-link.test.jsx](../src/__tests__/importer-auto-link.test.jsx) : panneau de Parties, génération du code, finalisation, révocation, lecture seule.
-- Le pilote réel (custom 5v5, coupure réseau pendant l’envoi, révocation en cours de session) se fait avec NXT5 Importer 0.4.0 ; ces tests locaux ne le remplacent pas.
+- Le pilote réel (custom 5v5, coupure réseau pendant l’envoi, révocation en cours de session) se fait avec NXT5 Importer 0.4.9 ou plus récent ; ces tests locaux ne le remplacent pas.
