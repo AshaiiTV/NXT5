@@ -38,11 +38,64 @@ import { sortTrendMatches, trendMatchTimestamp } from "./utils/trends.js";
 
 const ROLES = ["TOP", "JGL", "MID", "ADC", "SUP"];
 const METRICS = {
-  deaths: { label: "Morts / game", unit: "", defaultOperator: "lte", defaultTarget: 3.5 },
-  kp: { label: "Kill participation", unit: "%", defaultOperator: "gte", defaultTarget: 60 },
-  kda: { label: "KDA", unit: "", defaultOperator: "gte", defaultTarget: 3 },
-  vision: { label: "Vision / game", unit: "", defaultOperator: "gte", defaultTarget: 30 },
-  cs10: { label: "CS à 10 minutes", unit: "", defaultOperator: "gte", defaultTarget: 75 },
+  deaths: { label: "Morts / game", unit: "", decimals: 0, defaultOperator: "lte", defaultTarget: 3.5, group: "Combat" },
+  kp: { label: "Kill participation", unit: "%", decimals: 0, defaultOperator: "gte", defaultTarget: 60, group: "Combat" },
+  kda: { label: "KDA", unit: "", decimals: 1, defaultOperator: "gte", defaultTarget: 3, group: "Combat" },
+  damage_share: { label: "Part des dégâts de l’équipe", unit: "%", decimals: 0, defaultOperator: "gte", defaultTarget: 25, group: "Combat" },
+  dpm: { label: "Dégâts aux champions par minute", unit: "", decimals: 0, defaultOperator: "gte", defaultTarget: 600, group: "Combat" },
+  cs10: { label: "CS à 10 minutes", unit: "", decimals: 0, defaultOperator: "gte", defaultTarget: 75, group: "Ressources" },
+  cs15: { label: "CS à 15 minutes", unit: "", decimals: 0, defaultOperator: "gte", defaultTarget: 115, group: "Ressources" },
+  cs_min: { label: "CS par minute", unit: "", decimals: 1, defaultOperator: "gte", defaultTarget: 7.5, group: "Ressources" },
+  gold_min: { label: "Or par minute", unit: "", decimals: 0, defaultOperator: "gte", defaultTarget: 400, group: "Ressources" },
+  vision: { label: "Vision / game", unit: "", decimals: 0, defaultOperator: "gte", defaultTarget: 30, group: "Vision" },
+  vision_min: { label: "Score de vision par minute", unit: "", decimals: 1, defaultOperator: "gte", defaultTarget: 1.5, group: "Vision" },
+  control_wards: { label: "Balises de contrôle posées", unit: "", decimals: 0, defaultOperator: "gte", defaultTarget: 3, group: "Vision" },
+};
+const GOAL_METRIC_LABELS = {
+  deaths: "Morts par partie",
+  kp: "Participation aux éliminations (KP)",
+  kda: "Ratio KDA",
+  damage_share: "Part des dégâts de l’équipe",
+  dpm: "Dégâts aux champions par minute",
+  cs10: "Sbires et monstres à 10 minutes (CS)",
+  cs15: "Sbires et monstres à 15 minutes (CS)",
+  cs_min: "Sbires et monstres par minute (CS/min)",
+  gold_min: "Or gagné par minute",
+  vision: "Score de vision par partie",
+  vision_min: "Score de vision par minute",
+  control_wards: "Balises de contrôle posées",
+};
+const GOAL_SUGGESTIONS = {
+  TOP: [
+    { metric: "cs10", operator: "gte", targetValue: 70, title: "Tenir la vague jusqu’à 10 minutes" },
+    { metric: "deaths", operator: "lte", targetValue: 4, title: "Survivre en side lane" },
+    { metric: "damage_share", operator: "gte", targetValue: 22, title: "Peser dans les combats" },
+  ],
+  JGL: [
+    { metric: "kp", operator: "gte", targetValue: 65, title: "Être présent sur la carte" },
+    { metric: "control_wards", operator: "gte", targetValue: 3, title: "Contrôler la vision des objectifs" },
+    { metric: "deaths", operator: "lte", targetValue: 4, title: "Limiter les morts en invade" },
+  ],
+  MID: [
+    { metric: "cs_min", operator: "gte", targetValue: 8, title: "Farmer entre les rotations" },
+    { metric: "kp", operator: "gte", targetValue: 60, title: "Suivre les rotations" },
+    { metric: "dpm", operator: "gte", targetValue: 600, title: "Mettre la pression en dégâts" },
+  ],
+  ADC: [
+    { metric: "cs_min", operator: "gte", targetValue: 8.5, title: "Optimiser le farm" },
+    { metric: "deaths", operator: "lte", targetValue: 3, title: "Rester en vie en teamfight" },
+    { metric: "damage_share", operator: "gte", targetValue: 27, title: "Porter les dégâts de l’équipe" },
+  ],
+  SUP: [
+    { metric: "vision_min", operator: "gte", targetValue: 2.5, title: "Éclairer la carte" },
+    { metric: "control_wards", operator: "gte", targetValue: 4, title: "Investir dans les balises de contrôle" },
+    { metric: "kp", operator: "gte", targetValue: 65, title: "Accompagner chaque action" },
+  ],
+  DEFAULT: [
+    { metric: "deaths", operator: "lte", targetValue: 3.5, title: "Limiter les morts" },
+    { metric: "kp", operator: "gte", targetValue: 60, title: "Participer aux combats" },
+    { metric: "cs_min", operator: "gte", targetValue: 7.5, title: "Régulariser le farm" },
+  ],
 };
 
 function cx(...values) {
@@ -362,7 +415,22 @@ export function ReviewQueuePanel({ matches = [], reports = [], selectedTeamId, r
 }
 
 
+function goalDurationMinutes(row) {
+  const match = row?.match;
+  const seconds = Number(match?.raw?.info?.gameDuration || match?.game_duration || row?.raw?.timePlayed || 0);
+  if (seconds > 0) return seconds / 60;
+  const parts = String(match?.duration || "").match(/^(\d+):(\d{2})$/);
+  return parts ? Number(parts[1]) + Number(parts[2]) / 60 : null;
+}
+
+function perMinute(value, row) {
+  const minutes = goalDurationMinutes(row);
+  return Number.isFinite(value) && minutes > 0 ? value / minutes : null;
+}
+
 export function goalMetricValue(row, metric) {
+  const raw = row?.raw || {};
+  const challenges = raw.challenges || {};
   if (metric === "deaths" || metric === "vision") return availableNumber(row[metric]);
   if (metric === "kp") return parsePercent(row.kill_participation ?? row.kp);
   if (metric === "kda") {
@@ -370,6 +438,22 @@ export function goalMetricValue(row, metric) {
     return values.every(Number.isFinite) ? (values[0] + values[1]) / Math.max(1, values[2]) : null;
   }
   if (metric === "cs10") return csAtMinute(row, 10);
+  if (metric === "cs15") return csAtMinute(row, 15);
+  if (metric === "cs_min") {
+    const direct = availableNumber(row.cs_per_min);
+    if (Number.isFinite(direct)) return direct;
+    const fromRaw = [raw.totalMinionsKilled, raw.neutralMinionsKilled].map(availableNumber);
+    const cs = availableNumber(row.cs) ?? (fromRaw.every(Number.isFinite) ? fromRaw[0] + fromRaw[1] : null);
+    return perMinute(cs, row);
+  }
+  if (metric === "gold_min") return availableNumber(challenges.goldPerMinute) ?? perMinute(availableNumber(row.gold ?? raw.goldEarned), row);
+  if (metric === "dpm") return availableNumber(challenges.damagePerMinute) ?? perMinute(availableNumber(row.damage ?? raw.totalDamageDealtToChampions), row);
+  if (metric === "vision_min") return availableNumber(challenges.visionScorePerMinute) ?? perMinute(availableNumber(row.vision ?? raw.visionScore), row);
+  if (metric === "damage_share") {
+    const share = availableNumber(challenges.teamDamagePercentage);
+    return Number.isFinite(share) ? share * 100 : null;
+  }
+  if (metric === "control_wards") return availableNumber(challenges.controlWardsPlaced) ?? availableNumber(raw.visionWardsBoughtInGame);
   return null;
 }
 
@@ -392,16 +476,39 @@ export function evaluateGoal(goal, rows) {
     inconclusive: pending === 0 && !complete && !impossible };
 }
 
+function goalTargetText(goal, metric) {
+  return `${goal.operator === "lte" ? "≤" : "≥"}\u00a0${Number(goal.target_value ?? goal.targetValue)}${metric.unit}`;
+}
+
+function goalStatus(result) {
+  if (result.complete) return { tone: "green", label: "Validé", key: "complete" };
+  if (result.impossible) return { tone: "red", label: "À ajuster", key: "impossible" };
+  if (result.inconclusive) return { tone: "slate", label: "Données insuffisantes pour conclure", key: "inconclusive" };
+  return { tone: "cyan", label: "En cours", key: "active" };
+}
+
 export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId, canManage, refreshAll, pushToast }) {
   useLanguage();
-  const metricLabels = { deaths: "Morts par partie", kp: "Participation aux éliminations (KP)", kda: "Ratio KDA", vision: "Score de vision par partie", cs10: "Sbires et monstres à 10 minutes (CS)" };
   const activeGoals = goals.filter((goal) => goal.player_id === player?.id && goal.status !== "archived");
+  const role = normalizeRole(player?.role);
+  const suggestions = GOAL_SUGGESTIONS[role] || GOAL_SUGGESTIONS.DEFAULT;
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ title: "", metric: "deaths", operator: "lte", targetValue: 3.5, sampleSize: 3, requiredSuccesses: 2 });
+  const evaluated = activeGoals.map((goal) => ({ goal, result: evaluateGoal(goal, rows) }));
+  const completed = evaluated.filter(({ result }) => result.complete).length;
+  const inProgress = evaluated.filter(({ result }) => !result.complete && !result.impossible && !result.inconclusive).length;
   function setMetric(metric) {
     const config = METRICS[metric];
     setForm((current) => ({ ...current, metric, operator: config.defaultOperator, targetValue: config.defaultTarget, title: "" }));
+  }
+  function setSampleSize(value) {
+    const sampleSize = Number(value);
+    setForm((current) => ({ ...current, sampleSize, requiredSuccesses: Math.min(sampleSize, Math.max(1, Math.ceil(sampleSize * 2 / 3))) }));
+  }
+  function applySuggestion(suggestion) {
+    setForm((current) => ({ ...current, ...suggestion, title: t(suggestion.title) }));
+    setCreating(true);
   }
   async function create(event) {
     event.preventDefault();
@@ -420,31 +527,61 @@ export function PlayerGoalsPanel({ goals = [], rows = [], player, selectedTeamId
     catch (error) { pushToast?.({ type: "red", title: "Archivage impossible", text: error.message }); }
     finally { setSaving(false); }
   }
+  const groups = Object.entries(METRICS).reduce((map, [id, item]) => ({ ...map, [item.group]: [...(map[item.group] || []), id] }), {});
+  const formMetric = METRICS[form.metric];
+  const suggestionList = (compact) => <div className={cx("profile-goal-suggestions", compact && "is-compact")}>
+    {suggestions.map((suggestion) => {
+      const metric = METRICS[suggestion.metric];
+      return <button key={`${suggestion.metric}-${suggestion.title}`} type="button" className="profile-goal-suggestion" onClick={() => applySuggestion(suggestion)}>
+        <span className="profile-goal-suggestion-icon" aria-hidden="true"><Target /></span>
+        <span className="profile-goal-suggestion-copy"><strong>{t(suggestion.title)}</strong><small>{t(GOAL_METRIC_LABELS[suggestion.metric])} {goalTargetText({ operator: suggestion.operator, target_value: suggestion.targetValue }, metric)}</small></span>
+        <Plus className="profile-goal-suggestion-add" aria-hidden="true" />
+      </button>;
+    })}
+  </div>;
   return <Panel className="profile-goal-panel">
     <header className="profile-goal-heading">
       <div><p className="profile-goal-eyebrow">{t("Suivi joueur")}</p><h3>{t("Objectifs mesurés sur les prochaines parties")}</h3><p>{t("Le suivi de chaque objectif compte uniquement les parties importées après sa date de début.")}</p></div>
       {canManage && <ActionButton variant={creating ? "ghost" : "primary"} icon={creating ? X : Plus} onClick={() => setCreating((value) => !value)}>{creating ? t("Fermer") : t("Nouvel objectif")}</ActionButton>}
+      {activeGoals.length > 0 && <dl className="profile-goal-summary">
+        <div><dt>{t("Actifs")}</dt><dd>{activeGoals.length}</dd></div>
+        <div className="is-active"><dt>{t("En cours")}</dt><dd>{inProgress}</dd></div>
+        <div className="is-success"><dt>{t("Réussis")}</dt><dd>{completed}</dd></div>
+      </dl>}
     </header>
     {creating && <form onSubmit={create} className="profile-goal-form">
-      <SelectInput label={t("Mesure à suivre")} value={form.metric} onChange={setMetric}>{Object.entries(METRICS).map(([id, item]) => <option key={id} value={id}>{t(metricLabels[id]) || t(item.label)}</option>)}</SelectInput>
+      <div className="profile-goal-form-presets"><p>{role && GOAL_SUGGESTIONS[role] ? t("Suggestions pour le poste {0}", [role]) : t("Suggestions")}</p>{suggestionList(true)}</div>
+      <SelectInput label={t("Mesure à suivre")} value={form.metric} onChange={setMetric}>{Object.entries(groups).map(([group, ids]) => <optgroup key={group} label={t(group)}>{ids.map((id) => <option key={id} value={id}>{t(GOAL_METRIC_LABELS[id])}</option>)}</optgroup>)}</SelectInput>
       <TextInput label={t("Nom")} value={form.title} onChange={(title) => setForm({ ...form, title })} placeholder={t("Ex. Mieux préparer les objectifs")} />
-      <TextInput label={form.operator === "lte" ? t("Maximum par partie") : t("Minimum par partie")} type="number" step="0.1" value={form.targetValue} onChange={(value) => setForm({ ...form, targetValue: Number(value) })} />
-      <SelectInput label={t("Parties où atteindre la cible")} value={form.requiredSuccesses} onChange={(value) => setForm({ ...form, requiredSuccesses: Number(value) })}><option value="1">1 / 3</option><option value="2">2 / 3</option><option value="3">3 / 3</option></SelectInput>
-      <div className="profile-goal-form-action"><p>{t("La cible sera évaluée sur les ")}{form.sampleSize}{t(" prochaines parties.")}</p><ActionButton type="submit" icon={saving ? RefreshCw : Target} disabled={saving}>{saving ? t("Lancement…") : t("Lancer")}</ActionButton></div>
+      <TextInput label={form.operator === "lte" ? t("Maximum par partie") : t("Minimum par partie")} type="number" step={formMetric.decimals ? "0.1" : "1"} value={form.targetValue} onChange={(value) => setForm({ ...form, targetValue: Number(value) })} />
+      <div className="profile-goal-form-pair">
+        <SelectInput label={t("Parties suivies")} value={form.sampleSize} onChange={setSampleSize}>{[3, 5].map((size) => <option key={size} value={size}>{size}</option>)}</SelectInput>
+        <SelectInput label={t("Parties où atteindre la cible")} value={form.requiredSuccesses} onChange={(value) => setForm({ ...form, requiredSuccesses: Number(value) })}>{Array.from({ length: form.sampleSize }, (_, index) => <option key={index} value={index + 1}>{index + 1} / {form.sampleSize}</option>)}</SelectInput>
+      </div>
+      <div className="profile-goal-form-action"><p><Target aria-hidden="true" /><span>{t(GOAL_METRIC_LABELS[form.metric])} <strong>{goalTargetText({ operator: form.operator, target_value: form.targetValue }, formMetric)}</strong> {t("sur {0} des {1} prochaines parties.", [form.requiredSuccesses, form.sampleSize])}</span></p><ActionButton type="submit" icon={saving ? RefreshCw : Target} disabled={saving}>{saving ? t("Lancement…") : t("Lancer")}</ActionButton></div>
     </form>}
-    {activeGoals.length ? <div className="profile-goal-list">{activeGoals.map((goal) => {
-      const result = evaluateGoal(goal, rows);
+    {activeGoals.length ? <div className="profile-goal-list">{evaluated.map(({ goal, result }) => {
       const metric = METRICS[goal.metric] || METRICS.deaths;
-      return <article key={goal.id} className="profile-goal-row">
-        <div className="profile-goal-identity"><div className="profile-goal-status"><Label tone={result.complete ? "green" : result.impossible ? "red" : result.inconclusive ? "slate" : "cyan"}>{result.complete ? t("Validé") : result.impossible ? t("À ajuster") : result.inconclusive ? t("Données insuffisantes pour conclure") : t("En cours")}</Label><span>{result.successes}/{result.required}{t(" réussites")}</span></div><h4>{goal.title}</h4><p>{t(metricLabels[goal.metric]) || t(metric.label)} {goal.operator === "lte" ? "≤" : "≥"} {Number(goal.target_value)}{metric.unit} · {goal.required_successes}/{goal.sample_size}{t(" parties")}</p></div>
+      const status = goalStatus(result);
+      const required = Math.max(1, result.required);
+      return <article key={goal.id} className={cx("profile-goal-row", `is-${status.key}`)}>
+        <div className="profile-goal-identity">
+          <div className="profile-goal-status"><Label tone={status.tone}>{t(status.label)}</Label><span>{result.successes}/{result.required}{t(" réussites")}</span></div>
+          <h4>{goal.title}</h4>
+          <p><span className="profile-goal-metric">{t(GOAL_METRIC_LABELS[goal.metric]) || t(metric.label)}</span> <strong className="profile-goal-target">{goalTargetText(goal, metric)}</strong> · {goal.required_successes}/{goal.sample_size}{t(" parties")}</p>
+          <div className="profile-goal-meter" role="progressbar" aria-label={t("Progression de l’objectif")} aria-valuemin={0} aria-valuemax={required} aria-valuenow={Math.min(result.successes, required)}><span style={{ width: `${Math.min(100, (result.successes / required) * 100)}%` }} /></div>
+        </div>
         <div className="profile-goal-progress"><div className="profile-goal-samples">{Array.from({ length: Number(goal.sample_size || 3) }, (_, index) => {
           const value = result.values[index];
           const success = Number.isFinite(value) && (goal.operator === "lte" ? value <= Number(goal.target_value) : value >= Number(goal.target_value));
-          return <div key={index} className={cx("profile-goal-sample", !Number.isFinite(value) ? "is-pending" : success ? "is-success" : "is-missed")}><span>{t("Partie ")}{index + 1}</span><strong>{!Number.isFinite(value) ? "—" : `${Number(value).toFixed(goal.metric === "deaths" || goal.metric === "vision" || goal.metric === "cs10" ? 0 : 1)}${metric.unit}`}</strong><small>{value === undefined ? t("À jouer") : value === null ? t("Indisponible") : success ? t("Cible atteinte") : t("Hors cible")}</small></div>;
+          return <div key={index} className={cx("profile-goal-sample", !Number.isFinite(value) ? "is-pending" : success ? "is-success" : "is-missed")}><span>{t("Partie ")}{index + 1}</span><strong>{!Number.isFinite(value) ? "—" : `${Number(value).toFixed(metric.decimals ?? 1)}${metric.unit}`}</strong><small>{value === undefined ? t("À jouer") : value === null ? t("Indisponible") : success ? t("Cible atteinte") : t("Hors cible")}</small></div>;
         })}</div><p>{t("Parties depuis le ")}{formatDate(goal.starts_at || goal.created_at)}</p></div>
         {canManage && <IconButton icon={Trash2} label={t("Archiver l'objectif")} danger disabled={saving} onClick={() => archive(goal)} />}
       </article>;
-    })}</div> : <div className="profile-goal-empty"><CircleDot aria-hidden="true" /><div><h4>{t("Aucun objectif actif pour ce profil.")}</h4><p>{canManage ? t("Crée une cible mesurable pour suivre les prochaines parties du joueur.") : t("Les objectifs définis par les responsables de l’équipe apparaîtront ici.")}</p></div></div>}
+    })}</div> : <div className="profile-goal-empty">
+      <div className="profile-goal-empty-copy"><CircleDot aria-hidden="true" /><div><h4>{t("Aucun objectif actif pour ce profil.")}</h4><p>{canManage ? t("Crée une cible mesurable pour suivre les prochaines parties du joueur.") : t("Les objectifs définis par les responsables de l’équipe apparaîtront ici.")}</p></div></div>
+      {canManage && !creating && <div className="profile-goal-empty-presets"><p>{role && GOAL_SUGGESTIONS[role] ? t("Pour démarrer, objectifs adaptés au poste {0}", [role]) : t("Pour démarrer")}</p>{suggestionList(false)}</div>}
+    </div>}
   </Panel>;
 }
 
