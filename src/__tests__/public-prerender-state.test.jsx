@@ -180,4 +180,21 @@ describe("public prerender initial state", () => {
     expect(renderer.root.findAll(node => node.props["data-loading"])).toHaveLength(0);
     expect(renderer.root.findByType("h1").children).toEqual(["Connexion"]);
   });
+
+  it.each(["/games", "/games?import=1", "/games?import=1&liaison=1"])("restores the desktop destination %s after signing in", async (destination) => {
+    setLocation(destination);
+    mount(<App initialApp={AppRouter} />);
+    await session(null);
+    expect(window.location.pathname).toBe("/connexion");
+    expect(window.location.searchParams.get("next")).toBe(destination);
+    act(() => {
+      renderer.root.findByProps({ label: "E-mail ou ancien pseudo" }).props.onChange("coach");
+      renderer.root.findByProps({ label: "Mot de passe" }).props.onChange("test-password");
+    });
+    apiFetch.mockResolvedValueOnce({ user: { id: "coach", email_verified: true } });
+    await act(async () => renderer.root.findByType("form").props.onSubmit({ preventDefault() {} }));
+    await act(async () => { await vi.dynamicImportSettled(); });
+    expect(window.location.pathname + window.location.search).toBe(destination);
+    expect(renderer.root.findByProps({ "data-private-path": "/games" })).toBeTruthy();
+  });
 });

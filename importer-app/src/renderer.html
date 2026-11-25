@@ -19,6 +19,12 @@
       aria-hidden="true"
     >
       <defs>
+        <symbol id="i-computer" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="13" rx="2" /><path d="M12 17v3m-4 0h8" />
+        </symbol>
+        <symbol id="i-link" viewBox="0 0 24 24">
+          <path d="m10 13.5 4-4M8.7 15.3l-1.1 1.1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0m.8 9.2a3.5 3.5 0 0 0 5 0l4-4a3.5 3.5 0 0 0-5-5l-1.1 1.1" />
+        </symbol>
         <symbol id="i-export" viewBox="0 0 24 24">
           <path d="M12 3v12m-4-4 4 4 4-4M5 15v5h14v-5" />
         </symbol>
@@ -96,7 +102,7 @@
             </button>
           </div>
           <button class="site-link" data-open-site>
-            <svg><use href="#i-external" /></svg><span>Ouvrir NXT5</span>
+            <svg><use href="#i-external" /></svg><span>Parties sur NXT5</span>
           </button>
         </div>
       </aside>
@@ -109,8 +115,12 @@
         </section>
 
         <section id="exportView" class="view" aria-labelledby="exportHeading">
-          <header class="page-heading">
-            <h1 id="exportHeading" tabindex="-1">Exporter une partie</h1>
+          <header class="export-intro">
+            <div class="export-intro-copy">
+              <h1 id="exportHeading" tabindex="-1">Exporter une partie</h1>
+              <p>Enregistre le fichier JSON sur cet ordinateur, puis importe-le dans NXT5.</p>
+            </div>
+            <img class="export-art" src="../assets/prisme/monolithe-768.webp" alt="" width="768" height="432" />
           </header>
           <form id="form" class="card export-card" novalidate>
             <div class="match-fields">
@@ -147,6 +157,11 @@
               <button id="submit" class="button primary" type="submit"><svg><use href="#i-export" /></svg>Exporter le fichier JSON</button>
             </div>
           </form>
+          <button id="exportTeam" class="integration-row" type="button" hidden>
+            <svg class="integration-icon" aria-hidden="true"><use href="#i-radio" /></svg>
+            <span class="integration-copy"><strong>Collecte de l’équipe</strong><span id="exportTeamState"></span></span>
+            <svg class="integration-arrow" aria-hidden="true"><use href="#i-arrow" /></svg>
+          </button>
           <section class="card progress-card" id="progressPanel" aria-labelledby="progressHeading" hidden>
             <h2 id="progressHeading">Export en cours</h2>
             <p id="progressMessage" role="status">Vérification de l’identifiant…</p>
@@ -157,15 +172,17 @@
               <svg aria-hidden="true"><use href="#i-check" /></svg>
               <h2 id="resultHeading" tabindex="-1">Fichier enregistré</h2>
             </div>
-            <strong class="match-id" id="resultGameId"></strong>
-            <p class="field-hint" id="resultFacts"></p>
+            <div class="result-file">
+              <svg class="file-glyph" aria-hidden="true"><use href="#i-file" /></svg>
+              <div><strong class="match-id" id="resultFileName"></strong><p class="field-hint"><span id="resultGameId"></span><span id="resultFacts"></span></p></div>
+            </div>
             <p id="resultWarning" class="warning-text" hidden></p>
-            <p class="file-path" id="resultPath"></p>
-            <p class="import-route">Dans NXT5, ouvre Parties → Importer une partie → Choisir mon fichier.</p>
+            <p class="import-route">Choisis ce fichier JSON dans NXT5 pour l’ajouter à ton équipe.</p>
             <div class="result-actions">
-              <button class="button primary" data-open-site>Ouvrir NXT5 <svg><use href="#i-external" /></svg></button>
+              <button class="button primary" data-open-import>Importer dans NXT5 <svg><use href="#i-external" /></svg></button>
               <button class="button compact" id="revealFile"><svg><use href="#i-folder" /></svg>Voir le fichier</button>
             </div>
+            <details class="file-location disclosure"><summary>Emplacement du fichier</summary><p class="file-path" id="resultPath"></p></details>
           </section>
           <button class="text-button next-export" id="newExport" hidden>Exporter une autre partie <svg><use href="#i-arrow" /></svg></button>
           <div id="status" class="notice" role="status" hidden></div>
@@ -174,10 +191,15 @@
         <section id="collectView" class="view" aria-labelledby="collectHeading" hidden>
           <header class="page-heading">
             <h1 id="collectHeading" tabindex="-1">Collecte automatique</h1>
+            <p>Envoie les parties personnalisées détectées par le client LoL à ton équipe sur NXT5.</p>
           </header>
           <div class="panel-stack">
             <section class="card settings-card" id="collectRunCard" hidden>
-              <h2 id="collectTeam"></h2>
+              <ol class="collect-route" aria-label="Trajet de la collecte">
+                <li><svg aria-hidden="true"><use href="#i-radio" /></svg><span>Client LoL</span><strong id="routeClientStatus">Recherche…</strong></li>
+                <li><svg aria-hidden="true"><use href="#i-computer" /></svg><span>Cet ordinateur</span><strong id="collectDevice"></strong></li>
+                <li><svg aria-hidden="true"><use href="#i-link" /></svg><span>Équipe NXT5</span><h2 id="collectTeam"></h2></li>
+              </ol>
               <p id="collectPhase" role="status"></p>
               <p class="field-hint" id="collectRunHint">Active la collecte avant la fin de la partie. Garde l’Importer et le client LoL ouverts pour envoyer tes customs à cette équipe.</p>
               <div class="settings-actions">
@@ -197,12 +219,17 @@
             <div id="collectRunStatus" class="notice" role="status" hidden></div>
             <section class="card settings-card" id="collectLinkCard">
               <form id="collectLinkForm">
-                <h2>Lier cet ordinateur à ton équipe</h2>
-                <p class="section-hint">Dans NXT5, ouvre Parties → Import automatique pour générer un code valable 15 minutes.</p>
-                <label for="collectCode">Code de liaison</label>
-                <input id="collectCode" type="text" autocomplete="off" spellcheck="false" placeholder="ABCD-1234-EF56-7890-AB12-CD34" maxlength="40" required />
-                <label for="collectLabel">Nom de l’ordinateur visible par le staff</label>
-                <input id="collectLabel" type="text" autocomplete="off" maxlength="80" />
+                <div class="section-title"><svg class="integration-icon" aria-hidden="true"><use href="#i-link" /></svg><h2>Lier cet ordinateur à ton équipe</h2></div>
+                <div class="pairing-site">
+                  <p>Génère un code dans ton espace équipe. Il est valable 15 minutes.</p>
+                  <button type="button" class="text-button" data-open-link>Obtenir un code sur NXT5 <svg aria-hidden="true"><use href="#i-external" /></svg></button>
+                </div>
+                <div class="pairing-fields">
+                  <div><label for="collectCode">Code de liaison</label>
+                    <input id="collectCode" type="text" autocomplete="off" spellcheck="false" placeholder="ABCD-1234-EF56-7890-AB12-CD34" maxlength="40" required /></div>
+                  <div><label for="collectLabel">Nom de l’ordinateur visible par le staff</label>
+                    <input id="collectLabel" type="text" autocomplete="off" maxlength="80" /></div>
+                </div>
                 <div class="settings-actions">
                   <button id="collectConnect" class="button primary" type="submit">Lier cet ordinateur</button>
                 </div>
@@ -210,7 +237,6 @@
               <details id="collectLinked" class="disclosure" hidden>
                 <summary>Liaison de l’ordinateur</summary>
                 <dl class="collect-facts">
-                  <div><dt>Ordinateur</dt><dd id="collectDevice"></dd></div>
                   <div><dt>Effectif reconnu</dt><dd id="collectRoster"></dd></div>
                   <div><dt>Valable jusqu’au</dt><dd id="collectExpires"></dd></div>
                 </dl>
@@ -232,10 +258,11 @@
         <section id="historyView" class="view" aria-labelledby="historyHeading" hidden>
           <header class="page-heading">
             <h1 id="historyHeading" tabindex="-1">Historique des exports</h1>
+            <p>Retrouve les 30 derniers exports enregistrés sur cet ordinateur.</p>
           </header>
           <div class="card history-card">
             <div class="history-toolbar" id="historyToolbar" hidden>
-              <span>Jusqu’à 30 exports sur cet appareil</span>
+              <strong id="historyTotal"></strong>
               <div class="search-field">
                 <svg aria-hidden="true"><use href="#i-search" /></svg>
                 <input type="search" id="historySearch" placeholder="Identifiant de partie" aria-label="Rechercher dans les exports" />
@@ -243,7 +270,8 @@
             </div>
             <div id="historyList"></div>
             <div class="empty-state" id="historyEmpty">
-              <h2>Aucun export sur cet appareil</h2>
+              <svg class="empty-icon" aria-hidden="true"><use href="#i-folder" /></svg>
+              <div><h2>Aucun export sur cet appareil</h2></div>
               <button class="text-button" id="firstExport">Exporter une partie <svg><use href="#i-arrow" /></svg></button>
             </div>
           </div>
@@ -253,20 +281,20 @@
           <header class="page-heading">
             <h1 id="settingsHeading" tabindex="-1">Paramètres</h1>
           </header>
-          <div class="panel-stack">
-            <section class="card settings-card">
-              <h2>Client League of Legends</h2>
-              <label for="leaguePath">Dossier d’installation</label>
-              <output id="leaguePath">Détection automatique</output>
+          <div class="settings-list">
+            <section class="settings-row">
+              <div class="section-title"><svg class="integration-icon" aria-hidden="true"><use href="#i-computer" /></svg><h2>Client League of Legends</h2></div>
+              <div class="settings-value"><label for="leaguePath">Dossier d’installation</label>
+                <output id="leaguePath">Détection automatique</output></div>
               <div class="settings-actions">
                 <button id="chooseLeaguePath" class="button compact"><svg><use href="#i-folder" /></svg>Choisir le dossier</button>
                 <button id="resetLeaguePath" class="text-button" hidden>Rétablir la détection automatique</button>
               </div>
             </section>
-            <section class="card settings-card">
-              <h2>Mises à jour</h2>
-              <p class="section-hint"><span id="currentVersion"></span> · <span id="systemInfo"></span></p>
-              <p id="latestVersion" role="status">Recherche d’une mise à jour…</p>
+            <section class="settings-row">
+              <div class="section-title"><svg class="integration-icon" aria-hidden="true"><use href="#i-refresh" /></svg><h2>Mises à jour</h2></div>
+              <div class="settings-value"><p><span id="currentVersion"></span> · <span id="systemInfo"></span></p>
+                <p id="latestVersion" role="status">Recherche d’une mise à jour…</p></div>
               <div class="settings-actions">
                 <button id="manualUpdateButton" class="button compact">Vérifier les mises à jour</button>
               </div>

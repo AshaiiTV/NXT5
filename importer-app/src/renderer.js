@@ -94,6 +94,10 @@ function renderCollector(snapshot) {
   $("#collectRunCard").hidden = !linked;
   $("#collectGamesCard").hidden = !snapshot.games.length;
   const invalid = snapshot.link?.invalidReason || "";
+  $("#exportTeam").hidden = false;
+  $("#exportTeamState").textContent = linked
+    ? [snapshot.link.teamName, invalid || (snapshot.active ? "Collecte active" : "Collecte arrêtée")].filter(Boolean).join(" · ")
+    : "Lier cet ordinateur pour envoyer automatiquement tes customs.";
   $("#collectInvalid").hidden = !invalid;
   $("#collectInvalid").textContent = invalid;
   $("#collectRunHint").hidden = snapshot.active || Boolean(invalid);
@@ -225,6 +229,10 @@ function renderHistory() {
   const items = appState.history.filter((item) =>
     String(item.gameId).toUpperCase().includes(query),
   );
+  const total = appState.history.length;
+  $("#historyTotal").textContent = query
+    ? `${items.length} résultat${items.length > 1 ? "s" : ""} sur ${total}`
+    : `${total} export${total > 1 ? "s" : ""}`;
   const list = $("#historyList");
   list.replaceChildren();
   $("#historyEmpty").hidden = items.length > 0;
@@ -283,25 +291,30 @@ async function revealExport(id, button) {
     button.disabled = false;
   }
 }
+function renderClientStatus(state, message = "") {
+  const labels = {
+    checking: ["Recherche du client…", "Recherche…"],
+    connected: ["Client LoL connecté", "Connecté"],
+    disconnected: ["Client LoL non détecté", "Non détecté"],
+  };
+  const [sidebarLabel, routeLabel] = labels[state];
+  $("#clientIndicator").dataset.state = state;
+  $("#clientIndicator").title = message;
+  $("#clientLabel").textContent = sidebarLabel;
+  const routeStatus = $("#routeClientStatus");
+  routeStatus.dataset.state = state;
+  routeStatus.textContent = routeLabel;
+}
 async function checkClient() {
   if (!api?.getClientStatus || checkingClient) return;
   checkingClient = true;
   $("#refreshClient").disabled = true;
-  $("#clientIndicator").dataset.state = "checking";
-  $("#clientLabel").textContent = "Recherche du client…";
+  renderClientStatus("checking");
   try {
     const result = await api.getClientStatus();
-    $("#clientIndicator").dataset.state = result.connected
-      ? "connected"
-      : "disconnected";
-    $("#clientLabel").textContent = result.connected
-      ? "Client LoL connecté"
-      : "Client LoL non détecté";
-    $("#clientIndicator").title = result.message || "";
+    renderClientStatus(result.connected ? "connected" : "disconnected", result.message);
   } catch (error) {
-    $("#clientIndicator").dataset.state = "disconnected";
-    $("#clientLabel").textContent = "Client LoL non détecté";
-    $("#clientIndicator").title = cleanError(error);
+    renderClientStatus("disconnected", cleanError(error));
   } finally {
     checkingClient = false;
     $("#refreshClient").disabled = false;
@@ -461,7 +474,11 @@ function renderProgress(progress) {
 function renderResult(result) {
   $("#newExport").hidden = false;
   $("#resultPanel").hidden = false;
-  $("#resultGameId").textContent = result.gameId;
+  const fileName = result.filePath.split(/[\\/]/).pop();
+  $("#resultFileName").textContent = fileName || result.gameId;
+  const fileId = fileName.replace(/^nxt5-/i, "").replace(/\.json$/i, "").toUpperCase();
+  $("#resultGameId").textContent = fileId === result.gameId.toUpperCase() ? "" : result.gameId;
+  $("#resultPath").closest("details").open = false;
   $("#resultPath").textContent = result.filePath;
   const summary = result.summary || {};
   const facts = [
@@ -605,17 +622,22 @@ document
   .forEach((button) =>
     button.addEventListener("click", () => showView(button.dataset.view, true)),
   );
-document
-  .querySelectorAll("[data-open-site]")
-  .forEach((button) =>
+for (const [selector, path] of [
+  ["[data-open-site]", "/games"],
+  ["[data-open-import]", "/games?import=1"],
+  ["[data-open-link]", "/games?import=1&liaison=1"],
+]) {
+  document.querySelectorAll(selector).forEach((button) =>
     button.addEventListener("click", () =>
-      openExternal(appState.siteUrl ? `${appState.siteUrl}/integration` : ""),
+      openExternal(appState.siteUrl ? `${appState.siteUrl}${path}` : ""),
     ),
   );
+}
 $("#brandHome").addEventListener("click", (event) => {
   event.preventDefault();
   showView("export", true);
 });
+$("#exportTeam").addEventListener("click", () => showView("collect", true));
 $("#newExport").addEventListener("click", () => startNewExport());
 $("#firstExport").addEventListener("click", () => {
   showView("export", true);

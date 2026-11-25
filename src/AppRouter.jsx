@@ -247,7 +247,8 @@ export default function NXT5({ initialRoute, initialDemoPage } = {}) {
   }, [route.path, route.search, language]);
 
   useEffect(() => {
-    if (!checkingSession && user && (route.path === "/" || authModeFromPath(route.path))) {
+    // Password sign-in replaces the browser URL before its React transition commits.
+    if (!checkingSession && user && (route.path === "/" || authModeFromPath(route.path)) && readRoute().path === route.path) {
       navigate("/accueil", { replace: true });
     }
   }, [checkingSession, user, route.path]);

@@ -423,11 +423,22 @@ async function runSmoke() {
       await expect(page.locator('#resultPanel')).toBeVisible();
       assert.equal((await readExport('success')).gameId, gameId);
     });
-    await test('site action opens the integration page without external navigation', async () => {
+    await test('website shortcuts open the library, file import and device pairing in the system browser', async () => {
       const state = await page.evaluate(() => window.nxt5.getAppState());
+      const external = () => application.evaluate(() => globalThis.__NXT5_SMOKE.external);
+      const before = (await external()).length;
       await page.locator('.sidebar [data-open-site]').click();
-      assert.ok((await application.evaluate(() => globalThis.__NXT5_SMOKE.external)).includes(`${state.siteUrl}/integration`));
+      await page.locator('#resultPanel [data-open-import]').click();
+      await page.locator('#collectTab').click();
+      await page.locator('#collectLinkForm [data-open-link]').click();
+      await expect.poll(async () => (await external()).slice(before)).toEqual([
+        state.siteUrl + '/games',
+        state.siteUrl + '/games?import=1',
+        state.siteUrl + '/games?import=1&liaison=1',
+      ]);
+      await expect(page.locator('#collectCode')).toHaveValue('');
       assert.equal(await page.title(), 'NXT5 Importer');
+      await page.locator('#exportTab').click();
     });
     await test('completion remains visible after changing views during export', async () => {
       await mode('delayed'); await clickExport();
