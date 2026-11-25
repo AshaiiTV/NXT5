@@ -93,7 +93,7 @@ try {
           };
         });
         const label = width + 'px / ' + order + ' / ' + state;
-        assert.equal(geometry.inset, width <= 640 ? 16 : 20, label + ': default padding');
+        assert.equal(geometry.inset, width <= 640 ? 16 : 24, label + ': default padding');
         assert.deepEqual(geometry.overrides, [0, 16, width < 640 ? 12 : 16], label + ': explicit and responsive padding overrides');
         assert.deepEqual(pageErrors, [], label + ': JavaScript errors');
         assert.equal(geometry.overflow, false, label + ': horizontal overflow');

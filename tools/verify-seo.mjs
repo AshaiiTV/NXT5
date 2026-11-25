@@ -75,7 +75,7 @@ export async function verifySeoArtifacts(outputDir, { config, publicPaths, priva
     assert.ok(!html.includes('rel="canonical"'), `${file}: no false public canonical`);
     assert.ok(!html.includes('type="application/ld+json"'), `${file}: no public structured data`);
   }
-  const image = await readFile(resolve(outputDir, `.${SOCIAL_IMAGE}`));
+  const image = await readFile(resolve(outputDir, `.${new URL(SOCIAL_IMAGE, SITE_ORIGIN).pathname}`));
   assert.equal(image.subarray(1, 4).toString(), "PNG", "PNG social image");
   assert.equal(image.readUInt32BE(16), 1200, "social image width");
   assert.equal(image.readUInt32BE(20), 630, "social image height");

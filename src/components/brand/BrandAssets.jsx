@@ -49,6 +49,20 @@ export function Nxt5Wordmark({ className = "", sizes = "(max-width: 700px) 112px
   return <ResponsiveImage src={COMPACT_LOGO.src} sources={[{ srcSet: COMPACT_LOGO.srcSet }]} alt="NXT5" width={LOGO.width} height={LOGO.height} sizes={sizes} loading={loading} decoding="async" className={cx("object-contain", className)} />;
 }
 
+export function MonolithePicture({ sizes, loading = "lazy", className }) {
+  return <ResponsiveImage
+    src="/assets/brand/prisme/monolithe-768.webp"
+    srcSet="/assets/brand/prisme/monolithe-768.webp 768w, /assets/brand/prisme/monolithe-1600.webp 1600w"
+    sizes={sizes}
+    width={1600}
+    height={900}
+    alt=""
+    loading={loading}
+    decoding="async"
+    className={cx("block h-auto w-full", className)}
+  />;
+}
+
 export function BrandIcon({ className = "h-12 w-12", loading = "lazy", alt = "NXT5", sizes = "56px" }) {
   useLanguage();
   return <ResponsiveImage src={ICON.src} srcSet={ICON.srcSet} sizes={sizes} alt={alt} width={ICON.width} height={ICON.height} loading={loading} decoding="async" className={cx("object-contain", className)} />;

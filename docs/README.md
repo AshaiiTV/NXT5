@@ -1,6 +1,6 @@
 # Documentation NXT5
 
-Sommaire des documents du dépôt, au 24 novembre 2026.
+Sommaire des documents du dépôt, au 25 novembre 2026.
 
 - Les **guides** (fichiers sans date dans `docs/`) décrivent l’état actuel du site et sont mis à jour avec le code qu’ils décrivent.
 - Les **rapports datés** (`docs/rapports/<sujet>-AAAA-MM-JJ.md`) gardent la trace d’un chantier à la date indiquée et ne sont pas réécrits ensuite. Ils sont listés dans l’[index chronologique](#rapports-datés).
@@ -90,6 +90,7 @@ Un nouveau rapport s’écrit dans `docs/rapports/<sujet>-AAAA-MM-JJ.md` et s’
 
 | Date | Rapport |
 | --- | --- |
+| 2026-11-25 | [Prisme et Monolithe sur le site](rapports/prisme-monolithe-site-2026-11-25.md) |
 | 2026-11-24 | [Rangement de la documentation](rapports/rangement-documentation-2026-11-24.md) |
 | 2026-11-24 | [Nettoyage du code sans effet sur le site](rapports/nettoyage-code-2026-11-24.md) |
 | 2026-11-24 | [Suppression de compte en libre-service](suppression-compte-2026-11-24.md) † |

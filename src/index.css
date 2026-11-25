@@ -92,6 +92,7 @@ button,
   --nxt5-side-red-text: #ff5757;
   /* Ink on light cyan accents; primary actions use --nxt5-on-action. */
   --nxt5-on-accent: #020611;
+  --nxt5-font-display: "Chakra Petch", Inter, sans-serif;
   --nxt5-font-body: 1rem;
   --nxt5-control-height: 3rem;
   --nxt5-chrome-header-height: 4.75rem;
@@ -116,11 +117,11 @@ button,
   --nxt5-spectrum-gradient: linear-gradient(105deg, var(--nxt5-spectrum-stops));
   --nxt5-spectrum-soft: linear-gradient(105deg, rgba(103, 232, 249, .07), rgba(139, 92, 246, .12) 62%, rgba(196, 181, 253, .07));
   --nxt5-spectrum-text: linear-gradient(105deg, #a5f3fc, #c4b5fd 55%, #c4b5fd);
-  --nxt5-glass-background: linear-gradient(135deg, #191c38, #17112e 62%, #11172a);
+  --nxt5-glass-background: linear-gradient(115deg, var(--nxt5-surface) 30%, var(--nxt5-surface-raised));
   --nxt5-glass-border: rgba(196, 181, 253, .34);
   --nxt5-glass-highlight: rgba(226, 232, 255, .22);
   --nxt5-glass-shadow: inset 0 1px 0 rgba(226, 232, 255, .1), 0 16px 48px rgba(2, 6, 17, .23);
-  --nxt5-glass-reflection: radial-gradient(ellipse at 100% 0%, rgba(139, 92, 246, .25), transparent 46%), radial-gradient(ellipse at 0% 0%, rgba(103, 232, 249, .075), transparent 36%);
+  --nxt5-glass-reflection: radial-gradient(ellipse at 100% 0%, rgba(196, 181, 253, .08), transparent 42%);
   /* Static facets live at the frame's edge; the reading field stays even. */
   --nxt5-glass-facet: linear-gradient(135deg, transparent 20%, rgba(196, 181, 253, .07) 46%, rgba(196, 181, 253, .025) 62%, transparent 82%);
   --nxt5-scene-background: linear-gradient(90deg, #070a14 0%, rgba(17, 24, 39, .97) 35%, rgba(17, 24, 39, .66) 67%, rgba(17, 24, 39, .32)), linear-gradient(180deg, rgba(17, 24, 39, .68), transparent 42%, #070a14 100%), url("/assets/home-motion/atmosphere.webp") right 58% / cover no-repeat;
@@ -331,9 +332,9 @@ textarea {
   box-shadow: var(--nxt5-shadow-panel);
 }
 .nxt5-surface.nxt5-surface-scene {
-  background: var(--nxt5-glass-facet) top right / min(52%, 22rem) 8rem no-repeat, radial-gradient(ellipse at 100% 0%, var(--nxt5-glow-violet), transparent 56%), radial-gradient(ellipse at 0% 0%, var(--nxt5-glow-cyan), transparent 40%), var(--nxt5-glass-background);
-  border-color: rgba(196, 181, 253, .42);
-  box-shadow: inset 0 1px 0 rgba(226, 232, 255, .2), inset 1px 0 0 rgba(103, 232, 249, .07), 0 18px 48px rgba(2, 6, 17, .24);
+  background: var(--nxt5-glass-facet) top right / min(52%, 22rem) 8rem no-repeat, var(--nxt5-glass-background);
+  border-color: var(--nxt5-glass-border);
+  box-shadow: var(--nxt5-glass-shadow);
 }
 .nxt5-panel .nxt5-panel {
   background: var(--nxt5-surface-soft);

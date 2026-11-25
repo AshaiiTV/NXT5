@@ -4,7 +4,8 @@ import { t } from "../i18n/translate.js";
 import { parseDemoPath } from "../app/demo-routes.js";
 
 export const SITE_ORIGIN = "https://nxt5.org";
-export const SOCIAL_IMAGE = "/og-nxt5.png";
+export const SOCIAL_IMAGE = "/og-nxt5.png?v=monolithe";
+const SOCIAL_IMAGE_ALT = "Le logo NXT5 en verre et en cristal indigo sur l’eau noire. « Analyse tes parties. Prépare ton équipe. »";
 
 // Public editorial metadata is shared by the generated HTML and SPA navigation.
 // No account, invitation token or search parameter belongs in a canonical URL.
@@ -137,7 +138,7 @@ export function getMetadata(path = "/", { noindex = false, title, socialLinks = 
     description: demoStep ? translate(demoStep.description[0]) : translate(entry?.description || PRIVATE_DESCRIPTIONS[path] || (path === "/404" ? "Cette page NXT5 est introuvable. Reviens à l’accueil pour découvrir les outils d’analyse et de préparation League of Legends." : "Connecte-toi à NXT5 pour retrouver ton équipe, tes parties et tes outils de préparation League of Legends.")),
     language,
     locale,
-    imageAlt: translate("NXT5 — Analyse de parties et préparation d’équipe League of Legends"),
+    imageAlt: translate(SOCIAL_IMAGE_ALT),
     robots: noindex || !entry ? "noindex, follow" : "index, follow, max-image-preview:large",
     canonical: entry || demoStep ? `${SITE_ORIGIN}${path}` : null,
     image: `${SITE_ORIGIN}${SOCIAL_IMAGE}`,
@@ -198,12 +199,12 @@ export function metadataTags(metadata) {
     ["property", "og:image:type", "image/png"],
     ["property", "og:image:width", "1200"],
     ["property", "og:image:height", "630"],
-    ["property", "og:image:alt", metadata.imageAlt || "NXT5 — Analyse de parties et préparation d’équipe League of Legends"],
+    ["property", "og:image:alt", metadata.imageAlt || SOCIAL_IMAGE_ALT],
     ["name", "twitter:card", "summary_large_image"],
     ["name", "twitter:title", metadata.title],
     ["name", "twitter:description", metadata.description],
     ["name", "twitter:image", metadata.image],
-    ["name", "twitter:image:alt", metadata.imageAlt || "NXT5 — Analyse de parties et préparation d’équipe League of Legends"],
+    ["name", "twitter:image:alt", metadata.imageAlt || SOCIAL_IMAGE_ALT],
   ];
 }
 

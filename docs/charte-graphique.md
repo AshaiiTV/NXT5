@@ -1,346 +1,305 @@
 # NXT5 — Charte graphique Prisme
 
-**Version 3.0 · 23 novembre 2026 · Source unique du site NXT5 et de NXT5 Importer.**
+**Édition 4.0 · 25 novembre 2026**
 
-Cette version est une réécriture demandée par l’utilisateur le 23 novembre 2026. Elle décrit uniquement le système en vigueur. Les versions 1.x à 2.9, leurs récits de décision et leurs recettes de livraison ne figurent plus ici : l’historique Git de ce fichier les conserve. Les anciens logos ont été supprimés du dépôt le même jour.
+Direction de campagne **Monolithe** · Marque, produit et production
 
-Les sections 1 à 12 fixent les règles graphiques. L’annexe A conserve les contrats de parcours : données, droits, états et textes des pages. Les instructions explicites de l’utilisateur priment toujours sur ce document, et toute évolution de l’identité qu’il demande se reporte ici dans le même travail.
+![Visuel de référence Monolithe. Le mot NXT5 en verre fumé et cristal indigo se dresse dans l’eau noire. Un contre-jour traverse la ligature et se reflète au premier plan.](assets/prisme-monolithe/monolithe-v1.png)
 
-## Décisions en vigueur
+*Monolithe, premier visuel choisi le 25 novembre. Cette image de campagne a été générée avec ImageGen à partir du master soudé de NXT5. Le cristal indigo, les reflets violets sur l’eau et le ciel sombre en haut à gauche en fixent la direction photographique.*
 
-Chaque règle de ce document découle d’un choix de l’utilisateur. Voici ceux qui restent actifs, avec leur date.
+**Fichiers de travail** · [Télécharger le kit de production](assets/prisme-monolithe/kit-nxt5-prisme-4.0.zip) · [Ouvrir l’image originale, 1 664 × 936 px](assets/prisme-monolithe/monolithe-v1.png) · [Ouvrir le master vectoriel officiel](https://github.com/AshaiiTV/NXT5/blob/1885126e3578d3020b951593caa28254a4a8ea9c/public/assets/brand/prisme/nxt5-soude.svg)
 
-| Date | Décision | Où elle s’applique |
+## Trouver la règle utile
+
+- **Direction artistique** — [Marque et publics](#marque-et-publics) · [Campagne Monolithe](#campagne-monolithe) · [Signature et cohabitation](#signature-et-cohabitation)
+- **Design** — [Couleurs et contrastes](#couleurs-et-contrastes) · [Typographie et voix](#typographie-et-voix) · [Composition et iconographie](#composition-et-iconographie)
+- **Produit** — [Interfaces et données](#interfaces-et-données) · [Mouvement et accessibilité](#mouvement-et-accessibilité)
+- **Production** — [Gabarits de communication](#gabarits-de-communication) · [Impression et fabrication](#impression-et-fabrication) · [Fichiers et contrôle final](#fichiers-et-contrôle-final) · [Contrats de parcours](#annexe-a--contrats-de-parcours-conservés)
+
+## Marque et publics
+
+NXT5 accompagne les équipes et les coachs de League of Legends dans trois moments de travail : préparer une draft, relire une partie et décider quoi travailler ensemble. Le 5 renvoie aux cinq postes de l’équipe. Une communication signée NXT5 doit permettre de reconnaître le sujet, de retrouver l’information ou de comprendre la prochaine action.
+
+| Situation | Ce que le lecteur doit retenir | Choix de mise en page |
 | --- | --- | --- |
-| 4 novembre 2026 | Les côtés bleu et rouge gardent leurs couleurs propres. « Notes » remplace « Débriefs ». | Section 3, annexe A |
-| 10 novembre 2026 | Prisme s’applique aussi à NXT5 Importer. Le 5 reste en vraie 3D, avec toutes ses animations ; aucune scène n’est remplacée par une image fixe. | Sections 4 et 9 |
-| 11 novembre 2026 | La sculpture est l’ancien 5 : silhouette élancée, biseaux et facettes. Seules ses couleurs sont accordées à Prisme. | Sections 4 et 9 |
-| 17 novembre 2026 | NXT est un contour lumineux, le 5 un volume de verre. Les petits logos restent en couleur : le logo « blanc pétant » est rejeté. Sur mobile, l’accueil place NXT en haut à gauche et le grand 5 en dessous à droite. La charte se consulte avant chaque tâche. | Sections 2, 4 et 8 |
-| 20 novembre 2026 | Les actions principales portent le dégradé Signature NXT cyan, pervenche, lavande, à texte nuit. | Sections 3 et 7 |
-| 23 novembre 2026 | La signature est soudée : NXT en ligature, un seul contour autour de NXT5. Le 5 a toujours les couleurs du 5 en 3D. Cette signature s’applique partout, et les anciennes versions sont supprimées. | Section 4 |
+| Un joueur découvre NXT5 | Le nom et l’univers compétitif de la marque | Une sculpture dominante, un message court, de l’air autour du sujet. |
+| Un coach présente une analyse | La partie, un fait de jeu et la décision qui en découle | Une capture ou des données datées, des chiffres alignés et des annotations courtes. |
+| Une équipe prépare sa prochaine séance | L’action à entreprendre et qui elle concerne | Identité de l’équipe en premier, libellés concrets, un bouton principal dans le groupe d’actions. |
 
-## 1. Portée, priorité et intention
+**Trois usages d’intensité différente.** La campagne emploie toute la scène. Une page d’entrée peut en reprendre un bord lumineux ou un volume isolé. Sur les écrans de travail, la signature couleur, les titres et les contrôles suffisent. Un coach doit pouvoir lire une série de défaites, distinguer le côté de jeu ou retrouver une note sans traverser un décor.
 
-NXT5 aide les équipes et coachs de League of Legends à lire leurs parties, préparer leurs drafts et organiser leur travail. La marque doit associer **énergie collective, précision et profondeur**. Le 5 désigne les cinq rôles ; il ne devient pas une décoration répétée dans chaque composant.
+La présente édition acte le choix photographique du 25 novembre. Le dessin officiel est la ligature soudée du 23 novembre. Les boutons cyan–pervenche–lavande, le 5 animé de l’accueil et sa composition mobile suivent les décisions du produit. Les repères de cadrage, de cohabitation et de fabrication ci-dessous servent à produire de nouveaux supports.
 
-- Conserver cette seule charte Markdown dans le dépôt principal, à `docs/charte-graphique.md`. Les autres checkouts ont un lien dans `AGENTS.md`, jamais une copie ni un PDF.
-- Lire le code du checkout concerné avant d’appliquer la direction ; les chemins et composants peuvent différer selon sa date.
-- Réutiliser les composants partagés et adapter leurs tokens. Ne pas recouvrir le site d’une nouvelle couche de CSS générique à coups de `!important`.
-- Une évolution graphique ne change ni les chiffres, ni les accès, ni les prix, ni le comportement des imports, ni les données saisies.
-- NXT5 Importer suit Prisme pour ses logos, icônes et contrôles. Il garde sa disposition et ses parcours Exporter, Collecte automatique, Historique et Paramètres.
-- Les fournisseurs d’authentification conservent leurs signatures officielles.
+## Campagne Monolithe
 
-## 2. Direction artistique : le prisme au service du jeu
+### Ce qui fait reconnaître l’image
 
-### Trois signatures
+Le regard rencontre d’abord le trait clair du N, suit les découpes du X et du T, puis arrive sur la masse du 5. Le néon dessine le bord frontal. Le métal brossé et le verre fumé donnent de l’épaisseur aux chants. Le cristal montre quelques grands plans lisibles jusque dans les ombres. Conserver la différence de matière entre les trois lettres et le chiffre.
 
-**La coupe.** Le logo possède une poussée vers l’avant, des diagonales franches et des terminaisons biseautées. Reprendre cette géométrie dans les illustrations et les détails d’arête, sans incliner les paragraphes, champs ou tableaux. Ne pas appliquer un `skew()` global aux composants.
+La caméra se tient au ras d’une eau noire peu profonde, avec une perspective de grand-angle proche d’un 24 mm. La source blanc-violet se trouve derrière la jonction visuelle X/T. Le cœur lumineux se voit dans l’ouverture, la brume révèle ses rayons et la pluie accroche les arêtes. Le reflet se fragmente selon les rides de l’eau. Le haut gauche reste assez sombre pour accueillir les icônes d’un bureau.
 
-**La matière.** Le 5 est en verre indigo et violet, dense et facetté : celui de la sculpture en vraie 3D, à toutes les tailles. Ses grandes faces restent lisibles ; les facettes intérieures sont moins contrastées que son contour. Une lumière froide arrive du haut et de la gauche, un reflet magenta discret termine le bord droit. NXT est un tracé lumineux fin, du cyan vers la lavande, sur fond nuit. Le contraste entre contour et volume est la signature. Dans la signature statique, ce contour fait le tour du mot entier et le verre du 5 naît dans la barre du T : le 5 est la fin du mot, pas un objet posé à côté. Ne pas remplacer les facettes du 5 par un verre lisse, chromé, liquide ou arrondi.
+### Cadrer et décliner
 
-**La hiérarchie.** La marque s’exprime par une grande silhouette et des espaces réservés. Les informations s’organisent par alignement, taille et rythme. Le verre attire l’œil vers l’entrée ; il s’efface derrière les décisions et les données.
+- **Paysage de référence.** Conserver le 16:9 et l’assise dans l’eau. La ligne d’eau se situe vers les trois quarts de la hauteur. Le rayon principal passe près du centre, légèrement à droite. La pointe supérieure droite du 5 peut toucher le bord. Son angle inférieur et la soudure du T doivent rester identifiables.
+- **Zone de texte.** Sur la V1, prendre comme point de départ le rectangle allant d’environ 4 à 30 % de la largeur et de 6 à 28 % de la hauteur, mesuré depuis l’angle supérieur gauche. Tester la copie à la taille finale. Si elle empiète sur le métal ou le halo, raccourcir le titre ou lui réserver un bandeau nuit. Le fond d’écran choisi reste sans texte ajouté.
+- **Portrait et carré.** Inscrire l’image paysage entière dans une bande, prolonger le fond nuit puis placer le titre et la date dans l’espace obtenu. Pour une affiche pleine hauteur, recomposer la scène à partir du master. Une découpe centrée du 16:9 en 9:16 ferait disparaître le N et le 5.
+- **Étalonnage.** Conserver un noir bleu profond, le léger grain, le reflet cyan à gauche et le magenta en bout de course. Le cœur blanc peut être très lumineux. Les facettes voisines doivent rester distinctes. Une seule source motive les rayons et les reflets.
+- **Retouche et déclinaisons générées.** Fournir le master soudé et la photo choisie. Comparer le résultat aux deux références à taille réelle et en vignette. Examiner la silhouette, les deux ouvertures N/X et X/T, l’encoche sous la barre du T, le pied du 5 et le sens de la lumière. Repartir du fichier vectoriel pour poser une marque exacte sur un autre support.
 
-### Intensité selon le contexte
+![Planche de cadrage de la campagne, avec le ciel libre en haut à gauche et deux détails du contre-jour et de la jonction T–5.](assets/prisme-monolithe/campagne-cadrage.png)
 
-| Niveau | Contextes | Traitement |
+**Brief de production réutilisable.** « Photographier la signature NXT5 soudée comme une construction monumentale dans une eau noire de nuit. Caméra au ras de l’eau. NXT en verre fumé et métal brossé, tube cyan vers lavande, 5 en cristal indigo. Une source blanc-violet derrière X/T, brume dans les ouvertures, pluie et reflets ondulés. Réserver le haut gauche. Conserver le tracé et l’encoche du master. » Pour reproduire le fond d’écran approuvé, utiliser directement le PNG fourni. La photographie reste une image de campagne, avec sa perspective et ses reflets propres.
+
+## Signature et cohabitation
+
+### Construction du mot
+
+La signature se lit en un seul contour. N, X et T forment une ligature avec deux contre-formes. La barre supérieure du T rejoint le 5 ; une encoche profonde sépare leur pied. Le cristal naît à l’extrémité de cette barre. Le 5 monte à **1,3 fois la hauteur de capitale** et repose sur la même ligne de pied. Les trois grands plans du verre et le biseau intérieur appartiennent au dessin. Les fichiers officiels comprennent l’inclinaison, les transparences et les épaisseurs optiques.
+
+![Planche des signatures NXT5 pour les grands et petits formats, avec leurs marges de protection.](assets/prisme-monolithe/signature-supports.png)
+
+| Besoin | Fichier dans le kit | Placement |
 | --- | --- | --- |
-| Signature | Accueil public, première introduction, visuel de campagne | Logo Prisme en grand, fond nuit, une seule source de lumière et un espace net pour le texte. Une seule scène dominante par écran. |
-| Cadre | Navigation, page d’entrée, titres et groupes fonctionnels | Surface nuit/violet, arête fine et facette périphérique contenue. Les zones de lecture restent opaques. |
-| Lecture | Parties, tableaux, notes, planning, formulaires | Aplats stables, lignes et typographie. Le contexte de marque vient du cadre ; aucune réfraction derrière une valeur. |
+| Affiche, ouverture de présentation, grande signature | `Signatures/nxt5-soude.svg` ou `nxt5-soude-source.png` | Utiliser le master 1 600 × 600, au ratio 8:3, sur un fond nuit uniforme. Le SVG supporte l’agrandissement. |
+| Navigation, application, export, email | `nxt5-soude-interface.svg`, WebP 320/640 ou PNG 640 | Le contour couleur renforcé et le même verre restent lisibles en petit. Contrôler aux largeurs réelles de 80 à 200 px. |
+| Favicon, icône installée ou avatar par défaut | `Icones/favicon.svg` et `soude-icon-*.png` | Le 5 seul occupe sa tuile nuit. Employer l’icône masquable dédiée pour les systèmes qui redécoupent l’image. |
+| Support clair | `nxt5-soude-clair.svg` | Contrôler le contour sombre sur la teinte réelle du support. Prévoir une surface de marque dédiée si le fond est chargé. |
+| Production à une seule encre | `nxt5-soude-mono-nuit.svg` ou `nxt5-soude-mono-blanc.svg` | Réserver à une contrainte de fabrication explicite. Les interfaces, emails, exports et petits logos courants restent en couleur. |
 
-Sur une page dense, l’identité de l’équipe ou du joueur prend la place du volume de marque. Ne pas cumuler un grand 5, un avatar et un grand pictogramme pour un même titre. Le logo du header suffit à signer une page de réglages.
+**Protection.** Mesurer H sur la hauteur visible des lettres, en excluant les marges transparentes du fichier. Réserver au minimum H/4 entre la signature et tout texte, bord de panneau ou autre logo, et H/5 autour du signe compact. Exemple : pour H = 40 px, la respiration minimale est de 10 px autour du mot. Conserver les proportions dans les deux axes. La coupe photographique de la pointe du 5 s’applique à Monolithe ; la signature posée comme logo se présente entière.
 
-### À exclure
+**En association.** Pour un partenariat annoncé, placer les deux logos dans des zones distinctes sur un même fond stable, les aligner par leur centre optique et conserver la plus grande des deux marges de protection. Sur un résultat de match, le nom et le blason des équipes ont priorité. NXT5 signe discrètement le support. Pour une connexion Google, Discord, Apple ou Riot, employer la signature du fournisseur et son libellé officiel.
 
-Pas de particules, de triangles flottants, de grille cyberpunk, de halos autour de tous les panneaux, de soulignements multicolores systématiques, de verre opaque ressemblant à du plastique, de contour néon épais ou de reflets de sol dans une barre de navigation. Le tracé NXT reste fin même lorsque sa lumière est visible. Le logo sélectionné n’a pas besoin d’un trident supplémentaire. Le dégradé du logo n’autorise pas à mettre chaque titre en dégradé.
+**Contrôle du fichier.** L’étirement du mot, la séparation T/5, la suppression d’une contre-forme, l’ajout d’un ancien trident, un 5 recoloré ou un halo ajouté changent le dessin. Reprendre le fichier de la bonne variante. Pour la petite navigation, conserver un PNG alpha ou un WebP transparent, ses dimensions explicites et `object-fit: contain`. Le lien qui ramène au site peut être nommé « NXT5 — Accueil ».
 
-## 3. Palette et contrastes
+## Couleurs et contrastes
 
-Les valeurs suivantes sont les **tokens cibles Prisme**, pas une description de la CSS actuellement déployée. Les noms existants sont repris pour limiter les migrations inutiles. Les couleurs de matériau ne sont pas toutes des couleurs de texte.
+### Palette de campagne
 
-| Rôle | Valeur | Token / usage |
+Les valeurs maîtresses sont en **sRGB**. Utiliser les valeurs numériques pour les aplats, le logo officiel pour ses dégradés et le fichier Monolithe pour l’image. Prélever une couleur au hasard dans un reflet donnerait une teinte différente à chaque export.
+
+| Teinte | HEX · RGB | Fonction dans l’image |
 | --- | --- | --- |
-| Nuit de marque | `#020611` | Fond de présentation du logo et encre sombre sur accent clair. |
-| Fond du site | `#070A14` | `--nxt5-bg` ; document, cadre général. |
-| Surface de lecture | `#11172A` | `--nxt5-surface` ; fond opaque des données. |
-| Surface élevée | `#1A2340` | `--nxt5-surface-raised` ; menus, popovers et dialogues. |
-| Champ | `#0D1324` | `--nxt5-field` ; zone de saisie stable. |
-| Bordure décorative | `#303B58` | Séparateurs non essentiels ; ne suffit pas à identifier un champ seul. |
-| Bordure fonctionnelle | `#66779B` | `--nxt5-border-strong` ; contrôles et contours nécessaires à la lecture. |
-| Texte principal | `#F4F6FF` | `--nxt5-text` ; titres, chiffres et contenu. |
-| Texte secondaire | `#B8C3DC` | `--nxt5-text-secondary` ; explications. |
-| Texte atténué | `#92A0BE` | `--nxt5-muted` ; métadonnées et placeholders, sans seconde réduction d’opacité. |
-| Action principale | `#67E8F9 0%, #A5B4FC 52%, #C4B5FD 100%` | `--nxt5-primary-gradient` à 90° ; `--nxt5-action: #67E8F9` comme couleur de secours. |
-| Action au survol | `#A5F3FC 0%, #C7D2FE 52%, #DDD6FE 100%` | Même direction ; `--nxt5-action-hover: #A5F3FC` comme couleur de secours. |
-| Action pressée | `#22D3EE 0%, #818CF8 52%, #A78BFA 100%` | Même direction ; `#22D3EE` comme couleur de secours. |
-| Texte sur action | `#020611` | `--nxt5-on-action` ; texte, icône et indicateur de chargement sur les trois états du primaire. |
-| Lavande | `#C4B5FD` | `--nxt5-accent-2` ; texte actif, sélection et petits accents. |
-| Cyan d’arête | `#67E8F9` | `--nxt5-accent` ; focus, liens et lumière de marque. |
-| Magenta de reflet | `#E879F9` | Reflet propre au matériau du logo, présenté séparément des couleurs d’interface ; aucun contrôle ni texte fonctionnel en magenta. |
-| Succès | `#6EE7B7` | Succès et écarts favorables avec libellé ou signe. |
-| Danger | `#FDA4AF` | `--nxt5-danger` ; erreurs et actions destructives. |
-| Vigilance | `#FCD34D` | Attente ou point d’attention, avec texte explicite. |
-| Côté bleu | `#3B82F6`, texte `#93C5FD` | `--nxt5-side-blue`, `--nxt5-side-blue-text`. |
-| Côté rouge | `#EF4444`, texte `#FF5757` | `--nxt5-side-red`, `--nxt5-side-red-text` ; rouge franc distinct du danger rose. |
+| Bleu nuit | `#070A14` · 7, 10, 20 | Ciel, eau, zones de respiration. |
+| Indigo cristal | `#2A2389` · 42, 35, 137 | Masse et profondeur du 5. |
+| Violet facette | `#4F43B6` · 79, 67, 182 | Changements de plan dans le cristal. |
+| Cyan | `#67E8F9` · 103, 232, 249 | Première arête du N et reflet gauche. |
+| Lavande | `#C4B5FD` · 196, 181, 253 | Continuité de la lumière sur la ligature. |
+| Magenta | `#E879F9` · 232, 121, 249 | Accents d’extrémité, biseau et reflets. |
 
-### Lumière et surfaces
+**Matière du master.** La rampe du verre suit `#6B7AD1`, `#4E56C1`, `#383DA4`, `#2A2389`, `#191676`, `#231D82`. Les arêtes emploient `#B9F4FF`, `#EEE8FF` et `#F6D8FF`. Les faces gardent leur masse sombre lorsqu’on réduit le logo. La pervenche `#A5B4FC` relie le cyan et la lavande dans les éléments d’interface.
 
-Le fond de cadre peut employer `linear-gradient(135deg, #191C38, #17112E 62%, #11172A)`. La facette périphérique varie entre 4 et 10 % de lavande ; elle ne traverse pas le texte. Une arête de 1 px peut aller du cyan à la lavande puis s’éteindre. La surface intérieure reste opaque. Ne pas dépendre de `backdrop-filter` pour obtenir un rendu acceptable.
+### Couleurs du produit
 
-Le CTA principal utilise le **dégradé NXT cyan → pervenche → lavande à texte nuit**, choisi le 20 novembre 2026, y compris ses variantes de chargement et les liens présentés comme boutons. Respecter la direction de gauche à droite à 90° et l’arrêt pervenche à 52 % ; ne pas lui substituer un dégradé bleu/violet plus sombre, un aplat cyan ou l’ancien cyan/bleu/fuchsia. Texte, flèche et indicateur héritent de la même encre `#020611` ; ne pas réintroduire le texte blanc sur ces fonds clairs.
-
-Définir les trois dégradés dans les tokens partagés du site et leurs équivalents Importer, puis les réutiliser dans chaque action principale. Conserver une couleur de fond cyan de secours. Les boutons secondaires restent en aplat nuit avec bordure et texte clair ; les actions destructives gardent leur sémantique dédiée. Une migration de primaire ne transforme pas les filtres, onglets, sélections, badges, côtés de jeu ou boutons de fournisseur en actions principales. Ce dégradé reste réservé aux CTA concernés, aux assets de marque et à quelques arêtes ; les surfaces de lecture, titres et valeurs conservent leur traitement propre.
-
-### Sémantique et contrôle
-
-Contrôles du dégradé des actions : avec le texte `#020611`, le contraste minimum sur les dégradés opaques vaut **10,16:1 au repos**, **13,58:1 au survol** et **6,79:1 à la pression**. Ces valeurs sont calculées en sRGB sur 1 001 positions par segment ; elles ne valident pas à elles seules les états composités, les transitions ou une page déployée. Contrôler les fonds réels, notamment l’atténuation d’un bouton désactivé.
-
-Contrôles sur les aplats de la palette : les trois niveaux de texte sur les quatre fonds atteignent au moins **5,89:1** et la bordure fonctionnelle au moins **3,44:1**. Ces mesures ne couvrent ni les images ni les états translucides de la production.
-
-Les côtés bleu et rouge sont indépendants du résultat. Garder le bleu à gauche et le rouge à droite dans les duels prévus ainsi, même si notre équipe joue rouge. Le vert favorable et le rose défavorable s’accompagnent de « Victoire », « Défaite », d’une icône ou d’un signe ; le sens dépend de la métrique. Une baisse des morts peut être positive. Dans le spécimen livré, le texte côté rouge `#FF5757` atteint **5,37:1** sur son fond `#EF444414` composité sur `#11172A` ; le côté bleu atteint **9,02:1**, la victoire **11,68:1**, la défaite et l’erreur **9,41:1**. Ne pas remplacer les tokens de texte par les teintes pleines des côtés.
-
-Objectifs de conception : au moins 4,5:1 pour le texte courant, 3:1 pour les grands textes et pour les repères fonctionnels concernés. Tester les états réellement composités et la totalité de tout fond dégradé. Les ratios mesurés sur des aplats ne certifient pas une page ou une conformité générale. Aucun état important ne repose sur la seule couleur.
-
-## 4. Système de logo et assets
-
-### La signature soudée
-
-NXT5 s’écrit d’un seul tracé. Le principe ne change pas : NXT est un contour lumineux, le 5 un volume de verre. Mais le 5 n’est plus un objet posé à côté du mot, il en est la fin.
-
-Construction, à ne pas redessiner à la main :
-
-- **Ligature.** N, X et T sont resserrés puis fusionnés en une seule silhouette. Deux contre-formes triangulaires subsistent, entre N et X puis entre X et T. Aucun trait interne ne sépare les lettres.
-- **Le 5.** Il mesure 1,3 fois la hauteur de capitale et repose sur la ligne de pied de NXT. Il reste le plus grand signe du mot.
-- **Jonction.** Le T tient au 5 par sa barre seule. Sous la barre, une encoche franche sépare le fût du T du pied du 5 : le T garde sa forme entière et NXT reste lisible.
-- **Un seul contour.** Le tracé lumineux fait le tour de NXT5 sans s’interrompre. Il n’y a pas de trait entre le T et le 5.
-- **Le verre.** Il naît dans le bout de la barre du T par un fondu court, puis remplit le 5. Le fût du T reste en contour. Trois plans de facettes et un biseau intérieur suffisent ; pas de texture peinte.
-
-### La couleur du 5
-
-**Le 5 a toujours les couleurs du 5 en vraie 3D**, à toutes les tailles et sur tous les supports. Le verre est relevé sur le poster de la sculpture, `public/assets/brand/prisme/classic-poster@2x.webp` :
-
-| Rôle | Valeurs |
+| Rôle | Valeur |
 | --- | --- |
-| Corps du verre, de haut à gauche vers bas à droite | `#6B7AD1`, `#4E56C1`, `#383DA4`, `#2A2389`, `#191676`, `#231D82` |
-| Reflet violet | `#4F43B6` |
-| Biseau et arête, les couleurs des arêtes du moteur 3D | `#B9F4FF`, `#EEE8FF`, `#F6D8FF` |
+| Nuit de présentation et encre des boutons clairs | `#020611` |
+| Fond de page / surface de lecture / surface élevée | `#070A14` / `#11172A` / `#1A2340` |
+| Champ / filet décoratif / bordure fonctionnelle | `#0D1324` / `#303B58` / `#66779B` |
+| Texte principal / secondaire / atténué | `#F4F6FF` / `#B8C3DC` / `#92A0BE` |
+| Focus, liens / sélection | Cyan `#67E8F9` / lavande `#C4B5FD` |
+| Succès / danger ou défaite / vigilance | `#6EE7B7` / `#FDA4AF` / `#FCD34D` |
+| Côté bleu, repère / texte | `#3B82F6` / `#93C5FD` |
+| Côté rouge, repère / texte | `#EF4444` / `#FF5757` |
 
-Ce verre est identique dans la grande signature, la signature d’interface, la déclinaison fond clair, le favicon et les icônes. Ne pas l’éclaircir ni le tirer vers le violet pour gagner du contraste. La lisibilité en petit vient du contour lumineux autour du mot et, pour le signe seul, de son arête claire, renforcée sous 48 px.
+Les composants web peuvent employer un texte succès plus clair `#A7F3D0` ou vigilance `#FDE68A` sur leur surface sémantique. Réserver le magenta au matériau et le rouge de côté à l’identification de l’équipe. Les termes « Victoire », « Défaite », « Côté bleu » et « Côté rouge » portent le sens même en niveaux de gris.
 
-### Fichiers
+Pour une maquette web, le kit fournit les variables CSS du produit. Utiliser `--nxt5-surface` et `--nxt5-text` pour la lecture, `--nxt5-border-strong` pour un contrôle, `--nxt5-primary-gradient` et `--nxt5-on-action` pour le primaire. Dans le dépôt, les composants consomment directement les tokens de `src/index.css`.
 
-Tous sont dans `public/assets/brand/prisme/`.
+### Action principale
 
-| Fichier | Usage |
-| --- | --- |
-| `nxt5-soude.svg` | **Master vectoriel** de la grande signature, 1 600 × 600 : trait fin cyan, blanc, lavande puis magenta, avec sa lueur. |
-| `nxt5-soude-source.png`, `nxt5-soude-{320,640,1280}.webp` | Rendus de ce master pour les scènes, présentations et partages. |
-| `nxt5-soude-interface.svg` | Master des petits formats : même dessin et même verre, trait renforcé cyan, pervenche, lavande. |
-| `nxt5-soude-interface-{320,640}.webp`, `nxt5-soude-interface-640.png` | Navigation, en-têtes, emails, exports PNG, publications et Importer. |
-| `nxt5-soude-clair.svg` | Déclinaison pour fond clair, trait sombre. À contrôler sur le support réel avant tout usage ; aucun écran du site ne l’emploie. |
-| `nxt5-soude-mono-blanc.svg`, `nxt5-soude-mono-nuit.svg` | Une couleur : contour du mot et 5 plein. Réservés à un usage réellement contraint et explicitement demandé, jamais aux headers, à l’Importer, aux emails ou aux exports. |
-| `favicon.svg`, `soude-icon-{16…1024}.png`, `soude-icon-maskable-512.png` | Signe compact : le 5 de la signature, seul, sur tuile nuit `#070A14`. Favicons, icônes d’installation, avatar d’équipe par défaut, icônes Windows et macOS de l’Importer. |
-| `classic-poster*.webp`, `nxt5-unified-5-{256,512}.webp`, `nxt5-unified-5-2048.png` | La sculpture elle-même : poster de la scène 3D et rendu isolé du 5 en verre, pour le chargement, le mouvement réduit, le mode performance et les visuels. |
+Le bouton suit un dégradé horizontal à **90°**. Le texte, l’icône, la flèche et l’indicateur de chargement prennent l’encre nuit `#020611`. Les 23 couleurs de base du kit comprennent la pervenche ; les variantes d’état ci-dessous se construisent dans les tokens d’interface.
 
-La géométrie est dans `tools/prisme/soude-geometry.mjs`, dérivée des contours NXT et du tracé du 5 par `tools/prisme/derive-soude-geometry.py`. `tools/prisme/build-soude-signature.mjs` écrit les masters SVG et leurs rendus ; `tools/prisme/build-assets.mjs` produit ensuite les icônes, les favicons, l’ICO et l’ICNS de l’Importer ; `tools/generate-social-card.mjs` reconstruit le visuel de partage. Les rendus ne se retouchent pas à la main.
+| État | Arrêts gauche · 52 % · droite | Contraste minimal de l’encre |
+| --- | --- | --- |
+| Repos | `#67E8F9` · `#A5B4FC` · `#C4B5FD` | 10,16:1 |
+| Survol | `#A5F3FC` · `#C7D2FE` · `#DDD6FE` | 13,58:1 |
+| Pressé | `#22D3EE` · `#818CF8` · `#A78BFA` | 6,79:1 |
 
-Le gabarit des fichiers est 8:3. Le mot occupe toute la largeur utile, avec des marges transparentes au-dessus et en dessous, pour que les emplacements du site, des emails et de l’Importer gardent leurs dimensions.
+Les ratios valent pour les dégradés opaques en sRGB. Sur la surface de lecture `#11172A`, le texte principal atteint **16,50:1**, le secondaire **10,07:1**, l’atténué **6,78:1** et la bordure fonctionnelle **3,96:1**. Les objectifs de lecture sont 4,5:1 pour le texte courant et 3:1 pour le grand texte et les repères fonctionnels concernés. Vérifier le fond réellement composé dans chaque état. Sur une image, déplacer le texte en réserve nuit ou lui donner une surface opaque.
 
-### La scène d’accueil
+![Exemple de palette, de titres et de contrôles. Orage, côté bleu, perd contre Sillage, côté rouge. La victoire et la défaite ont leurs propres libellés.](assets/prisme-monolithe/systeme-produit.png)
 
-La scène d’accueil garde son 5 en vraie 3D et toutes ses animations. Son contour NXT reprend la ligature de la signature : une seule silhouette et deux contre-formes. Il n’est pas soudé au 5, puisque la sculpture bouge avec le défilement et le pointeur. Le bord droit du contour reste au contact du 5.
+## Typographie et voix
 
-Sur mobile, NXT se place en haut à gauche et le grand 5 en dessous à droite, puis viennent l’introduction et son action, sans chevauchement. À 320 px, le titre et le 5 restent séparés.
+### Composer avec deux familles
 
-### Noms de fichiers et adresses retirées
+**Chakra Petch 600 italique** porte la tension des titres de campagne, de l’aperçu de partage et du chargement. **Inter** assure la lecture, les données, les formulaires et les noms d’équipe. Un titre de campagne peut dire « Prépare ta prochaine draft. » Une fiche de partie donne d’abord le nom de la rencontre, le résultat et la date, en Inter.
 
-Les fichiers servis sous `/assets/` sont mis en cache sans revalidation pendant un an. Une signature modifiée reçoit donc **de nouveaux noms**, jamais un remplacement sous l’ancien nom.
-
-Les anciens logos sont supprimés du dépôt : trident, signatures Prisme, unifiée et lumineuse, anciennes icônes, anciens générateurs. Des emails déjà envoyés, des applications installées et des liens externes pointent encore vers certaines de leurs adresses. `tools/seo-build.mjs` les sert avec la signature actuelle, par la liste `RETIRED_BRAND_ASSETS`. Quand une signature est remplacée, ajouter ses adresses à cette liste avant de supprimer ses fichiers.
-
-Pistes écartées le 23 novembre 2026, à ne pas reproposer sans demande : le N devant le X, dont le X à moitié caché se lisait comme un K ; une jonction où le fût du T se fond dans le 5 et où le mot tend vers « NX5 » ; un 5 à la hauteur des lettres, qui cesse de dominer ; un verre qui traverse tout le mot ; des lettres simplement détachées ou un X au premier plan.
-
-### Dimensions et protection
-
-Mesurer `H` sur la hauteur visible des lettres, sans les marges du fichier. Conserver au moins `H/4` de vide tout autour de la signature, et `H/5` autour du signe compact. Le ratio du dessin est verrouillé ; aucune largeur ou hauteur ne se règle indépendamment. L’inclinaison appartient au dessin : ne pas lui ajouter une transformation CSS.
-
-Pour les petites signatures, utiliser la variante couleur `nxt5-soude-interface-*` : contour cyan/lavande renforcé à la génération, sans arrêt blanc dominant ni halo ajouté, et 5 dans le verre de la sculpture 3D, comme à toutes les tailles. Vérifier la lecture aux tailles réelles de 80 à 200 px, sur les fonds des composants. Ne pas remplacer le 5 par un aplat blanc pour gagner du contraste. Les petits emplacements gardent leurs dimensions et leur disposition ; l’adaptation se fait dans l’asset. Les monochromes restent réservés à un usage réellement contraint à une couleur et explicitement demandé, jamais imposés par défaut au site, à l’Importer, aux emails ou aux exports. Les favicons et icônes compactes utilisent `soude-icon-*`. La déclinaison sur fond clair `nxt5-soude-clair.svg` reste à contrôler sur le support réel avant usage.
-
-Utiliser `object-fit: contain`, des dimensions explicites, le SVG comme master, et des rendus PNG alpha ou WebP adaptés aux clients visés. Produire une version vectorielle réellement reconstruite pour le monochrome ; ne pas appeler « SVG » un fichier contenant seulement un PNG embarqué. Charger rapidement le logo visible à l’arrivée, sans lazy loading au-dessus de la ligne de flottaison. Alt du lien de marque : « NXT5 — Accueil » ; un doublon décoratif a un alt vide.
-
-### Interdits
-
-Ne pas utiliser un bloc rectangulaire opaque autour du logo dans une surface différente. Ne pas appliquer de filtre de teinte, d’ombre lumineuse ajoutée ou de bordure qui altère son contour. Ne pas réintroduire un ancien logo, un 5 d’une autre couleur, un 5 arrondi, un verre lisse ou un NXT blanc plein à côté de cette signature.
-
-## 5. Typographie
-
-**Inter locale** porte la lecture, les formulaires, les données et la navigation. **Chakra Petch 600 italique**, déjà présente dans les checkouts récents, porte les grands titres publics et les titres de chargement. Son rôle devient une ponctuation de marque, limitée aux H1 de campagne, au visuel Open Graph et au chargement. Les H2 de présentation et titres de formulaires restent en Inter ; les noms d’équipe, les notes et les tableaux restent en Inter. Le logo n’est pas une police de titrage.
-
-Charger les WOFF2 localement avec `font-display: swap` et conserver leurs licences. Inter utilise les graisses réellement nécessaires 400/500/600/700/800 ; ne pas charger une famille supplémentaire pour les chiffres. Vérifier les accents français, anglais et espagnols. Si la police de titre n’est pas livrée dans un checkout, afficher Inter sans bloquer le contenu, puis intégrer la police et sa licence lors de la migration.
-
-| Usage | Bureau | Mobile | Traitement |
+| Usage | Bureau | Mobile | Composition |
 | --- | --- | --- | --- |
-| Titre public de campagne | 56–80 px | 36–44 px | Chakra Petch 600 italique, 1,04–1,12, couleur claire unie ; 2–3 lignes maximum comme objectif, jamais une coupe forcée. |
-| Titre de page de travail | 32–40 px | 26–32 px | Inter 700, interligne 1,15 ; identité de l’équipe prioritaire. |
-| Titre de section | 22–28 px | 20–24 px | Inter 600/700, interligne 1,25. |
-| Chiffre mis en avant | 32–48 px | 28–36 px | Inter 700, chiffres tabulaires, unité à proximité. |
-| Texte courant | 16 px | 16 px | Inter 400, interligne 1,55–1,7, largeur de lecture 60–68 caractères. |
-| Interface et labels | 15 px | 15–16 px | Inter 500/600, casse de phrase ; champs à 16 px minimum sur mobile. |
-| Métadonnées | 13–14 px | 13–14 px | Couleur secondaire lisible ; jamais une aide essentielle à 10 px. |
+| Titre de campagne | 56–80 px | 36–44 px | Chakra Petch 600 italique, interligne 1,04–1,12. Viser deux à trois lignes. |
+| Titre de page de travail | 32–40 px | 26–32 px | Inter 700, interligne 1,15. |
+| Titre de section | 22–28 px | 20–24 px | Inter 600 ou 700, interligne 1,25. |
+| Valeur principale | 32–48 px | 28–36 px | Inter 700, chiffres tabulaires, unité visible. |
+| Paragraphe | 16 px | 16 px | Inter 400, interligne 1,55–1,7, ligne de 60 à 68 caractères. |
+| Libellé / métadonnée | 15 / 13–14 px | 15–16 / 13–14 px | Inter 500 ou 600 pour les libellés. Champs à 16 px au moins sur mobile. |
 
-Les tableaux alignent les libellés à gauche et les nombres à droite. Réserver les capitales courtes aux rôles TOP/JGL/MID/ADC/SUP et identifiants utiles. Les surtitres ne sont pas obligatoires. Ne pas colorer un mot isolé de chaque titre, ni transformer tous les titres en italique. Utiliser la graisse et l’espace plutôt qu’une multiplication de styles.
+Aligner les libellés à gauche, les valeurs comparables à droite et l’unité près du nombre. Écrire les titres en casse de phrase. Employer les capitales pour les sigles et les rôles TOP, JGL, MID, ADC, SUP. Inter couvre les graisses utiles de 400 à 800. Sur le web, charger les WOFF2 locales avec `font-display: swap` et une famille système de secours. Vérifier les accents, les noms longs et les retours en français, anglais et espagnol. Les fichiers web et leurs licences OFL sont fournis dans le kit.
 
-### Rédaction de l’interface
+### Écrire pour l’équipe
 
-Écrire d’abord l’action ou le fait utile, en une ou deux phrases courtes. Éviter de répéter le même titre, bénéfice ou parcours dans le badge, l’en-tête, la carte et les boutons d’un écran. Garder les étapes détaillées dans le guide ou un panneau ouvert à la demande. L’assistant vise 60 mots par défaut et développe seulement si la question le demande. Les définitions de métriques, montants, délais, conséquences d’une suppression et mentions légales restent exacts et accessibles ; les longs textes légaux peuvent être repliés sous des titres explicites avec une commande « Tout afficher ».
+Tutoyer, choisir un verbe précis, puis donner l’objet ou la conséquence. Pour une audience qui découvre le jeu, expliquer « draft » à la première occurrence comme la phase de sélection et de bannissement des champions. Les mots de navigation restent **Mon équipe**, **Parties**, **Notes**, **Catégorie**. « Débrief » convient pour nommer une séance. Une publication de marque s’appuie sur un usage démontrable ou un résultat réel.
 
-## 6. Géométrie, espacement et compositions
-
-### Grille et proportions
-
-Échelle d’espace : 4 / 8 / 12 / 16 / 24 / 32 / 48 / 64 / 96 px. Largeur publique cible 1 280 px ; lecture longue 68ch ; interfaces de données adaptables jusqu’à 1 600 px selon la tâche. Marges : 16 px à 320–639 px, 24 px à 640–1023 px, 32–48 px au-delà. Aucun nom ou nombre essentiel n’est caché pour tenir dans une grille.
-
-Conserver les boutons à **2 px** de rayon, les champs à **10 px**, les panneaux à **16 px** (14 px sur mobile). Les petites surfaces internes peuvent utiliser 10 px, sans ombre supplémentaire. Un badge peut être arrondi ; un bouton ne devient pas une pilule. Les biseaux et diagonales appartiennent au décor périphérique, pas à la zone cliquable ou au contour des champs.
-
-Padding de panneau : 24 px par défaut, 16 px sur mobile ; 20 px reste une valeur intermédiaire autorisée quand la largeur le justifie. Une section ouverte n’a pas besoin de panneau. Un seul niveau d’ombre par groupe, un seul niveau de panneau imbriqué au maximum sauf structure fonctionnelle démontrée. Éviter les collections de cartes identiques pour une simple liste.
-
-### Pages publiques
-
-Le logo Prisme porte la première impression. Composer une scène avec texte et CTA dans une zone réservée ; le visuel ne passe pas derrière le paragraphe. Sur bureau, le logo peut occuper une grande composition latérale. Sur mobile, raccourcir le décor pour garder le titre, le bénéfice et l’action accessibles rapidement. Les captures illustratives portent la mention « Exemple fictif » lorsque leurs données sont inventées.
-
-Après le Hero : un exemple concret du produit, les usages Analyse/Coaching/Draft/Organisation/Discord, puis les informations utiles au démarrage. Des sections ouvertes et des changements d’échelle donnent le rythme. Ne pas répéter le logo géant dans chaque chapitre. Les pages Fonctionnalités, Démonstration et Guides réemploient cette logique à une intensité réduite. Les mentions légales privilégient la lecture.
-
-### Cadre connecté et pages de travail
-
-Une navigation principale, un titre clair, des actions contextualisées, puis le contenu. Conserver les largeurs de sidebar 264 px ouverte / 80 px réduite là où le shell les utilise. L’état actif associe texte lavande, fond violet discret et repère géométrique ; il ne se résume pas à un halo. La topbar est opaque et lisible.
-
-L’accueil connecté commence par l’équipe réelle et la prochaine action. Les vues Parties, Draft, Analyses, Mon profil et Planning privilégient la donnée pertinente. Un en-tête de page dense n’a pas besoin de grand 5. Les profils et équipes conservent leurs vraies identités. Les cinq rôles sont visibles et leurs absences explicitement indiquées.
-
-**Page Parties — imports automatiques (17 novembre 2026).** La bibliothèque des parties reste visible rapidement après l’en-tête. Le panneau d’import affiche d’abord son état en une ligne, puis au plus deux parties à finaliser avec leurs actions ; les autres parties en attente restent accessibles dans un volet nommé. Les ordinateurs liés, leur révocation, le choix du tag et l’historique des réceptions sont des détails repliables. Une liaison absente propose directement l’action de connexion ; un code généré reste visible jusqu’à fermeture. Les parties déjà importées ne remplissent plus la page de sous-cartes et se retrouvent dans la bibliothèque. Garder les compteurs, états, droits, erreurs et actions accessibles au clavier, sans débordement à 320 px. Cette réorganisation ne modifie pas le traitement des imports.
-
-Les listes se lisent par lignes et colonnes stables ; les séparateurs et espaces remplacent les sous-cartes. Les tables larges défilent dans leur conteneur identifié, jamais à l’échelle de toute la page. Les graphiques ont unités, légende et période ; la lumière de marque ne sert pas d’axe, de courbe ou d’état.
-
-## 7. Composants, états et iconographie
-
-Réutiliser `src/components/ui/Core.jsx` et ses styles, puis adapter le système une seule fois. Les noms ci-dessous renvoient aux composants existants, sans affirmer que leur style est déjà migré.
-
-| Besoin | Composant / règle cible |
+| Moment | Exemple de formulation |
 | --- | --- |
-| En-tête | `PageHeader` : titre, description utile, actions qui reviennent à la ligne ; surtitre facultatif et aucun décor imposé. |
-| Contenu | `Surface` : `reading` opaque pour la donnée, `frame` pour un groupe structurant, `scene` uniquement pour une vraie introduction. Alias `glass` maintenu si nécessaire. |
-| Action principale | `Button primary` et `LinkButton primary` : dégradé Signature NXT, texte et icône nuit `#020611`, une action dominante par zone ; même règle dans l’Importer. |
-| Action secondaire | `Button ghost` : fond nuit, bordure fonctionnelle et texte clair. |
-| Destruction | `Button danger` : sémantique rose dédiée, verbe précis et confirmation adaptée au risque réel. |
-| Champs | `TextInput`, `TextAreaInput`, `SelectInput` : label persistant, fond stable, aide et erreur associées. |
-| États | `Badge` et `tone()` : même signification partout ; ne pas utiliser l’alias historique `orange` pour demander un vrai orange. |
-| Onglets | `TabNav` : actif lisible, focus visible, libellés entiers et défilement limité à son conteneur. |
-| Notifications | `ToastStack` : résultat explicite, sans masquer durablement l’action ; les erreurs restent disponibles près du champ concerné. |
+| Invitation à agir | « Prépare ta prochaine draft. » · Bouton « Ouvrir la draft ». |
+| État vide | « Aucune partie importée. » · Action « Importer une partie ». |
+| Données partielles | « La chronologie manque pour cette partie. Le score final reste disponible. » |
+| Erreur récupérable | « Le fichier n’a pas pu être lu. Choisis un export JSON pour réessayer. » |
+| Communication d’équipe | « Revois les deux prises de dragon avant la prochaine séance. » Employer ce nombre uniquement si la partie le confirme. |
 
-États obligatoires selon le rôle : repos, survol, focus clavier, pressé, désactivé, chargement, succès et erreur. Le focus cyan mesure 2 px avec décalage de 3 px et reste visible sur les fonds concernés. Autour d’un primaire clair, préserver l’intervalle nuit entre le bouton et son anneau ; ne pas fusionner ces deux contours ni masquer le focus dans un parent rogné. Le focus ne remplace pas le dégradé de repos ou de survol.
+Dans le produit, un badge, un titre et un bouton ne doivent pas répéter la même phrase. Pour l’aide intégrée, viser 60 mots au premier niveau et laisser l’utilisateur développer. Les modalités d’accès, les montants, les délais et l’effet d’une suppression gardent leur formulation exacte.
 
-Le primaire emploie les trois palettes définies en section 3 selon repos, survol et pression ; le survol et la pression ne s’appliquent pas à une commande désactivée. Le chargement conserve le dégradé de repos, l’encre nuit, la largeur et un libellé compréhensible ; l’indicateur utilise `currentColor`. Une action désactivée garde sa forme, son libellé et son explication, ainsi que l’attribut natif ou le contrat accessible adapté à son élément. Les primaires désactivés, y compris pendant un chargement, utilisent une opacité de 0,75 : l’ancienne valeur de 0,5 assombrissait trop leurs libellés sombres. Vérifier le contraste composité sur le fond réel ; les quatre fonds de référence du site donnent au moins 6,00:1 à 0,75. Les autres rôles conservent leur propre atténuation. Le mode de contraste forcé conserve les couleurs système plutôt que le dégradé. Les états de succès et d’erreur gardent leur sémantique et ne reposent pas sur le seul dégradé.
+## Composition et iconographie
 
-Ajustement de cadrage du 11 novembre 2026 : les champs simples et boutons standards partagent une hauteur minimale de **48 px**, avec un interligne de 24 px pour les champs et de 20 px pour les boutons. Les boutons à texte long grandissent avec leur contenu ; les zones de texte gardent leur hauteur liée aux lignes. Les formulaires d’entrée conservent leur exception de 52 px. Le cadre connecté utilise une même gouttière pour topbar et contenu (16 px sur mobile, 32 px sur bureau, 40 px sur grand écran) ; les séparateurs du haut de la sidebar et de la topbar se rejoignent à 76 px sur bureau. Les flèches des cartes joueur sont centrées sur la ligne icône/poste. Vérifier ces règles dans les deux ordres de chargement CSS avec les contrôles navigateur `test:framing` et `test:layout`.
+**Grille.** Partir du contenu : 1 280 px de largeur cible pour les pages publiques, 60–68 caractères pour la lecture continue, jusqu’à 1 600 px utiles pour les pages de données. Le shell existant peut atteindre 1 680 px avec ses gouttières. La page peut être ouverte, sans encadrer chaque paragraphe dans une carte.
 
-Un champ mesure 48 px de haut, 52 px dans les formulaires d’entrée. Un bouton mobile vise au moins 44 px de haut ; les commandes à icône offrent une zone de 44 × 44 px. Le pictogramme peut rester à 18–20 px. Les actions ne se déplacent pas au survol. Ne pas désactiver le contour de focus sans remplacement visible.
+| Largeur de travail | Marges et organisation |
+| --- | --- |
+| 320–639 px | Marges de 16 px. Empiler titres et actions. Un nom long conserve assez de place pour revenir à la ligne. |
+| 640–1 023 px | Marges de 24 px dans les compositions publiques. Adapter les listes à la largeur réelle du panneau. |
+| Dès 1 024 px | Marges publiques de 32–48 px. Dans le shell, sidebar de 264 px ouverte ou 80 px réduite, gouttière de 32 px puis 40 px sur grand écran. |
 
-Lucide demeure la famille d’icônes d’interface, trait cohérent et taille constante. `RoleIcon` garde les cinq rôles et leurs SVG existants ; `TeamAvatar` garde les identités fournies par les équipes. Les portraits de champions et objectifs servent la lecture du jeu. Une icône décorative n’est pas annoncée deux fois ; un bouton sans texte possède un nom accessible. Ne pas transformer les icônes utilitaires en mini-sculptures de verre.
+**Espacement.** Employer 4, 8, 12, 16, 24, 32, 48, 64 et 96 px. Grouper l’étiquette et sa valeur à 8 px, séparer deux groupes à 24 px et réserver 48 px ou davantage au changement de section. Panneau à 24 px de marge intérieure, 16 px sur mobile, 20 px lorsque la place le justifie. Rayon de 2 px pour les boutons du site, 10 px pour les champs et 16 px pour les panneaux, 14 px sur mobile. Un niveau d’ombre suffit par groupe.
 
-## 8. Mobile, accessibilité et internationalisation
+**Iconographie.** Prendre Lucide pour les actions, généralement 18–20 px dans une cible de 44 × 44 px. Garder le trait de la famille et une forme identifiable en petit. Les SVG de rôle, les portraits de champions, les objectifs et les blasons d’équipe conservent leurs sources et proportions. Une icône d’action seule reçoit un nom accessible. Les cinq postes restent nommés même lorsqu’une place est vide.
 
-Concevoir à 390 px puis vérifier 320, 360, 768, 1024 et 1440 px. Les layouts partagés concernés passent aussi leurs contrôles jusqu’à 1 920 px. Tester les noms longs et FR/EN/ES ; le texte peut augmenter la hauteur des composants. Le logo ne force pas le menu hors de l’écran. Correction de cadrage du 11 novembre : sur petit écran, donner toute la largeur au nom du joueur, réserver une largeur lisible aux libellés du Wrapped, lier nombres et unités et signaler la troncature des sélecteurs par des points de suspension. Le bloc « Rester connecté » conserve 12 px de marge intérieure ; le fond statique du mode performance suit toute la hauteur du contenu.
+**Graphiques.** Donner à chaque graphique une période, une unité, une légende et une base de comparaison. Associer libellé, symbole ou motif aux séries qui doivent être distinguées. Les statistiques comparables partagent une échelle. « — » signale une valeur indisponible, « 0 » une mesure observée à zéro. Dans un face-à-face, bleu à gauche et rouge à droite ; l’issue du match s’écrit séparément. Afficher les alias longs sans perdre le joueur ou le côté qu’ils désignent.
 
-- Le contenu garde toute sa largeur sous le seuil de sidebar. Les titres et actions se superposent avant de réduire leur police.
-- Employer des requêtes de conteneur pour les listes et métriques qui doivent s’adapter à une sidebar ou à un panneau. Ne pas déduire la largeur utile du seul viewport.
-- Les tableaux peuvent déborder dans leur propre zone ; aucun débordement horizontal global. Les onglets ont un défilement local et un repère de sélection visible.
-- À 200 % de zoom, le contenu et les contrôles restent atteignables. À petite largeur, les actions principales et l’aide ne disparaissent pas.
-- Vérifier les CTA principaux à 320 et 390 px, leurs libellés longs et leurs états de chargement : conserver les retours à la ligne, les hauteurs de contrôle existantes et l’espace du focus. Le dégradé couvre toute la largeur du bouton, sans largeur fixe imposée ni changement de disposition pour le faire tenir. La règle de couleur s’applique aussi aux fenêtres étroites de l’Importer, en conservant ses parcours et sa composition propre.
-- Préserver l’ordre de lecture, le focus à l’ouverture/fermeture des dialogues, la navigation clavier et les noms accessibles. Vérifier la hiérarchie de titres réelle : le composant historique `PageHeader` peut émettre un `h2`.
-- Les erreurs décrivent le problème et l’action possible ; elles ne reposent pas sur un contour coloré seul. Les statuts asynchrones utilisent une annonce adaptée sans répétition décorative.
-- Un logo raster bien rendu à 390 px ne valide pas un favicon à 16 px. Ces contrôles sont distincts.
+## Interfaces et données
 
-## 9. Mouvement, chargement et performance
+### Construire un écran
 
-**Correction explicite du 10 novembre 2026 : conserver le 5 en vraie 3D et toutes les animations antérieures, avec la matière Prisme.** La migration graphique ne doit pas simplifier le site. Restaurer la scène immersive, ses réponses au pointeur, son défilement natif animé, ses transitions, ainsi que les scènes de connexion, chargement et accueil d’équipe. Depuis le choix du 11 novembre, le verre conserve la silhouette élancée et la matière de l’ancien 5, avec uniquement un accord chromatique Prisme. Ses biseaux, facettes, réfraction et animations restent ceux du moteur historique. Les contrôles de réduction du mouvement et les protections de performance restent actifs.
+1. **Accueil public.** Garder la scène historique du 5 en vraie 3D et sa réponse au pointeur et au défilement. La ligature NXT vient au contact du volume mobile. Sur téléphone, NXT s’aligne en haut à gauche, le grand 5 en dessous à droite, puis l’introduction et son action. À 320 px, le titre et le 5 gardent chacun leur espace. La photographie Monolithe signe une campagne ou une ouverture éditoriale.
+2. **Espace connecté.** Donner le premier rôle à l’équipe, au joueur ou à la partie. Placer le titre et l’action dans le même axe que les données. Utiliser une surface de lecture opaque pour les notes, les tableaux et les formulaires. Pour un cadre d’introduction, une seule arête ou une facette périphérique, à 4–10 % de lavande, suffit.
+3. **Importer.** Reprendre la petite signature couleur, les états et l’action principale. Respecter les espaces Exporter, Collecte automatique, Historique et Paramètres, leur propre navigation et leurs dimensions. Vérifier la fenêtre étroite sur les plateformes concernées. Les fournisseurs d’identité portent leurs signes officiels.
 
-Durées cibles : 120–180 ms pour un contrôle, 180–240 ms pour une transition de panneau, 400–600 ms au maximum pour une entrée de marque non bloquante. Privilégier opacité et transform ; aucun mouvement de layout qui décale une action en cours. Une séquence d’introduction ne se répète pas à chaque changement d’onglet.
+### Composants et états
 
-`prefers-reduced-motion` et `html.nxt5-low-gpu` conservent un rendu statique complet. Ne pas ajouter de moteur 3D au header ou à un tableau. Les moteurs existants du Hero/connexion/accueil doivent conserver la sculpture historique retenue le 11 novembre, avec poster immédiat, chargement à la demande, suspension hors vue et onglet masqué, nettoyage des ressources et écouteurs. Aucune donnée utile ne dépend de WebGL.
+| Élément | Règle de réalisation |
+| --- | --- |
+| En-tête et surface | Réutiliser `PageHeader` et `Surface`. Choisir `reading` pour la donnée, `frame` pour structurer, `scene` pour une vraie introduction. Vérifier le niveau H1/H2 rendu. |
+| Bouton ou lien d’action | Un primaire dominant par groupe. `secondary` pour une action d’appui, `ghost` pour une action discrète, `danger` pour la destruction. Nommer l’action et garder un contraste lisible dans chaque état. |
+| Champs | Utiliser les contrôles partagés, label persistant, aide et erreur associées. Hauteur standard 48 px, 52 px dans les formulaires d’entrée. Un champ multilignes grandit avec son contenu. |
+| Focus et chargement | Anneau cyan de 2 px, décalé de 3 px, avec espace sombre autour du primaire. Pendant l’attente, conserver largeur, libellé et indicateur en `currentColor`. |
+| Désactivation | Pour le primaire, opacité 0,75, sans survol ni pression actifs. Exprimer la raison si elle aide à avancer. En contraste forcé, utiliser les couleurs système. |
+| Navigation et retours | `TabNav`, `Badge` et `ToastStack` gardent leurs conventions. L’actif a un repère visible, l’erreur reste à côté du champ et le succès s’exprime en toutes lettres. |
 
-`AppLoadingProvider` conserve un écran unique pour Ouverture / Connexion / Synchronisation. Une seule occurrence du titre de phase, une description utile et une progression réelle. Quand le total est inconnu, garder l’état indéterminé ; ne pas inventer de pourcentage ou retarder l’arrivée du contenu pour montrer le logo. Un résultat vide chargé ouvre son état vide. Les cinq rôles décoratifs ne représentent pas des connexions réelles.
+Les boutons standards ont une hauteur minimale de 48 px et un interligne de 20 px, les champs un interligne de 24 px. Les petites commandes tactiles offrent au moins 44 px. Autoriser les libellés à passer sur deux lignes. Aligner topbar et contenu en conservant leur gouttière commune ; sur le bureau, les séparateurs hauts se rencontrent à 76 px. Sur une fiche joueur, centrer le chevron sur la ligne poste/icône.
 
-Sur mobile et en faible hauteur, le signe devient compact et laisse la place au statut. Le fond, les caustiques et le reflet s’éteignent en mode performance ; l’identité et la progression restent compréhensibles. Conserver le cycle de vie et les animations existants ; cadrer les décors pour préserver les informations utiles.
+**Parties et imports.** Donner rapidement accès à la bibliothèque. Le panneau d’import affiche son état et jusqu’à deux parties à finaliser ; les autres restent accessibles dans un volet nommé. Les ordinateurs liés, la révocation, le tag et l’historique se déplient à la demande. Le code de liaison généré reste visible jusqu’à la fermeture.
 
-Budgets cibles à mesurer à l’intégration : signature de header autour de 30–60 Ko selon variante, signe compact sous 20 Ko si possible, poster de scène sous 180 Ko à la taille effectivement affichée. Ce sont des objectifs, pas une raison de dégrader les contours ni des mesures des PNG d’exploration. Définir `width`, `height`, `sizes` et les variantes utiles, ne pas livrer systématiquement la pleine résolution.
+**Connexion de l’Importer.** À l’ouverture, le logo couleur et l’action « Se connecter avec NXT5 » occupent un panneau unique. Le repère de confirmation est lisible sur le bureau et dans le navigateur. Une fois connecté, le compte apparaît dans la navigation et la collecte de l’équipe devient l’entrée principale pour le staff. L’export personnel reste accessible aux joueurs. À partir de deux équipes, chaque nouvelle ouverture présente toutes les appartenances sous forme de lignes avec nom, tag et rôle. Un clic choisit l’équipe de la session. Le menu « Équipe active » permet ensuite de changer de destination.
 
-## 10. Ton, images et supports
+**Préparation d’une partie dans l’Importer.** Sous l’équipe liée, « Prochaine custom » réunit le nom, l’adversaire et la draft dans une fiche facultative. Une salle récente remplit ces champs. La validation active la collecte et replie la fiche en un récapitulatif modifiable. L’export JSON propose les mêmes champs dans une section dépliable.
 
-Français direct, tutoiement, bénéfices concrets : « Importe tes parties », « Prépare la prochaine séance », « Retrouve les notes de ton équipe ». Expliquer draft ou champion pool au premier emploi destiné à un débutant. Ne pas promettre de victoire ni inventer une adoption professionnelle, un client, une performance ou un témoignage.
+## Mouvement et accessibilité
 
-Les libellés actuels **Mon équipe**, **Parties**, **Notes**, **Catégorie** conservent leur sens. Le mot débrief peut désigner une séance, mais ne remplace plus la rubrique Notes. Un état vide indique une prochaine action ; une erreur indique comment agir. Les données fictives des maquettes sont explicitement identifiées.
+| Interaction | Cadence cible | Comportement |
+| --- | --- | --- |
+| Contrôle ou retour bref | 120–180 ms | Opacité et couleur ou transformation légère. La cible reste sous le pointeur. |
+| Ouverture d’un panneau | 180–240 ms | Garder le contexte et placer le focus sur la première action utile. Le restituer à la fermeture. |
+| Entrée de marque | 400–600 ms au maximum | Séquence non bloquante. Le contenu arrive dès qu’il est prêt. |
+| Scène du 5 | Selon la scène historique | Poster immédiat, moteur à la demande, pause hors champ ou onglet masqué, libération des ressources. |
 
-### Images et scènes
+La sculpture historique garde sa silhouette élancée, ses biseaux, sa réfraction et ses animations. Un poste en mouvement réduit ou faible GPU reçoit un poster complet. Respecter `prefers-reduced-motion` et `html.nxt5-low-gpu`. Les scènes de connexion et d’accueil d’équipe conservent leur cycle de vie. Le chargement Ouverture / Connexion / Synchronisation affiche une phase une seule fois, une progression réelle ou un indicateur indéterminé. Un état vide chargé s’ouvre dès que les données sont prêtes.
 
-Les captures du vrai produit démontrent son fonctionnement, les scènes Prisme signent la marque. Ne pas présenter une maquette comme une capture de production. Les avatars et champions gardent leur ratio et leur attribution utile. Les fonds décoratifs sont réservés aux bords ou zones dédiées, sans texte fin superposé à une facette.
+**Contrôles de lecture.** Concevoir à 390 px, vérifier 320, 360, 768, 1 024 et 1 440 px, le paysage court et jusqu’à 1 920 px pour le shell. À 200 % de zoom, garder chaque action et information accessible. Un tableau large défile dans son conteneur nommé. Une fenêtre modale conserve le focus, se ferme au clavier et rend le focus au déclencheur. Accompagner les erreurs et changements d’état asynchrones d’un texte lisible par les technologies d’assistance.
 
-### Exports et réseaux
+**Performances.** Servir la taille d’image réellement affichée avec dimensions explicites et variantes adaptées. Viser 30–60 Ko pour une signature de header, moins de 20 Ko si possible pour le signe compact et environ 180 Ko pour le poster délivré à sa taille d’usage. Le PNG de campagne est un original de production. Préparer une déclinaison optimisée pour un site avant intégration.
 
-Un export de partie reste un **PNG unique**, avec noms complets, côtés, contexte, unités et données réelles ; pas de ZIP imposé. La synthèse Discord conserve sa composition courte distincte du PNG détaillé du site. Le logo ne concurrence pas le résultat ni les compositions. Les titres et statistiques ne reçoivent pas l’effet de verre.
+**Cas sensibles sur téléphone.** Donner la largeur utile aux noms de joueur et aux libellés du Wrapped. Garder ensemble nombres et unités, signaler les valeurs tronquées des sélecteurs, conserver 12 px de marge intérieure dans le bloc « Rester connecté ». Le fond du mode performance couvre toute la hauteur de contenu. Les commandes essentielles restent disponibles en paysage court.
 
-Repères de format : Open Graph 1 200 × 630 ; paysage social 1 600 × 900 ; portrait 1 080 × 1 350 ; vertical 1 080 × 1 920 selon destination. Prévoir des marges de sécurité adaptées à l’interface de publication et vérifier les recadrages réels. La référence choisie n’autorise pas une publication automatique.
+**Texte de remplacement.** Le lien de marque annonce sa destination. Une photo informative peut être décrite par « Sculpture NXT5 en cristal indigo au ras de l’eau, éclairée derrière le X et le T ». Une scène décorative à côté d’une description équivalente reçoit un attribut alt vide. Pour un graphique, communiquer le fait principal et proposer les valeurs dans une forme accessible.
 
-### Emails et authentification
+## Gabarits de communication
 
-Les emails utilisent une structure compatible, des couleurs opaques, un logo PNG testé sur son fond et une vraie version texte. Leur CTA reprend le dégradé Signature NXT et l’encre nuit `#020611`, avec un fond cyan `#67E8F9` de secours pour les clients sans dégradés. Il doit rester lisible en mode sombre et en cas de blocage d’image ; aucun effet CSS complexe requis. Vérifier le rendu propre aux clients email sans imposer les états interactifs du navigateur. Les durées des liens de sécurité et les destinations restent celles du produit. Les boutons Google, Discord, Apple et Riot conservent leurs assets et règles de marque propres ; ne pas leur appliquer le CTA NXT5.
+Ces dimensions sont des plans de travail pour NXT5. Vérifier le recadrage de la destination avant diffusion. Le même fond d’écran peut ouvrir une campagne ; une annonce de match doit aussi rendre lisibles les équipes, la date et le contexte.
 
-## 11. Recette et état de livraison
+| Support | Plan de travail | Recette |
+| --- | --- | --- |
+| Fond d’écran | 16:9 · original 1 664 × 936 | Livrer le PNG choisi, espace haut gauche libre, sans surimpression. Identifier toute version agrandie comme telle. |
+| Visuel de partage Open Graph | 1 200 × 630 px | Un titre court sur nuit, une silhouette lisible à la taille d’un aperçu, texte descriptif dans les métadonnées. Vérifier le haut et le bas après passage du 16:9 au format plus large. |
+| Annonce paysage | 1 600 × 900 px | Placer un titre en haut à gauche si sa longueur le permet. Faire porter le détail de la publication par la légende. |
+| Publication portrait / carré | 1 080 × 1 350 / 1 080 × 1 080 px | Construire un bloc éditorial nuit et une bande image au ratio natif. Garder l’heure et les deux équipes ensemble. |
+| Story / ouverture verticale | 1 080 × 1 920 px | Encadrer la vue paysage entre une zone de titre et une zone de date ou d’action. Contrôler dans le lecteur réel les masques du haut et du bas. |
+| Présentation / diffusion en direct | 16:9 · par exemple 1 920 × 1 080 px | Monolithe à l’ouverture ou en transition. Pour une analyse, passer à un fond calme et à une donnée principale par écran. Un bandeau de direct garde libres le jeu, son score et ses commandes. |
+| Email | Gabarit produit de 640 à 660 px | Utiliser le petit logo en PNG sur fond stable. Garder le titre, le bouton et le lien de secours lisibles images bloquées. Prévoir la version texte et vérifier en mode sombre. |
+| Partie / groupe / Discord | PNG unique à hauteur variable | La partie détaillée utilise le rendu de 1 440 px partagé entre site et bot. Le message Discord reste court. Le groupe publié sur Discord utilise sa synthèse de 960 px ; le rapport de groupe du site conserve son propre détail. |
 
-### Critères d’acceptation
+Le titre d’un partage est un texte éditable ou une métadonnée quand le canal le permet. Dans un email, utiliser un fond cyan de secours derrière le dégradé et garder l’encre nuit. Dans un rapport, les noms complets, unités, dates, patch et couverture des données priment sur le décor. Dans un modèle de présentation, indiquer « Exemple fictif » près des chiffres inventés. Les captures de produit destinées à expliquer un parcours proviennent d’une version identifiée.
 
-- Logo rendu depuis les masters de la section 4 ; aucune frange, aucun caractère ambigu ou étiré. Le 5 a les couleurs de la sculpture 3D.
-- Palette cible appliquée par tokens ; données et sémantiques préservées.
-- Une hiérarchie visible : marque, tâche, données, actions ; pas d’empilement de décor.
-- CTA principal conforme au dégradé Signature NXT dans ses états de repos, survol, pression, focus, chargement et désactivation ; texte et icônes nuit lisibles, labels et erreurs accessibles.
-- Zéro chevauchement ou débordement global dans les dimensions testées.
-- Aucune nouvelle régression dans les données, droits, import, sauvegarde ou navigation.
-- Distinguer explicitement ce qui est conçu, livré, testé localement et déployé.
+### Trois compositions à reprendre
 
-### État au 23 novembre 2026
+**Annonce de scrim.** Les deux SVG du kit appliquent la même hiérarchie. « Partie d’entraînement » introduit l’affiche. Les noms « Orage × Sillage » se lisent en Inter sur fond nuit. Monolithe occupe la bande centrale entière, puis viennent le jour, la date et l’heure de Paris. Dans la story, les deux noms passent sur deux lignes et les informations utiles restent en retrait des extrémités. Dupliquer le SVG, modifier ses champs de texte puis exporter en PNG sRGB. Remplacer toutes les données fictives par les coordonnées confirmées de la rencontre.
 
-**Réalisé.** La signature soudée et le verre du 5 en 3D sont appliqués au site, aux emails, aux exports PNG, aux publications, au visuel de partage, aux favicons, aux icônes et à NXT5 Importer 0.4.8. Le contour NXT de la scène d’accueil reprend la ligature. Les anciens logos, leurs générateurs et l’ancienne image de référence sont supprimés du dépôt ; les adresses des anciens logos servent désormais la signature actuelle.
+<img src="assets/prisme-monolithe/scrim-portrait.png" width="288" alt="Exemple fictif de publication portrait, Orage contre Sillage avec la photographie en bande centrale." /> <img src="assets/prisme-monolithe/scrim-story.png" width="203" alt="Déclinaison story du même match avec les noms sur deux lignes et une réserve en haut et en bas." />
 
-**Contrôles locaux.**
+**Compte rendu pour le staff.** Placer le nom de la rencontre, la date et le patch en tête. Afficher l’issue avec son libellé, puis les deux équipes dans leur ordre de côté. Aligner les chiffres et leurs unités. Isoler la décision de séance sous « À travailler ». Pour un partage externe, utiliser les champs prévus par le modèle de publication ; les notes privées du staff restent dans leur espace.
 
-- `npm run verify` : 4 029 messages traduits en anglais et en espagnol, typage, 244 fichiers et 4 646 tests, build, prérendu SEO de 13 pages.
-- `npm run test:layout` : 20 contrôles navigateur réussis. 54 tests Importer réussis. Audit des dépendances réussi.
-- Couleur moyenne du 5 mesurée dans les fichiers : `#4741a7` pour la grande signature, `#5652b0` pour l’interface, `#5859b0` pour l’icône, et `#3a389e` sur le poster de la sculpture. La teinte va de 239 à 244 degrés pour 241 sur la sculpture ; l’écart de clarté restant vient du contour et de l’arête, comptés dans la mesure.
-- Composants réels sur données fictives : logo, signature de 88 à 180 px, barre latérale, symbole replié, avatar d’équipe par défaut de 32 à 62 px, favicons 16 et 32 px, icônes Apple et masquable. Aucune image cassée ni erreur JavaScript.
-- Scène d’accueil à 1 440, 1 280, 768, 390 et 320 px, et en paysage 844 × 390 : aucun débordement horizontal, disposition mobile conservée, titre et action sans chevauchement.
-- Les redirections des anciennes adresses figurent dans le fichier `_redirects` généré par le build. Sur l’aperçu Netlify de la pull request 292, les anciennes adresses des logos d’email, des icônes et des alias renvoient bien la signature actuelle.
+**Présentation partenaire.** Ouvrir sur une page de campagne. Sur la page suivante, donner un exemple d’usage réel et nommer l’équipe avec son accord. Poser sa marque sur une surface dédiée. Terminer par une action ou un contact vérifié. Le premier visuel contient déjà le mot NXT5 ; une deuxième signature superposée lui ferait concurrence.
 
-**Limites.** Ces contrôles sont locaux. La branche `claude/brave-dijkstra-oo0jhl` n’est ni fusionnée ni déployée, et l’Importer 0.4.8 n’est pas publié. L’email n’a pas été envoyé ni ouvert dans une messagerie. La déclinaison sur fond clair n’est employée nulle part. Les rapports datés de `docs/` gardent leur rédaction d’origine et peuvent citer des fichiers supprimés depuis.
+### Quand une composition échoue
 
-## 12. Entretien et sources
+| Symptôme visible | Correction |
+| --- | --- |
+| Le mot se lit « NX5 » ou le N disparaît sur téléphone. | Reprendre le master et rétablir la ligature complète. Pour le portrait, réduire la bande image ou recomposer les masses. |
+| La date se perd dans les rayons. | Rentrer le texte dans la zone sombre ou créer un bloc nuit éditable. Tester sur l’aperçu réellement affiché. |
+| Le bouton principal semble appartenir au côté bleu. | Restaurer le dégradé cyan–pervenche–lavande et l’encre nuit. Garder la couleur de côté auprès du nom de l’équipe. |
+| Le rapport donne l’impression d’une affiche. | Revenir aux surfaces opaques, retirer les reflets derrière les chiffres et faire passer l’identité des équipes en premier. |
+| Le 5 devient une masse noire en petit. | Choisir la variante interface ou l’icône optique, puis contrôler le fichier à sa taille de diffusion. |
 
-Ce document est la seule charte. Pour le faire évoluer : appliquer la demande de l’utilisateur, mettre à jour la section concernée et la table des décisions en vigueur, puis retirer ce qui n’est plus vrai. Ne pas empiler une version sur la précédente : l’historique Git garde les anciennes rédactions.
+## Impression et fabrication
 
-Inter et Chakra Petch sont fournies localement avec leurs licences OFL. Les valeurs de couleur à réutiliser sont en section 3, celles du verre du 5 en section 4.
+| Usage | Fichier de départ | Point à valider avec le fabricant |
+| --- | --- | --- |
+| Affiche, fiche de présentation, dossier partenaire | Master vectoriel pour le logo et image Monolithe pour la photo | Format fini, fond perdu de l’imprimeur, taille effective de l’image, profil ICC et épreuve à la taille utile. |
+| Sérigraphie monochrome, gravure, marquage textile | Master mono clair ou nuit selon le support | Limite du trait, ouverture des contre-formes N/X et X/T et lisibilité de l’encoche T–5 sur un échantillon physique. |
+| Broderie ou très petit marquage | Signe compact ou version monochrome adaptée à la place disponible | Faire valider une broderie d’essai. Agrandir le signe si le fil remplit l’ouverture ou relie deux bords. |
+| Signalétique de grand format | SVG officiel pour le dessin ; photographie à la résolution adaptée à la distance | Contrôler à distance d’usage la lecture de NXT5, la soudure supérieure et la séparation des pieds. |
 
-Lire en priorité, selon les fichiers présents dans le checkout :
+**Couleur imprimée.** Le cyan et le violet lumineux viennent d’un écran émissif. Convertir le fichier sRGB au profil fourni pour le papier et la machine. Comparer une épreuve physique au master, en priorité sur la séparation entre indigo et nuit, les biseaux et le détail de l’eau. Un ton direct ou une encre spéciale se décide sur un nuancier physique. Conserver dans le bon à tirer le support, le profil et le procédé retenus.
 
-- `src/components/brand/BrandAssets.jsx` et `brand.css` pour les consommateurs du logo et les rôles.
-- `src/components/ui/Core.jsx`, `core.css`, `src/index.css` et `src/styles/surface-defaults.css` pour primitives, tokens et cascade.
-- `src/components/layout/AppChrome.jsx` et `app-chrome.css` pour le shell ; ne pas reconstruire une seconde navigation.
-- `src/pages/home/`, `src/components/brand/GlassScene.jsx` et les scènes publiques/auth pour l’identité et son cycle de vie.
-- `src/components/loading/` pour le chargement réel et ses variantes statiques.
-- `src/utils/png-report.js`, `src/components/discord/` et `shared/publications/` pour les exports ; `netlify/functions/_lib/email.ts` pour les emails.
-- Les feuilles locales et tests du parcours concerné avant toute modification. Consulter le graphe local lorsqu’il existe, puis vérifier ses sources actuelles.
+**Résolution de la photo.** À 300 pixels par pouce, les 1 664 × 936 pixels du premier Monolithe couvrent environ **14,1 × 7,9 cm**. Pour une affiche plus grande, choisir avec l’imprimeur une résolution adaptée à la distance de lecture, commander un original plus défini ou placer la photo dans une bande plus petite. Pour le mot seul, utiliser le SVG. Garder les textes vectoriels ou éditables jusqu’à la fabrication.
 
-Les anciens checkouts peuvent encore contenir une autre palette ou version du logo : leur état ne remplace pas cette charte. Ne pas migrer un ancien checkout en écrasant les évolutions présentes ailleurs. Les instructions visuelles d’`AGENTS.md` renvoient ici ; maintenir le lien plutôt que recopier les valeurs.
+## Fichiers et contrôle final
+
+### Contenu du kit
+
+| Dossier | À remettre |
+| --- | --- |
+| `Signatures/` | Les cinq SVG officiels, les PNG transparents et les WebP grand format et interface. |
+| `Icones/` | Favicon SVG, icônes aux tailles d’usage et déclinaison masquable. |
+| `Campagne/` | Le premier PNG Monolithe choisi, en 16:9, avec le cadrage et l’étalonnage d’origine. |
+| `Couleurs/` | 23 nuances sRGB en Adobe Swatch Exchange (.ase) et GIMP Palette (.gpl), plus les variables CSS de référence du produit et les trois dégradés du bouton principal. |
+| `Polices/` | Inter et Chakra Petch 600 italique pour le web (WOFF2) et les logiciels de création (TTF), avec leurs licences OFL. Installer les TTF du dossier `Bureau/` de chaque famille avant de modifier les gabarits. |
+| `Gabarits/` | Deux annonces de scrim éditables en SVG, portrait 1 080 × 1 350 px et story 1 080 × 1 920 px. L’image Monolithe est incorporée à chaque fichier. |
+| `SOURCES.txt` | Révision des masters, date, origine et nature des fichiers du kit. |
+
+Les signatures, les icônes et les polices web proviennent du dépôt NXT5. Les fontes de bureau proviennent des sources officielles Google Fonts, avec leurs licences. Les deux nuanciers reprennent les valeurs de cette édition. Pour transmettre un visuel à un prestataire, préciser la destination, la langue, le format fini, le fichier de marque et le profil couleur. [Inter](https://github.com/google/fonts/tree/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/inter) · [Chakra Petch](https://github.com/google/fonts/tree/6ebe737e44fd64ee736bbc6feed6136a6dbfd222/ofl/chakrapetch)
+
+### Épreuve avant livraison
+
+- **Marque.** Lire « NXT5 » à la taille finale, puis vérifier la barre du T, l’encoche en dessous et le contour du 5. Contrôler la réserve de la signature complète. À 16 et 32 px, examiner le signe compact dédié.
+- **Image.** Comparer avec le premier Monolithe. Le reflet et la brume appartiennent à la même lumière. Aucun ajout ne masque les ouvertures ni la zone de lecture. Identifier dans le nom de livraison le canal, la dimension et la version.
+- **Produit.** Vérifier les états du contrôle principal, les touches clavier, la réduction du mouvement, les noms longs et les écrans étroits. Lire le résultat et le côté sans couleur. Distinguer les données absentes des zéros.
+- **Diffusion.** Ouvrir l’export réel dans son contexte : miniature de partage, fenêtre de l’Importer, client email ou épreuve imprimée. Contrôler transparence, crop, fonds clairs/sombres, accents et liens. Conserver le fichier source ayant produit le support accepté.
+
+### Sources de production et entretien
+
+- La géométrie de la signature est définie dans `tools/prisme/soude-geometry.mjs`. Les variantes sont produites par `tools/prisme/build-soude-signature.mjs` et les icônes par `tools/prisme/build-assets.mjs`. Les ressources servies sous `/assets/` ont un cache long : une signature modifiée reçoit un nouveau nom et les anciennes adresses utiles sont gérées dans `RETIRED_BRAND_ASSETS`. [Masters officiels](https://github.com/AshaiiTV/NXT5/tree/1885126e3578d3020b951593caa28254a4a8ea9c/public/assets/brand/prisme) · [Outils de construction](https://github.com/AshaiiTV/NXT5/tree/1885126e3578d3020b951593caa28254a4a8ea9c/tools/prisme)
+- Pour le site, lire `BrandAssets.jsx`, `Core.jsx`, `core.css`, `src/index.css` et les styles de la surface concernée. Le shell, les parcours légers et les scènes animées ont leurs propres consommateurs. Pour le PNG et le bot, prendre comme référence le générateur de la révision livrée. [Composants de marque](https://github.com/AshaiiTV/NXT5/tree/1885126e3578d3020b951593caa28254a4a8ea9c/src/components/brand) · [Rendus des publications](https://github.com/AshaiiTV/NXT5/tree/1885126e3578d3020b951593caa28254a4a8ea9c/shared/publications)
+- Les objectifs de contraste s’appuient sur les critères relatifs aux textes et aux éléments non textuels. La mesure d’un nuancier se complète par celle du rendu réel. [Contraste du texte](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) · [Contraste des éléments non textuels](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html)
+- Les décisions de cette édition prennent pour base la signature Prisme 3.0 du 23 novembre et le choix explicite du premier Monolithe du 25 novembre. Lors d’une évolution demandée, mettre à jour la règle, sa planche et le kit concerné au même endroit. Les autres checkouts conservent un lien vers cette source. [Charte de référence du 23 novembre](https://github.com/AshaiiTV/NXT5/blob/1885126e3578d3020b951593caa28254a4a8ea9c/docs/charte-graphique.md)
 
 ## Annexe A — Contrats de parcours conservés
 
-**Portée de cette annexe :** conserver les décisions fonctionnelles de la version précédente, avec leurs dates et détails. Les instructions de données, droits, navigation, états, textes et formats restent actives. Toute prescription graphique historique — anciens assets, tailles de titres, teintes, intensités ou libellé de variante visuelle — s’interprète selon les règles actives des sections 2 à 10 ci-dessus. Cette annexe ne certifie pas le déploiement des fonctionnalités citées. Les décisions du 4 novembre priment sur les termes plus anciens, notamment « Débriefs » remplacé par « Notes ».
+Les règles actuelles de marque figurent ci-dessus. Cette annexe conserve les décisions datées sur les données, droits, libellés, états et parcours. Les anciens noms de fichiers, couleurs et prescriptions de mise en page s’interprètent selon la présente édition. Les libellés du 4 novembre placent les observations d’équipe dans « Notes ».
+
+<details>
+<summary>Consulter les contrats détaillés du site, de l’Importer et de Discord</summary>
 
 ## Évolution du 4 novembre 2026 — Couleurs des côtés
 
@@ -351,7 +310,7 @@ Les repères de côté bleu et rouge utilisent des couleurs franches et dédiée
 L’onglet « Débriefs » de l’espace équipe devient « Notes ». Son rôle est de conserver les observations et décisions rédigées par les membres ; les statistiques, compositions, courbes, objectifs et moments de jeu restent dans « Parties ». Les notes existantes restent accessibles sans migration destructrice, y compris celles liées à plusieurs parties ou sans partie liée. Les anciens rapports purement automatiques restent stockés mais n’encombrent pas la liste Notes. La création d’un groupe ne génère plus automatiquement un débrief. La page Notes évite le bilan visuel et la file « À traiter » redondants ; le statut de traitement d’une partie reste consultable et modifiable dans Parties selon les droits existants. Les anciens liens `/rapports` continuent d’ouvrir Notes. Conserver la rédaction, le brouillon de session, la recherche et les liens vers les parties sources, avec les mêmes contrôles d’accès. Cette décision prime sur les mentions historiques de l’onglet Débriefs ci-dessous ; le mot « débrief » peut rester pour désigner une séance ou l’acte d’analyser une partie, mais plus cette rubrique de navigation.
 
 
-**Précision du 19 novembre 2026.** Dans chaque fiche de partie, la première vue se nomme « Résumé ». Elle donne accès au texte intégral de chaque débrief enregistré lié à cette partie, y compris les débriefs de groupe. Elle réunit le score, les compositions, l’économie, les objectifs, les moments clés, la chronologie et la lecture par poste et par joueur. Placer « Notes » à côté de « Résumé ». Le coach et les joueurs y lisent et rédigent les notes de la partie, avec possibilité de lier d’autres parties. Une nouvelle note reste dans Notes. La bibliothèque d’équipe rassemble aussi les notes sans partie liée. Lorsqu’une observation historique est modifiée, dissociée ou supprimée dans Notes, le résumé conserve le titre, le texte intégral et les parties liées du débrief d’origine.
+**Précision du 19 novembre 2026.** Dans chaque fiche de partie, la première vue se nomme « Résumé ». Elle donne accès au texte intégral de chaque débrief enregistré lié à cette partie, y compris les débriefs de groupe. Elle réunit le score, les compositions, l’économie, les objectifs, les moments clés, la chronologie et la lecture par poste et par joueur. Présenter les onglets dans l’ordre « Résumé », « Face-à-face », « Drafting », « Notes ». « Notes » se trouve tout à droite, en bas à droite lorsque la barre passe sur deux rangées. Deux cartes superposées (Lucide `PlayingCards`) signalent le choix des champions dans « Drafting ». Dans « Notes », le coach et les joueurs lisent et rédigent les notes de la partie, avec possibilité de lier d’autres parties. Une nouvelle note reste dans Notes. La bibliothèque d’équipe rassemble aussi les notes sans partie liée. Lorsqu’une observation historique est modifiée, dissociée ou supprimée dans Notes, le résumé conserve le titre, le texte intégral et les parties liées du débrief d’origine. Dans le résumé, présenter d’abord les observations de tous les débriefs liés par sujet de jeu. Afficher une fois chaque point répété avec ses sources, conserver séparément les valeurs divergentes et identifier les notes du staff. Les textes intégraux restent accessibles sous « Débriefs d’origine », regroupés par titre. La vignette calendrier porte la date du débrief affiché. Ouvrir le plus récent en premier et donner accès aux autres par leur date, avec leur auteur et leur statut.
 
 **Précision du 20 novembre 2026.** L’accès « Notes » se fait depuis l’onglet de la fiche de partie ou la bibliothèque d’équipe à l’adresse `/notes`. Le menu latéral, y compris sa version réduite et son tiroir mobile, ne présente plus d’entrée « Notes ».
 
@@ -422,6 +381,8 @@ Extension explicite du même jour : l’ouverture d’une draft doit présenter 
 **Disposition de la salle sur PC (22 novembre 2026).** Utiliser la largeur disponible dans l’espace staff et sur le lien invité. Chaque camp présente ses cinq picks en bandes illustrées avec le nom du champion en clair, puis ses cinq bans en rangée compacte. Le visuel central donne la priorité au visage. Placer la validation à portée du capitaine sur un écran de portable et agrandir le chrono du tour lorsqu’il est activé. Réserver cette disposition aux conteneurs assez larges pour conserver deux camps et un catalogue lisibles.
 
 **Affiche de match et salle de sélection.** À la création, l’illustration de la Faille porte les noms des deux équipes et un aperçu des réglages. Placer le bleu à gauche ou en premier et le rouge à droite ou en second. Chaque modification du côté, du premier choix et des règles actualise cet aperçu. En session, réunir la phase et le chrono au-dessus du portrait, placer les compositions en miroir et réserver toute la largeur sous la scène à la recherche et aux champions disponibles. Sur téléphone, garder la légende sous l’image. Pendant le tour du capitaine, ancrer la validation au bas du catalogue, à portée du pouce pendant le défilement. Son libellé indique le champion présélectionné ou le ban passé. Les compositions restent dépliables pour lire les noms et les bans. Le compteur des choix ouvre l’historique de la manche, accessible aussi au spectateur. Il affiche les tours confirmés en commençant par le dernier, avec le camp, le champion et le type de choix.
+
+Dans une salle, les onglets Draft, Historique et Salle restent sur une ligne, y compris sur téléphone. Souligner l’onglet actif et conserver la phase et le chrono visibles dans les trois vues. L’historique montre les choix confirmés. L’onglet Salle regroupe les règles et les liens d’invitation accessibles au capitaine hôte. Dans l’espace équipe, les onglets de création et de salles récentes conservent la configuration en cours.
 
 ### Équipes adverses — clarification du 12 octobre 2026
 
@@ -677,9 +638,11 @@ La route `/bot-discord` est une page de l’espace équipe, accessible dans le g
 - **États fiables :** distinguer bot indisponible, absence d’équipe, accès insuffisant, liaison non vérifiée, code expiré, connexion en pause, destination invalide et publication à vérifier. Ne pas déduire la santé générale du bot d’un simple bouton cliqué. Conserver les informations déjà vérifiées lors d’une erreur de rafraîchissement, avec un message qui indique que leur actualisation a échoué.
 - **Présentation et responsive :** hiérarchie compacte, surfaces calmes et séparateurs légers. Les boutons conservent leur rayon de 2 px et la palette NXT5. L’étape courante, l’action principale et les accès secondaires restent identifiables sur petit écran, sans rangée d’onglets à faire défiler. Empiler état, salons et activité sans défilement global ; commande, noms de salons et erreurs peuvent revenir à la ligne. Vérifier de 360 à 1440 px, avec les contrôles de 44 px, les champs mobiles à 16 px, le focus visible et le mouvement réduit.
 
-Les contrôles et limites propres à cette évolution sont consignés dans [le rapport du dashboard Discord](discord-dashboard-2026-09-21.md). Les vérifications locales et les exemples fictifs ne remplacent pas un premier envoi réel choisi par une équipe sur son propre serveur.
+Les contrôles et limites propres à cette évolution sont consignés dans [le rapport du dashboard Discord](https://github.com/AshaiiTV/NXT5/blob/1885126e3578d3020b951593caa28254a4a8ea9c/docs/discord-dashboard-2026-09-21.md). Les vérifications locales et les exemples fictifs ne remplacent pas un premier envoi réel choisi par une équipe sur son propre serveur.
 
 #### PNG détaillé du site et synthèse Discord
+
+*Repère chronologique. Les spécifications datées ci-dessous documentent la synthèse historique. Pour produire une publication aujourd’hui, appliquer les dimensions par type de contenu décrites dans [Gabarits de communication](#gabarits-de-communication).*
 
 Évolution autorisée le 24 septembre 2026 : les publications Discord utilisent une synthèse spécifique de **960 px** de large, issue du même snapshot factuel et des mêmes primitives que l’export détaillé du site. Le téléchargement PNG de Games conserve ses **1 440 px** et le détail des dix joueurs. Les exports de groupes et les autres listes volumineuses réunissent toujours toutes leurs sections dans une seule image PNG, sans archive ZIP ni perte de contenu.
 
@@ -703,7 +666,7 @@ Conserver les retours à la ligne pour les noms et métadonnées longs, les unit
 
 Le PNG ne contient ni conseils automatiques, ni verdicts, ni paragraphes de remplissage, ni rubriques « Lecture NXT5 » ou « Piste de review ». L’option de pistes de review contrôle uniquement le texte du message Discord : elle ne réintroduit pas de conseils dans l’image. Les notes privées du staff ne sont pas incluses automatiquement.
 
-Sources : `src/components/discord/`, `shared/publications/`, `netlify/functions/_lib/publication-render.ts` et l’assemblage dans `GameWorkspace.jsx`, `Teams.jsx` et `IntegrationsPage.jsx`. Les contrôles visuels de cette version sont consignés dans [le rapport QA Discord](discord-qa-2026-09-15.md).
+Sources : `src/components/discord/`, `shared/publications/`, `netlify/functions/_lib/publication-render.ts` et l’assemblage dans `GameWorkspace.jsx`, `Teams.jsx` et `IntegrationsPage.jsx`. Les contrôles visuels de cette version sont consignés dans [le rapport QA Discord](https://github.com/AshaiiTV/NXT5/blob/1885126e3578d3020b951593caa28254a4a8ea9c/docs/discord-qa-2026-09-15.md).
 
 ### Grille des tarifs de lancement
 
@@ -813,7 +776,7 @@ Mise en cohérence du 25 septembre 2026 : le parcours se lit **Mon profil > Cham
 - **Enregistrement :** distinguer le brouillon de la version partagée enregistrée. Le brouillon reste en mémoire pendant la navigation dans l’application, avec avertissement de sortie avant fermeture ou rechargement ; il n’est pas une sauvegarde durable. En cas de modification concurrente, conserver la saisie, expliquer le conflit et proposer de copier le brouillon puis de recharger la version enregistrée, sans écrasement silencieux.
 - **Clavier et mobile :** les deux onglets ont des noms, un panneau associé et une sélection annoncée ; les flèches, Début et Fin déplacent la sélection et le focus. Recomposer les lignes, les relevés et les formulaires à la largeur du conteneur, sans débordement global. Garder le focus cyan, les contrôles de 44 px minimum, les champs mobiles à 16 px, les boutons de 2 px et les états vide, chargement, erreur et sauvegarde lisibles.
 
-`src/components/profile/MatchupNotebook.jsx` et `matchup-notebook.css` définissent cette composition. `ParticipantRunes.jsx` et `participant-runes.css` portent les choix de runes et l’ordre des compétences. Le périmètre fonctionnel, les permissions et les limites sont précisés dans [Carnets de matchups](carnets-matchups.md).
+`src/components/profile/MatchupNotebook.jsx` et `matchup-notebook.css` définissent cette composition. `ParticipantRunes.jsx` et `participant-runes.css` portent les choix de runes et l’ordre des compétences. Le périmètre fonctionnel, les permissions et les limites sont précisés dans [Carnets de matchups](https://github.com/AshaiiTV/NXT5/blob/1885126e3578d3020b951593caa28254a4a8ea9c/docs/carnets-matchups.md).
 
 ### Exports PNG
 
@@ -904,3 +867,5 @@ La demande explicite « passe sur tout » prolonge la refonte commune sur toutes
 - Chargement : composition, trois phases et vrai comptage conservés ; titre plafonné à 64 px sur ordinateur et 48 px sur mobile, repères agrandis. Aucun délai ni pourcentage fictif.
 
 Cette passe a été contrôlée dans le navigateur à 360, 390, 768, 1024 et 1440 px avec les vrais composants et des fixtures synthétiques ; voir le rapport pour distinguer parcours systématiques, inspections de captures, interactions et limites. Le harness reste local. La validation de référence reste `npm run verify` (98 suites, 1 738 tests pour cette base).
+
+</details>

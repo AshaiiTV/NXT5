@@ -154,15 +154,6 @@
   box-shadow: none;
   isolation: isolate;
 }
-.nxt5-page-header::before {
-  content: "";
-  position: absolute;
-  inset: -.5rem 0 0 auto;
-  width: min(60%, 30rem);
-  background: radial-gradient(ellipse at center, rgba(139, 92, 246, .17), transparent 70%);
-  pointer-events: none;
-  z-index: -1;
-}
 .nxt5-page-header::after {
   content: "";
   position: absolute;
