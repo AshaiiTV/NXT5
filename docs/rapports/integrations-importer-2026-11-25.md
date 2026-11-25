@@ -1,6 +1,6 @@
 # Export et liaison de l’Importer 0.5.2
 
-L’accueil présente le formulaire d’export sous la photographie Monolithe. Le raccourci de collecte utilise le nom de l’équipe liée et l’état de la collecte. La page Collecte réunit le client LoL, le poste enregistré et l’équipe de destination. L’historique indique le nombre de fichiers disponibles et de résultats pendant la recherche.
+L’accueil présente le formulaire d’export sous la photographie Monolithe. Le raccourci de collecte utilise le nom de l’équipe liée et l’état de la collecte. La page Collecte réunit le client LoL, le poste enregistré et l’équipe de destination. L’historique indique le nombre d’exports enregistrés et de résultats pendant la recherche.
 
 ## Passer de l’application au site
 

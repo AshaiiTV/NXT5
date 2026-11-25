@@ -231,8 +231,8 @@ function renderHistory() {
   );
   const total = appState.history.length;
   $("#historyTotal").textContent = query
-    ? `${items.length} résultat${items.length === 1 ? "" : "s"} sur ${total}`
-    : `${total} fichier${total === 1 ? "" : "s"}`;
+    ? `${items.length} résultat${items.length > 1 ? "s" : ""} sur ${total}`
+    : `${total} export${total > 1 ? "s" : ""}`;
   const list = $("#historyList");
   list.replaceChildren();
   $("#historyEmpty").hidden = items.length > 0;

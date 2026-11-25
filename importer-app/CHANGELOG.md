@@ -2,7 +2,7 @@
 
 - L’accueil réunit la photographie Monolithe et le formulaire d’export. Il donne aussi accès à la collecte et affiche l’équipe liée quand elle est connue.
 - Après un export, le nom du fichier et les données disponibles apparaissent ensemble. « Importer dans NXT5 » ouvre la fenêtre d’import de la bibliothèque de parties.
-- « Obtenir un code sur NXT5 » ouvre les réglages de liaison de l’équipe pour générer un code. La collecte affiche le client LoL, le poste et l’équipe destinataire. L’historique indique le nombre de fichiers ou de résultats de recherche.
+- « Obtenir un code sur NXT5 » ouvre les réglages de liaison de l’équipe pour générer un code. La collecte affiche le client LoL, le poste et l’équipe destinataire. L’historique indique le nombre d’exports ou de résultats de recherche.
 
 # NXT5 Importer 0.5.1 — Charte Prisme 4.0
 
