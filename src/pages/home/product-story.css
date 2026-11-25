@@ -17,6 +17,7 @@
   z-index: -1;
   pointer-events: none;
   background: radial-gradient(ellipse at 80% 30%, #8b5cf614, transparent 65%);
+  mask-image: linear-gradient(to bottom, transparent, #000 12%, #000 85%, transparent);
 }
 /* Keep role colors available in prerendered HTML under the production CSP. */
 .ps-story [data-role="TOP"] { --ps-role-color: #67e8f9; }
