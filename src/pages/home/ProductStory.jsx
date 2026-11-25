@@ -14,7 +14,7 @@ import {
   Swords,
   Users,
 } from "lucide-react";
-import { RoleIcon } from "../../components/brand/BrandAssets.jsx";
+import { MonolithePicture, RoleIcon } from "../../components/brand/BrandAssets.jsx";
 import { DemoMatchSummary } from "../../pages/public/DemoMatchSummary.jsx";
 import { Badge } from "../../components/ui/Core.jsx";
 import { DEMO_MATCHES } from "../../pages/public/demo-data.js";
@@ -548,10 +548,13 @@ export default function ProductStory({ reduced = false, motionEnabled = true, na
         aria-labelledby="ps-product-title"
         tabIndex={-1}
       >
-        <div className="ps-section-heading">
-          <h2 id="ps-product-title">{t("La suite se joue ensemble.")}</h2>
-          <p>{t("Du débrief au prochain entraînement.")}</p>
-        </div>
+        <header className="ps-section-heading">
+          <div>
+            <h2 id="ps-product-title">{t("La suite se joue ensemble.")}</h2>
+            <p>{t("Du débrief au prochain entraînement.")}</p>
+          </div>
+          <MonolithePicture sizes="(max-width: 700px) calc(100vw - 32px), (max-width: 1499px) 52vw, 800px" />
+        </header>
         <div
           className="ps-chapters"
           role="group"

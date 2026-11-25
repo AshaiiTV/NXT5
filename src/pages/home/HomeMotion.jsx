@@ -343,14 +343,13 @@ export default function HomeMotion({ navigate }) {
           <div className="hm-sticky">
             <div className="hm-atmosphere" aria-hidden="true" />
             <div className="hm-horizon" aria-hidden="true" />
-            <div className="hm-outline-wrap">
-              <OutlineMark />
-            </div>
-            <div
-              className="hm-glass-wrap"
-              aria-hidden="true"
-            >
-              <GlassScene className="hm-glass-scene" motionEnabled={!reduced} priority />
+            <div className="hm-signature-stage" aria-hidden="true">
+              <div className="hm-outline-wrap">
+                <OutlineMark />
+              </div>
+              <div className="hm-glass-wrap">
+                <GlassScene className="hm-glass-scene" motionEnabled={!reduced} priority />
+              </div>
             </div>
             <div className="hm-clouds-front" aria-hidden="true" />
             <div className="hm-ground-shade" aria-hidden="true" />
@@ -400,26 +399,26 @@ export default function HomeMotion({ navigate }) {
                 {t("Construisez les réponses ensemble.")}
               </div>
             </div>
+            <Button
+              className="hm-motion-toggle"
+              variant="ghost"
+              aria-pressed={paused}
+              onClick={toggleMotion}
+              disabled={systemReduced || lowGpu || motionUnavailable}
+              icon={reduced ? Play : Pause}
+            >
+              <span className="hm-motion-label">{systemReduced || lowGpu || motionUnavailable
+                ? t("Mouvement réduit")
+                : paused
+                  ? t("Activer les animations")
+                  : t("Réduire les animations")}</span>
+            </Button>
           </div>
         </section>
 
         <ProductStory reduced={reduced || shortViewport} motionEnabled={!reduced} navigate={navigate} />
       </main>
       <LegalLinks navigate={navigate} />
-      <Button
-        className="hm-motion-toggle"
-        variant="ghost"
-        aria-pressed={paused}
-        onClick={toggleMotion}
-        disabled={systemReduced || lowGpu || motionUnavailable}
-        icon={reduced ? Play : Pause}
-      >
-        <span className="hm-motion-label">{systemReduced || lowGpu || motionUnavailable
-          ? t("Mouvement réduit")
-          : paused
-            ? t("Activer les animations")
-            : t("Réduire les animations")}</span>
-      </Button>
     </div>
   );
 }

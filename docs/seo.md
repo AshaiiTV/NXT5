@@ -6,7 +6,7 @@ Ce guide décrit la présentation publique et les contrôles de référencement 
 
 L’accueil garde son accroche et explique le rôle de NXT5 dans le travail d’une équipe. `/fonctionnalites` détaille l’analyse, les débriefs, la préparation des champions, le planning et le partage Discord. Ces descriptions correspondent aux capacités de cette version ; elles n’annoncent ni clients professionnels, ni bénéfices sportifs mesurés, ni offre commerciale activée.
 
-La [charte unique](charte-graphique.md) reste la référence. Ne pas en créer de copie. La carte `public/og-nxt5.png` utilise la signature soudée (`public/assets/brand/prisme/nxt5-soude-interface-640.png`), le 5 en verre de l’accueil et Inter locale. Les favicons, icônes d’installation et le logo des données structurées viennent de `node tools/prisme/build-soude-signature.mjs` puis `node tools/prisme/build-assets.mjs`. Pour régénérer la carte :
+La [charte unique](charte-graphique.md) reste la référence. Ne pas en créer de copie. La carte de partage `public/og-nxt5.png` reprend la photographie Monolithe à la lumière adoucie. Son accroche en Chakra Petch italique occupe le ciel sombre au-dessus du logo. La même image de 1 200 × 630 px sert à Open Graph et aux cartes Twitter. Les favicons, icônes d’installation et le logo des données structurées viennent de `node tools/prisme/build-soude-signature.mjs` puis `node tools/prisme/build-assets.mjs`. Pour régénérer la carte :
 
 ```sh
 node tools/generate-social-card.mjs

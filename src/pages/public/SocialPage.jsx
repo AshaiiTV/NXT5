@@ -5,7 +5,8 @@ import { NXT5_CONTACT_EMAIL } from "../../../shared/legal.js";
 import { ArrowRight, ArrowUpRight, Camera, LifeBuoy, MessageCircle, Play, Radio, Shield, Users } from "lucide-react";
 import { getSocialLinks } from "../../app/social-links.js";
 import { AmbientBackground } from "../../components/layout/AppChrome.jsx";
-import { Badge, PageHeader, Surface } from "../../components/ui/Core.jsx";
+import { MonolithePicture } from "../../components/brand/BrandAssets.jsx";
+import { PageHeader, Surface } from "../../components/ui/Core.jsx";
 import { LegalLinks, LinkButton, PublicInformationNav, PublicTextLink, SiteHeader } from "./PublicChrome.jsx";
 
 const COMMUNITY_USES = [
@@ -31,25 +32,20 @@ export default function SocialPage({ navigate, user }) {
       </SiteHeader>
       <main className="nxt5-information-main">
         <PublicInformationNav navigate={navigate} activePath="/reseaux" />
-        <header className="nxt5-information-hero nxt5-enter">
-          <Badge tone="info">{t("La communauté NXT5")}</Badge>
-          <h1 className="nxt5-metal-text">{t("Communauté NXT5")}</h1>
-          <p>{t("Retrouve NXT5 sur Discord, YouTube et Instagram.")}</p>
-        </header>
-
-        {discord && <Surface glow className="nxt5-community-feature nxt5-enter">
-          <div className="nxt5-community-layout">
-            <div className="nxt5-community-intro">
-              <div className="nxt5-community-platform"><MessageCircle aria-hidden="true" size={24} /><span>{t("Discord officiel")}</span></div>
-              <h2>{t("Rejoins la communauté")}<br />{t("sur Discord.")}</h2>
+        <header className="nxt5-community-hero" aria-labelledby="community-title">
+          <div className="nxt5-community-copy">
+            <h1 id="community-title">{t("Communauté NXT5")}</h1>
+            {discord && <>
               <p>{t(discord.description)}</p>
               <LinkButton href={discord.href} target="_blank" icon={ArrowUpRight} aria-describedby="social-new-tab">{t("Rejoindre le Discord")}</LinkButton>
-            </div>
-            <ul className="nxt5-community-uses">{COMMUNITY_USES.map(([Icon, title, text]) => (
-              <li key={title}><Icon aria-hidden="true" size={22} /><div><h3>{t(title)}</h3><p>{t(text)}</p></div></li>
-            ))}</ul>
+            </>}
           </div>
-        </Surface>}
+          <MonolithePicture sizes="(max-width: 767px) calc(100vw - 2rem), (max-width: 1279px) 56vw, 710px" loading="eager" />
+        </header>
+
+        {discord && <ul className="nxt5-community-uses" aria-label={t("Discord officiel")}>{COMMUNITY_USES.map(([Icon, title, text]) => (
+          <li key={title}><Icon aria-hidden="true" size={22} /><div><h2>{t(title)}</h2><p>{t(text)}</p></div></li>
+        ))}</ul>}
 
         {!!otherNetworks.length && <section className="nxt5-other-networks" aria-labelledby="other-networks-title">
           <h2 id="other-networks-title">{t("Les vidéos et les actualités NXT5")}</h2>

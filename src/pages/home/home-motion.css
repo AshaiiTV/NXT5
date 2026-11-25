@@ -1,5 +1,6 @@
 .hm-page {
   --hm-gutter: clamp(16px, 4.3vw, 88px);
+  --hm-header-scrolled-height: 82px;
   background: var(--nxt5-bg);
   color: var(--nxt5-text);
   overflow: clip;
@@ -64,7 +65,7 @@
   transition: background 0.3s;
 }
 .hm-header.is-scrolled {
-  min-height: 82px;
+  min-height: var(--hm-header-scrolled-height);
   padding-block: 15px;
   background: #070a14;
   border-bottom: 1px solid var(--nxt5-border);
@@ -126,12 +127,12 @@
   top: 0;
   isolation: isolate;
   overflow: hidden;
-  background: #0d1234;
+  background: var(--nxt5-bg);
 }
 .hm-atmosphere {
   position: absolute;
   inset: -4%;
-  background: radial-gradient(ellipse at 75% 48%, #27205c 0%, #141843 39%, #0c1230 74%, #080e25 100%);
+  background: radial-gradient(ellipse at 73% 53%, #282440 0%, #15162e 38%, var(--nxt5-bg) 76%);
   will-change: transform;
   z-index: 0;
 }
@@ -148,11 +149,23 @@
   pointer-events: none;
   z-index: 1;
 }
+.hm-horizon::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 12%;
+  height: 26%;
+  background: url("/assets/brand/prisme/monolithe-eau.webp") center / cover no-repeat;
+  mask-image: linear-gradient(transparent, #000 28%, #000 66%, transparent);
+  opacity: .58;
+}
+.hm-signature-stage {
+  display: contents;
+}
 .hm-outline-wrap {
   position: absolute;
-  left: 5%;
-  top: 30%;
-  width: 60%;
+  left: 4%;
+  top: 33%;
+  width: 66%;
   z-index: 2;
   will-change: transform, opacity;
   transform-origin: 80% 50%;
@@ -169,10 +182,11 @@
 .hm-glass-wrap {
   position: absolute;
   z-index: 3;
-  width: 51%;
-  height: 80%;
-  right: -1%;
-  top: 3%;
+  width: 40%;
+  height: 58%;
+  right: 0;
+  top: 15%;
+  margin-right: 0;
   will-change: transform, opacity;
   transform-origin: 55% 58%;
 }
@@ -232,15 +246,16 @@
   color: #c4b5fd;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  letter-spacing: .025em;
   margin-bottom: 13px !important;
 }
 .hm-intro h1 {
-  font-size: clamp(27px, 2.65vw, 48px);
-  font-weight: 500;
-  letter-spacing: -0.035em;
-  line-height: 1.18;
+  font-family: var(--nxt5-font-display);
+  font-style: italic;
+  font-size: clamp(48px, 4.4vw, 76px);
+  font-weight: 600;
+  letter-spacing: -.035em;
+  line-height: 1.04;
 }
 .hm-intro-actions {
   display: flex;
@@ -309,6 +324,8 @@
   pointer-events: none;
 }
 .hm-manifesto > p {
+  font-family: var(--nxt5-font-display);
+  font-style: italic;
   font-size: clamp(56px, 8.3vw, 144px);
   line-height: 1.08;
   font-weight: 600;
@@ -337,7 +354,7 @@
   opacity: 0;
 }
 .hm-motion-toggle.nxt5-cyber-button {
-  position: fixed;
+  position: absolute;
   right: 18px;
   bottom: 16px;
   z-index: 50;
@@ -382,15 +399,8 @@
   will-change: auto;
 }
 @media (min-width: 1800px) {
-  .hm-outline-wrap {
-    top: 29%;
-  }
   .hm-intro {
     bottom: 10%;
-  }
-  .hm-glass-wrap {
-    top: 1%;
-    height: 85%;
   }
 }
 @media (max-width: 1000px) {
@@ -412,28 +422,18 @@
     gap: 25px;
   }
   .hm-intro h1 {
-    font-size: 30px;
+    font-size: clamp(40px, 5vw, 50px);
   }
   .hm-primary {
     gap: 24px;
     font-size: 14px;
     padding: 15px 20px;
   }
-  .hm-outline-wrap {
-    top: 33%;
-    width: 66%;
-    left: 4%;
-  }
-  .hm-glass-wrap {
-    height: 69%;
-    top: 7%;
-    width: 56%;
-    right: -5%;
-  }
 }
 @media (max-width: 700px) {
   .hm-page {
     --hm-gutter: 24px;
+    --hm-header-scrolled-height: 78px;
   }
   .hm-header {
     gap: 12px;
@@ -469,9 +469,6 @@
   .hm-header.is-scrolled nav > a:not(.hm-demo-link) {
     display: none;
   }
-  .hm-header.is-scrolled {
-    min-height: 78px;
-  }
   .hm-header.is-scrolled nav {
     max-width: calc(100% - 96px);
   }
@@ -485,17 +482,6 @@
   .hm-atmosphere {
     inset: -2% -65%;
     background-position: center;
-  }
-  .hm-outline-wrap {
-    width: 94%;
-    left: -3%;
-    top: 31%;
-  }
-  .hm-glass-wrap {
-    width: 77%;
-    height: 56%;
-    top: 7%;
-    right: -19%;
   }
   .hm-clouds-front {
     inset: 0 -65%;
@@ -514,18 +500,22 @@
       var(--nxt5-bg) 100%
     );
   }
+  .hm-horizon::after {
+    bottom: 30%;
+    height: 18%;
+    opacity: .43;
+  }
   .hm-intro {
     bottom: 11%;
     display: block;
   }
   .hm-signature {
-    font-size: 9px;
-    letter-spacing: 0.18em;
+    font-size: 13px;
     margin-bottom: 13px !important;
   }
   .hm-intro h1 {
-    font-size: clamp(27px, 6.8vw, 40px);
-    line-height: 1.2;
+    font-size: clamp(36px, 7.3vw, 44px);
+    line-height: 1.06;
   }
   .hm-intro-actions {
     align-items: flex-start;
@@ -539,7 +529,7 @@
     padding: 14px 20px;
   }
   .hm-intro-actions p {
-    font-size: 10px;
+    font-size: 13px;
   }
   .hm-scroll-cue {
     bottom: 3%;
@@ -577,9 +567,6 @@
   .hm-page {
     --hm-gutter: 19px;
   }
-  .hm-intro h1 {
-    font-size: 25px;
-  }
   .hm-primary {
     gap: 22px;
   }
@@ -610,21 +597,11 @@
   .hm-sticky {
     min-height: 560px;
   }
-  .hm-outline-wrap {
-    top: 27%;
-    width: 56%;
-  }
-  .hm-glass-wrap {
-    height: 81%;
-    width: 42%;
-    right: 5%;
-    top: 0;
-  }
   .hm-intro {
     bottom: 9%;
   }
   .hm-intro h1 {
-    font-size: 26px;
+    font-size: clamp(32px, 3.5vw, 44px);
   }
   .hm-signature {
     font-size: 10px;
@@ -644,14 +621,6 @@
     bottom: 2%;
   }
 }
-/* Keep the sculptural 5 close to the wordmark while exposing the T. */
-.hm-glass-wrap {
-  width: 40%;
-  right: 0%;
-  top: 15%;
-  height: 58%;
-  margin-right: 0;
-}
 @media (max-width: 700px) {
   .hm-outline path {
     stroke-width: 1.5px;
@@ -666,7 +635,6 @@
     right: -5%;
     top: 11%;
     height: 65%;
-    margin-right: 0;
   }
   .hm-scroll-cue {
     bottom: 4.5%;
@@ -687,13 +655,6 @@
   .hm-intro {
     top: 55%;
     bottom: auto;
-  }
-}
-@media (max-height: 680px) and (min-width: 701px) {
-  .hm-glass-wrap {
-    right: 0%;
-    top: 4%;
-    height: 77%;
   }
 }
 @media (max-width: 340px) {
@@ -730,16 +691,7 @@
   .hm-short .hm-sticky {
     height: max(390px, 100svh);
   }
-  .hm-short .hm-outline-wrap {
-    width: 54%;
-    top: 28%;
-  }
   .hm-short .hm-glass-wrap {
-    width: 34%;
-    right: 12%;
-    top: 10%;
-    height: 45%;
-    scale: .8;
     transform-origin: 50% 100%;
   }
   .hm-short .hm-intro {
@@ -749,7 +701,7 @@
     gap: 25px;
   }
   .hm-short .hm-intro h1 {
-    font-size: 22px;
+    font-size: clamp(28px, 4vw, 36px);
   }
   .hm-short .hm-signature {
     font-size: 9px;
@@ -773,7 +725,41 @@
   }
 }
 
-/* A full-width floating label must not obscure product copy on small screens. */
+/* Both renderers share one aspect ratio: drifting the model on scroll is
+   independent from the resting joint between the glass and the bar of the T. */
+@media (min-width: 701px), (min-width: 600px) and (max-height: 600px) {
+  .hm-signature-stage {
+    display: block;
+    position: absolute;
+    z-index: 3;
+    width: min(94vw, 156svh);
+    aspect-ratio: 3.25;
+    left: 53%;
+    top: 43%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .hm-signature-stage .hm-outline-wrap {
+    left: 0;
+    top: auto;
+    bottom: 8%;
+    width: 71.5%;
+  }
+  .hm-signature-stage .hm-glass-wrap {
+    inset: auto auto 2.5% 60%;
+    width: 34%;
+    height: 100%;
+    scale: none;
+  }
+}
+@media (min-width: 600px) and (max-height: 600px) {
+  .hm-short .hm-signature-stage {
+    top: 41%;
+    width: min(80vw, 134svh);
+  }
+}
+
+/* Keep the motion control compact on phones and short screens. */
 @media (max-width: 700px), (max-height: 600px) {
   .hm-motion-toggle.nxt5-cyber-button {
     width: 44px;
