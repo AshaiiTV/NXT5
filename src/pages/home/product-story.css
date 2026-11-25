@@ -88,7 +88,10 @@
 }
 .ps-section-heading picture {
   display: block;
-  mask-image: linear-gradient(to right, transparent, #000 7%, #000 97%, transparent);
+  mask-image:
+    linear-gradient(to right, transparent, #000 7%, #000 97%, transparent),
+    linear-gradient(to bottom, transparent, #000 7%, #000 89%, transparent);
+  mask-composite: intersect;
 }
 .ps-section-heading h2 {
   max-width: 14ch;
