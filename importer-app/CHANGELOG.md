@@ -1,3 +1,8 @@
+# NXT5 Importer 0.5.1 — Charte Prisme 4.0
+
+- Les reflets de Monolithe accompagnent la signature NXT5 dans la navigation. Les quatre espaces de travail adoptent des titres plus lisibles et des panneaux bleu nuit opaques.
+- L’aide et les erreurs d’export apparaissent sous l’identifiant de partie. La collecte distingue ses phases par un libellé et une pastille. Le statut du client LoL reste lisible en fenêtre étroite.
+
 # NXT5 Importer 0.5.0 — Mises à jour automatiques
 
 - Les nouvelles versions se téléchargent toutes seules en arrière-plan. Quand elles sont prêtes, un bouton « Redémarrer pour mettre à jour » les installe ; sinon elles s’installent à la prochaine fermeture.

@@ -110,12 +110,14 @@ function renderCollector(snapshot) {
     $("#collectExpires").textContent = Number.isFinite(expires.getTime()) ? longDate.format(expires) : "—";
   }
   const toggle = $("#collectToggle");
-  toggle.replaceChildren(document.createTextNode(snapshot.active ? "Arrêter la collecte" : "Activer la collecte"), icon(snapshot.active ? "check" : "arrow"));
+  toggle.replaceChildren(document.createTextNode(snapshot.active ? "Arrêter la collecte" : "Activer la collecte"), icon(snapshot.active ? "stop" : "arrow"));
   toggle.classList.toggle("primary", !snapshot.active);
   toggle.disabled = collectorBusy || Boolean(snapshot.link?.invalidReason);
   const phases = { idle: "Collecte arrêtée.", starting: "Démarrage…", "no-client": snapshot.clientMessage, watching: snapshot.clientMessage || "En attente d’une custom.", "in-game": `Partie en cours (${snapshot.currentGame}). Elle sera envoyée à la fin.`, capturing: `${snapshot.clientMessage} ${snapshot.currentGame}`.trim() };
   const phase = phases[snapshot.phase] || snapshot.clientMessage || "Collecte arrêtée.";
-  if ($("#collectPhase").textContent !== phase) $("#collectPhase").textContent = phase;
+  const phaseLabel = $("#collectPhase");
+  phaseLabel.dataset.phase = snapshot.phase;
+  if (phaseLabel.textContent !== phase) phaseLabel.textContent = phase;
   const count = $("#collectCount");
   count.hidden = !snapshot.pending;
   count.textContent = String(snapshot.pending);
