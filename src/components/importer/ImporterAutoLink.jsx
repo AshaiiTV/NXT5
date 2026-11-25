@@ -102,7 +102,7 @@ export function ImporterQueue({ importer, canManage, onFinalize }) {
   </>;
 }
 
-export function ImporterLinkDisclosure({ importer, ...settings }) {
+export function ImporterLinkDisclosure({ importer, openFromLink = false, ...settings }) {
   useLanguage();
   const connected = importer.links.filter((link) => link.status === "connected").length;
   let status = t("Aucun ordinateur lié");
@@ -112,7 +112,7 @@ export function ImporterLinkDisclosure({ importer, ...settings }) {
   else if (connected > 1) status = t("{0} ordinateurs liés", [connected]);
   else if (importer.links.length) status = t("Code en attente dans l’Importer");
 
-  return <ReadingDetails className="importer-link-settings" title={<><Monitor aria-hidden="true" />{t("Liaison avec l’Importer")}</>} description={status}>
+  return <ReadingDetails className="importer-link-settings" open={openFromLink || undefined} title={<><Monitor aria-hidden="true" />{t("Liaison avec l’Importer")}</>} description={status}>
     <ImporterLinkSettings importer={importer} {...settings} />
   </ReadingDetails>;
 }

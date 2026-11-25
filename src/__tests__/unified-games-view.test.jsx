@@ -354,8 +354,44 @@ describe("unified Games workspace", () => {
     const dialog = renderer.root.findByType("dialog");
     const linkSummary = dialog.findAllByType("summary").find((node) => text(node).includes("Liaison avec l’Importer"));
     expect(linkSummary).toBeDefined();
+    expect(linkSummary.parent.props.open).toBeFalsy();
     expect(text(linkSummary)).toContain("Aucun ordinateur lié");
     expect(text(dialog)).toContain("Lier NXT5 Importer");
+  });
+
+  it("opens device pairing from the desktop link and clears the link intent on close", async () => {
+    const renderer = await mount("/games?import=1&liaison=1");
+    const disclosure = () => renderer.root.findByType("dialog").findAllByType("details").find((node) => node.props.className.includes("importer-link-settings"));
+    expect(disclosure().props.open).toBe(true);
+    expect(button(renderer, "Lier NXT5 Importer")).toBeTruthy();
+    expect(apiFetch.mock.calls.some(([endpoint]) => endpoint === "team-import-link" || endpoint === "matches-import-file")).toBe(false);
+    await click(renderer, "Fermer la fenêtre");
+    expect(window.location.search).toBe("");
+    await click(renderer, "Importer une partie");
+    expect(disclosure().props.open).toBeFalsy();
+  });
+
+  it("keeps pairing read-only for a player using the desktop link", async () => {
+    const renderer = await mount("/games?import=1&liaison=1", { ...settings(), currentMember: { team_id: "team", user_id: "player", role: "player" }, user: { id: "player" } });
+    expect(text(renderer.root.findByType("dialog"))).toContain("Le staff de l’équipe peut lier NXT5 Importer");
+    expect(button(renderer, "Lier NXT5 Importer")).toBeUndefined();
+    expect(button(renderer, "Choisir mon fichier")).toBeUndefined();
+    expect(apiFetch.mock.calls.some(([endpoint]) => endpoint === "team-import-link" || endpoint === "matches-import-file")).toBe(false);
+  });
+
+  it.each(["view=teams&import=1", "match=one&import=1", "archive=block&import=1", ""])("ignores stale pairing intent outside the import dialog (%s)", async (search) => {
+    const renderer = await mount(`/games?liaison=1&${search}`);
+    expect(renderer.root.findAllByType("dialog")).toHaveLength(0);
+    expect(apiFetch.mock.calls.some(([endpoint]) => endpoint === "team-import-link" || endpoint === "matches-import-file")).toBe(false);
+  });
+
+  it("offers team selection when a desktop link is opened without a team", async () => {
+    const props = settings();
+    const renderer = await mount("/games?import=1&liaison=1", { ...props, data: { ...props.data, teams: [] }, selectedTeamId: null, currentMember: null });
+    const dialog = renderer.root.findByType("dialog");
+    expect(text(dialog)).toContain("Choisis ton équipe");
+    expect(dialog.findByType("a").props.href).toBe("/mon-equipe");
+    expect(apiFetch.mock.calls.some(([endpoint]) => endpoint.startsWith("team-import-link") || endpoint === "matches-import-file")).toBe(false);
   });
 
   it.each([

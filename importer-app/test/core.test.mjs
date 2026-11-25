@@ -503,21 +503,38 @@ test("updates choose the exact CPU architecture and only verified repository ass
   );
 });
 
-test("external navigation accepts the configured site and release pages, rejects unrelated hosts and schemes", () => {
-  assert.equal(
-    safeExternalUrl("https://nxt5.org/integration", "https://nxt5.org"),
-    "https://nxt5.org/integration",
-  );
+test("external navigation opens only the three Importer destinations on the configured site and official releases", () => {
+  const site = "https://nxt5.org";
+  const preview = "https://preview.nxt5.test";
+  for (const origin of [site, preview]) {
+    for (const path of ["/games", "/games?import=1", "/games?import=1&liaison=1"]) {
+      assert.equal(safeExternalUrl(origin + path, origin), origin + path);
+    }
+  }
+  const releases = "https://github.com/AshaiiTV/NXT5/releases";
+  for (const file of ["NXT5-Importer-Windows-1.2.3.exe", "NXT5-Importer-Mac-arm64-1.2.3.zip", "NXT5-Importer-Mac-x64-1.2.3.zip"]) {
+    const asset = releases + "/download/nxt5-match-exporter-latest/" + file;
+    assert.equal(safeExternalUrl(asset, site), asset);
+    assert.equal(safeExternalUrl(asset + "?download=1", site), asset + "?download=1");
+  }
+  assert.equal(safeExternalUrl(releases + "/tag/nxt5-match-exporter-latest", site), releases + "/tag/nxt5-match-exporter-latest");
   for (const url of [
-    "http://nxt5.org",
+    "http://nxt5.org/games",
     "file:///etc/passwd",
-    "https://nxt5.org.evil.test",
-    "https://evil.test@nxt5.org",
+    "https://nxt5.org.evil.test/games",
+    "https://evil.test@nxt5.org/games",
     "https://github.com/other/project",
     "https://github.com/AshaiiTV/NXT5/releasesEvil",
-    "https://nxt5.org:444",
+    "https://nxt5.org:444/games",
+    preview + "/games",
+    site + "/integration",
+    site + "/admin",
+    site + "/.netlify/functions/team-import-link",
+    site + "/games?import=1&next=https://elsewhere.test",
+    site + "/games?import=1&liaison=1&team=another-team",
+    site + "/games#anything",
   ])
-    assert.equal(safeExternalUrl(url, "https://nxt5.org"), "");
+    assert.equal(safeExternalUrl(url, site), "");
 });
 
 test("exactly one winner is required on either side", () => {

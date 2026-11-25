@@ -596,13 +596,16 @@ export function selectUpdate(payload, currentVersion, platform, arch) {
   };
 }
 
+const EXTERNAL_SITE_PATHS = ["/games", "/games?import=1", "/games?import=1&liaison=1"];
+
 export function safeExternalUrl(value, siteUrl) {
   try {
     const url = new URL(String(value));
     const site = new URL(siteUrl);
     if (url.protocol !== "https:" || url.username || url.password || url.port)
       return "";
-    if (url.origin === site.origin) return url.href;
+    if (url.origin === site.origin)
+      return EXTERNAL_SITE_PATHS.some((path) => url.href === site.origin + path) ? url.href : "";
     if (
       url.hostname === "github.com" &&
       (url.pathname === "/AshaiiTV/NXT5" ||

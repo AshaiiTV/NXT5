@@ -1396,13 +1396,13 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   const query = new URLSearchParams(route?.search ?? window.location.search);
   const urlMatchId = query.get("match") || "";
   const urlArchiveId = query.get("archive") || "";
-  const urlImportOpen = query.get("import") === "1";
   const legacyOpponentPath = route?.path === "/draft/adversaires";
   const urlView = query.get("view") === "groups" || urlArchiveId ? "groups" : query.get("view") === "teams" || legacyOpponentPath ? "teams" : "games";
+  const urlImportOpen = query.get("import") === "1" && !urlMatchId && !urlArchiveId && urlView !== "teams";
   const [selectedMatchId, setSelectedMatchId] = useState(urlMatchId);
   const [selectedArchiveId, setSelectedArchiveId] = useState(urlArchiveId);
   const selectedArchive = archives.find((archive) => String(archive.id) === String(selectedArchiveId));
-  const [importOpen, setImportOpen] = useState(urlImportOpen && !urlMatchId && !urlArchiveId);
+  const [importOpen, setImportOpen] = useState(urlImportOpen);
   const [receivedImport, setReceivedImport] = useState(null);
   const [importBusy, setImportBusy] = useState(false);
   const [importDirty, setImportDirty] = useState(false);
@@ -1463,13 +1463,14 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
   useEffect(() => {
     setSelectedMatchId(urlMatchId);
     setSelectedArchiveId(urlArchiveId);
-    setImportOpen(urlImportOpen && !urlMatchId && !urlArchiveId);
+    setImportOpen(urlImportOpen);
     setWorkspaceView(urlView);
   }, [urlMatchId, urlArchiveId, urlImportOpen, urlView]);
 
   function updateLocation(changes) {
     if ("match" in changes || "archive" in changes) changes = { ...changes, import: "" };
     const next = new URLSearchParams(window.location.search);
+    if ("import" in changes) next.delete("liaison");
     Object.entries(changes).forEach(([key, value]) => value ? next.set(key, value) : next.delete(key));
     if ("match" in changes) setSelectedMatchId(changes.match || "");
     if ("archive" in changes) setSelectedArchiveId(changes.archive || "");
@@ -1619,7 +1620,7 @@ function Statistics({ data, selectedTeamId, refreshAll, pushToast, currentMember
         {!importer.links.length && !importer.error && !importer.loading && <p className="importer-auto-hint">{t("Aucune liaison active. Le staff de l’équipe peut lier NXT5 Importer depuis cette page.")}</p>}
         <ImporterLinkSettings importer={importer} canManage={false} />
       </> : <ImportGameFlow data={data} selectedTeamId={selectedTeamId} refreshAll={refreshAll} pushToast={pushToast} currentMember={currentMember} user={user} onImported={finishImport} onBusyChange={setImportBusy} onDirtyChange={setImportDirty} receivedImport={receivedImport} onReceivedImportConsumed={() => setReceivedImport(null)}>
-        <ImporterLinkDisclosure importer={importer} canManage={canImport} categories={matchCategories} />
+        <ImporterLinkDisclosure importer={importer} canManage={canImport} categories={matchCategories} openFromLink={urlImportOpen && query.get("liaison") === "1"} />
       </ImportGameFlow>}
     </GameOperationDialog>}
     {showImportActions && selectedTeamId && !importOpen && <ImporterQueue importer={importer} canManage={canImport} onFinalize={(payload, submission) => { setReceivedImport({ payload, submission }); updateLocation({ import: "1" }); }} />}
