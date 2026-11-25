@@ -1,6 +1,6 @@
 # Import automatique des parties
 
-Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible dans Parties → Importer une partie → Liaison avec l’Importer, et de l’onglet « Collecte automatique » de NXT5 Importer (introduit en 0.4.0, version actuelle 0.4.9). Le code est sur `main` (#238, puis #277 pour la réunion avec l’import de partie et #294 pour la collecte réservée aux customs) ; aucun compte rendu du pilote sur une vraie custom (ci-dessous) n’est consigné dans le dépôt.
+Guide d’exploitation de la liaison entre NXT5 Importer et une équipe, visible dans Parties → Importer une partie → Liaison avec l’Importer, et de l’onglet « Collecte automatique » de NXT5 Importer (introduit en 0.4.0). Le code est sur `main` (#238, puis #277 pour la réunion avec l’import de partie et #294 pour la collecte réservée aux customs) ; aucun compte rendu du pilote sur une vraie custom (ci-dessous) n’est consigné dans le dépôt.
 
 ## Parcours
 

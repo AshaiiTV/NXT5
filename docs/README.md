@@ -90,6 +90,7 @@ Un nouveau rapport s’écrit dans `docs/rapports/<sujet>-AAAA-MM-JJ.md` et s’
 
 | Date | Rapport |
 | --- | --- |
+| 2026-11-25 | [Prisme dans l’Importer 0.5.1](rapports/prisme-importer-2026-11-25.md) |
 | 2026-11-25 | [Prisme et Monolithe sur le site](rapports/prisme-monolithe-site-2026-11-25.md) |
 | 2026-11-24 | [Rangement de la documentation](rapports/rangement-documentation-2026-11-24.md) |
 | 2026-11-24 | [Nettoyage du code sans effet sur le site](rapports/nettoyage-code-2026-11-24.md) |

@@ -122,7 +122,7 @@ Ne pas partager les identifiants de production avec les Deploy Previews.
 
 ## NXT5 Importer
 
-Le dossier `importer-app/` contient **NXT5 Importer 0.4.9** pour Windows, Mac Intel et Mac Apple Silicon ([changements](importer-app/CHANGELOG.md), [validation Electron](importer-app/docs/testing.md)).
+Le dossier `importer-app/` contient **NXT5 Importer 0.5.1** pour Windows, Mac Intel et Mac Apple Silicon ([changements](importer-app/CHANGELOG.md), [validation Electron](importer-app/docs/testing.md)).
 
 - **Exporter** : saisir le numéro de la partie ou un identifiant complet (`EUW1_7861632138`), puis enregistrer le fichier JSON. L’application interroge d’abord NXT5/Riot, puis le client League of Legends local. Dans NXT5, **Parties → Importer une partie** charge ce fichier, fait confirmer côté, postes et joueurs, puis l’ajoute à l’équipe.
 - **Collecte automatique** : liée à une équipe par un code à usage unique généré dans NXT5, elle envoie seule chaque partie personnalisée observée dans le client ; les autres parties restent sur l’ordinateur ([guide](docs/import-automatique.md)).
